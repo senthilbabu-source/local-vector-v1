@@ -4,7 +4,11 @@ import { createMiddlewareClient } from '@/lib/supabase/middleware';
 const PROTECTED_PREFIXES = ['/dashboard'];
 const AUTH_PREFIXES = ['/login', '/register'];
 
-export async function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
+  return handleProxy(request);
+}
+
+async function handleProxy(request: NextRequest) {
   const { supabase, response } = createMiddlewareClient(request);
 
   // IMPORTANT: Use getUser(), NOT getSession().
