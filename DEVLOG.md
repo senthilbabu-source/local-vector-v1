@@ -2,6 +2,43 @@
 
 ---
 
+## 2026-02-18 — Phase 3: Core Dashboard Data & RLS Integration (started)
+
+**Context:** Phase 2 (Auth UI & Middleware) complete and manually tested. Beginning Phase 3: replacing all static placeholders in the dashboard with real RLS-scoped data from the local Supabase instance.
+
+**Scope:**
+- `lib/auth.ts` — bug-fixed and extended: both `getAuthContext()` and `getSafeAuthContext()` previously queried `memberships.user_id = auth.uid()` which is wrong — `memberships.user_id` references `public.users.id`, a different UUID. Fixed by adding a preceding `public.users` lookup via `auth_provider_id = auth.uid()`, then using the resolved `public.users.id` for the membership join. Also added `fullName: string | null` to `SafeAuthContext`.
+- `app/dashboard/layout.tsx` — sidebar now shows the real `full_name` and `email` from the auth context instead of the email-prefix fallback.
+- `app/dashboard/page.tsx` — "Welcome back" uses the user's actual first name; stat cards now show live counts from `ai_hallucinations`, `magic_menus`, and `locations` fetched via `createClient()` (user-session, RLS-scoped — not service role).
+
+**Architectural decisions:**
+- Count queries use `supabase.select('*', { count: 'exact', head: true })` — Postgres returns only the `count` header with no row data, keeping payloads tiny.
+- All three counts are fetched in parallel via `Promise.all` to minimise page render latency.
+- Graceful fallback: if a count query errors or returns null (e.g. newly registered user with no data yet), the displayed value falls back to `0` rather than crashing.
+- The `full_name` field in `SafeAuthContext` is nullable so the Onboarding Guard polling shape (org-pending state) is not affected.
+
+**Bug discovered:** `getSafeAuthContext()` / `getAuthContext()` had a latent ID mismatch introduced in Phase 1 that was invisible to unit tests (which mock the Supabase client) but would have broken the dashboard for every real login. Fixed in this phase before it caused user-facing issues.
+
+---
+
+## 2026-02-18 — Phase 2: Frontend Auth UI & Middleware (started)
+
+**Context:** Phase 1 (Auth API endpoints) is complete and all unit tests pass. Beginning Phase 2: Next.js Middleware, Auth UI pages, and Dashboard shell.
+
+**Scope:**
+- `middleware.ts` — route protection using `supabase.auth.getUser()` (never `getSession()`); secured cookies forwarded to `NextResponse`
+- `lib/supabase/middleware.ts` — dedicated middleware Supabase client (reads from `NextRequest` cookies, writes to both request and response so refreshed tokens reach the browser)
+- `app/(auth)/login/page.tsx` + `app/(auth)/register/page.tsx` — client-side forms using `react-hook-form` + `@hookform/resolvers/zod`; submit via `fetch()` to our `/api/auth/*` endpoints (never calling Supabase SDK directly from the browser)
+- `app/dashboard/layout.tsx` + `page.tsx` — authenticated shell with sidebar, header, and logout button; `LogoutButton` calls `POST /api/auth/logout` then hard-refreshes to `/login`
+- `app/page.tsx` updated to redirect to `/dashboard` (middleware handles the onward redirect to `/login` for unauthenticated users)
+
+**Architectural decisions:**
+- Auth pages live under `app/(auth)/` route group (no URL segment) so `/login` and `/register` share a centered card layout without affecting `/dashboard` or future marketing pages
+- Middleware operates on all non-static routes; the matcher explicitly excludes `_next/`, `api/`, and asset extensions to avoid intercepting health-check or API traffic
+- Dashboard data is fetched via `getSafeAuthContext()` in Server Components; the `LogoutButton` is a separate `"use client"` island to avoid forcing the entire layout into a client bundle
+
+---
+
 ## 2026-02-18 — Phase 0: Test Environment Debugging & Fixes
 
 **Context:** After running `npx supabase start` and `npx supabase db reset`, the local stack started but the integration tests were failing with networking and JWT errors. Two specific fixes were required.

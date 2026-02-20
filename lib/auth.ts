@@ -23,6 +23,7 @@ export interface OrgContext {
  */
 export interface AuthContext {
   userId: string;
+  fullName: string | null;
   orgId: string;
   role: MembershipRole;
   org: OrgContext;
@@ -38,11 +39,38 @@ export interface AuthContext {
 export interface SafeAuthContext {
   userId: string;
   email: string;
+  fullName: string | null;
   orgId: string | null;
   orgName: string | null;
   role: MembershipRole | null;
   plan: string | null;
   onboarding_completed: boolean;
+}
+
+// ---------------------------------------------------------------------------
+// Internal helpers
+// ---------------------------------------------------------------------------
+
+/**
+ * Resolves the `public.users` row for the currently authenticated auth user.
+ *
+ * WHY: `public.users.id` (internal PK) and `auth.users.id` (`auth.uid()`) are
+ * DIFFERENT UUIDs. `memberships.user_id` references `public.users.id`, so
+ * any membership lookup must first map `auth.uid() → public.users.id` via
+ * `auth_provider_id`.
+ */
+async function resolvePublicUser(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  supabase: any,
+  authUid: string
+): Promise<{ id: string; full_name: string | null } | null> {
+  const { data } = await supabase
+    .from('users')
+    .select('id, full_name')
+    .eq('auth_provider_id', authUid)
+    .maybeSingle() as { data: { id: string; full_name: string | null } | null };
+
+  return data ?? null;
 }
 
 // ---------------------------------------------------------------------------
@@ -77,6 +105,14 @@ export async function getAuthContext(): Promise<AuthContext> {
     throw new Error('Unauthorized');
   }
 
+  // Step 1: map auth.uid() → public.users.id
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const publicUser = await resolvePublicUser(supabase as any, user.id);
+  if (!publicUser) {
+    throw new Error('No organization found');
+  }
+
+  // Step 2: resolve membership + org using public.users.id (not auth.uid())
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: membership, error: membershipError } = await (supabase as any)
     .from('memberships')
@@ -94,7 +130,7 @@ export async function getAuthContext(): Promise<AuthContext> {
          onboarding_completed
        )`
     )
-    .eq('user_id', user.id)
+    .eq('user_id', publicUser.id)
     .single() as { data: { org_id: string; role: string; organizations: OrgContext } | null; error: unknown };
 
   if (!membership || membershipError) {
@@ -105,6 +141,7 @@ export async function getAuthContext(): Promise<AuthContext> {
 
   return {
     userId: user.id,
+    fullName: publicUser.full_name,
     orgId: membership.org_id,
     role: membership.role as MembershipRole,
     org,
@@ -136,12 +173,31 @@ export async function getSafeAuthContext(): Promise<SafeAuthContext | null> {
     return null;
   }
 
+  // Step 1: map auth.uid() → public.users.id + full_name
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const publicUser = await resolvePublicUser(supabase as any, user.id);
+
+  if (!publicUser) {
+    // Auth user exists but the public profile trigger hasn't fired yet.
+    return {
+      userId: user.id,
+      email: user.email ?? '',
+      fullName: null,
+      orgId: null,
+      orgName: null,
+      role: null,
+      plan: null,
+      onboarding_completed: false,
+    };
+  }
+
   type SafeMembership = {
     org_id: string;
     role: string;
     organizations: { id: string; name: string; plan: string; onboarding_completed: boolean } | null;
   };
 
+  // Step 2: resolve membership + org using public.users.id (not auth.uid())
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: membership } = await (supabase as any)
     .from('memberships')
@@ -155,13 +211,14 @@ export async function getSafeAuthContext(): Promise<SafeAuthContext | null> {
          onboarding_completed
        )`
     )
-    .eq('user_id', user.id)
+    .eq('user_id', publicUser.id)
     .maybeSingle() as { data: SafeMembership | null; error: unknown };
 
   if (!membership) {
     return {
       userId: user.id,
       email: user.email ?? '',
+      fullName: publicUser.full_name,
       orgId: null,
       orgName: null,
       role: null,
@@ -175,6 +232,7 @@ export async function getSafeAuthContext(): Promise<SafeAuthContext | null> {
   return {
     userId: user.id,
     email: user.email ?? '',
+    fullName: publicUser.full_name,
     orgId: org ? membership.org_id : null,
     orgName: org ? org.name : null,
     role: org ? (membership.role as MembershipRole) : null,
