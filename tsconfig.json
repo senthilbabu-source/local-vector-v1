@@ -19,6 +19,9 @@
       }
     ],
     "paths": {
+      "@/__helpers__/*": ["./src/__helpers__/*"],
+      "@/__fixtures__/*": ["./src/__fixtures__/*"],
+      "@/__tests__/*": ["./src/__tests__/*"],
       "@/*": ["./*"]
     }
   },

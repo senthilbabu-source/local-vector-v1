@@ -1,0 +1,61 @@
+# LocalVector.ai — Cursor Editor Rules
+
+# -------------------------------------------------------------------------
+# 0. CURSOR BEHAVIOR SETTINGS (AI META-INSTRUCTIONS)
+# -------------------------------------------------------------------------
+# - Always use "Composer" mode (Multi-file editing) for complex tasks.
+# - When asked to build a feature, scan the `/docs` folder for the relevant spec (e.g., "Fear Engine" -> Doc 04).
+# - AUTOMATIC CONTEXT: Always index `supabase/prod_schema.sql` for database queries.
+
+# -------------------------------------------------------------------------
+# 1. PERMANENT CONTEXT (ALWAYS READ THESE)
+# -------------------------------------------------------------------------
+# 🧠 The absolute source of truth for the project structure is:
+#    - Database Schema: `supabase/prod_schema.sql` (DO NOT GUESS COLUMNS)
+#    - Project Map: `00-INDEX.md`
+#    - Build Roadmap: `09-BUILD-PLAN.md`
+
+# -------------------------------------------------------------------------
+# 2. DATABASE SOURCE OF TRUTH (CRITICAL)
+# -------------------------------------------------------------------------
+# - The executable, authoritative schema is `supabase/prod_schema.sql`.
+# - BEHAVIOR:
+#   - When writing SQL queries, migrations, or backend logic, ALWAYS read `supabase/prod_schema.sql` first.
+#   - DO NOT use the SQL code blocks found in markdown documentation (like `03-DATABASE-SCHEMA.md`) for implementation. Those are for conceptual reference only.
+#   - If there is a conflict between a Markdown file and `prod_schema.sql`, the SQL file always wins.
+
+# -------------------------------------------------------------------------
+# 3. TYPESCRIPT & JSONB
+# -------------------------------------------------------------------------
+# - When defining TypeScript interfaces for JSONB columns (like `hours_data`, `amenities`, `extracted_data`), refer to `03-DATABASE-SCHEMA.md` Section 15.
+# - Do not invent ad-hoc shapes; use the strict Zod schemas or interfaces defined in the documentation.
+
+# -------------------------------------------------------------------------
+# 4. TECH STACK & ARCHITECTURE
+# -------------------------------------------------------------------------
+# - Framework: Next.js 15 (App Router). Use Server Components by default.
+# - Auth: Supabase Auth (SSR package). Use `auth_provider_id` (UUID) to link users.
+# - UI: Tailwind CSS + shadcn/ui.
+# - Routing:
+#     - `app.localvector.ai` → Dashboard (Authenticated)
+#     - `menu.localvector.ai` → Public Magic Menus (Edge Cached, No Auth).
+
+# -------------------------------------------------------------------------
+# 5. SECURITY & TENANCY
+# -------------------------------------------------------------------------
+# - RLS is Mandatory: Every query to a tenant table MUST respect Row Level Security.
+# - Organization Context: Never query tenant data without an `org_id`.
+# - Use the helper `getAuthContext()` in API routes to resolve the tenant.
+
+# -------------------------------------------------------------------------
+# 6. TESTING STRATEGY ("Red-Green-Refactor")
+# -------------------------------------------------------------------------
+# - Tests are the Spec: Write the test file FIRST based on `11-TESTING-STRATEGY.md`.
+# - Golden Tenant: All tests must use the "Charcoal N Chill" fixture data (`src/__fixtures__/golden-tenant.ts`).
+# - Mocking: NEVER hit real external APIs (Perplexity, OpenAI, Stripe) in tests. Use MSW.
+
+# -------------------------------------------------------------------------
+# 7. COST GUARDRAILS
+# -------------------------------------------------------------------------
+# - No API Calls on Load: NEVER trigger LLM APIs (OpenAI/Perplexity) from a page load.
+# - All AI operations must be Scheduled (Cron), User-Initiated, or Cached.
