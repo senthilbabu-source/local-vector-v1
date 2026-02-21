@@ -1,6 +1,47 @@
 # LocalVector.ai — Development Log
 
 ---
+## 2026-02-20 — Phase 4: Entity Management & CRUD Views (Completed)
+
+**Scope:** Server Actions for mutations + live CRUD views for Locations and AI Hallucinations.
+
+**Files Added / Changed**
+
+| File | Purpose |
+|------|---------|
+| `lib/schemas/locations.ts` | Zod schema `CreateLocationSchema` — shared between Server Action (server-side validation) and `AddLocationModal` (client-side `react-hook-form` validation) |
+| `app/dashboard/actions.ts` | `createLocation` and `updateHallucinationStatus` Server Actions |
+| `app/dashboard/locations/page.tsx` | Server Component — fetches and renders all org locations via RLS-scoped client |
+| `app/dashboard/locations/_components/AddLocationModal.tsx` | Client Component — modal form using `react-hook-form` + `zodResolver`; calls `createLocation` Server Action |
+| `app/dashboard/hallucinations/page.tsx` | Server Component — fetches all `ai_hallucinations`, renders severity-coded badges |
+| `app/dashboard/hallucinations/_components/StatusDropdown.tsx` | Client Component — `<select>` with `useTransition`; calls `updateHallucinationStatus` Server Action |
+| `app/dashboard/layout.tsx` | Nav links for `/dashboard/hallucinations` and `/dashboard/locations` now active (Phase 4 routes wired up) |
+
+**Architectural decisions**
+
+* **Zero Client Trust for `org_id`:** Both Server Actions call `getSafeAuthContext()` internally. `org_id` is never accepted as a parameter from the client payload — prevents tenant-spoofing even if the client sends a crafted request.
+* **Defense in Depth — RLS still enforced:** Even though `getSafeAuthContext()` guards the entry point, the Supabase client used in actions is the cookie-based SSR client (`createClient()`), so PostgreSQL's RLS policies (`org_isolation_insert` on `locations`, `org_isolation_update` on `ai_hallucinations`) provide a second enforcement layer.
+* **`revalidatePath` on every mutation:** `createLocation` revalidates `/dashboard/locations`; `updateHallucinationStatus` revalidates `/dashboard/hallucinations`. Next.js purges the RSC payload cache so the page re-fetches fresh data on the next navigation.
+* **Schema co-location:** The `CreateLocationSchema` lives in `lib/schemas/locations.ts` (following the existing `lib/schemas/auth.ts` pattern) so it can be imported by both `"use server"` actions and `"use client"` forms without bundling issues.
+* **Status dropdown uses `useTransition`, not a full form:** `correction_status` is a single-field update — a full react-hook-form setup would be over-engineered. `useTransition` gives the pending state needed to disable the dropdown while the Server Action is in-flight.
+* **Slug uniqueness:** `createLocation` uses `toUniqueSlug()` (timestamp suffix) to satisfy the `UNIQUE(org_id, slug)` constraint on the `locations` table without an extra DB round-trip.
+
+---
+## 2026-02-18 — Phase 3: Core Dashboard Data & RLS Integration (Completed)
+
+**Architectural Fix: User Identity Resolution (`lib/auth.ts`)**
+* **The Bug:** The previous `getSafeAuthContext()` was querying `memberships.user_id = auth.uid()`. However, `memberships.user_id` is a foreign key to `public.users.id` (a newly generated UUID), NOT the Supabase Auth ID. This caused silent query failures where `orgId` and `plan` were returning null.
+* **The Fix:** Created a new `resolvePublicUser()` helper that queries `public.users` where `auth_provider_id = auth.uid()`, retrieves the correct `public.users.id` and `full_name`, and uses *that* ID for the `memberships` join. 
+
+**Feature Implementation: Dashboard Layout & RLS Metrics**
+* **Sidebar (`app/dashboard/layout.tsx`):** Now dynamically displays the real `fullName` and `orgName` fetched securely via the resolved user context.
+* **Stat Cards (`app/dashboard/page.tsx`):** Replaced static placeholders with live database counts for `ai_hallucinations`, `magic_menus`, and `locations`.
+* **Performance & Security:** Utilized `select('*', { count: 'exact', head: true })` for all metrics. This ensures PostgreSQL's Row-Level Security (RLS) automatically filters the counts to the logged-in user's tenant without transmitting actual row data over the wire.
+* **Graceful UI:** Implemented a conditional zero-state that displays an onboarding prompt only if all three metric counts return `0`.
+
+**Testing & Environment Fixes**
+* Resolved an integration test failure (`Database error creating new user`) caused by orphaned test users by running `npx supabase db reset`. All 22/22 Vitest tests are now passing.
+* Manually verified frontend RLS enforcement: successfully injected a row via local Supabase Studio using a test user's `org_id` and observed the Next.js dashboard securely increment the count from 0 to 1 upon refresh.
 
 ## 2026-02-18 — Phase 3: Core Dashboard Data & RLS Integration (started)
 
