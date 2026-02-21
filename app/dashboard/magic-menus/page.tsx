@@ -1,4 +1,5 @@
 import { redirect } from 'next/navigation';
+import Link from 'next/link';
 import { getSafeAuthContext } from '@/lib/auth';
 import { createClient } from '@/lib/supabase/server';
 import AddMenuModal from './_components/AddMenuModal';
@@ -241,6 +242,7 @@ export default async function MagicMenusPage() {
                 <th className="px-3 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
                   Published
                 </th>
+                <th className="px-3 py-3" />
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 bg-white">
@@ -300,6 +302,26 @@ export default async function MagicMenusPage() {
                           {menu.is_published ? 'Live' : 'Draft'}
                         </span>
                       </div>
+                    </td>
+
+                    {/* Edit link */}
+                    <td className="whitespace-nowrap px-3 py-3.5 text-right">
+                      <Link
+                        href={`/dashboard/magic-menus/${menu.id}`}
+                        className="inline-flex items-center gap-1 rounded-lg px-3 py-1.5 text-xs font-medium text-indigo-600 transition hover:bg-indigo-50"
+                      >
+                        Edit
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          className="h-3.5 w-3.5"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                          strokeWidth={2}
+                        >
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                        </svg>
+                      </Link>
                     </td>
                   </tr>
                 );

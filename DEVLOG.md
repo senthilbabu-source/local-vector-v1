@@ -1,7 +1,42 @@
 # LocalVector.ai — Development Log
 
 ---
-## 2026-02-20 — Phase 5: Magic Menu System (started)
+## 2026-02-20 — Phase 6: Magic Menu Editor (Completed)
+
+**Scope:**
+- `supabase/migrations/20260220000001_create_menu_categories.sql` — Migration: creates proper relational `menu_categories` table, drops flat `category VARCHAR` column from `menu_items`, adds `category_id UUID FK`, adds all missing RLS INSERT/UPDATE policies for `menu_categories`, `menu_items`, `magic_menus`, and `ai_hallucinations` (idempotent patches). User ran `npx supabase db reset` successfully.
+- `lib/schemas/menu-items.ts` — `CreateCategorySchema` (name, menu_id) + `CreateMenuItemSchema` (name, description?, price, category_id, menu_id) shared between Server Actions and Client forms
+- `app/dashboard/magic-menus/[id]/actions.ts` — `createMenuCategory` + `createMenuItem` Server Actions; org_id always from `getSafeAuthContext()`; revalidates `/dashboard/magic-menus/[id]`
+- `app/dashboard/magic-menus/[id]/_components/AddCategoryModal.tsx` — react-hook-form modal for adding a category to a menu
+- `app/dashboard/magic-menus/[id]/_components/AddItemModal.tsx` — react-hook-form modal: name, category select (pre-selected from row context), price, description; submit disabled when no categories exist
+- `app/dashboard/magic-menus/[id]/page.tsx` — Dynamic Server Component (Next.js 16 async params); fetches menu header (joined with locations) + categories (nested with menu_items via Supabase relational select); renders breadcrumb, menu header card with status badge + PublishToggle, category cards each with items table and per-category AddItemModal, global AddCategoryModal; `notFound()` if RLS filters the menu out
+- `app/dashboard/magic-menus/page.tsx` — Edit link column added to menus table; each row navigates to `/dashboard/magic-menus/${menu.id}`
+
+**RLS / Security pattern followed:**
+- `org_id` derived exclusively from `getSafeAuthContext()` inside every Server Action — never from the client payload
+- `revalidatePath()` called after every successful mutation
+- `createClient()` (cookie-based SSR client) used throughout — Service Role Key never used in Server Actions
+- Client forms: `"use client"` + react-hook-form + zodResolver; submit disabled while `isSubmitting`
+
+---
+## 2026-02-20 — Phase 6: Magic Menu Editor (started — pending schema decision)
+
+**Status:** Pre-implementation schema audit surfaced two schema gaps that must be resolved before code is written. See schema findings section below. Implementation is paused pending decision on approach.
+
+**⚠️ Schema Finding 1 — No `menu_categories` Table Exists:**
+`prod_schema.sql` has no `menu_categories` table. Categories are a flat `category VARCHAR(100)` column on `menu_items`. There is no `category_id` foreign key anywhere in the schema. The Phase 6 plan assumes a separate categories table — this assumption is incorrect.
+
+**⚠️ Schema Finding 2 — No INSERT or UPDATE RLS Policy on `menu_items`:**
+`menu_items` has `org_isolation_select` and `org_isolation_delete` policies only. There is no INSERT or UPDATE policy for authenticated users. Any `createMenuItem` Server Action will hit the RLS Shadowban (silent 0-row insert) until this patch is applied:
+```sql
+CREATE POLICY "org_isolation_insert" ON public.menu_items
+  FOR INSERT WITH CHECK (org_id = public.current_user_org_id());
+CREATE POLICY "org_isolation_update" ON public.menu_items
+  FOR UPDATE USING (org_id = public.current_user_org_id());
+```
+
+---
+## 2026-02-20 — Phase 5: Magic Menu System (Completed)
 
 **Context:** Phase 4 (Locations + Hallucinations CRUD) is complete and verified. Beginning Phase 5: the Magic Menu creation and management UI.
 
@@ -23,6 +58,13 @@ Apply in Supabase Studio → SQL Editor, or add to `supabase/migrations/`. The i
 
 **⚠️ Schema Gap — No `name` Column on `magic_menus`:**
 The table has no `name` column. The user-supplied name is stored as `public_slug` (via `toUniqueSlug(name)`). The UI uses the linked location name as the primary display label. A future migration should add `name VARCHAR(255)` for cleaner labeling.
+
+**Architectural Decisions (Phase 5)**
+
+* **Zero Client Trust:** Both `createMagicMenu` and `toggleMenuStatus` call `getSafeAuthContext()` to derive `org_id` server-side. Passing `org_id` from the client or omitting it causes RLS to silently reject the row (the "RLS Shadowban" pattern documented in Phase 4).
+* **`toggleMenuStatus` is a read-then-write:** The action fetches the current `is_published` state from the DB before toggling, so the server is always the source of truth. This prevents stale client state from causing incorrect toggles.
+* **Parallel data fetching:** `fetchPageData()` uses `Promise.all` to fetch menus and locations in parallel, minimising SSR render latency.
+* **Supabase relational select:** The page uses `.select('... locations(name, business_name, city, state)')` to join `magic_menus` ↔ `locations` in a single query, avoiding N+1 fetches.
 
 ---
 ## 2026-02-20 — Phase 4: Entity Management & CRUD Views (Completed)
