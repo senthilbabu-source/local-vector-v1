@@ -1,6 +1,30 @@
 # LocalVector.ai — Development Log
 
 ---
+## 2026-02-20 — Phase 5: Magic Menu System (started)
+
+**Context:** Phase 4 (Locations + Hallucinations CRUD) is complete and verified. Beginning Phase 5: the Magic Menu creation and management UI.
+
+**Scope:**
+- `lib/schemas/magic-menus.ts` — Zod schema shared between Server Action and Client form
+- `app/dashboard/magic-menus/actions.ts` — `createMagicMenu` + `toggleMenuStatus` Server Actions
+- `app/dashboard/magic-menus/page.tsx` — Server Component; fetches menus joined with `locations`
+- `app/dashboard/magic-menus/_components/AddMenuModal.tsx` — react-hook-form creation modal
+- `app/dashboard/magic-menus/_components/PublishToggle.tsx` — `useTransition` publish/unpublish toggle
+- `app/dashboard/layout.tsx` — Magic Menus nav link activated
+
+**⚠️ Required Schema Patch — RLS INSERT Policy Missing on `magic_menus`:**
+`prod_schema.sql` currently has no INSERT policy for authenticated users on `magic_menus`. The `createMagicMenu` action will receive a silent RLS rejection (zero rows inserted, no error thrown) until this is applied:
+```sql
+CREATE POLICY "org_isolation_insert" ON public.magic_menus
+  FOR INSERT WITH CHECK (org_id = public.current_user_org_id());
+```
+Apply in Supabase Studio → SQL Editor, or add to `supabase/migrations/`. The identical gap exists for `ai_hallucinations` (documented in Phase 0).
+
+**⚠️ Schema Gap — No `name` Column on `magic_menus`:**
+The table has no `name` column. The user-supplied name is stored as `public_slug` (via `toUniqueSlug(name)`). The UI uses the linked location name as the primary display label. A future migration should add `name VARCHAR(255)` for cleaner labeling.
+
+---
 ## 2026-02-20 — Phase 4: Entity Management & CRUD Views (Completed)
 
 **Scope:** Server Actions for mutations + live CRUD views for Locations and AI Hallucinations.
@@ -17,14 +41,29 @@
 | `app/dashboard/hallucinations/_components/StatusDropdown.tsx` | Client Component — `<select>` with `useTransition`; calls `updateHallucinationStatus` Server Action |
 | `app/dashboard/layout.tsx` | Nav links for `/dashboard/hallucinations` and `/dashboard/locations` now active (Phase 4 routes wired up) |
 
-**Architectural decisions**
+**Architectural Decisions & Critical Learnings**
 
-* **Zero Client Trust for `org_id`:** Both Server Actions call `getSafeAuthContext()` internally. `org_id` is never accepted as a parameter from the client payload — prevents tenant-spoofing even if the client sends a crafted request.
-* **Defense in Depth — RLS still enforced:** Even though `getSafeAuthContext()` guards the entry point, the Supabase client used in actions is the cookie-based SSR client (`createClient()`), so PostgreSQL's RLS policies (`org_isolation_insert` on `locations`, `org_isolation_update` on `ai_hallucinations`) provide a second enforcement layer.
-* **`revalidatePath` on every mutation:** `createLocation` revalidates `/dashboard/locations`; `updateHallucinationStatus` revalidates `/dashboard/hallucinations`. Next.js purges the RSC payload cache so the page re-fetches fresh data on the next navigation.
-* **Schema co-location:** The `CreateLocationSchema` lives in `lib/schemas/locations.ts` (following the existing `lib/schemas/auth.ts` pattern) so it can be imported by both `"use server"` actions and `"use client"` forms without bundling issues.
-* **Status dropdown uses `useTransition`, not a full form:** `correction_status` is a single-field update — a full react-hook-form setup would be over-engineered. `useTransition` gives the pending state needed to disable the dropdown while the Server Action is in-flight.
-* **Slug uniqueness:** `createLocation` uses `toUniqueSlug()` (timestamp suffix) to satisfy the `UNIQUE(org_id, slug)` constraint on the `locations` table without an extra DB round-trip.
+**🔴 The RLS Shadowban (Most Critical Learning from Phase 4)**
+PostgreSQL RLS fails **silently**. When a policy rejects a write, it does not throw an error — it returns zero affected rows. This manifests in two dangerous ways:
+
+1. **Client-supplied `org_id`:** If the client sends any `org_id` (malicious or mistaken), and it doesn't match `current_user_org_id()`, the INSERT/UPDATE silently affects 0 rows. The UI shows nothing.
+2. **Missing `org_id`:** If `org_id` is null, the policy `WITH CHECK (org_id = current_user_org_id())` evaluates to `NULL = UUID` → `false`. Row is silently rejected.
+
+**The mandatory fix for every Server Action that mutates tenant data:**
+```typescript
+// ALWAYS derive org_id server-side — never accept it from the client
+const ctx = await getSafeAuthContext();
+if (!ctx?.orgId) return { success: false, error: 'Unauthorized' };
+// Use ctx.orgId in the insert payload
+await supabase.from('table').insert({ org_id: ctx.orgId, ... });
+```
+This ensures the application-level `org_id` and the RLS policy always agree, and inserted rows are immediately visible.
+
+* **Defense in Depth:** Even with `getSafeAuthContext()` guarding the entry point, the cookie-based `createClient()` client means RLS policies fire as a second layer.
+* **`revalidatePath` on every mutation:** Purges the Next.js RSC payload cache so the page re-fetches fresh data on next navigation without a hard refresh.
+* **Schema co-location:** Zod schemas in `lib/schemas/` are importable by both `"use server"` actions and `"use client"` forms without bundling issues.
+* **Status dropdown uses `useTransition`, not a full form:** Single-field updates don't need react-hook-form overhead — `useTransition` provides the pending state to disable the control during flight.
+* **Slug uniqueness:** `toUniqueSlug()` (timestamp suffix) satisfies `UNIQUE(org_id, slug)` without an extra round-trip.
 
 ---
 ## 2026-02-18 — Phase 3: Core Dashboard Data & RLS Integration (Completed)
