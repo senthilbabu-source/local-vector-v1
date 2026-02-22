@@ -1,6 +1,40 @@
 # LocalVector.ai — Development Log
 
 ---
+## 2026-02-21 — Phase 9: AI Hallucination Monitor (Completed)
+
+**Goal:** Build the `ai_evaluations` table and a full Hallucinations Monitor dashboard. A "Run New Audit" button triggers a Server Action that calls the OpenAI API (with a graceful 3-second mock fallback when the API key is absent), stores the result in `ai_evaluations`, and revalidates the page. The UI shows per-location accuracy scores (color-coded), a list of detected hallucinations, and historical evaluation cards with `useTransition` loading states.
+
+**Scope:**
+
+- `supabase/migrations/20260221000003_create_ai_evaluations.sql` — Creates `ai_evaluations` (`id`, `org_id`, `location_id` with `ON DELETE CASCADE`, `engine` VARCHAR(20), `prompt_used` TEXT, `response_text` TEXT, `accuracy_score` INTEGER 0–100 CHECK, `hallucinations_detected` JSONB default `[]`, `created_at`). Three indexes: org, location, and `(location_id, created_at DESC)` for the "latest eval per location" query. All four RLS policies gated on `org_id = current_user_org_id()`. Applied via `npx supabase db reset`.
+
+- `supabase/seed.sql` — Section 8 appended: two evaluation rows for the Charcoal N Chill location — OpenAI at 95/100 with no hallucinations (3 hours ago), Perplexity at 65/100 with two realistic mock hallucinations (1 hour ago). Fixed UUIDs `f0eebc99-...` and `f1eebc99-...`. Also patched: added `CREATE EXTENSION IF NOT EXISTS pgcrypto` and the full `instance_id + confirmation_token + recovery_token` fields to the `auth.users` insert so GoTrue recognises the dev user for login.
+
+- `lib/schemas/evaluations.ts` — `EVALUATION_ENGINES = ['openai', 'perplexity']` const tuple. `RunEvaluationSchema` (location_id UUID, engine enum). `EvaluationEngine` type. Shared between Server Action and Client Component.
+
+- `app/dashboard/hallucinations/actions.ts` — `runAIEvaluation` Server Action. Derives `org_id` from `getSafeAuthContext()`. Fetches location ground-truth data (RLS-scoped) to build a structured audit prompt. Checks `OPENAI_API_KEY` / `PERPLEXITY_API_KEY`: if missing → `await setTimeout(3000)` + deterministic mock result (accuracy 80, two descriptive mock strings); if present → real API call to OpenAI (`gpt-4o`, `response_format: json_object`) or Perplexity (`sonar`); if API call throws → gracefully falls back to mock. Inserts result into `ai_evaluations` with server-derived `org_id`. Calls `revalidatePath('/dashboard/hallucinations')`.
+
+- `app/dashboard/hallucinations/_components/EvaluationCard.tsx` — `'use client'`. One shared `useTransition` + `pendingEngine` state to track which of the two engine buttons is in-flight. Both buttons disabled while any transition is pending (prevents race conditions). "Analyzing…" spinner replaces button text during the 3-second wait. Accuracy score color coding: ≥90 emerald, ≥70 yellow, ≥50 orange, <50 red. Hallucinations rendered as a bulleted list with red `!` badges. Green checkmark displayed when score exists and hallucinations array is empty. Inline error state shown below the card on Server Action failure.
+
+- `app/dashboard/hallucinations/page.tsx` — Full rewrite. Two sections: **"Live Accuracy Audits"** (new `EvaluationCard` per location, latest eval per engine resolved via `find()` on newest-first results) above **"Flagged Hallucinations"** (existing Phase 4 `ai_hallucinations` table, preserved intact). All three queries (`locations`, `ai_evaluations`, `ai_hallucinations`) run in parallel via `Promise.all`. Removed stray `console.log` debug statement from the original Phase 4 page. Fixed null-check ordering (`if (!ctx)` now precedes `ctx.orgId` access).
+
+- `app/dashboard/layout.tsx` — No change needed; "AI Hallucinations" nav link already pointed to `/dashboard/hallucinations` with `active: true` from Phase 4.
+
+**RLS / Security pattern followed:**
+- `org_id` derived exclusively from `getSafeAuthContext()` in the Server Action — never accepted from the client
+- `org_isolation_insert` RLS policy on `ai_evaluations` provides a second enforcement layer
+- Location ground-truth fetched via `createClient()` (cookie-based, RLS-scoped) — org can only read its own location data
+
+**Graceful degradation pattern:**
+- Missing API key → 3-second mock delay → accuracy 80 + descriptive mock hallucination strings
+- API call throws (network error, rate limit, etc.) → same 3-second mock fallback, no UI crash
+- Real results drop in automatically once `OPENAI_API_KEY` / `PERPLEXITY_API_KEY` are added to `.env.local`
+
+**⚠️ Seed Fix — `auth.users` login failure (resolved):**
+Direct inserts into `auth.users` require `instance_id = '00000000-0000-0000-0000-000000000000'` and empty-string token fields (`confirmation_token`, `email_change`, `email_change_token_new`, `recovery_token`) for GoTrue to recognise the user at the `/api/auth/login` endpoint. Also added `CREATE EXTENSION IF NOT EXISTS pgcrypto` to guard against environments where it isn't auto-activated. Both fixes applied to `supabase/seed.sql`; re-run `npx supabase db reset` to pick up the changes.
+
+---
 ## 2026-02-21 — Phase 8: API Sync Engine — Scaffolding & UI (Completed)
 
 **Goal:** Build the `location_integrations` table and a full Integrations dashboard so users can connect/disconnect Google Business Profile, Apple Business Connect, and Bing Places. Sync logic is mocked with a 2 s delay; real API keys drop in Phase 8b.

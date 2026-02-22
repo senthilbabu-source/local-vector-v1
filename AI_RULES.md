@@ -12,6 +12,9 @@
 * **The Prohibition:** **DO NOT** use SQL code blocks found in Markdown documentation (e.g., `03-DATABASE-SCHEMA.md`) for implementation. Those are for conceptual reference only and may be outdated.
 * **Conflict Resolution:** If a Markdown file conflicts with `prod_schema.sql`, the **SQL file wins**.
 
+## Local Development & Seeding
+* Every time a new database table or major feature is created, you MUST update `supabase/seed.sql` to insert realistic mock data for that feature. Local development relies on `npx supabase db reset`, so the seed file must always represent the complete, current state of the app's test data.
+
 ## 2. 📐 Data Structures & Types
 * **JSONB Columns:** The database uses `JSONB` for flexible data (e.g., `hours_data`, `amenities`, `extracted_data`).
 * **The Authority:** You MUST use the **TypeScript interfaces defined in `03-DATABASE-SCHEMA.md` (Section 15)** as the strict schema for these columns.
