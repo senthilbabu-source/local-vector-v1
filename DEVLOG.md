@@ -1,6 +1,30 @@
 # LocalVector.ai — Development Log
 
 ---
+## 2026-02-21 — Phase 8: API Sync Engine — Scaffolding & UI (Completed)
+
+**Goal:** Build the `location_integrations` table and a full Integrations dashboard so users can connect/disconnect Google Business Profile, Apple Business Connect, and Bing Places. Sync logic is mocked with a 2 s delay; real API keys drop in Phase 8b.
+
+**Scope:**
+
+- `supabase/migrations/20260221000002_create_integrations.sql` — Creates `location_integrations` (`id`, `org_id`, `location_id`, `platform`, `status`, `last_sync_at`, `external_id`, `created_at`). Unique constraint on `(location_id, platform)`. All four RLS policies gated on `org_id = current_user_org_id()`. Applied via `npx supabase db reset`.
+
+- `lib/schemas/integrations.ts` — `INTEGRATION_PLATFORMS` const tuple. `ToggleIntegrationSchema` (location_id UUID, platform enum, connect boolean). `SyncIntegrationSchema` (location_id UUID, platform enum). Shared between Server Actions and Client Components.
+
+- `app/dashboard/integrations/actions.ts` — `toggleIntegration`: upserts row with `status = 'connected'` on `connect = true` (idempotent via `onConflict: 'location_id,platform'`); deletes row on `connect = false`. `mockSyncIntegration`: sets `status = 'syncing'`, awaits 2000 ms, sets `status = 'connected'` + `last_sync_at = NOW()`. Both derive `org_id` from `getSafeAuthContext()` and call `revalidatePath('/dashboard/integrations')`.
+
+- `app/dashboard/integrations/_components/PlatformRow.tsx` — `'use client'`. One `useTransition` per row (toggle and sync share pending state to prevent races). Platform badge, name, description, formatted `last_sync_at`, status badge, "Sync Now" button with animated spinner, `role="switch"` toggle. Inline error display from Server Action failures.
+
+- `app/dashboard/integrations/page.tsx` — Server Component. Fetches `locations` joined with `location_integrations`. Summary strip. Empty state with "Add a Location" CTA. One card per location, three `PlatformRow` children (google, apple, bing) each receiving the matching `IntegrationData | null`.
+
+- `app/dashboard/layout.tsx` — "Integrations" nav item added (link icon, `active: true`, `/dashboard/integrations`), between Magic Menus and Competitors.
+
+**RLS / Security pattern followed:**
+- `org_id` derived exclusively from `getSafeAuthContext()` in both Server Actions
+- Upsert passes `org_id: ctx.orgId`; both INSERT and UPDATE RLS policies verify it
+- `revalidatePath('/dashboard/integrations')` called after every successful mutation
+
+---
 ## 2026-02-21 — Phase 7: The "LLM Honeypot" (Completed)
 
 **Goal:** Render published Magic Menu data as a public, crawler-optimised Next.js page at `/m/[slug]` with semantic HTML and `application/ld+json` Schema.org injection.
