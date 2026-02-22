@@ -1,6 +1,30 @@
 # LocalVector.ai — Development Log
 
 ---
+## 2026-02-21 — Phase 7: The "LLM Honeypot" (Completed)
+
+**Goal:** Render published Magic Menu data as a public, crawler-optimised Next.js page at `/m/[slug]` with semantic HTML and `application/ld+json` Schema.org injection.
+
+**Scope:**
+
+- `supabase/migrations/20260221000001_public_menu_reads.sql` — Grants `SELECT` to the `anon` role on `magic_menus`, `locations`, `menu_categories`, and `menu_items`. Creates `public_published_location` and `public_published_categories` RLS policies using the `EXISTS` pattern (not `IN`) to avoid cross-table recursion. Replaces the initial schema's `IN`-based `public_menu_items` policy with an `EXISTS`-based equivalent. All operations idempotent via `DO $$` guards. Migration applied via `npx supabase db reset`.
+
+- `app/m/[slug]/page.tsx` — Public Server Component (no auth). Data fetching wrapped in React `cache()` so `generateMetadata` and the page component share a single DB round-trip per request. Calls `notFound()` when the slug is absent or `is_published = false`. Renders two `<script type="application/ld+json">` blocks (Restaurant + Menu schemas). `safeJsonLd()` helper applies `JSON.stringify()` then Unicode-escapes `<` and `>` to prevent `</script>` injection from description strings. `generateMetadata` sets `<title>` and `<meta name="description">` dynamically. Page body uses strict semantic HTML: `<article>`, `<header>`, `<address>`, `<section aria-labelledby>`, `<h1>`–`<h4>`, `<ul>`/`<li>`. Empty-state handling for menus with no categories and categories with no items.
+
+- `app/dashboard/magic-menus/[id]/actions.ts` — Added private `revalidatePublicPage()` helper: fetches `public_slug` + `is_published`, calls `revalidatePath('/m/[slug]', 'page')` only when the menu is published. Wired into `createMenuCategory` and `createMenuItem` after their dashboard revalidation calls.
+
+- `app/dashboard/magic-menus/actions.ts` — `toggleMenuStatus` SELECT widened to include `public_slug`. After a successful update, calls `revalidatePath('/m/[slug]', 'page')` in both directions: publishing refreshes the cache; unpublishing purges stale content.
+
+**JSON-LD schemas emitted (abbreviated):**
+- `Restaurant` schema with `name`, `address` (PostalAddress), `telephone`, `url`, `hasMenu: { @id: "#menu" }`
+- `Menu` schema with `@id: "#menu"`, `hasMenuSection[]` → `MenuSection` → `hasMenuItem[]` → `MenuItem` with optional `description` and `offers` (Offer with `price` + `priceCurrency`)
+
+**Security / architectural constraints followed:**
+- Public page uses `createClient()` (anon-role); no `getSafeAuthContext()` needed on the read path
+- Dashboard mutations continue to derive `org_id` exclusively from `getSafeAuthContext()` server-side
+- No Client Components on the public page — pure Server Component
+
+---
 ## 2026-02-20 — Phase 6: Magic Menu Editor (Completed)
 
 **Scope:**

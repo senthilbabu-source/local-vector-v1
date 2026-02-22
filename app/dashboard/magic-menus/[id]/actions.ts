@@ -17,6 +17,37 @@ import {
 export type ActionResult = { success: true } | { success: false; error: string };
 
 // ---------------------------------------------------------------------------
+// Private helper: revalidate the public Honeypot page for this menu
+// ---------------------------------------------------------------------------
+
+/**
+ * Looks up the menu's public_slug and, if the menu is currently published,
+ * calls revalidatePath() for the public /m/[slug] route so that AI crawlers
+ * and browsers always see the latest data without waiting for TTL expiry.
+ *
+ * Only triggers a revalidation when the menu is published — unpublished menus
+ * have no live public page to invalidate.
+ */
+async function revalidatePublicPage(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  supabase: any,
+  menuId: string
+): Promise<void> {
+  const { data } = (await supabase
+    .from('magic_menus')
+    .select('public_slug, is_published')
+    .eq('id', menuId)
+    .single()) as {
+    data: { public_slug: string | null; is_published: boolean } | null;
+    error: unknown;
+  };
+
+  if (data?.is_published && data.public_slug) {
+    revalidatePath(`/m/${data.public_slug}`, 'page');
+  }
+}
+
+// ---------------------------------------------------------------------------
 // createMenuCategory
 // ---------------------------------------------------------------------------
 
@@ -64,8 +95,10 @@ export async function createMenuCategory(
     return { success: false, error: error.message };
   }
 
-  // Revalidate the specific editor page so the new category appears immediately
+  // Revalidate the dashboard editor page so the new category appears immediately
   revalidatePath(`/dashboard/magic-menus/${menu_id}`);
+  // Revalidate the public Honeypot page so crawlers see the change right away
+  await revalidatePublicPage(supabase, menu_id);
   return { success: true };
 }
 
@@ -116,7 +149,9 @@ export async function createMenuItem(
     return { success: false, error: error.message };
   }
 
-  // Revalidate the specific editor page so the new item appears immediately
+  // Revalidate the dashboard editor page so the new item appears immediately
   revalidatePath(`/dashboard/magic-menus/${menu_id}`);
+  // Revalidate the public Honeypot page so crawlers see the change right away
+  await revalidatePublicPage(supabase, menu_id);
   return { success: true };
 }

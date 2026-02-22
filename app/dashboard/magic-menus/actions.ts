@@ -108,13 +108,17 @@ export async function toggleMenuStatus(menuId: string): Promise<ActionResult> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const supabase = (await createClient()) as any;
 
-  // Read the authoritative current state from the DB
-  // RLS org_isolation_select ensures we can only read our own menus
+  // Read the authoritative current state from the DB.
+  // Also fetch public_slug so we can revalidate the public Honeypot page.
+  // RLS org_isolation_select ensures we can only read our own menus.
   const { data: menu, error: fetchError } = await supabase
     .from('magic_menus')
-    .select('is_published')
+    .select('is_published, public_slug')
     .eq('id', menuId)
-    .single() as { data: { is_published: boolean } | null; error: unknown };
+    .single() as {
+      data: { is_published: boolean; public_slug: string | null } | null;
+      error: unknown;
+    };
 
   if (fetchError || !menu) {
     return { success: false, error: 'Menu not found' };
@@ -137,5 +141,13 @@ export async function toggleMenuStatus(menuId: string): Promise<ActionResult> {
   }
 
   revalidatePath('/dashboard/magic-menus');
+
+  // Revalidate the public Honeypot page in both directions:
+  //   Publishing   → populate/refresh the page so crawlers see it immediately.
+  //   Unpublishing → purge the page so stale content is no longer served.
+  if (menu.public_slug) {
+    revalidatePath(`/m/${menu.public_slug}`, 'page');
+  }
+
   return { success: true };
 }
