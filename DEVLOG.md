@@ -2,6 +2,31 @@
 
 ---
 
+## 2026-02-23 — Bug Fix: `_demoFallbackForTesting` must be async in `'use server'` file
+
+**Goal:** Fix Next.js 16 build error — all exports in a `'use server'` file must be async.
+
+**Root cause:** `app/actions/marketing.ts` has `'use server'` at the top. Next.js 16 enforces that every exported function in a `'use server'` file is an async Server Action. `_demoFallbackForTesting` was exported as a sync function, causing:
+```
+Server Actions must be async functions.
+```
+
+| File | Action |
+|------|--------|
+| `app/actions/marketing.ts` | **EDITED** — Changed `export function _demoFallbackForTesting(...)` → `export async function _demoFallbackForTesting(...): Promise<ScanResult>`. One-line fix; no logic change. |
+| `AI_RULES.md` | **EDITED** — Added §25: `'use server'` file constraint — all exported functions must be async. |
+
+**New AI rule captured:** AI_RULES §25 — every export in a `'use server'` file must be `async`. Sync helpers in Server Action files must either be unexported (module-private) or moved to a separate non-`'use server'` module.
+
+**Tests:** 321 passing (no count change — `_demoFallbackForTesting` is `@internal`; no test imports it directly yet).
+
+**Run:**
+```bash
+npx vitest run   # 321 passing, 7 skipped
+```
+
+---
+
 ## 2026-02-23 — Sprint 31: ViralScanner Integrity — Honest Unavailable State
 
 **Goal:** Stop fabricating "AI Hallucination Detected" results when the Perplexity API is unavailable, broken, or unconfigured.

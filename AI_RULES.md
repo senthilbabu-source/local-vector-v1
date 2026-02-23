@@ -467,4 +467,32 @@ When an external API (e.g., Perplexity) is unavailable (no API key, non-OK HTTP,
 * **Test requirement:** Unit tests MUST cover all three unavailable paths: `no_api_key`, `api_error` (non-OK HTTP), and `api_error` (uncaught/network error).
 
 ---
+
+## 25. ⚡ `'use server'` Files — All Exports Must Be Async (Bug Fix 2026-02-23)
+
+Next.js 16 enforces that **every exported function** in a `'use server'` file is an async Server Action. A sync export causes a build-time error: `Server Actions must be async functions`.
+
+* **Rule:** In any file with `'use server'` at the top, every exported function MUST be `async`:
+  ```typescript
+  // ✅ Correct — async export in a 'use server' file
+  export async function myHelper(arg: string): Promise<string> {
+    return arg.toUpperCase();
+  }
+
+  // ❌ Build error — sync export in a 'use server' file
+  export function myHelper(arg: string): string {
+    return arg.toUpperCase();
+  }
+  ```
+* **Sync helpers:** If you need a sync utility function inside a `'use server'` file, either:
+  1. Keep it **unexported** (module-private) — sync private functions are fine.
+  2. Move it to a **separate non-`'use server'` module** (e.g., a co-located `*-utils.ts` file).
+* **`@internal` test-only exports** are not exempt — they are still exports and must be async:
+  ```typescript
+  // ✅ @internal export — still must be async
+  export async function _demoFallbackForTesting(name: string): Promise<ScanResult> { ... }
+  ```
+* **Scope:** Applies to `app/actions/*.ts`, `app/dashboard/*/actions.ts`, and any other file with the `'use server'` directive at module level.
+
+---
 > **End of System Instructions**
