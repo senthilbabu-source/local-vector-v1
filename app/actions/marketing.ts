@@ -1,9 +1,9 @@
 'use server';
-// Server Action — runFreeScan (Phase 18: real Perplexity integration)
+// Server Action — runFreeScan (Sprint 34: real AI-presence audit)
 //
-// Powers the free "Hallucination Checker" on the public marketing landing page.
-// Calls the Perplexity Sonar API with a JSON-mode system prompt to check whether
-// AI models report the given business as permanently closed.
+// Powers the free AI Audit on the public marketing landing page.
+// Calls the Perplexity Sonar API with a JSON-mode system prompt to audit how
+// AI models describe the given business (closed status, mentions volume, sentiment).
 //
 // MSW contract (AI_RULES §4):
 //   In E2E tests (NEXT_PUBLIC_API_MOCKING=enabled), MSW intercepts the fetch at
@@ -41,12 +41,20 @@ export type ScanResult =
       claim_text: string;
       expected_truth: string;
       business_name: string;
+      /** Real AI-presence fields from Perplexity audit (Sprint 34) */
+      mentions_volume: 'none' | 'low' | 'medium' | 'high';
+      sentiment: 'positive' | 'neutral' | 'negative';
+      accuracy_issues: string[];
     }
   | {
       /** No hallucination found — AI correctly describes the business. */
       status: 'pass';
       engine: string;
       business_name: string;
+      /** Real AI-presence fields from Perplexity audit (Sprint 34) */
+      mentions_volume: 'none' | 'low' | 'medium' | 'high';
+      sentiment: 'positive' | 'neutral' | 'negative';
+      accuracy_issues: string[];
     }
   | {
       /**
@@ -101,13 +109,17 @@ async function checkRateLimit(
 
 // The system prompt instructs Perplexity to return exactly this shape.
 const PerplexityScanSchema = z.object({
-  is_closed:      z.boolean(),
+  is_closed:       z.boolean(),
   /** true when Perplexity cannot find AI-model coverage for this business */
-  is_unknown:     z.boolean().default(false),
-  claim_text:     z.string(),
-  expected_truth: z.string(),
+  is_unknown:      z.boolean().default(false),
+  claim_text:      z.string(),
+  expected_truth:  z.string(),
   // Lowercase per AI_RULES and the PostgreSQL hallucination_severity ENUM.
-  severity:       z.enum(['critical', 'high', 'medium']).default('critical'),
+  severity:        z.enum(['critical', 'high', 'medium']).default('critical'),
+  // Sprint 34: real AI-presence fields — Zod defaults absorb backwards-compat responses.
+  mentions_volume: z.enum(['none', 'low', 'medium', 'high']).default('low'),
+  sentiment:       z.enum(['positive', 'neutral', 'negative']).default('neutral'),
+  accuracy_issues: z.array(z.string().max(120)).max(3).default([]),
 });
 
 // ---------------------------------------------------------------------------
@@ -121,12 +133,15 @@ const PerplexityScanSchema = z.object({
  */
 export async function _demoFallbackForTesting(businessName: string): Promise<ScanResult> {
   return {
-    status:         'fail',
-    engine:         'ChatGPT',
-    severity:       'critical',
-    claim_text:     'Permanently Closed',
-    expected_truth: 'Open',
-    business_name:  businessName,
+    status:          'fail',
+    engine:          'ChatGPT',
+    severity:        'critical',
+    claim_text:      'Permanently Closed',
+    expected_truth:  'Open',
+    business_name:   businessName,
+    mentions_volume: 'low',
+    sentiment:       'negative',
+    accuracy_issues: [],
   };
 }
 
@@ -177,14 +192,15 @@ export async function runFreeScan(formData: FormData): Promise<ScanResult> {
           {
             role: 'system',
             content: [
-              'You are a business fact-checker.',
+              'You are a business AI-presence auditor.',
               'Respond ONLY with a valid JSON object — no markdown, no explanation.',
-              'Schema: { "is_closed": boolean, "is_unknown": boolean, "claim_text": string, "expected_truth": string, "severity": "critical"|"high"|"medium" }',
-              'If you cannot find any AI-model coverage for this business at all, set is_unknown=true, is_closed=false.',
-              'If AI models (ChatGPT, Perplexity, etc.) report this business as permanently closed:',
-              '  set is_closed=true, is_unknown=false, claim_text="Permanently Closed", expected_truth="Open".',
-              'If they report it as open (correctly):',
-              '  set is_closed=false, is_unknown=false, claim_text="Open", expected_truth="Open".',
+              'Schema: { "is_closed": boolean, "is_unknown": boolean, "claim_text": string, "expected_truth": string, "severity": "critical"|"high"|"medium", "mentions_volume": "none"|"low"|"medium"|"high", "sentiment": "positive"|"neutral"|"negative", "accuracy_issues": [string] }',
+              'is_unknown=true if you cannot find any AI-model coverage for this business at all.',
+              'If AI models report this business as permanently closed: is_closed=true, claim_text="Permanently Closed", expected_truth="Open".',
+              'If AI models report it as open (correctly): is_closed=false, claim_text="Open", expected_truth="Open".',
+              'mentions_volume: "none"=no AI data about this business, "low"=brief mentions only, "medium"=moderate detail, "high"=prominently described with rich context.',
+              'sentiment: "positive"=AI describes the business favorably/premium, "neutral"=factual/no strong tone, "negative"=AI describes it unfavorably/budget.',
+              'accuracy_issues: Up to 3 short strings (max 80 chars each) describing specific inaccuracies AI states about this business (e.g. "AI reports Monday hours as 9am-5pm"). Empty array [] if none.',
               'Severity MUST be lowercase: critical, high, or medium.',
             ].join(' '),
           },
@@ -223,6 +239,7 @@ export async function runFreeScan(formData: FormData): Promise<ScanResult> {
       if (parsed.success) {
         // Branch on every parsed field — AI_RULES §21: never ignore a parsed boolean.
         if (parsed.data.is_unknown) {
+          // not_found has no AI coverage by definition — new fields are not applicable
           return {
             status:        'not_found',
             engine:        'ChatGPT',
@@ -231,18 +248,24 @@ export async function runFreeScan(formData: FormData): Promise<ScanResult> {
         }
         if (!parsed.data.is_closed) {
           return {
-            status:        'pass',
-            engine:        'ChatGPT',
-            business_name: businessName,
+            status:          'pass',
+            engine:          'ChatGPT',
+            business_name:   businessName,
+            mentions_volume: parsed.data.mentions_volume,
+            sentiment:       parsed.data.sentiment,
+            accuracy_issues: parsed.data.accuracy_issues,
           };
         }
         return {
-          status:         'fail',
-          engine:         'ChatGPT',
-          severity:       parsed.data.severity,
-          claim_text:     parsed.data.claim_text,
-          expected_truth: parsed.data.expected_truth,
-          business_name:  businessName,
+          status:          'fail',
+          engine:          'ChatGPT',
+          severity:        parsed.data.severity,
+          claim_text:      parsed.data.claim_text,
+          expected_truth:  parsed.data.expected_truth,
+          business_name:   businessName,
+          mentions_volume: parsed.data.mentions_volume,
+          sentiment:       parsed.data.sentiment,
+          accuracy_issues: parsed.data.accuracy_issues,
         };
       }
     } catch {
@@ -257,13 +280,17 @@ export async function runFreeScan(formData: FormData): Promise<ScanResult> {
       lower.includes('no longer open')     ||
       lower.includes('shut down')
     ) {
+      // Hard-code new fields on text-detection path — no structured data available
       return {
-        status:         'fail',
-        engine:         'ChatGPT',
-        severity:       'critical',
-        claim_text:     'Permanently Closed',
-        expected_truth: 'Open',
-        business_name:  businessName,
+        status:          'fail',
+        engine:          'ChatGPT',
+        severity:        'critical',
+        claim_text:      'Permanently Closed',
+        expected_truth:  'Open',
+        business_name:   businessName,
+        mentions_volume: 'low',
+        sentiment:       'negative',
+        accuracy_issues: [],
       };
     }
 

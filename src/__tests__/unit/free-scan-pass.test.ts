@@ -101,13 +101,17 @@ describe('runFreeScan — is_closed branching (AI_RULES §21)', () => {
     }
   });
 
-  it('returns { status: "pass" } with engine and business_name when is_closed=false', async () => {
+  it('returns { status: "pass" } with engine, business_name, and real AI-presence fields when is_closed=false', async () => {
+    // Mock omits Sprint 34 fields → Zod applies defaults: mentions_volume='low', sentiment='neutral', accuracy_issues=[]
     mockPerplexityOk({ is_closed: false, claim_text: 'Open', expected_truth: 'Open', severity: 'medium' });
     const result = await runFreeScan(makeForm());
     expect(result).toEqual({
-      status:        'pass',
-      engine:        'ChatGPT',
-      business_name: 'Biryani World Fusion and Grill',
+      status:          'pass',
+      engine:          'ChatGPT',
+      business_name:   'Biryani World Fusion and Grill',
+      mentions_volume: 'low',    // Zod default
+      sentiment:       'neutral', // Zod default
+      accuracy_issues: [],        // Zod default
     });
   });
 
@@ -220,6 +224,55 @@ describe('runFreeScan — is_closed branching (AI_RULES §21)', () => {
     mockPerplexityOk({ is_closed: false, is_unknown: false, claim_text: 'Open', expected_truth: 'Open', severity: 'medium' });
     const result = await runFreeScan(makeForm('Healthy Spot'));
     expect(result.status).toBe('pass');
+  });
+
+  // ── Sprint 34: real AI-presence field propagation ─────────────────────────
+
+  it('propagates mentions_volume from Perplexity response to ScanResult', async () => {
+    mockPerplexityOk({
+      is_closed: true, claim_text: 'Permanently Closed', expected_truth: 'Open', severity: 'critical',
+      mentions_volume: 'low', sentiment: 'negative', accuracy_issues: [],
+    });
+    const result = await runFreeScan(makeForm());
+    expect(result.status).toBe('fail');
+    if (result.status === 'fail') {
+      expect(result.mentions_volume).toBe('low');
+    }
+  });
+
+  it('propagates sentiment from Perplexity response to ScanResult', async () => {
+    mockPerplexityOk({
+      is_closed: true, claim_text: 'Permanently Closed', expected_truth: 'Open', severity: 'critical',
+      mentions_volume: 'low', sentiment: 'negative', accuracy_issues: [],
+    });
+    const result = await runFreeScan(makeForm());
+    expect(result.status).toBe('fail');
+    if (result.status === 'fail') {
+      expect(result.sentiment).toBe('negative');
+    }
+  });
+
+  it('propagates accuracy_issues from Perplexity response to ScanResult', async () => {
+    mockPerplexityOk({
+      is_closed: false, claim_text: 'Open', expected_truth: 'Open', severity: 'medium',
+      mentions_volume: 'medium', sentiment: 'neutral',
+      accuracy_issues: ['AI reports Monday hours as closed'],
+    });
+    const result = await runFreeScan(makeForm('Healthy Spot'));
+    expect(result.status).toBe('pass');
+    if (result.status === 'pass') {
+      expect(result.accuracy_issues).toEqual(['AI reports Monday hours as closed']);
+    }
+  });
+
+  it('Zod defaults mentions_volume to "low" when Perplexity response omits it', async () => {
+    // Response without mentions_volume — Zod .default('low') applies
+    mockPerplexityOk({ is_closed: false, claim_text: 'Open', expected_truth: 'Open', severity: 'medium' });
+    const result = await runFreeScan(makeForm('Healthy Spot'));
+    expect(result.status).toBe('pass');
+    if (result.status === 'pass') {
+      expect(result.mentions_volume).toBe('low');
+    }
   });
 
 });

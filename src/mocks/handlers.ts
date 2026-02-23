@@ -187,10 +187,14 @@ const perplexityHandler = http.post(
             // path. Values map directly to the ScanResult fields the Playwright
             // test asserts: claim_text="Permanently Closed", expected_truth="Open".
             content: JSON.stringify({
-              is_closed: true,
-              claim_text: 'Permanently Closed',
-              expected_truth: 'Open',
-              severity: 'critical',
+              is_closed:       true,
+              is_unknown:      false,
+              claim_text:      'Permanently Closed',
+              expected_truth:  'Open',
+              severity:        'critical',
+              mentions_volume: 'low',    // Sprint 34: real AI-presence fields
+              sentiment:       'negative',
+              accuracy_issues: [],
             }),
           },
           finish_reason: 'stop',

@@ -1,25 +1,29 @@
 'use client';
 // ---------------------------------------------------------------------------
-// ScanDashboard — Public AI Audit Result Dashboard (Sprint 33 Part 3)
+// ScanDashboard — Public AI Audit Result Dashboard (Sprint 34)
 //
 // Receives parsed ScanDisplayData from the Server Component page.
-// All KPI scores labeled "Estimated" — driven by the real Perplexity scan
-// result but not claimed as live monitored data (AI_RULES §24 / §20).
+//
+// Sprint 34: replaced fake KPI lookup table with real scan fields:
+//   • Free tier  — AI Mentions (categorical) + AI Sentiment (categorical)
+//                  Both are real from Perplexity; shown with a "Live" badge
+//   • Locked     — AI Visibility Score ██/100 + Citation Integrity ██/100
+//                  Numerical scores require continuous monitoring (plan required)
 //
 // Sections:
 //   0. Nav strip (logo + "Run another scan" link)
 //   1. Alert banner (real result: fail / pass / not_found)
-//   2. Four KPI cards (estimated scores + sparklines + fill-bar animations)
+//   2. KPI section — Row 1: 2 real free cards | Row 2: 2 locked score cards
 //   3. Competitive landscape (sample data, clearly labeled + locked)
 //   4. Locked fixes (item 1 = real result, items 2–3 = locked)
 //   5. Primary CTA (Claim My AI Profile → /signup)
 //
-// AI_RULES §12: all Tailwind class strings are literals (no dynamic concat).
+// AI_RULES §12: all Tailwind class strings are literals (ternary operators only).
+// AI_RULES §24: real categoricals shown free; locked numericals honest about
+//               requiring monitoring — no fabricated numbers anywhere.
 // ---------------------------------------------------------------------------
 
 import type { ScanDisplayData } from '../_utils/scan-params';
-import { deriveKpiScores } from '../_utils/scan-params';
-import { buildSparklinePath } from '../_utils/sparkline';
 
 // ---------------------------------------------------------------------------
 // Props
@@ -27,6 +31,62 @@ import { buildSparklinePath } from '../_utils/sparkline';
 
 interface Props {
   result: ScanDisplayData;
+}
+
+// ---------------------------------------------------------------------------
+// Helper functions — AI_RULES §12: ternary literals only, no template concat
+// ---------------------------------------------------------------------------
+
+function mentionsColor(m: 'none' | 'low' | 'medium' | 'high'): string {
+  return m === 'high'   ? 'text-signal-green'
+       : m === 'medium' ? 'text-alert-amber'
+       : m === 'low'    ? 'text-slate-400'
+       :                  'text-slate-600';
+}
+
+function mentionsDotColor(m: 'none' | 'low' | 'medium' | 'high'): string {
+  return m === 'high'   ? 'bg-signal-green'
+       : m === 'medium' ? 'bg-alert-amber'
+       : m === 'low'    ? 'bg-slate-500'
+       :                  'bg-slate-700';
+}
+
+function mentionsDescription(m: 'none' | 'low' | 'medium' | 'high'): string {
+  return m === 'high'   ? 'Your business is prominently cited in AI responses'
+       : m === 'medium' ? 'Your business appears in some AI responses with moderate detail'
+       : m === 'low'    ? 'AI has limited information about your business'
+       :                  'AI has no data about your business';
+}
+
+function sentimentColor(s: 'positive' | 'neutral' | 'negative'): string {
+  return s === 'positive' ? 'text-signal-green'
+       : s === 'negative' ? 'text-alert-crimson'
+       :                    'text-slate-400';
+}
+
+function sentimentIcon(s: 'positive' | 'neutral' | 'negative'): string {
+  return s === 'positive' ? '↑' : s === 'negative' ? '↓' : '→';
+}
+
+function sentimentDescription(s: 'positive' | 'neutral' | 'negative'): string {
+  return s === 'positive' ? 'AI describes your business in a favorable, premium context'
+       : s === 'negative' ? 'AI uses unfavorable or budget-tier language for your business'
+       :                    'AI describes your business in a neutral, factual tone';
+}
+
+/** Extract mentions — not_found is implicitly 'none' (no AI coverage). */
+function getMentions(r: ScanDisplayData): 'none' | 'low' | 'medium' | 'high' {
+  return r.status === 'fail' || r.status === 'pass' ? r.mentions : 'none';
+}
+
+/** Extract sentiment — not_found is implicitly 'neutral'. */
+function getSentiment(r: ScanDisplayData): 'positive' | 'neutral' | 'negative' {
+  return r.status === 'fail' || r.status === 'pass' ? r.sentiment : 'neutral';
+}
+
+/** Extract accuracy issues — not_found returns empty array. */
+function getAccuracyIssues(r: ScanDisplayData): string[] {
+  return r.status === 'fail' || r.status === 'pass' ? r.accuracyIssues : [];
 }
 
 // ---------------------------------------------------------------------------
@@ -46,8 +106,9 @@ export default function ScanDashboard({ result }: Props) {
     );
   }
 
-  const kpi   = deriveKpiScores(result);
-  const trend = result.status === 'pass' ? 'up' : result.status === 'not_found' ? 'flat' : 'down';
+  const mentions       = getMentions(result);
+  const sentiment      = getSentiment(result);
+  const accuracyIssues = getAccuracyIssues(result);
 
   return (
     <div className="mx-auto max-w-4xl px-4 pb-20">
@@ -121,49 +182,49 @@ export default function ScanDashboard({ result }: Props) {
         )}
       </div>
 
-      {/* ── 2. Four KPI Cards ────────────────────────────────────────────── */}
-      <div className="mt-8">
-        <div className="flex items-center justify-between mb-4">
-          <p className="text-xs font-bold uppercase tracking-widest text-slate-500">
-            AI Visibility Metrics
-          </p>
-          <span className="rounded-full border border-alert-amber/30 px-2.5 py-0.5 text-[10px] font-semibold text-alert-amber uppercase tracking-wide">
-            Estimated
-          </span>
+      {/* ── 2. KPI Section ───────────────────────────────────────────────── */}
+      <div className="mt-8 space-y-6">
+
+        {/* Row 1: Real data from scan — shown free */}
+        <div>
+          <div className="flex items-center justify-between mb-3">
+            <p className="text-xs font-bold uppercase tracking-widest text-slate-500">
+              From Your Scan
+            </p>
+            <span className="rounded-full border border-signal-green/30 px-2.5 py-0.5 text-[10px] font-semibold text-signal-green uppercase tracking-wide">
+              Live
+            </span>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <RealMentionsCard mentions={mentions} />
+            <RealSentimentCard sentiment={sentiment} />
+          </div>
         </div>
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-          <KpiCard
-            title="AI Visibility Score"
-            abbr="AVS"
-            score={kpi.avs}
-            description="How often AI cites your business accurately"
-            trend={trend}
-            delay="0s"
-          />
-          <KpiCard
-            title="Sentiment Index"
-            abbr="SI"
-            score={kpi.sentiment}
-            description="Premium vs. Budget tone in AI responses"
-            trend={trend}
-            delay="0.1s"
-          />
-          <KpiCard
-            title="Citation Integrity"
-            abbr="CI"
-            score={kpi.citation}
-            description="AI accuracy on hours, address, and menu"
-            trend={trend}
-            delay="0.2s"
-          />
-          <MentionsCard
-            mentions={kpi.mentions}
-            delay="0.3s"
-          />
+
+        {/* Row 2: Locked numerical scores — require continuous monitoring */}
+        <div>
+          <div className="flex items-center justify-between mb-3">
+            <p className="text-xs font-bold uppercase tracking-widest text-slate-500">
+              Unlock Full Scores
+            </p>
+            <span className="rounded-full border border-alert-amber/30 px-2.5 py-0.5 text-[10px] font-semibold text-alert-amber uppercase tracking-wide">
+              Plan required
+            </span>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <LockedScoreCard
+              title="AI Visibility Score"
+              abbr="AVS"
+              description="How often AI cites your business accurately"
+            />
+            <LockedScoreCard
+              title="Citation Integrity"
+              abbr="CI"
+              description="AI accuracy on hours, address, and menu"
+            />
+          </div>
         </div>
-        <p className="mt-3 text-xs text-slate-700">
-          Estimated scores based on scan result. Continuous monitoring requires an account.
-        </p>
+
       </div>
 
       {/* ── 3. Competitive Landscape ─────────────────────────────────────── */}
@@ -187,18 +248,17 @@ export default function ScanDashboard({ result }: Props) {
           </div>
 
           <div className="space-y-4 select-none">
-            {/* My Brand */}
+            {/* My Brand — colored bar, no numerical score */}
             <CompetitorBar
               label="My Brand"
               sublabel={result.businessName}
-              score={kpi.avs}
               isMine
               isGood={result.status === 'pass'}
             />
-            {/* Static sample competitors */}
-            <CompetitorBar label="Competitor A" sublabel="Nearby Business" score={68} isMine={false} isGood={false} />
-            <CompetitorBar label="Competitor B" sublabel="Nearby Business" score={71} isMine={false} isGood={false} />
-            <CompetitorBar label="Competitor C" sublabel="Nearby Business" score={65} isMine={false} isGood={false} />
+            {/* Static sample competitors — no scores shown */}
+            <CompetitorBar label="Top Competitor 1" sublabel="Sample · Real data after signup" isMine={false} isGood={false} />
+            <CompetitorBar label="Top Competitor 2" sublabel="Sample · Real data after signup" isMine={false} isGood={false} />
+            <CompetitorBar label="Top Competitor 3" sublabel="Sample · Real data after signup" isMine={false} isGood={false} />
           </div>
         </div>
       </div>
@@ -235,6 +295,11 @@ export default function ScanDashboard({ result }: Props) {
                   <p className="text-xs text-slate-500 mt-1">
                     {result.engine} currently shows accurate information. Monitoring ensures it stays that way.
                   </p>
+                  {accuracyIssues.length > 0 && (
+                    <p className="mt-2 text-xs text-slate-500">
+                      Note: AI was observed describing your business as: &ldquo;{accuracyIssues[0]}&rdquo;
+                    </p>
+                  )}
                 </div>
               </div>
             )}
@@ -294,132 +359,88 @@ export default function ScanDashboard({ result }: Props) {
 }
 
 // ---------------------------------------------------------------------------
-// KpiCard — animated fill-bar + SVG sparkline
-// AI_RULES §12: all class strings are literals
+// RealMentionsCard — real categorical from Perplexity scan (Sprint 34)
+// AI_RULES §12: all class strings are literals via helper functions
 // ---------------------------------------------------------------------------
 
-function scoreColor(score: number): string {
-  if (score >= 70) return 'text-signal-green';
-  if (score >= 40) return 'text-alert-amber';
-  return 'text-alert-crimson';
+function RealMentionsCard({ mentions }: { mentions: 'none' | 'low' | 'medium' | 'high' }) {
+  return (
+    <div className="rounded-2xl bg-surface-dark border border-white/5 p-5">
+      <div className="mb-3">
+        <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">AI Mentions</p>
+        <p className="text-[10px] text-slate-600">Volume detected</p>
+      </div>
+      <div className="flex items-center gap-2">
+        <span className={['h-3 w-3 rounded-full shrink-0', mentionsDotColor(mentions)].join(' ')} />
+        <p className={['text-2xl font-bold', mentionsColor(mentions)].join(' ')}>
+          {mentions.charAt(0).toUpperCase() + mentions.slice(1)}
+        </p>
+      </div>
+      <p className="mt-2 text-[10px] text-slate-500">{mentionsDescription(mentions)}</p>
+    </div>
+  );
 }
 
-function barColor(score: number): string {
-  if (score >= 70) return '#00F5A0';
-  if (score >= 40) return '#FFB800';
-  return '#ef4444';
+// ---------------------------------------------------------------------------
+// RealSentimentCard — real categorical from Perplexity scan (Sprint 34)
+// ---------------------------------------------------------------------------
+
+function RealSentimentCard({ sentiment }: { sentiment: 'positive' | 'neutral' | 'negative' }) {
+  return (
+    <div className="rounded-2xl bg-surface-dark border border-white/5 p-5">
+      <div className="mb-3">
+        <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">AI Sentiment</p>
+        <p className="text-[10px] text-slate-600">Tone AI uses for your brand</p>
+      </div>
+      <div className="flex items-center gap-2">
+        <p className={['text-2xl font-bold', sentimentColor(sentiment)].join(' ')}>
+          {sentimentIcon(sentiment)}
+        </p>
+        <p className={['text-2xl font-bold capitalize', sentimentColor(sentiment)].join(' ')}>
+          {sentiment.charAt(0).toUpperCase() + sentiment.slice(1)}
+        </p>
+      </div>
+      <p className="mt-2 text-[10px] text-slate-500">{sentimentDescription(sentiment)}</p>
+    </div>
+  );
 }
 
-function KpiCard({
+// ---------------------------------------------------------------------------
+// LockedScoreCard — numerical score gated behind plan (Sprint 34)
+// ---------------------------------------------------------------------------
+
+function LockedScoreCard({
   title,
   abbr,
-  score,
   description,
-  trend,
-  delay,
 }: {
   title: string;
   abbr: string;
-  score: number;
   description: string;
-  trend: 'up' | 'flat' | 'down';
-  delay: string;
 }) {
-  const sparkPoints = buildSparklinePath(trend, 64, 20);
-  const color = scoreColor(score);
-  const fill  = barColor(score);
-
   return (
-    <div
-      className="rounded-2xl bg-surface-dark border border-white/5 p-4"
-      style={{ animation: `fade-up 0.6s ease-out ${delay} both` }}
-    >
-      <div className="flex items-start justify-between mb-2">
-        <div>
-          <p className="text-xs font-semibold text-white leading-tight">{title}</p>
-          <p className="text-[10px] text-slate-600">{abbr}</p>
-        </div>
-        {/* Mini sparkline */}
-        <svg width="64" height="20" viewBox="0 0 64 20" aria-hidden className="shrink-0">
-          <polyline
-            points={sparkPoints}
-            fill="none"
-            stroke={fill}
-            strokeWidth="1.5"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            opacity="0.6"
-          />
-        </svg>
+    <div className="relative rounded-2xl bg-surface-dark border border-white/5 p-5 overflow-hidden">
+      {/* Lock overlay */}
+      <div
+        className="absolute inset-0 flex flex-col items-center justify-center rounded-2xl z-10"
+        style={{ backgroundColor: 'rgba(5,10,21,0.82)', backdropFilter: 'blur(3px)' }}
+      >
+        <span className="text-lg mb-1" aria-hidden>🔒</span>
+        <p className="text-xs font-semibold text-slate-400">Sign up to unlock</p>
       </div>
-
-      <p className={['text-3xl font-bold tabular-nums', color].join(' ')}>
-        {score}
-        <span className="text-sm text-slate-600 font-normal">/100</span>
+      {/* Background content (behind lock overlay) */}
+      <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">{title}</p>
+      <p className="text-[10px] text-slate-600 mb-3">{abbr}</p>
+      <p className="text-4xl font-bold text-slate-700 select-none tabular-nums">
+        ██<span className="text-xl">/100</span>
       </p>
-
-      <div className="mt-2 h-1.5 w-full rounded-full bg-white/5 overflow-hidden">
-        <div
-          className="h-full rounded-full"
-          style={{
-            backgroundColor: fill,
-            '--bar-w': `${score}%`,
-            animation: `fill-bar 1.4s cubic-bezier(0.4,0,0.2,1) ${delay} both`,
-          } as React.CSSProperties}
-        />
-      </div>
-
-      <p className="mt-2 text-[10px] text-slate-500 leading-relaxed">{description}</p>
+      <p className="mt-2 text-[10px] text-slate-700">{description}</p>
     </div>
   );
 }
 
 // ---------------------------------------------------------------------------
-// MentionsCard — qualitative AI mention volume
-// ---------------------------------------------------------------------------
-
-function MentionsCard({
-  mentions,
-  delay,
-}: {
-  mentions: 'None' | 'Low' | 'Medium' | 'High';
-  delay: string;
-}) {
-  const colorMap: Record<typeof mentions, string> = {
-    None:   'text-slate-500',
-    Low:    'text-alert-crimson',
-    Medium: 'text-alert-amber',
-    High:   'text-signal-green',
-  };
-  const dotMap: Record<typeof mentions, string> = {
-    None:   'bg-slate-600',
-    Low:    'bg-alert-crimson',
-    Medium: 'bg-alert-amber',
-    High:   'bg-signal-green',
-  };
-
-  return (
-    <div
-      className="rounded-2xl bg-surface-dark border border-white/5 p-4"
-      style={{ animation: `fade-up 0.6s ease-out ${delay} both` }}
-    >
-      <p className="text-xs font-semibold text-white leading-tight mb-0.5">AI Mentions</p>
-      <p className="text-[10px] text-slate-600 mb-3">Volume detected</p>
-
-      <div className="flex items-center gap-2">
-        <span className={['h-2.5 w-2.5 rounded-full shrink-0', dotMap[mentions]].join(' ')} />
-        <p className={['text-2xl font-bold', colorMap[mentions]].join(' ')}>{mentions}</p>
-      </div>
-
-      <p className="mt-2 text-[10px] text-slate-500 leading-relaxed">
-        How often your business appears in AI search responses
-      </p>
-    </div>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// CompetitorBar
+// CompetitorBar — score is optional (Sprint 34: no fake numbers)
 // ---------------------------------------------------------------------------
 
 function CompetitorBar({
@@ -431,12 +452,12 @@ function CompetitorBar({
 }: {
   label: string;
   sublabel: string;
-  score: number;
+  score?: number;
   isMine: boolean;
   isGood: boolean;
 }) {
-  const pct  = `${score}%`;
-  const fill = isMine
+  const barPct = score !== undefined ? `${score}%` : '50%';
+  const fill   = isMine
     ? isGood ? '#00F5A0' : '#ef4444'
     : '#374151';
 
@@ -453,11 +474,11 @@ function CompetitorBar({
       <div className="flex-1 h-2 rounded-full bg-white/5 overflow-hidden">
         <div
           className="h-full rounded-full"
-          style={{ backgroundColor: fill, width: pct }}
+          style={{ backgroundColor: fill, width: barPct }}
         />
       </div>
       <span className={['text-xs tabular-nums shrink-0 w-8 text-right', isMine ? 'text-white font-bold' : 'text-slate-600'].join(' ')}>
-        {score}
+        {score !== undefined ? score : '—'}
       </span>
     </div>
   );

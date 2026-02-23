@@ -1,5 +1,5 @@
-# Audit Flow Architecture — Sprint 33
-#### Version: 1.0 | Created: 2026-02-23
+# Audit Flow Architecture — Sprint 34
+#### Version: 2.0 | Created: 2026-02-23 | Updated: 2026-02-23
 
 ---
 
@@ -23,7 +23,7 @@ User types on landing page
         ▼
   phase: scanning — Diagnostic overlay
   • CSS fill-bar 4s animation (signal-green)
-  • 6 cycling messages every 650ms (fade-up re-triggered via key={msgIndex})
+  • 6 cycling messages every 800ms (fade-up re-triggered via key={msgIndex})
   • runFreeScan() Server Action in flight (useTransition)
         │
         ▼
@@ -44,9 +44,9 @@ User types on landing page
 | `app/actions/marketing.ts` | `runFreeScan()` Server Action — Perplexity API, rate limiting |
 | `app/scan/page.tsx` | Async Server Component — awaits `searchParams`, parses, renders ScanDashboard |
 | `app/scan/_components/ScanDashboard.tsx` | `'use client'` — full result dashboard (5 sections) |
-| `app/scan/_utils/scan-params.ts` | Pure TS — URL param encoding/decoding, KPI derivation |
-| `app/scan/_utils/sparkline.ts` | Pure TS — SVG polyline path generator |
-| `src/__tests__/unit/scan-params.test.ts` | 10 unit tests for the pure TS utilities |
+| `app/scan/_utils/scan-params.ts` | Pure TS — URL param encoding/decoding; real fields (Sprint 34) |
+| `app/scan/_utils/sparkline.ts` | Pure TS — SVG polyline path generator (still used for trend lines) |
+| `src/__tests__/unit/scan-params.test.ts` | 11 unit tests for the pure TS utilities |
 
 ---
 
@@ -118,7 +118,7 @@ All animations use existing CSS keyframes from `globals.css`. No Framer Motion.
 | Progress bar | `fill-bar` | 4s forwards | `cubic-bezier(0.4,0,0.2,1)` |
 | Message text | `fade-up` | 0.3s both | Re-triggered by `key={msgIndex}` re-mount |
 
-**Message cycling:** `setInterval(650ms)` advances `msgIndex` from 0 to 5 (6 messages). The
+**Message cycling:** `setInterval(800ms)` advances `msgIndex` from 0 to 5 (6 messages). The
 `key={msgIndex}` prop on the `<p>` forces React to unmount/remount the element on each change,
 which restarts the `fade-up` CSS animation. This avoids any JavaScript animation library.
 
@@ -136,33 +136,44 @@ Result is encoded entirely in URL search params (ephemeral — no server storage
 | `severity` | fail only | `critical` \| `high` \| `medium` |
 | `claim` | fail only | Claim text (e.g., `Permanently Closed`) |
 | `truth` | fail only | Expected truth (e.g., `Open`) |
+| `mentions` | fail, pass | `none`\|`low`\|`medium`\|`high` — real from Perplexity (Sprint 34) |
+| `sentiment` | fail, pass | `positive`\|`neutral`\|`negative` — real from Perplexity (Sprint 34) |
+| `issues` | fail, pass (optional) | Pipe-separated accuracy issues, URL-encoded (Sprint 34) |
 
 **Example URLs:**
 ```
-/scan?status=fail&biz=My+Cafe&engine=ChatGPT&severity=critical&claim=Permanently+Closed&truth=Open
-/scan?status=pass&biz=My+Cafe&engine=ChatGPT
+/scan?status=fail&biz=My+Cafe&engine=ChatGPT&severity=critical&claim=Permanently+Closed&truth=Open&mentions=low&sentiment=negative
+/scan?status=pass&biz=My+Cafe&engine=ChatGPT&mentions=high&sentiment=positive
 /scan?status=not_found&biz=My+Cafe&engine=ChatGPT
 ```
+
+**Backwards-compat:** Sprint 33 URLs lacking `mentions`/`sentiment` params are decoded with
+graceful defaults (`'low'` / `'neutral'`) — never returns `invalid` for missing optional params.
 
 **Invalid / missing params** → `parseScanParams` returns `{ status: 'invalid' }` →
 ScanDashboard renders a simple fallback with a "Run a free scan" link.
 
 ---
 
-## KPI Score Derivation (AI_RULES §24)
+## Real AI-Presence Fields (Sprint 34, AI_RULES §26)
 
-Scores are derived from the **real** Perplexity scan result. They are labeled "Estimated" in
-the UI — never claimed as live monitored data.
+Sprint 34 replaced the Sprint 33 KPI lookup table (`deriveKpiScores`) with real fields
+returned directly by Perplexity. The `/scan` dashboard now uses a **free / locked** split:
 
-| Scan Result | AVS | Sentiment | Citation Integrity | AI Mentions |
-|-------------|-----|-----------|-------------------|-------------|
-| fail + critical | 18 | 12 | 22 | Low |
-| fail + high | 34 | 28 | 38 | Low |
-| fail + medium | 48 | 41 | 51 | Medium |
-| pass | 79 | 74 | 82 | High |
-| not_found | 11 | 8 | 9 | None |
+**Free (real, from Perplexity):**
+| Field | Type | Shown as |
+|-------|------|----------|
+| `mentions_volume` | `'none'`\|`'low'`\|`'medium'`\|`'high'` | AI Mentions card with "Live" badge |
+| `sentiment` | `'positive'`\|`'neutral'`\|`'negative'` | AI Sentiment card with "Live" badge |
 
-**Score color thresholds:** signal-green ≥ 70 · alert-amber 40–69 · alert-crimson < 40
+**Locked (numerical — require continuous monitoring):**
+| Card | Shown as |
+|------|----------|
+| AI Visibility Score (AVS) | `██/100` with lock overlay |
+| Citation Integrity (CI) | `██/100` with lock overlay |
+
+The `accuracy_issues` field (up to 3 strings) from Perplexity is shown in Item 1 of the
+Detected Issues section if non-empty (pass result only, cautious framing).
 
 ---
 
@@ -172,9 +183,10 @@ the UI — never claimed as live monitored data.
 |---|---------|---------------------|
 | 0 | Sticky nav — logo + "← Run another scan" | — |
 | 1 | Alert banner — fail (crimson) / pass (emerald) / not_found (slate) | Real data only |
-| 2 | Four KPI cards — AVS, Sentiment, Citation, Mentions | Labeled "Estimated" (§24/§20) |
-| 3 | Competitive landscape — My Brand + 3 static bars, locked | "Sample data" disclaimer |
-| 4 | Locked Fixes — item 1 real, items 2–3 blurred + lock icon | Item 1 = real result |
+| 2 | **Row 1: "From Your Scan"** — AI Mentions + AI Sentiment (real categoricals) | Real from Perplexity, "Live" badge (§26) |
+| 2 | **Row 2: "Unlock Full Scores"** — AVS + Citation Integrity (locked ██/100) | Honest about monitoring required (§26) |
+| 3 | Competitive landscape — My Brand bar (colored, no score) + 3 sample bars, locked | "Sample data" disclaimer, no fake numbers |
+| 4 | Locked Fixes — item 1 real (+ accuracy_issues if any), items 2–3 blurred | Item 1 = real result (§24) |
 | 5 | CTA — "Claim My AI Profile — Start Free" → `/signup` | — |
 
 ---

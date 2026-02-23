@@ -2,6 +2,59 @@
 
 ---
 
+## 2026-02-23 — Sprint 34: Real AI Audit Data — Honest Free Tier + Locked Scores + "AI Audit" Renaming
+
+**Goal:** Replace Sprint 33's 5-row KPI lookup table (identical scores for every "pass" scan) with
+real fields from Perplexity. Introduce an honest free/locked split. Rename to "AI Audit" (broader
+than "Hallucination Scan" — covers AEO, GEO, SOV roadmap).
+
+**Core problem solved:** Every "pass" result showed 79/74/82 — identical numbers erode trust faster
+than no numbers at all. Real categorical fields from the same Perplexity call are more honest and
+differentiated.
+
+### Part 1 — Perplexity Schema Expansion (`app/actions/marketing.ts`)
+- Added 3 new fields to `PerplexityScanSchema`: `mentions_volume`, `sentiment`, `accuracy_issues`
+- Zod `.default()` on all new fields — backwards-compat when Perplexity response lacks them
+- Updated system prompt: "AI-presence auditor" with definitions for all 3 new fields
+- `ScanResult` union expanded: `fail` and `pass` variants get `mentions_volume`, `sentiment`, `accuracy_issues`
+- `not_found` branch: no new fields (no AI coverage by definition)
+- Text-detection fallback: hard-codes `mentions_volume: 'low', sentiment: 'negative', accuracy_issues: []`
+- `_demoFallbackForTesting` updated with new fields
+
+### Part 2 — URL Params + Data Flow (`app/scan/_utils/scan-params.ts`)
+- Removed `KpiScores` type and `deriveKpiScores` function (replaced by real fields)
+- `ScanDisplayData`: `fail` and `pass` get `mentions`, `sentiment`, `accuracyIssues`
+- `parseScanParams`: decodes new params with graceful defaults for Sprint 33 backwards-compat
+- `buildScanParams`: encodes `mentions`, `sentiment`, `issues` (pipe-separated array)
+
+### Part 3 — ScanDashboard Redesign (`app/scan/_components/ScanDashboard.tsx`)
+- **Row 1 "FROM YOUR SCAN"**: AI Mentions card + AI Sentiment card (real, "Live" badge)
+- **Row 2 "UNLOCK FULL SCORES"**: AVS `██/100` + Citation Integrity `██/100` (lock overlay)
+- Competitor section: My Brand = colored bar (no score); competitors = "Top Competitor 1/2/3", no scores
+- `accuracyIssues[0]` shown in pass result's Detected Issues item 1 if non-empty
+- Removed `deriveKpiScores` and `buildSparklinePath` imports
+- Helper functions: `mentionsColor()`, `mentionsDotColor()`, `mentionsDescription()`, `sentimentColor()`, `sentimentIcon()`, `sentimentDescription()`
+
+### Part 4 — ViralScanner (`app/_components/ViralScanner.tsx`)
+- New 6 scan messages (LLM Interrogation Engine → ChatGPT-4o → Perplexity & Gemini → RAG Sources → AVS → Report)
+- Interval: 650ms → **800ms**
+- Form title: "Free AI Hallucination Scan" → **"Free AI Audit"**
+- Submit button: "Scan for Hallucinations →" → **"Run Free AI Audit →"**
+
+### Part 5 — MSW Mock (`src/mocks/handlers.ts`)
+- Added `mentions_volume: 'low'`, `sentiment: 'negative'`, `accuracy_issues: []` to Perplexity mock
+
+### Tests
+| Suite | Before | After |
+|-------|--------|-------|
+| `scan-params.test.ts` | 10 | **11** (−4 deriveKpiScores + 5 real-field tests + kept buildSparklinePath) |
+| `free-scan-pass.test.ts` | 11 | **15** (+4 new field propagation tests) |
+| **Vitest total** | **331** | **336** |
+
+**Verification:** 336 passing, 7 skipped · 0 new TypeScript errors
+
+---
+
 ## 2026-02-23 — Sprint 33: Audit Flow — Smart Search + Diagnostic Screen + Public Scan Dashboard
 
 **Goal:** Turn the free ViralScanner into a full value-creation journey that ends on a public

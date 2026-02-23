@@ -69,24 +69,30 @@ These are LocalVector-owned terms. Use them consistently across all content:
 | 8 | Pricing | Free Audit / Starter $29 / AI Shield $59 / Brand Fortress Custom |
 | 9 | Footer | "Defending the Truth for Local Business. Built for the Generative Age." |
 
-### 5a. Free Scan Conversion Flow *(Sprint 33)*
+### 5a. Free AI Audit Conversion Flow *(Sprint 34)*
 
-The ViralScanner (§2 Hero CTA) now routes actionable results to a full public dashboard at `/scan`,
-creating a value-creation journey for anonymous users:
+The ViralScanner (§2 Hero CTA) — renamed "Free AI Audit" — routes actionable results to a full
+public dashboard at `/scan`, creating a value-creation journey for anonymous users:
 
 ```
-Landing page ViralScanner
+Landing page ViralScanner ("Free AI Audit")
     ↓  (submit: fail / pass / not_found)
 /scan?status=...  (ScanDashboard)
     ↓
-Estimated KPI cards + competitive bars + locked fixes + CTA → /signup
+Real categoricals (AI Mentions + AI Sentiment) [free, "Live" badge]
+    + Locked numerical scores (AVS + CI: ██/100) [plan required]
+    + Competitor bars (no fake numbers, My Brand colored bar) [locked overlay]
+    + Locked fixes (item 1 = real finding) [items 2–3 blurred]
+    + CTA → /signup
 ```
 
 **Key conversion design principles:**
 - Alert banner shows the **real** Perplexity result immediately (no fabrication — AI_RULES §24)
-- KPI scores labeled "Estimated" — urgent numbers derived from real scan status, not invented
-- Competitive bars locked behind a "Real competitor data unlocked after signup" overlay
-- Fixes item 1 is unlocked (real finding); items 2–3 blurred + lock icon to drive signup
+- Real categorical fields (`mentions_volume`, `sentiment`) shown free with "Live" badge — these
+  are genuinely from the scan, building immediate trust
+- Numerical scores locked as `██/100` — honest that they require continuous monitoring (§26)
+- Competitive bars: My Brand shows a colored bar (no fake number); competitors show "—"
+- Fixes item 1 is unlocked (real finding from scan); items 2–3 blurred + lock icon
 - Primary CTA: "Claim My AI Profile — Start Free" → `/signup`
 
 ---

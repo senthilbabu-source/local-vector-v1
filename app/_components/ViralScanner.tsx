@@ -1,6 +1,6 @@
 'use client';
 // ---------------------------------------------------------------------------
-// ViralScanner — Free Hallucination Checker (Sprint 33: Audit Flow)
+// ViralScanner — Free AI Audit (Sprint 34: AI Audit naming + real fields)
 //
 // State machine:
 //   idle      → name/URL input with debounced Places autocomplete (city hidden)
@@ -45,12 +45,12 @@ type Phase = 'idle' | 'selected' | 'manual' | 'scanning' | 'result';
 
 /** UI copy describing the scan process (AI_RULES §24 — process description, not data) */
 const SCAN_MESSAGES = [
-  'Initializing LocalVector Interrogation Engine...',
-  'Scanning ChatGPT-4o for mentions...',
-  'Scraping Perplexity RAG sources for address hallucinations...',
-  'Calculating sentiment delta on Google Gemini...',
-  'Comparing AI visibility against 3 local competitors...',
-  'Finalizing AI Visibility Score (AVS)...',
+  'Initializing LLM Interrogation Engine...',
+  'Scanning ChatGPT-4o Knowledge Graph...',
+  'Analyzing Sentiment on Perplexity & Gemini...',
+  'Cross-referencing 50+ Local RAG Sources...',
+  'Calculating AI Visibility Score (AVS)...',
+  'Finalizing AI Audit Report...',
 ] as const;
 
 // ---------------------------------------------------------------------------
@@ -104,7 +104,7 @@ export default function ViralScanner() {
     }
     const id = setInterval(() => {
       setMsgIndex((i) => Math.min(i + 1, SCAN_MESSAGES.length - 1));
-    }, 650);
+    }, 800);
     return () => clearInterval(id);
   }, [phase]);
 
@@ -307,10 +307,10 @@ export default function ViralScanner() {
   return (
     <div className="w-full rounded-2xl bg-surface-dark border border-white/10 p-6">
       <p className="text-sm font-semibold text-white mb-1">
-        Free AI Hallucination Scan
+        Free AI Audit
       </p>
       <p className="text-xs text-slate-500 mb-4">
-        No signup required. See what ChatGPT says about your business right now.
+        No signup required. See how AI models describe your business right now.
       </p>
 
       <form onSubmit={handleSubmit} className="space-y-3">
@@ -442,7 +442,7 @@ export default function ViralScanner() {
           disabled={isPending}
           className="flex items-center justify-center gap-2 w-full rounded-xl bg-electric-indigo px-4 py-2.5 text-sm font-semibold text-white hover:bg-electric-indigo/90 disabled:opacity-60 disabled:cursor-not-allowed transition"
         >
-          Scan for Hallucinations →
+          Run Free AI Audit →
         </button>
       </form>
     </div>

@@ -1,12 +1,20 @@
 // ---------------------------------------------------------------------------
-// scan-params.ts — Pure TS utilities for /scan result dashboard (Sprint 33)
+// scan-params.ts — Pure TS utilities for /scan result dashboard (Sprint 34)
 //
-// Encodes/decodes ScanResult into URL search params, and derives estimated
-// KPI scores from the real scan result.
+// Encodes/decodes ScanResult into URL search params.
 //
-// AI_RULES §24: KPI scores are derived from the REAL Perplexity scan result
-// (status + severity). They are labeled "Estimated" in the UI — never
-// presented as live monitored data.
+// Sprint 34: replaced the Sprint 33 KPI lookup table (deriveKpiScores) with
+// real scan fields (mentions, sentiment, accuracyIssues) returned directly
+// by Perplexity. URL schema gains three new optional params:
+//   mentions  — 'none'|'low'|'medium'|'high'
+//   sentiment — 'positive'|'neutral'|'negative'
+//   issues    — pipe-separated accuracy issue strings (URL-encoded)
+//
+// Backwards-compat: Sprint 33 URLs that lack mentions/sentiment params
+// gracefully default to 'low' / 'neutral' — never return 'invalid'.
+//
+// AI_RULES §24: real categoricals from scan shown free; locked numericals
+// are honest about requiring continuous monitoring (no derived fake numbers).
 // ---------------------------------------------------------------------------
 
 import type { ScanResult } from '@/app/actions/marketing';
@@ -15,25 +23,37 @@ import type { ScanResult } from '@/app/actions/marketing';
 // Types
 // ---------------------------------------------------------------------------
 
-export type KpiScores = {
-  avs:      number;                              // 0–100 AI Visibility Score
-  sentiment: number;                             // 0–100 Sentiment Index
-  citation: number;                              // 0–100 Citation Integrity
-  mentions: 'None' | 'Low' | 'Medium' | 'High'; // Qualitative AI mention volume
-};
-
 export type ScanDisplayData =
   | {
-      status:       'fail';
-      businessName: string;
-      engine:       string;
-      severity:     'critical' | 'high' | 'medium';
-      claimText:    string;
-      expectedTruth: string;
+      status:         'fail';
+      businessName:   string;
+      engine:         string;
+      severity:       'critical' | 'high' | 'medium';
+      claimText:      string;
+      expectedTruth:  string;
+      /** Real AI-presence fields from Perplexity audit (Sprint 34) */
+      mentions:       'none' | 'low' | 'medium' | 'high';
+      sentiment:      'positive' | 'neutral' | 'negative';
+      accuracyIssues: string[];
     }
-  | { status: 'pass';      businessName: string; engine: string }
+  | {
+      status:         'pass';
+      businessName:   string;
+      engine:         string;
+      /** Real AI-presence fields from Perplexity audit (Sprint 34) */
+      mentions:       'none' | 'low' | 'medium' | 'high';
+      sentiment:      'positive' | 'neutral' | 'negative';
+      accuracyIssues: string[];
+    }
   | { status: 'not_found'; businessName: string; engine: string }
   | { status: 'invalid' };
+
+// ---------------------------------------------------------------------------
+// Validation constants (module-private)
+// ---------------------------------------------------------------------------
+
+const VALID_MENTIONS   = ['none', 'low', 'medium', 'high'] as const;
+const VALID_SENTIMENTS = ['positive', 'neutral', 'negative'] as const;
 
 // ---------------------------------------------------------------------------
 // parseScanParams — decode URL search params → ScanDisplayData
@@ -43,11 +63,11 @@ export function parseScanParams(params: Record<string, string>): ScanDisplayData
   const status = params['status'];
 
   if (status === 'fail') {
-    const engine       = params['engine']   ?? '';
-    const severity     = params['severity'] as 'critical' | 'high' | 'medium' | undefined;
-    const claimText    = params['claim']    ?? '';
-    const expectedTruth = params['truth']   ?? '';
-    const businessName = params['biz']      ?? '';
+    const engine        = params['engine']   ?? '';
+    const severity      = params['severity'] as 'critical' | 'high' | 'medium' | undefined;
+    const claimText     = params['claim']    ?? '';
+    const expectedTruth = params['truth']    ?? '';
+    const businessName  = params['biz']      ?? '';
 
     if (
       !businessName ||
@@ -60,14 +80,56 @@ export function parseScanParams(params: Record<string, string>): ScanDisplayData
       return { status: 'invalid' };
     }
 
-    return { status: 'fail', businessName, engine, severity, claimText, expectedTruth };
+    // Graceful defaults for Sprint 33 URLs that lack these params
+    const mentionsParam = params['mentions'] ?? '';
+    const mentions: 'none' | 'low' | 'medium' | 'high' =
+      (VALID_MENTIONS as readonly string[]).includes(mentionsParam)
+        ? (mentionsParam as 'none' | 'low' | 'medium' | 'high')
+        : 'low';
+
+    const sentimentParam = params['sentiment'] ?? '';
+    const sentiment: 'positive' | 'neutral' | 'negative' =
+      (VALID_SENTIMENTS as readonly string[]).includes(sentimentParam)
+        ? (sentimentParam as 'positive' | 'neutral' | 'negative')
+        : 'neutral';
+
+    const accuracyIssues = params['issues']
+      ? params['issues'].split('|').filter(Boolean).slice(0, 3).map(s => decodeURIComponent(s))
+      : [];
+
+    return { status: 'fail', businessName, engine, severity, claimText, expectedTruth, mentions, sentiment, accuracyIssues };
   }
 
-  if (status === 'pass' || status === 'not_found') {
+  if (status === 'pass') {
     const businessName = params['biz']    ?? '';
     const engine       = params['engine'] ?? '';
     if (!businessName || !engine) return { status: 'invalid' };
-    return { status, businessName, engine };
+
+    // Graceful defaults for Sprint 33 URLs that lack these params
+    const mentionsParam = params['mentions'] ?? '';
+    const mentions: 'none' | 'low' | 'medium' | 'high' =
+      (VALID_MENTIONS as readonly string[]).includes(mentionsParam)
+        ? (mentionsParam as 'none' | 'low' | 'medium' | 'high')
+        : 'low';
+
+    const sentimentParam = params['sentiment'] ?? '';
+    const sentiment: 'positive' | 'neutral' | 'negative' =
+      (VALID_SENTIMENTS as readonly string[]).includes(sentimentParam)
+        ? (sentimentParam as 'positive' | 'neutral' | 'negative')
+        : 'neutral';
+
+    const accuracyIssues = params['issues']
+      ? params['issues'].split('|').filter(Boolean).slice(0, 3).map(s => decodeURIComponent(s))
+      : [];
+
+    return { status: 'pass', businessName, engine, mentions, sentiment, accuracyIssues };
+  }
+
+  if (status === 'not_found') {
+    const businessName = params['biz']    ?? '';
+    const engine       = params['engine'] ?? '';
+    if (!businessName || !engine) return { status: 'invalid' };
+    return { status: 'not_found', businessName, engine };
   }
 
   return { status: 'invalid' };
@@ -87,42 +149,23 @@ export function buildScanParams(result: ScanResult, nameInput: string): URLSearc
     p.set('severity', result.severity);
     p.set('claim',    result.claim_text);
     p.set('truth',    result.expected_truth);
-  } else if (result.status === 'pass' || result.status === 'not_found') {
+    p.set('mentions', result.mentions_volume);
+    p.set('sentiment', result.sentiment);
+    if (result.accuracy_issues.length > 0) {
+      p.set('issues', result.accuracy_issues.map(s => encodeURIComponent(s)).join('|'));
+    }
+  } else if (result.status === 'pass') {
+    p.set('biz',      result.business_name || nameInput);
+    p.set('engine',   result.engine);
+    p.set('mentions', result.mentions_volume);
+    p.set('sentiment', result.sentiment);
+    if (result.accuracy_issues.length > 0) {
+      p.set('issues', result.accuracy_issues.map(s => encodeURIComponent(s)).join('|'));
+    }
+  } else if (result.status === 'not_found') {
     p.set('biz',    result.business_name || nameInput);
     p.set('engine', result.engine);
   }
 
   return p;
-}
-
-// ---------------------------------------------------------------------------
-// deriveKpiScores — produce estimated KPI numbers from scan result
-//
-// Derivation table (AI_RULES §24: driven by real scan data, labeled Estimated):
-//   fail + critical → avs: 18, sentiment: 12, citation: 22, mentions: 'Low'
-//   fail + high     → avs: 34, sentiment: 28, citation: 38, mentions: 'Low'
-//   fail + medium   → avs: 48, sentiment: 41, citation: 51, mentions: 'Medium'
-//   pass            → avs: 79, sentiment: 74, citation: 82, mentions: 'High'
-//   not_found       → avs: 11, sentiment:  8, citation:  9, mentions: 'None'
-// ---------------------------------------------------------------------------
-
-export function deriveKpiScores(data: ScanDisplayData): KpiScores {
-  if (data.status === 'fail') {
-    if (data.severity === 'critical') {
-      return { avs: 18, sentiment: 12, citation: 22, mentions: 'Low' };
-    }
-    if (data.severity === 'high') {
-      return { avs: 34, sentiment: 28, citation: 38, mentions: 'Low' };
-    }
-    // medium
-    return { avs: 48, sentiment: 41, citation: 51, mentions: 'Medium' };
-  }
-  if (data.status === 'pass') {
-    return { avs: 79, sentiment: 74, citation: 82, mentions: 'High' };
-  }
-  if (data.status === 'not_found') {
-    return { avs: 11, sentiment: 8, citation: 9, mentions: 'None' };
-  }
-  // invalid — should not reach here in normal flow
-  return { avs: 0, sentiment: 0, citation: 0, mentions: 'None' };
 }

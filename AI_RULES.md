@@ -496,30 +496,33 @@ Next.js 16 enforces that **every exported function** in a `'use server'` file is
 
 ---
 
-## 26. 📊 Derived KPI Scores — Label as "Estimated", Never Fabricate (Sprint 33)
+## 26. 📊 Free vs. Locked AI Audit Metrics — Honesty Pattern (Sprint 34)
 
-When displaying KPI scores on a public result/audit page where no live monitored data exists,
-scores MUST be derived from a real upstream result (e.g., scan status + severity) and labeled
-"Estimated" in the UI. They MUST NOT be random, hardcoded, or presented as live data.
+The `/scan` public dashboard uses a **real-categoricals-free / locked-numericals** split:
 
-* **Derivation rule:** Map the real result to a deterministic score table. Example:
+* **Free tier (real data):** Categorical fields returned directly by Perplexity —
+  `mentions_volume` (`none`|`low`|`medium`|`high`) and `sentiment` (`positive`|`neutral`|`negative`)
+  — are shown free with a "Live" badge. They are real, not derived or fabricated.
+
+* **Locked tier (honest placeholder):** Numerical scores (AI Visibility Score, Citation Integrity)
+  require continuous monitoring across multiple scans to be meaningful. Show `██/100` with a lock
+  overlay and "Sign up to unlock" — never show a fake number.
+
+* **Why this split works:**
+  - Categorical real data is §24-compliant (real, not fabricated)
+  - Locking numericals is §24-compliant (honest that monitoring is required)
+  - The old `deriveKpiScores` lookup table (Sprint 33) was removed in Sprint 34 — identical
+    numbers for every "pass" scan eroded trust faster than no numbers at all
+
+* **Prohibited patterns:**
   ```typescript
-  // ✅ Correct — derived from real scan result, labeled "Estimated"
-  if (data.status === 'fail' && data.severity === 'critical') {
-    return { avs: 18, sentiment: 12, citation: 22 };  // low scores, correctly urgent
-  }
-  if (data.status === 'pass') {
-    return { avs: 79, sentiment: 74, citation: 82 };  // high scores, correctly positive
-  }
+  // ❌ Fabrication — removed in Sprint 34
+  if (status === 'pass') return { avs: 79, sentiment: 74, citation: 82 }; // lookup table
 
-  // ❌ Fabrication — never acceptable
-  return { avs: Math.floor(Math.random() * 100) };  // random
-  return { avs: 95 };  // always-good hardcode, ignores real result
+  // ❌ Random — never acceptable
+  return { avs: Math.floor(Math.random() * 100) };
   ```
-* **UI label requirement:** Every KPI card MUST display an "Estimated" badge (e.g.,
-  `<span className="border border-alert-amber/30 text-alert-amber text-[10px]">Estimated</span>`).
-* **Scope:** Applies to any public page that shows business intelligence metrics for anonymous
-  users who have not run persistent monitored scans. The `/scan` dashboard is the canonical example.
+
 * **See also:** AI_RULES §24 (no fabricated scan results), AI_RULES §20 (null states).
 
 ---
