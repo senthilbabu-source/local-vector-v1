@@ -119,7 +119,7 @@ const PerplexityScanSchema = z.object({
  * the hallucination-card UI path without a real Perplexity response.
  * See AI_RULES §24 — production error paths return `{ status: 'unavailable' }`.
  */
-export function _demoFallbackForTesting(businessName: string): ScanResult {
+export async function _demoFallbackForTesting(businessName: string): Promise<ScanResult> {
   return {
     status:         'fail',
     engine:         'ChatGPT',
