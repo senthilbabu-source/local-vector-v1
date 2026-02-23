@@ -14,12 +14,33 @@ Most SEO agency sites are vague ("We help you grow"). LocalVector will be specif
 ## 2. Hero Section (The "Fear" Hook)
 
 **Headline:** Is ChatGPT Telling Your Customers You Are Closed?
+*(Implemented as: "Is AI Hallucinating Your Business Out of Existence?" — kept; broader and higher-converting.)*
 
-**Subheadline:** Stop AI from sending your customers to your competitors. When ChatGPT, Perplexity, or Google Gemini lie about your hours, menu, or location, you lose revenue instantly. We detect the lies and fix them.
+**Subheadline:** When ChatGPT, Gemini, or Perplexity tell customers you're closed, you lose revenue instantly. LocalVector.ai is the world's first AI Defense Layer that detects misinformation and forces the truth.
+*(Updated Sprint 32: added "world's first AI Defense Layer" brand positioning.)*
 
 **Embedded Tool:** The free Hallucination Checker — Business Name + City input → "Scan for Hallucinations" button.
 
 **Social Proof Badge:** "LocalVector's AI Visibility Score: 98/100 — We practice what we preach."
+
+---
+
+## 2b. US VS THEM Comparison Table *(Added Sprint 32)*
+
+**Section title:** "Why Static Listings Aren't Enough"
+
+**Label:** "The Difference"
+
+**Purpose:** Converts prospects who are evaluating legacy listing tools (Yext, Moz Local, BrightLocal). Shows that those tools were built for Google, not for AI engines.
+
+| Feature | LocalVector.ai | Enterprise Listing Tools |
+|---|---|---|
+| Hallucination Detection | ✓ | ✗ |
+| AI Sentiment Steering | ✓ | ✗ |
+| Real-time RAG Updates | ✓ | ✗ |
+| Localized GEO | ✓ | ✗ |
+
+**Placement:** Between "The Engine" (How It Works) and "Social Proof" (case study).
 
 ---
 

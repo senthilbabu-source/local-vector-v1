@@ -2,6 +2,27 @@
 
 ---
 
+## 2026-02-23 — Sprint 32: Landing Page Content Gaps (Items 1, 2, 6)
+
+**Goal:** Add three missing content items identified in landing page audit against brand spec.
+
+| # | Gap | File | Change |
+|---|-----|------|--------|
+| 1 | US VS THEM comparison table absent | `app/page.tsx` | **ADDED** new section between Engine and Social Proof — "Why Static Listings Aren't Enough" with 4 feature rows (Hallucination Detection, AI Sentiment Steering, Real-time RAG Updates, Localized GEO) comparing LocalVector ✓ vs Enterprise Listing Tools ✗ |
+| 2 | Hero sub-headline missing brand positioning | `app/page.tsx` | **UPDATED** — replaced "We detect the lies and force the truth." with "LocalVector.ai is the world's first AI Defense Layer that detects misinformation and forces the truth." |
+| 6 | Footer missing tagline phrase | `app/page.tsx` | **UPDATED** — appended "Built for the Generative Age." to footer brand line |
+
+**Intentional non-changes (deferred):**
+- Hero headline — current "Is AI Hallucinating Your Business Out of Existence?" kept (stronger than spec's version)
+- "Citation Accuracy" name kept (spec says "Citation Dominance" — no user instruction to rename)
+- Pricing tiers kept as 4-tier ($0/$29/$59/Custom) — intentional product decision from Sprint 25
+
+**Docs updated:** `docs/08-LANDING-PAGE-AEO.md`, `docs/Brand_Strategy.md` (created)
+
+**Tests:** No test impact — pure UI content changes.
+
+---
+
 ## 2026-02-23 — Bug Fix: `_demoFallbackForTesting` must be async in `'use server'` file
 
 **Goal:** Fix Next.js 16 build error — all exports in a `'use server'` file must be async.

@@ -167,7 +167,8 @@ export default function RootPage() {
           <p className="mt-6 text-lg sm:text-xl text-slate-400 max-w-2xl mx-auto leading-relaxed">
             When ChatGPT, Gemini, or Perplexity tell customers you&apos;re closed,{' '}
             <strong className="text-white">you lose revenue instantly.</strong>{' '}
-            We detect the lies and force the truth.
+            LocalVector.ai is the world&apos;s first AI Defense Layer that detects
+            misinformation and forces the truth.
           </p>
 
           {/* ViralScanner — free scan CTA (preserved from Sprint 25C) */}
@@ -301,7 +302,65 @@ export default function RootPage() {
         </div>
       </section>
 
-      {/* ── 6. The Engine — How It Works ────────────────────────────────────── */}
+      {/* ── 6. US VS THEM — Why Static Listings Aren't Enough ───────────────── */}
+      <section className="bg-midnight-slate px-4 py-20">
+        <div className="mx-auto max-w-4xl">
+
+          <SectionLabel>The Difference</SectionLabel>
+          <h2 className="mt-3 text-center text-3xl font-bold text-white">
+            Why Static Listings Aren&apos;t Enough
+          </h2>
+          <p className="mt-3 text-center text-slate-400 max-w-xl mx-auto">
+            Legacy listing tools were built for Google. AI runs on a completely different trust model.
+          </p>
+
+          <div className="mt-10 overflow-x-auto">
+            <table className="w-full text-sm border-collapse">
+              <thead>
+                <tr>
+                  <th className="text-left px-5 py-3 text-xs font-bold uppercase tracking-widest text-slate-500 w-1/2">Feature</th>
+                  <th className="px-5 py-3 text-center text-xs font-bold uppercase tracking-widest text-signal-green">LocalVector.ai</th>
+                  <th className="px-5 py-3 text-center text-xs font-bold uppercase tracking-widest text-slate-600">Enterprise Listing Tools</th>
+                </tr>
+              </thead>
+              <tbody>
+                {[
+                  { feature: 'Hallucination Detection', sub: 'Catches when AI lies about your business status, hours, or location' },
+                  { feature: 'AI Sentiment Steering', sub: 'Shapes the tone AI uses — Premium vs. Budget, Recommended vs. Ignored' },
+                  { feature: 'Real-time RAG Updates', sub: 'Pushes your ground truth into the sources LLMs actively trust and cite' },
+                  { feature: 'Localized GEO', sub: 'Optimizes your presence in generative-engine outputs for local intent queries' },
+                ].map(({ feature, sub }, i) => (
+                  <tr
+                    key={feature}
+                    className={i % 2 === 0 ? 'bg-surface-dark/60' : 'bg-transparent'}
+                  >
+                    <td className="px-5 py-4 rounded-l-xl">
+                      <p className="font-semibold text-white text-sm">{feature}</p>
+                      <p className="text-xs text-slate-500 mt-0.5 leading-relaxed">{sub}</p>
+                    </td>
+                    <td className="px-5 py-4 text-center">
+                      <span className="inline-flex items-center justify-center h-6 w-6 rounded-full bg-signal-green/10 border border-signal-green/30">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" className="h-3.5 w-3.5 text-signal-green" aria-hidden>
+                          <path fillRule="evenodd" d="M12.416 3.376a.75.75 0 0 1 .208 1.04l-5 7.5a.75.75 0 0 1-1.154.114l-3-3a.75.75 0 0 1 1.06-1.06l2.353 2.353 4.493-6.74a.75.75 0 0 1 1.04-.207Z" clipRule="evenodd" />
+                        </svg>
+                      </span>
+                    </td>
+                    <td className="px-5 py-4 text-center rounded-r-xl">
+                      <span className="inline-flex items-center justify-center h-6 w-6 rounded-full bg-alert-crimson/10 border border-alert-crimson/20">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" className="h-3.5 w-3.5 text-alert-crimson" aria-hidden>
+                          <path d="M5.28 4.22a.75.75 0 0 0-1.06 1.06L6.94 8l-2.72 2.72a.75.75 0 1 0 1.06 1.06L8 9.06l2.72 2.72a.75.75 0 1 0 1.06-1.06L9.06 8l2.72-2.72a.75.75 0 0 0-1.06-1.06L8 6.94 5.28 4.22Z" />
+                        </svg>
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      {/* ── 7. The Engine — How It Works ────────────────────────────────────── */}
       <section className="bg-midnight-slate px-4 py-20">
         <div className="mx-auto max-w-5xl">
 
@@ -482,6 +541,7 @@ export default function RootPage() {
         <div className="mx-auto max-w-5xl px-6 space-y-4">
           <p className="text-center text-sm font-semibold text-slate-500">
             LocalVector.ai &mdash; Defending the Truth for Local Business.
+            Built for the Generative Age.
           </p>
           <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2">
             <a href="/pricing" className="text-xs text-slate-600 hover:text-slate-300 transition">Pricing</a>
