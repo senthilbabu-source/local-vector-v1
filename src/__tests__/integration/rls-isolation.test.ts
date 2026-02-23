@@ -113,7 +113,7 @@ describe('Row-Level Security — Tenant Isolation', () => {
     // Seed a published menu for Tenant A
     await tenantA.client.from('magic_menus').insert({
       org_id: tenantA.orgId,
-      public_slug: 'charcoal-n-chill',
+      public_slug: 'integration-test-menu-a-123',
       is_published: true,
       json_ld_schema: { '@type': 'Restaurant' },
     });
@@ -124,7 +124,7 @@ describe('Row-Level Security — Tenant Isolation', () => {
       .from('magic_menus')
       .select('json_ld_schema, public_slug')
       .eq('is_published', true)
-      .eq('public_slug', 'charcoal-n-chill');
+      .eq('public_slug', 'integration-test-menu-a-123');
     expect(data).toHaveLength(1);
   });
 

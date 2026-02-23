@@ -94,6 +94,7 @@ export default function RegisterPage() {
   }
 
   return (
+    <div className="flex min-h-screen items-center justify-center bg-slate-50 px-4">
     <div className="w-full max-w-md">
       {/* Card */}
       <div className="rounded-2xl bg-white px-8 py-10 shadow-lg ring-1 ring-slate-900/5">
@@ -171,6 +172,7 @@ export default function RegisterPage() {
           </Link>
         </p>
       </div>
+    </div>
     </div>
   );
 }

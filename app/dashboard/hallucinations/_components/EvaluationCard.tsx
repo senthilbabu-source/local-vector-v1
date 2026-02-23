@@ -115,7 +115,7 @@ function EngineRow({
         <div className="min-w-0 flex-1">
           <p className="text-sm font-medium text-slate-900">{config.label}</p>
           {evalData?.created_at && (
-            <p className="text-xs text-slate-400">
+            <p className="text-xs text-slate-400" suppressHydrationWarning>
               Last run: {formatTime(evalData.created_at)}
             </p>
           )}

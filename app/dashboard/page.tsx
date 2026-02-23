@@ -1,138 +1,207 @@
+import { redirect } from 'next/navigation';
 import { getSafeAuthContext } from '@/lib/auth';
 import { createClient } from '@/lib/supabase/server';
-import { redirect } from 'next/navigation';
+import RealityScoreCard from './_components/RealityScoreCard';
+import AlertFeed from './_components/AlertFeed';
+
+// ---------------------------------------------------------------------------
+// Types
+// ---------------------------------------------------------------------------
+
+// Subset of ai_hallucinations columns we actually render.
+// Enum values verified against supabase/prod_schema.sql:
+//   hallucination_severity : critical | high | medium | low
+//   correction_status      : open | verifying | fixed | dismissed | recurring
+//   model_provider         : openai-gpt4o | perplexity-sonar | google-gemini |
+//                            anthropic-claude | microsoft-copilot
+export type HallucinationRow = {
+  id: string;
+  severity: 'critical' | 'high' | 'medium' | 'low';
+  category: string | null;
+  model_provider:
+    | 'openai-gpt4o'
+    | 'perplexity-sonar'
+    | 'google-gemini'
+    | 'anthropic-claude'
+    | 'microsoft-copilot';
+  claim_text: string;
+  expected_truth: string | null;
+  correction_status: 'open' | 'verifying' | 'fixed' | 'dismissed' | 'recurring';
+  first_detected_at: string;
+  last_seen_at: string;
+  occurrence_count: number;
+};
 
 // ---------------------------------------------------------------------------
 // Data fetching
 // ---------------------------------------------------------------------------
 
 /**
- * Fetches the three tenant-scoped counts in parallel.
+ * Fetches all data needed for the Reality Score Dashboard in parallel.
+ * RLS (org_isolation_select on ai_hallucinations) automatically scopes every
+ * query to the logged-in user's org via the JWT — no manual org_id filter needed.
  *
- * Uses the SSR server client so every query runs under the logged-in user's
- * JWT — PostgreSQL RLS (`org_isolation_select` policies) automatically
- * filters each table to the user's own organization.
- *
- * Returns 0 for any table that errors or has no rows yet, so a newly
- * registered user with an empty org sees clean zeros rather than crashes.
+ * Returns:
+ *   openAlerts  — correction_status = 'open', sorted critical-first.
+ *   fixedCount  — count of correction_status = 'fixed' rows (Quick Stats).
  */
-async function fetchDashboardCounts() {
+async function fetchDashboardData() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const supabase = (await createClient()) as any;
 
-  const [hallucinations, menus, locations] = await Promise.all([
+  const [openResult, fixedResult] = await Promise.all([
+    // Open alerts — columns AlertFeed and RealityScoreCard need.
     supabase
       .from('ai_hallucinations')
-      .select('*', { count: 'exact', head: true }) as Promise<{ count: number | null; error: unknown }>,
+      .select(
+        'id, severity, category, model_provider, claim_text, expected_truth, correction_status, first_detected_at, last_seen_at, occurrence_count'
+      )
+      .eq('correction_status', 'open')
+      .order('last_seen_at', { ascending: false })
+      .limit(20) as Promise<{ data: HallucinationRow[] | null; error: unknown }>,
+
+    // Count of fixed hallucinations for Quick Stats.
     supabase
-      .from('magic_menus')
-      .select('*', { count: 'exact', head: true }) as Promise<{ count: number | null; error: unknown }>,
-    supabase
-      .from('locations')
-      .select('*', { count: 'exact', head: true }) as Promise<{ count: number | null; error: unknown }>,
+      .from('ai_hallucinations')
+      .select('*', { count: 'exact', head: true })
+      .eq('correction_status', 'fixed') as Promise<{ count: number | null; error: unknown }>,
   ]);
 
+  const rawOpen = openResult.data ?? [];
+
+  // Sort open alerts by severity priority (critical first).
+  // Postgres enum sort is definition-order, not semantic — sort client-side.
+  const SEVERITY_ORDER: Record<string, number> = { critical: 0, high: 1, medium: 2, low: 3 };
+  const openAlerts = [...rawOpen].sort(
+    (a, b) => (SEVERITY_ORDER[a.severity] ?? 9) - (SEVERITY_ORDER[b.severity] ?? 9)
+  );
+
   return {
-    hallucinationCount: hallucinations.count ?? 0,
-    menuCount: menus.count ?? 0,
-    locationCount: locations.count ?? 0,
+    openAlerts,
+    fixedCount: fixedResult.count ?? 0,
   };
 }
 
 // ---------------------------------------------------------------------------
-// Page component
+// Reality Score derivation
+//
+// Formula from Doc 03 §9:
+//   reality_score = (Visibility × 0.4) + (Accuracy × 0.4) + (DataHealth × 0.2)
+//
+// Visibility  : 98   — hardcoded (crawler analytics not yet wired)
+// Accuracy    : 100 with 0 open alerts; −15 per open alert, floor 40
+// Data Health : 100  — user cleared the onboarding guard (ground truth exists)
+// ---------------------------------------------------------------------------
+
+export function deriveRealityScore(openAlertCount: number) {
+  const visibility = 98;
+  const accuracy   = openAlertCount === 0 ? 100 : Math.max(40, 100 - openAlertCount * 15);
+  const dataHealth = 100;
+  const realityScore = Math.round(
+    visibility * 0.4 + accuracy * 0.4 + dataHealth * 0.2
+  );
+  return { visibility, accuracy, dataHealth, realityScore };
+}
+
+// ---------------------------------------------------------------------------
+// DashboardPage — Server Component
 // ---------------------------------------------------------------------------
 
 export default async function DashboardPage() {
   const ctx = await getSafeAuthContext();
-
   if (!ctx) {
     redirect('/login');
   }
 
-  // First name only — fall back to email prefix for users without a full_name
-  const firstName =
-    ctx.fullName?.split(' ')[0] ?? ctx.email.split('@')[0];
-
-  const { hallucinationCount, menuCount, locationCount } =
-    await fetchDashboardCounts();
-
-  const stats = [
-    {
-      label: 'AI Hallucinations detected',
-      value: hallucinationCount,
-      color: 'text-red-600',
-    },
-    {
-      label: 'Magic Menus synced',
-      value: menuCount,
-      color: 'text-indigo-600',
-    },
-    {
-      label: 'Locations monitored',
-      value: locationCount,
-      color: 'text-emerald-600',
-    },
-  ];
-
-  const hasData = hallucinationCount > 0 || menuCount > 0 || locationCount > 0;
+  const { openAlerts, fixedCount } = await fetchDashboardData();
+  const scores = deriveRealityScore(openAlerts.length);
+  const firstName = ctx.fullName?.split(' ')[0] ?? ctx.email.split('@')[0];
+  const hasOpenAlerts = openAlerts.length > 0;
 
   return (
-    <div className="space-y-6">
-      {/* Welcome banner */}
-      <div className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-900/5">
-        <h1 className="text-2xl font-semibold text-slate-900">
-          Welcome back, {firstName} 👋
+    <div className="space-y-5">
+
+      {/* ── Page header ───────────────────────────────────────────── */}
+      <div>
+        <h1 className="text-xl font-semibold text-white tracking-tight">
+          Welcome back, {firstName}
         </h1>
-        <p className="mt-1 text-sm text-slate-500">
-          {hasData
-            ? 'Here is a live snapshot of your AI audit data.'
-            : 'Your AI audit dashboard is ready. More features are on the way.'}
+        <p className="mt-0.5 text-sm text-slate-400">
+          {hasOpenAlerts
+            ? `${openAlerts.length} AI ${openAlerts.length === 1 ? 'lie' : 'lies'} detected — fix them before your customers notice.`
+            : 'Your AI visibility is clean. Keep your ground truth up to date.'}
         </p>
       </div>
 
-      {/* Live stat cards */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        {stats.map(({ label, value, color }) => (
-          <div
-            key={label}
-            className="rounded-xl bg-white p-5 shadow-sm ring-1 ring-slate-900/5"
-          >
-            <p className="text-xs font-medium uppercase tracking-wide text-slate-400">
-              {label}
-            </p>
-            <p className={`mt-2 text-3xl font-bold tabular-nums ${color}`}>
-              {value.toLocaleString()}
-            </p>
-          </div>
-        ))}
+      {/*
+        ── Fear First layout (Doc 06 §1 Design Principle #1) ────────────────
+        When open alerts exist, AlertFeed leads. When the board is clean,
+        the Reality Score Card leads instead.
+      */}
+      {hasOpenAlerts ? (
+        <>
+          <AlertFeed alerts={openAlerts} />
+          <RealityScoreCard {...scores} openAlertCount={openAlerts.length} />
+        </>
+      ) : (
+        <>
+          <RealityScoreCard {...scores} openAlertCount={0} />
+          <AlertFeed alerts={[]} />
+        </>
+      )}
+
+      {/* ── Quick Stats Row (Doc 06 §3) ───────────────────────────── */}
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+        <QuickStat
+          label="Hallucinations fixed"
+          value={fixedCount}
+          color="text-truth-emerald"
+        />
+        <QuickStat
+          label="Open alerts"
+          value={openAlerts.length}
+          color={hasOpenAlerts ? 'text-alert-crimson' : 'text-truth-emerald'}
+        />
+        <QuickStat
+          label="AI Visibility Score"
+          value={`${scores.visibility}/100`}
+          color="text-electric-indigo"
+          className="col-span-2 sm:col-span-1"
+        />
       </div>
 
-      {/* Empty-state callout — only shown when org has no data yet */}
-      {!hasData && (
-        <div className="rounded-xl border-2 border-dashed border-slate-200 bg-white p-10 text-center">
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            className="mx-auto h-10 w-10 text-slate-300"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-            strokeWidth={1.5}
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
-            />
-          </svg>
-          <p className="mt-3 text-sm font-medium text-slate-500">
-            No audit results yet
-          </p>
-          <p className="mt-1 text-xs text-slate-400">
-            AI audit results will appear here once your first scan runs.
-          </p>
-        </div>
-      )}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// QuickStat — inline sub-component
+// ---------------------------------------------------------------------------
+
+function QuickStat({
+  label,
+  value,
+  color,
+  className = '',
+}: {
+  label: string;
+  value: number | string;
+  color: string;
+  className?: string;
+}) {
+  return (
+    <div
+      className={[
+        'rounded-xl bg-surface-dark border border-white/5 px-4 py-4',
+        className,
+      ].join(' ')}
+    >
+      <p className="text-xs font-medium text-slate-500 uppercase tracking-wide">
+        {label}
+      </p>
+      <p className={['mt-1.5 text-2xl font-bold tabular-nums', color].join(' ')}>
+        {value}
+      </p>
     </div>
   );
 }

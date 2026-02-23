@@ -1,7 +1,48 @@
+// Server Component — public LLM Honeypot.
+// Fetches a published Magic Menu and renders it with Deep Night styling
+// plus two Schema.org JSON-LD blocks (Restaurant + Menu) for AI crawlers.
+//
+// Doc 03 §15 Agent Rule: all JSONB types imported from lib/types/ground-truth.ts.
+// AI_RULES §1: column names verified against supabase/migrations/.
+
 import { notFound } from 'next/navigation';
 import { cache } from 'react';
 import type { Metadata } from 'next';
 import { createClient } from '@/lib/supabase/server';
+import type {
+  HoursData,
+  DayOfWeek,
+  DayHours,
+  Amenities,
+} from '@/lib/types/ground-truth';
+
+// ---------------------------------------------------------------------------
+// Constants (literal strings — Tailwind JIT must see these as-is)
+// ---------------------------------------------------------------------------
+
+const ORDERED_DAYS: DayOfWeek[] = [
+  'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday',
+];
+
+const DAY_LABELS: Record<DayOfWeek, string> = {
+  monday:    'Monday',
+  tuesday:   'Tuesday',
+  wednesday: 'Wednesday',
+  thursday:  'Thursday',
+  friday:    'Friday',
+  saturday:  'Saturday',
+  sunday:    'Sunday',
+};
+
+// Core amenities we always render, in display order.
+const AMENITY_ROWS: { key: keyof Amenities; label: string; negative: string }[] = [
+  { key: 'serves_alcohol',      label: 'Full bar (beer, wine, cocktails)', negative: 'No alcohol served' },
+  { key: 'has_outdoor_seating', label: 'Outdoor seating',                  negative: 'Indoor seating only' },
+  { key: 'takes_reservations',  label: 'Takes reservations',               negative: 'Walk-ins only' },
+  { key: 'has_live_music',      label: 'Live music',                       negative: 'No live music' },
+  { key: 'has_hookah',          label: 'Hookah lounge',                    negative: 'No hookah' },
+  { key: 'is_kid_friendly',     label: 'Kid-friendly',                     negative: 'Not kid-friendly' },
+];
 
 // ---------------------------------------------------------------------------
 // Types
@@ -25,6 +66,7 @@ type CategoryData = {
 };
 
 type LocationData = {
+  id: string;
   business_name: string;
   address_line1: string | null;
   address_line2: string | null;
@@ -33,11 +75,14 @@ type LocationData = {
   zip: string | null;
   phone: string | null;
   website_url: string | null;
+  hours_data: HoursData | null;
+  amenities: Partial<Amenities> | null;
 };
 
 type PublicMenuData = {
   id: string;
   public_slug: string;
+  location_id: string | null;
   locations: LocationData | null;
 };
 
@@ -66,12 +111,22 @@ function formatPrice(price: number, currency: string): string {
 }
 
 /**
+ * Converts a 24h time string ("17:00") to 12h display ("5:00 PM").
+ * Pure arithmetic — no locale-dependent date APIs, no hydration mismatch.
+ */
+function formatHour(time: string): string {
+  const [hStr, mStr] = time.split(':');
+  const h = parseInt(hStr ?? '0', 10);
+  const m = parseInt(mStr ?? '0', 10);
+  const period = h >= 12 ? 'PM' : 'AM';
+  const h12 = h === 0 ? 12 : h > 12 ? h - 12 : h;
+  return `${h12}:${String(m).padStart(2, '0')} ${period}`;
+}
+
+/**
  * Safely serialises a JSON-LD schema object for injection into a <script> tag.
- *
- * JSON.stringify handles quote escaping inside string values. We additionally
- * replace < and > with their Unicode equivalents so that a description
- * containing "</script>" cannot prematurely terminate the script tag —
- * a known injection vector when embedding JSON in HTML.
+ * Uses JSON.stringify + Unicode escapes for < and > to prevent </script>
+ * injection — a known XSS vector when embedding JSON-LD in HTML.
  */
 function safeJsonLd(value: unknown): string {
   return JSON.stringify(value)
@@ -84,9 +139,29 @@ function safeJsonLd(value: unknown): string {
 // ---------------------------------------------------------------------------
 
 /**
- * Builds a Schema.org Restaurant object.
- * The `hasMenu` property links to the Menu schema via its @id anchor.
+ * Builds the Schema.org openingHoursSpecification array from hours_data.
+ * Closed days (value = "closed") are omitted — Schema.org convention is to
+ * only list open days in openingHoursSpecification.
+ * Missing day keys (hours unknown) are also omitted.
  */
+function buildOpeningHoursSpecification(
+  hoursData: HoursData | null
+): Record<string, unknown>[] {
+  if (!hoursData) return [];
+  return ORDERED_DAYS.flatMap((day) => {
+    const hours = hoursData[day];
+    if (!hours || hours === 'closed') return [];
+    const { open, close } = hours as DayHours;
+    return [{
+      '@type': 'OpeningHoursSpecification',
+      dayOfWeek: DAY_LABELS[day],
+      opens:  open,
+      closes: close,
+    }];
+  });
+}
+
+/** Builds a Schema.org Restaurant object including openingHoursSpecification. */
 function buildRestaurantSchema(menu: PublicMenuData): Record<string, unknown> {
   const loc = menu.locations;
   const schema: Record<string, unknown> = {
@@ -98,64 +173,55 @@ function buildRestaurantSchema(menu: PublicMenuData): Record<string, unknown> {
   if (loc?.address_line1) {
     schema.address = {
       '@type': 'PostalAddress',
-      streetAddress: [loc.address_line1, loc.address_line2]
-        .filter(Boolean)
-        .join(', '),
+      streetAddress: [loc.address_line1, loc.address_line2].filter(Boolean).join(', '),
       addressLocality: loc.city ?? '',
-      addressRegion: loc.state ?? '',
-      postalCode: loc.zip ?? '',
-      addressCountry: 'US',
+      addressRegion:   loc.state ?? '',
+      postalCode:      loc.zip ?? '',
+      addressCountry:  'US',
     };
   }
 
-  if (loc?.phone) schema.telephone = loc.phone;
-  if (loc?.website_url) schema.url = loc.website_url;
+  if (loc?.phone)       schema.telephone = loc.phone;
+  if (loc?.website_url) schema.url        = loc.website_url;
 
-  // Link to the companion Menu schema defined in the second <script> block
+  const hoursSpec = buildOpeningHoursSpecification(loc?.hours_data ?? null);
+  if (hoursSpec.length > 0) {
+    schema.openingHoursSpecification = hoursSpec;
+  }
+
+  // Link to the companion Menu schema
   schema.hasMenu = { '@id': '#menu' };
 
   return schema;
 }
 
-/**
- * Builds a Schema.org Menu object with hasMenuSection (categories) and
- * hasMenuItem (items). Prices are expressed as Offer objects.
- *
- * All string values (name, description) flow through JSON.stringify via
- * safeJsonLd() — no manual escaping is required here.
- */
+/** Builds a Schema.org Menu with sections and items. */
 function buildMenuSchema(
   menuDisplayName: string,
   categories: CategoryData[]
 ): Record<string, unknown> {
   return {
     '@context': 'https://schema.org',
-    '@type': 'Menu',
-    '@id': '#menu',
-    name: menuDisplayName,
+    '@type':    'Menu',
+    '@id':      '#menu',
+    name:       menuDisplayName,
     hasMenuSection: categories.map((cat) => ({
       '@type': 'MenuSection',
-      name: cat.name,
+      name:    cat.name,
       hasMenuItem: cat.menu_items.map((item) => {
-        const menuItem: Record<string, unknown> = {
+        const mi: Record<string, unknown> = {
           '@type': 'MenuItem',
-          name: item.name,
+          name:    item.name,
         };
-
-        // description and price are optional — only include when present
-        if (item.description) {
-          menuItem.description = item.description;
-        }
-
+        if (item.description) mi.description = item.description;
         if (item.price !== null) {
-          menuItem.offers = {
-            '@type': 'Offer',
-            price: item.price.toFixed(2),
-            priceCurrency: item.currency || 'USD',
+          mi.offers = {
+            '@type':         'Offer',
+            price:           item.price.toFixed(2),
+            priceCurrency:   item.currency || 'USD',
           };
         }
-
-        return menuItem;
+        return mi;
       }),
     })),
   };
@@ -165,29 +231,17 @@ function buildMenuSchema(
 // Data fetching — React cache() deduplicates across generateMetadata + Page
 // ---------------------------------------------------------------------------
 
-/**
- * Fetches the published menu and its categories/items for the given slug.
- * Wrapped in React cache() so that generateMetadata and the Page component
- * share a single database round-trip per request.
- *
- * Uses the Supabase anon-role client (no auth cookies present for public
- * requests). The Phase 7 RLS migration grants SELECT to the anon role, with
- * row visibility gated by is_published = TRUE via the EXISTS-based policies.
- */
 const fetchPublicMenuPage = cache(
-  async (
-    slug: string
-  ): Promise<{ menu: PublicMenuData | null; categories: CategoryData[] }> => {
+  async (slug: string): Promise<{ menu: PublicMenuData | null; categories: CategoryData[] }> => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const supabase = (await createClient()) as any;
 
-    // Fetch the menu header + location data.
-    // The .eq('is_published', true) guard is an application-level double-check;
-    // the anon RLS policy "public_published_menus" already enforces this.
+    // Fetch menu header + full location data (incl. hours_data and amenities).
+    // Double-gated: anon RLS policy + application-level .eq('is_published', true).
     const { data: menu } = (await supabase
       .from('magic_menus')
       .select(
-        'id, public_slug, locations(business_name, address_line1, address_line2, city, state, zip, phone, website_url)'
+        'id, public_slug, location_id, locations(id, business_name, address_line1, address_line2, city, state, zip, phone, website_url, hours_data, amenities)'
       )
       .eq('public_slug', slug)
       .eq('is_published', true)
@@ -195,24 +249,18 @@ const fetchPublicMenuPage = cache(
 
     if (!menu) return { menu: null, categories: [] };
 
-    // Fetch categories with their items. RLS "public_published_categories" and
-    // "public_menu_items" ensure only data for published menus is returned.
+    // Fetch categories with their items.
     const { data: categoriesRaw } = (await supabase
       .from('menu_categories')
       .select(
         'id, name, sort_order, menu_items(id, name, description, price, currency, is_available, sort_order)'
       )
       .eq('menu_id', menu.id)
-      .order('sort_order', { ascending: true })) as {
-      data: CategoryData[] | null;
-      error: unknown;
-    };
+      .order('sort_order', { ascending: true })) as { data: CategoryData[] | null; error: unknown };
 
     const categories: CategoryData[] = (categoriesRaw ?? []).map((cat) => ({
       ...cat,
-      menu_items: (cat.menu_items ?? []).sort(
-        (a, b) => a.sort_order - b.sort_order
-      ),
+      menu_items: (cat.menu_items ?? []).sort((a, b) => a.sort_order - b.sort_order),
     }));
 
     return { menu, categories };
@@ -231,18 +279,16 @@ export async function generateMetadata({
   const { slug } = await params;
   const { menu } = await fetchPublicMenuPage(slug);
 
-  if (!menu) {
-    return { title: 'Menu Not Found' };
-  }
+  if (!menu) return { title: 'Menu Not Found' };
 
-  const businessName = menu.locations?.business_name ?? 'Restaurant';
-  const menuName = slugToDisplayName(menu.public_slug);
-  const city = menu.locations?.city;
-  const state = menu.locations?.state;
+  const businessName   = menu.locations?.business_name ?? 'Restaurant';
+  const menuName       = slugToDisplayName(menu.public_slug);
+  const city           = menu.locations?.city;
+  const state          = menu.locations?.state;
   const locationSuffix = city ? ` in ${city}${state ? `, ${state}` : ''}` : '';
 
   return {
-    title: `${menuName} — ${businessName}`,
+    title:       `${menuName} — ${businessName}`,
     description: `View the full ${menuName} from ${businessName}${locationSuffix}. Accurate, AI-readable menu data powered by LocalVector.ai.`,
   };
 }
@@ -259,51 +305,68 @@ export default async function PublicMenuPage({
   const { slug } = await params;
   const { menu, categories } = await fetchPublicMenuPage(slug);
 
-  // Return 404 for slugs that don't exist or belong to unpublished menus.
-  // The RLS policy already filters out unpublished rows, so a null result
-  // here covers both "not found" and "not published" cases.
-  if (!menu) {
-    notFound();
-  }
+  if (!menu) notFound();
 
-  const loc = menu.locations;
-  const businessName = loc?.business_name ?? 'Restaurant';
+  const loc             = menu.locations;
+  const businessName    = loc?.business_name ?? 'Restaurant';
   const menuDisplayName = slugToDisplayName(menu.public_slug);
+  const totalItems      = categories.reduce((n, c) => n + c.menu_items.length, 0);
 
   const restaurantSchema = buildRestaurantSchema(menu);
-  const menuSchema = buildMenuSchema(menuDisplayName, categories);
+  const menuSchema       = buildMenuSchema(menuDisplayName, categories);
 
-  const totalItems = categories.reduce((n, c) => n + c.menu_items.length, 0);
+  // ── Hours rendering prep ────────────────────────────────────────────────
+  const hoursData = loc?.hours_data ?? null;
+  const hoursRows: { day: DayOfWeek; label: string; display: string }[] =
+    ORDERED_DAYS.map((day) => {
+      const h = hoursData?.[day];
+      let display: string;
+      if (!h)                display = '—';
+      else if (h === 'closed') display = 'Closed';
+      else                   display = `${formatHour(h.open)} – ${formatHour(h.close)}`;
+      return { day, label: DAY_LABELS[day], display };
+    });
+
+  // ── Amenity rendering prep ──────────────────────────────────────────────
+  const amenities = loc?.amenities ?? null;
 
   return (
     <>
-      {/* ── JSON-LD: Restaurant ──────────────────────────────────── */}
-      {/* Schema.org JSON-LD may appear anywhere in the document.    */}
-      {/* safeJsonLd() uses JSON.stringify + Unicode escapes for     */}
-      {/* < and > to prevent </script> injection from string values. */}
+      {/* ── JSON-LD: Restaurant (+ openingHoursSpecification) ─────── */}
       <script
         type="application/ld+json"
         // eslint-disable-next-line react/no-danger
         dangerouslySetInnerHTML={{ __html: safeJsonLd(restaurantSchema) }}
       />
-
-      {/* ── JSON-LD: Menu ────────────────────────────────────────── */}
+      {/* ── JSON-LD: Menu ─────────────────────────────────────────── */}
       <script
         type="application/ld+json"
         // eslint-disable-next-line react/no-danger
         dangerouslySetInnerHTML={{ __html: safeJsonLd(menuSchema) }}
       />
 
-      {/* ── Page body ───────────────────────────────────────────── */}
-      <div className="min-h-screen bg-slate-50 py-10 px-4">
-        <article className="mx-auto max-w-2xl">
+      {/* ── Page body ─────────────────────────────────────────────── */}
+      <div className="min-h-screen py-10 px-4">
+        <article className="mx-auto max-w-2xl space-y-4">
 
-          {/* ── Restaurant header ─────────────────────────────────── */}
-          <header className="mb-8 border-b border-slate-200 pb-8">
-            <h1 className="text-2xl font-bold text-slate-900">{businessName}</h1>
+          {/* ── Restaurant header ───────────────────────────────────── */}
+          <header className="rounded-2xl bg-surface-dark border border-white/5 px-6 py-6">
+            {/* Powered-by badge */}
+            <div className="flex items-center gap-1.5 mb-4">
+              <span className="flex h-5 w-5 items-center justify-center rounded bg-electric-indigo text-white text-xs font-bold select-none">
+                LV
+              </span>
+              <span className="text-xs text-slate-500">
+                LocalVector.ai · AI-verified menu
+              </span>
+            </div>
+
+            <h1 className="text-2xl font-bold text-white tracking-tight">
+              {businessName}
+            </h1>
 
             {loc && (loc.city || loc.address_line1) && (
-              <address className="mt-2 not-italic text-sm text-slate-600 leading-relaxed">
+              <address className="mt-2 not-italic text-sm text-slate-400 leading-relaxed">
                 {loc.address_line1 && <span>{loc.address_line1}<br /></span>}
                 {loc.address_line2 && <span>{loc.address_line2}<br /></span>}
                 {(loc.city || loc.state || loc.zip) && (
@@ -319,7 +382,7 @@ export default async function PublicMenuPage({
               {loc?.phone && (
                 <a
                   href={`tel:${loc.phone}`}
-                  className="text-slate-600 hover:text-slate-900"
+                  className="text-slate-300 hover:text-white transition"
                 >
                   {loc.phone}
                 </a>
@@ -329,7 +392,7 @@ export default async function PublicMenuPage({
                   href={loc.website_url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-indigo-600 hover:underline"
+                  className="text-electric-indigo hover:underline"
                 >
                   {loc.website_url}
                 </a>
@@ -337,9 +400,75 @@ export default async function PublicMenuPage({
             </div>
           </header>
 
-          {/* ── Menu title + stats ────────────────────────────────── */}
-          <div className="mb-6">
-            <h2 className="text-xl font-semibold text-slate-900">{menuDisplayName}</h2>
+          {/* ── Operating Hours ──────────────────────────────────────── */}
+          {hoursData && (
+            <section
+              aria-label="Operating hours"
+              className="rounded-2xl bg-surface-dark border border-white/5 px-6 py-5"
+            >
+              <h2 className="text-sm font-semibold text-white mb-3">
+                Operating Hours
+              </h2>
+              <table className="w-full text-sm">
+                <tbody>
+                  {hoursRows.map(({ day, label, display }) => (
+                    <tr key={day} className="border-b border-white/5 last:border-0">
+                      <td className="py-1.5 pr-4 text-slate-400 font-medium w-32">
+                        {label}
+                      </td>
+                      <td
+                        className={[
+                          'py-1.5 tabular-nums',
+                          display === 'Closed' ? 'text-slate-600'
+                            : display === '—'  ? 'text-slate-700 italic'
+                            : 'text-slate-300',
+                        ].join(' ')}
+                      >
+                        {display}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </section>
+          )}
+
+          {/* ── Amenities ────────────────────────────────────────────── */}
+          {amenities && (
+            <section
+              aria-label="Amenities"
+              className="rounded-2xl bg-surface-dark border border-white/5 px-6 py-5"
+            >
+              <h2 className="text-sm font-semibold text-white mb-3">
+                Amenities
+              </h2>
+              <div className="flex flex-wrap gap-2">
+                {AMENITY_ROWS.map(({ key, label, negative }) => {
+                  const present = amenities[key];
+                  if (present === undefined) return null;
+                  return (
+                    <span
+                      key={key}
+                      className={[
+                        'inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium',
+                        present
+                          ? 'bg-truth-emerald/15 text-truth-emerald'
+                          : 'bg-white/5 text-slate-500',
+                      ].join(' ')}
+                    >
+                      {present ? '✓' : '✗'} {present ? label : negative}
+                    </span>
+                  );
+                })}
+              </div>
+            </section>
+          )}
+
+          {/* ── Menu title ───────────────────────────────────────────── */}
+          <div className="px-1">
+            <h2 className="text-xl font-semibold text-white tracking-tight">
+              {menuDisplayName}
+            </h2>
             {totalItems > 0 && (
               <p className="mt-0.5 text-sm text-slate-500">
                 {categories.length}{' '}
@@ -349,36 +478,35 @@ export default async function PublicMenuPage({
             )}
           </div>
 
-          {/* ── Empty state ───────────────────────────────────────── */}
+          {/* ── Empty state ──────────────────────────────────────────── */}
           {categories.length === 0 && (
-            <p className="rounded-xl border border-dashed border-slate-300 bg-white py-10 text-center text-sm text-slate-400">
-              This menu has no categories yet.
-            </p>
+            <div className="rounded-2xl border border-dashed border-white/10 bg-surface-dark py-10 text-center">
+              <p className="text-sm text-slate-500">
+                This menu has no categories yet.
+              </p>
+            </div>
           )}
 
-          {/* ── Category sections ─────────────────────────────────── */}
+          {/* ── Category sections ────────────────────────────────────── */}
           {categories.map((category) => (
             <section
               key={category.id}
               aria-labelledby={`cat-${category.id}`}
-              className="mb-8"
+              className="rounded-2xl bg-surface-dark border border-white/5 px-6 py-5"
             >
-              {/* Category heading */}
               <h3
                 id={`cat-${category.id}`}
-                className="mb-3 border-b border-slate-200 pb-2 text-base font-semibold uppercase tracking-wide text-slate-700"
+                className="mb-4 text-xs font-semibold uppercase tracking-widest text-slate-400 border-b border-white/5 pb-2"
               >
                 {category.name}
               </h3>
 
-              {/* Empty category */}
               {category.menu_items.length === 0 && (
-                <p className="text-sm italic text-slate-400">
+                <p className="text-sm italic text-slate-600">
                   No items in this category yet.
                 </p>
               )}
 
-              {/* Item list */}
               {category.menu_items.length > 0 && (
                 <ul className="space-y-4">
                   {category.menu_items.map((item) => (
@@ -386,26 +514,23 @@ export default async function PublicMenuPage({
                       key={item.id}
                       className="flex items-start justify-between gap-4"
                     >
-                      {/* Left: name + description */}
                       <div className="min-w-0 flex-1">
-                        <h4 className="text-sm font-medium text-slate-900">
+                        <h4 className="text-sm font-medium text-white leading-snug">
                           {item.name}
                           {!item.is_available && (
-                            <span className="ml-2 inline-flex items-center rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-500">
+                            <span className="ml-2 inline-flex items-center rounded-full bg-white/5 px-2 py-0.5 text-xs font-medium text-slate-500">
                               Unavailable
                             </span>
                           )}
                         </h4>
                         {item.description && (
-                          <p className="mt-0.5 text-sm text-slate-500 leading-snug">
+                          <p className="mt-0.5 text-xs text-slate-400 leading-snug">
                             {item.description}
                           </p>
                         )}
                       </div>
-
-                      {/* Right: price */}
                       {item.price !== null && (
-                        <span className="shrink-0 font-mono text-sm font-semibold text-slate-900 tabular-nums">
+                        <span className="shrink-0 font-mono text-sm font-semibold text-electric-indigo tabular-nums">
                           {formatPrice(item.price, item.currency)}
                         </span>
                       )}
@@ -416,13 +541,31 @@ export default async function PublicMenuPage({
             </section>
           ))}
 
-          {/* ── Page footer ───────────────────────────────────────── */}
-          <footer className="mt-10 border-t border-slate-200 pt-6 text-center">
-            <p className="text-xs text-slate-400">
-              AI-readable menu data powered by{' '}
+          {/* ── AI-discovery footer ──────────────────────────────────── */}
+          <footer className="rounded-2xl border border-white/5 bg-surface-dark px-6 py-5">
+            <p className="text-xs text-slate-500 mb-2 font-medium">
+              AI-readable data endpoints
+            </p>
+            <div className="flex flex-wrap gap-4">
+              <a
+                href={`/m/${slug}/llms.txt`}
+                className="text-xs font-mono text-electric-indigo/70 hover:text-electric-indigo transition"
+              >
+                llms.txt
+              </a>
+              <a
+                href={`/m/${slug}/ai-config.json`}
+                className="text-xs font-mono text-electric-indigo/70 hover:text-electric-indigo transition"
+              >
+                ai-config.json
+              </a>
+            </div>
+            <p className="mt-3 text-xs text-slate-600">
+              Menu data maintained and verified by the business owner.{' '}
+              Powered by{' '}
               <a
                 href="https://localvector.ai"
-                className="text-indigo-500 hover:underline"
+                className="text-slate-500 hover:text-slate-300 transition"
               >
                 LocalVector.ai
               </a>

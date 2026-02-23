@@ -22,6 +22,7 @@ This documentation suite is the **single source of truth** for LocalVector.ai. I
 | **02** | Multi-Tenant Architecture | Engineering | Infrastructure blueprint. Supabase RLS, Next.js middleware, subdomain routing. |
 | **03** | Database Schema & Migrations | Engineering | Complete SQL DDL. Every table, enum, index, RLS policy. Copy-paste into Supabase. |
 | **04** | Intelligence Engine Specification | Engineering, AI/ML | Prompt engineering for Fear, Greed, and Magic engines. Ground Truth logic. |
+| **04b** | Magic Menu: Bulk Upload & Web Audit | Engineering | Hybrid CSV upload (LocalVector AEO template + GPT-4o POS mapper), Schema.org RestrictedDiet JSON-LD generation, IndexNow active pinging, and post-publish Perplexity Sonar price-hallucination audits. |
 | **05** | API Contract & Route Specification | Engineering (Frontend ↔ Backend) | Every endpoint, request/response shape, auth flow, rate limiting. |
 | **06** | Frontend & UX Specification | Engineering, Design | Dashboard layout, component hierarchy, user flows, UI states. |
 | **07** | Go-to-Market & Growth Playbook | Founder, Marketing | Viral wedge strategy, pricing tiers, acquisition channels, agency sales. |
@@ -155,3 +156,4 @@ Each document is structured to be pasted as context into a coding agent session:
 | 2.1 | Feb 16, 2026 | **"Outcome Architecture" Patch:** Added Link Injection, Truth Calibration, and Propagation Tracking. |
 | 2.2 | Feb 16, 2026 | **AEO/GEO Upgrade:** Added `llms.txt` generation, Answer-First logic, Share of Voice metrics, and Golden Tenant real-world address patch. |
 | 2.3 | Feb 16, 2026 | **Build-Ready Patch:** Added `crawler_hits` table + RLS to schema. Added Section 5.4 Drift Detection integration test. Added `PlanGate` component spec (Doc 06 §9.1). Added `ai-config.json` schema definition (Doc 08 §10). Uncommented Golden Tenant seed data. Fixed Section 15 TypeScript interfaces. |
+| 2.4 | Feb 22, 2026 | **Phase 19 Spec:** Added Doc 04b v3.0 — Hybrid Upload (LocalVector CSV + GPT-4o POS Mapper), Schema.org RestrictedDiet enumeration mapping, IndexNow active pinging, Web Audit Workflow. Applied code patches: `lib/types/menu.ts` (`image_url`, `indexnow_pinged`), `actions.ts` (`MenuExtractedItemSchema`). |

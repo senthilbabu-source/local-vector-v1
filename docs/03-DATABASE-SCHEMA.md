@@ -979,30 +979,39 @@ interface Attributes {
 ```
 
 ### 15.5 `magic_menus.extracted_data`
+
+> ⚠️ **Updated Phase 19** — The v2.2 nested `sections/MenuSection` shape was replaced during
+> Phase 14 implementation. The canonical interfaces live in `lib/types/menu.ts`; all code MUST
+> import from there.
+
 ```typescript
-interface MenuExtractedData {
-  overall_confidence: number;  // 0.0–1.0
-  sections: MenuSection[];
-  aeo_summary?: string;       // NEW v2.2: AI Overview summary
-}
+// Source of truth: lib/types/menu.ts
 
-interface MenuSection {
-  category: string;
-  items: MenuExtractedItem[];
-}
-
+/**
+ * A single menu item extracted by the AI parser.
+ * `confidence` drives the Confidence Triage UI (Phase 14):
+ *   ≥ 0.85 = auto-approved (emerald)
+ *   0.60–0.84 = needs review (amber)
+ *   < 0.60 = must edit — blocks publish (crimson)
+ */
 interface MenuExtractedItem {
+  id: string;
   name: string;
-  description: string;
-  price: number | null;
-  price_note?: string | null;
-  currency: string;           // default "USD"
-  dietary_tags: string[];     // e.g. ["vegetarian", "gluten-free", "spicy"]
-  confidence: number;         // 0.0–1.0 (per-item OCR confidence)
+  description?: string;
+  price?: string;            // formatted string e.g. "$18.00"
+  category: string;          // flat string — no nested MenuSection
+  confidence: number;        // 0.0–1.0
+}
+
+/** Top-level shape for `magic_menus.extracted_data` JSONB column. */
+interface MenuExtractedData {
+  items: MenuExtractedItem[];
+  extracted_at: string;      // ISO-8601 timestamp
+  source_url?: string;       // origin PDF/URL if known
 }
 ```
 
-**Rule:** This is the shape returned by the GPT-4o Vision Digitizer (Doc 04, Section 4.2) and consumed by the Review UI (Doc 06, Section 4.2), the JSON-LD generator (Doc 04, Section 4.3), and the PUT /magic-menu/:id endpoint (Doc 05, Section 4).
+**Rule:** Import `MenuExtractedItem`, `MenuExtractedData`, `MenuWorkspaceData`, and `PropagationEvent` exclusively from `lib/types/menu.ts`. Do **not** redeclare these shapes inline.
 
 ### 15.6 `menu_items.dietary_tags`
 ```typescript
@@ -1044,6 +1053,60 @@ interface PropagationEvent {
 
 type PropagationEvents = PropagationEvent[];
 ```
+
+### 15.11 `ai_hallucinations` — TypeScript interface
+
+> ⚠️ **Critical naming corrections (Phase 19 sync):**
+> - Column is `model_provider` **not** `engine`
+> - Column is `correction_status` **not** `is_resolved`
+> - All ENUM values are **strictly lowercase**: `'critical'`, `'high'`, `'medium'`, `'low'`
+> - Valid `category` values: `'status' | 'hours' | 'amenity' | 'menu' | 'address' | 'phone'`
+
+```typescript
+type ModelProvider =
+  | 'openai-gpt4o'
+  | 'perplexity-sonar'
+  | 'google-gemini'
+  | 'anthropic-claude'
+  | 'microsoft-copilot';
+
+type HallucinationSeverity = 'critical' | 'high' | 'medium' | 'low';  // all lowercase
+
+type CorrectionStatus = 'open' | 'verifying' | 'fixed' | 'dismissed' | 'recurring';
+
+type HallucinationCategory = 'status' | 'hours' | 'amenity' | 'menu' | 'address' | 'phone';
+
+interface AiHallucination {
+  id: string;
+  org_id: string;
+  location_id: string | null;
+  audit_id: string | null;
+
+  // What was wrong
+  model_provider: ModelProvider;   // ← was incorrectly "engine" in early seed data
+  severity: HallucinationSeverity;
+  category: HallucinationCategory;
+  claim_text: string;              // e.g. "Charcoal N Chill is permanently closed."
+  expected_truth: string;          // e.g. "Open Tuesday–Sunday 11 AM–10 PM."
+
+  // Resolution
+  correction_status: CorrectionStatus;  // ← was incorrectly "is_resolved: boolean"
+  resolved_at: string | null;
+  resolution_notes: string | null;
+
+  // Recurrence tracking
+  first_detected_at: string;   // ISO-8601
+  last_seen_at: string;        // ISO-8601
+  occurrence_count: number;    // increments when same hallucination recurs
+
+  // Timestamps
+  detected_at: string;
+  created_at: string;
+}
+```
+
+**Rule:** When inserting rows via seed.sql or Server Actions, all enum values **must** be lowercase strings. Uppercase variants (e.g. `'CRITICAL'`) will fail the PostgreSQL CHECK constraint.
+
 ---
 
 **Phase 5** - The Database Fix

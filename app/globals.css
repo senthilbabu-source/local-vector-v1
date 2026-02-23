@@ -1,26 +1,39 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+/* ============================================================
+   DEEP NIGHT & NEON INSIGHT — Design Token System
+   Doc 06 §8 — "Reality Engine" Palette
+   All values registered with Tailwind v4's @theme so they are
+   available as utility classes: bg-midnight-slate, text-electric-indigo, etc.
+   ============================================================ */
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
+  /* ── Background surfaces ─────────────────────────────────── */
+  --color-midnight-slate:  #0f111a;
+  --color-surface-dark:    #1a1d27;
+
+  /* ── Brand / Accent ──────────────────────────────────────── */
+  --color-electric-indigo: #6366f1;
+
+  /* ── Semantic colours ────────────────────────────────────── */
+  --color-alert-crimson:   #ef4444;
+  --color-truth-emerald:   #10b981;
+
+  /* ── Font families ───────────────────────────────────────── */
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+/* ── Dark baseline — always dark, no OS preference toggle ─── */
+:root {
+  --background: #0f111a;   /* midnight-slate */
+  --foreground: #cbd5e1;   /* slate-300 body text */
 }
 
 body {
-  background: var(--background);
+  background-color: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans), Arial, Helvetica, sans-serif;
+  /* Tabular nums for all numerical displays (Doc 06 §8.3) */
+  font-variant-numeric: tabular-nums;
 }

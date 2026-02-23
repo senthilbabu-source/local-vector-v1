@@ -2,7 +2,7 @@ import { type NextRequest, NextResponse } from 'next/server';
 import { createMiddlewareClient } from '@/lib/supabase/middleware';
 
 const PROTECTED_PREFIXES = ['/dashboard'];
-const AUTH_PREFIXES = ['/login', '/register'];
+const AUTH_PREFIXES = ['/login', '/register', '/signup'];
 
 export function proxy(request: NextRequest) {
   return handleProxy(request);

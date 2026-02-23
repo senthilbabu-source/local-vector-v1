@@ -1,6 +1,291 @@
 # LocalVector.ai — Development Log
 
 ---
+
+## 2026-02-22 — All Playwright E2E Tests Passing ✓
+
+All tests in the suite are now green. Final two fixes were strict mode violations in `tests/e2e/hybrid-upload.spec.ts`:
+
+- `getByText('Auto-Approved')` resolved to 2 elements: the section heading `<p>Auto-Approved — 2 items</p>` and a legend badge `<span>Auto-approved</span>`. Fixed by narrowing to `getByText(/Auto-Approved —/i)`.
+- `getByText('Must Edit')` resolved to 2 elements: the section heading and an always-visible legend `<span>Must edit</span>`. Fixed by narrowing to `getByText(/Must Edit —/i)`.
+
+**Pattern:** When a ReviewState UI has both section headings and static legend badges sharing similar text, always target the heading via the ` — N items` suffix (e.g. `/Auto-Approved —/i`) rather than the bare label string.
+
+---
+
+## 2026-02-22 — Bug Fix: `magic-menus` page shows "No location found" for valid users
+
+**Symptom:** `upload@localvector.ai` navigated to `/dashboard/magic-menus` without being redirected by the Onboarding Guard (correct), but the page rendered the empty state: _"No location found. Add a location first before creating your Magic Menu."_ The upload tabs never appeared.
+
+**Investigation path:**
+1. Confirmed seed data is correct — location row exists with `org_id = c0eebc99-...`, `is_primary = TRUE`, non-null `hours_data`/`amenities`.
+2. Confirmed the full auth chain resolves: `auth.users` → `public.users` (via `auth_provider_id`) → `memberships` → org `c0eebc99-...`.
+3. Confirmed `current_user_org_id()` returns the right org when run under the upload user's JWT claims.
+4. Noticed the dashboard layout query (which correctly passed the Onboarding Guard) uses `.eq('org_id', ctx.orgId)` as an explicit filter **in addition to** RLS. The magic-menus page query did **not**.
+
+**Root cause:** PostgreSQL evaluates multiple RLS policies for the same table/operation with OR logic. Two SELECT policies are active on `public.locations`:
+- `org_isolation_select`: `USING (org_id = current_user_org_id())` — the upload user's location ✓
+- `public_published_location` (added by migration `20260221000001`): `USING (EXISTS (SELECT 1 FROM magic_menus WHERE location_id = locations.id AND is_published = TRUE))` — Charcoal N Chill's location, because the golden tenant has a published magic menu ✓
+
+Both policies passed for different locations. The query `.eq('is_primary', true)` returned **2 rows** (one per org). Supabase's `.maybeSingle()` returns `{ data: null }` when >1 rows match — and the page treated `null` data as "no location found."
+
+The dashboard `layout.tsx` never surfaced this because it adds `.eq('org_id', ctx.orgId)` explicitly, narrowing to exactly 1 row. The magic-menus `page.tsx` was the only location query relying on RLS alone.
+
+**Fix:** `app/dashboard/magic-menus/page.tsx` — added `orgId` parameter to `fetchWorkspaceData()` and `.eq('org_id', orgId)` to the locations query. `orgId` is sourced from `ctx.orgId` (already resolved by `getSafeAuthContext()` in the page). Matches the belt-and-suspenders pattern used by `layout.tsx`.
+
+**Rule going forward:** Any query on a table that has both a tenant-isolation policy AND a public/published policy must include an explicit `.eq('org_id', orgId)` filter alongside RLS. Relying on RLS alone is unsafe when multiple policies can return rows from different orgs.
+
+---
+
+## 2026-02-22 — Phase 18: Monetization — Stripe Checkout & Webhooks (In Progress)
+
+**Goal:** Wire the billing UI's "Upgrade" buttons to real Stripe Checkout Sessions and handle `checkout.session.completed` / `customer.subscription.updated` webhooks to upgrade the org's `plan` tier in Supabase.
+
+**Key schema facts (from `prod_schema.sql`):**
+- Stripe billing fields live on `organizations` (not `locations`): `stripe_customer_id`, `stripe_subscription_id`, `plan plan_tier`, `plan_status plan_status`. **No ALTER TABLE needed.**
+- `plan_tier` enum = `'trial' | 'starter' | 'growth' | 'agency'`. UI plan names (`'pro'`, `'enterprise'`) map as: `pro → growth`, `enterprise → agency`.
+- `plan_status` enum = `'trialing' | 'active' | 'past_due' | 'canceled' | 'paused'`.
+
+**Required env vars (add to `.env.local` / Vercel dashboard):**
+```
+STRIPE_SECRET_KEY=sk_live_...
+STRIPE_WEBHOOK_SECRET=whsec_...
+STRIPE_PRICE_ID_PRO=price_...
+STRIPE_PRICE_ID_ENTERPRISE=price_...
+NEXT_PUBLIC_APP_URL=https://app.localvector.ai
+```
+
+---
+
+## 2026-02-22 — Phase 14.5: Hybrid Menu Upload & AEO Schema Generation (Complete)
+
+**Goal:** Build the three-tab hybrid upload pipeline specified in Doc 04b. Zero regression on existing Confidence Triage UI and Playwright E2E tests.
+
+**Scope:**
+- `lib/utils/schemaOrg.ts` — `DIETARY_TAG_MAP` + `mapDietaryTagsToSchemaUris()`: free-text dietary tags → Schema.org `RestrictedDiet` URIs.
+- `lib/utils/generateMenuJsonLd.ts` — `generateMenuJsonLd()`: `MenuExtractedData` + location info → Schema.org `Menu`/`MenuItem` JSON-LD object with `image` and `suitableForDiet`.
+- `lib/utils/parseCsvMenu.ts` — `parseLocalVectorCsv()`: PapaParse parser for the 6-column LocalVector AEO template; all items `confidence = 1.0`.
+- `lib/utils/parsePosExport.ts` — `parsePosExportWithGPT4o()`: sends raw POS CSV to `gpt-4o` (`json_object` mode); mirrors Phase 18 structure; returns `null` on any failure.
+- `app/dashboard/magic-menus/actions.ts` — `uploadLocalVectorCsv(formData)` + `uploadPosExport(formData)` Server Actions; both return `MenuWorkspaceData` via same upsert pattern as `simulateAIParsing`.
+- `app/dashboard/magic-menus/_components/UploadState.tsx` — upgraded to 3-tab UI (`ai | csv | pos`); Tab 1 unchanged and MSW-tested; Tabs 2 and 3 call new Server Actions and feed into identical `onParseComplete` callback.
+
+**Zero-Regression Directives:**
+- `ReviewState.tsx`, `MenuWorkspace.tsx`, and all Playwright tests untouched.
+- MSW `openAiHandler` already intercepts POS Export GPT-4o calls during E2E — no new MSW handler needed.
+- All CSV/POS errors surface as `{ success: false, error }` — no 500s.
+
+**Tests added (Phase 14.5 sprint):**
+- `src/__tests__/unit/parseCsvMenu.test.ts` — 20 Vitest unit tests: all CSV branches, Image_URL validation, header normalisation, row limit, confidence = 1.0, template generator round-trip.
+- `src/__tests__/unit/generateMenuJsonLd.test.ts` — 30 Vitest unit tests: Restaurant/MenuSection/MenuItem structure, dietary tag mapping (string + array paths), deduplication, unmapped tag drops, price normalisation, subjectOf AI agent link.
+- `tests/fixtures/sample-gold-menu.csv` — 2-item Gold Standard CSV fixture (Brisket Plate + Mac & Cheese).
+- `tests/e2e/hybrid-upload.spec.ts` — Playwright E2E: logs in as `upload@localvector.ai`, asserts 3 tabs visible, uploads fixture CSV, asserts ReviewState transition + "Auto-Approved" items.
+- `supabase/seed.sql §12` — added `upload@localvector.ai` (complete location, no magic menu) as E2E test user.
+
+**Run commands:**
+```bash
+# Unit tests (50 tests, ~300ms)
+npx vitest run src/__tests__/unit/parseCsvMenu.test.ts src/__tests__/unit/generateMenuJsonLd.test.ts
+
+# E2E test (requires local Supabase + dev server)
+npx supabase db reset && npx playwright test tests/e2e/hybrid-upload.spec.ts
+```
+
+---
+
+## 2026-02-22 — Phase 17: Auth & Billing UI (Complete)
+
+**Goal:** Implement the split-screen login page with Fear/Greed marketing copy, a `/signup` alias for the register form, a three-tier billing page with mock Stripe checkout, and Playwright E2E tests locking down all new flows.
+
+**Scope:**
+- `app/(auth)/layout.tsx` — Converted to bare passthrough; each auth page owns its layout/centering.
+- `app/(auth)/login/page.tsx` — Full-screen split-screen: left panel (`bg-midnight-slate`) with Fear/Greed marketing copy; right panel with the login form. Error banner uses `alert-crimson` design token (was `red-*` Tailwind). Left panel is `hidden lg:flex` for mobile.
+- `app/(auth)/register/page.tsx` — Added outer centering wrapper (`flex min-h-screen items-center justify-center bg-slate-50`).
+- `app/(auth)/signup/page.tsx` — New route; re-exports `RegisterPage` so `/signup` and `/register` are identical.
+- `proxy.ts` — Added `/signup` to `AUTH_PREFIXES` so authenticated users are redirected to dashboard.
+- `components/layout/Sidebar.tsx` — Billing nav item activated (`active: true`, `href: '/dashboard/billing'`).
+- `app/dashboard/billing/actions.ts` — `createCheckoutSession(plan)` Server Action. Returns `{ url: null, demo: true }` when `STRIPE_SECRET_KEY` is absent; real Stripe integration wired in future phase.
+- `app/dashboard/billing/page.tsx` — Three-tier pricing page (Free Scanner / Pro AI Defense / Enterprise API). Pro tier uses `border-2 border-electric-indigo` highlight. Upgrade button calls the Server Action and swaps to a "Demo mode" banner in local dev.
+- `tests/global-setup.ts` — Refactored to save two sessions: `incomplete-user.json` (onboarding test) + `upload-user.json` (billing + upload tests). Extracted shared `loginAndSave()` helper.
+
+**Tests added (Phase 17 Addendum):**
+- `tests/e2e/auth.spec.ts` — 3 Playwright tests: split-screen + Fear/Greed copy visible on `/login`; invalid credentials → `alert-crimson` error; `/signup` form renders all 4 fields.
+- `tests/e2e/billing.spec.ts` — 2 Playwright tests (uses `upload-user.json`): three tiers visible + `border-electric-indigo` on Pro card; Upgrade button → "Demo mode" banner.
+
+**Design decisions:**
+- `incomplete@localvector.ai` triggers the onboarding guard for all `/dashboard/*`, so billing tests use `upload@localvector.ai` (complete location, no magic menu). Billing should architecturally be accessible pre-onboarding; exempting it from the guard is a future hardening task.
+- `/signup` is a re-export, not a redirect, to avoid an extra HTTP round-trip on the marketing CTA path.
+
+**Run commands:**
+```bash
+# Reset DB (seeds both test users), then run all E2E tests
+npx supabase db reset && npx playwright test tests/e2e/auth.spec.ts tests/e2e/billing.spec.ts
+
+# Run auth tests only
+npx playwright test tests/e2e/auth.spec.ts
+
+# Run billing tests only
+npx playwright test tests/e2e/billing.spec.ts
+```
+
+---
+
+## 2026-02-22 — Phase 18: Waking up the AI (In Progress)
+
+Replace mock delays with real LLM integrations:
+- **Fear Engine** (`app/actions/marketing.ts`): `runFreeScan` calls Perplexity `sonar` model. Requests strict JSON output via system prompt. Falls back to demo result when `PERPLEXITY_API_KEY` is absent.
+- **Magic Engine** (`app/dashboard/magic-menus/actions.ts`): `simulateAIParsing` calls OpenAI `gpt-4o` with `response_format: { type: "json_object" }`. Validates response with Zod against `MenuExtractedData` schema. Falls back to hardcoded Charcoal N Chill mock when `OPENAI_API_KEY` is absent.
+- **MSW contract preserved**: `playwright.config.ts` now starts the dev server with `NEXT_PUBLIC_API_MOCKING=enabled` so MSW intercepts both AI API URLs during E2E runs. Perplexity handler updated to return JSON content for clean server-action parsing.
+
+---
+## Lessons Learned / Edge Cases
+
+- **PostgreSQL UUID Syntax Constraints (Phase 10):** When generating mock UUIDs for `seed.sql` files, never increment the starting character beyond `f`. UUIDs are strictly hexadecimal (0-9, a-f). Generating a mock UUID that begins with `g` (e.g., `g0eebc99...`) will cause a fatal `invalid input syntax for type uuid` error during `npx supabase db reset`. Always stick to valid hex characters (e.g., `a`, `b`, `c`, `d`, `e`, `f`) when manually creating dummy UUIDs.
+
+- **Testing Debt (Phases 11–12):** AI_RULES §4 requires test files to be created *before* feature code ("Red-Green-Refactor"). Phases 11 and 12 skipped this step. Tests for the Deep Night shell (Sidebar, TopBar, DashboardShell), the onboarding wizard (TruthCalibrationForm), the saveGroundTruth Server Action, and the dashboard onboarding guard are outstanding. All tests must use the Charcoal N Chill golden-tenant fixture and MSW handlers — no live API calls. This debt must be cleared before any billing or production-readiness work begins.
+
+- **Doc 03 §15 Types Rule (Phase 12 retrospective):** The canonical JSONB interfaces live in `lib/types/ground-truth.ts`. Every file that touches `hours_data`, `amenities`, `categories`, or `attributes` on the `locations` table MUST import from there. Ad-hoc inline type definitions are a spec violation (AI_RULES §2).
+
+- **`hours_data` closed-day encoding (Phase 12 retrospective):** A missing day key in `hours_data` means "hours unknown", NOT "closed". Use the string literal `"closed"` to explicitly mark a day as closed. The Zod schema in `app/onboarding/actions.ts` accepts `z.literal('closed') | z.object({ open, close })`.
+
+---
+## 2026-02-22 — Phase 19: Test Hardening Sprint (Completed)
+
+**Goal:** Pay off testing debt accumulated in Phases 12–16. Sync `docs/03-DATABASE-SCHEMA.md` to match reality (ai_hallucinations schema + MenuExtractedData shape). Wire up Playwright E2E infrastructure with MSW (Mock Service Worker) for forward-looking Phase 18 AI call interception. Write two passing E2E tests: (1) the Viral Wedge public scanner flow, and (2) the Onboarding Guard full round-trip (login → guard redirect → form fill → dashboard).
+
+**Scope:**
+
+- `docs/03-DATABASE-SCHEMA.md` — Update §15.5 (`MenuExtractedData`) to match `lib/types/menu.ts`. Add §15.11 with `AiHallucination` TypeScript interface, confirming `model_provider` (not `engine`), `correction_status` (not `is_resolved`), all enum values lowercase, and tracking fields (`occurrence_count`, `first_detected_at`, `last_seen_at`).
+
+- `playwright.config.ts` — Playwright configuration: `testDir: ./tests/e2e`, `timeout: 30s` (accommodates 2s mock delay in `runFreeScan`), `globalSetup` for auth state, `webServer` with `reuseExistingServer`.
+
+- `src/mocks/handlers.ts` + `src/mocks/node.ts` — MSW v2 Node.js server with forward-looking handlers for Phase 18: OpenAI completions (returns `MenuExtractedData` JSON) and Perplexity completions (returns hallucination payload matching updated schema).
+
+- `instrumentation.ts` — Next.js instrumentation hook that activates MSW only when `NEXT_PUBLIC_API_MOCKING=enabled` and `NEXT_RUNTIME=nodejs`.
+
+- `supabase/seed.sql` §11 — Second test user `incomplete@localvector.ai / Password123!` with a fresh org + primary location that has `hours_data=NULL` and `amenities=NULL`, triggering the dashboard Onboarding Guard.
+
+- `tests/global-setup.ts` — Playwright global setup: logs in as `incomplete@localvector.ai` via the real login form, saves browser storage state to `.playwright/incomplete-user.json`.
+
+- `tests/e2e/viral-wedge.spec.ts` — E2E Test 1: visits `/`, fills scanner form, asserts "Scanning AI Models…" pending state, waits for red alert card, asserts CTA → `/login`.
+
+- `tests/e2e/onboarding.spec.ts` — E2E Test 2: loads pre-authenticated state, navigates to `/dashboard/magic-menus`, asserts redirect to `/onboarding`, fills 3-step wizard (including Sunday "closed"), submits, asserts redirect to `/dashboard`.
+
+---
+## 2026-02-22 — Phase 16: Landing Page & Viral Wedge (Completed)
+
+**Goal:** Replace the Next.js boilerplate `app/page.tsx` (which just redirected to `/dashboard`) with the full public marketing landing page defined in Docs 07 §2 and 08 §§1-3. Build the free "Hallucination Checker" (`ViralScanner`) widget that mocks a critical ChatGPT hallucination result and funnels visitors to `/login`.
+
+**Scope:**
+
+- `app/actions/marketing.ts` — New Server Action `runFreeScan(formData)`. Extracts `businessName` and `city`, simulates a 2-second delay (no real API calls per AI_RULES §5), returns a hardcoded `FAIL` result (`engine: 'ChatGPT'`, `severity: 'critical'`, `claim_text: 'Permanently Closed'`).
+
+- `app/_components/ViralScanner.tsx` — New `'use client'` component. Two-input form (Business Name + City) with `useTransition` for pending state. When pending: spinner + "Scanning AI Models…". On result: animated red alert card with `border-alert-crimson`, hallucination details, and a full-width CTA linking to `/login`.
+
+- `app/page.tsx` — Full rewrite as a Server Component. Top nav with "LocalVector" brand + "Sign In" link. Hero section with Doc 08 §2 headline/subhead + embedded `<ViralScanner />` + social proof badge ("AI Visibility Score: 98/100"). Tangible Results section with Charcoal N Chill $1,600/month case study (exact copy from Doc 08 §3) and three metric cards.
+
+---
+## 2026-02-22 — Phase 15: Public Edge Layer & AI Honeypot (Completed)
+
+**Goal:** Build the three public-facing AI-readable endpoints that AI crawlers consume when a user injects their Magic Menu link into Google. Upgrade the existing Phase 7 public menu page to the "Deep Night" visual identity, inject `openingHoursSpecification` into the Restaurant JSON-LD, and add two new Route Handlers: `llms.txt` (Markdown for LLMs) and `ai-config.json` (GEO Standard entity config).
+
+**Scope:**
+
+- `app/m/[slug]/page.tsx` — Rewritten: expands the Supabase query to include `hours_data`, `amenities`, and `location_id`; adds `openingHoursSpecification` to the Restaurant JSON-LD (built from `hours_data` — handles `"closed"` string per Doc 03 §15.1); restyled from light theme to Deep Night (`bg-midnight-slate`, `bg-surface-dark`, `text-slate-300`); adds Operating Hours and Amenities sections to the HTML; adds footer links to the two new AI endpoints. Imports `HoursData`, `DayHours`, `Amenities` from `lib/types/ground-truth.ts` — no inline type invention.
+
+- `app/m/[slug]/llms.txt/route.ts` — Route Handler returning `text/plain`. Builds a structured Markdown document (llms.txt standard) with: business name, address, hours (formatted 12h, "Closed" for closed days, "Hours not specified" for missing keys), amenities, and a full menu item list grouped by category with names, prices, and descriptions. Used by Perplexity, ChatGPT, and other LLM agents as ground truth.
+
+- `app/m/[slug]/ai-config.json/route.ts` — Route Handler returning `application/json`. Emits the GEO Standard config (Doc 08 §10) with `entity` (name, type, location_id, sha256 address_hash), `data_sources` (all URLs derived from `request.url` for correct hostname in dev + prod), `policies`, and `last_updated`. SHA-256 of address computed with Node.js `crypto.createHash`.
+
+---
+## 2026-02-22 — Phase 14: Magic Menu UX Refactor (Completed)
+
+**Goal:** Upgrade the basic Magic Menu list view to the "Smart Review" workspace defined in Doc 06 §4. The new UI guides users through a three-stage flow: Upload → AI Review → Published, with a Link Injection modal to distribute the menu URL to Google Business Profile and other AI-indexed platforms.
+
+**Scope:**
+
+- `lib/types/menu.ts` — Canonical JSONB types for `magic_menus` table columns (Doc 03 §15.5 Agent Rule): `MenuExtractedItem` (id, name, description?, price?, category, confidence 0–1), `MenuExtractedData` (items[], extracted_at, source_url?), `PropagationEvent`, `MenuWorkspaceData`.
+
+- `app/dashboard/magic-menus/actions.ts` — Three new Server Actions appended: `simulateAIParsing(locationId)` — creates menu record if absent, populates mock `extracted_data` for Charcoal N Chill, advances status to `review_ready`, returns updated `MenuWorkspaceData`; `approveAndPublish(menuId)` — marks `human_verified = true`, `processing_status = 'published'`, `is_published = true`, appends `{ event: 'published', date }` to `propagation_events`, revalidates public Honeypot page; `trackLinkInjection(menuId)` — appends `{ event: 'link_injected', date }` to `propagation_events` (gated by existing `tenant_link_injection_update` RLS policy from prod_schema.sql).
+
+- `app/dashboard/magic-menus/page.tsx` — Rewritten as a focused Server Component. Fetches primary location + its latest `magic_menu` record. Passes data to `MenuWorkspace`. Existing `[id]` deep-edit route and its components (`AddMenuModal`, `PublishToggle`) are untouched.
+
+- `app/dashboard/magic-menus/_components/MenuWorkspace.tsx` — `'use client'`. Manages `view: 'upload' | 'review' | 'published'` and live `menuData`. Renders appropriate sub-component. Auto-opens `LinkInjectionModal` on first publish.
+
+- `app/dashboard/magic-menus/_components/UploadState.tsx` — Drag-and-drop visual zone + "Simulate AI Parsing" button. 2-second loading state, calls `simulateAIParsing`, transitions to `review` via callback.
+
+- `app/dashboard/magic-menus/_components/ReviewState.tsx` — Confidence Triage: ≥0.85 = ✅ auto-approved (collapsed, emerald); 0.60–0.84 = ⚠️ needs review (expanded, amber); <0.60 = ❌ must edit (expanded, crimson, blocks publish). "I certify this menu is accurate" checkbox + "Publish to AI" button disabled until no ❌ items + checkbox checked.
+
+- `app/dashboard/magic-menus/_components/LinkInjectionModal.tsx` — Modal with public URL display (`/m/{slug}`), Copy Link button, "Open Google Business Profile" external link, and "I pasted this link" CTA that calls `trackLinkInjection(menuId)` and shows a success state.
+
+---
+## 2026-02-22 — Phase 13: Reality Score Dashboard (Completed)
+
+**Goal:** Replace the placeholder dashboard page with the full "Fear First" Reality Score Dashboard defined in Doc 06 §3. The screen leads with open hallucination alerts (Red Alert Feed) when any exist, followed by the composite Reality Score Card (Visibility + Accuracy + Data Health), and a Quick Stats row.
+
+**Scope:**
+
+- `app/dashboard/page.tsx` — Server Component. Queries `ai_hallucinations` for open alerts and fixed count in parallel. Derives Reality Score components server-side. Passes data to `RealityScoreCard` and `AlertFeed`. Orders sections "Fear First" (alerts precede score card when open alerts exist).
+
+- `app/dashboard/_components/RealityScoreCard.tsx` — Server Component. Displays composite Reality Score (formula: Visibility×0.4 + Accuracy×0.4 + DataHealth×0.2). Visibility hardcoded 98, Accuracy derived from open alert count, Data Health hardcoded 100 (passed onboarding guard). Color-codes scores: truth-emerald ≥80, amber 60–79, alert-crimson <60.
+
+- `app/dashboard/_components/AlertFeed.tsx` — Server Component. Lists open hallucinations with pulsing `alert-crimson` left border. Shows severity badge, friendly engine name, claim_text, expected_truth, time since detected. "Fix with Magic Menu" CTA links to `/dashboard/magic-menus`. Empty state: "All clear! No AI lies detected." green banner.
+
+- `supabase/seed.sql` Section 10 — Two open hallucinations (CRITICAL/openai-gpt4o + HIGH/perplexity-sonar) plus one fixed (MEDIUM/google-gemini) for the Charcoal N Chill golden tenant.
+
+---
+## 2026-02-22 — Phase 12: Onboarding Guard & Truth Calibration Wizard (Completed)
+
+**Goal:** Enforce ground-truth collection before the dashboard is accessible. A multi-step wizard (Business Name → Amenities → Hours) collects the "Truth Calibration" data that powers the Fear Engine's hallucination comparisons. The dashboard layout acts as a gate: if `hours_data` AND `amenities` are both null on the primary location, the user is redirected to `/onboarding`.
+
+**Scope (planned):**
+
+- `app/onboarding/actions.ts` — `saveGroundTruth` Server Action. Validates input via Zod, derives `org_id` from `getSafeAuthContext()`, updates the `locations` table (`business_name`, `hours_data` JSONB, `amenities` JSONB). Returns `{ success: true }` — client handles `router.push('/dashboard')`.
+
+- `app/onboarding/page.tsx` — Standalone Server Component (no DashboardShell, no sidebar). Fetches the org's primary location. Passes `locationId` + prefilled data to `TruthCalibrationForm`. Centered `midnight-slate` full-page layout with `electric-indigo` accent.
+
+- `app/onboarding/_components/TruthCalibrationForm.tsx` — `'use client'`. 3-step form with `useTransition` on submit. Step 1: Business Name (text input). Step 2: Amenity toggles (Outdoor Seating, Serves Alcohol, Takes Reservations). Step 3: Hours (7-day grid — each day has a "Closed" toggle or `<input type="time">` for open/close). Submit calls `saveGroundTruth` and navigates to `/dashboard` on success.
+
+- `app/dashboard/layout.tsx` — Onboarding guard added: after auth check, fetches primary location. If `!hours_data && !amenities` → `redirect('/onboarding')`. Runs before shell rendering. Safe for the seeded dev session (prod_schema.sql seed already has full hours + amenities for Charcoal N Chill).
+
+---
+## 2026-02-21 — Phase 11: "Deep Night" Visual Identity & Application Shell (Completed)
+
+**Goal:** Transition the functional prototype to the "Deep Night & Neon Insight" design system defined in Doc 06. Replace the current light-themed shell with a dark `midnight-slate` base, a new persistent `Sidebar` and sticky `TopBar`, and responsive mobile layout (hamburger menu at 375px). The shell uses the Server Component → Client Component "shell pattern" to preserve the async `getSafeAuthContext()` call in `layout.tsx` while holding sidebar toggle state in a `DashboardShell` client wrapper.
+
+**Scope (planned):**
+
+- `app/globals.css` — Tailwind v4 `@theme` block extended with Deep Night palette tokens: `midnight-slate` (#0f111a), `surface-dark` (#1a1d27), `electric-indigo` (#6366f1), `alert-crimson` (#ef4444), `truth-emerald` (#10b981). Font aliases for Geist Sans + Mono. Body forced to dark baseline (`background: #0f111a; color: #cbd5e1`).
+
+- `components/layout/Sidebar.tsx` — `'use client'`. Nav items (Dashboard, Alerts, Menu, Compete, Listings, Settings, Billing) with `lucide-react` icons and `usePathname()` active highlighting. Slide-in mobile overlay (`translate-x-full` → `translate-x-0`), always visible on `lg:`. AI Visibility Score (98/100) pinned to footer. Logout button via existing `LogoutButton` component.
+
+- `components/layout/TopBar.tsx` — `'use client'`. Glassmorphism bar (`bg-surface-dark/80 backdrop-blur-md`). LocalVector logo badge + text. Org name display (center). Help + User icons (right). Mobile hamburger (`Menu` from lucide) that fires `onMenuToggle`.
+
+- `components/layout/DashboardShell.tsx` — `'use client'`. Holds `sidebarOpen` boolean state. Renders mobile backdrop overlay, `Sidebar`, `TopBar`, and `<main>` content slot. Accepts `displayName`, `orgName`, `plan` as server-derived props; passes `children` as the RSC slot.
+
+- `app/dashboard/layout.tsx` — Stripped to a minimal Server Component: fetches auth context, assembles display strings, renders `<DashboardShell>` with children. No client-only APIs.
+
+---
+## 2026-02-21 — Phase 10: AI Share of Voice (SOV) Dashboard (Completed)
+
+**Goal:** Build a Share of Voice dashboard that tracks how often AI engines (OpenAI, Perplexity) mention the user's business vs. competitors when asked relevant local search queries. Users define target queries per location, run on-demand SOV evaluations, and see rank position + competitor mentions over time.
+
+**Scope:**
+
+- `supabase/migrations/20260221000004_create_sov_tracking.sql` — Creates `target_queries` (`id`, `org_id`, `location_id`, `query_text` VARCHAR(500), `created_at`) and `sov_evaluations` (`id`, `org_id`, `location_id`, `query_id` FK → target_queries ON DELETE CASCADE, `engine` VARCHAR(20), `rank_position` INTEGER NULL, `mentioned_competitors` JSONB default `[]`, `raw_response` TEXT, `created_at`). All four RLS policies on both tables. Applied via `npx supabase db reset`.
+
+- `supabase/seed.sql` — Section 9 appended: 1 `target_queries` row ("Best BBQ in Alpharetta"), 1 `sov_evaluations` row (OpenAI, rank 2, competitors `["Dreamland BBQ", "Pappadeaux"]`). Fixed UUIDs `c0eebc99-...` (target_query) and `c1eebc99-...` (sov_evaluation). Note: initial attempt used `g0`/`g1` prefixes which are invalid hex — corrected before `db reset` per the UUID hex constraint lesson documented above.
+
+- `lib/schemas/sov.ts` — `AddQuerySchema` (location_id UUID, query_text string 3–500 chars) + `RunSovSchema` (query_id UUID, engine enum). Shared between Server Actions and Client Components.
+
+- `app/dashboard/share-of-voice/actions.ts` — `addTargetQuery` + `runSovEvaluation` Server Actions. Both derive `org_id` from `getSafeAuthContext()`. `runSovEvaluation` checks for API key; if absent → 3-second mock fallback (rank 1, empty competitors). Real path parses LLM JSON response for `rank_position` (null if not mentioned) and `mentioned_competitors` array.
+
+- `app/dashboard/share-of-voice/page.tsx` — Server Component. `Promise.all` fetches: locations, target_queries (newest-first), latest sov_evaluations per query+engine. Renders one `SovCard` per location.
+
+- `app/dashboard/share-of-voice/_components/SovCard.tsx` — `'use client'`. "Add Query" inline form + `useTransition` "Run" buttons per query. Rank display: #1 = emerald, #2–3 = yellow, #4+ = red, null = "Not mentioned". Competitor list shown below each evaluation row.
+
+- `app/dashboard/layout.tsx` — "Share of Voice" nav link added.
+
+---
 ## 2026-02-21 — Phase 9: AI Hallucination Monitor (Completed)
 
 **Goal:** Build the `ai_evaluations` table and a full Hallucinations Monitor dashboard. A "Run New Audit" button triggers a Server Action that calls the OpenAI API (with a graceful 3-second mock fallback when the API key is absent), stores the result in `ai_evaluations`, and revalidates the page. The UI shows per-location accuracy scores (color-coded), a list of detected hallucinations, and historical evaluation cards with `useTransition` loading states.
@@ -33,6 +318,9 @@
 
 **⚠️ Seed Fix — `auth.users` login failure (resolved):**
 Direct inserts into `auth.users` require `instance_id = '00000000-0000-0000-0000-000000000000'` and empty-string token fields (`confirmation_token`, `email_change`, `email_change_token_new`, `recovery_token`) for GoTrue to recognise the user at the `/api/auth/login` endpoint. Also added `CREATE EXTENSION IF NOT EXISTS pgcrypto` to guard against environments where it isn't auto-activated. Both fixes applied to `supabase/seed.sql`; re-run `npx supabase db reset` to pick up the changes.
+
+**⚠️ Hydration Fix — `toLocaleString()` server/client mismatch (resolved):**
+`formatTime()` in `EvaluationCard.tsx` uses `toLocaleString('en-US', ...)`. Node.js (server) and the browser bundle different ICU data, causing the date connector to differ (`Feb 21, 9:19 PM` vs `Feb 21 at 9:19 PM`). Fixed by adding `suppressHydrationWarning` to the `<p>` element containing the "Last run" timestamp — the standard React pattern for elements where server/client output legitimately diverges due to locale or time.
 
 ---
 ## 2026-02-21 — Phase 8: API Sync Engine — Scaffolding & UI (Completed)
