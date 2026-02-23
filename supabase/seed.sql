@@ -102,9 +102,11 @@ VALUES (
 )
 ON CONFLICT (id) DO NOTHING;
 
--- ── 3. ORG MEMBERSHIP ─────────────────────────────────────────────────────────
+-- ── 3. ORG MEMBERSHIP + PLAN ──────────────────────────────────────────────────
 -- Make the dev user an owner of the golden tenant org so the dashboard
 -- shows real data from the Charcoal N Chill location on first login.
+-- Set plan = 'growth' so all Growth-gated features (Compete, SOV) are
+-- accessible for manual QA without extra Supabase Studio steps.
 
 INSERT INTO public.memberships (user_id, org_id, role)
 VALUES (
@@ -113,6 +115,10 @@ VALUES (
   'owner'
 )
 ON CONFLICT (user_id, org_id) DO NOTHING;
+
+UPDATE public.organizations
+SET plan = 'growth'
+WHERE id = 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11';
 
 -- ── 4. PUBLISHED MAGIC MENU ───────────────────────────────────────────────────
 -- Create a fully published menu with public_slug 'charcoal-n-chill'.
