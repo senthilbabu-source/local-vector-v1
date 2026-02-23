@@ -1,8 +1,8 @@
 # 02 — Multi-Tenant Architecture
 
 ## Platform: LocalVector.ai
-## Stack: Next.js 15 (App Router) | Supabase (PostgreSQL + Auth + Edge Functions) | Vercel | Stripe
-### Version: 2.3 | Date: February 16, 2026
+## Stack: Next.js 16 (App Router) | Supabase (PostgreSQL + Auth + Storage) | Vercel | Stripe
+### Version: 2.4 | Date: February 23, 2026
 
 ---
 
@@ -57,7 +57,7 @@ Single PostgreSQL database
 │
 ┌────────────▼────────────┐
 │   Cron Job Scheduler    │  ← Cost Control Layer
-│   (Edge Functions)      │
+│   (Route Handlers)      │
 └─────┬──────────┬───────┘
 │          │
 ┌──────▼──┐  ┌───▼──────┐
@@ -130,7 +130,7 @@ Vercel Project Settings > Domains:
 ### Next.js Middleware (Routing Logic)
 
 ```typescript
-// middleware.ts
+// proxy.ts  (renamed from middleware.ts per Next.js 16 convention — see DEVLOG 2026-02-23)
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
@@ -423,17 +423,16 @@ export async function POST(request: Request) {
 ### Deployment Architecture
 
 ```
-Vercel (Next.js 15)
+Vercel (Next.js 16)
 ├── Frontend (SSR + Client Components)
 ├── API Routes (/api/v1/*)
-├── Cron Triggers (Vercel Cron → Supabase Edge Functions)
-├── Edge Middleware (subdomain routing)
+├── Cron Triggers (Vercel Cron → Next.js Route Handlers at app/api/cron/*/route.ts)
+├── Proxy Middleware (subdomain routing — proxy.ts)
 │
 Supabase
 ├── PostgreSQL (primary database, RLS-enabled)
 ├── Auth (user management, JWT issuance)
 ├── Storage (PDF menu uploads, max 10MB per file)
-├── Edge Functions (Deno — audit logic, OCR pipeline)
 ├── Realtime (future: live dashboard updates)
 │
 External APIs
@@ -449,7 +448,7 @@ External APIs
 
 | Service | Monthly Cost | Notes |
 |---------|-------------|-------|
-| Vercel Pro | $20 | Hosting, edge functions, cron |
+| Vercel Pro | $20 | Hosting, cron triggers, Route Handlers |
 | Supabase Pro | $25 | Database, auth, storage |
 | OpenAI API | ~$100 | Menu parsing is one-time per update, not recurring |
 | Perplexity API | ~$200 | Controlled by cron frequency. ~$1/user/month |
@@ -543,7 +542,7 @@ STRIPE_WEBHOOK_SECRET=whsec_test_...
 | 4 | Build Stripe integration (test mode) | Payment flow works end-to-end |
 | 5 | Configure Vercel wildcard DNS | `menu.localvector.ai` resolves |
 | 6 | Build Magic Menu public renderer | AI crawlers can read schema |
-| 7 | Build Fear Engine Edge Function | Hallucination detection runs on cron |
+| 7 | Build Fear Engine cron Route Handler | Hallucination detection runs on cron |
 | 8 | Connect Dashboard UI to API | Users can see and act on data |
 
 The existing Charcoal N Chill data becomes the first tenant. All existing data gets an org_id assigned to the CNC organization. Nothing breaks.

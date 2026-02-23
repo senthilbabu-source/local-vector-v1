@@ -81,4 +81,22 @@ test.describe('01 — Viral Wedge: Free Hallucination Scanner', () => {
     await expect(page.getByText(/Charcoal N Chill/i)).toBeVisible();
     await expect(page.getByText(/\$1,600\/month/i)).toBeVisible();
   });
+
+  // ── AEO infrastructure (Sprint 25C) ───────────────────────────────────────
+
+  test('GET /llms.txt returns 200 with text/plain content-type', async ({ request }) => {
+    const response = await request.get('/llms.txt');
+    expect(response.status()).toBe(200);
+    const contentType = response.headers()['content-type'] ?? '';
+    expect(contentType).toContain('text/plain');
+  });
+
+  test('GET /ai-config.json returns 200 with entity key present', async ({ request }) => {
+    const response = await request.get('/ai-config.json');
+    expect(response.status()).toBe(200);
+    const contentType = response.headers()['content-type'] ?? '';
+    expect(contentType).toContain('application/json');
+    const body = await response.json();
+    expect(body).toHaveProperty('entity');
+  });
 });

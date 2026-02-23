@@ -1,7 +1,7 @@
 # LocalVector.ai — Gold Standard Documentation Suite
 
 ## The AI Reality Engine for Local Business Visibility
-### Version: 2.3 | Date: February 16, 2026
+### Version: 2.6 | Date: February 23, 2026
 
 ---
 
@@ -30,6 +30,14 @@ This documentation suite is the **single source of truth** for LocalVector.ai. I
 | **09** | Phased Build Plan & Execution Roadmap | Engineering, Project Management | 16-week sprint plan with acceptance criteria per phase. |
 | **10** | Operational Playbook & Risk Register | Founder, Engineering | Cost controls, churn prevention, API budget management, known risks. |
 | **11** | Testing & Quality Strategy | Engineering | Test infrastructure, unit/integration/E2E test specs, CI/CD pipeline, agentic TDD workflow. |
+| **13** | V1 Core Loop: Five-Stage User Journey | Engineering, Product | End-to-end flow a restaurant owner experiences from first contact to AI-corrected visibility. Each stage maps to exactly one product phase. |
+| **14** | Testing Strategy (Live) | Engineering | Live test suite inventory — suite-by-suite breakdown, test counts, MSW mock map, Playwright E2E specs. Updated after each phase. **Supersedes the static counts in Doc 11.** |
+| **04c** | SOV Engine Specification | Engineering | Share-of-Answer query library, weekly cron, Reality Score Visibility fix (replaces hardcoded 98), First Mover Alert pipeline. Companion to Doc 04. |
+| **15** | Local Prompt Intelligence | Engineering | Local AI prompt taxonomy, gap detection algorithm, weekly prompt gap alerts, custom query management UI. |
+| **16** | Occasion Engine | Engineering | 30+ hospitality occasion taxonomy, seasonal trigger scheduler, occasion→content pipeline. |
+| **17** | Content Grader | Engineering | Site-wide AEO scoring (homepage, about, FAQ, events), FAQ auto-generator, answer-first rewriter, inline fix delivery. |
+| **18** | Citation Intelligence | Engineering | Citation source mapping methodology, platform gap scoring, review automation, Reddit/Nextdoor monitor. |
+| **19** | Autopilot Engine | Engineering | Full closed-loop content pipeline: trigger taxonomy, draft generation, approval workflow, WordPress/GBP publish integration, citation measurement post-publish. |
 
 ---
 
@@ -43,11 +51,23 @@ This documentation suite is the **single source of truth** for LocalVector.ai. I
 
 ### For Coding Agents
 Each document is structured to be pasted as context into a coding agent session:
-- **03** → "Here is the database schema. **CRITICAL:** Ensure `propagation_events` and `llms_txt_content` columns are added."
-- **04** → "Here are the prompt specs. Build the Edge Function for the Fear Engine."
+- **03** → "Here is the database schema. **CRITICAL:** Ensure `propagation_events` and `llms_txt_content` columns are added. TypeScript interfaces in Section 15."
+- **04** → "Here are the prompt specs. Build the cron Route Handler for the Fear Engine (`app/api/cron/audit/route.ts`)."
+- **04c** → "Here is the SOV Engine spec. Build `run-sov-cron` and fix the hardcoded Visibility component."
 - **05** → "Here is the API contract. Build these Next.js API routes."
 - **06** → "Here is the UX spec. Build these React components."
 - **11** → "Here is the testing strategy. **CRITICAL:** Implement the `drift-detection` integration test to validate the 'AI Insurance' logic."
+- **15** → "Here is the Prompt Intelligence spec. Build the gap detection algorithm and `GET /api/sov/gaps` endpoint. The query taxonomy in this doc is authoritative for all template seeding."
+- **16** → "Here is the Occasion Engine spec. Seed `local_occasions` table using `supabase/seeds/occasions_seed.sql`. Wire the occasion scheduler as a sub-step of the SOV cron."
+- **17** → "Here is the Content Grader spec. Build `lib/page-audit/auditor.ts` and the FAQ auto-generator. Scoring dimensions and weights in Section 2 are authoritative."
+- **18** → "Here is the Citation Intelligence spec. Build `run-citation-cron` as a Next.js Route Handler at `app/api/cron/citation/route.ts`. Note: `citationFrequency` is float 0.0–1.0 — multiply by 100 at display layer only."
+- **19** → "Here is the Autopilot Engine spec. Build `createDraft()` and the publish pipeline. **CRITICAL:** Server-side HITL validation — `POST /publish` must check `human_approved === true` AND `status === 'approved'` before any publish action."
+
+**Document authority rules for coding agents:**
+- When Doc 04 and Doc 04c conflict on SOV specifics → **Doc 04c wins**
+- When Doc 04 and Doc 04b conflict on menu specifics → **Doc 04b wins**
+- Parent docs (04) are authoritative for architecture principles and cross-engine interfaces
+- Companion docs (04b, 04c) are authoritative for their specific feature's implementation details
 
 ### For Sales & Customers
 - **01** (Sections 1-5) → Pitch deck content
@@ -77,6 +97,13 @@ Each document is structured to be pasted as context into a coding agent session:
 | **Reality Score** | Composite metric: (Visibility × 0.4) + (Accuracy × 0.4) + (DataHealth × 0.2). |
 | **Link Injection** | The critical user action of pasting the Magic Menu URL into Google Business Profile & Yelp to force AI indexing. |
 | **Truth Calibration** | The onboarding step where users explicitly confirm amenities to prevent false positives. |
+| **SOV Engine** | Share-of-Answer Engine — runs weekly AI queries and measures how often the business is cited. Populates the Visibility component of the Reality Score. |
+| **First Mover Alert** | An SOV alert fired when no local business is cited for a tracked AI query — uncontested opportunity. |
+| **Content Draft** | An AI-generated content brief created by the Autopilot Engine. Requires human approval before publishing. |
+| **Occasion Module** | Feature that monitors seasonal events (Valentine's Day, Bachelorette, etc.) and alerts tenants to create occasion-targeted content before competitors. |
+| **Citation Gap** | A platform that AI frequently cites for a business category+city where the tenant has no listing. |
+| **Page Audit** | Site-wide AEO content scoring — grades homepage, about, FAQ, and event pages for answer-first structure, schema completeness, and keyword density. |
+| **HITL** | Human-in-the-Loop — the mandatory human approval checkpoint in the Autopilot pipeline. No content publishes without it. |
 
 ---
 
@@ -107,14 +134,16 @@ Each document is structured to be pasted as context into a coding agent session:
 │  ┌──────────┐  ┌───────────────┐  │
 │  │ Listings │  │ Magic Menus   │  │
 │  └──────────┘  └───────────────┘  │
-│  ┌──────────┐                     │
-│  │ AEO Data │                     │
-│  └──────────┘                     │
+│  ┌──────────┐  ┌───────────────┐  │
+│  │ AEO Data │  │ Content       │  │
+│  │ (SOV)    │  │ Pipeline      │  │
+│  └──────────┘  └───────────────┘  │
 └─────────────────┬─────────────────┘
 │
 ┌────────────▼────────────┐
 │   Cron Job Scheduler    │  ← Cost Control Layer
-│   (Edge Functions)      │
+│   Audit · SOV · Citation│
+│   (Route Handlers)      │
 └─────┬──────────┬───────┘
 │          │
 ┌──────▼──┐  ┌───▼──────┐
@@ -130,13 +159,13 @@ Each document is structured to be pasted as context into a coding agent session:
 
 | Layer | Technology | Purpose |
 |-------|-----------|---------|
-| Frontend | Next.js 15 (App Router) | SSR dashboard + public menu pages |
+| Frontend | Next.js 16 (App Router) | SSR dashboard + public menu pages |
 | Styling | Tailwind CSS + shadcn/ui | Rapid, consistent UI |
 | Language | TypeScript (strict) | Type safety across stack |
 | Database | Supabase (PostgreSQL) | Multi-tenant data with RLS |
 | Auth | Supabase Auth | Email/Password + Google OAuth |
 | Storage | Supabase Storage | PDF menu uploads |
-| Edge Functions | Supabase Edge Functions (Deno) | Cron jobs for audits |
+| Cron Jobs | Next.js Route Handlers (`app/api/cron/*/route.ts`) | Scheduled audits, SOV runs, citation scans |
 | Hosting | Vercel | Edge deployment, wildcard subdomains |
 | AI (OCR) | OpenAI GPT-4o Vision | Menu PDF → structured JSON |
 | AI (Audit) | Perplexity Sonar API | Live hallucination detection |
@@ -158,3 +187,5 @@ Each document is structured to be pasted as context into a coding agent session:
 | 2.3 | Feb 16, 2026 | **Build-Ready Patch:** Added `crawler_hits` table + RLS to schema. Added Section 5.4 Drift Detection integration test. Added `PlanGate` component spec (Doc 06 §9.1). Added `ai-config.json` schema definition (Doc 08 §10). Uncommented Golden Tenant seed data. Fixed Section 15 TypeScript interfaces. |
 | 2.4 | Feb 22, 2026 | **Phase 19 Spec:** Added Doc 04b v3.0 — Hybrid Upload (LocalVector CSV + GPT-4o POS Mapper), Schema.org RestrictedDiet enumeration mapping, IndexNow active pinging, Web Audit Workflow. Applied code patches: `lib/types/menu.ts` (`image_url`, `indexnow_pinged`), `actions.ts` (`MenuExtractedItemSchema`). |
 | 2.5 | Feb 23, 2026 | **Phase 3 Ship:** Competitor Intercept / Greed Engine fully implemented. 4 Server Actions (`addCompetitor`, `deleteCompetitor`, `runCompetitorIntercept`, `markInterceptActionComplete`), 4 client components (`CompetitorChip`, `AddCompetitorForm`, `RunAnalysisButton`, `InterceptCard`), compete page with UpgradeGate plan gate. 22 new Vitest tests (243 total). `docs/05` §5 architectural deviation note added. `AI_RULES` §19.1 section ref corrected (§15.5 → §15.7). |
+| 2.7 | Feb 23, 2026 | **Remediation Patch — Architecture Accuracy:** Next.js 15 → 16 throughout. "Supabase Edge Functions (Deno)" → "Next.js Route Handlers (`app/api/cron/*/route.ts`)" in Tech Stack table and architecture diagram. "For Coding Agents" section updated to reference Route Handlers not Edge Functions. Added Doc 13 (V1 Core Loop) and Doc 14 (Testing Strategy Live) to document index table. |
+| 2.6 | Feb 23, 2026 | **Documentation Expansion — SOV Engine + Content Pipeline:** Added Doc 04c (SOV Engine Spec). Added companion docs 15–19 (all v1.0, shipped). Updated Doc 03 with TypeScript interfaces 15.12–15.17 for all new tables. Updated Doc 04 v2.4 (Section 3.4 Content Draft trigger, Section 6 Visibility fix). Updated Doc 05 v2.4 (Sections 12–15: SOV, Content Drafts, Page Audits, Citation Gap endpoints). Updated Doc 06 v2.4 (Sections 8–11: new feature UX, renumbered §12–14). Updated Doc 09 v2.4 (Phases 5–8). Updated Doc 10 v2.4 (Risks 12–14, updated cost tables). Added 3 migration files: `20260223000001_sov_engine.sql`, `20260223000002_content_pipeline.sql`, `20260223000003_gbp_integration.sql`. |

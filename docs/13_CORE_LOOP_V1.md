@@ -110,7 +110,7 @@ publishes a corrected menu, and injects the honeypot link into Google Business P
    ```
    Reality Score = Visibility×0.4 + Accuracy×0.4 + DataHealth×0.2
    ```
-   - Visibility: hardcoded 98 (GBP connected baseline).
+   - Visibility: `null` on first load — renders "Calculating..." skeleton until weekly SOV cron runs. Populated by SOV Engine (Doc 04c). **Never render a fallback number.** First real score appears after Sunday 2 AM EST cron run.
    - Accuracy: derived from open alert count.
    - DataHealth: 100 (user passed the onboarding guard).
    - Color: truth-emerald ≥80, amber 60–79, alert-crimson <60.

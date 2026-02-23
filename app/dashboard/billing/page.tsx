@@ -1,10 +1,11 @@
 'use client';
 
 // ---------------------------------------------------------------------------
-// Billing Page — Phase 17: Auth & Billing UI
+// Billing Page — Sprint 25A: Corrected tier names + pricing
 //
-// Three-tier pricing: Free Scanner / Pro AI Defense / Enterprise API.
-// The Pro tier is highlighted with electric-indigo (Doc 06 §8 brand accent).
+// Three-tier pricing aligned with plan_tier DB enum (starter|growth|agency)
+// and Doc 08 §6 pricing ($29 Starter / $59 Growth / Custom Agency).
+// The Growth tier is highlighted with electric-indigo (Doc 06 §8 brand accent).
 //
 // Upgrade button calls createCheckoutSession Server Action. When STRIPE_SECRET_KEY
 // is absent (local dev / preview) it shows a "Demo mode" banner instead of
@@ -19,68 +20,71 @@ import { createCheckoutSession } from './actions';
 // Tier definitions
 // ---------------------------------------------------------------------------
 
-type Plan = 'pro' | 'enterprise';
+type Plan = 'starter' | 'growth';
 
 interface Tier {
-  id: string;
-  name: string;
-  price: string;
-  period: string;
-  tagline: string;
-  features: string[];
-  cta: string;
-  plan: Plan | null;
+  id:        string;
+  name:      string;
+  price:     string;
+  period:    string;
+  tagline:   string;
+  features:  string[];
+  cta:       string;
+  plan:      Plan | null;
   highlight: boolean;
 }
 
 const TIERS: Tier[] = [
   {
-    id: 'free',
-    name: 'Free Scanner',
-    price: '$0',
-    period: '/mo',
-    tagline: 'Scan for AI hallucinations affecting your business listing.',
+    id:      'starter',
+    name:    'Starter',
+    price:   '$29',
+    period:  '/mo',
+    tagline: 'Weekly AI scans to protect your core listing data.',
     features: [
-      '5 free scans per month',
-      'ChatGPT + Perplexity coverage',
+      'Weekly hallucination scans',
+      'ChatGPT + Perplexity + Gemini',
+      'Magic Menu with JSON-LD schema',
+      'Google Business Profile connect',
       'Email hallucination alerts',
     ],
-    cta: 'Get started free',
-    plan: null,
+    cta:       'Get Started',
+    plan:      'starter',
     highlight: false,
   },
   {
-    id: 'pro',
-    name: 'Pro AI Defense',
-    price: '$99',
-    period: '/mo',
-    tagline: 'Everything in Free, plus automated correction and Magic Menus.',
+    id:      'growth',
+    name:    'Growth',
+    price:   '$59',
+    period:  '/mo',
+    tagline: 'Daily scans plus competitive intelligence.',
     features: [
-      'Unlimited scans across all AI engines',
-      'Magic Menu with JSON-LD schema',
-      'Auto-correction submissions',
-      'Share-of-Voice competitive tracking',
+      'Daily hallucination scans',
+      'All AI engines covered',
+      'Competitor Intercept analysis',
+      'Share-of-Voice tracking',
+      'Magic Menu + GBP + Apple + Bing',
       'Priority support',
     ],
-    cta: 'Upgrade',
-    plan: 'pro',
+    cta:       'Upgrade',
+    plan:      'growth',
     highlight: true,
   },
   {
-    id: 'enterprise',
-    name: 'Enterprise API',
-    price: 'Custom',
-    period: '',
+    id:      'agency',
+    name:    'Agency',
+    price:   'Custom',
+    period:  '',
     tagline: 'White-label API access for agencies and multi-location brands.',
     features: [
-      'Unlimited locations',
+      'Up to 10 locations',
+      'White-label reporting',
       'Full REST + webhook API access',
       'Dedicated account manager',
       'SLA guarantees',
-      'Custom integrations',
     ],
-    cta: 'Contact sales',
-    plan: 'enterprise',
+    cta:  'Contact sales',
+    plan: null,
     highlight: false,
   },
 ];
@@ -94,12 +98,12 @@ function UpgradeButton({ tier }: { tier: Tier }) {
 
   if (tier.plan === null) {
     return (
-      <button
-        className="w-full rounded-xl border border-white/10 px-4 py-2.5 text-sm font-semibold text-slate-400 transition hover:border-white/20 hover:text-white"
-        disabled
+      <a
+        href="mailto:hello@localvector.ai"
+        className="block w-full rounded-xl border border-white/10 px-4 py-2.5 text-center text-sm font-semibold text-slate-400 transition hover:border-white/20 hover:text-white"
       >
         {tier.cta}
-      </button>
+      </a>
     );
   }
 
@@ -198,7 +202,7 @@ export default function BillingPage() {
       <div className="text-center">
         <h1 className="text-2xl font-bold text-white">Plans &amp; Pricing</h1>
         <p className="mt-2 text-sm text-slate-400">
-          Protect your business from AI hallucinations. Cancel anytime.
+          Protect your business from AI hallucinations. No contracts. Cancel anytime.
         </p>
       </div>
 
@@ -211,7 +215,7 @@ export default function BillingPage() {
 
       {/* Footer note */}
       <p className="text-center text-xs text-slate-600">
-        All prices in USD. Pro billed monthly. Enterprise billed annually or custom.
+        All prices in USD. Starter and Growth billed monthly. Agency billed annually or custom.
       </p>
     </div>
   );

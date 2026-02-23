@@ -1,5 +1,12 @@
 # LocalVector.ai - Product & Monetization Roadmap
 
+> **Note:** This is an early-stage product backlog document. The phase numbers here (Phase 7, 8, 9…)
+> are conceptual and pre-date the current execution plan. For the authoritative, numbered build
+> sprint plan, refer to **Doc 09 (`docs/09-BUILD-PLAN.md`)**. The features described here map to
+> Doc 09 phases as follows: "Phase 7 — LLM Honeypot" → Doc 09 Phase 14/15 (Magic Menu);
+> "Phase 8 — API Sync Engine" → Doc 09 Phase 8 (GBP OAuth); "Phase 9 — Hallucination Monitoring"
+> → Doc 09 Phase 9 (Cron Audit). The Premium/Enterprise section maps to Doc 09 Phases 3–8.
+
 ## The Core Value Proposition
 LocalVector is an Answer Engine Optimization (AEO) and Generative Engine Optimization (GEO) SaaS. We provide businesses with a centralized, relational database for their accurate entity data (locations, menus, hours), and then distribute that truth to AI agents (ChatGPT, Perplexity, Google SGE) to prevent hallucinations.
 

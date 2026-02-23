@@ -2,7 +2,7 @@
 
 ## Complete SQL DDL for LocalVector.ai
 ## Target: Supabase PostgreSQL
-### Version: 2.5 | Date: February 17, 2026
+### Version: 2.6 | Date: February 23, 2026
 ---
 
 > ⚠️ **CRITICAL: SOURCE OF TRUTH WARNING**
@@ -96,7 +96,7 @@ BEGIN
 
   -- Model Providers
   IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'model_provider') THEN
-    CREATE TYPE model_provider AS ENUM ('openai-gpt4o', 'openai-gpt4o-mini', 'perplexity-sonar', 'google-gemini', 'anthropic-claude', 'microsoft-copilot');
+    CREATE TYPE model_provider AS ENUM ('openai-gpt4o', 'perplexity-sonar', 'google-gemini', 'anthropic-claude', 'microsoft-copilot');
   END IF;
 
   -- Listing Sync Status
@@ -1106,6 +1106,284 @@ interface AiHallucination {
 ```
 
 **Rule:** When inserting rows via seed.sql or Server Actions, all enum values **must** be lowercase strings. Uppercase variants (e.g. `'CRITICAL'`) will fail the PostgreSQL CHECK constraint.
+
+### 15.12 `sov_target_queries` — TypeScript interface
+
+> **Source file:** `src/lib/types/sov.ts`
+> **Migration:** `supabase/migrations/20260223000001_sov_engine.sql`
+> **Spec:** Doc 04c Section 2
+
+```typescript
+// src/lib/types/sov.ts
+
+export type QueryCategory = 'discovery' | 'comparison' | 'occasion' | 'near_me' | 'custom';
+
+export interface SOVTargetQuery {
+  id: string;
+  orgId: string;
+  locationId: string;
+  queryText: string;
+  queryCategory: QueryCategory;
+  occasionTag: string | null;
+  intentModifier: string | null;
+  isSystemGenerated: boolean;
+  isActive: boolean;
+  lastRunAt: string | null;
+  lastSovResult: number | null;   // 0–100, most recent query-level SOV %
+  lastCited: boolean | null;      // was our business mentioned in last run?
+  runCount: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface SOVReport {
+  orgId: string;
+  locationId: string;
+  snapshotDate: string;
+  shareOfVoice: number;           // 0–100, aggregate across all active queries
+  citationRate: number;           // 0–100, % of cited results with a URL
+  queriesRun: number;
+  queriesCited: number;
+  topCitedQuery: string | null;
+  firstMoverAlerts: SOVFirstMoverAlert[];
+  weekOverWeekDelta: number | null;
+}
+
+export interface SOVFirstMoverAlert {
+  id: string;
+  orgId: string;
+  locationId: string | null;
+  queryId: string;
+  queryText: string;
+  detectedAt: string;
+  status: 'new' | 'actioned' | 'dismissed';
+  actionedAt: string | null;
+}
+```
+
+**🤖 Agent Rule:** Import `QueryCategory`, `SOVTargetQuery`, `SOVReport`, `SOVFirstMoverAlert` exclusively from `src/lib/types/sov.ts`. Do NOT redeclare these shapes inline in cron functions or API routes.
+
+---
+
+### 15.13 `content_drafts` — TypeScript interface
+
+> **Source file:** `src/lib/types/content-pipeline.ts`
+> **Migration:** `supabase/migrations/20260223000002_content_pipeline.sql`
+> **Spec:** Doc 05 Section 13, Doc 06 Section 9
+
+```typescript
+// src/lib/types/content-pipeline.ts
+
+export type DraftTriggerType = 'competitor_gap' | 'occasion' | 'prompt_missing' | 'first_mover' | 'manual';
+export type DraftContentType = 'faq_page' | 'occasion_page' | 'blog_post' | 'landing_page' | 'gbp_post';
+export type DraftStatus = 'draft' | 'approved' | 'published' | 'rejected' | 'archived';
+
+export interface ContentDraft {
+  id: string;
+  orgId: string;
+  locationId: string | null;
+  triggerType: DraftTriggerType;
+  triggerId: string | null;        // FK to competitor_intercepts, sov_target_queries, or local_occasions
+  draftTitle: string;
+  draftContent: string;
+  targetPrompt: string | null;     // The AI query this content is designed to win
+  contentType: DraftContentType;
+  aeoScore: number | null;         // 0–100, calculated at draft creation
+  status: DraftStatus;
+  humanApproved: boolean;
+  publishedUrl: string | null;
+  createdAt: string;
+  updatedAt: string;
+  approvedAt: string | null;
+  publishedAt: string | null;
+}
+
+// Shape returned by GET /api/content-drafts/:id (includes trigger context)
+export interface ContentDraftWithContext extends ContentDraft {
+  triggerContext: {
+    competitorName?: string;
+    winningFactor?: string;
+    queryAsked?: string;
+    occasionName?: string;
+  } | null;
+  aeoBreakdown: {
+    answerFirst: number;
+    keywordDensity: number;
+    structure: number;
+  } | null;
+  targetKeywords: string[];
+}
+```
+
+**🤖 Agent Rule:** `POST /api/content-drafts/:id/publish` MUST validate `humanApproved === true` AND `status === 'approved'` server-side before executing. This is enforced even if the client sends a direct API call. Return `403` with message if either condition fails.
+
+---
+
+### 15.14 `page_audits` — TypeScript interface
+
+> **Source file:** `src/lib/types/content-pipeline.ts`
+> **Migration:** `supabase/migrations/20260223000002_content_pipeline.sql`
+> **Spec:** Doc 05 Section 14
+
+```typescript
+// src/lib/types/content-pipeline.ts (continued)
+
+export type PageType = 'homepage' | 'menu' | 'about' | 'faq' | 'events' | 'occasion' | 'other';
+
+export interface PageAuditRecommendation {
+  issue: string;
+  fix: string;
+  impactPoints: number;   // How many points this fix adds to overall_score
+  priority: 'high' | 'medium' | 'low';
+}
+
+export interface PageAudit {
+  id: string;
+  orgId: string;
+  locationId: string | null;
+  pageUrl: string;
+  pageType: PageType;
+  overallScore: number | null;          // 0–100
+  aeoReadabilityScore: number | null;   // 0–100
+  answerFirstScore: number | null;      // 0–100, does first sentence answer intent?
+  schemaCompletenessScore: number | null; // 0–100, required schema types present?
+  faqSchemaPresent: boolean | null;
+  recommendations: PageAuditRecommendation[] | null;
+  lastAuditedAt: string;
+  createdAt: string;
+}
+```
+
+---
+
+### 15.15 `local_occasions` — TypeScript interface
+
+> **Source file:** `src/lib/types/occasions.ts`
+> **Migration:** `supabase/migrations/20260223000002_content_pipeline.sql`
+> **Spec:** Doc 06 Section 10
+
+```typescript
+// src/lib/types/occasions.ts
+
+export type OccasionType = 'holiday' | 'celebration' | 'recurring' | 'seasonal';
+
+export interface OccasionQueryPattern {
+  query: string;
+  category: QueryCategory;   // from sov.ts
+}
+
+export interface LocalOccasion {
+  id: string;
+  name: string;                          // "Valentine's Day"
+  occasionType: OccasionType;
+  triggerDaysBefore: number;             // Alert fires this many days before peak
+  annualDate: string | null;             // 'MM-DD' format (e.g., '02-14'), null for floating dates
+  peakQueryPatterns: OccasionQueryPattern[];
+  relevantCategories: string[];          // ["restaurant", "hookah lounge", "bar"]
+  isActive: boolean;
+  createdAt: string;
+}
+```
+
+---
+
+### 15.16 `citation_source_intelligence` — TypeScript interface
+
+> **Source file:** `src/lib/types/citations.ts`
+> **Migration:** `supabase/migrations/20260223000002_content_pipeline.sql`
+> **Spec:** Doc 05 Section 15
+
+```typescript
+// src/lib/types/citations.ts
+
+export interface CitationSourceIntelligence {
+  id: string;
+  businessCategory: string;       // 'hookah lounge'
+  city: string;
+  state: string;
+  platform: string;               // 'yelp' | 'tripadvisor' | 'reddit' | 'google' | 'facebook'
+  citationFrequency: number;      // 0.0–1.0
+  sampleQuery: string | null;
+  sampleSize: number;
+  modelProvider: ModelProvider;   // from AiHallucination type
+  measuredAt: string;
+}
+
+// Shape used by the Citation Gap Finder UI (Doc 06 Section 11)
+export interface CitationPlatformWithGap extends CitationSourceIntelligence {
+  orgListed: boolean;             // derived from tenant's listings table
+  orgListingUrl: string | null;
+  gap: boolean;                   // true when !orgListed && citationFrequency > 0.3
+  gapAction: string | null;       // "Claim your TripAdvisor listing to appear in 62% more AI answers"
+}
+
+export interface CitationGapSummary {
+  gapScore: number;               // 0–100
+  platformsCovered: number;
+  platformsThatMatter: number;    // platforms with citationFrequency > 0.3
+  topGap: {
+    platform: string;
+    citationFrequency: number;
+    action: string;
+  } | null;
+}
+```
+
+**🤖 Agent Rule:** Import all citation types from `src/lib/types/citations.ts`. The `citationFrequency` field is a float 0.0–1.0 (not a percentage). Multiply by 100 only at the display layer.
+
+---
+
+### 15.17 GBP OAuth interfaces
+
+> **Source file:** `src/lib/types/gbp.ts`
+> **Migration:** `supabase/migrations/20260223000003_gbp_integration.sql`
+> **Spec:** RFC_GBP_ONBOARDING_V2_REPLACEMENT.md
+
+```typescript
+// src/lib/types/gbp.ts
+
+// Shape of a single location from the GBP Locations API
+export interface GBPLocation {
+  name: string;                   // "accounts/1234567890/locations/987654321"
+  title: string;                  // Business display name
+  storefrontAddress: {
+    addressLines: string[];
+    locality: string;             // city
+    administrativeArea: string;   // state
+    postalCode: string;
+  };
+  regularHours?: {
+    periods: GBPHoursPeriod[];
+  };
+  openInfo?: {
+    status: 'OPEN' | 'CLOSED_PERMANENTLY' | 'CLOSED_TEMPORARILY';
+  };
+  metadata?: {
+    placeId: string;              // maps to locations.google_place_id
+  };
+}
+
+export interface GBPHoursPeriod {
+  openDay: 'MONDAY' | 'TUESDAY' | 'WEDNESDAY' | 'THURSDAY' | 'FRIDAY' | 'SATURDAY' | 'SUNDAY';
+  openTime: { hours: number; minutes: number };
+  closeDay: string;
+  closeTime: { hours: number; minutes: number };
+}
+
+// What's stored in pending_gbp_imports.locations_data
+export interface PendingGBPImport {
+  id: string;
+  orgId: string;
+  locationsData: GBPLocation[];
+  accountName: string;
+  hasMore: boolean;
+  expiresAt: string;
+  createdAt: string;
+}
+```
+
+**⚠️ Timezone gap (RFC Rev 2 §4.2):** `GBPHoursPeriod` times have no explicit timezone. When mapping to `HoursData`, the audit prompt must supply timezone context. Use the `locations.city` + `locations.state` from the imported row to infer timezone via a lookup (e.g., `Intl.DateTimeFormat` IANA timezone database).
+
 
 ---
 

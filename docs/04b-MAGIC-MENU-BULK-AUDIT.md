@@ -9,6 +9,8 @@
 
 This document is the **authoritative spec** for Phase 19–21 Magic Engine features. It defines the canonical shapes that must be used — without modification — by all implementing agents.
 
+> **⚠️ Naming Disambiguation:** "Phase 19" throughout this document refers to **DEVLOG Phase 19** — an internal development phase for Magic Menu bulk upload features. This is **not** the same as **Doc 19 — Autopilot Engine**, which specifies the content pipeline. When you see "Phase 19" in this file, it means Magic Menu features. When you see "Doc 19", it means the Autopilot Engine spec. The two are unrelated.
+
 Before any Phase 19 implementation begins, confirm these files match the contracts in Section 2:
 
 | File | Change Applied in This Doc |

@@ -5,6 +5,7 @@
 // Deep Night theme: bg-midnight-slate, text-slate-300, electric-indigo accent.
 
 import ViralScanner from './_components/ViralScanner';
+import { safeJsonLd } from './m/[slug]/page';
 
 // ---------------------------------------------------------------------------
 // Page
@@ -14,18 +15,66 @@ export default function RootPage() {
   return (
     <main className="min-h-screen bg-midnight-slate text-slate-300">
 
+      {/* ── JSON-LD: SoftwareApplication schema (Doc 08 §9) ─────────────── */}
+      <script
+        type="application/ld+json"
+        // eslint-disable-next-line react/no-danger
+        dangerouslySetInnerHTML={{
+          __html: safeJsonLd({
+            '@context': 'https://schema.org',
+            '@type': 'SoftwareApplication',
+            name: 'LocalVector',
+            headline: 'The AI Visibility Platform for Restaurants',
+            applicationCategory: 'BusinessApplication',
+            operatingSystem: 'Web',
+            offers: {
+              '@type': 'AggregateOffer',
+              lowPrice: '29',
+              highPrice: '59',
+              priceCurrency: 'USD',
+              offerCount: '3',
+            },
+            creator: {
+              '@type': 'Organization',
+              name: 'LocalVector.ai',
+              url: 'https://localvector.ai',
+            },
+            description:
+              'LocalVector.ai helps restaurants detect and fix AI hallucinations — when ChatGPT, ' +
+              'Perplexity, or Gemini provide incorrect information like wrong hours, closed status, ' +
+              'or missing menu items. Features include automated hallucination auditing, ' +
+              'PDF-to-Schema menu digitization, and competitor intercept analysis.',
+            featureList: [
+              'AI Hallucination Detection',
+              'PDF Menu to Schema.org Conversion',
+              'Competitor AI Recommendation Intercept',
+              'Reality Score Tracking',
+              'Google Business Profile Integration',
+            ],
+          }),
+        }}
+      />
+
       {/* ── Top Navigation ──────────────────────────────────────────────── */}
       <nav className="sticky top-0 z-10 border-b border-white/5 bg-midnight-slate/80 backdrop-blur-sm">
         <div className="mx-auto flex max-w-5xl items-center justify-between px-6 py-4">
           <span className="text-lg font-bold text-electric-indigo tracking-tight">
             LocalVector
           </span>
-          <a
-            href="/login"
-            className="rounded-xl border border-white/10 px-4 py-2 text-sm text-slate-300 hover:bg-white/5 hover:text-white transition"
-          >
-            Sign In
-          </a>
+          <div className="flex items-center gap-3">
+            <a
+              href="/pricing"
+              className="text-sm text-slate-400 hover:text-white transition"
+            >
+              Pricing
+            </a>
+            <a
+              href="/login"
+              className="rounded-xl border border-white/10 px-4 py-2 text-sm text-slate-300 hover:bg-white/5 hover:text-white transition"
+            >
+              Sign In
+            </a>
+          </div>
         </div>
       </nav>
 
@@ -138,6 +187,19 @@ export default function RootPage() {
           </div>
         </div>
       </section>
+
+      {/* ── Footer ───────────────────────────────────────────────────────── */}
+      <footer className="border-t border-white/5 py-8">
+        <div className="mx-auto max-w-5xl px-6 flex flex-wrap items-center justify-center gap-x-4 gap-y-2">
+          <a href="/privacy" className="text-sm text-slate-600 hover:text-slate-300 transition">Privacy Policy</a>
+          <span className="text-slate-700">·</span>
+          <a href="/terms" className="text-sm text-slate-600 hover:text-slate-300 transition">Terms of Service</a>
+          <span className="text-slate-700">·</span>
+          <a href="mailto:hello@localvector.ai" className="text-sm text-slate-600 hover:text-slate-300 transition">
+            hello@localvector.ai
+          </a>
+        </div>
+      </footer>
 
     </main>
   );

@@ -66,3 +66,39 @@ export function maxCompetitors(plan: PlanTier): number {
   };
   return limits[plan];
 }
+
+/**
+ * Autopilot Engine — AI-generated content draft creation (Doc 19).
+ * Generates draft pages/posts when a competitor gap or occasion is detected.
+ * Requires human approval before publish. Growth or Agency plan required.
+ */
+export function canRunAutopilot(plan: PlanTier): boolean {
+  return plan === 'growth' || plan === 'agency';
+}
+
+/**
+ * Content Grader — site-wide AEO page audit (Doc 17).
+ * Scores pages on readability, answer-first structure, and schema completeness.
+ * Growth or Agency plan required.
+ */
+export function canRunPageAudit(plan: PlanTier): boolean {
+  return plan === 'growth' || plan === 'agency';
+}
+
+/**
+ * Occasion Engine — seasonal content scheduler (Doc 16).
+ * Triggers content drafts N days before holidays and recurring events.
+ * Growth or Agency plan required.
+ */
+export function canRunOccasionEngine(plan: PlanTier): boolean {
+  return plan === 'growth' || plan === 'agency';
+}
+
+/**
+ * Google Business Profile OAuth connection (Doc GBP Onboarding RFC Rev 2).
+ * Allows the org to link its GBP account for profile sync and post publishing.
+ * Available on Starter, Growth, and Agency plans (not Trial).
+ */
+export function canConnectGBP(plan: PlanTier): boolean {
+  return plan === 'starter' || plan === 'growth' || plan === 'agency';
+}

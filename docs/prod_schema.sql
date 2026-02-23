@@ -1,6 +1,6 @@
 -- ============================================================
 -- LOCALVECTOR.AI — COMPLETE CLEAN SCHEMA
--- Version: 2.5 (Dependency Fixed)
+-- Version: 2.6 (Added location_integrations — required by migration 20260223000003)
 -- Target: Supabase PostgreSQL
 -- ============================================================
 
@@ -317,6 +317,25 @@ CREATE TABLE IF NOT EXISTS public.listings (
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW(),
   UNIQUE(org_id, location_id, directory_id)
+);
+
+-- Location Integrations (Third-Party Connections: GBP, WordPress, etc.)
+-- Created in migration 20260221000002. Required by migration 20260223000003_gbp_integration.sql.
+CREATE TABLE IF NOT EXISTS public.location_integrations (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  org_id UUID NOT NULL REFERENCES public.organizations(id) ON DELETE CASCADE,
+  location_id UUID REFERENCES public.locations(id) ON DELETE CASCADE,
+  integration_type VARCHAR(50) NOT NULL,  -- 'google' | 'wordpress' | 'apple' | 'bing'
+  platform VARCHAR(20),                   -- legacy alias for integration_type
+  status VARCHAR(20) NOT NULL DEFAULT 'disconnected'
+    CHECK (status IN ('disconnected', 'connected', 'syncing', 'error')),
+  external_id VARCHAR(255),               -- GBP location resource name or external platform ID (non-sensitive, plain text)
+  credentials JSONB,                      -- Encrypted at application layer before storage. Service role only.
+  last_sync_at TIMESTAMPTZ,
+  error_details TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  UNIQUE(org_id, location_id, integration_type)
 );
 
 -- Visibility Scores

@@ -1,7 +1,7 @@
 # 11 — Testing & QA Strategy
 
 ## The "Red-Green-Refactor" Rulebook
-### Version: 2.3 | Date: February 16, 2026
+### Version: 2.4 | Date: February 23, 2026
 
 ---
 
@@ -1051,3 +1051,40 @@ Instructions:
 ```
 
 This pattern ensures the agent has a clear definition of "done" and cannot drift from the spec.
+
+---
+
+## 10. Phase 5–8 Test Coverage (SOV Engine + Content Pipeline)
+
+> **Added in v2.4** — Test specs for Phase 5 (SOV Engine), Phase 6 (Autopilot HITL), Phase 7 (Citation Intelligence + Content Grader), Phase 8 (GBP OAuth).
+
+### 10.1 Unit Tests (Vitest)
+
+| Test File | What It Covers | Spec Reference |
+|-----------|----------------|---------------|
+| `src/__tests__/unit/sov-cron.test.ts` | SOV cron query execution, `writeSOVResults()`, queryCap per plan | Doc 04c §4 |
+| `src/__tests__/unit/visibility-score.test.ts` | `calculateVisibilityScore()` — including null state (no cron run yet), never returns 0 | Doc 04c §5 |
+| `src/__tests__/unit/content-draft-workflow.test.ts` | `createDraft()` idempotency, HITL state machine, draft queue cap (max 5 pending) | Doc 19 §3–§4 |
+| `src/__tests__/unit/page-auditor.test.ts` | 5-dimension scoring, `extractVisibleText()`, `extractJsonLd()`, FAQ schema detection | Doc 17 §2–§3 |
+| `src/__tests__/unit/citation-gap-scorer.test.ts` | `calculateCitationGapScore()`, threshold (>= 0.30), `topGap` computation | Doc 18 §3 |
+| `src/__tests__/unit/gbp-data-mapper.test.ts` | GBP hours → `HoursData` mapping, attribute → amenities mapping, timezone gap handling | Doc 09 Phase 8 |
+
+### 10.2 E2E Tests (Playwright)
+
+| Test File | What It Covers | Spec Reference |
+|-----------|----------------|---------------|
+| `tests/e2e/content-draft-review.spec.ts` | Full HITL flow: draft list → review → edit → approve → publish (download target) | Doc 06 §9 |
+| `tests/e2e/gbp-onboarding.spec.ts` | GBP OAuth connect → location picker → import → dashboard (no manual wizard) | Doc 09 Phase 8 |
+
+### 10.3 Critical Test Rules for Phase 5–8
+
+1. **SOV cron tests** must mock Perplexity Sonar via MSW. Never call live Perplexity API in tests.
+2. **Visibility score null state:** `calculateVisibilityScore()` must return `null` (not `0`) when `visibility_analytics` has no row for the org. Test this explicitly.
+3. **HITL guarantee:** `POST /api/content-drafts/:id/publish` test must verify the server returns `403` when `human_approved: false` — even if called directly with a valid session token.
+4. **GBP OAuth tokens:** Tests use fixture token data. Never write real OAuth tokens to the test database.
+
+### 10.4 Version History
+
+| Version | Date | Changes |
+|---------|------|---------|
+| 2.4 | 2026-02-23 | Added Section 10: Phase 5–8 test coverage — SOV cron, visibility score null state, content draft HITL, page auditor, citation gap scorer, GBP data mapper. 8 new test files specified. |

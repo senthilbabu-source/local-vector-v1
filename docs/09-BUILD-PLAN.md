@@ -1,7 +1,7 @@
 # 09 — Phased Build Plan & Execution Roadmap
 
-## 16-Week Execution Plan
-### Version: 2.3 | Date: February 16, 2026
+## Execution Roadmap
+### Version: 2.4 | Date: February 23, 2026
 
 > **Phase 22 Reconciliation (2026-02-23):** Phases 0–2 checkboxes audited against DEVLOG
 > entries (Phases 0–21). Items confirmed complete are ticked `[x]`. Genuinely incomplete
@@ -114,7 +114,7 @@
   - [x] Build hallucination classification logic (Doc 04, Section 2.3)
   - [x] Wire results to `ai_audits` and `ai_hallucinations` tables
 - [x] **Cron Job (Scheduled Audits)**
-  - [x] Create Supabase Edge Function `run-audits` (`app/api/cron/audit/route.ts`)
+  - [x] Create cron Route Handler `run-audits` (`app/api/cron/audit/route.ts`)
   - [x] Configure Vercel Cron trigger (daily at 3 AM EST)
   - [x] Implement plan-aware frequency (weekly for Starter, daily for Growth)
   - [x] Implement usage metering (increment counter, enforce limit)
@@ -228,7 +228,7 @@
 
 - [x] **Competitor Management**
   - [x] Build competitor CRUD (add/edit/delete, max 3 for Growth) — `addCompetitor`, `deleteCompetitor` Server Actions; `CompetitorChip` + `AddCompetitorForm` UI
-  - [x] Google Places autocomplete for competitor lookup — server-side proxy `/api/v1/places/search`; debounced dropdown in `AddCompetitorForm`; graceful degradation when key absent *(Phase 3.1, 2026-02-23)*
+  - [x] Google Places autocomplete for competitor lookup *(shipped Phase 3.1)*
 - [x] **Intercept Logic**
   - [x] Create `__fixtures__/mock-greed-analysis.ts` with sample GPT-4o-mini intercept response — added `MOCK_COMPETITOR` + `MOCK_INTERCEPT` to `golden-tenant.ts`; `MOCK_INTERCEPT_ANALYSIS` to `handlers.ts` per AI_RULES §19.4
   - [x] Implement Head-to-Head prompt (Doc 04, Section 3.1) — Perplexity Sonar stage in `runCompetitorIntercept`
@@ -241,7 +241,7 @@
   - [x] Implement plan gating (Growth+ only) — `canRunCompetitorIntercept(plan)` check in page + actions
   - [x] Build "Upgrade to unlock" overlay for Starter users — inline `UpgradeGate` in page.tsx
 - [x] **Cron Integration**
-  - [x] Add competitor checks to daily audit cron (Growth plan only) — second `for...of` loop in `/api/cron/audit`; calls `runInterceptForCompetitor` per competitor; `intercepts_inserted` in summary *(Phase 3.1, 2026-02-23)*
+  - [x] Add competitor checks to daily audit cron (Growth plan only) *(shipped Phase 3.1)*
 
 ### Acceptance Criteria
 - [x] User can add 3 competitors and see intercept results (real-time on-demand, not 24h batch)
@@ -250,7 +250,7 @@
 - [x] Growth users see competitor data; Starter users do not
 - [x] `npx vitest run src/__tests__/unit/plan-enforcer.test.ts` — **ALL PASS** (feature gating 100%)
 - [x] `npx vitest run src/__tests__/unit/competitor-actions.test.ts` — **22/22 PASS**
-- [x] `npx vitest run` — **243 passing**, 7 skipped, 1 pre-existing integration failure
+- [x] `npx vitest run` — **260 passing** after Phase 3.1 (Places autocomplete + cron intercepts); **267 passing** after Group A schema remediation (RLS integration test now passing with properly-initialized DB)
 
 ---
 
@@ -261,26 +261,31 @@
 
 ### Checklist
 
-- [ ] **Listings Management**
-  - [ ] **🤖 Agent Rule:** Do NOT implement any OAuth integration or write-back API for external directories. All `/listings` endpoints update internal records only. See Doc 05, Section 6 scope declaration.
-  - [ ] Build Listings page (Doc 06, Section 6)
-  - [ ] Manual listing URL input per directory
-  - [ ] Basic link health check (404 detection)
-  - [ ] NAP consistency score calculation
+- [x] **Listings Management** *(Sprint 27A — partial)*
+  - [x] **🤖 Agent Rule:** Do NOT implement any OAuth integration or write-back API for external directories. All `/listings` endpoints update internal records only. See Doc 05, Section 6 scope declaration.
+  - [x] Build Listings page — Big 6 table, Deep Night theme, NAP Coverage badge (Sprint 27A)
+  - [x] Manual listing URL input per directory — on-blur `savePlatformUrl()` Server Action (Sprint 27A)
+  - [ ] Basic link health check (404 detection) *(Phase 8b)*
+  - [ ] NAP consistency score calculation *(Phase 8b)*
 - [ ] **Onboarding Wizard**
   - [ ] Build Step 1–5 flow (Doc 06, Section 7)
   - [ ] Auto-run first audit during onboarding
-- [ ] **Settings & Account**
-  - [ ] Business info editor (hours, amenities, categories)
-  - [ ] Billing portal (Stripe Customer Portal)
-  - [ ] Location management (add/edit for Agency tier)
+- [x] **Settings & Account** *(Sprint 24B — partial)*
+  - [x] Account settings: display name edit, password change (Sprint 24B)
+  - [x] Organization name edit; plan tier read-only chip + billing link (Sprint 24B)
+  - [ ] Business info editor — hours, amenities, categories *(post-launch)*
+  - [x] Billing portal — Stripe Checkout for Starter/Growth; Agency mailto CTA (Sprint 25A)
+  - [ ] Location management — add/edit for Agency tier *(post-launch)*
 - [ ] **Reports & Export**
   - [ ] CSV export of hallucination history
   - [ ] PDF audit report (white-label for Agency tier)
-- [ ] **Marketing Site**
-  - [ ] Build `localvector.ai` homepage (Doc 08)
-  - [ ] Implement SoftwareApplication JSON-LD schema
-  - [ ] Build `/pricing`, `/about`, `/what-is/*` pages
+- [x] **Marketing Site** *(Sprint 25A–C)*
+  - [x] Build `localvector.ai` homepage (Doc 08) — hero, features, pricing nav, legal footer
+  - [x] Implement SoftwareApplication JSON-LD schema (Sprint 25C)
+  - [x] Build `/pricing` page (Sprint 25A)
+  - [x] Build `/privacy` and `/terms` legal pages (Sprint 25B)
+  - [x] `llms.txt` + `ai-config.json` AEO endpoints (Sprint 25C)
+  - [ ] `/about`, `/what-is/*` pages *(post-launch)*
 
 ### Acceptance Criteria
 - [ ] New user completes onboarding in < 3 minutes
@@ -289,6 +294,239 @@
 - [ ] Marketing site passes Google Rich Results Test
 - [ ] `npx playwright test` (full E2E suite) — **ALL PASS**
 - [ ] `npx vitest run` (full unit + integration suite) — **ALL PASS**
+
+---
+
+## Phase 5: SOV Engine & Reality Score Completion (Weeks 17–19)
+
+**Goal:** Replace the hardcoded Visibility component (currently `98`) with real share-of-answer data. Make the Reality Score mean something.
+**Deliverable:** `/visibility` dashboard page live. SOV cron running. First Mover Alert feed active.
+**Spec:** Doc 04c — SOV Engine Specification
+
+### ⚡ Minimum Shippable
+1. SOV cron runs weekly, writes to `visibility_analytics`
+2. Reality Score Visibility component reads real data (not hardcoded 98)
+3. Query library seeded for all active locations at onboarding
+
+**What can slip:** Custom query UI (Growth feature), First Mover Alert email, 8-week trend chart (show current week only first).
+
+### Checklist
+
+- [ ] **Database Migration**
+  - [ ] ⚠️ **NOTE (Group A remediation, 2026-02-23):** `docs/20260223000001_sov_engine.sql` was NOT promoted to `supabase/migrations/`. It creates `sov_target_queries` + `sov_first_mover_alerts` (Phase 5 target schema), which differ from the live `target_queries` + `sov_evaluations` tables used by all existing SOV code (migration `20260221000004_create_sov_tracking.sql`). Promoting this migration as-is would create orphaned parallel tables. **Phase 5 build task:** migrate live `target_queries` data to `sov_target_queries` (richer schema), update all SOV code to use the new table names, then apply the migration.
+  - [ ] Verify `sov_target_queries` and `sov_first_mover_alerts` tables created with correct RLS
+  - [ ] Verify `sov_target_queries` UNIQUE constraint on `(location_id, query_text)`
+
+- [ ] **Query Seeding**
+  - [ ] Implement `seedSOVQueries(locationId)` in `lib/sov/seed.ts` (Doc 04c Section 3.1)
+  - [ ] Call `seedSOVQueries()` on location creation (wire into the onboarding completion Server Action)
+  - [ ] Seed Golden Tenant (Charcoal N Chill) with 13 system-generated queries
+  - [ ] **🤖 Agent Rule:** `sov_target_queries` table DDL is in `docs/20260223000001_sov_engine.sql` (NOT yet in `supabase/migrations/` — see NOTE above). Import `QueryCategory` type from `src/lib/types/sov.ts` (Doc 03, Section 15.12).
+
+- [ ] **SOV Cron**
+  - [ ] Build `app/api/cron/sov/route.ts` — Next.js Route Handler (Doc 04c Section 4.1)
+  - [ ] Implement `runSOVQuery()` with Perplexity Sonar SOV prompt (Doc 04c Section 4.2)
+  - [ ] Implement `writeSOVResults()` — upserts to `visibility_analytics` (Doc 04c Section 4.3)
+  - [ ] Add `STOP_SOV_CRON` kill switch env var check at function entry
+  - [ ] Configure Vercel Cron trigger: Sunday 2 AM EST → `POST /api/cron/sov`
+  - [ ] Implement `POST /api/cron/sov` route handler (service-role auth via `CRON_SECRET`)
+
+- [ ] **Reality Score Fix**
+  - [ ] Implement `calculateVisibilityScore()` in `lib/scores/visibility.ts` (Doc 04c Section 5.1)
+  - [ ] Remove hardcoded `visibility = 98` from `RealityScoreCard` component
+  - [ ] Implement `state: 'calculating'` UI (Doc 06 Section 8.2 — skeleton, no fake zero)
+  - [ ] Wire updated score formula into scoring cron (Doc 04 Section 6)
+  - [ ] **🤖 Agent Rule:** `calculateVisibilityScore()` returns `number | null`. `null` = cron not yet run. Never render `0` for null — render the calculating skeleton.
+
+- [ ] **First Mover Alert Pipeline**
+  - [ ] Implement `checkFirstMoverAlerts()` in SOV cron (Doc 04c Section 6.1)
+  - [ ] Writes to `sov_first_mover_alerts` table (upsert on `org_id, query_id` conflict)
+  - [ ] Build `GET /api/sov/alerts` endpoint (Doc 05 Section 12)
+  - [ ] Build `FirstMoverAlertCard` component (Doc 06 Section 8.3)
+  - [ ] Wire alert count to sidebar Visibility badge
+
+- [ ] **SOV Dashboard (`/visibility`)**
+  - [ ] Build `/dashboard/visibility/page.tsx` (Doc 06 Section 8.1 wireframe)
+  - [ ] Build `SOVScoreRing` component with calculating state (Doc 06 Section 8.2)
+  - [ ] Build `SOVQueryTable` component (Doc 06 Section 8.4)
+  - [ ] Build `GET /api/sov/queries`, `POST /api/sov/queries`, `DELETE /api/sov/queries/:id` (Doc 05 Section 12)
+  - [ ] Add "Visibility" to sidebar (Growth+: full; Starter: read-only score only)
+
+- [ ] **Content Draft Trigger (Greed Engine patch)**
+  - [ ] Implement `triggerContentDraftIfNeeded()` in Greed Engine cron (Doc 04 Section 3.4)
+  - [x] ~~Run `supabase/migrations/20260223000002_content_pipeline.sql`~~ → promoted as `20260224000001_content_pipeline.sql` (Group A, 2026-02-23). `content_drafts`, `page_audits`, `local_occasions`, `citation_source_intelligence` tables now in schema.
+  - [ ] Verify `content_drafts` inserts for `gap_magnitude = 'high'` intercepts
+
+### Acceptance Criteria
+- [ ] SOV cron runs against Charcoal N Chill and writes to `visibility_analytics`
+- [ ] Reality Score Visibility component shows real number (not 98)
+- [ ] New tenant sees "Calculating..." state — not `0` or `98`
+- [ ] First Mover Alerts appear in `/visibility` when no local business is cited
+- [ ] `npx vitest run src/__tests__/unit/sov-cron.test.ts` — **ALL PASS**
+- [ ] `npx vitest run src/__tests__/unit/visibility-score.test.ts` — **ALL PASS** (including null state)
+
+---
+
+## Phase 6: Content Draft Review UI (Autopilot — HITL Layer)
+
+**Goal:** Surface AI-generated content drafts (created by Phase 5 Greed Engine trigger) in a review UI. Give users the ability to approve, edit, and publish content without a coding agent.
+**Deliverable:** `/content-drafts` page. Approve → Download flow working. Growth plan CTA.
+**Spec:** Doc 05 Section 13, Doc 06 Section 9
+
+### ⚡ Minimum Shippable
+1. Draft list view showing pending drafts
+2. Draft detail view with inline editor
+3. Approve → Download as HTML (no WordPress integration yet)
+4. Reject → back to draft status
+
+**What can slip:** WordPress publish integration, GBP post publish, AEO score live recalculation while typing.
+
+### Checklist
+
+- [ ] **Content Draft Endpoints**
+  - [ ] `GET /api/content-drafts` (filter by status, trigger_type) — Doc 05 Section 13
+  - [ ] `GET /api/content-drafts/:id` (full content + trigger context)
+  - [ ] `PATCH /api/content-drafts/:id` (edit draft content, title)
+  - [ ] `POST /api/content-drafts/:id/approve`
+  - [ ] `POST /api/content-drafts/:id/reject`
+  - [ ] `POST /api/content-drafts/:id/publish` (target: `download` first; `wordpress` Phase 7)
+  - [ ] **🤖 Agent Rule:** `POST /publish` validates `human_approved: true` AND `status: 'approved'` server-side. Reject with `403` if either condition fails. Do not rely on client-side checks.
+
+- [ ] **Content Draft UI**
+  - [ ] Build `/dashboard/content-drafts/page.tsx` — list view (Doc 06 Section 9.1)
+  - [ ] Build `/dashboard/content-drafts/[id]/page.tsx` — detail/review view (Doc 06 Section 9.2)
+  - [ ] Build `ContentDraftCard` component (status badge, AEO score, CTA buttons)
+  - [ ] Build `ContentDraftEditor` — inline editable textarea with preview toggle
+  - [ ] Implement Approve → publish target selector modal (Doc 06 Section 9.3)
+  - [ ] Implement Reject modal (optional rejection reason)
+  - [ ] Add "Content Drafts" to sidebar with amber badge count (Growth+ only)
+  - [ ] Empty state CTA linking to `/compete` (Doc 06 Section 9.4)
+
+- [ ] **Occasion Alert Feed (Phase 6 lite)**
+  - [ ] Build `OccasionAlertCard` component (Doc 06 Section 10.2)
+  - [ ] Seed `local_occasions` reference table (20 highest-value occasions for hospitality)
+  - [ ] Wire upcoming occasion alerts to Dashboard home (below Active Alerts — Doc 06 Section 10.1)
+  - [ ] "Remind Later" snooze via `localStorage` (no server call needed)
+  - [ ] Add occasion badge to Visibility sidebar item
+
+### Acceptance Criteria
+- [ ] Greed Engine `gap_magnitude = 'high'` intercept creates a `content_drafts` row automatically
+- [ ] Draft appears in `/content-drafts` list with pending status
+- [ ] User can edit draft, approve it, and download as HTML file
+- [ ] Rejected draft returns to `draft` status with rejection note visible
+- [ ] Starter users see `<PlanGate featureId="content_drafts" />` overlay
+- [ ] `npx vitest run src/__tests__/unit/content-draft-workflow.test.ts` — **ALL PASS**
+- [ ] `npx playwright test tests/e2e/content-draft-review.spec.ts` — **ALL PASS**
+
+---
+
+## Phase 7: Citation Intelligence & Page Audits (Content Grader)
+
+**Goal:** Answer "which platforms does AI actually cite for my category?" and "is my website AEO-ready?" Site-wide content grading replaces menu-only readability scores.
+**Deliverable:** AI Citation Map tab on Listings page. Page Audit in `/visibility`. Growth CTA for both.
+**Spec:** Doc 05 Sections 14–15, Doc 06 Sections 8 & 11
+
+### ⚡ Minimum Shippable
+1. Citation Intelligence cron writes to `citation_source_intelligence` for 5 major hospitality categories × top 10 metros
+2. Citation Gap Finder tab on Listings page (Growth+ gated)
+3. Manual page audit for homepage (all plans)
+
+**What can slip:** Monthly page audit cron (offer on-demand first), Reddit/Nextdoor monitoring, citation gap score integrated into Reality Score DataHealth component.
+
+### Checklist
+
+- [ ] **Citation Intelligence Cron**
+  - [ ] Build `app/api/cron/citation/route.ts` — Next.js Route Handler
+  - [ ] For each category × metro combination: run 5 sample SOV queries, record which platforms are cited
+  - [ ] Write results to `citation_source_intelligence` table (upsert on `category, city, state, platform, model_provider`)
+  - [ ] Seed initial data for: hookah lounge, restaurant, bar, event venue, lounge — across top 20 US metros
+  - [ ] Schedule: monthly (first Sunday of month, 3 AM EST)
+
+- [ ] **Citation Gap Endpoints**
+  - [ ] `GET /api/citations/platform-map` (joins `citation_source_intelligence` + tenant `listings`) — Doc 05 Section 15
+  - [ ] `GET /api/citations/gap-score` (single 0–100 gap score)
+
+- [ ] **Citation Gap UI**
+  - [ ] Build `CitationPlatformMap` component (Doc 06 Section 11.2) — frequency bar visualization
+  - [ ] Build `CitationGapBadge` component — added to existing `ListingRow` (Doc 06 Section 11.4)
+  - [ ] Add "AI Citation Map" tab to `/listings` page (Doc 06 Section 11.1)
+  - [ ] Starter plan blur-teaser (render real data with `blur-sm` + `<PlanGate>` overlay — Doc 06 Section 11.5)
+
+- [ ] **Page Audit (Site-Wide Content Grader)**
+  - [ ] Build `lib/page-audit/scorer.ts` — fetches URL, scores AEO readiness (answer-first, schema completeness, FAQ presence)
+  - [ ] `POST /api/pages/audits/run` — triggers single-page audit, stores in `page_audits` table
+  - [ ] `GET /api/pages/audits` and `GET /api/pages/audits/:id` — Doc 05 Section 14
+  - [ ] Build `PageAuditRow` component — score + expand/collapse recommendations (Doc 06, Section 8)
+  - [ ] Add page audit widget to `/visibility` page
+  - [ ] Starter plan: homepage audit only. Growth+: full site.
+  - [ ] **🤖 Agent Rule:** Page auditor fetches URLs via `fetch()` with a `User-Agent: LocalVector-AuditBot/1.0` header. Never attempt to bypass auth walls. `422` if page returns non-200.
+
+### Acceptance Criteria
+- [ ] `citation_source_intelligence` has data for hookah lounge + Alpharetta (Golden Tenant test)
+- [ ] Listings page AI Citation Map shows TripAdvisor gap for Charcoal N Chill (not listed)
+- [ ] `POST /api/pages/audits/run` on `charcoalnchill.com` returns scored recommendations
+- [ ] Growth users see citation map; Starter users see blur teaser
+- [ ] `npx vitest run src/__tests__/unit/page-auditor.test.ts` — **ALL PASS**
+- [ ] `npx vitest run src/__tests__/unit/citation-gap-scorer.test.ts` — **ALL PASS**
+
+---
+
+## Phase 8: GBP OAuth Onboarding & Autopilot Publish
+
+**Goal:** Remove friction from onboarding (GBP import replaces manual wizard for most users) and close the content pipeline loop (approve → publish to WordPress).
+**Deliverable:** GBP OAuth onboarding live. WordPress publish integration live. Fully closed detect → diagnose → draft → approve → publish → measure loop.
+**Spec:** RFC_GBP_ONBOARDING_V2_REPLACEMENT.md, Doc 19 Autopilot Engine (planned)
+
+### ⚡ Minimum Shippable
+1. GBP OAuth button on onboarding interstitial (`/onboarding/connect`)
+2. Successful import sets `hours_data` + `amenities` from GBP — bypasses manual wizard
+3. WordPress publish target for content drafts
+
+**What can slip:** GBP token refresh cron (tokens last 60 days; Phase 8.5), Autopilot occasion page auto-generation (requires Doc 16 Occasion Engine spec).
+
+### Checklist
+
+- [ ] **Database Migration**
+  - [x] ~~Run `supabase/migrations/20260223000003_gbp_integration.sql`~~ → promoted as `20260224000002_gbp_integration.sql` (Group A, 2026-02-23). `google_oauth_tokens`, `pending_gbp_imports` tables + `locations.google_location_name`, `locations.gbp_integration_id` columns now in schema.
+  - [x] Verify `google_oauth_tokens` and `pending_gbp_imports` tables created — confirmed in 27-table schema post-db-reset
+  - [x] Verify `locations.google_location_name` and `locations.gbp_integration_id` columns added — confirmed in prod_schema.sql
+  - [ ] **🤖 Agent Rule:** `google_oauth_tokens` has RLS deny-by-default. Access exclusively via `createServiceRoleClient()`. Never read from browser-facing `createClient()`.
+
+- [ ] **GBP OAuth Pipeline**
+  - [ ] Register Google Cloud OAuth 2.0 client — scopes: `https://www.googleapis.com/auth/business.manage`
+  - [ ] Build `app/api/auth/google/authorize/route.ts` — PKCE state cookie, redirect to Google consent
+  - [ ] Build `app/api/auth/google/callback/route.ts` — code exchange, token storage, location list fetch
+  - [ ] Build `app/onboarding/connect/page.tsx` — interstitial with "Connect GBP" + "Do it manually" escape
+  - [ ] Build `app/onboarding/connect/select/page.tsx` — location picker (reads `pending_gbp_imports`)
+  - [ ] Build Server Actions: `importGBPLocation()`, `disconnectGBP()` (`app/onboarding/connect/actions.ts`)
+  - [ ] Update `app/api/auth/register/route.ts` redirect: `/onboarding` → `/onboarding/connect`
+  - [ ] **🤖 Agent Rule:** `pending_gbp_imports` rows expire after 10 minutes (`expires_at`). Location picker page validates expiry before rendering — redirect to `/onboarding/connect` if expired.
+
+- [ ] **GBP Data Mapping**
+  - [ ] Map GBP `regularHours` → `locations.hours_data` (HoursData type, 24h format)
+  - [ ] Map GBP `openInfo.status` → `locations.operational_status`
+  - [ ] Map GBP attributes → `locations.amenities` (best-effort; null for unknown attributes)
+  - [ ] **⚠️ Timezone gap (RFC Rev 2 §4.2):** GBP hours have no explicit timezone. Audit prompt must supply timezone context from `locations.city` + `locations.state`.
+
+- [ ] **WordPress Publish Integration**
+  - [ ] Build `lib/publish/wordpress.ts` — WordPress REST API client (basic auth or application password)
+  - [ ] Add WordPress connection settings to `/settings` page (site URL + application password)
+  - [ ] Wire `POST /api/content-drafts/:id/publish` with `publish_target: 'wordpress'`
+  - [ ] On publish: create WordPress page/post, set status to `draft` (user approves in WP), store `published_url` in `content_drafts`
+
+- [ ] **GBP Post Publish Integration**
+  - [ ] Build `lib/publish/gbp-post.ts` — posts content as GBP Update using stored OAuth token
+  - [ ] Wire `POST /api/content-drafts/:id/publish` with `publish_target: 'gbp_post'`
+
+### Acceptance Criteria
+- [ ] New user signing up via Google can import GBP data and reach dashboard in < 30 seconds
+- [ ] GBP import sets `hours_data` and `amenities` — Onboarding Guard clears without manual wizard
+- [ ] Fallback: user who skips/fails GBP import lands on existing manual wizard unchanged
+- [ ] WordPress publish creates a WP page and stores URL in `content_drafts.published_url`
+- [ ] `npx vitest run src/__tests__/unit/gbp-data-mapper.test.ts` — **ALL PASS**
+- [ ] `npx playwright test tests/e2e/gbp-onboarding.spec.ts` — **ALL PASS**
+
+---
 
 ---
 
@@ -301,6 +539,10 @@
 | 2 | OpenAI GPT-4o Vision | Pay-per-use (~$1/menu) | Medium (OCR accuracy) |
 | 3 | GPT-4o-mini | Minimal (~$0.01/analysis) | Low |
 | 4 | — | — | Low |
+| 5 | Perplexity Sonar (SOV queries) | +$4/mo/100 tenants | Low |
+| 6 | GPT-4o-mini (Content Draft gen) | +$2/mo/100 tenants | Low |
+| 7 | Firecrawl / Playwright (Page Audit) | +$5/mo at scale | Medium |
+| 8 | WordPress REST API (Publish integration) | None (tenant-provided creds) | Medium |
 
 ---
 

@@ -1,7 +1,7 @@
 # 04 — Intelligence Engine Specification
 
 ## Prompt Engineering for Fear, Greed, and Magic
-### Version: 2.3 | Date: February 16, 2026
+### Version: 2.4 | Date: February 23, 2026
 
 ---
 
@@ -322,6 +322,73 @@ Output ONLY valid JSON:
 | More recent content/posts | "Post about your {amenity} on Google Business Profile" | content |
 
 ---
+
+
+### 3.4 Content Draft Trigger (Autopilot Integration)
+
+When the Greed Engine completes an intercept analysis and `gap_magnitude = 'high'`, the system automatically creates a `content_drafts` record. This bridges Phase 3 (complete) to the Autopilot Engine (Doc 19, planned).
+
+**Trigger condition:** `gap_magnitude === 'high'` in the competitor intercept result.
+
+```typescript
+// Called after writeInterceptResult() in the Greed Engine cron
+async function triggerContentDraftIfNeeded(
+  intercept: CompetitorIntercept,
+  supabase: SupabaseClient
+) {
+  if (intercept.gap_magnitude !== 'high') return;
+
+  // Idempotency: don't create duplicate drafts for same intercept
+  const { data: existing } = await supabase
+    .from('content_drafts')
+    .select('id')
+    .eq('trigger_type', 'competitor_gap')
+    .eq('trigger_id', intercept.id)
+    .limit(1);
+
+  if (existing?.length > 0) return;
+
+  const brief = await generateDraftBrief(intercept);
+
+  await supabase.from('content_drafts').insert({
+    org_id: intercept.org_id,
+    location_id: intercept.location_id,
+    trigger_type: 'competitor_gap',
+    trigger_id: intercept.id,
+    draft_title: brief.title,
+    draft_content: brief.content,
+    target_prompt: intercept.query_text,
+    content_type: 'faq_page',
+    aeo_score: brief.estimated_aeo_score,
+    status: 'draft',
+    human_approved: false,
+  });
+}
+
+async function generateDraftBrief(intercept: CompetitorIntercept) {
+  const prompt = `You are an AEO content strategist for local businesses.
+A competitor "${intercept.winner}" is beating "${intercept.my_business_name}"
+for the query: "${intercept.query_text}"
+Winning factor: ${intercept.winning_factor}
+Suggested action: ${intercept.suggested_action}
+
+Generate a content brief to close this gap.
+Return ONLY valid JSON:
+{
+  "title": "SEO/AEO-optimized page title",
+  "content": "200-word draft in Answer-First format targeting this query",
+  "estimated_aeo_score": number 0-100,
+  "target_keywords": ["keyword1", "keyword2"]
+}`;
+
+  const response = await callGPT4oMini(prompt);
+  return JSON.parse(response.replace(/\`\`\`json\n?|\`\`\`/g, ''));
+}
+```
+
+**📐 Data Contract:** `content_drafts` table DDL is in `supabase/migrations/20260223000002_content_pipeline.sql`. Full Autopilot workflow spec is in Doc 19 (planned).
+
+**🤖 Agent Rule:** `triggerContentDraftIfNeeded()` must be called after every intercept write and must be idempotent — duplicate calls for the same `intercept.id` produce no second draft.
 
 ## 4. The Magic Engine: Menu-to-Schema Pipeline
 
@@ -656,13 +723,25 @@ Reality Score = (Visibility × 0.4) + (Accuracy × 0.4) + (DataHealth × 0.2)
 
 | Component | Weight | Calculation | Data Source |
 |-----------|--------|-------------|-------------|
-| **Visibility** | 40% | Average of (Recommendation Cite Rate + Share of Voice) | `ai_audits` & `visibility_analytics` |
+| **Visibility** | 40% | `share_of_voice × 0.6 + citation_rate × 0.4` | `visibility_analytics` (written by SOV cron — see **Doc 04c**) |
 | **Accuracy** | 40% | 100 – (penalty per open hallucination). Critical = –25, High = –15, Medium = –5 | `ai_hallucinations` where `correction_status = 'open'` |
 | **Data Health** | 20% | Average of: listing sync % + schema completeness % + AEO readability score | `listings`, `magic_menus.ai_readability_score` |
 
+> **🔄 Phase 7 Update (planned):** The DataHealth formula changes in Phase 7 when Citation Intelligence is implemented. Updated formula: `NAP Consistency × 0.40 + Citation Gap Score × 0.35 + Link Injected × 0.25`. The Agent Rule in **Doc 18 — Citation Intelligence, Section 3.3** specifies how to update `calculateDataHealthScore()`. Until Phase 7 ships, the current formula above remains active.
+
+### Visibility Component — Full Specification
+
+> **🚨 Implementation Note (v2.4):** The `RealityScoreCard` component previously hardcoded `visibility = 98`. This has been removed. The Visibility component is now fully specified in **Doc 04c — SOV Engine Specification**, Section 5.
+>
+> Key rules:
+> - `calculateVisibilityScore()` returns `null` when no SOV data exists (new tenant, cron not yet run)
+> - When `null`, render "Calculating..." state — **never render a fallback number**
+> - `visibility_analytics.share_of_voice` and `citation_rate` are written by the weekly SOV cron (Sunday 2 AM EST)
+> - See Doc 04c Section 5 for full TypeScript implementation
+
 ### Scoring Cron
 
-Runs weekly (all plans). Writes to `visibility_scores` table for historical tracking and trend display.
+Runs weekly (all plans). Writes to `visibility_scores` table for historical tracking and trend display. The SOV cron (Doc 04c) must run before the scoring cron to ensure Visibility component has fresh data.
 
 ---
 
@@ -675,10 +754,14 @@ Runs weekly (all plans). Writes to `visibility_scores` table for historical trac
 | Greed (Recommendation) | 0–30/month | Perplexity Sonar | $0.00–$0.30 |
 | Greed (Analysis) | 0–30/month | GPT-4o-mini | $0.00–$0.15 |
 | Magic (OCR) | 1–3/month | GPT-4o Vision | $0.50–$1.50 |
-| **Total (Starter)** | | | **~$0.60/month** |
-| **Total (Growth)** | | | **~$2.55/month** |
+| SOV cron (15 queries/week) | 60/month | Perplexity Sonar | $0.30–$0.60 |
+| Content Draft brief gen | 0–8/month | GPT-4o-mini | $0.00–$0.04 |
+| **Total (Starter)** | | | **~$1.40/month** |
+| **Total (Growth)** | | | **~$3.69/month** |
 
-**Margin Safety:** Even at Growth tier ($59/mo), API costs are ~$3/user/month → **~95% gross margin**.
+**Margin Safety:** Even at Growth tier ($59/mo), API costs are ~$3.69/user/month → **~94% gross margin**.
+
+> **Note:** SOV cron costs are detailed in Doc 04c Section 9. Content Draft generation costs are detailed in Doc 19 (planned).
 
 ---
 
@@ -695,3 +778,12 @@ Runs weekly (all plans). Writes to `visibility_scores` table for historical trac
 
 **Implementation:**
 The `ai_readability_score` is calculated during the `POST /magic-menu/:id/publish` step and stored in `magic_menus`. If the score is < 50, the user receives a warning: "Your menu is hard for AI to read. Use our AI Rewriter to fix it."
+
+---
+
+## Version History
+
+| Version | Date | Changes |
+|---------|------|---------|
+| 2.4 | 2026-02-23 | Added Section 3.4 (Content Draft trigger from Greed Engine). Updated Section 6 Visibility component — removed hardcoded 98, added reference to Doc 04c. Updated cost table to include SOV cron and Content Draft costs. |
+| 2.3 | 2026-02-16 | Initial version. Fear Engine, Greed Engine, Magic Engine, Maintenance Workers, Reality Score formula. |

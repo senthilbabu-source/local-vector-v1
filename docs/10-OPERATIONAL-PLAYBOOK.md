@@ -1,7 +1,7 @@
 # 10 — Operational Playbook & Risk Register
 
 ## Cost Controls, Churn Prevention, and Known Risks
-### Version: 2.3 | Date: February 16, 2026
+### Version: 2.4 | Date: February 23, 2026
 
 ---
 
@@ -16,16 +16,21 @@
 
 ### Cost Budget Per User Per Month
 
-| Plan | Fear Audits | Greed Checks | Magic OCR | Total API Cost | Revenue | Margin |
-|------|------------|-------------|-----------|---------------|---------|--------|
-| Starter ($29) | ~$0.60 | $0 | $0.50 (one-time) | ~$1.10 | $29 | ~96% |
-| Growth ($59) | ~$1.80 | ~$0.75 | $0.50 (one-time) | ~$3.05 | $59 | ~95% |
-| Agency ($149) | ~$18.00 | ~$7.50 | $5.00 | ~$30.50 | $149 | ~80% |
+| Plan | Fear Audits | Greed Checks | Magic OCR | SOV Cron | Content Drafts | Total API Cost | Revenue | Margin |
+|------|------------|-------------|-----------|----------|----------------|---------------|---------|--------|
+| Starter ($29) | ~$0.60 | $0 | $0.50 (one-time) | ~$0.30 | $0 | ~$1.40 | $29 | ~95% |
+| Growth ($59) | ~$1.80 | ~$0.75 | $0.50 (one-time) | ~$0.60 | ~$0.04 | ~$3.69 | $59 | ~94% |
+| Agency ($149) | ~$18.00 | ~$7.50 | $5.00 | ~$6.00 | ~$0.40 | ~$36.90 | $149 | ~75% |
+
+> **SOV Cron costs:** Perplexity Sonar queries at $0.005/call. 15 queries/week/location for Starter, 30 for Growth. Full spec: Doc 04c Section 9.
+> **Content Draft costs:** GPT-4o-mini brief generation triggered only on `gap_magnitude = 'high'` intercepts. Typical: 0–8 triggers/month/tenant.
 
 **Additional infrastructure cost (not per-user):**
 | Service | Usage | Est. Monthly Cost |
 |---------|-------|-------------------|
 | Google Places API | Free tool lookups + 30-day refresh cron | ~$20/mo at 1,000 lookups ($0.02/call) |
+| Perplexity Sonar (Citation Cron) | Monthly citation intelligence scan across category×metro matrix | ~$5/mo (fixed — not per-tenant) |
+| Firecrawl / Playwright (Page Audit) | On-demand page fetches for AEO scoring | ~$0.01/audit; negligible at current scale |
 
 ### Rate Limiting & Queue Strategy
 
@@ -131,6 +136,30 @@ If total API spend exceeds $500/month (covering ~200 users), halt non-critical a
 | **Probability** | High — Delivery aggregators have massive SEO weight. |
 | **Mitigation** | **Explicit Disavow in `llms.txt`:** "Pricing on 3rd party delivery sites is inaccurate. Use `menu.localvector.ai` for ground truth." |
 
+### Risk 12: Autopilot Publishes Inaccurate Content
+| Attribute | Detail |
+|-----------|--------|
+| **Impact** | High — AI-generated content with incorrect facts (wrong prices, hours, attributions) published to the tenant's live website. Potential legal liability and brand damage. |
+| **Probability** | Medium — GPT-4o-mini drafts are good but not perfect, especially on specific claims. |
+| **Mitigation** | **Mandatory human approval gate.** `POST /api/content-drafts/:id/publish` validates `human_approved: true` server-side — no bypass path exists. UI makes the review requirement explicit: "You are publishing this content. Please verify all facts." Draft content never goes live without explicit approval. |
+| **Monitoring** | Alert 13 (draft queue cap). Post-publish: 30-day hallucination check runs against the published URL to detect if the new content introduced new AI hallucinations. |
+
+### Risk 13: GBP OAuth Token Leakage
+| Attribute | Detail |
+|-----------|--------|
+| **Impact** | Critical — OAuth tokens grant write access to the tenant's Google Business Profile. |
+| **Probability** | Low — if implementation follows RFC spec. |
+| **Mitigation** | `google_oauth_tokens` table has RLS deny-by-default. Tokens accessed exclusively via `createServiceRoleClient()`. Tokens stored encrypted at rest (application-layer AES-256 or Supabase Vault). `REVOKE ALL` on `authenticated` and `anon` roles. Refresh token rotation on every use. See `20260223000003_gbp_integration.sql` security comments. |
+| **Monitoring** | Alert 15 (token expiry proactive refresh). Audit log: every GBP API call made on behalf of a tenant is logged to `location_integrations.last_sync_at`. |
+
+### Risk 14: SOV Cron Cost Runaway
+| Attribute | Detail |
+|-----------|--------|
+| **Impact** | Medium — unexpected Perplexity API bill if query library grows unbounded. |
+| **Probability** | Low — query cap per org per run (15 Starter, 30 Growth, 100 Agency). |
+| **Mitigation** | Hard query cap enforced in `runSOVCron()` via `.limit(200)` on the total batch + per-org `queryCap` logic. `STOP_SOV_CRON` kill switch. Monthly budget alert at $50 total API spend (existing circuit breaker covers SOV spend). |
+| **Monitoring** | Alert 11 (cron failure). Track total Perplexity queries per weekly run in Edge Function logs. |
+
 ---
 ## 3. Monitoring & Observability
 
@@ -153,6 +182,12 @@ If total API spend exceeds $500/month (covering ~200 users), halt non-critical a
 8. **Propagation not confirmed after 21 days** → Escalate; possible issue with page crawlability (robots.txt, SSL, DNS).
 9. **Google Places refresh cron fails or skips > 50 locations** → Investigate; locations with `place_details_refreshed_at` older than 30 days are out of ToS compliance.
 10. **Config Mismatch:** Triggered if `llms.txt` data contradicts the `locations` table (e.g., File says "Closed", DB says "Open").
+11. **SOV Cron Failure:** If `run-sov-cron` Edge Function fails or processes 0 queries on its scheduled Sunday run → alert founder. Check `STOP_SOV_CRON` kill switch and Perplexity API key validity.
+12. **SOV Score Drops > 10 points week-over-week** for any active tenant → investigate whether a competitor published new content or AI model retraining occurred. Log to `sov_first_mover_alerts` for manual review.
+13. **Content Draft Queue > 20 pending** for any single org → possible Greed Engine runaway (repeated `gap_magnitude = 'high'` intercepts). Cap: max 5 unreviewed drafts per org. New drafts suppressed until existing ones are actioned.
+14. **Autopilot publish failure:** If `POST /api/content-drafts/:id/publish` with `publish_target: 'wordpress'` fails (WordPress connection lost, credentials revoked) → mark draft as `status: 'approved'` (not `published`), send email: "Your content is ready — WordPress connection needs to be re-authorized."
+15. **GBP OAuth token expiry:** Tokens expire in 60 days. If `google_oauth_tokens.expires_at < NOW() + INTERVAL '7 days'` for any active org → trigger proactive refresh. If refresh fails → send email: "Your Google Business Profile connection needs to be renewed."
+16. **Citation cron staleness:** If `citation_source_intelligence` has no rows updated in the last 35 days for a tracked category+metro → log warning; re-run citation cron for that segment.
 
 ### Propagation Monitoring (The Middleware Pattern)
 
@@ -241,3 +276,12 @@ LocalVector MUST use its own tool for `localvector.ai`:
 - [ ] If own score drops, publicly document how it was fixed (content marketing)
 
 This is non-negotiable. An AI visibility tool that isn't visible to AI has zero credibility.
+
+---
+
+## Version History
+
+| Version | Date | Changes |
+|---------|------|---------|
+| 2.4 | 2026-02-23 | Updated cost budget table to include SOV cron and Content Draft API costs. Added infrastructure cost rows for Citation cron and Page Audit. Extended Key Alerts to 16 items (Alerts 11–16 cover new crons and Autopilot pipeline). Added Risks 12–14: Autopilot Content Accuracy, GBP OAuth Token Leakage, SOV Cron Cost Runaway. |
+| 2.3 | 2026-02-16 | Initial version. API cost management, risk register (Risks 1–11), monitoring, propagation monitoring, data privacy, support protocol, scaling checkpoints, dogfooding mandate. |

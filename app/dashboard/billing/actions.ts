@@ -11,15 +11,13 @@
 //
 // Plan → DB tier mapping (AI_RULES §1 — prod_schema.sql is the authority):
 //   plan_tier enum = 'trial' | 'starter' | 'growth' | 'agency'
-//   UI 'pro'        → DB 'growth'
-//   UI 'enterprise' → DB 'agency'
-//   The webhook stores the UI plan name ('pro'/'enterprise') in Stripe metadata
-//   so the mapping can be applied at fulfillment time.
+//   createCheckoutSession accepts 'starter' or 'growth' — exact enum values.
+//   Agency tier is a "Contact Us" flow — no Stripe session needed.
 //
 // Required env vars (add to .env.local and Vercel dashboard):
 //   STRIPE_SECRET_KEY=sk_live_...
-//   STRIPE_PRICE_ID_PRO=price_...
-//   STRIPE_PRICE_ID_ENTERPRISE=price_...
+//   STRIPE_PRICE_ID_STARTER=price_...
+//   STRIPE_PRICE_ID_GROWTH=price_...
 //   NEXT_PUBLIC_APP_URL=https://app.localvector.ai
 // ---------------------------------------------------------------------------
 
@@ -45,7 +43,7 @@ function getStripe(): Stripe {
 // ---------------------------------------------------------------------------
 
 export async function createCheckoutSession(
-  plan: 'pro' | 'enterprise'
+  plan: 'starter' | 'growth'
 ): Promise<CheckoutResult> {
   // ── Demo mode ─────────────────────────────────────────────────────────────
   if (!process.env.STRIPE_SECRET_KEY) {
@@ -61,15 +59,15 @@ export async function createCheckoutSession(
 
   // ── Resolve the Stripe Price ID ───────────────────────────────────────────
   const priceId =
-    plan === 'pro'
-      ? process.env.STRIPE_PRICE_ID_PRO
-      : process.env.STRIPE_PRICE_ID_ENTERPRISE;
+    plan === 'starter'
+      ? process.env.STRIPE_PRICE_ID_STARTER
+      : process.env.STRIPE_PRICE_ID_GROWTH;
 
   if (!priceId) {
     // Price IDs not configured yet — fall back to demo rather than crash.
     console.warn(
       '[billing] STRIPE_PRICE_ID_%s is not set — returning demo result',
-      plan.toUpperCase()
+      plan === 'starter' ? 'STARTER' : 'GROWTH'
     );
     return { url: null, demo: true };
   }

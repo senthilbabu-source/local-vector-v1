@@ -1,7 +1,7 @@
 # 06 — Frontend & UX Specification
 
 ## Dashboard Layout, Component Hierarchy, and User Flows
-### Version: 2.3 | Date: February 16, 2026
+### Version: 2.4 | Date: February 23, 2026
 
 ---
 
@@ -45,6 +45,8 @@
 | Menu (Magic) | ❌ | 👁️ Read-Only | ✅ Full | ✅ Full |
 | Compete (Greed) | ❌ | ❌ | ✅ | ✅ |
 | Listings | ✅ | ✅ | ✅ | ✅ |
+| 📡 Visibility (SOV) | ❌ | ✅ (read-only) | ✅ Full | ✅ Full |
+| 📝 Content Drafts | ❌ | ❌ | ✅ | ✅ |
 | Settings | ✅ | ✅ | ✅ | ✅ |
 | Billing | ✅ | ✅ | ✅ | ✅ |
 | 🏢 Org Switcher | ❌ | ❌ | ❌ | ✅ (top bar) |
@@ -62,6 +64,7 @@
 │  │  🎯 72  │  ▲ +3 from last week       │
 │  │ /100    │  Components:                │
 │  └─────────┘  Visibility: 65 | Accuracy: 80 | Data Health: 70 │
+│  (First-time state: Visibility shows "--  Calculating..." skeleton) │
 │                                          │
 │  Crawl Health (Last 24h):                │
 │  🤖 GPTBot: 2h ago  •  🧠 Perplexity: 5h ago  •  🔍 Google: 1d ago │
@@ -371,11 +374,449 @@ Step 5: Dashboard (with first audit results populated)
 
 ---
 
-## 8. Visual Identity & Design Tokens
+---
+
+## 8. SOV Dashboard (`/visibility`)
+
+> **API:** Doc 05 §12 — SOV Engine endpoints
+> **Plan Gate:** All plans can view; Growth+ can add custom queries
+> **Sidebar item:** 📡 Visibility
+
+### 8.1 Page Layout
+
+```
+┌──────────────────────────────────────────────────────┐
+│  📡 Your AI Visibility                                 │
+│                                                      │
+│  ┌────────────────────────────┬───────────────────┐  │
+│  │  SOV Score Ring            │  This Week        │  │
+│  │                            │                   │  │
+│  │      ┌───────┐             │  Queries Run: 13  │  │
+│  │      │  18.5 │             │  Times Cited: 3   │  │
+│  │      │   %   │             │  Citation Rate: 42%│  │
+│  │      └───────┘             │                   │  │
+│  │   ▲ +3.1 vs last week      │  [▸ View Report]  │  │
+│  └────────────────────────────┴───────────────────┘  │
+│                                                      │
+├──────────────────────────────────────────────────────┤
+│  🚀 First Mover Opportunities (2)                     │
+│  ┌──────────────────────────────────────────────┐    │
+│  │ 🚀 "hookah open late Alpharetta"             │    │
+│  │    AI isn't recommending anyone for this.    │    │
+│  │    Be the first to own it.                   │    │
+│  │    [Create Content]  [Dismiss]               │    │
+│  └──────────────────────────────────────────────┘    │
+│                                                      │
+├──────────────────────────────────────────────────────┤
+│  📊 SOV Trend (8 weeks)                               │
+│  [Line chart: share_of_voice over time]              │
+│  [Secondary line: citation_rate]                     │
+│                                                      │
+├──────────────────────────────────────────────────────┤
+│  🔍 Your Query Library                                │
+│                                                      │
+│  System queries (13)          [+ Add Custom Query]   │
+│  ─────────────────────────────────────────────────── │
+│  ✅ "best hookah lounge Alpharetta GA"  Last: cited   │
+│  ❌ "hookah open now Alpharetta"        Last: missed  │
+│  ✅ "best place for date night Alpharetta" Last: cited│
+│  ❌ "bachelorette party venue Alpharetta" Last: missed│
+│  [▸ Show all 13 queries]                             │
+└──────────────────────────────────────────────────────┘
+```
+
+### 8.2 SOV Score Ring — `SOVScoreRing` Component
+
+**Props:**
+```typescript
+interface SOVScoreRingProps {
+  shareOfVoice: number | null;   // null = calculating state
+  citationRate: number | null;
+  weekOverWeekDelta: number | null;
+  state: 'ready' | 'calculating';
+}
+```
+
+**Calculating state (null shareOfVoice):**
+
+```
+┌─────────────────────────────┐
+│        📡                   │
+│    ┌─────────┐               │
+│    │   --    │               │
+│    │         │  Calculating  │
+│    └─────────┘               │
+│                              │
+│  Your first AI visibility    │
+│  scan runs Sunday at 2 AM.  │
+│  Check back Monday.          │
+└─────────────────────────────┘
+```
+
+**🤖 Agent Rule:** When `state === 'calculating'`, render the skeleton state above. Never render `0%` — it implies the business has zero presence, which may be false and will mislead the user before data exists.
+
+**Rendering rules:**
+- Ring color: ≥40% → `--success` green, 20–39% → amber `#F59E0B`, <20% → `--destructive` red
+- Delta arrow: positive → ▲ green, negative → ▼ red, zero → → gray
+- `citationRate` shown as secondary metric below the ring, labeled "Citation Rate"
+
+### 8.3 First Mover Alert Card — `FirstMoverAlertCard` Component
+
+Renders one card per `sov_first_mover_alerts` row where `status = 'new'`.
+
+**[Create Content] button behavior:**
+1. Calls `POST /sov/alerts/:id/action` with `{ "action": "actioned" }`
+2. Navigates to `/content-drafts/new?trigger=first_mover&query_id={id}` (pre-fills the new draft form — Phase 6)
+3. Until Phase 6, shows modal: "Content draft created! Find it in Content Drafts → Review & Publish."
+
+**[Dismiss] button behavior:**
+1. Calls `POST /sov/alerts/:id/action` with `{ "action": "dismissed" }`
+2. Card slides out with exit animation (`framer-motion` fade + slide-up)
+
+### 8.4 Query Library Table — `SOVQueryTable` Component
+
+Displays all `sov_target_queries` rows. Columns: Query Text | Category | Last Run | Status (Cited / Missed / Pending).
+
+**"+ Add Custom Query" button (Growth+ only):**
+- For Starter: clicking renders `<PlanGate featureId="sov_custom_queries" minPlan="growth" />`
+- For Growth: opens inline add-query form:
+
+```
+┌────────────────────────────────────────────────┐
+│  Add a Custom Query                             │
+│                                                │
+│  Query: [________________________]             │
+│  Category: [Discovery ▼]                       │
+│  Occasion tag (optional): [____________]       │
+│                                                │
+│  [Cancel]  [Add Query]                         │
+│                                                │
+│  5 custom queries remaining (Growth plan)      │
+└────────────────────────────────────────────────┘
+```
+
+Calls `POST /sov/queries`. On `409 Conflict` (duplicate), shows inline error: "This query is already being tracked." On `422` (limit reached), shows `<PlanGate>` modal.
+
+---
+
+## 9. Content Draft Review UI (`/content-drafts`)
+
+> **API:** Doc 05 §13 — Content Draft endpoints
+> **Plan Gate:** View drafts on Growth+; Starter sees upgrade prompt
+> **Sidebar item:** 📝 Content Drafts (with amber badge count when drafts are pending)
+
+### 9.1 Draft List View
+
+```
+┌──────────────────────────────────────────────────────┐
+│  📝 Content Drafts                                     │
+│                                           [+ New Draft]│
+│                                                      │
+│  Pending Review (1)                                  │
+│  ┌──────────────────────────────────────────────┐    │
+│  │ ⚠️ Why Charcoal N Chill is Alpharetta's Best │    │
+│  │    Late-Night Hookah Experience              │    │
+│  │                                              │    │
+│  │  Trigger: Competitor Gap (Cloud 9 Lounge)    │    │
+│  │  Type: FAQ Page  •  AEO Score: 74/100        │    │
+│  │  Target: "best hookah lounge Alpharetta..."  │    │
+│  │  Created: Feb 23, 2026                       │    │
+│  │                                              │    │
+│  │  [Review & Approve]  [Reject]               │    │
+│  └──────────────────────────────────────────────┘    │
+│                                                      │
+│  Published (3)                [▸ Show published]     │
+└──────────────────────────────────────────────────────┘
+```
+
+**Draft status badges:**
+- `draft` → amber ⚠️ "Awaiting Review"
+- `approved` → blue 🔵 "Approved — Ready to Publish"
+- `published` → green ✅ "Published"
+- `rejected` → red 🔴 "Rejected — Needs Revision"
+
+### 9.2 Draft Detail / Review View (`/content-drafts/:id`)
+
+```
+┌──────────────────────────────────────────────────────┐
+│  ← Back to Drafts                                     │
+│                                                      │
+│  Why Charcoal N Chill is Alpharetta's Best           │
+│  Late-Night Hookah Experience                        │
+│                                                      │
+├──────────────────────┬───────────────────────────────┤
+│  Context             │  Content                      │
+│                      │                               │
+│  📌 Why this draft   │  [Editable text area]         │
+│  was created:        │                               │
+│  Cloud 9 Lounge is   │  Looking for the best hookah │
+│  winning "best       │  lounge open late in          │
+│  hookah late night   │  Alpharetta? Charcoal N Chill │
+│  Alpharetta" because │  stays open until 2 AM on     │
+│  of 15 more review   │  weekends, featuring...       │
+│  mentions of late    │                               │
+│  night atmosphere.   │  [Edit ✏️] (inline toggle)   │
+│                      │                               │
+│  🎯 Target Prompt:   │                               │
+│  "best hookah        ├───────────────────────────────┤
+│  lounge Alpharetta   │  AEO Score: 74/100            │
+│  late night"         │                               │
+│                      │  ✅ Answer-First: 85           │
+│  🏷️ Type: FAQ Page   │  ⚠️ Keyword Density: 70       │
+│                      │  ⚠️ Structure: 65             │
+│                      │                               │
+│                      │  Tip: Add FAQ schema to push  │
+│                      │  score above 80.              │
+├──────────────────────┴───────────────────────────────┤
+│  ┌─────────────────────────────────────────────────┐ │
+│  │ ✅ [Approve & Ready to Publish]                  │ │
+│  │ ❌ [Reject — Send Back for Revision]             │ │
+│  │ 📥 [Download as HTML]                           │ │
+│  └─────────────────────────────────────────────────┘ │
+└──────────────────────────────────────────────────────┘
+```
+
+### 9.3 Key Interactions
+
+**[Approve & Ready to Publish]:**
+1. Calls `POST /content-drafts/:id/approve`
+2. Button label changes to "✅ Approved" (disabled, green)
+3. "Publish" button appears:
+
+```
+┌────────────────────────────────────────────┐
+│  ✅ Draft Approved — Ready to Publish       │
+│                                            │
+│  Publish to:                               │
+│  ○ Download as HTML/Markdown               │
+│  ○ Post to WordPress  [Connect WordPress]  │
+│  ○ Google Business Profile post            │
+│                                            │
+│  [Publish Now]                             │
+└────────────────────────────────────────────┘
+```
+
+Calls `POST /content-drafts/:id/publish`. On success, shows:
+
+```
+✅ Published!
+View at: [https://charcoalnchill.com/alpharetta-late-night-hookah ↗]
+```
+
+**[Reject — Send Back for Revision]:**
+1. Opens modal asking for rejection reason (textarea, optional)
+2. Calls `POST /content-drafts/:id/reject`
+3. Draft card returns to `draft` status with rejection note shown
+
+**Inline Edit toggle:**
+- Clicking [Edit ✏️] converts the content area to an editable `<textarea>`
+- Auto-saves on blur via `PATCH /content-drafts/:id`
+- AEO Score recalculates client-side as user types (debounced, 500ms)
+
+### 9.4 Empty State
+
+When no drafts exist yet (Autopilot hasn't triggered any):
+
+```
+┌─────────────────────────────────────────────┐
+│                                             │
+│         📝                                  │
+│                                             │
+│  No content drafts yet.                    │
+│                                             │
+│  When the Compete engine finds a gap,      │
+│  or when a First Mover opportunity is      │
+│  detected, AI-generated drafts will        │
+│  appear here for your review.              │
+│                                             │
+│  Run a competitor check to generate        │
+│  your first draft.                         │
+│                                             │
+│  [Go to Competitor Intercept →]            │
+│                                             │
+└─────────────────────────────────────────────┘
+```
+
+---
+
+## 10. Occasion Alert Feed (Seasonal Opportunities)
+
+> **API:** Doc 05 §12 SOV alerts + Doc 16 Occasion Engine (planned)
+> **Placement:** Surfaced on Dashboard home as a collapsible "Seasonal Opportunities" card, and as a dedicated tab within the `/visibility` page
+> **Plan Gate:** All plans see occasion alerts; Content draft generation from alerts requires Growth+
+
+Occasion alerts fire 28 days before peak occasions (Valentine's Day, Bachelorette season, etc.) when the tenant doesn't have content targeting the occasion's peak queries.
+
+### 10.1 Dashboard Placement
+
+The Occasion Alert Feed inserts below the Active Alerts section and above Quick Stats on the Dashboard home — but only when at least one occasion alert is active. It does not appear if the tenant already has published content for all upcoming occasions.
+
+```
+├──────────────────────────────────────────────────────┤
+│  🗓️ Upcoming Opportunities (2)                        │
+│                                                      │
+│  ┌──────────────────────────────────────────────┐    │
+│  │ 💕 Valentine's Day — Feb 14                  │    │
+│  │    14 days away                              │    │
+│  │    AI isn't citing anyone for:               │    │
+│  │    • "romantic hookah dinner Alpharetta"     │    │
+│  │    • "date night hookah lounge Alpharetta"   │    │
+│  │                                              │    │
+│  │    [Create Valentine's Page]  [Remind Later] │    │
+│  └──────────────────────────────────────────────┘    │
+│  ┌──────────────────────────────────────────────┐    │
+│  │ 🎉 Bachelorette Season — peaks Apr–Jun       │    │
+│  │    42 days to early peak                     │    │
+│  │    AI cites competitors for:                 │    │
+│  │    • "bachelorette party venue Alpharetta"   │    │
+│  │      → Cloud 9 Lounge currently winning      │    │
+│  │                                              │    │
+│  │    [Create Bachelorette Page]  [Remind Later]│    │
+│  └──────────────────────────────────────────────┘    │
+├──────────────────────────────────────────────────────┤
+```
+
+### 10.2 Alert Card Anatomy
+
+Each `OccasionAlertCard` has two modes:
+
+**Uncontested mode** (no business cited for occasion queries — First Mover opportunity):
+- Icon: 🚀 blue
+- Headline: "{Occasion} — {N} days away"
+- Body: "AI isn't recommending anyone for these searches. Be the first."
+- Query list: bullet list of peak_query_patterns from `local_occasions`
+- CTA: "Create {Occasion} Page" → triggers Autopilot draft + navigates to `/content-drafts`
+
+**Contested mode** (competitor already winning occasion queries):
+- Icon: ⚠️ amber
+- Headline: "{Occasion} — {Competitor} is already winning"
+- Body: "{Competitor} appears in AI answers for {query}. You can still compete."
+- CTA: "Create {Occasion} Page" → same draft flow
+
+**[Remind Later] behavior:** Snoozes the alert for 7 days. Implemented via `localStorage` key (no server call needed — snoozed state is local preference only).
+
+### 10.3 Occasion Badge on Sidebar
+
+When 1+ occasion alerts are active, the "📡 Visibility" sidebar item shows a seasonal indicator:
+
+```
+📡 Visibility  🗓️ 2
+```
+
+The badge clears when all active occasion alerts are actioned or dismissed.
+
+---
+
+## 11. Citation Gap Finder (Listings Page Enhancement)
+
+> **API:** Doc 05 §15 — Citation Gap Intelligence endpoints
+> **Placement:** New tab within the existing `/listings` page — "AI Citation Map" tab alongside the existing "Directory Status" tab
+> **Plan Gate:** Growth+ only; Starter sees teaser with upgrade prompt
+
+### 11.1 Updated Listings Page Layout
+
+```
+┌──────────────────────────────────────────────────────┐
+│  📍 Your Listings                                      │
+│                                                      │
+│  [Directory Status]  [AI Citation Map ✨ Growth]      │
+│                                                      │
+│  ── Directory Status tab (existing §6 layout) ──     │
+└──────────────────────────────────────────────────────┘
+```
+
+### 11.2 AI Citation Map Tab (`CitationPlatformMap` Component)
+
+```
+┌──────────────────────────────────────────────────────┐
+│  [Directory Status]  [AI Citation Map ✨]             │
+│                                                      │
+│  Which platforms does AI cite for                    │
+│  "hookah lounge" in Alpharetta, GA?                  │
+│                                              Perplexity ▼│
+│                                                      │
+│  ┌──────────────┬────────────────┬─────────────────┐ │
+│  │ Platform     │ AI Cites This  │ You're Listed?  │ │
+│  ├──────────────┼────────────────┼─────────────────┤ │
+│  │ 🔍 Google    │ ████████ 94%   │ ✅ Listed        │ │
+│  │ ⭐ Yelp      │ ███████  87%   │ ✅ Listed        │ │
+│  │ 🌍 TripAdv.  │ █████    62%   │ ❌ Not Listed    │ │
+│  │              │                │ → Claim listing  │ │
+│  │ 📘 Facebook  │ ████     48%   │ ✅ Listed        │ │
+│  │ 🔶 Reddit    │ ███      31%   │ ❌ Not monitored │ │
+│  └──────────────┴────────────────┴─────────────────┘ │
+│                                                      │
+│  🎯 Citation Gap Score: 68/100                        │
+│                                                      │
+│  Your biggest opportunity:                          │
+│  TripAdvisor is cited in 62% of AI answers for      │
+│  hookah lounges in Alpharetta. You're not listed.   │
+│                                                      │
+│  [Claim TripAdvisor Listing →]                       │
+└──────────────────────────────────────────────────────┘
+```
+
+### 11.3 Component Props
+
+```typescript
+interface CitationPlatformMapProps {
+  category: string;            // "hookah lounge"
+  city: string;
+  state: string;
+  platforms: CitationPlatform[];
+  gapScore: number;
+  modelProvider: string;
+  onModelProviderChange: (provider: string) => void;
+}
+
+interface CitationPlatform {
+  platform: string;
+  citationFrequency: number;   // 0–1
+  orgListed: boolean;
+  orgListingUrl: string | null;
+  gap: boolean;
+  gapAction: string | null;
+}
+```
+
+### 11.4 `CitationGapBadge` on Directory Status Tab
+
+When `gap: true` for a platform, the existing `ListingRow` component gains a `CitationGapBadge`:
+
+```
+│ TripAdvisor │ ❌ None  │  --   │ Connect │ 🎯 AI cites 62% │
+```
+
+The badge appears as a small amber pill on the right of the Action column. Clicking it switches to the AI Citation Map tab with that platform highlighted.
+
+### 11.5 Starter Plan Teaser
+
+On Starter plan, the "AI Citation Map" tab is visible but blurred:
+
+```
+┌──────────────────────────────────────────────────────┐
+│  [Directory Status]  [AI Citation Map ✨ Growth]      │
+│                                                      │
+│  ╔════════════════════════════════════════════════╗  │
+│  ║          [blurred platform map]                ║  │
+│  ║                                                ║  │
+│  ║  🔒 See which platforms AI actually cites      ║  │
+│  ║     for hookah lounges in Alpharetta.          ║  │
+│  ║                                                ║  │
+│  ║  [Upgrade to Growth — $59/mo]                  ║  │
+│  ╚════════════════════════════════════════════════╝  │
+└──────────────────────────────────────────────────────┘
+```
+
+**Implementation:** Call `GET /citations/platform-map` regardless of plan. For Starter, render the `CitationPlatformMap` component with `blur-sm` + `pointer-events-none` wrapper + `<PlanGate featureId="citation_intelligence" minPlan="growth" />` overlay. This shows real data is available without unlocking it — higher conversion than hiding the tab entirely.
+
+---
+
+## 12. Visual Identity & Design Tokens
 
 To ensure a "best-in-class," professional aesthetic, all components must strictly adhere to the "Deep Night & Neon Insight" palette. This creates a high-contrast, futuristic feel that signals authority to the restaurant owner.
 
-### 8.1 The "Reality Engine" Palette
+### 12.1 The "Reality Engine" Palette
 | Role | Color Name | Hex Code | Tailwind Variable |
 | :--- | :--- | :--- | :--- |
 | **Primary** | Electric Indigo | `#6366F1` | `--primary` |
@@ -384,19 +825,19 @@ To ensure a "best-in-class," professional aesthetic, all components must strictl
 | **Background** | Midnight Slate | `#0F172A` | `--background` |
 | **Muted** | Cloud White | `#F8FAFC` | `--muted` |
 
-### 8.2 Design Tokens & Constants
+### 12.2 Design Tokens & Constants
 * **Typography:** Use **Geist Sans** for primary UI and **Geist Mono** for price/data strings.
 * **Tracking:** Apply `tracking-tight` to all headings (Semi-bold weight).
 * **Corner Radius:** Universal `0.75rem` (rounded-xl) for cards; `0.5rem` (rounded-lg) for buttons.
 * **Borders:** Use subtle borders instead of shadows: `border-slate-200/50`.
 * **Glassmorphism:** Navigation and Status bars must use `bg-white/80 backdrop-blur-md`.
 
-### 8.3 Tabular Data Rule
+### 12.3 Tabular Data Rule
 All numerical displays (Reality Score, Menu Prices) MUST use `font-variant-numeric: tabular-nums` to prevent layout jumping during updates.
 
 ---
 
-## 9. Component Library (shadcn/ui based)
+## 13. Component Library (shadcn/ui based)
 
 | Component | Usage | shadcn Base |
 |-----------|-------|-------------|
@@ -411,10 +852,19 @@ All numerical displays (Reality Score, Menu Prices) MUST use `font-variant-numer
 | `ScoreChart` | 30-day trend line | Recharts LineChart |
 | `PlanGate` | "Upgrade to unlock" overlay | Dialog |
 | `OrgSwitcher` | Agency multi-org dropdown | Select |
+| `SOVScoreRing` | SOV score + week-over-week delta | Card + custom ring |
+| `SOVQueryTable` | Query library with last_cited status | Table |
+| `FirstMoverAlertCard` | Uncontested prompt opportunity card | Alert variant |
+| `ContentDraftCard` | Draft with AEO score + approve/reject actions | Card |
+| `ContentDraftEditor` | Inline markdown editor for draft review | Textarea + Preview |
+| `PageAuditRow` | Single page score with expand/collapse recs | TableRow + Collapsible |
+| `CitationPlatformMap` | Platform coverage heatmap | Card grid |
+| `CitationGapBadge` | Gap indicator on Listings row | Badge |
+| `OccasionAlertFeed` | Seasonal opportunity alert list | ScrollArea |
 
 ---
 
-## 9.1 Critical Component: PlanGate (The Upsell Modal)
+## 13.1 Critical Component: PlanGate (The Upsell Modal)
 
 **Purpose:** Intercepts user action when they attempt to access a feature not available in their current tier.
 **Visual Style:** High-blur backdrop (`backdrop-blur-xl`) with a centered, glowing pricing card.
@@ -422,7 +872,7 @@ All numerical displays (Reality Score, Menu Prices) MUST use `font-variant-numer
 **Props Interface:**
 ```typescript
 interface PlanGateProps {
-  featureId: 'competitor_analysis' | 'magic_menu_publish' | 'daily_audit';
+  featureId: 'competitor_analysis' | 'magic_menu_publish' | 'daily_audit' | 'sov_custom_queries' | 'content_drafts' | 'page_audits' | 'citation_intelligence';
   minPlan: 'starter' | 'growth' | 'agency';
   isOpen: boolean;
   onClose: () => void;
@@ -443,12 +893,16 @@ if (!canAccess) return <PlanGate featureId="magic_menu_publish" minPlan="starter
 | `competitor_analysis` | "See Why They're Winning" | "Upgrade to Growth to unlock Competitor Intercept." | "Upgrade to Growth — $59/mo" |
 | `magic_menu_publish` | "Make Your Menu AI-Readable" | "Upgrade to Starter to publish your Magic Menu." | "Upgrade to Starter — $29/mo" |
 | `daily_audit` | "Monitor AI Every Day" | "Upgrade to Growth for daily hallucination checks." | "Upgrade to Growth — $59/mo" |
+| `sov_custom_queries` | "Track More AI Queries" | "Upgrade to Growth to add custom prompts to your tracking library." | "Upgrade to Growth — $59/mo" |
+| `content_drafts` | "Auto-Generate Content That Wins" | "Upgrade to Growth to unlock AI-generated content drafts." | "Upgrade to Growth — $59/mo" |
+| `citation_intelligence` | "See Which Platforms AI Cites" | "Upgrade to Growth to unlock Citation Gap Finder." | "Upgrade to Growth — $59/mo" |
+| `page_audits` | "Audit Your Full Website" | "Starter includes 1 homepage audit/month. Upgrade to Growth for 10 full-site audits/month." | "Upgrade to Growth — $59/mo" |
 
 **CTA Action:** Calls `POST /billing/checkout` with the target plan, redirects to Stripe Checkout.
 
 ---
 
-## 10. Key UI States
+## 14. Key UI States
 
 | State | How It Looks |
 |-------|-------------|
@@ -459,3 +913,15 @@ if (!canAccess) return <PlanGate featureId="magic_menu_publish" minPlan="starter
 | **Plan Upgrade Required** | Blurred content + centered "Upgrade to Growth" modal. |
 | **Processing (Menu OCR)** | Progress bar + "AI is reading your menu..." |
 | **Propagation Pending** | Yellow banner: "Your fix has been submitted. AI models typically update in 7–14 days." |
+| **SOV Calculating** | Visibility ring shows `--` with skeleton shimmer and copy: "Calculating... results appear Monday." |
+| **First Mover Alert** | Blue pulsing border on AlertCard with 🚀 icon. Badge count on sidebar Visibility item. |
+| **Draft Pending Approval** | Amber badge on "Content Drafts" sidebar item. Draft card shows amber "Review" CTA. |
+| **Draft Published** | Green checkmark on draft card. `published_url` shown as clickable link. |
+---
+
+## Version History
+
+| Version | Date | Changes |
+|---------|------|---------|
+| 2.4 | 2026-02-23 | Added §8 (SOV Dashboard `/visibility`), §9 (Content Draft Review UI `/content-drafts`), §10 (Occasion Alert Feed), §11 (Citation Gap Finder — Listings page enhancement). Renumbered former §8–10 to §12–14. Updated sidebar table, component library, PlanGate `featureId` list, and Key UI States. |
+| 2.3 | 2026-02-16 | Initial version. Design principles, shell, dashboard, magic menu, competitor intercept, listings, onboarding, visual identity, component library, key UI states. |

@@ -132,7 +132,7 @@ function formatHour(time: string): string {
  * Uses JSON.stringify + Unicode escapes for < and > to prevent </script>
  * injection — a known XSS vector when embedding JSON-LD in HTML.
  */
-function safeJsonLd(value: unknown): string {
+export function safeJsonLd(value: unknown): string {
   return JSON.stringify(value)
     .replace(/</g, '\\u003c')
     .replace(/>/g, '\\u003e');

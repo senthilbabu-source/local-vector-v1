@@ -52,6 +52,7 @@ export default function DashboardShell({
         onClose={() => setSidebarOpen(false)}
         displayName={displayName}
         orgName={orgName}
+        plan={plan}
       />
 
       {/* ── Right column: TopBar + page content ──────────────── */}

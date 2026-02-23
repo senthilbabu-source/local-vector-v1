@@ -2,7 +2,7 @@
 
 ## The Technical Contract Between Frontend and Backend
 ## Base URL: `https://app.localvector.ai/api/v1`
-### Version: 2.3 | Date: February 16, 2026
+### Version: 2.4 | Date: February 23, 2026
 
 ---
 
@@ -73,7 +73,11 @@ Returns aggregated metrics for the dashboard home screen.
   "last_audit_date": "2026-02-15T03:00:00Z",
   "next_audit_date": "2026-02-16T03:00:00Z",
   "plan": "growth",
-  "audits_remaining": 42
+  "audits_remaining": 42,
+  "sov_score": 18.5,
+  "sov_last_run": "2026-02-23T02:00:00Z",
+  "first_mover_alerts_count": 2,
+  "content_drafts_pending": 1
 }
 ```
 
@@ -627,3 +631,620 @@ Updates `propagation_events` with `event: 'link_injected'`.
   ]
 }
 ```
+---
+
+## 12. SOV Engine (Share-of-Answer)
+
+> **Spec:** Doc 04c — SOV Engine Specification, Sections 3–6
+> **Auth:** Bearer JWT required. `org_id` resolved from token.
+> **Plan Gate:** All plans (Starter: system queries only; Growth+: custom queries allowed)
+
+### GET `/sov/queries`
+
+Returns the active SOV query library for the org's primary location.
+
+**Query Params:** `?location_id=uuid&category=discovery|comparison|occasion|near_me|custom&active_only=true`
+
+**Response:**
+```json
+{
+  "queries": [
+    {
+      "id": "uuid",
+      "query_text": "best hookah lounge Alpharetta GA",
+      "query_category": "discovery",
+      "occasion_tag": null,
+      "intent_modifier": null,
+      "is_system_generated": true,
+      "is_active": true,
+      "last_run_at": "2026-02-23T02:00:00Z",
+      "last_sov_result": 100,
+      "last_cited": true,
+      "run_count": 4
+    },
+    {
+      "id": "uuid",
+      "query_text": "hookah open now Alpharetta",
+      "query_category": "near_me",
+      "occasion_tag": null,
+      "intent_modifier": null,
+      "is_system_generated": true,
+      "is_active": true,
+      "last_run_at": "2026-02-23T02:00:00Z",
+      "last_sov_result": 0,
+      "last_cited": false,
+      "run_count": 4
+    }
+  ],
+  "total": 13,
+  "custom_queries_used": 0,
+  "custom_queries_limit": 5
+}
+```
+
+### POST `/sov/queries`
+
+Add a custom query to the tracking library. **Growth tier and above only.**
+
+**Plan Gate:** Returns `403` for Starter plan.
+
+**Request Body:**
+```json
+{
+  "query_text": "best hookah bar for bachelorette party Alpharetta",
+  "query_category": "occasion",
+  "occasion_tag": "bachelorette",
+  "intent_modifier": null,
+  "location_id": "uuid (optional, defaults to primary)"
+}
+```
+
+**Validation:**
+- `query_text`: required, max 200 chars, must not duplicate existing active query for this location
+- `query_category`: required, must be one of: `discovery`, `comparison`, `occasion`, `near_me`, `custom`
+
+**Response:** `201 Created`
+```json
+{
+  "id": "uuid",
+  "query_text": "best hookah bar for bachelorette party Alpharetta",
+  "query_category": "occasion",
+  "is_system_generated": false,
+  "is_active": true,
+  "created_at": "2026-02-23T12:00:00Z"
+}
+```
+
+**Error (custom limit reached):** `422 Unprocessable Entity`
+```json
+{
+  "error": "Custom query limit reached",
+  "custom_queries_used": 5,
+  "custom_queries_limit": 5,
+  "upgrade_url": "/billing/upgrade"
+}
+```
+
+**Error (duplicate query):** `409 Conflict`
+```json
+{
+  "error": "This query is already being tracked for this location."
+}
+```
+
+### DELETE `/sov/queries/:id`
+
+Deactivates a custom query (sets `is_active = false`). System-generated queries cannot be deleted — they can only be deactivated.
+
+**Response:** `200 OK`
+```json
+{ "id": "uuid", "is_active": false }
+```
+
+**Error (system query delete attempt):** `403 Forbidden`
+```json
+{
+  "error": "System-generated queries cannot be deleted. Use PATCH to deactivate."
+}
+```
+
+### GET `/sov/report`
+
+Returns the latest SOV report with trend data and top-level metrics.
+
+**Query Params:** `?location_id=uuid&weeks=8` (default: 8 weeks of history)
+
+**Response:**
+```json
+{
+  "current": {
+    "snapshot_date": "2026-02-23",
+    "share_of_voice": 18.5,
+    "citation_rate": 42.0,
+    "queries_run": 13,
+    "queries_cited": 3,
+    "top_cited_query": "best hookah lounge Alpharetta GA"
+  },
+  "trend": [
+    { "snapshot_date": "2026-02-23", "share_of_voice": 18.5, "citation_rate": 42.0 },
+    { "snapshot_date": "2026-02-16", "share_of_voice": 15.4, "citation_rate": 38.0 },
+    { "snapshot_date": "2026-02-09", "share_of_voice": 15.4, "citation_rate": 35.0 }
+  ],
+  "week_over_week_delta": 3.1,
+  "state": "ready"
+}
+```
+
+**Response (new tenant, cron not yet run):**
+```json
+{
+  "current": null,
+  "trend": [],
+  "week_over_week_delta": null,
+  "state": "calculating",
+  "message": "Your first AI visibility scan runs Sunday at 2 AM EST. Check back Monday."
+}
+```
+
+**🤖 Agent Rule:** Always handle `state: "calculating"` in the frontend. Never render a score of `0` for first-time users — render the calculating state (Doc 06 Section 8).
+
+### GET `/sov/alerts`
+
+Returns open First Mover Alerts — queries where no local business is currently cited by AI.
+
+**Query Params:** `?status=new|actioned|dismissed&location_id=uuid`
+
+**Response:**
+```json
+{
+  "alerts": [
+    {
+      "id": "uuid",
+      "query_text": "hookah lounge open late Alpharetta",
+      "query_category": "near_me",
+      "detected_at": "2026-02-23T02:15:00Z",
+      "status": "new",
+      "opportunity_copy": "AI isn't recommending anyone for this query. Be the first to own it."
+    }
+  ],
+  "total_new": 2
+}
+```
+
+### POST `/sov/alerts/:id/action`
+
+Mark an alert as actioned (user clicked "Create Content") or dismissed.
+
+**Request Body:**
+```json
+{ "action": "actioned" | "dismissed" }
+```
+
+**Response:** `200 OK`
+```json
+{ "id": "uuid", "status": "actioned", "actioned_at": "2026-02-23T14:00:00Z" }
+```
+
+### POST `/cron/sov` (Internal — Service Role Only)
+
+Triggered by Vercel Cron weekly at Sunday 2 AM EST. Executes the SOV cron job (Doc 04c Section 4). Not callable by authenticated browser clients.
+
+**Auth:** `Authorization: Bearer ${CRON_SECRET}` (env var, not user JWT)
+
+**Response:** `202 Accepted`
+```json
+{
+  "status": "queued",
+  "estimated_queries": 156,
+  "triggered_at": "2026-02-23T07:00:00Z"
+}
+```
+
+---
+
+## 13. Content Drafts (Autopilot Pipeline)
+
+> **Spec:** Doc 19 — Autopilot Engine (planned). Table DDL: `supabase/migrations/20260223000002_content_pipeline.sql`
+> **Auth:** Bearer JWT required.
+> **Plan Gate:** Content draft generation (automated) requires Growth tier. Viewing drafts is available on all plans.
+
+The Content Drafts endpoints expose the human-in-the-loop approval layer for AI-generated content. Drafts are created automatically by the Autopilot Engine (Doc 19) when triggers fire (competitor gap, occasion, First Mover Alert). Humans review and approve before any content is published.
+
+**🤖 Agent Rule:** No content is ever auto-published. `human_approved` must be `true` and `status` must be `'approved'` before the publish endpoint is callable. The publish endpoint validates both fields server-side — do not rely on client-side checks alone.
+
+### GET `/content-drafts`
+
+Returns all content drafts for the org.
+
+**Query Params:** `?status=draft|approved|published|rejected|archived&trigger_type=competitor_gap|occasion|prompt_missing|first_mover|manual&location_id=uuid`
+
+**Response:**
+```json
+{
+  "drafts": [
+    {
+      "id": "uuid",
+      "trigger_type": "competitor_gap",
+      "trigger_id": "uuid",
+      "draft_title": "Why Charcoal N Chill is Alpharetta's Best Late-Night Hookah Experience",
+      "content_type": "faq_page",
+      "aeo_score": 74,
+      "status": "draft",
+      "human_approved": false,
+      "target_prompt": "best hookah lounge Alpharetta late night",
+      "published_url": null,
+      "created_at": "2026-02-23T08:00:00Z"
+    }
+  ],
+  "total": 1,
+  "pending_approval_count": 1
+}
+```
+
+### GET `/content-drafts/:id`
+
+Returns the full draft content for review.
+
+**Response:**
+```json
+{
+  "id": "uuid",
+  "trigger_type": "competitor_gap",
+  "trigger_context": {
+    "competitor_name": "Cloud 9 Lounge",
+    "winning_factor": "15 more review mentions of 'late night' atmosphere",
+    "query_asked": "best hookah lounge Alpharetta late night"
+  },
+  "draft_title": "Why Charcoal N Chill is Alpharetta's Best Late-Night Hookah Experience",
+  "draft_content": "Looking for the best hookah lounge open late in Alpharetta? Charcoal N Chill stays open until 2 AM on weekends...",
+  "content_type": "faq_page",
+  "aeo_score": 74,
+  "aeo_breakdown": {
+    "answer_first": 85,
+    "keyword_density": 70,
+    "structure": 65
+  },
+  "target_prompt": "best hookah lounge Alpharetta late night",
+  "target_keywords": ["late night hookah Alpharetta", "hookah lounge open late"],
+  "status": "draft",
+  "human_approved": false,
+  "created_at": "2026-02-23T08:00:00Z"
+}
+```
+
+### PATCH `/content-drafts/:id`
+
+Edit draft content before approving. Available while `status = 'draft'`.
+
+**Request Body (all fields optional):**
+```json
+{
+  "draft_title": "Updated title",
+  "draft_content": "Updated content...",
+  "target_prompt": "refined target query"
+}
+```
+
+**Response:** `200 OK` — returns updated draft object.
+
+**Error (draft already approved):** `409 Conflict`
+```json
+{
+  "error": "Draft cannot be edited after approval. Reject it first to re-enable editing."
+}
+```
+
+### POST `/content-drafts/:id/approve`
+
+Marks a draft as human-approved and ready to publish.
+
+**Request Body:**
+```json
+{
+  "approver_notes": "Optional — note why this was approved / any edits made"
+}
+```
+
+**Response:** `200 OK`
+```json
+{
+  "id": "uuid",
+  "status": "approved",
+  "human_approved": true,
+  "approved_at": "2026-02-23T14:00:00Z"
+}
+```
+
+### POST `/content-drafts/:id/reject`
+
+Moves draft back to editable state for revision.
+
+**Request Body:**
+```json
+{
+  "rejection_reason": "The opening paragraph is too generic. Needs to mention our Versace lounge specifically."
+}
+```
+
+**Response:** `200 OK`
+```json
+{ "id": "uuid", "status": "draft", "human_approved": false }
+```
+
+### POST `/content-drafts/:id/publish`
+
+Publishes an approved draft. **Requires `human_approved: true` and `status: 'approved'`.**
+
+Currently supported publish targets:
+- `wordpress` — posts to connected WordPress site via REST API (Phase 6)
+- `gbp_post` — posts to Google Business Profile as a GBP update (Phase 6)
+- `download` — returns the content as a downloadable HTML/Markdown file (Phase 5, available first)
+
+**Request Body:**
+```json
+{
+  "publish_target": "download" | "wordpress" | "gbp_post",
+  "wordpress_config": {
+    "post_type": "page" | "post",
+    "slug": "alpharetta-late-night-hookah"
+  }
+}
+```
+
+**Response:** `200 OK`
+```json
+{
+  "id": "uuid",
+  "status": "published",
+  "published_url": "https://charcoalnchill.com/alpharetta-late-night-hookah",
+  "published_at": "2026-02-23T15:00:00Z"
+}
+```
+
+**Error (not approved):** `403 Forbidden`
+```json
+{
+  "error": "Draft must be approved before publishing. Call POST /content-drafts/:id/approve first.",
+  "human_approved": false
+}
+```
+
+---
+
+## 14. Page Audits (Content Grader — Site-Wide)
+
+> **Spec:** Doc 17 — Content Grader Specification (planned). Table DDL: `supabase/migrations/20260223000002_content_pipeline.sql`
+> **Auth:** Bearer JWT required.
+> **Plan Gate:** All plans (Starter: primary page audit only; Growth+: full site audit)
+
+The Page Audit endpoints extend the existing `ai_readability_score` (currently menu-only) to all pages on the tenant's website. An audit fetches the page URL, evaluates AEO readiness, and returns a prioritized fix list.
+
+### GET `/pages/audits`
+
+Returns all page audits for the org, ordered by `last_audited_at` descending.
+
+**Query Params:** `?page_type=homepage|menu|about|faq|events|occasion|other&location_id=uuid`
+
+**Response:**
+```json
+{
+  "audits": [
+    {
+      "id": "uuid",
+      "page_url": "https://charcoalnchill.com",
+      "page_type": "homepage",
+      "overall_score": 58,
+      "aeo_readability_score": 50,
+      "answer_first_score": 45,
+      "schema_completeness_score": 75,
+      "faq_schema_present": false,
+      "last_audited_at": "2026-02-23T10:00:00Z",
+      "top_recommendation": "Add an answer-first paragraph above the fold targeting 'best hookah lounge Alpharetta'"
+    }
+  ],
+  "total": 3,
+  "average_score": 62
+}
+```
+
+### GET `/pages/audits/:id`
+
+Returns full audit detail including all recommendations.
+
+**Response:**
+```json
+{
+  "id": "uuid",
+  "page_url": "https://charcoalnchill.com",
+  "page_type": "homepage",
+  "overall_score": 58,
+  "aeo_readability_score": 50,
+  "answer_first_score": 45,
+  "schema_completeness_score": 75,
+  "faq_schema_present": false,
+  "recommendations": [
+    {
+      "issue": "No answer-first paragraph",
+      "fix": "Add: 'Charcoal N Chill is Alpharetta's premier hookah lounge, open Thursday–Sunday until 2 AM, featuring Indo-American fusion cuisine and live entertainment.'",
+      "impact_points": 20,
+      "priority": "high"
+    },
+    {
+      "issue": "Missing FAQ schema",
+      "fix": "Add FAQPage schema answering: 'Does Charcoal N Chill serve food?', 'Is hookah available?', 'Do you take reservations?'",
+      "impact_points": 15,
+      "priority": "high"
+    },
+    {
+      "issue": "No LocalBusiness schema on homepage",
+      "fix": "Add LocalBusiness JSON-LD with name, address, hours, phone, and priceRange.",
+      "impact_points": 10,
+      "priority": "medium"
+    }
+  ],
+  "last_audited_at": "2026-02-23T10:00:00Z"
+}
+```
+
+### POST `/pages/audits/run`
+
+Triggers an audit for a specific page URL. Fetches the URL, scores it, and upserts the result.
+
+**Request Body:**
+```json
+{
+  "page_url": "https://charcoalnchill.com/about",
+  "page_type": "about",
+  "location_id": "uuid (optional, defaults to primary)"
+}
+```
+
+**Validation:**
+- `page_url`: required, must be a valid HTTPS URL
+- Page must be publicly accessible (no auth walls)
+- For Starter plan: only `page_type: 'homepage'` allowed
+
+**Response:** `202 Accepted`
+```json
+{
+  "audit_id": "uuid",
+  "status": "processing",
+  "page_url": "https://charcoalnchill.com/about",
+  "estimated_completion_seconds": 20
+}
+```
+
+Results appear in `GET /pages/audits` once processing completes (typically < 30 seconds).
+
+**Error (Starter plan restriction):** `403 Forbidden`
+```json
+{
+  "error": "Starter plan supports homepage audits only. Upgrade to audit additional pages.",
+  "upgrade_url": "/billing/upgrade"
+}
+```
+
+**Error (monthly quota exceeded):** `429 Too Many Requests`
+```json
+{
+  "error": "Monthly page audit limit reached",
+  "audits_used": 10,
+  "audits_limit": 10,
+  "plan": "growth",
+  "resets_at": "2026-03-01T00:00:00Z",
+  "upgrade_url": "/billing/upgrade"
+}
+```
+
+> **Quota limits (from Doc 17 Section 3.1):** Starter = 1 audit/month (homepage only), Growth = 10/month, Agency = 50/month across all locations. Quota is tracked against `org_id` + current billing period.
+
+**Error (page not accessible):** `422 Unprocessable Entity`
+```json
+{
+  "error": "Page returned a non-200 status. Ensure the URL is publicly accessible.",
+  "status_code_received": 404
+}
+```
+
+### POST `/cron/page-audits` (Internal — Service Role Only)
+
+Triggered by Vercel Cron monthly. Re-audits all tracked pages for drift detection.
+
+**Auth:** `Authorization: Bearer ${CRON_SECRET}`
+
+**Response:** `202 Accepted`
+```json
+{
+  "status": "queued",
+  "pages_queued": 12,
+  "triggered_at": "2026-02-23T06:00:00Z"
+}
+```
+
+---
+
+## 15. Citation Gap Intelligence
+
+> **Spec:** Doc 18 — Citation Intelligence (planned). Table DDL: `supabase/migrations/20260223000002_content_pipeline.sql`
+> **Auth:** Bearer JWT required. `citation_source_intelligence` table is shared market data — no RLS, read via service role and surfaced through this API.
+> **Plan Gate:** Growth tier and above only.
+
+These endpoints expose the Citation Intelligence layer — which platforms AI models cite when answering local queries for a given category+city. This powers the Citation Gap Finder integrated into the Listings page (Doc 06 Section 11).
+
+### GET `/citations/platform-map`
+
+Returns citation frequency by platform for the org's business category and city. Powers the "Which platforms does AI cite for hookah lounges in Alpharetta?" view.
+
+**Query Params:** `?location_id=uuid&model_provider=perplexity-sonar|openai-gpt4o`
+
+**Response:**
+```json
+{
+  "category": "hookah lounge",
+  "city": "Alpharetta",
+  "state": "GA",
+  "model_provider": "perplexity-sonar",
+  "platforms": [
+    {
+      "platform": "yelp",
+      "citation_frequency": 0.87,
+      "frequency_label": "Cited in 87% of AI answers",
+      "org_listed": true,
+      "org_listing_url": "https://yelp.com/biz/charcoal-n-chill-alpharetta",
+      "gap": false
+    },
+    {
+      "platform": "tripadvisor",
+      "citation_frequency": 0.62,
+      "frequency_label": "Cited in 62% of AI answers",
+      "org_listed": false,
+      "org_listing_url": null,
+      "gap": true,
+      "gap_action": "Claim your TripAdvisor listing to appear in 62% more AI answers"
+    },
+    {
+      "platform": "google",
+      "citation_frequency": 0.94,
+      "frequency_label": "Cited in 94% of AI answers",
+      "org_listed": true,
+      "org_listing_url": "https://maps.google.com/...",
+      "gap": false
+    }
+  ],
+  "measured_at": "2026-02-20T00:00:00Z"
+}
+```
+
+**Notes:**
+- `org_listed` is derived by joining against the `listings` table for this org.
+- `gap: true` when `org_listed: false` AND `citation_frequency > 0.3` (threshold: platform matters enough to be worth claiming).
+- If no citation data exists for this category+city, returns empty `platforms` array with `measured_at: null` and a `data_collection_note` explaining when data will be available.
+
+### GET `/citations/gap-score`
+
+Returns a single gap score (0–100) representing how well-represented the org is on AI-cited platforms vs. the maximum possible.
+
+**Response:**
+```json
+{
+  "gap_score": 68,
+  "platforms_covered": 3,
+  "platforms_that_matter": 5,
+  "top_gap": {
+    "platform": "tripadvisor",
+    "citation_frequency": 0.62,
+    "action": "Claim your TripAdvisor listing"
+  }
+}
+```
+
+**🤖 Agent Rule:** `gap_score` is surfaced in the DataHealth component of the Reality Score (Doc 04 Section 6). It replaces the current placeholder for listing sync % in the DataHealth calculation once Doc 18 is implemented. Do not surface citation gap data on Starter plan — return `403`.
+
+---
+
+## Version History
+
+| Version | Date | Changes |
+|---------|------|---------|
+| 2.4 | 2026-02-23 | Added Section 12 (SOV Engine — 7 endpoints). Added Section 13 (Content Drafts — 6 endpoints). Added Section 14 (Page Audits — 4 endpoints). Added Section 15 (Citation Gap Intelligence — 2 endpoints). Updated `GET /dashboard/stats` response to include SOV fields. Added version history table. |
+| 2.3 | 2026-02-16 | Initial version. Auth, Fear Engine, Magic Engine, Greed Engine, Listings, Visibility Score, Billing, Public Tool, Agency, Location/Settings endpoints. |

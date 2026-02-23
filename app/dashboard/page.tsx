@@ -40,18 +40,20 @@ export type HallucinationRow = {
  * Fetches all data needed for the Reality Score Dashboard in parallel.
  * RLS (org_isolation_select on ai_hallucinations) automatically scopes every
  * query to the logged-in user's org via the JWT — no manual org_id filter needed.
+ * visibility_analytics requires an explicit org_id filter (no RLS policy on that table).
  *
  * Returns:
- *   openAlerts  — correction_status = 'open', sorted critical-first.
- *   fixedCount  — count of correction_status = 'fixed' rows (Quick Stats).
+ *   openAlerts      — correction_status = 'open', sorted critical-first.
+ *   fixedCount      — count of correction_status = 'fixed' rows (Quick Stats).
+ *   visibilityScore — live integer 0–100 from share_of_voice; null if no snapshot yet.
  */
-async function fetchDashboardData() {
+async function fetchDashboardData(orgId: string) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const supabase = (await createClient()) as any;
 
   const monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString();
 
-  const [openResult, fixedResult, interceptResult] = await Promise.all([
+  const [openResult, fixedResult, interceptResult, visibilityResult] = await Promise.all([
     // Open alerts — columns AlertFeed and RealityScoreCard need.
     supabase
       .from('ai_hallucinations')
@@ -73,6 +75,16 @@ async function fetchDashboardData() {
       .from('competitor_intercepts')
       .select('id', { count: 'exact', head: true })
       .gte('created_at', monthStart) as Promise<{ count: number | null; error: unknown }>,
+
+    // Most recent visibility snapshot — share_of_voice is float 0.0–1.0.
+    // Returns null when the SOV cron (Phase 5) has not yet run.
+    supabase
+      .from('visibility_analytics')
+      .select('share_of_voice')
+      .eq('org_id', orgId)
+      .order('snapshot_date', { ascending: false })
+      .limit(1)
+      .maybeSingle() as Promise<{ data: { share_of_voice: number } | null; error: unknown }>,
   ]);
 
   const rawOpen = openResult.data ?? [];
@@ -84,10 +96,19 @@ async function fetchDashboardData() {
     (a, b) => (SEVERITY_ORDER[a.severity] ?? 9) - (SEVERITY_ORDER[b.severity] ?? 9)
   );
 
+  // share_of_voice is 0.0–1.0 float; multiply by 100 for display integer.
+  // Null when the SOV cron (Phase 5) has not yet produced any snapshot.
+  const visRow = visibilityResult.data;
+  const visibilityScore: number | null =
+    visRow?.share_of_voice != null
+      ? Math.round(visRow.share_of_voice * 100)
+      : null;
+
   return {
     openAlerts,
     fixedCount:           fixedResult.count ?? 0,
     interceptsThisMonth:  interceptResult.count ?? 0,
+    visibilityScore,
   };
 }
 
@@ -97,19 +118,27 @@ async function fetchDashboardData() {
 // Formula from Doc 03 §9:
 //   reality_score = (Visibility × 0.4) + (Accuracy × 0.4) + (DataHealth × 0.2)
 //
-// Visibility  : 98   — hardcoded (crawler analytics not yet wired)
+// Visibility  : live from visibility_analytics.share_of_voice (Phase 5 SOV cron);
+//               null until the first snapshot runs — realityScore is also null then.
 // Accuracy    : 100 with 0 open alerts; −15 per open alert, floor 40
 // Data Health : 100  — user cleared the onboarding guard (ground truth exists)
 // ---------------------------------------------------------------------------
 
-export function deriveRealityScore(openAlertCount: number) {
-  const visibility = 98;
+export function deriveRealityScore(
+  openAlertCount: number,
+  visibilityScore: number | null,
+) {
   const accuracy   = openAlertCount === 0 ? 100 : Math.max(40, 100 - openAlertCount * 15);
   const dataHealth = 100;
+
+  if (visibilityScore === null) {
+    return { visibility: null, accuracy, dataHealth, realityScore: null };
+  }
+
   const realityScore = Math.round(
-    visibility * 0.4 + accuracy * 0.4 + dataHealth * 0.2
+    visibilityScore * 0.4 + accuracy * 0.4 + dataHealth * 0.2
   );
-  return { visibility, accuracy, dataHealth, realityScore };
+  return { visibility: visibilityScore, accuracy, dataHealth, realityScore };
 }
 
 // ---------------------------------------------------------------------------
@@ -122,8 +151,8 @@ export default async function DashboardPage() {
     redirect('/login');
   }
 
-  const { openAlerts, fixedCount, interceptsThisMonth } = await fetchDashboardData();
-  const scores = deriveRealityScore(openAlerts.length);
+  const { openAlerts, fixedCount, interceptsThisMonth, visibilityScore } = await fetchDashboardData(ctx.orgId ?? '');
+  const scores = deriveRealityScore(openAlerts.length, visibilityScore);
   const firstName = ctx.fullName?.split(' ')[0] ?? ctx.email.split('@')[0];
   const hasOpenAlerts = openAlerts.length > 0;
 
@@ -178,7 +207,7 @@ export default async function DashboardPage() {
         />
         <QuickStat
           label="AI Visibility Score"
-          value={`${scores.visibility}/100`}
+          value={scores.visibility != null ? `${scores.visibility}/100` : '—'}
           color="text-electric-indigo"
         />
       </div>

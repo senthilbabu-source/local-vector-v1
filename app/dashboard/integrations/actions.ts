@@ -6,6 +6,7 @@ import { getSafeAuthContext } from '@/lib/auth';
 import {
   ToggleIntegrationSchema,
   SyncIntegrationSchema,
+  SavePlatformUrlSchema,
   type ToggleIntegrationInput,
   type SyncIntegrationInput,
 } from '@/lib/schemas/integrations';
@@ -162,6 +163,61 @@ export async function mockSyncIntegration(
 
   if (connectedError) {
     return { success: false, error: connectedError.message };
+  }
+
+  revalidatePath('/dashboard/integrations');
+  return { success: true };
+}
+
+// ---------------------------------------------------------------------------
+// savePlatformUrl
+// ---------------------------------------------------------------------------
+
+/**
+ * Server Action: save (upsert) a listing URL for a specific platform + location.
+ *
+ * Called on-blur from the URL input field in the Listings Big 6 table.
+ * Phase 8b will populate listing_url automatically after OAuth connection;
+ * this action gives users an immediately actionable workflow before OAuth is wired.
+ *
+ * SECURITY: `org_id` is NEVER accepted from the client. It is derived
+ * exclusively from the server-side session via `getSafeAuthContext()`.
+ * RLS `org_isolation_insert` on `location_integrations` provides a second
+ * enforcement layer.
+ */
+export async function savePlatformUrl(
+  platform: string,
+  url: string,
+  locationId: string,
+): Promise<ActionResult> {
+  const ctx = await getSafeAuthContext();
+  if (!ctx?.orgId) {
+    return { success: false, error: 'Unauthorized' };
+  }
+
+  const parsed = SavePlatformUrlSchema.safeParse({ platform, url, locationId });
+  if (!parsed.success) {
+    return {
+      success: false,
+      error: parsed.error.issues[0]?.message ?? 'Invalid input',
+    };
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const supabase = (await createClient()) as any;
+
+  const { error } = await supabase.from('location_integrations').upsert(
+    {
+      org_id: ctx.orgId,                      // ALWAYS server-derived — never from client
+      location_id: parsed.data.locationId,
+      platform: parsed.data.platform,
+      listing_url: parsed.data.url,
+    },
+    { onConflict: 'location_id,platform' },
+  );
+
+  if (error) {
+    return { success: false, error: error.message };
   }
 
   revalidatePath('/dashboard/integrations');

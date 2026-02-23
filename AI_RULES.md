@@ -11,9 +11,12 @@
 * **The Rule:** ALWAYS read `prod_schema.sql` to understand table structures, relationships, and RLS policies.
 * **The Prohibition:** **DO NOT** use SQL code blocks found in Markdown documentation (e.g., `03-DATABASE-SCHEMA.md`) for implementation. Those are for conceptual reference only and may be outdated.
 * **Conflict Resolution:** If a Markdown file conflicts with `prod_schema.sql`, the **SQL file wins**.
+* **Backup Files:** **DO NOT** read, reference, or modify any file in `docs/` whose name ends with `_BACKUP.md` (e.g., `00-INDEX_BAKCUP.md`, `03-DATABASE-SCHEMA_BACKUP.md`). These are stale snapshots that predate the current documentation suite. The canonical version of every doc is the file **without** a backup suffix.
+* **`docs/20260223000001_sov_engine.sql` — DO NOT PROMOTE:** This SQL file in `docs/` was intentionally NOT moved to `supabase/migrations/`. It creates tables named `sov_target_queries` and `sov_first_mover_alerts`, but the live codebase uses `target_queries` and `sov_evaluations` (from migration `20260221000004`). Promoting it would create orphaned parallel tables and break all existing SOV queries. **Phase 5 agents:** use this file as a schema reference only — the Phase 5 migration must create the correct tables (`target_queries` already exists; write to it).
 
 ## Local Development & Seeding
 * Every time a new database table or major feature is created, you MUST update `supabase/seed.sql` to insert realistic mock data for that feature. Local development relies on `npx supabase db reset`, so the seed file must always represent the complete, current state of the app's test data.
+* **UUID reference card:** `supabase/seed.sql` has a UUID reference card at the top of the file listing every hand-crafted UUID used across all INSERT blocks. When adding new seed rows that require new UUIDs, register them in the reference card first — this prevents collisions and makes FK relationships traceable. Use the existing naming convention (`a0…`, `b0…`, `c0…` prefixes per section). Remember: UUIDs must be hex-only (AI_RULES §7).
 
 ## 2. 📐 Data Structures & Types
 * **JSONB Columns:** The database uses `JSONB` for flexible data (e.g., `hours_data`, `amenities`, `extracted_data`).
@@ -48,15 +51,25 @@
     1.  Scheduled (Cron jobs)
     2.  User-initiated (Button click)
     3.  Cached (Served from Supabase DB).
-* **Plan Gating:** Always check feature availability using the helpers in `lib/plan-enforcer.ts` before enabling premium features (Competitor Intercept, Daily Audits, SOV). The five exported functions are `canRunDailyAudit`, `canRunSovEvaluation`, `canRunCompetitorIntercept`, `maxLocations`, and `maxCompetitors`. Never inline plan-tier checks — always call these functions.
+* **Plan Gating:** Always check feature availability using the helpers in `lib/plan-enforcer.ts` before enabling premium features. Never inline plan-tier checks — always call these functions. The nine exported functions are:
+  - `canRunDailyAudit` — daily automated AI audit cron (Growth+)
+  - `canRunSovEvaluation` — Share of Voice on-demand evaluation (Growth+)
+  - `canRunCompetitorIntercept` — Greed Engine competitor analysis (Growth+)
+  - `canRunAutopilot` — Autopilot content draft generation (Growth+)
+  - `canRunPageAudit` — Content Grader / AEO page audit (Growth+)
+  - `canRunOccasionEngine` — Occasion Module seasonal scheduler (Growth+)
+  - `canConnectGBP` — Google Business Profile OAuth connection (Starter+)
+  - `maxLocations` — max locations per org (returns `number`)
+  - `maxCompetitors` — max tracked competitors per org (returns `number`)
 
 ## 6. 📂 Architecture & Stack
-* **Framework:** Next.js 15 (App Router). Use Server Components by default.
+* **Framework:** Next.js 16 (App Router). Use Server Components by default.
 * **Styling:** Tailwind CSS + shadcn/ui.
 * **Routing:**
     * `app.localvector.ai` → Dashboard (Authenticated)
     * `menu.localvector.ai` → Public Magic Menus (Edge Cached, No Auth).
-* **Edge Functions:** Use Supabase Edge Functions (Deno) for all cron jobs and long-running AI operations (e.g., `run-audits`, `refresh-google-data`).
+* **Cron Jobs:** All scheduled operations run as **Next.js Route Handlers** at `app/api/cron/*/route.ts`. Every cron endpoint is a standard `GET` handler secured by the `CRON_SECRET` header check. **Do NOT create files under `supabase/functions/`** — Supabase Edge Functions (Deno) are not used in this project.
+* **Middleware filename:** The Next.js middleware file is **`proxy.ts`** (at the project root), not `middleware.ts`. This rename follows the Next.js 16 convention adopted on 2026-02-23 (see DEVLOG). Do not create a new `middleware.ts` — it will be ignored by the framework.
 
 ## 7. 🔑 PostgreSQL UUID Hex Constraint (Phase 10)
 * UUIDs are strictly hexadecimal: only characters `0-9` and `a-f` are valid.
@@ -299,14 +312,31 @@ Before marking any phase "Completed", verify all of the following are true:
   - `gpt-4o` → Magic Menu OCR extraction (Phase 18) — returns `MenuExtractedData` JSON
   - `gpt-4o-mini` → Competitor Intercept Analysis (Phase 3) — returns intercept analysis JSON
 * **Never** add a second `http.post('https://api.openai.com/...')` handler. MSW only fires the first matching handler.
-  Route new OpenAI model variants inside the **existing** handler using `if (body.model === '...')`:
+  Route new OpenAI model variants inside the **existing** handler using `if (body.model === '...')`.
+
+**When multiple features share the same model (e.g., two Phase 2 features both use `gpt-4o-mini`):**
+
+* Primary discriminator (`body.model`) is no longer sufficient on its own.
+* Use a **secondary discriminator**: each feature's first system message MUST begin with a unique `[FEATURE_TAG]` marker.
+* When adding a new `gpt-4o-mini` caller, you MUST:
+  1. Prefix the new feature's system message with a unique tag (e.g., `[CONTENT_GRADER]`).
+  2. Retrofit the existing intercept service (`lib/services/competitor-intercept.service.ts`) to prefix its system message with `[INTERCEPT_ANALYSIS]`.
+  3. Update the MSW handler to nest the `gpt-4o-mini` branch on the system message tag:
   ```typescript
   const openAiHandler = http.post('https://api.openai.com/v1/chat/completions', async ({ request }) => {
-    const body = await request.json() as { model?: string };
-    if (body.model === 'gpt-4o-mini') { /* intercept analysis */ }
+    const body = await request.json() as { model?: string; messages?: Array<{ role: string; content: string }> };
+    if (body.model === 'gpt-4o-mini') {
+      const systemMsg = body.messages?.[0]?.content ?? '';
+      if (systemMsg.startsWith('[CONTENT_GRADER]')) { /* content grader response */ }
+      /* default gpt-4o-mini branch: intercept analysis */
+      return HttpResponse.json({ /* MOCK_INTERCEPT_ANALYSIS */ });
+    }
     /* default: gpt-4o menu OCR */
   });
   ```
+* **Current system message inventory** (update this list when adding new callers):
+  - `gpt-4o-mini` / Intercept: `'You are an AI search analyst for local businesses.'` — no tag yet; add `[INTERCEPT_ANALYSIS]` tag when Content Grader is built.
+  - `gpt-4o` / Magic Menu: no system message tag needed (only one `gpt-4o` caller).
 
 ### 19.4 — Fixture canonical data
 * All Competitor Intercept unit and integration tests MUST use `MOCK_COMPETITOR` and `MOCK_INTERCEPT`
@@ -314,6 +344,26 @@ Before marking any phase "Completed", verify all of the following are true:
 * The stable UUIDs in these fixtures match `supabase/seed.sql` Section 13:
   - `a1eebc99-9c0b-4ef8-bb6d-6bb9bd380a11` — competitor record (Cloud 9 Lounge)
   - `a2eebc99-9c0b-4ef8-bb6d-6bb9bd380a11` — intercept result
+
+## 20. 🚫 Never Hardcode Placeholder Metric Values (Sprint 24A)
+
+When a live data source for a metric hasn't been seeded yet (e.g., the SOV cron hasn't run, a scan hasn't completed), the correct response is **null / pending state** — never a hardcoded number that looks like real data.
+
+* **Rule:** Any score, percentage, or count derived from a DB query MUST propagate `null` when the source row is absent. UI components MUST display a neutral "pending" indicator (e.g., `—`, "Pending") and a human-readable explanation, not a fabricated value.
+* **Anti-pattern:** Using a hardcoded constant like `const visibility = 98` as a placeholder while waiting for real data to exist. This misleads paying users and creates silent debt that is hard to trace.
+* **Correct pattern:**
+  ```typescript
+  // ✅ Query the source; propagate null when absent
+  const visibilityScore: number | null =
+    visRow?.share_of_voice != null
+      ? Math.round(visRow.share_of_voice * 100)
+      : null;                    // null → show "—" / "Pending" in UI
+
+  // ❌ Hardcoded placeholder — looks like real data, isn't
+  const visibilityScore = 98;
+  ```
+* **Scope:** Applies to all computed metrics: Reality Score, Visibility component, Accuracy component, any KPI card, any progress bar.
+* **DB float → display integer:** Columns stored as `FLOAT` (e.g., `share_of_voice 0.0–1.0`) MUST be multiplied by 100 before display. Never display the raw float value.
 
 ---
 > **End of System Instructions**

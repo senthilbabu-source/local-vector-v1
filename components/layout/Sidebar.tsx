@@ -63,11 +63,11 @@ const NAV_ITEMS = [
     active: true,
   },
   {
-    href: '#',
+    href: '/dashboard/settings',
     label: 'Settings',
     icon: Settings,
     exact: false,
-    active: false,
+    active: true,
   },
   {
     href: '/dashboard/billing',
@@ -87,13 +87,23 @@ interface SidebarProps {
   onClose: () => void;
   displayName: string;
   orgName: string;
+  plan: string | null;
 }
 
 // ---------------------------------------------------------------------------
 // Sidebar
 // ---------------------------------------------------------------------------
 
-export default function Sidebar({ isOpen, onClose, displayName, orgName }: SidebarProps) {
+function planLabel(plan: string | null): string {
+  const labels: Record<string, string> = {
+    starter: 'Starter Plan',
+    growth: 'Growth Plan',
+    agency: 'Agency Plan',
+  };
+  return plan ? (labels[plan] ?? `${plan} Plan`) : 'Free Plan';
+}
+
+export default function Sidebar({ isOpen, onClose, displayName, orgName, plan }: SidebarProps) {
   const pathname = usePathname();
 
   function isActive(href: string, exact: boolean): boolean {
@@ -181,20 +191,12 @@ export default function Sidebar({ isOpen, onClose, displayName, orgName }: Sideb
 
         {/* ── Footer: AI Visibility Score + logout ───────────────── */}
         <div className="border-t border-white/5 px-3 py-4 space-y-3">
-          {/* AI Visibility Score */}
+          {/* Plan tier badge */}
           <div className="rounded-xl bg-midnight-slate px-4 py-3">
-            <div className="flex items-baseline justify-between">
-              <p className="text-xs font-medium text-slate-400">AI Visibility Score</p>
-              <span className="font-mono text-sm font-bold text-truth-emerald">98/100</span>
-            </div>
-            {/* Progress bar */}
-            <div className="mt-2 h-1 w-full rounded-full bg-white/5">
-              <div
-                className="h-1 rounded-full bg-truth-emerald"
-                style={{ width: '98%' }}
-                aria-hidden
-              />
-            </div>
+            <p className="text-xs font-medium text-slate-400 mb-1.5">Current Plan</p>
+            <span className="inline-flex items-center rounded-md bg-electric-indigo/15 px-2 py-0.5 text-xs font-semibold text-electric-indigo">
+              {planLabel(plan)}
+            </span>
           </div>
 
           {/* User info */}

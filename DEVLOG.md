@@ -2,6 +2,226 @@
 
 ---
 
+## 2026-02-23 — Sprint 27A: Listings Big 6 Table + Manual URL Input
+
+**Scope:** Expanded the Listings page from 3 to 6 NAP platforms (Big 6). Users can now enter listing URLs for each platform on-blur — immediately actionable without waiting for Phase 8b OAuth. Deep Night theme applied. NAP Coverage badge per location card.
+
+| File | Action |
+|------|--------|
+| `supabase/migrations/20260224000003_listing_url_column.sql` | **CREATED** — `ALTER TABLE location_integrations ADD COLUMN IF NOT EXISTS listing_url TEXT`. |
+| `lib/schemas/integrations.ts` | **EDITED** — Added `BIG_6_PLATFORMS` const (`google`, `yelp`, `apple`, `facebook`, `tripadvisor`, `bing`); `Big6Platform` type; `SavePlatformUrlSchema` (Zod URL + max 2048 + uuid). Existing `INTEGRATION_PLATFORMS` untouched (backward compat). |
+| `app/dashboard/integrations/actions.ts` | **EDITED** — Added `savePlatformUrl(platform, url, locationId): Promise<ActionResult>`. Auth gate → Zod → upsert `location_integrations` with `listing_url` → `revalidatePath`. |
+| `app/dashboard/integrations/page.tsx` | **REWRITTEN** — Big 6 platforms (all shown regardless of DB rows). Deep Night theme (`bg-surface-dark`, `bg-midnight-slate`, `ring-white/5`). NAP Coverage badge per location: `connected/6 Platforms — X% Coverage` with emerald/amber/neutral colour coding. DB query now selects `listing_url`. |
+| `app/dashboard/integrations/_components/PlatformRow.tsx` | **REWRITTEN** — Platform config expanded to all Big 6 (yelp, facebook, tripadvisor added). `listingUrl: string | null` prop. Editable URL input (controlled, saved on blur via `savePlatformUrl`). "Saved" confirmation chip (3 s auto-dismiss). Deep Night theme. Toggle/sync preserved for `google`, `apple`, `bing`. |
+| `src/__tests__/unit/listings-actions.test.ts` | **CREATED** — 6 tests: auth gate, Zod rejects non-URL, Zod accepts valid URL, DB upsert success, DB error propagation, `revalidatePath` called on success. |
+| `supabase/seed.sql` | **EDITED** — Added `listing_url = 'https://g.page/charcoal-n-chill-alpharetta'` to the existing Google integration INSERT. |
+
+**Tests added:**
+- `src/__tests__/unit/listings-actions.test.ts` — **6 Vitest tests.** Validates `savePlatformUrl()`: auth gate, Zod URL rejects non-URL, Zod URL accepts valid URL, DB upsert success (verifies `org_id`/`platform`/`listing_url` args), DB error propagation, `revalidatePath` called on success.
+
+**Tests:** 289 → 295 passing (7 skipped; 1 pre-existing DB integration failure unaffected).
+
+**Run:**
+```bash
+npx vitest run src/__tests__/unit/listings-actions.test.ts   # 6 passing
+npx vitest run                                                # 295 passing, 7 skipped
+```
+
+---
+
+## 2026-02-23 — Sprint 26A: Sentry Error Monitoring Integration
+
+**Scope:** Wired Sentry into the Next.js App Router for production error visibility. Silent no-op when DSN is absent (local dev / CI).
+
+| File | Action |
+|------|--------|
+| `sentry.client.config.ts` | **CREATED** — Browser Sentry init. 10% tracesSampleRate, 10%/100% replay sampling. `enabled: !!NEXT_PUBLIC_SENTRY_DSN` guard prevents noise in local dev. |
+| `sentry.server.config.ts` | **CREATED** — Node.js Sentry init. 10% tracesSampleRate. Same DSN guard. |
+| `sentry.edge.config.ts` | **CREATED** — Edge runtime Sentry init for middleware / Edge routes. |
+| `next.config.ts` | **EDITED** — Wrapped with `withSentryConfig()`. `silent: true`, org/project from env, `authToken` from env (no build failure if absent). |
+| `app/global-error.tsx` | **CREATED** — Next.js App Router global error boundary. `Sentry.captureException(error)` in `useEffect`. Deep Night fallback UI with "Try again" button. |
+| `.env.local.example` | **EDITED** — Added Sentry env vars: `NEXT_PUBLIC_SENTRY_DSN`, `SENTRY_AUTH_TOKEN`, `SENTRY_ORG`, `SENTRY_PROJECT`. |
+
+**Tests:** 289 passing (no regressions).
+
+---
+
+## 2026-02-23 — Sprint 25C: Marketing AEO Infrastructure
+
+**Scope:** Added AI-discovery endpoints and JSON-LD schema to the landing page for maximum AI crawler discoverability.
+
+| File | Action |
+|------|--------|
+| `app/llms.txt/route.ts` | **CREATED** — Returns Doc 08 §4 `llms.txt` content as `text/plain; charset=utf-8` with 24h cache. Describes LocalVector's value props, pricing tiers, and contact. |
+| `app/ai-config.json/route.ts` | **CREATED** — Returns Doc 08 §10 GEO Standard JSON as `application/json` with 24h cache. Entity = LocalVector.ai platform; includes data_sources and policies. |
+| `app/m/[slug]/page.tsx` | **EDITED** — Added `export` to `safeJsonLd()` helper (was private). |
+| `app/page.tsx` | **EDITED** — Imports `safeJsonLd` and injects `SoftwareApplication` JSON-LD schema (Doc 08 §9) via `<script type="application/ld+json">`. |
+| `tests/e2e/01-viral-wedge.spec.ts` | **EXTENDED** — 2 new AEO assertions: `GET /llms.txt` returns 200 + `text/plain`; `GET /ai-config.json` returns 200 + `application/json` with `entity` key. Net: 5 tests (3 + 2). |
+
+**Tests added:**
+- `tests/e2e/01-viral-wedge.spec.ts` — **+2 Playwright tests** (3 → 5 total). Validates AEO routes are reachable and return correct content-type + payload shape.
+
+**Tests:** 289 passing (E2E tests verified at runtime against dev server).
+
+**Run:**
+```bash
+npx playwright test tests/e2e/01-viral-wedge.spec.ts   # 5 passing
+```
+
+---
+
+## 2026-02-23 — Sprint 25B: Privacy Policy + Terms of Service
+
+**Scope:** Created legal pages and added a footer to the landing page.
+
+| File | Action |
+|------|--------|
+| `app/privacy/page.tsx` | **CREATED** — Static Server Component. 10 sections covering all required SaaS disclosures. Third parties named explicitly: Supabase, Stripe, OpenAI, Perplexity, Resend. Legal review note at top. |
+| `app/terms/page.tsx` | **CREATED** — Static Server Component. 12 sections including acceptable use, payment/refunds (no refunds on partial months), IP ownership, Delaware governing law. Legal review note at top. |
+| `app/page.tsx` | **EDITED** — Added `<footer>` with "Privacy Policy · Terms of Service · hello@localvector.ai" links. |
+
+**Tests:** 289 passing (no regressions).
+
+---
+
+## 2026-02-23 — Sprint 25A: Pricing Page + Billing Discrepancy Fix
+
+**Scope:** Created the public `/pricing` marketing page and corrected the billing page tiers to match the `plan_tier` DB enum (`starter|growth|agency`) and Doc 08 §6 pricing ($29/$59/Custom).
+
+| File | Action |
+|------|--------|
+| `app/pricing/page.tsx` | **CREATED** — Public Server Component. Three tiers: Starter ($29), Growth ($59, highlighted + "Most Popular"), Agency (Custom). CTA buttons link to `/signup` or `mailto:hello@localvector.ai`. Footer: "No contracts. Cancel anytime." |
+| `app/dashboard/billing/page.tsx` | **REWRITTEN** — Tiers renamed from Free Scanner/Pro AI Defense/Enterprise API → Starter/Growth/Agency. Prices: $0→$29, $99→$59, Custom stays. Plan type updated `'pro' \| 'enterprise'` → `'starter' \| 'growth'`. Agency uses `<a href="mailto:">` instead of disabled button. |
+| `app/dashboard/billing/actions.ts` | **EDITED** — `createCheckoutSession(plan)` type updated `'pro' \| 'enterprise'` → `'starter' \| 'growth'`. Env vars updated: `STRIPE_PRICE_ID_PRO` → `STRIPE_PRICE_ID_STARTER`, `STRIPE_PRICE_ID_ENTERPRISE` → `STRIPE_PRICE_ID_GROWTH`. Demo mode behavior preserved (zero-regression contract). |
+| `app/page.tsx` | **EDITED** — Added "Pricing" link to top navigation next to "Sign In". |
+| `tests/e2e/billing.spec.ts` | **UPDATED** — Tier name assertions updated: "Free Scanner" → "Starter", "Pro AI Defense" → "Growth", "Enterprise API" → "Agency". "Upgrade" button click still works (Growth tier CTA is "Upgrade"). |
+
+**Tests added:**
+- `tests/e2e/billing.spec.ts` — **0 new tests; existing assertions updated** to match renamed plan tiers (starter/growth/agency).
+
+**Tests:** 289 passing (7 skipped; no regressions).
+
+**Run:**
+```bash
+npx playwright test tests/e2e/billing.spec.ts   # all passing
+```
+
+---
+
+## 2026-02-23 — Sprint 24B: Settings Page (Account, Security, Organization)
+
+**Scope:** Built the full Settings self-service page with 3 form sections and 2 Server Actions.
+
+| File | Action |
+|------|--------|
+| `app/dashboard/settings/page.tsx` | **CREATED** — Server Component; calls `getSafeAuthContext()`, redirects to `/login` if not auth'd, pre-fills `SettingsForm` with `displayName`, `email`, `orgName`, `plan`. |
+| `app/dashboard/settings/_components/SettingsForm.tsx` | **CREATED** — `'use client'` 3-section form (Account, Security, Organization). `useTransition` for non-blocking Server Action calls. Password form resets on success via `useRef`. Inline green/red status messages. |
+| `app/dashboard/settings/actions.ts` | **CREATED** — Two Server Actions: `updateDisplayName` (Zod min 2 / max 80, updates `public.users.full_name`, `revalidatePath('/dashboard')`); `changePassword` (Zod min 8 + confirm match, calls `supabase.auth.updateUser()`). Both auth-gated via `getSafeAuthContext()`. |
+| `components/layout/Sidebar.tsx` | Settings nav item already enabled in Sprint 24A (`href: '/dashboard/settings'`, `active: true`). |
+| `src/__tests__/unit/settings-actions.test.ts` | **CREATED** — 10 tests: `updateDisplayName` (auth gate, min-length, max-length, DB success + revalidatePath, DB error); `changePassword` (auth gate, min 8, confirm mismatch, auth error, success + no revalidatePath). |
+
+**Tests:** 279 → 289 passing (7 skipped; 1 pre-existing DB integration failure unaffected).
+
+**Run:**
+```bash
+npx vitest run src/__tests__/unit/settings-actions.test.ts   # 10 passing
+npx vitest run                                                # 289 passing, 7 skipped
+```
+
+---
+
+## 2026-02-23 — Sprint 24A: Reality Score — Remove Hardcoded Visibility
+
+**Scope:** Replaced the hardcoded `visibility=98` with a live query from `visibility_analytics.share_of_voice`. When no SOV snapshot exists (Phase 5 cron has not yet run), the Reality Score shows `—` with a "pending" state — never fabricating a metric.
+
+| File | Action |
+|------|--------|
+| `app/dashboard/page.tsx` | **EDITED** — `fetchDashboardData()` now accepts `orgId: string` and runs a 4th parallel query on `visibility_analytics`. `deriveRealityScore(openAlertCount, visibilityScore: number \| null)` updated: returns `realityScore: null` and `visibility: null` when no snapshot exists. `DashboardPage` passes `ctx.orgId ?? ''`; `QuickStat` "AI Visibility Score" renders `—` when null. |
+| `app/dashboard/_components/RealityScoreCard.tsx` | **EDITED** — Props updated to `realityScore: number \| null`, `visibility: number \| null`. `ScoreGauge` shows `—` gauge when null. `ComponentBar` shows "Pending" with neutral-gray bar when null. Subline shows "First AI visibility scan runs Sunday at 2 AM. Check back Monday." when realityScore is null. |
+| `components/layout/Sidebar.tsx` | **EDITED** — Removed hardcoded `98/100` footer score widget. Added `plan: string | null` prop. Added `planLabel()` helper. Footer now shows plan tier badge (e.g., "Growth Plan"). Settings nav item enabled: `active: true`, `href: '/dashboard/settings'`. |
+| `components/layout/DashboardShell.tsx` | **EDITED** — Added `plan={plan}` to `<Sidebar>` render (was already in `<TopBar>`). |
+| `src/__tests__/unit/reality-score.test.ts` | **REWRITTEN** — 8 tests updated (canonical `visibilityScore=60`, recalculated expected values). 2 new tests: `realityScore is null when visibilityScore is null`; `accuracy and dataHealth still compute correctly when visibilityScore is null`. Net: 10 tests. |
+| `src/__tests__/unit/components/layout/DashboardShell.test.tsx` | **UPDATED** — All `<Sidebar>` renders updated to pass `plan` prop. Replaced "displays AI Visibility Score badge (98/100)" with two new tests: "displays plan tier badge" and "displays Free Plan badge when plan is null". Net: +1 test (11 → 12 in Sidebar describe block). |
+
+**Tests:** 277 → 279 passing (7 skipped; 1 pre-existing DB integration failure unaffected).
+
+**Run:**
+```bash
+npx vitest run src/__tests__/unit/reality-score.test.ts   # 10 passing
+npx vitest run                                             # 279 passing, 7 skipped
+```
+
+---
+
+## 2026-02-23 — Group F: Plan-Enforcer Test Expansion
+
+**Scope:** Added 16 new unit tests to `plan-enforcer.test.ts` covering the 4 functions added in Group B. No code changes — tests only.
+
+| File | Action |
+|------|--------|
+| `src/__tests__/unit/plan-enforcer.test.ts` | **EXTENDED** — 16 → 32 tests. Added 4 new describe blocks: `canRunAutopilot` (4 tests), `canRunPageAudit` (4 tests), `canRunOccasionEngine` (4 tests), `canConnectGBP` (4 tests — Starter+ differs from Growth+ pattern). Import updated to include all 9 exported functions. Header comment: "Tests all 5 exported gating functions" → "Tests all 9 exported gating functions". |
+| `docs/14_TESTING_STRATEGY.md` | **UPDATED** — Suite inventory row for `plan-enforcer.test.ts`: 16 → 32 tests, all 9 describe blocks listed. Total calculation updated: 260 → 276 (+ rls-isolation = 283 with DB running). Footer updated. |
+
+**Tests:** 267 → 276 passing (+ 7 rls-isolation = 283 with DB running). All 17 active suites pass.
+
+**Run:**
+```bash
+npx vitest run src/__tests__/unit/plan-enforcer.test.ts   # 32 passing
+npx vitest run                                             # 276 passing, 7 skipped (283 with supabase running)
+```
+
+---
+
+## 2026-02-23 — Groups C/D/E: Documentation Sync (Doc 00, 02, 09)
+
+**Scope:** Corrected all stale architecture and version references across three core docs. No code changes.
+
+| File | Changes |
+|------|---------|
+| `docs/00-INDEX.md` (v2.7) | Next.js 15→16 in Tech Stack table. "Supabase Edge Functions" → "Next.js Route Handlers" in Tech Stack + architecture diagram. "Build Edge Function" → "Build Route Handler" in two "For Coding Agents" bullets. Added Doc 13 (V1 Core Loop) and Doc 14 (Testing Strategy Live) to document index table. |
+| `docs/02-MULTI-TENANT-ARCHITECTURE.md` (v2.4) | Stack header: Next.js 15→16, removed "Edge Functions" from Supabase stack items. Architecture diagram `(Edge Functions)` → `(Route Handlers)`. Code comment `// middleware.ts` → `// proxy.ts`. Deployment architecture block: Next.js 15→16, "Vercel Cron → Supabase Edge Functions" → "Vercel Cron → Next.js Route Handlers", removed Supabase "Edge Functions (Deno)" line. Cost table note updated. Checklist item: "Fear Engine Edge Function" → "cron Route Handler". |
+| `docs/09-BUILD-PLAN.md` | Phase 2 cron label fixed. Phase 3.1 deferred checkboxes ticked `[x]` (Places autocomplete + competitor cron). Test count updated: `243 passing` → `260` (Phase 3.1) → `267` (Group A). Phase 5 database migration block: NOTE added that `sov_engine.sql` was NOT promoted (table name conflict with live code; Phase 5 build task documented). SOV cron path: `supabase/functions/run-sov-cron/index.ts` → `app/api/cron/sov/route.ts`. Content pipeline migration item ticked `[x]` with new path `20260224000001_content_pipeline.sql`. Phase 7 citation cron: `supabase/functions/run-citation-cron/index.ts` → `app/api/cron/citation/route.ts`. Phase 8 GBP migration items ticked `[x]` with new path `20260224000002_gbp_integration.sql`. |
+
+---
+
+## 2026-02-23 — Group B: AI_RULES.md Alignment
+
+**Scope:** Fixed two blocker-level inaccuracies in §6 and four gaps in §5 + §19.3. No code changes except `lib/plan-enforcer.ts` (4 new gate functions for Phase 2 features).
+
+| File | Action |
+|------|--------|
+| `AI_RULES.md §6` | **FIXED** — "Next.js 15" → "Next.js 16". "Supabase Edge Functions (Deno) for all cron jobs" → "Next.js Route Handlers (`app/api/cron/*/route.ts`)". Added explicit "Do NOT create files under `supabase/functions/`" prohibition. |
+| `AI_RULES.md §5` | **EXTENDED** — Plan-enforcer function list: 5 → 9. Added `canRunAutopilot`, `canRunPageAudit`, `canRunOccasionEngine`, `canConnectGBP` with tier gates. |
+| `AI_RULES.md §19.3` | **EXTENDED** — Secondary MSW discriminator rule added: when two features share `gpt-4o-mini`, each must prefix its system message with a unique `[TAG]`. Documents the retrofit requirement and nested handler pattern. Current system message inventory added. |
+| `lib/plan-enforcer.ts` | **EXTENDED** — 4 new exported functions: `canRunAutopilot` (Growth+), `canRunPageAudit` (Growth+), `canRunOccasionEngine` (Growth+), `canConnectGBP` (Starter+). |
+
+**Tests:** 260 passing + 7 skipped (RLS integration test skipped — Supabase auth service not running after aborted container restart; not a code regression). Zero regressions from Group B changes.
+
+---
+
+## 2026-02-23 — Group A: Schema Infrastructure Remediation
+
+**Scope:** Promoted Phase 2 SQL migrations from `/docs/` to `/supabase/migrations/`, regenerated `prod_schema.sql`, and extended `seed.sql` with Phase 2 table data. Resolved a table-name conflict that would have blocked future migrations.
+
+| File | Action |
+|------|--------|
+| `supabase/migrations/20260224000001_content_pipeline.sql` | **CREATED** — Promotes `docs/20260223000002_content_pipeline.sql`. Creates `content_drafts`, `page_audits`, `local_occasions`, `citation_source_intelligence`. Fixed stale header dependency note (no hard FK to `sov_target_queries` — `trigger_id` is `UUID NULL`). |
+| `supabase/migrations/20260224000002_gbp_integration.sql` | **CREATED** — Promotes `docs/20260223000003_gbp_integration.sql`. Adds nullable `google_location_name` + `gbp_integration_id` columns to `locations`. Creates `google_oauth_tokens` (deny-by-default RLS) and `pending_gbp_imports` (10-min expiry). Fixed duplicate REVOKE statements. |
+| `supabase/prod_schema.sql` | **REGENERATED** — Full `supabase db dump` after applying all migrations. 17 tables → 27 tables. Now includes all migration-added tables. |
+| `supabase/seed.sql` | **EXTENDED** — Section 14 added: 3 `local_occasions` rows (Valentine's Day, New Year's Eve, Birthday), 1 `content_drafts` row, 1 `page_audits` row, 4 `citation_source_intelligence` rows. UUID reference card updated with 7 new IDs. |
+
+**Deferred (A1):** `docs/20260223000001_sov_engine.sql` was NOT promoted. It creates `sov_target_queries` + `sov_first_mover_alerts`, which are the Phase 5 target table names. All live SOV code uses `target_queries` + `sov_evaluations` (from migration 20260221000004). Promoting this would create orphaned parallel tables. Remains in `/docs/` as the Phase 5 refactor spec.
+
+**Tests:** 260 → 267 passing (7 previously-skipped RLS integration tests now run against the properly-initialized DB). 18 suites, 0 failures.
+
+**Run:**
+```bash
+npx supabase db reset    # applies all 9 migrations + seed cleanly
+npx vitest run           # 267 passing, 0 skipped, 0 failures
+```
+
+---
+
 ## 2026-02-23 — Phase 3.1: Deferred Items — Google Places Autocomplete + Cron Competitor Intercepts
 
 **Scope:** Two items deferred at Phase 3 completion are now fully shipped.

@@ -211,6 +211,7 @@ describe('Sidebar — active route highlighting', () => {
         onClose={vi.fn()}
         displayName="Jane Doe"
         orgName="Charcoal N Chill"
+        plan={null}
       />,
     );
     const dashboardLink = container.querySelector('a[href="/dashboard"]');
@@ -227,6 +228,7 @@ describe('Sidebar — active route highlighting', () => {
         onClose={vi.fn()}
         displayName="Jane"
         orgName="Org"
+        plan={null}
       />,
     );
     const dashboardLink = container.querySelector('a[href="/dashboard"]');
@@ -242,6 +244,7 @@ describe('Sidebar — active route highlighting', () => {
         onClose={vi.fn()}
         displayName="Jane"
         orgName="Org"
+        plan={null}
       />,
     );
     const menuLink = container.querySelector('a[href="/dashboard/magic-menus"]');
@@ -256,6 +259,7 @@ describe('Sidebar — active route highlighting', () => {
         onClose={vi.fn()}
         displayName="Jane"
         orgName="Org"
+        plan={null}
       />,
     );
     const menuLink = container.querySelector('a[href="/dashboard/magic-menus"]');
@@ -270,12 +274,13 @@ describe('Sidebar — active route highlighting', () => {
         onClose={vi.fn()}
         displayName="Jane Doe"
         orgName="My Org"
+        plan={null}
       />,
     );
     expect(screen.getByText('Jane Doe')).toBeDefined();
   });
 
-  it('displays AI Visibility Score badge (98/100)', () => {
+  it('displays plan tier badge in sidebar footer', () => {
     mockUsePathname.mockReturnValue('/dashboard');
     render(
       <Sidebar
@@ -283,9 +288,24 @@ describe('Sidebar — active route highlighting', () => {
         onClose={vi.fn()}
         displayName="Jane"
         orgName="Org"
+        plan="growth"
       />,
     );
-    expect(screen.getByText('98/100')).toBeDefined();
+    expect(screen.getByText('Growth Plan')).toBeDefined();
+  });
+
+  it('displays Free Plan badge when plan is null', () => {
+    mockUsePathname.mockReturnValue('/dashboard');
+    render(
+      <Sidebar
+        isOpen={false}
+        onClose={vi.fn()}
+        displayName="Jane"
+        orgName="Org"
+        plan={null}
+      />,
+    );
+    expect(screen.getByText('Free Plan')).toBeDefined();
   });
 
   it('renders with translate-x-0 class when isOpen=true', () => {
@@ -296,6 +316,7 @@ describe('Sidebar — active route highlighting', () => {
         onClose={vi.fn()}
         displayName="Jane"
         orgName="Org"
+        plan={null}
       />,
     );
     const aside = container.querySelector('aside');
@@ -311,6 +332,7 @@ describe('Sidebar — active route highlighting', () => {
         onClose={vi.fn()}
         displayName="Jane"
         orgName="Org"
+        plan={null}
       />,
     );
     const aside = container.querySelector('aside');

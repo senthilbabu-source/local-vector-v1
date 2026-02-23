@@ -17,6 +17,13 @@ CREATE EXTENSION IF NOT EXISTS pgcrypto;
 --   category BBQ   : d0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11
 --   category Sides : d1eebc99-9c0b-4ef8-bb6d-6bb9bd380a11
 --   item e0–e3     : e[0-3]eebc99-9c0b-4ef8-bb6d-6bb9bd380a11
+--   competitor id  : a1eebc99-9c0b-4ef8-bb6d-6bb9bd380a11
+--   intercept id   : a2eebc99-9c0b-4ef8-bb6d-6bb9bd380a11
+--   content_draft  : b1eebc99-9c0b-4ef8-bb6d-6bb9bd380a11
+--   page_audit     : b2eebc99-9c0b-4ef8-bb6d-6bb9bd380a11
+--   occasion Val   : c1eebc99-9c0b-4ef8-bb6d-6bb9bd380a11
+--   occasion NYE   : c2eebc99-9c0b-4ef8-bb6d-6bb9bd380a11
+--   occasion Bday  : c3eebc99-9c0b-4ef8-bb6d-6bb9bd380a11
 --
 -- Phase 19 Test User (Playwright Onboarding Guard test):
 --   auth user id   : 00000000-0000-0000-0000-000000000010
@@ -219,13 +226,14 @@ ON CONFLICT (id) DO NOTHING;
 -- last_sync_at so the Integrations dashboard shows a live-looking connection.
 -- location_id is retrieved via subquery (same pattern as magic_menus above).
 
-INSERT INTO public.location_integrations (org_id, location_id, platform, status, last_sync_at)
+INSERT INTO public.location_integrations (org_id, location_id, platform, status, last_sync_at, listing_url)
 SELECT
   'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
   l.id,
   'google',
   'connected',
-  NOW() - INTERVAL '2 hours'
+  NOW() - INTERVAL '2 hours',
+  'https://g.page/charcoal-n-chill-alpharetta'
 FROM public.locations l
 WHERE l.org_id = 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11'
   AND l.slug   = 'alpharetta'
@@ -663,3 +671,143 @@ WHERE l.org_id = 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11'
   AND l.slug   = 'alpharetta'
 LIMIT 1
 ON CONFLICT (id) DO NOTHING;
+
+-- ── 14. PHASE 2 TABLE SEED DATA ───────────────────────────────────────────────
+-- Seeds: local_occasions (reference), content_drafts, page_audits,
+--        citation_source_intelligence.
+-- Skipped: google_oauth_tokens (service-role / encrypted secrets — never in dev seed),
+--          pending_gbp_imports (ephemeral; expires 10 min — no dev value).
+--
+-- Fixed UUIDs (match reference card above):
+--   content_draft  : b1eebc99-9c0b-4ef8-bb6d-6bb9bd380a11
+--   page_audit     : b2eebc99-9c0b-4ef8-bb6d-6bb9bd380a11
+--   occasion Val   : c1eebc99-9c0b-4ef8-bb6d-6bb9bd380a11
+--   occasion NYE   : c2eebc99-9c0b-4ef8-bb6d-6bb9bd380a11
+--   occasion Bday  : c3eebc99-9c0b-4ef8-bb6d-6bb9bd380a11
+
+-- ── 14a. local_occasions (shared reference table — no org_id) ─────────────────
+INSERT INTO public.local_occasions (
+  id, name, occasion_type, trigger_days_before, annual_date,
+  peak_query_patterns, relevant_categories, is_active
+) VALUES
+(
+  'c1eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+  'Valentine''s Day',
+  'holiday',
+  28,
+  '02-14',
+  '[{"query":"best date night restaurant near me","category":"occasion"},{"query":"romantic restaurants for valentines day","category":"occasion"}]'::jsonb,
+  '["restaurant","hookah lounge","bar","event venue","lounge"]'::jsonb,
+  TRUE
+),
+(
+  'c2eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+  'New Year''s Eve',
+  'holiday',
+  21,
+  '12-31',
+  '[{"query":"new years eve party near me","category":"occasion"},{"query":"best nye dinner reservation","category":"occasion"}]'::jsonb,
+  '["restaurant","hookah lounge","bar","nightclub","event venue","lounge"]'::jsonb,
+  TRUE
+),
+(
+  'c3eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+  'Birthday Celebration',
+  'recurring',
+  14,
+  NULL,
+  '[{"query":"best restaurant for birthday dinner","category":"occasion"},{"query":"birthday party venues near me","category":"occasion"}]'::jsonb,
+  '["restaurant","hookah lounge","bar","event venue","lounge"]'::jsonb,
+  TRUE
+)
+ON CONFLICT (name) DO NOTHING;
+
+-- ── 14b. content_drafts (golden tenant — Charcoal N Chill) ────────────────────
+INSERT INTO public.content_drafts (
+  id, org_id, location_id,
+  trigger_type, trigger_id,
+  draft_title, draft_content, target_prompt, content_type,
+  aeo_score, status, human_approved,
+  created_at, updated_at
+)
+SELECT
+  'b1eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+  'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+  l.id,
+  'competitor_gap',
+  'a2eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',  -- links to golden intercept
+  'Why Charcoal N Chill Has the Best Late-Night Hookah Experience in Alpharetta',
+  'When you''re searching for the best late-night hookah bar in Alpharetta, Charcoal N Chill stands out for three reasons: premium charcoal-managed hookahs, a full bar serving craft cocktails, and a vibrant atmosphere open until 1 AM on weekends. Our customers describe the experience as the closest thing to a luxury lounge outside of Atlanta.',
+  'Best hookah bar in Alpharetta GA open late',
+  'faq_page',
+  72,
+  'draft',
+  FALSE,
+  NOW() - INTERVAL '2 hours',
+  NOW() - INTERVAL '2 hours'
+FROM public.locations l
+WHERE l.org_id = 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11'
+  AND l.slug   = 'alpharetta'
+LIMIT 1
+ON CONFLICT (id) DO NOTHING;
+
+-- ── 14c. page_audits (golden tenant — homepage audit) ─────────────────────────
+INSERT INTO public.page_audits (
+  id, org_id, location_id,
+  page_url, page_type,
+  aeo_readability_score, answer_first_score, schema_completeness_score, faq_schema_present,
+  overall_score,
+  recommendations,
+  last_audited_at, created_at
+)
+SELECT
+  'b2eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+  'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+  l.id,
+  'https://charcoalnchill.com',
+  'homepage',
+  78,
+  65,
+  55,
+  FALSE,
+  66,
+  '[{"issue":"No FAQ schema markup","fix":"Add FAQPage JSON-LD with top 5 customer questions","impact_points":12},{"issue":"Homepage opening paragraph does not directly answer intent","fix":"Lead with what you are, where you are, and who you serve in the first sentence","impact_points":8}]'::jsonb,
+  NOW() - INTERVAL '3 hours',
+  NOW() - INTERVAL '3 hours'
+FROM public.locations l
+WHERE l.org_id = 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11'
+  AND l.slug   = 'alpharetta'
+LIMIT 1
+ON CONFLICT (id) DO NOTHING;
+
+-- ── 14d. citation_source_intelligence (aggregate market data) ─────────────────
+-- Hookah lounge / Alpharetta market — which platforms AI cites most.
+INSERT INTO public.citation_source_intelligence (
+  business_category, city, state, platform,
+  citation_frequency, sample_query, sample_size, model_provider, measured_at
+) VALUES
+(
+  'hookah lounge', 'Alpharetta', 'GA', 'yelp',
+  0.72,
+  'Best hookah lounge in Alpharetta GA',
+  25, 'perplexity-sonar', NOW() - INTERVAL '1 day'
+),
+(
+  'hookah lounge', 'Alpharetta', 'GA', 'google',
+  0.88,
+  'Best hookah lounge in Alpharetta GA',
+  25, 'perplexity-sonar', NOW() - INTERVAL '1 day'
+),
+(
+  'hookah lounge', 'Alpharetta', 'GA', 'tripadvisor',
+  0.44,
+  'Hookah bars near Alpharetta rated',
+  25, 'perplexity-sonar', NOW() - INTERVAL '1 day'
+),
+(
+  'hookah lounge', 'Alpharetta', 'GA', 'facebook',
+  0.28,
+  'Popular hookah lounges Alpharetta GA',
+  25, 'perplexity-sonar', NOW() - INTERVAL '1 day'
+)
+ON CONFLICT (business_category, city, state, platform, model_provider) DO NOTHING;

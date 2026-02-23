@@ -5,7 +5,7 @@
 // This user passes the dashboard onboarding guard and can access /dashboard/billing.
 //
 // Tests:
-//   1. Billing page shows all three pricing tiers; Pro tier has electric-indigo
+//   1. Billing page shows all three pricing tiers; Growth tier has electric-indigo
 //      highlight (border-electric-indigo class on the card).
 //   2. Clicking the "Upgrade" button triggers the demo checkout action and
 //      shows the "Demo mode" banner (STRIPE_SECRET_KEY absent in local dev).
@@ -29,22 +29,22 @@ test.use({
 // Test 1 — Three pricing tiers + electric-indigo highlight on Pro
 // ---------------------------------------------------------------------------
 
-test('billing page shows three pricing tiers with Pro highlighted', async ({
+test('billing page shows three pricing tiers with Growth highlighted', async ({
   page,
 }) => {
   await page.goto('/dashboard/billing');
 
   // All three tier names are visible
-  await expect(page.getByText('Free Scanner')).toBeVisible();
-  await expect(page.getByText('Pro AI Defense')).toBeVisible();
-  await expect(page.getByText('Enterprise API')).toBeVisible();
+  await expect(page.getByText('Starter')).toBeVisible();
+  await expect(page.getByText('Growth')).toBeVisible();
+  await expect(page.getByText('Agency')).toBeVisible();
 
-  // The Pro tier card uses border-electric-indigo for the highlight ring.
+  // The Growth tier card uses border-electric-indigo for the highlight ring.
   // billing/page.tsx sets `border-2 border-electric-indigo` on the highlighted card.
-  const proCard = page.locator('.border-electric-indigo');
-  await expect(proCard).toBeVisible();
+  const growthCard = page.locator('.border-electric-indigo');
+  await expect(growthCard).toBeVisible();
 
-  // The "Most popular" badge appears on the Pro card
+  // The "Most popular" badge appears on the Growth card
   await expect(page.getByText('Most popular')).toBeVisible();
 });
 
