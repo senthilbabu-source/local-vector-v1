@@ -20,11 +20,17 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { NextRequest } from 'next/server';
 
-// ── Mock the AI service before any imports ────────────────────────────────
+// ── Mock the AI audit service before any imports ──────────────────────────
 // auditLocation is mocked to return [] by default (no hallucinations found).
 // Individual tests override this with vi.mocked(auditLocation).mockResolvedValueOnce().
 vi.mock('@/lib/services/ai-audit.service', () => ({
   auditLocation: vi.fn().mockResolvedValue([]),
+}));
+
+// ── Mock the competitor intercept service ─────────────────────────────────
+// runInterceptForCompetitor is mocked so tests never make real LLM calls.
+vi.mock('@/lib/services/competitor-intercept.service', () => ({
+  runInterceptForCompetitor: vi.fn().mockResolvedValue(undefined),
 }));
 
 // ── Mock the Supabase service-role client ─────────────────────────────────
@@ -43,6 +49,7 @@ vi.mock('@/lib/email', () => ({
 import { GET } from '@/app/api/cron/audit/route';
 import { createServiceRoleClient } from '@/lib/supabase/server';
 import { auditLocation } from '@/lib/services/ai-audit.service';
+import { runInterceptForCompetitor } from '@/lib/services/competitor-intercept.service';
 import { sendHallucinationAlert } from '@/lib/email';
 
 // ── Helpers ───────────────────────────────────────────────────────────────
@@ -59,10 +66,18 @@ function makeRequest(authHeader?: string): NextRequest {
 // Chain modelled: from().select().in().eq() → { data: [], error: null }
 // mockReturnThis() makes select() and in() chainable (returns the same object);
 // the terminal eq() resolves to the final value.
+// The competitors table is also handled here (returns [] — safe default).
 function mockSupabaseNoOrgs() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   vi.mocked(createServiceRoleClient as any).mockReturnValue({
-    from: vi.fn(() => {
+    from: vi.fn((table: string) => {
+      if (table === 'competitors') {
+        return {
+          select: vi.fn().mockReturnValue({
+            eq: vi.fn().mockResolvedValue({ data: [], error: null }),
+          }),
+        };
+      }
       const chain = {
         select: vi.fn().mockReturnThis(),
         in: vi.fn().mockReturnThis(),
@@ -79,9 +94,16 @@ function mockSupabaseNoOrgs() {
 // Wires the Supabase mock to return one org and one location.
 // Also mocks the memberships query for the email alert step.
 // Used by the resilience / full-pipeline tests.
+//
+// competitors: pass an array to simulate competitors for the intercept loop.
+// Defaults to [] — existing tests are unaffected.
 function mockSupabaseWithOrgAndLocation(
   org = { id: 'cron-test-org-uuid-001', name: 'Cron Test Restaurant' },
-  location = {
+  location: {
+    id: string; org_id: string; business_name: string; city: string;
+    state: string; address_line1: string; hours_data: null; amenities: null;
+    categories?: string[];
+  } | undefined = {
     id: 'cron-test-loc-uuid-001',
     org_id: 'cron-test-org-uuid-001',
     business_name: 'Cron Test Restaurant',
@@ -91,7 +113,8 @@ function mockSupabaseWithOrgAndLocation(
     hours_data: null,
     amenities: null,
   },
-  ownerEmail = 'owner@crontest.com'
+  ownerEmail = 'owner@crontest.com',
+  competitors: Array<{ id: string; competitor_name: string }> = [],
 ) {
   const mockInsert = vi.fn().mockResolvedValue({ data: null, error: null });
   const mockLocationMaybeSingle = vi
@@ -137,6 +160,13 @@ function mockSupabaseWithOrgAndLocation(
                 }),
               }),
             }),
+          }),
+        };
+      }
+      if (table === 'competitors') {
+        return {
+          select: vi.fn().mockReturnValue({
+            eq: vi.fn().mockResolvedValue({ data: competitors, error: null }),
           }),
         };
       }
@@ -194,6 +224,7 @@ describe('GET /api/cron/audit', () => {
     expect(body.processed).toBe(0);
     expect(body.hallucinations_inserted).toBe(0);
     expect(body.failed).toBe(0);
+    expect(body.intercepts_inserted).toBe(0);
   });
 
   it('does not call auditLocation when no orgs are returned', async () => {
@@ -282,6 +313,53 @@ describe('GET /api/cron/audit', () => {
     expect(alertPayload.to).toBe('owner@crontest.com');
     expect(alertPayload.hallucinationCount).toBe(1);
     expect(alertPayload.businessName).toBe('Cron Test Restaurant');
+  });
+
+  // ── Competitor intercept loop ─────────────────────────────────────────
+
+  it('calls runInterceptForCompetitor once per competitor in the org', async () => {
+    const competitors = [
+      { id: 'comp-uuid-001', competitor_name: 'Cloud 9 Lounge' },
+      { id: 'comp-uuid-002', competitor_name: 'Sky Lounge' },
+    ];
+    mockSupabaseWithOrgAndLocation(undefined, undefined, undefined, competitors);
+
+    await GET(makeRequest(`Bearer ${CRON_SECRET}`));
+
+    expect(vi.mocked(runInterceptForCompetitor)).toHaveBeenCalledTimes(2);
+    const firstCall = vi.mocked(runInterceptForCompetitor).mock.calls[0][0];
+    expect(firstCall.orgId).toBe('cron-test-org-uuid-001');
+    expect(firstCall.competitor.competitor_name).toBe('Cloud 9 Lounge');
+  });
+
+  it('increments intercepts_inserted in summary for each successful intercept', async () => {
+    const competitors = [
+      { id: 'comp-uuid-001', competitor_name: 'Cloud 9 Lounge' },
+    ];
+    mockSupabaseWithOrgAndLocation(undefined, undefined, undefined, competitors);
+
+    const res  = await GET(makeRequest(`Bearer ${CRON_SECRET}`));
+    const body = await res.json();
+    expect(body.intercepts_inserted).toBe(1);
+  });
+
+  it('absorbs a competitor intercept error without incrementing failed', async () => {
+    const competitors = [
+      { id: 'comp-uuid-001', competitor_name: 'Cloud 9 Lounge' },
+    ];
+    mockSupabaseWithOrgAndLocation(undefined, undefined, undefined, competitors);
+    vi.mocked(runInterceptForCompetitor).mockRejectedValueOnce(
+      new Error('OpenAI rate limit')
+    );
+
+    const res  = await GET(makeRequest(`Bearer ${CRON_SECRET}`));
+    const body = await res.json();
+    // Hallucination audit was unaffected
+    expect(body.failed).toBe(0);
+    // Intercept error is absorbed — count stays 0
+    expect(body.intercepts_inserted).toBe(0);
+    // Overall run still reports OK
+    expect(body.ok).toBe(true);
   });
 
   it('continues cron run when email send fails (does not increment failed)', async () => {

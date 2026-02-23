@@ -6,14 +6,13 @@
 // Four Server Actions for the Greed Engine:
 //   addCompetitor        — add a competitor to track (plan-gated, count-limited)
 //   deleteCompetitor     — remove a competitor
-//   runCompetitorIntercept — 2-stage LLM: Perplexity → GPT-4o-mini (AI_RULES §19.3)
+//   runCompetitorIntercept — delegates to competitor-intercept.service (AI_RULES §19.3)
 //   markInterceptActionComplete — update action_status (pending → completed/dismissed)
 //
 // All actions:
 //   • Derive org_id server-side via getSafeAuthContext() (AI_RULES §11)
 //   • Use canRunCompetitorIntercept() + maxCompetitors() from plan-enforcer (AI_RULES §19.2)
-//   • Import GapAnalysis from lib/types/ground-truth (AI_RULES §19.1)
-//   • Fall back to mock results when API keys are absent (AI_RULES §4)
+//   • The 2-stage LLM pipeline lives in lib/services/competitor-intercept.service.ts
 // ---------------------------------------------------------------------------
 
 import { revalidatePath } from 'next/cache';
@@ -21,7 +20,7 @@ import { z } from 'zod';
 import { createClient } from '@/lib/supabase/server';
 import { getSafeAuthContext } from '@/lib/auth';
 import { canRunCompetitorIntercept, maxCompetitors } from '@/lib/plan-enforcer';
-import type { GapAnalysis } from '@/lib/types/ground-truth';
+import { runInterceptForCompetitor } from '@/lib/services/competitor-intercept.service';
 
 // ---------------------------------------------------------------------------
 // Schemas (inline — single-file scope, not reused elsewhere)
@@ -38,163 +37,6 @@ const MarkCompleteSchema = z.object({
 
 export type AddCompetitorInput = z.infer<typeof AddCompetitorSchema>;
 export type ActionResult = { success: true } | { success: false; error: string };
-
-// ---------------------------------------------------------------------------
-// Internal types
-// ---------------------------------------------------------------------------
-
-type PerplexityResult = {
-  winner:              string;
-  reasoning:           string;
-  key_differentiators: string[];
-};
-
-type InterceptAnalysis = {
-  winner:           string;
-  winning_factor:   string;
-  gap_magnitude:    string;
-  gap_details:      GapAnalysis;
-  suggested_action: string;
-  action_category:  string;
-};
-
-// ---------------------------------------------------------------------------
-// Stage 1 — Perplexity head-to-head comparison (sonar model)
-// ---------------------------------------------------------------------------
-
-async function callPerplexityHeadToHead(
-  myBusiness:     string,
-  competitorName: string,
-  queryAsked:     string,
-  apiKey:         string,
-): Promise<PerplexityResult> {
-  const res = await fetch('https://api.perplexity.ai/chat/completions', {
-    method: 'POST',
-    headers: {
-      Authorization:  `Bearer ${apiKey}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      model: 'sonar',
-      messages: [
-        {
-          role: 'system',
-          content: 'You are an AI search analyst. Always respond with valid JSON only.',
-        },
-        {
-          role: 'user',
-          content:
-            `Compare "${myBusiness}" and "${competitorName}" for someone searching: "${queryAsked}". ` +
-            `Which would you recommend and why? Consider reviews, atmosphere, and value.\n\n` +
-            `Return ONLY valid JSON:\n` +
-            `{\n  "winner": "Business Name",\n  "reasoning": "Why they won",\n  "key_differentiators": ["factor1"]\n}`,
-        },
-      ],
-      temperature: 0.3,
-    }),
-  });
-
-  if (!res.ok) throw new Error(`Perplexity API error: ${res.status} ${res.statusText}`);
-
-  const json = await res.json();
-  const content: string = json.choices?.[0]?.message?.content ?? '{}';
-  const jsonMatch = content.match(/\{[\s\S]*\}/);
-  const parsed = jsonMatch ? JSON.parse(jsonMatch[0]) : {};
-
-  return {
-    winner:              String(parsed.winner ?? competitorName),
-    reasoning:           String(parsed.reasoning ?? ''),
-    key_differentiators: Array.isArray(parsed.key_differentiators) ? parsed.key_differentiators : [],
-  };
-}
-
-// ---------------------------------------------------------------------------
-// Stage 2 — GPT-4o-mini intercept analysis (AI_RULES §19.3)
-// ---------------------------------------------------------------------------
-
-async function callGptIntercept(
-  myBusiness:       string,
-  competitorName:   string,
-  perplexityResult: PerplexityResult,
-  apiKey:           string,
-): Promise<InterceptAnalysis> {
-  const res = await fetch('https://api.openai.com/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      Authorization:  `Bearer ${apiKey}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      model: 'gpt-4o-mini',
-      messages: [
-        {
-          role: 'system',
-          content: 'You are an AI search analyst for local businesses.',
-        },
-        {
-          role: 'user',
-          content:
-            `User's Business: ${myBusiness}\n` +
-            `Competitor: ${competitorName}\n` +
-            `AI Recommendation: ${JSON.stringify(perplexityResult)}\n\n` +
-            `Analyze WHY the winner won and extract one specific action the losing business can take THIS WEEK.\n\n` +
-            `Return ONLY valid JSON:\n` +
-            `{\n` +
-            `  "winner": "string",\n` +
-            `  "winning_factor": "string",\n` +
-            `  "gap_magnitude": "high|medium|low",\n` +
-            `  "gap_details": { "competitor_mentions": number, "your_mentions": number },\n` +
-            `  "suggested_action": "string",\n` +
-            `  "action_category": "reviews|menu|attributes|content|photos"\n` +
-            `}`,
-        },
-      ],
-      response_format: { type: 'json_object' },
-      temperature: 0.3,
-    }),
-  });
-
-  if (!res.ok) throw new Error(`OpenAI API error: ${res.status} ${res.statusText}`);
-
-  const json = await res.json();
-  const content: string = json.choices?.[0]?.message?.content ?? '{}';
-  const parsed = JSON.parse(content);
-
-  return {
-    winner:           String(parsed.winner ?? competitorName),
-    winning_factor:   String(parsed.winning_factor ?? ''),
-    gap_magnitude:    String(parsed.gap_magnitude ?? 'medium'),
-    gap_details: {
-      competitor_mentions: Number(parsed.gap_details?.competitor_mentions ?? 0),
-      your_mentions:       Number(parsed.gap_details?.your_mentions ?? 0),
-    },
-    suggested_action: String(parsed.suggested_action ?? ''),
-    action_category:  String(parsed.action_category ?? 'content'),
-  };
-}
-
-// ---------------------------------------------------------------------------
-// Mock fallbacks — used when API keys absent or calls fail (AI_RULES §4)
-// ---------------------------------------------------------------------------
-
-function mockPerplexityResult(competitorName: string): PerplexityResult {
-  return {
-    winner:              competitorName,
-    reasoning:           '[MOCK] Configure PERPLEXITY_API_KEY in .env.local to run real comparisons.',
-    key_differentiators: ['more reviews', 'late-night hours'],
-  };
-}
-
-function mockInterceptAnalysis(competitorName: string): InterceptAnalysis {
-  return {
-    winner:           competitorName,
-    winning_factor:   '[MOCK] Configure OPENAI_API_KEY in .env.local for real analysis.',
-    gap_magnitude:    'medium',
-    gap_details:      { competitor_mentions: 5, your_mentions: 2 },
-    suggested_action: '[MOCK] Configure OPENAI_API_KEY in .env.local to get real action items.',
-    action_category:  'content',
-  };
-}
 
 // ---------------------------------------------------------------------------
 // addCompetitor — Server Action
@@ -320,20 +162,18 @@ export async function deleteCompetitor(competitorId: string): Promise<ActionResu
 /**
  * Run a 2-stage AI intercept analysis for a competitor.
  *
+ * Delegates the Perplexity → GPT-4o-mini pipeline to
+ * lib/services/competitor-intercept.service.ts so the same logic can be
+ * reused from the daily audit cron (AI_RULES §19.3).
+ *
  * Flow:
  *  1. Authenticate + plan gate (canRunCompetitorIntercept)
  *  2. Fetch competitor (RLS-scoped)
  *  3. Fetch primary location for ground-truth + query generation
- *  4. Build query_asked: "Best {category} in {city}, {state}"
- *  5. Stage 1 — Perplexity sonar: head-to-head comparison → PerplexityResult
- *     Missing PERPLEXITY_API_KEY or error → 3s delay + mock
- *  6. Stage 2 — GPT-4o-mini: structure the gap analysis → InterceptAnalysis
- *     Missing OPENAI_API_KEY or error → 3s delay + mock
- *  7. INSERT into competitor_intercepts (gap_analysis typed as GapAnalysis)
- *  8. revalidatePath('/dashboard/compete')
+ *  4. Delegate to runInterceptForCompetitor (service)
+ *  5. revalidatePath('/dashboard/compete')
  *
  * SECURITY: org_id always server-derived. RLS INSERT policy enforces isolation.
- * Model discrimination: gpt-4o-mini (AI_RULES §19.3).
  */
 export async function runCompetitorIntercept(competitorId: string): Promise<ActionResult> {
   // ── Auth ──────────────────────────────────────────────────────────────────
@@ -380,74 +220,22 @@ export async function runCompetitorIntercept(competitorId: string): Promise<Acti
     return { success: false, error: 'Primary location not found' };
   }
 
-  // ── Build query_asked ──────────────────────────────────────────────────────
-  const categories: string[] = Array.isArray(location.categories) ? location.categories : [];
-  const primaryCategory = categories[0] ?? 'restaurant';
-  const cityState = [location.city, location.state].filter(Boolean).join(', ');
-  const queryAsked = `Best ${primaryCategory} in ${cityState}`;
-
-  // ── Stage 1: Perplexity head-to-head ──────────────────────────────────────
-  let perplexityResult: PerplexityResult;
-  const perplexityKey = process.env.PERPLEXITY_API_KEY;
-
-  if (!perplexityKey) {
-    await new Promise((r) => setTimeout(r, 3000));
-    perplexityResult = mockPerplexityResult(competitor.competitor_name);
-  } else {
-    try {
-      perplexityResult = await callPerplexityHeadToHead(
-        location.business_name,
-        competitor.competitor_name,
-        queryAsked,
-        perplexityKey,
-      );
-    } catch {
-      await new Promise((r) => setTimeout(r, 3000));
-      perplexityResult = mockPerplexityResult(competitor.competitor_name);
-    }
-  }
-
-  // ── Stage 2: GPT-4o-mini intercept analysis ────────────────────────────────
-  let interceptAnalysis: InterceptAnalysis;
-  const openaiKey = process.env.OPENAI_API_KEY;
-
-  if (!openaiKey) {
-    await new Promise((r) => setTimeout(r, 3000));
-    interceptAnalysis = mockInterceptAnalysis(competitor.competitor_name);
-  } else {
-    try {
-      interceptAnalysis = await callGptIntercept(
-        location.business_name,
-        competitor.competitor_name,
-        perplexityResult,
-        openaiKey,
-      );
-    } catch {
-      await new Promise((r) => setTimeout(r, 3000));
-      interceptAnalysis = mockInterceptAnalysis(competitor.competitor_name);
-    }
-  }
-
-  // ── Persist result ────────────────────────────────────────────────────────
-  const gapAnalysis: GapAnalysis = interceptAnalysis.gap_details;
-
-  const { error: insertError } = await supabase.from('competitor_intercepts').insert({
-    org_id:           ctx.orgId,
-    location_id:      location.id,
-    competitor_name:  competitor.competitor_name,
-    query_asked:      queryAsked,
-    model_provider:   'openai-gpt4o-mini',
-    winner:           interceptAnalysis.winner,
-    winner_reason:    perplexityResult.reasoning,
-    winning_factor:   interceptAnalysis.winning_factor,
-    gap_analysis:     gapAnalysis,
-    gap_magnitude:    interceptAnalysis.gap_magnitude,
-    suggested_action: interceptAnalysis.suggested_action,
-    action_status:    'pending',
-  });
-
-  if (insertError) {
-    return { success: false, error: insertError.message };
+  // ── Delegate to service ───────────────────────────────────────────────────
+  try {
+    await runInterceptForCompetitor(
+      {
+        orgId:        ctx.orgId,
+        locationId:   location.id,
+        businessName: location.business_name,
+        categories:   Array.isArray(location.categories) ? location.categories : [],
+        city:         location.city,
+        state:        location.state,
+        competitor,
+      },
+      supabase,
+    );
+  } catch (err) {
+    return { success: false, error: err instanceof Error ? err.message : 'Intercept failed' };
   }
 
   revalidatePath('/dashboard/compete');

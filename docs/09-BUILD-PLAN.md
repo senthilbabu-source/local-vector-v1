@@ -228,7 +228,7 @@
 
 - [x] **Competitor Management**
   - [x] Build competitor CRUD (add/edit/delete, max 3 for Growth) — `addCompetitor`, `deleteCompetitor` Server Actions; `CompetitorChip` + `AddCompetitorForm` UI
-  - [ ] Google Places autocomplete for competitor lookup *(deferred Phase 4+)*
+  - [x] Google Places autocomplete for competitor lookup — server-side proxy `/api/v1/places/search`; debounced dropdown in `AddCompetitorForm`; graceful degradation when key absent *(Phase 3.1, 2026-02-23)*
 - [x] **Intercept Logic**
   - [x] Create `__fixtures__/mock-greed-analysis.ts` with sample GPT-4o-mini intercept response — added `MOCK_COMPETITOR` + `MOCK_INTERCEPT` to `golden-tenant.ts`; `MOCK_INTERCEPT_ANALYSIS` to `handlers.ts` per AI_RULES §19.4
   - [x] Implement Head-to-Head prompt (Doc 04, Section 3.1) — Perplexity Sonar stage in `runCompetitorIntercept`
@@ -240,8 +240,8 @@
   - [x] Build InterceptCard and ActionTask components — `InterceptCard.tsx` + `RunAnalysisButton.tsx`
   - [x] Implement plan gating (Growth+ only) — `canRunCompetitorIntercept(plan)` check in page + actions
   - [x] Build "Upgrade to unlock" overlay for Starter users — inline `UpgradeGate` in page.tsx
-- [ ] **Cron Integration**
-  - [ ] Add competitor checks to daily audit cron (Growth plan only) *(deferred Phase 4+)*
+- [x] **Cron Integration**
+  - [x] Add competitor checks to daily audit cron (Growth plan only) — second `for...of` loop in `/api/cron/audit`; calls `runInterceptForCompetitor` per competitor; `intercepts_inserted` in summary *(Phase 3.1, 2026-02-23)*
 
 ### Acceptance Criteria
 - [x] User can add 3 competitors and see intercept results (real-time on-demand, not 24h batch)

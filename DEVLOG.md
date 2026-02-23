@@ -2,6 +2,33 @@
 
 ---
 
+## 2026-02-23 — Phase 3.1: Deferred Items — Google Places Autocomplete + Cron Competitor Intercepts
+
+**Scope:** Two items deferred at Phase 3 completion are now fully shipped.
+
+| File | Action |
+|------|--------|
+| `app/api/v1/places/search/route.ts` | **CREATED** — Server-side proxy to Google Places Text Search API; auth-guarded; graceful degradation when key absent. |
+| `app/dashboard/compete/_components/AddCompetitorForm.tsx` | **REWRITTEN** — Controlled inputs with 300ms debounce autocomplete; `selectedPlace` guard; "Change" button; falls back to free text when no API key. |
+| `src/__tests__/unit/places-search.test.ts` | **CREATED** — 6 tests: 401 guard, short-query guard, absent-key guard, 5-suggestion proxy, non-200 fallback, network-error fallback. |
+| `lib/services/competitor-intercept.service.ts` | **CREATED** — Shared service: 2-stage Perplexity → GPT-4o-mini pipeline extracted from `actions.ts`. Accepts any Supabase client (RLS or service-role). |
+| `app/dashboard/compete/actions.ts` | **REFACTORED** — `runCompetitorIntercept` delegates to service; `addCompetitor`, `deleteCompetitor`, `markInterceptActionComplete` untouched. |
+| `app/api/cron/audit/route.ts` | **EDITED** — Second `for...of` loop added after hallucination loop. Per-org: fetches location + competitors; per-competitor: calls `runInterceptForCompetitor`; absorbs per-competitor errors. Added `intercepts_inserted` to summary JSON. |
+| `src/__tests__/unit/competitor-intercept-service.test.ts` | **CREATED** — 8 tests: Perplexity URL, GPT-4o-mini URL + model, mock paths (no key / rejects), gap_analysis shape, INSERT error propagation. |
+| `src/__tests__/unit/cron-audit.test.ts` | **EDITED** — Added `runInterceptForCompetitor` mock; extended `mockSupabaseWithOrgAndLocation` to handle `competitors` table; 3 new tests for intercept loop (calls/count/error absorption). |
+
+**Tests:** 243 → 260 passing (+17 net, across 3 suites). Zero regressions.
+
+**Run:**
+```bash
+npx vitest run src/__tests__/unit/places-search.test.ts
+npx vitest run src/__tests__/unit/competitor-intercept-service.test.ts
+npx vitest run src/__tests__/unit/cron-audit.test.ts
+npx vitest run   # full suite: 260 passing, 7 skipped, 1 pre-existing failure
+```
+
+---
+
 ## 2026-02-23 — Bug Fix: `model_provider` enum missing `openai-gpt4o-mini`
 
 **Problem:** `npx supabase db reset` failed with `SQLSTATE 22P02: invalid input value for enum model_provider: "openai-gpt4o-mini"`. The initial schema migration created `model_provider` with only 5 values; Phase 3 inserts `'openai-gpt4o-mini'` into `competitor_intercepts`.

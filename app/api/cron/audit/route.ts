@@ -32,6 +32,7 @@ import {
   auditLocation,
   type DetectedHallucination,
 } from '@/lib/services/ai-audit.service';
+import { runInterceptForCompetitor } from '@/lib/services/competitor-intercept.service';
 import { sendHallucinationAlert } from '@/lib/email';
 
 // Force dynamic so Vercel never caches this route between cron invocations.
@@ -72,6 +73,7 @@ export async function GET(request: NextRequest) {
     processed: 0,
     failed: 0,
     hallucinations_inserted: 0,
+    intercepts_inserted: 0,
   };
 
   // ── 4. Process each org independently ─────────────────────────────────
@@ -166,6 +168,54 @@ export async function GET(request: NextRequest) {
         msg
       );
       summary.failed++;
+    }
+  }
+
+  // ── Competitor intercept loop ──────────────────────────────────────────
+  // Separate pass over the same orgs list. Runs after hallucination audits so
+  // a flaky intercept call never affects the processed/failed hallucination counts.
+  for (const org of orgs ?? []) {
+    try {
+      const { data: location } = await supabase
+        .from('locations')
+        .select('id, business_name, city, state, categories')
+        .eq('org_id', org.id)
+        .eq('is_primary', true)
+        .maybeSingle();
+
+      if (!location) continue;
+
+      const { data: competitors } = await supabase
+        .from('competitors')
+        .select('id, competitor_name')
+        .eq('org_id', org.id);
+
+      for (const competitor of competitors ?? []) {
+        try {
+          await runInterceptForCompetitor(
+            {
+              orgId:        org.id,
+              locationId:   location.id,
+              businessName: location.business_name,
+              categories:   Array.isArray(location.categories) ? location.categories : [],
+              city:         location.city,
+              state:        location.state,
+              competitor,
+            },
+            supabase,
+          );
+          summary.intercepts_inserted++;
+        } catch (err) {
+          const msg = err instanceof Error ? err.message : String(err);
+          console.error(
+            `[cron-audit] Intercept failed for ${competitor.competitor_name} (org ${org.id}):`,
+            msg,
+          );
+        }
+      }
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      console.error(`[cron-audit] Competitor loop failed for org ${org.id}:`, msg);
     }
   }
 
