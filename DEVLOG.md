@@ -2,6 +2,39 @@
 
 ---
 
+## 2026-02-23 — Sprint 28: High-Converting Landing Page
+
+**Scope:** Replaced the placeholder landing page with a definitive high-converting marketing page for LocalVector.ai. Deep Navy (`#050A15`) / Signal Green (`#00F5A0`) / Alert Amber (`#FFB800`) colour palette. 9 sections with CSS keyframe animations (no JS deps). All sub-components co-located in `app/page.tsx`.
+
+| File | Action |
+|------|--------|
+| `app/globals.css` | **EDITED** — Added 3 new colour tokens to `@theme inline`: `deep-navy` (#050A15), `signal-green` (#00F5A0), `alert-amber` (#FFB800). Added 5 CSS keyframes: `fill-bar` (animated progress bars via `--bar-w` custom property), `fade-up` (section entrance), `pulse-glow-green` (hero CTA glow), `shield-beat` (compare section shield heartbeat), `ping-dot` (live-alert eyebrow badge). |
+| `app/page.tsx` | **REWRITTEN** — Full 9-section landing page. Co-located sub-components: `TrustPill`, `SectionLabel`, `MetricCard`, `CompareRow`, `EngineCard`, `CaseRow`, `ResultCard`, `PricingCard`. Sections: JSON-LD, Nav, Hero (radial green glow, pulsing eyebrow badge, ViralScanner embed), AVS Dashboard (animated progress bars: AI Visibility Score / Sentiment Index / Citation Accuracy), Compare ("Practice What We Preach" side-by-side), Engine (3-column how-it-works: Detect → Correct → Distribute), Case Study ("$12,000 Steakhouse Hallucination"), Pricing (Free / Starter $29 / AI Shield $59 / Brand Fortress Custom), Footer (legal links). |
+
+**Design tokens used:**
+- `bg-deep-navy` / `text-deep-navy` — background and button text
+- `bg-signal-green` / `text-signal-green` / `border-signal-green` — primary CTA, accents
+- `text-alert-amber` — alert/warning highlights (case study callouts, problem badges)
+
+**Animations (CSS keyframes, no JS library required):**
+- `fill-bar`: Target width set via `style={{ '--bar-w': '98%' } as React.CSSProperties}` — each `MetricCard` has its own target
+- `fade-up`: Staggered entrance with `animation-delay` (`0ms`, `100ms`, `200ms`)
+- `pulse-glow-green`: Continuous glow on Nav + Hero CTA buttons
+- `shield-beat`: Shield icon pulse in the "Practice What We Preach" compare section
+- `ping-dot`: Pulsing dot inside eyebrow live-alert badges
+
+**Pricing alignment:** Marketing names ("AI Shield", "Brand Fortress") match the design spec; prices ($29/$59/Custom) match the DB `plan_tier` enum (`starter`/`growth`/`agency`) from Sprint 25A. CTAs link to `/signup`, not direct Stripe checkout.
+
+**Tests:** 295 passing (no regressions; page is a Server Component with no new server-side logic).
+
+**Run:**
+```bash
+npx tsc --noEmit --skipLibCheck   # 0 errors
+npx vitest run                     # 295 passing, 7 skipped
+```
+
+---
+
 ## 2026-02-23 — Sprint 27A: Listings Big 6 Table + Manual URL Input
 
 **Scope:** Expanded the Listings page from 3 to 6 NAP platforms (Big 6). Users can now enter listing URLs for each platform on-blur — immediately actionable without waiting for Phase 8b OAuth. Deep Night theme applied. NAP Coverage badge per location card.
