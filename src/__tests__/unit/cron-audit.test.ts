@@ -33,10 +33,17 @@ vi.mock('@/lib/supabase/server', () => ({
   createServiceRoleClient: vi.fn(),
 }));
 
+// ── Mock the email helper ─────────────────────────────────────────────────
+// sendHallucinationAlert is mocked so tests never hit Resend's API.
+vi.mock('@/lib/email', () => ({
+  sendHallucinationAlert: vi.fn().mockResolvedValue(undefined),
+}));
+
 // ── Import handler and mocks after vi.mock declarations ──────────────────
 import { GET } from '@/app/api/cron/audit/route';
 import { createServiceRoleClient } from '@/lib/supabase/server';
 import { auditLocation } from '@/lib/services/ai-audit.service';
+import { sendHallucinationAlert } from '@/lib/email';
 
 // ── Helpers ───────────────────────────────────────────────────────────────
 
@@ -70,7 +77,8 @@ function mockSupabaseNoOrgs() {
 }
 
 // Wires the Supabase mock to return one org and one location.
-// Used by the resilience / full-pipeline test.
+// Also mocks the memberships query for the email alert step.
+// Used by the resilience / full-pipeline tests.
 function mockSupabaseWithOrgAndLocation(
   org = { id: 'cron-test-org-uuid-001', name: 'Cron Test Restaurant' },
   location = {
@@ -82,12 +90,17 @@ function mockSupabaseWithOrgAndLocation(
     address_line1: '123 Test St',
     hours_data: null,
     amenities: null,
-  }
+  },
+  ownerEmail = 'owner@crontest.com'
 ) {
   const mockInsert = vi.fn().mockResolvedValue({ data: null, error: null });
-  const mockMaybeSingle = vi
+  const mockLocationMaybeSingle = vi
     .fn()
     .mockResolvedValue({ data: location, error: null });
+  const mockMembershipMaybeSingle = vi.fn().mockResolvedValue({
+    data: ownerEmail ? { users: { email: ownerEmail } } : null,
+    error: null,
+  });
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   vi.mocked(createServiceRoleClient as any).mockReturnValue({
@@ -105,7 +118,7 @@ function mockSupabaseWithOrgAndLocation(
         return {
           select: vi.fn().mockReturnValue({
             eq: vi.fn().mockReturnValue({
-              eq: vi.fn().mockReturnValue({ maybeSingle: mockMaybeSingle }),
+              eq: vi.fn().mockReturnValue({ maybeSingle: mockLocationMaybeSingle }),
             }),
           }),
         };
@@ -113,11 +126,25 @@ function mockSupabaseWithOrgAndLocation(
       if (table === 'ai_hallucinations') {
         return { insert: mockInsert };
       }
+      if (table === 'memberships') {
+        // Chain: .select().eq().eq().limit().maybeSingle()
+        return {
+          select: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                limit: vi.fn().mockReturnValue({
+                  maybeSingle: mockMembershipMaybeSingle,
+                }),
+              }),
+            }),
+          }),
+        };
+      }
       return {};
     }),
   });
 
-  return { mockInsert, mockMaybeSingle };
+  return { mockInsert, mockMaybeSingle: mockLocationMaybeSingle, mockMembershipMaybeSingle };
 }
 
 // ── Tests ──────────────────────────────────────────────────────────────────
@@ -227,5 +254,62 @@ describe('GET /api/cron/audit', () => {
     expect(body.processed).toBe(0); // org was not successfully processed
     expect(body.failed).toBe(1);    // counted as failed
     expect(body.hallucinations_inserted).toBe(0);
+  });
+
+  // ── Email alerts ───────────────────────────────────────────────────────
+
+  it('sends email alert with correct payload when hallucinations are inserted', async () => {
+    const fakeHallucination = {
+      model_provider: 'openai-gpt4o' as const,
+      severity: 'high' as const,
+      category: 'status' as const,
+      claim_text: 'This restaurant is permanently closed.',
+      expected_truth: 'Restaurant is open Tuesday–Sunday 11 AM–10 PM.',
+    };
+    vi.mocked(auditLocation).mockResolvedValueOnce([fakeHallucination]);
+    mockSupabaseWithOrgAndLocation(
+      { id: 'cron-test-org-uuid-001', name: 'Cron Test Restaurant' },
+      undefined,
+      'owner@crontest.com'
+    );
+
+    const res = await GET(makeRequest(`Bearer ${CRON_SECRET}`));
+    expect(res.status).toBe(200);
+
+    expect(vi.mocked(sendHallucinationAlert)).toHaveBeenCalledOnce();
+    const alertPayload = vi.mocked(sendHallucinationAlert).mock
+      .calls[0][0] as Parameters<typeof sendHallucinationAlert>[0];
+    expect(alertPayload.to).toBe('owner@crontest.com');
+    expect(alertPayload.hallucinationCount).toBe(1);
+    expect(alertPayload.businessName).toBe('Cron Test Restaurant');
+  });
+
+  it('continues cron run when email send fails (does not increment failed)', async () => {
+    const fakeHallucination = {
+      model_provider: 'openai-gpt4o' as const,
+      severity: 'medium' as const,
+      category: 'amenity' as const,
+      claim_text: 'No outdoor seating.',
+      expected_truth: 'Has outdoor seating.',
+    };
+    vi.mocked(auditLocation).mockResolvedValueOnce([fakeHallucination]);
+    // Email send throws — cron must absorb this via .catch()
+    vi.mocked(sendHallucinationAlert).mockRejectedValueOnce(
+      new Error('Resend API unavailable')
+    );
+    mockSupabaseWithOrgAndLocation(
+      undefined,
+      undefined,
+      'owner@crontest.com'
+    );
+
+    const res = await GET(makeRequest(`Bearer ${CRON_SECRET}`));
+    expect(res.status).toBe(200);
+
+    const body = await res.json();
+    // Email failure is absorbed by .catch() — run still counts as processed
+    expect(body.processed).toBe(1);
+    expect(body.failed).toBe(0);
+    expect(body.hallucinations_inserted).toBe(1);
   });
 });

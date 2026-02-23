@@ -1,9 +1,13 @@
-// MSW Handlers — Forward-looking API mocks for Phase 18 AI integration
+// MSW Handlers — API mocks for Phase 18 (Magic Menu) + Phase 3 (Competitor Intercept)
 //
 // These handlers intercept real HTTP calls to OpenAI and Perplexity so that:
 //   • Integration tests never hit real paid APIs (AI_RULES §4)
-//   • Phase 18 feature code can be tested with deterministic responses
+//   • Feature code can be tested with deterministic responses
 //   • Response shapes are validated against canonical schemas (Doc 03 §15)
+//
+// OpenAI handler discriminates by request body `model` field (AI_RULES §19):
+//   gpt-4o       → Magic Menu OCR extraction (Phase 18)
+//   gpt-4o-mini  → Competitor Intercept Analysis (Phase 3)
 //
 // Activated via instrumentation.ts when NEXT_PUBLIC_API_MOCKING=enabled.
 // NOT active during normal Playwright E2E runs (no env var set).
@@ -71,20 +75,66 @@ const MOCK_HALLUCINATION_DETECTION = {
 };
 
 // ---------------------------------------------------------------------------
-// OpenAI handler — Magic Menu OCR extraction (Phase 18)
+// Phase 3 fixture — Competitor Intercept Analysis (GPT-4o-mini)
+// ---------------------------------------------------------------------------
+
+/**
+ * Deterministic intercept analysis result for Cloud 9 Lounge vs Charcoal N Chill.
+ * Mirrors MOCK_INTERCEPT from golden-tenant.ts (stable UUIDs match seed.sql §13).
+ * Shape: GPT-4o-mini Intercept Analysis prompt output (Doc 04, §3.2).
+ */
+const MOCK_INTERCEPT_ANALYSIS = {
+  winner:          'Cloud 9 Lounge',
+  winner_reason:   'More review mentions of late-night atmosphere and happy hour deals.',
+  winning_factor:  '15 more review mentions of "late night" atmosphere',
+  gap_analysis:    { competitor_mentions: 15, your_mentions: 2 },
+  gap_magnitude:   'high',
+  suggested_action:'Ask 3 customers to mention "late night" in their reviews this week',
+};
+
+// ---------------------------------------------------------------------------
+// OpenAI handler — discriminates by model (AI_RULES §19)
 // ---------------------------------------------------------------------------
 
 /**
  * Intercepts POST https://api.openai.com/v1/chat/completions
  *
- * In Phase 18, the Magic Menu pipeline sends the menu PDF pages to GPT-4o
- * Vision and expects a JSON-encoded MenuExtractedData in the response content.
- * This handler returns a deterministic golden-tenant payload so tests pass
- * without spending real API credits.
+ * Routes by the `model` field in the request body:
+ *   • gpt-4o       → Magic Menu OCR extraction (Phase 18)
+ *   • gpt-4o-mini  → Competitor Intercept Analysis (Phase 3)
+ *
+ * This discrimination is required because both pipelines use the same
+ * OpenAI endpoint but expect different JSON shapes in the response content.
+ * Without model-based routing, Phase 3 intercept calls would receive menu
+ * OCR payloads and fail to parse.
  */
 const openAiHandler = http.post(
   'https://api.openai.com/v1/chat/completions',
-  () => {
+  async ({ request }) => {
+    const body = await request.json() as { model?: string };
+
+    // Phase 3: Competitor Intercept Analysis uses GPT-4o-mini
+    if (body.model === 'gpt-4o-mini') {
+      return HttpResponse.json({
+        id: 'chatcmpl-mock-intercept-0001',
+        object: 'chat.completion',
+        created: Math.floor(Date.now() / 1000),
+        model: 'gpt-4o-mini',
+        choices: [
+          {
+            index: 0,
+            message: {
+              role: 'assistant',
+              content: JSON.stringify(MOCK_INTERCEPT_ANALYSIS),
+            },
+            finish_reason: 'stop',
+          },
+        ],
+        usage: { prompt_tokens: 256, completion_tokens: 128, total_tokens: 384 },
+      });
+    }
+
+    // Default: Phase 18 Magic Menu OCR extraction uses GPT-4o
     return HttpResponse.json({
       id: 'chatcmpl-mock-0001',
       object: 'chat.completion',

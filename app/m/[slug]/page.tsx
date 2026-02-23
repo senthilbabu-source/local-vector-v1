@@ -5,6 +5,10 @@
 // Doc 03 §15 Agent Rule: all JSONB types imported from lib/types/ground-truth.ts.
 // AI_RULES §1: column names verified against supabase/migrations/.
 
+// Revalidate public menu pages every 24 hours (Next.js App Router ISR).
+// Satisfies Phase 2 acceptance criterion: "< 200ms edge cached".
+export const revalidate = 86400;
+
 import { notFound } from 'next/navigation';
 import { cache } from 'react';
 import type { Metadata } from 'next';

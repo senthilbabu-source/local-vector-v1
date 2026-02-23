@@ -601,3 +601,59 @@ ON CONFLICT (org_id, slug) DO UPDATE SET
   hours_data = EXCLUDED.hours_data,
   amenities  = EXCLUDED.amenities,
   is_primary = EXCLUDED.is_primary;
+
+-- ── 13. COMPETITOR INTERCEPT SEED DATA (Phase 3) ──────────────────────────────
+-- One competitor (Cloud 9 Lounge) and one head-to-head intercept for the
+-- golden tenant (Charcoal N Chill). The intercept shows Cloud 9 winning on
+-- "late night atmosphere" with a suggested action for Charcoal N Chill.
+--
+-- Fixed UUIDs (match src/__fixtures__/golden-tenant.ts MOCK_COMPETITOR + MOCK_INTERCEPT):
+--   competitor id  : a1eebc99-9c0b-4ef8-bb6d-6bb9bd380a11
+--   intercept id   : a2eebc99-9c0b-4ef8-bb6d-6bb9bd380a11
+--
+-- NOTE: model_provider value must match the model_provider ENUM in prod_schema.sql.
+-- location_id retrieved via subquery (same pattern as all other sections).
+
+INSERT INTO public.competitors (
+  id, org_id, location_id, competitor_name, competitor_address
+)
+SELECT
+  'a1eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+  'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+  l.id,
+  'Cloud 9 Lounge',
+  '123 Main St, Alpharetta, GA 30005'
+FROM public.locations l
+WHERE l.org_id = 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11'
+  AND l.slug   = 'alpharetta'
+LIMIT 1
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO public.competitor_intercepts (
+  id, org_id, location_id,
+  competitor_name, query_asked, model_provider,
+  winner, winner_reason, winning_factor,
+  gap_analysis, gap_magnitude,
+  suggested_action, action_status,
+  created_at
+)
+SELECT
+  'a2eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+  'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+  l.id,
+  'Cloud 9 Lounge',
+  'Best hookah bar in Alpharetta GA',
+  'openai-gpt4o-mini',
+  'Cloud 9 Lounge',
+  'More review mentions of late-night atmosphere and happy hour deals.',
+  '15 more review mentions of "late night" atmosphere',
+  '{"competitor_mentions": 15, "your_mentions": 2}'::jsonb,
+  'high',
+  'Ask 3 customers to mention "late night" in their reviews this week',
+  'pending',
+  NOW() - INTERVAL '1 hour'
+FROM public.locations l
+WHERE l.org_id = 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11'
+  AND l.slug   = 'alpharetta'
+LIMIT 1
+ON CONFLICT (id) DO NOTHING;

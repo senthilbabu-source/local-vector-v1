@@ -23,3 +23,15 @@ export const RunEvaluationSchema = z.object({
 });
 
 export type RunEvaluationInput = z.infer<typeof RunEvaluationSchema>;
+
+/**
+ * Schema for the verifyHallucinationFix Server Action.
+ *
+ * Accepts the UUID of the ai_hallucinations row to re-check.
+ * The org_id is never accepted from the client — RLS scopes the fetch.
+ */
+export const VerifyHallucinationSchema = z.object({
+  hallucination_id: z.string().uuid('A valid hallucination ID is required'),
+});
+
+export type VerifyHallucinationInput = z.infer<typeof VerifyHallucinationSchema>;

@@ -183,7 +183,7 @@ export async function addTargetQuery(input: AddQueryInput): Promise<ActionResult
   if (!parsed.success) {
     return {
       success: false,
-      error: parsed.error.errors[0]?.message ?? 'Invalid input',
+      error: parsed.error.issues[0]?.message ?? 'Invalid input',
     };
   }
 
@@ -237,7 +237,7 @@ export async function runSovEvaluation(input: RunSovInput): Promise<ActionResult
   if (!parsed.success) {
     return {
       success: false,
-      error: parsed.error.errors[0]?.message ?? 'Invalid input',
+      error: parsed.error.issues[0]?.message ?? 'Invalid input',
     };
   }
 

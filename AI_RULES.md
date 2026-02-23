@@ -26,20 +26,29 @@
 * **Organization ID:**
     * Every tenant table has an `org_id`.
     * **Never** query tenant data without an `org_id` context.
-    * Use the helper `current_user_org_id()` in SQL or `getAuthContext()` in Next.js API routes.
+    * Use the helper `current_user_org_id()` in SQL or the appropriate auth helper in Next.js:
+* **Two auth helpers — pick the right one:**
+    * `getSafeAuthContext()` — returns `null` when session is absent. Use in **all Server Actions** that return a structured `{ success: false, error: 'Unauthorized' }` response.
+    * `getAuthContext()` — **throws** when session is absent. Use only in routes where an unhandled throw is acceptable (e.g., billing checkout).
+    * **Never** use `getAuthContext()` in a Server Action — it produces an unhandled server error instead of a clean error response.
 * **Auth Provider:** The `public.users` table links to Supabase Auth via `auth_provider_id` (UUID), NOT `id`.
 
 ## 4. 🧪 Testing Strategy ("Red-Green-Refactor")
 * **Tests are the Spec:** When writing features, create the test file **FIRST** based on the requirements in Docs 04, 05, or 06.
 * **Golden Tenant:** All tests must use the **Charcoal N Chill** fixture data defined in `src/__fixtures__/golden-tenant.ts`.
 * **Mocking:** NEVER hit real external APIs (Perplexity, OpenAI, Stripe) in tests. Use MSW (Mock Service Worker) handlers.
+* **Server Action mock patterns — use the right technique:**
+  * **Supabase client:** `vi.mock('@/lib/supabase/server', () => ({ createClient: vi.fn() }))` then `vi.mocked(createClient as any).mockResolvedValue({ from: vi.fn(...) })`.
+  * **Direct `fetch` calls** (Server Actions that call `fetch` themselves, not via a module): use `vi.stubGlobal('fetch', vi.fn())` — `vi.mock` cannot intercept global fetch.
+  * **`setTimeout` mock delays** (SOV/evaluation actions with no API key): use `vi.useFakeTimers()` in `beforeEach` and `await vi.runAllTimersAsync()` before awaiting the result. Without this, tests wait 3 real seconds.
+  * **`vi.mock()` declarations must be hoisted** before any `import` statements. File must be read with the `Read` tool before any `Edit` to a test file.
 
 ## 5. 💰 Cost & Performance Guardrails
 * **No API Calls on Load:** NEVER trigger an LLM API call (OpenAI/Perplexity) directly from a frontend page load. All AI operations must be:
     1.  Scheduled (Cron jobs)
     2.  User-initiated (Button click)
     3.  Cached (Served from Supabase DB).
-* **Plan Gating:** Always check feature availability using the `PlanGate` component logic before rendering premium features (Competitor Intercept, Daily Audits).
+* **Plan Gating:** Always check feature availability using the helpers in `lib/plan-enforcer.ts` before enabling premium features (Competitor Intercept, Daily Audits, SOV). The five exported functions are `canRunDailyAudit`, `canRunSovEvaluation`, `canRunCompetitorIntercept`, `maxLocations`, and `maxCompetitors`. Never inline plan-tier checks — always call these functions.
 
 ## 6. 📂 Architecture & Stack
 * **Framework:** Next.js 15 (App Router). Use Server Components by default.
@@ -173,7 +182,138 @@ Before marking any phase "Completed", verify all of the following are true:
 - [ ] Test counts verified with `grep -cE` and logged in DEVLOG
 - [ ] `DEVLOG.md` entry written with **Scope** and **Tests added** sections
 - [ ] `AI_RULES.md` updated if a new engineering constraint was discovered
+- [ ] `docs/14_TESTING_STRATEGY.md` updated if new test files were added or counts changed
+- [ ] `docs/09-BUILD-PLAN.md` acceptance criteria satisfied by this phase ticked with `[x]`
 - [ ] `docs/` updated if architecture, the core loop, or test strategy changed
+
+## 14. 🧩 Zod v4 Enum Error Message Format (Phase 21)
+* Zod v4 generates enum validation errors in this exact format:
+  `'Invalid option: expected one of "optionA"|"optionB"'`
+* Custom `errorMap` callbacks in Zod v4 behave differently than v3 — they may not fire for enum/union errors.
+* **Never** assert Zod error strings with `.toContain('optionA or optionB')` in tests — that string is never produced.
+* **Always** use `.toMatch(/optionA/i)` when asserting on Zod validation error messages:
+  ```typescript
+  // ❌ Brittle — will never match Zod v4 enum output
+  expect(result.error).toContain('openai or perplexity');
+  // ✅ Robust — matches regardless of exact Zod v4 phrasing
+  expect(result.error).toMatch(/openai/i);
+  ```
+
+## 15. 👻 `is_primary` — Ghost Data Prevention (Phase 22 Bug Fix)
+* The `locations` table defaults `is_primary` to `FALSE`.
+* **Every** dashboard query that matters filters by `.eq('is_primary', true)`:
+  the OnboardingGuard, magic-menus page, and dashboard stats.
+* A location inserted without `is_primary = true` exists in the database but is **invisible to the entire app** — a "Ghost Location".
+* **Rule:** `createLocation()` MUST check whether the org already has a primary location before inserting.
+  If no primary location exists, the new insert MUST set `is_primary: true`:
+  ```typescript
+  // ✅ Mandatory pattern in createLocation()
+  const { data: existing } = await supabase
+    .from('locations').select('id').eq('org_id', ctx.orgId).eq('is_primary', true).maybeSingle();
+  await supabase.from('locations').insert({
+    org_id: ctx.orgId,
+    is_primary: !existing,   // true only if no primary exists yet
+    ...data,
+  });
+  ```
+
+## 16. 🔄 `revalidatePath` Must Target the Consuming Layout (Phase 22 Bug Fix)
+* `revalidatePath('/dashboard/locations')` does **NOT** invalidate `app/dashboard/layout.tsx`.
+  The OnboardingGuard in the layout only re-runs when `/dashboard` itself is invalidated.
+* **Rule:** Any Server Action whose mutation should trigger a layout-level guard re-check
+  (e.g., the OnboardingGuard) MUST call `revalidatePath('/dashboard')`, not just the sub-route:
+  ```typescript
+  // ❌ Sub-route only — layout guard does NOT re-run
+  revalidatePath('/dashboard/locations');
+  // ✅ Parent path — layout guard re-runs on next navigation
+  revalidatePath('/dashboard');
+  ```
+* For actions that only affect a single page and have no layout-guard dependency,
+  the specific path (`revalidatePath('/dashboard/share-of-voice')`) is fine and preferred.
+
+## 17. 🛟 Side-Effect Resilience — Always Use `.catch()` (Phase 21)
+* Non-critical side effects (email alerts, analytics pings, webhook calls) inside a
+  Server Action or cron route MUST be wrapped in `.catch()`.
+* A side-effect failure must **never** abort the primary write operation:
+  ```typescript
+  // ❌ Uncaught — a Resend failure aborts the entire cron run
+  await sendHallucinationAlert({ to: ownerEmail, ... });
+
+  // ✅ Absorbed — cron run completes regardless of email status
+  await sendHallucinationAlert({ to: ownerEmail, ... })
+    .catch((err: unknown) => console.error('[cron] Email failed:', err));
+  ```
+* This pattern applies to: email (Resend), Slack/Discord webhooks, analytics events,
+  third-party audit pings — anything that is not the primary DB write.
+
+## 18. 🗝️ `createClient()` vs `createServiceRoleClient()` — Role Selection (Phase 21)
+* **`createClient()`** — cookie-based, RLS-scoped. The only client permitted in:
+  - Server Actions (`'use server'` functions)
+  - Page-level data fetching (RSC `async` functions)
+  - Any context where a user session exists
+* **`createServiceRoleClient()`** — bypasses ALL RLS policies. Permitted ONLY in:
+  - Cron route handlers (`app/api/cron/*/route.ts`) — no user session in background jobs
+  - Admin seed scripts and Supabase migrations
+  - Test `beforeAll`/`afterAll` blocks in integration tests
+* **Never** use `createServiceRoleClient()` inside a user-facing Server Action —
+  it bypasses the tenant isolation that RLS enforces.
+* **Belt-and-suspenders for SELECT queries:** Even with RLS active, OR'd SELECT policies
+  (e.g., `org_isolation_select` OR `public_published_location`) can expose cross-tenant rows.
+  Always add an explicit `.eq('org_id', orgId)` filter to SELECT queries on tenant tables —
+  do not rely on RLS alone:
+  ```typescript
+  // ❌ RLS alone — OR'd policies can leak cross-tenant rows
+  const { data } = await supabase.from('locations').select('*').eq('is_primary', true);
+
+  // ✅ Belt-and-suspenders — explicit org scope + RLS
+  const { data } = await supabase.from('locations').select('*')
+    .eq('org_id', ctx.orgId).eq('is_primary', true);
+  ```
+
+## 19. 🥊 Competitor Intercept — JSONB Types, Plan Limits, and MSW Discrimination (Phase 3)
+
+### 19.1 — `GapAnalysis` JSONB type (§15.7)
+* The `competitor_intercepts.gap_analysis` column is typed as `GapAnalysis` from `lib/types/ground-truth.ts`.
+* **Every** file that reads or writes `gap_analysis` MUST import from there — never define an inline type:
+  ```typescript
+  // ❌ Inline — spec violation
+  type GapAnalysis = { competitor_mentions: number; your_mentions: number };
+  // ✅ Ground truth import
+  import { GapAnalysis } from '@/lib/types/ground-truth';
+  ```
+
+### 19.2 — `maxCompetitors()` for competitor count limits
+* **Never** inline the per-plan competitor limit (e.g., `count >= 3`).
+* **Always** call `maxCompetitors(plan)` from `lib/plan-enforcer.ts`:
+  ```typescript
+  // ❌ Hardcoded limit — breaks when plan tiers change
+  if (existingCount >= 3) return { success: false, error: 'Competitor limit reached' };
+  // ✅ Plan-enforcer helper
+  import { maxCompetitors } from '@/lib/plan-enforcer';
+  if (existingCount >= maxCompetitors(plan)) return { success: false, error: 'Competitor limit reached' };
+  ```
+* Limits by tier: `trial`=0, `starter`=0, `growth`=3, `agency`=10.
+
+### 19.3 — MSW handler model discrimination
+* The OpenAI MSW handler in `src/mocks/handlers.ts` discriminates by the `model` field in the request body:
+  - `gpt-4o` → Magic Menu OCR extraction (Phase 18) — returns `MenuExtractedData` JSON
+  - `gpt-4o-mini` → Competitor Intercept Analysis (Phase 3) — returns intercept analysis JSON
+* **Never** add a second `http.post('https://api.openai.com/...')` handler. MSW only fires the first matching handler.
+  Route new OpenAI model variants inside the **existing** handler using `if (body.model === '...')`:
+  ```typescript
+  const openAiHandler = http.post('https://api.openai.com/v1/chat/completions', async ({ request }) => {
+    const body = await request.json() as { model?: string };
+    if (body.model === 'gpt-4o-mini') { /* intercept analysis */ }
+    /* default: gpt-4o menu OCR */
+  });
+  ```
+
+### 19.4 — Fixture canonical data
+* All Competitor Intercept unit and integration tests MUST use `MOCK_COMPETITOR` and `MOCK_INTERCEPT`
+  from `src/__fixtures__/golden-tenant.ts` — never invent ad-hoc fixture data for intercept tests.
+* The stable UUIDs in these fixtures match `supabase/seed.sql` Section 13:
+  - `a1eebc99-9c0b-4ef8-bb6d-6bb9bd380a11` — competitor record (Cloud 9 Lounge)
+  - `a2eebc99-9c0b-4ef8-bb6d-6bb9bd380a11` — intercept result
 
 ---
 > **End of System Instructions**

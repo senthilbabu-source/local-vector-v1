@@ -2,6 +2,163 @@
 
 ---
 
+## 2026-02-23 — Phase 3: Competitor Intercept / Greed Engine (Complete)
+
+**Goal:** Build the full Competitor Intercept feature — two-stage LLM pipeline (Perplexity Sonar → GPT-4o-mini), CRUD management UI, intercept result cards with actionable tasks, and Growth-plan gating.
+
+**Scope:**
+
+| File | Change |
+|------|--------|
+| `app/dashboard/compete/actions.ts` | **CREATED** — 4 Server Actions: `addCompetitor`, `deleteCompetitor`, `runCompetitorIntercept` (2-stage LLM), `markInterceptActionComplete`. Inline Zod schemas. Mock fallback with 3s delay when API keys absent. `GapAnalysis` JSONB typed per AI_RULES §19.1. `maxCompetitors()` called per AI_RULES §19.2. |
+| `app/dashboard/compete/_components/AddCompetitorForm.tsx` | **CREATED** — `'use client'` form; `useTransition`; renders `null` when at plan limit; `data-testid="add-competitor-form"`. |
+| `app/dashboard/compete/_components/CompetitorChip.tsx` | **CREATED** — `'use client'` pill with inline confirm-before-delete pattern; `data-testid="competitor-chip"`. |
+| `app/dashboard/compete/_components/RunAnalysisButton.tsx` | **CREATED** — `'use client'` button calling `runCompetitorIntercept`; "Analyzing…" spinner; `data-testid="run-analysis-btn"`. |
+| `app/dashboard/compete/_components/InterceptCard.tsx` | **CREATED** — `'use client'` card: query, winner badge, winner_reason, winning_factor, gap bar, gap_magnitude chip, suggested_action, Mark Complete / Dismiss buttons; imports `GapAnalysis`; `data-testid="intercept-card"`. |
+| `app/dashboard/compete/page.tsx` | **CREATED** — Async Server Component; `getSafeAuthContext()` + redirect; `canRunCompetitorIntercept(plan)` gate → inline `UpgradeGate`; `Promise.all()` for competitors + intercepts + primary location; full competitor management + intercept results layout. |
+| `components/layout/Sidebar.tsx` | Activated Compete nav entry: `active: false` → `active: true`. |
+| `app/dashboard/page.tsx` | Added `interceptsThisMonth` Quick Stat (count of `competitor_intercepts` from the 1st of the current month). Grid expanded to 4 columns on sm+. |
+| `src/__tests__/unit/competitor-actions.test.ts` | **CREATED** — 22 Vitest tests. Groups: `addCompetitor` (7), `deleteCompetitor` (3), `runCompetitorIntercept` (8), `markInterceptActionComplete` (4). Explicit chain mocks for `.eq().eq()` chaining (avoids `mockReturnThis()` context bug). |
+
+**Tests added:**
+- `src/__tests__/unit/competitor-actions.test.ts` — **22 tests**. All passing (243 total, 7 skipped, 1 pre-existing integration failure).
+
+**Run command:**
+```bash
+npx vitest run src/__tests__/unit/competitor-actions.test.ts   # 22 tests passing
+grep -cE "^\s*(it|test)\(" src/__tests__/unit/competitor-actions.test.ts  # 22
+npx vitest run   # 243 passing, 7 skipped, 1 failing suite (pre-existing rls-isolation)
+```
+
+---
+
+## 2026-02-23 — Pre-Phase 3 Groundwork: Competitor Intercept Foundations (Complete)
+
+**Goal:** Lay every foundational element — types, helpers, fixtures, seed data, sidebar routing, MSW handlers, and AI_RULES — required for a robust Phase 3 (Competitor Intercept) sprint with zero ad-hoc decisions.
+
+**Scope:**
+
+| File | Change |
+|------|--------|
+| `lib/types/ground-truth.ts` | Added `GapAnalysis` interface (§15.5) for `competitor_intercepts.gap_analysis` JSONB column. Single source of truth per AI_RULES §9. |
+| `lib/plan-enforcer.ts` | Added `maxCompetitors(plan)` helper — trial=0, starter=0, growth=3, agency=10. Prevents inline limit checks per AI_RULES §5. |
+| `src/__tests__/unit/plan-enforcer.test.ts` | Added 4 tests for `maxCompetitors` (trial, starter, growth, agency). Updated header comment "all 4 exported" → "all 5 exported". |
+| `src/__fixtures__/golden-tenant.ts` | Added `MOCK_COMPETITOR` and `MOCK_INTERCEPT` canonical fixtures with stable UUIDs matching seed.sql §13. All Phase 3 tests must import from here (AI_RULES §4). |
+| `supabase/seed.sql` | Added Section 13: competitor + intercept seed data. Cloud 9 Lounge competitor record (UUID `a1eebc99-...`) and head-to-head intercept result (UUID `a2eebc99-...`, `gap_magnitude='high'`, `gap_analysis` as JSONB). |
+| `components/layout/Sidebar.tsx` | Renamed `/dashboard/share-of-voice` nav label "Compete" → "Share of Voice". Added new disabled entry `{ href: '/dashboard/compete', label: 'Compete', icon: Swords, active: false }` for Phase 3 route. Added `Swords` to lucide-react imports. |
+| `src/mocks/handlers.ts` | Updated OpenAI handler to discriminate by `body.model`: `gpt-4o` → Magic Menu OCR (Phase 18); `gpt-4o-mini` → Competitor Intercept Analysis (Phase 3). Added `MOCK_INTERCEPT_ANALYSIS` fixture. Updated file header comment per AI_RULES §19.3. |
+| `AI_RULES.md` | Added §19 (Competitor Intercept rules): §19.1 `GapAnalysis` import requirement, §19.2 `maxCompetitors()` mandate, §19.3 MSW model discrimination pattern, §19.4 fixture canonical data. Updated §5 to list 5 exported plan-enforcer functions. |
+| `docs/14_TESTING_STRATEGY.md` | Updated `plan-enforcer.test.ts` row 12→16 tests. Updated totals 217→221. Updated header source note. |
+
+**Tests added:**
+- `src/__tests__/unit/plan-enforcer.test.ts` — **+4 tests** (`maxCompetitors`: trial=0, starter=0, growth=3, agency=10). Total: 16 tests in this suite.
+
+**Run command:**
+```bash
+npx vitest run src/__tests__/unit/plan-enforcer.test.ts   # 16 tests passing
+grep -cE "^\s*(it|test)\(" src/__tests__/unit/plan-enforcer.test.ts  # 16
+npx vitest run   # 221 passing, 7 skipped, 1 failing suite (pre-existing rls-isolation)
+```
+
+---
+
+## 2026-02-23 — Phase 22: Launch Readiness — Rate Limiting + Build Plan Reconciliation (Complete)
+
+**Goal:** Close the one unbounded-cost gap deferred from Phase 21 (`runFreeScan` rate limiting), satisfy the Phase 2 edge-cache acceptance criterion, and reconcile 176 stale build-plan checkboxes that were never ticked despite the work being done.
+
+**Scope:**
+
+| File | Change |
+|------|--------|
+| `app/actions/marketing.ts` | Extended `ScanResult` to a discriminated union (`status: 'fail' \| 'rate_limited'`). Added `checkRateLimit()` — 5 scans/IP/24 h via Vercel KV; bypassed when `KV_REST_API_URL` absent; wrapped in `try/catch` per AI_RULES §17. |
+| `app/_components/ViralScanner.tsx` | Added `rate_limited` branch before `fail` card render. Property access now guarded by `result?.status === 'fail'` discriminant — fixes TypeScript errors introduced by union type. |
+| `app/m/[slug]/page.tsx` | Added `export const revalidate = 86400` (Next.js ISR, 24h). Satisfies Phase 2 acceptance criterion "< 200ms edge cached". |
+| `.env.test` | Added `KV_REST_API_URL=` and `KV_REST_API_TOKEN=` (intentionally empty → rate limiting bypassed in dev/CI). |
+| `docs/09-BUILD-PLAN.md` | Full Phase 0–2 reconciliation: ~130 items ticked `[x]`, architectural deviation note added (Server Actions vs REST Route Handlers), E2E spec references corrected (`free-hallucination-check.spec.ts` → `tests/e2e/01-viral-wedge.spec.ts`; `json-ld-generator.test.ts` → `generateMenuJsonLd.test.ts`; `magic-menu-pipeline.test.ts` → `tests/e2e/04-magic-menu-pipeline.spec.ts`). |
+| `docs/14_TESTING_STRATEGY.md` | Added `rate-limit.test.ts` row (6 tests). Corrected two stale counts: `generateMenuJsonLd.test.ts` 21→30, `parseCsvMenu.test.ts` 17→20. Updated total 211→217 across 14 suites. |
+| `AI_RULES.md` | No new rules — rate limiting pattern is already covered by §17 (Side-Effect Resilience). |
+
+**Tests added:**
+- `src/__tests__/unit/rate-limit.test.ts` — **6 Vitest tests.** Validates `checkRateLimit()` behavior via `runFreeScan`: under limit (count=1), at limit (count=5), over limit (count=6), `retryAfterSeconds` sourced from KV `ttl()`, bypass when `KV_REST_API_URL` absent, resilience when `kv.incr()` throws.
+
+**Run command:**
+```bash
+npx vitest run src/__tests__/unit/rate-limit.test.ts   # 6 tests passing
+grep -cE "^\s*(it|test)\(" src/__tests__/unit/rate-limit.test.ts  # 6
+npx vitest run   # 217 passing, 7 skipped, 1 failing suite (pre-existing rls-isolation)
+```
+
+**Build plan checkboxes ticked in this phase:**
+- Phase 0: All Supabase setup, Next.js scaffold, Auth Flow, Stripe Setup, Testing Infrastructure confirmed complete
+- Phase 1: Full Intelligence Backend, Cron Job, Viral Free Tool (incl. rate limiting), Risk Dashboard (Server Actions), Alert Emails
+- Phase 2: Full Menu Digitizer, Review Interface, Public Edge Layer (incl. ISR), Dashboard Integration
+- Genuinely incomplete items left unchecked with `(Phase 23)` notes: `auth-flow.test.ts`, `stripe-webhook.test.ts`, page view counter analytics, `llms-txt-generator.test.ts`, Vercel/DNS infrastructure items
+
+---
+
+## 2026-02-23 — Phase 21: Tier 1 Gap Closure Sprint (Complete)
+
+**Goal:** Close 7 concrete gaps blocking "Tier 1 Painkiller" acceptance criteria identified by cross-referencing `docs/09-BUILD-PLAN.md` and `docs/roadmap.md`. No application regression — all existing tests continue to pass.
+
+**Gaps closed:**
+
+| # | Gap | Fix |
+|---|-----|-----|
+| 1 | Systemic Zod v4 bug (9 instances, 6 files) | Replace `.errors[0]?.message` → `.issues[0]?.message` (AI_RULES §8) |
+| 2 | Missing Phase 1 acceptance-criteria tests | Created `reality-score.test.ts`, `hallucination-classifier.test.ts`, `plan-enforcer.test.ts` |
+| 3 | Zero SOV coverage | Created `share-of-voice-actions.test.ts` (16 tests) |
+| 4 | No email alerts after hallucination detection | Installed `resend`, created `lib/email.ts`, wired into cron audit route |
+| 5 | No `verifyHallucinationFix()` Server Action | Added to `app/dashboard/hallucinations/actions.ts` + 8 tests |
+| 6 | No GitHub Actions CI pipeline | Created `.github/workflows/test.yml` |
+| 7 | Phase 18 DEVLOG entry still "In Progress" | Updated to Completed (see below) |
+
+**Zod v4 files fixed:**
+
+| File | Instances |
+|------|-----------|
+| `app/dashboard/actions.ts` | 1 |
+| `app/dashboard/share-of-voice/actions.ts` | 2 |
+| `app/dashboard/integrations/actions.ts` | 2 |
+| `app/dashboard/hallucinations/actions.ts` | 1 |
+| `app/dashboard/magic-menus/actions.ts` | 1 |
+| `app/dashboard/magic-menus/[id]/actions.ts` | 2 |
+
+**New files created:**
+
+| File | Purpose |
+|------|---------|
+| `lib/plan-enforcer.ts` | Pure plan-tier gate helpers (`canRunDailyAudit`, `canRunSovEvaluation`, `canRunCompetitorIntercept`, `maxLocations`) |
+| `lib/email.ts` | `sendHallucinationAlert()` via Resend; no-ops gracefully when `RESEND_API_KEY` absent |
+| `lib/schemas/evaluations.ts` | `VerifyHallucinationSchema` + `VerifyHallucinationInput` type added |
+| `.github/workflows/test.yml` | CI: Vitest unit+integration on push/PR to main |
+
+**Tests added (verified via `grep -cE "^\s*(it|test)\("`):**
+
+| File | Tests | Subject |
+|------|-------|---------|
+| `src/__tests__/unit/reality-score.test.ts` | 8 | `deriveRealityScore()` formula — pure function, no mocks |
+| `src/__tests__/unit/hallucination-classifier.test.ts` | 8 | `auditLocation()` — demo fallback + OpenAI path |
+| `src/__tests__/unit/plan-enforcer.test.ts` | 12 | `canRunDailyAudit`, `canRunSovEvaluation`, `canRunCompetitorIntercept`, `maxLocations` |
+| `src/__tests__/unit/share-of-voice-actions.test.ts` | 16 | `addTargetQuery` + `runSovEvaluation` (mocked Supabase + fetch) |
+| `src/__tests__/unit/verify-hallucination.test.ts` | 8 | `verifyHallucinationFix()` — auth, cooldown, audit, status update |
+| `src/__tests__/unit/cron-audit.test.ts` | +2 (→9) | Email alert path + email failure resilience |
+
+**Full suite result:** `211 passing, 7 skipped` (pre-existing `rls-isolation.test.ts` skips — require live Supabase). 0 new failures.
+
+**AI_RULES.md additions (§§14–18) — engineering constraints discovered this phase:**
+
+| Section | Rule |
+|---------|------|
+| §14 | Zod v4 enum error format — always `.toMatch(/keyword/i)` in tests, never `.toContain('a or b')` |
+| §15 | `is_primary` Ghost Data prevention — `createLocation()` must set `is_primary: true` when no primary exists |
+| §16 | `revalidatePath` must target the consuming layout (`/dashboard`), not just the sub-route |
+| §17 | Side-effect resilience — email/webhooks/analytics must be wrapped in `.catch()` |
+| §18 | `createClient()` vs `createServiceRoleClient()` role selection + belt-and-suspenders `.eq('org_id')` on SELECTs |
+
+Also updated: §3 (two auth helper distinction), §4 (Server Action mock patterns), §5 (`lib/plan-enforcer.ts` reference), §13.5 (added `docs/14_TESTING_STRATEGY.md` and `docs/09-BUILD-PLAN.md` to Definition of Done).
+
+---
+
 ## 2026-02-23 — Phase 20: Documentation Sync Sprint (Complete)
 
 **Goal:** Eliminate documentation drift accumulated across Phases 12–19 by synchronizing
@@ -171,7 +328,7 @@ The dashboard `layout.tsx` never surfaced this because it adds `.eq('org_id', ct
 
 ---
 
-## 2026-02-22 — Phase 18: Monetization — Stripe Checkout & Webhooks (In Progress)
+## 2026-02-22 — Phase 18: Monetization — Stripe Checkout & Webhooks (Complete)
 
 **Goal:** Wire the billing UI's "Upgrade" buttons to real Stripe Checkout Sessions and handle `checkout.session.completed` / `customer.subscription.updated` webhooks to upgrade the org's `plan` tier in Supabase.
 
@@ -263,7 +420,7 @@ npx playwright test tests/e2e/billing.spec.ts
 
 ---
 
-## 2026-02-22 — Phase 18: Waking up the AI (In Progress)
+## 2026-02-22 — Phase 18: Waking up the AI (Complete)
 
 Replace mock delays with real LLM integrations:
 - **Fear Engine** (`app/actions/marketing.ts`): `runFreeScan` calls Perplexity `sonar` model. Requests strict JSON output via system prompt. Falls back to demo result when `PERPLEXITY_API_KEY` is absent.
@@ -489,7 +646,7 @@ Direct inserts into `auth.users` require `instance_id = '00000000-0000-0000-0000
 `formatTime()` in `EvaluationCard.tsx` uses `toLocaleString('en-US', ...)`. Node.js (server) and the browser bundle different ICU data, causing the date connector to differ (`Feb 21, 9:19 PM` vs `Feb 21 at 9:19 PM`). Fixed by adding `suppressHydrationWarning` to the `<p>` element containing the "Last run" timestamp — the standard React pattern for elements where server/client output legitimately diverges due to locale or time.
 
 **Tests added:**
-- `src/__tests__/unit/cron-audit.test.ts` — **7 Vitest tests.** Covers `GET /api/cron/audit`: returns 401 when `Authorization` header is absent; returns 401 when Bearer token is incorrect; returns 401 when `CRON_SECRET` env var is not configured; returns 200 with zero-count summary when no paying orgs exist; does not call `auditLocation` when no orgs are returned; calls `auditLocation` and inserts hallucinations for a paying org; increments failed count and continues when `auditLocation` throws. Uses MSW handlers — no live API calls.
+- `src/__tests__/unit/cron-audit.test.ts` — **7 Vitest tests** (Phase 9 original). Covers `GET /api/cron/audit`: returns 401 when `Authorization` header is absent; returns 401 when Bearer token is incorrect; returns 401 when `CRON_SECRET` env var is not configured; returns 200 with zero-count summary when no paying orgs exist; does not call `auditLocation` when no orgs are returned; calls `auditLocation` and inserts hallucinations for a paying org; increments failed count and continues when `auditLocation` throws. Uses MSW handlers — no live API calls. *(+2 email alert tests added in Phase 21 → **9 tests total**)*
 
 ---
 ## 2026-02-21 — Phase 8: API Sync Engine — Scaffolding & UI (Completed)

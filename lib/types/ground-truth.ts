@@ -65,3 +65,19 @@ export interface Attributes {
   music?: string;
   [key: string]: string | undefined;
 }
+
+// ── 15.5 competitor_intercepts.gap_analysis ──────────────────────────────────
+
+/**
+ * Quantified gap between the user's business and a competitor, as produced by
+ * the GPT-4o-mini Intercept Analysis prompt (Doc 04, Section 3.2).
+ *
+ * Stored in `competitor_intercepts.gap_analysis` (JSONB).
+ * All code that reads or writes this column MUST import this type.
+ */
+export interface GapAnalysis {
+  /** Number of times the competitor was mentioned for the winning factor. */
+  competitor_mentions: number;
+  /** Number of times the user's business was mentioned for the same factor. */
+  your_mentions: number;
+}

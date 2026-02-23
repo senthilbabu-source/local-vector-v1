@@ -353,6 +353,15 @@ Serves the generated Markdown file for AI agents (GPTBot, ClaudeBot).
 
 **Access:** Growth tier and above only. Returns `403` for Starter/Trial.
 
+> **Architectural note (Phase 3):** The Greed Engine endpoints below were implemented
+> as Next.js Server Actions rather than REST Route Handlers. Server Actions are idiomatic
+> for App Router internal mutations and provide RLS-scoped auth automatically via
+> `getSafeAuthContext()`. The four Server Actions in `app/dashboard/compete/actions.ts`
+> cover the full contract: `addCompetitor` (POST /competitors), `deleteCompetitor` (DELETE),
+> `runCompetitorIntercept` (POST /competitors/intercepts — 2-stage Perplexity → GPT-4o-mini),
+> and `markInterceptActionComplete` (PATCH /competitors/intercepts/:id/action).
+> REST endpoints are deferred to Phase 4+ when external API consumers require them.
+
 ### GET `/competitors`
 
 Returns the user's defined competitors.

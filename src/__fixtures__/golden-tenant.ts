@@ -4,6 +4,9 @@
  * Canonical test data used across ALL test suites (Doc 11, Section 3).
  * Every test that needs a realistic business should import from here.
  * Do NOT invent ad-hoc test data.
+ *
+ * Phase 3 additions: MOCK_COMPETITOR and MOCK_INTERCEPT — canonical
+ * competitor intercept fixture data for all Compete page tests.
  */
 
 export const GOLDEN_TENANT = {
@@ -53,6 +56,39 @@ export const GOLDEN_TENANT = {
     full_name: 'Test Owner',
     role: 'owner' as const,
   },
+} as const;
+
+/**
+ * Phase 3 — Canonical competitor fixture for Charcoal N Chill.
+ * UUIDs are stable and match supabase/seed.sql Section 13.
+ * Use in all Competitor Intercept unit and integration tests.
+ */
+export const MOCK_COMPETITOR = {
+  id:                 'a1eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+  org_id:             'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+  competitor_name:    'Cloud 9 Lounge',
+  competitor_address: '123 Main St, Alpharetta, GA 30005',
+  notes:              null,
+} as const;
+
+/**
+ * Phase 3 — Canonical competitor intercept result fixture.
+ * Mirrors the GPT-4o-mini Intercept Analysis output shape (Doc 04, §3.2).
+ * UUIDs are stable and match supabase/seed.sql Section 13.
+ */
+export const MOCK_INTERCEPT = {
+  id:              'a2eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+  org_id:          'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+  competitor_name: 'Cloud 9 Lounge',
+  query_asked:     'Best hookah bar in Alpharetta GA',
+  model_provider:  'openai-gpt4o-mini',
+  winner:          'Cloud 9 Lounge',
+  winner_reason:   'More review mentions of late-night atmosphere and happy hour deals.',
+  winning_factor:  '15 more review mentions of "late night" atmosphere',
+  gap_analysis:    { competitor_mentions: 15, your_mentions: 2 },
+  gap_magnitude:   'high',
+  suggested_action:'Ask 3 customers to mention "late night" in their reviews this week',
+  action_status:   'pending',
 } as const;
 
 /**

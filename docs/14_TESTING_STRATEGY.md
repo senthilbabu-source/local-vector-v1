@@ -1,7 +1,7 @@
 # LocalVector.ai — Testing Strategy
 
 > **Source:** This document is derived from `DEVLOG.md`, the `src/__tests__/` directory,
-> and the `tests/e2e/` directory as of Phase 19.
+> and the `tests/e2e/` directory as of Phase 3 (Competitor Intercept).
 > All test counts are from the live `vitest run` and `playwright test` outputs.
 
 ---
@@ -10,9 +10,9 @@
 
 LocalVector.ai uses a two-layer test stack:
 
-| Layer | Runner | Command | Result (Phase 19) |
-|-------|--------|---------|-------------------|
-| Unit + Integration | Vitest | `npx vitest run` | 157 passing, 7 skipped, 1 failing suite (pre-existing) |
+| Layer | Runner | Command | Result (Phase 3) |
+|-------|--------|---------|------------------|
+| Unit + Integration | Vitest | `npx vitest run` | 243 passing, 7 skipped, 1 failing suite (pre-existing) |
 | E2E Functional | Playwright | `npx playwright test` | 25 passing, 0 failing |
 
 Tests MUST NOT call live external APIs (AI_RULES §4):
@@ -41,12 +41,20 @@ Tests MUST NOT call live external APIs (AI_RULES §4):
 | `src/__tests__/unit/app/dashboard/layout.test.ts` | Auth Guard, Onboarding Guard (5 cases), Render Props | 16 | 0 | Phase 12: Dashboard layout guard logic |
 | `src/__tests__/unit/components/onboarding/TruthCalibrationForm.test.tsx` | Step 1: Business Name, Step 2: Amenities, Step 3: Hours, Submit | 32 | 0 | Phase 12: Truth Calibration 3-step wizard |
 | `src/__tests__/integration/onboarding-actions.test.ts` | Auth/authz, Zod validation, DB update, closed-day encoding, error handling | 15 | 0 | Phase 12: `saveGroundTruth()` Server Action |
-| `src/__tests__/unit/cron-audit.test.ts` | GET /api/cron/audit | 7 | 0 | Phase 9: Cron audit route |
-| `src/__tests__/unit/generateMenuJsonLd.test.ts` | Restaurant structure, Menu sections, MenuItem, suitableForDiet, subjectOf | 21 | 0 | Phase 15: Menu JSON-LD generation |
-| `src/__tests__/unit/parseCsvMenu.test.ts` | parseLocalVectorCsv, getLocalVectorCsvTemplate | 17 | 0 | Phase 14.5: CSV upload parsing |
+| `src/__tests__/unit/cron-audit.test.ts` | GET /api/cron/audit | 9 | 0 | Phase 9+21: Cron audit route + email alerts |
+| `src/__tests__/unit/generateMenuJsonLd.test.ts` | Restaurant structure, Menu sections, MenuItem, suitableForDiet, subjectOf | 30 | 0 | Phase 15: Menu JSON-LD generation |
+| `src/__tests__/unit/parseCsvMenu.test.ts` | parseLocalVectorCsv, getLocalVectorCsvTemplate | 20 | 0 | Phase 14.5: CSV upload parsing |
+| `src/__tests__/unit/reality-score.test.ts` | deriveRealityScore | 8 | 0 | Phase 21: `deriveRealityScore()` pure formula |
+| `src/__tests__/unit/hallucination-classifier.test.ts` | demo fallback, with API key | 8 | 0 | Phase 21: `auditLocation()` — demo + OpenAI path |
+| `src/__tests__/unit/plan-enforcer.test.ts` | canRunDailyAudit, canRunSovEvaluation, canRunCompetitorIntercept, maxLocations, maxCompetitors | 16 | 0 | Phase 21 + pre-Phase 3: Plan-tier gate helpers (maxCompetitors added) |
+| `src/__tests__/unit/share-of-voice-actions.test.ts` | addTargetQuery, runSovEvaluation | 16 | 0 | Phase 21: SOV Server Actions (mocked Supabase + fetch) |
+| `src/__tests__/unit/verify-hallucination.test.ts` | verifyHallucinationFix | 8 | 0 | Phase 21: `verifyHallucinationFix()` Server Action |
+| `src/__tests__/unit/rate-limit.test.ts` | runFreeScan — rate limiting | 6 | 0 | Phase 22: IP-based rate limit via Vercel KV — under limit, at limit, over limit, TTL, KV absent, KV throws |
+| `src/__tests__/unit/competitor-actions.test.ts` | addCompetitor (7), deleteCompetitor (3), runCompetitorIntercept (8), markInterceptActionComplete (4) | 22 | 0 | Phase 3: Competitor Intercept Server Actions — auth, plan gate, Zod, 2-stage LLM mock, org_id scope, gap_analysis JSONB |
 | `src/__tests__/integration/rls-isolation.test.ts` | *(pre-existing failure)* | — | 7 | RLS cross-tenant isolation — requires live DB; fails in CI without `supabase db reset` |
 
-**Total (active suites):** 15+7+22+16+32+15+20+30 = **157 passing** across 8 suites (plus 7 skipped in rls-isolation)
+**Total (active suites):** 15+22+16+32+15+9+30+20+8+8+16+16+8+6+22 = **243 passing** across 15 suites (plus 7 skipped in rls-isolation)
+*(Phase 22 correction: `generateMenuJsonLd.test.ts` count updated 21→30, `parseCsvMenu.test.ts` updated 17→20 — stale counts in Phase 21 docs; actual Vitest output was always 217 basis for new total. Pre-Phase 3: `plan-enforcer.test.ts` updated 12→16 after adding `maxCompetitors` tests. Phase 3: `competitor-actions.test.ts` +22.)*
 
 ### Key validation subjects
 
@@ -176,4 +184,4 @@ npx playwright test --ui
 
 ---
 
-> **Last updated:** Phase 19 (2026-02-22) — 25/25 E2E + 157 unit/integration passing.
+> **Last updated:** Phase 3 Competitor Intercept (2026-02-23) — 25/25 E2E + 243 unit/integration passing.

@@ -5,9 +5,12 @@ import { createClient } from '@/lib/supabase/server';
 import { getSafeAuthContext } from '@/lib/auth';
 import {
   RunEvaluationSchema,
+  VerifyHallucinationSchema,
   type RunEvaluationInput,
+  type VerifyHallucinationInput,
   type EvaluationEngine,
 } from '@/lib/schemas/evaluations';
+import { auditLocation } from '@/lib/services/ai-audit.service';
 
 // ---------------------------------------------------------------------------
 // Shared result type
@@ -207,7 +210,7 @@ export async function runAIEvaluation(
   if (!parsed.success) {
     return {
       success: false,
-      error: parsed.error.errors[0]?.message ?? 'Invalid input',
+      error: parsed.error.issues[0]?.message ?? 'Invalid input',
     };
   }
 
@@ -272,4 +275,136 @@ export async function runAIEvaluation(
 
   revalidatePath('/dashboard/hallucinations');
   return { success: true };
+}
+
+// ---------------------------------------------------------------------------
+// verifyHallucinationFix
+// ---------------------------------------------------------------------------
+
+export type VerifyResult =
+  | { success: true; newStatus: 'fixed' | 'open' }
+  | { success: false; error: string; retryAfterSeconds?: number };
+
+/**
+ * Server Action: re-run the AI audit for a specific hallucination to check
+ * whether the fix has propagated.
+ *
+ * Flow:
+ *  1. Authenticate and derive org_id server-side.
+ *  2. Validate input via VerifyHallucinationSchema.
+ *  3. Fetch the hallucination by ID (RLS-scoped — org isolation is automatic).
+ *  4. Cooldown check: if correction_status === 'verifying', return 429-equivalent
+ *     to prevent rapid re-checks during the AI propagation window.
+ *  5. Mark the hallucination as 'verifying' and refresh last_seen_at.
+ *  6. Fetch the linked location for ground-truth data.
+ *  7. Call auditLocation() to get a fresh AI opinion.
+ *  8. Compare results: if any returned hallucination's claim_text loosely
+ *     matches the original, mark 'open'; otherwise mark 'fixed'.
+ *  9. Persist the new correction_status (and resolved_at if fixed).
+ * 10. revalidatePath('/dashboard') so the AlertFeed and Reality Score refresh.
+ *
+ * SECURITY: org_id is derived server-side. RLS on ai_hallucinations ensures
+ * the authenticated user can only read/update their own org's rows.
+ *
+ * API contract reference: Doc 05 Section 1.1 — 24h cooldown rule.
+ */
+export async function verifyHallucinationFix(
+  input: VerifyHallucinationInput
+): Promise<VerifyResult> {
+  // ── Auth ──────────────────────────────────────────────────────────────────
+  const ctx = await getSafeAuthContext();
+  if (!ctx?.orgId) {
+    return { success: false, error: 'Unauthorized' };
+  }
+
+  // ── Input validation ──────────────────────────────────────────────────────
+  const parsed = VerifyHallucinationSchema.safeParse(input);
+  if (!parsed.success) {
+    return {
+      success: false,
+      error: parsed.error.issues[0]?.message ?? 'Invalid input',
+    };
+  }
+
+  const { hallucination_id } = parsed.data;
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const supabase = (await createClient()) as any;
+
+  // ── Fetch hallucination (RLS-scoped) ──────────────────────────────────────
+  const { data: hallucination, error: fetchError } = await supabase
+    .from('ai_hallucinations')
+    .select('id, location_id, claim_text, correction_status')
+    .eq('id', hallucination_id)
+    .single();
+
+  if (fetchError || !hallucination) {
+    return { success: false, error: 'Hallucination not found or access denied' };
+  }
+
+  // ── Cooldown check ────────────────────────────────────────────────────────
+  // If correction_status is already 'verifying', the previous check is still
+  // in the AI propagation window. Enforce a 24h cooldown.
+  if (hallucination.correction_status === 'verifying') {
+    return {
+      success: false,
+      error: 'Verification cooldown active. AI models need 24 hours to update.',
+      retryAfterSeconds: 86400,
+    };
+  }
+
+  // ── Mark as verifying ─────────────────────────────────────────────────────
+  await supabase
+    .from('ai_hallucinations')
+    .update({
+      correction_status: 'verifying',
+      last_seen_at: new Date().toISOString(),
+    })
+    .eq('id', hallucination_id);
+
+  // ── Fetch linked location ─────────────────────────────────────────────────
+  const { data: location, error: locError } = await supabase
+    .from('locations')
+    .select('id, org_id, business_name, city, state, address_line1, hours_data, amenities')
+    .eq('id', hallucination.location_id)
+    .single();
+
+  if (locError || !location) {
+    // Location gone — treat as fixed (no longer detectable)
+    await supabase
+      .from('ai_hallucinations')
+      .update({ correction_status: 'fixed', resolved_at: new Date().toISOString() })
+      .eq('id', hallucination_id);
+    revalidatePath('/dashboard');
+    return { success: true, newStatus: 'fixed' };
+  }
+
+  // ── Re-run audit ──────────────────────────────────────────────────────────
+  const freshHallucinations = await auditLocation(location);
+
+  // ── Determine new status ──────────────────────────────────────────────────
+  // If any returned hallucination's claim_text loosely matches the original,
+  // the issue is still present → keep as 'open'. Otherwise → 'fixed'.
+  const originalClaimLower = (hallucination.claim_text as string).toLowerCase();
+  const stillPresent = freshHallucinations.some((h) =>
+    h.claim_text.toLowerCase().includes(originalClaimLower.slice(0, 20))
+  );
+
+  const newStatus: 'fixed' | 'open' = stillPresent ? 'open' : 'fixed';
+
+  const updatePayload: Record<string, unknown> = {
+    correction_status: newStatus,
+    last_seen_at: new Date().toISOString(),
+  };
+  if (newStatus === 'fixed') {
+    updatePayload.resolved_at = new Date().toISOString();
+  }
+
+  await supabase
+    .from('ai_hallucinations')
+    .update(updatePayload)
+    .eq('id', hallucination_id);
+
+  revalidatePath('/dashboard');
+  return { success: true, newStatus };
 }

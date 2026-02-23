@@ -49,7 +49,9 @@ async function fetchDashboardData() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const supabase = (await createClient()) as any;
 
-  const [openResult, fixedResult] = await Promise.all([
+  const monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString();
+
+  const [openResult, fixedResult, interceptResult] = await Promise.all([
     // Open alerts — columns AlertFeed and RealityScoreCard need.
     supabase
       .from('ai_hallucinations')
@@ -65,6 +67,12 @@ async function fetchDashboardData() {
       .from('ai_hallucinations')
       .select('*', { count: 'exact', head: true })
       .eq('correction_status', 'fixed') as Promise<{ count: number | null; error: unknown }>,
+
+    // Count of competitor intercept analyses run this calendar month.
+    supabase
+      .from('competitor_intercepts')
+      .select('id', { count: 'exact', head: true })
+      .gte('created_at', monthStart) as Promise<{ count: number | null; error: unknown }>,
   ]);
 
   const rawOpen = openResult.data ?? [];
@@ -78,7 +86,8 @@ async function fetchDashboardData() {
 
   return {
     openAlerts,
-    fixedCount: fixedResult.count ?? 0,
+    fixedCount:           fixedResult.count ?? 0,
+    interceptsThisMonth:  interceptResult.count ?? 0,
   };
 }
 
@@ -113,7 +122,7 @@ export default async function DashboardPage() {
     redirect('/login');
   }
 
-  const { openAlerts, fixedCount } = await fetchDashboardData();
+  const { openAlerts, fixedCount, interceptsThisMonth } = await fetchDashboardData();
   const scores = deriveRealityScore(openAlerts.length);
   const firstName = ctx.fullName?.split(' ')[0] ?? ctx.email.split('@')[0];
   const hasOpenAlerts = openAlerts.length > 0;
@@ -151,7 +160,7 @@ export default async function DashboardPage() {
       )}
 
       {/* ── Quick Stats Row (Doc 06 §3) ───────────────────────────── */}
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <QuickStat
           label="Hallucinations fixed"
           value={fixedCount}
@@ -163,10 +172,14 @@ export default async function DashboardPage() {
           color={hasOpenAlerts ? 'text-alert-crimson' : 'text-truth-emerald'}
         />
         <QuickStat
+          label="Intercept analyses"
+          value={interceptsThisMonth}
+          color="text-electric-indigo"
+        />
+        <QuickStat
           label="AI Visibility Score"
           value={`${scores.visibility}/100`}
           color="text-electric-indigo"
-          className="col-span-2 sm:col-span-1"
         />
       </div>
 

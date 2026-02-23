@@ -1,0 +1,57 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  unit-and-integration:
+    name: Vitest (unit + integration)
+    runs-on: ubuntu-latest
+
+    env:
+      # Supabase — dummy values for unit/integration tests (all DB calls are mocked)
+      NEXT_PUBLIC_SUPABASE_URL: http://localhost:54321
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: dummy-anon-key
+      SUPABASE_SERVICE_ROLE_KEY: dummy-service-role-key
+
+      # Auth
+      CRON_SECRET: test-cron-secret
+
+      # External APIs — intentionally empty so all fallback/mock paths activate
+      # MSW intercepts any calls that reach the network layer in integration tests
+      OPENAI_API_KEY: ''
+      PERPLEXITY_API_KEY: ''
+
+      # Email — empty so sendHallucinationAlert no-ops without hitting Resend
+      RESEND_API_KEY: ''
+
+      # Stripe — cleared so billing routes use demo branch (no charges)
+      STRIPE_SECRET_KEY: ''
+      STRIPE_WEBHOOK_SECRET: ''
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run unit + integration tests
+        run: npm test
+        # npm test = vitest run (src/__tests__/unit/ + src/__tests__/integration/)
+        # All external API calls are mocked — no live DB or API keys required.
+
+      # NOTE: Playwright E2E tests require a live Supabase local stack with the full
+      # auth trigger chain (on_auth_user_created → on_user_created) and are run
+      # locally via `npx playwright test`. They are excluded from this CI job
+      # because provisioning Supabase in CI adds significant complexity and is
+      # tracked as a separate CD concern.

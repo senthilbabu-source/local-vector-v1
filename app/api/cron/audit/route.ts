@@ -32,6 +32,7 @@ import {
   auditLocation,
   type DetectedHallucination,
 } from '@/lib/services/ai-audit.service';
+import { sendHallucinationAlert } from '@/lib/email';
 
 // Force dynamic so Vercel never caches this route between cron invocations.
 export const dynamic = 'force-dynamic';
@@ -128,6 +129,33 @@ export async function GET(request: NextRequest) {
         }
 
         summary.hallucinations_inserted += hallucinations.length;
+
+        // ── 7. Notify org owner via email ───────────────────────────────
+        // Fetch the org owner's email via the memberships → users join.
+        // .catch() ensures email failures never abort the cron run.
+        const { data: membershipRow } = await supabase
+          .from('memberships')
+          .select('users(email)')
+          .eq('org_id', org.id)
+          .eq('role', 'owner')
+          .limit(1)
+          .maybeSingle();
+
+        const ownerEmail = (
+          membershipRow?.users as { email: string } | null
+        )?.email;
+
+        if (ownerEmail) {
+          await sendHallucinationAlert({
+            to: ownerEmail,
+            orgName: org.name,
+            businessName: location.business_name,
+            hallucinationCount: hallucinations.length,
+            dashboardUrl: 'https://app.localvector.ai/dashboard',
+          }).catch((err: unknown) =>
+            console.error('[cron-audit] Email send failed:', err)
+          );
+        }
       }
 
       summary.processed++;

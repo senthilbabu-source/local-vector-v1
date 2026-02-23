@@ -11,26 +11,64 @@
 //   payload — no real API credits consumed. The URL must exactly match the MSW
 //   handler registered in src/mocks/handlers.ts.
 //
+// Rate limiting (Phase 22):
+//   IP-based, 5 scans per IP per 24 hours via Vercel KV (Upstash Redis).
+//   Bypassed automatically when KV_REST_API_URL is absent (dev / CI).
+//   KV unavailability is absorbed by try/catch — never aborts the scan (AI_RULES §17).
+//   Note: @vercel/kv is deprecated; production deployments should use the Upstash
+//   Redis integration from the Vercel Marketplace (env vars are identical).
+//
 // Graceful degradation:
 //   • Missing PERPLEXITY_API_KEY → immediate demo fallback (keeps CI green).
 //   • Non-OK HTTP response       → demo fallback.
 //   • JSON parse / Zod failure   → text-detection fallback.
 //   • Any uncaught error         → demo fallback.
 
+import { headers } from 'next/headers';
+import { kv } from '@vercel/kv';
 import { z } from 'zod';
 
 // ---------------------------------------------------------------------------
 // Public types
 // ---------------------------------------------------------------------------
 
-export type ScanResult = {
-  status: 'fail';
-  engine: string;
-  severity: 'critical' | 'high' | 'medium';
-  claim_text: string;
-  expected_truth: string;
-  business_name: string;
-};
+export type ScanResult =
+  | {
+      status: 'fail';
+      engine: string;
+      severity: 'critical' | 'high' | 'medium';
+      claim_text: string;
+      expected_truth: string;
+      business_name: string;
+    }
+  | {
+      status: 'rate_limited';
+      retryAfterSeconds: number;
+    };
+
+// ---------------------------------------------------------------------------
+// Rate limiting — 5 scans per IP per 24 hours (AI_RULES §17: .catch pattern)
+// ---------------------------------------------------------------------------
+
+const RATE_LIMIT_MAX    = 5;
+const RATE_LIMIT_WINDOW = 86400; // seconds (24 h)
+
+async function checkRateLimit(
+  ip: string
+): Promise<{ allowed: boolean; retryAfterSeconds: number }> {
+  // KV not configured (dev / CI) → allow all scans, no tracking
+  if (!process.env.KV_REST_API_URL) return { allowed: true, retryAfterSeconds: 0 };
+
+  const key   = `ratelimit:scan:${ip}`;
+  const count = await kv.incr(key);
+  if (count === 1) await kv.expire(key, RATE_LIMIT_WINDOW); // set TTL on first hit only
+
+  if (count > RATE_LIMIT_MAX) {
+    const ttl = await kv.ttl(key);
+    return { allowed: false, retryAfterSeconds: Math.max(ttl, 0) };
+  }
+  return { allowed: true, retryAfterSeconds: 0 };
+}
 
 // ---------------------------------------------------------------------------
 // Internal — Zod schema for the Perplexity JSON response
@@ -68,6 +106,18 @@ export async function runFreeScan(formData: FormData): Promise<ScanResult> {
   const businessName =
     (formData.get('businessName') as string | null)?.trim() || 'Your Business';
   const city = (formData.get('city') as string | null)?.trim() || '';
+
+  // ── Rate limiting ──────────────────────────────────────────────────────────
+  // Vercel sets x-forwarded-for on production; falls back to 'unknown' in dev.
+  // Wrapped in try/catch: KV unavailability must never abort the scan (AI_RULES §17).
+  try {
+    const headersList = await headers();
+    const ip = headersList.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown';
+    const { allowed, retryAfterSeconds } = await checkRateLimit(ip);
+    if (!allowed) return { status: 'rate_limited', retryAfterSeconds };
+  } catch {
+    // KV unreachable — allow the scan
+  }
 
   const apiKey = process.env.PERPLEXITY_API_KEY;
 

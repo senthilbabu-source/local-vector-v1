@@ -28,8 +28,29 @@ export default function ViralScanner() {
     });
   }
 
-  // ── Result card ────────────────────────────────────────────────────────
-  if (result) {
+  // ── Rate-limited card ──────────────────────────────────────────────────
+  if (result?.status === 'rate_limited') {
+    return (
+      <div data-testid="rate-limited-card" className="w-full rounded-2xl bg-surface-dark border-2 border-yellow-500/40 p-6 space-y-4 text-center">
+        <p className="text-base font-semibold text-yellow-400">Daily scan limit reached</p>
+        <p className="text-sm text-slate-400">
+          You&apos;ve used your 5 free scans for today.
+          {result.retryAfterSeconds > 0
+            ? ` Try again in ${Math.ceil(result.retryAfterSeconds / 3600)} hour(s).`
+            : ' Try again tomorrow.'}
+        </p>
+        <a
+          href="/login"
+          className="inline-block text-sm text-electric-indigo underline underline-offset-2"
+        >
+          Sign up for unlimited scans →
+        </a>
+      </div>
+    );
+  }
+
+  // ── Hallucination result card ───────────────────────────────────────────
+  if (result?.status === 'fail') {
     return (
       <div data-testid="hallucination-card" className="w-full rounded-2xl bg-surface-dark border-2 border-alert-crimson p-6 space-y-5">
 
