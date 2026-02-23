@@ -2,6 +2,140 @@
 
 ---
 
+## 2026-02-23 — Phase 20: Documentation Sync Sprint (Complete)
+
+**Goal:** Eliminate documentation drift accumulated across Phases 12–19 by synchronizing
+`AI_RULES.md` and the `/docs` directory with the engineering realities captured in `DEVLOG.md`
+and the completed test suites. No application code modified.
+
+**Changes made:**
+
+| File | Change |
+|------|--------|
+| `AI_RULES.md` | Added §§7–13: UUID hex constraint, Zod v4 `issues` syntax, ground-truth types, `hours_data` closed-day encoding, RLS Shadowban pattern, Tailwind literal classes, DEVLOG living record rule (§13 — Definition of Done checklist, test count verification, entry format) |
+| `supabase/seed.sql` | Audited — all UUIDs confirmed valid hex (0-9, a-f); `hours_data` encoding verified correct. No changes required. |
+| `docs/13_CORE_LOOP_V1.md` | **Created.** Documents the 5-stage V1 user journey (Acquire → Calibrate → Monitor → Fix → Distribute) with exact component/file references and E2E coverage links for each stage. |
+| `docs/14_TESTING_STRATEGY.md` | **Created.** Documents the two-layer test stack (Vitest 157 passing + Playwright 25 passing), full suite inventory with test counts, key engineering decisions, and the `npx supabase db reset` prerequisite. Corrected test counts (verified via `grep -cE`): `layout.test.ts` 15→16, `TruthCalibrationForm.test.tsx` 26→32, `onboarding-actions.test.ts` 16→15, `cron-audit.test.ts` 10→7. |
+| `DEVLOG.md` | Added Phase 12.5 entry (85 unit tests for Phase 11+12 debt). Added "Tests added" subsections to Phase 9 (cron-audit: 7 tests) and Phase 11 (DashboardShell: cross-reference). Fixed `auth-routes.test.ts` count 13→15. Marked "Testing Debt" Lessons Learned bullet as ✅ Cleared. |
+
+**New AI_RULES sections (§§7–12) — sources:**
+
+| Rule | Source in DEVLOG |
+|------|-----------------|
+| §7 UUID hex constraint | "Lessons Learned / Edge Cases" — Phase 10 UUID bug (`g0`/`g1` prefix crash) |
+| §8 Zod v4 `issues` syntax | `app/onboarding/actions.ts` uses `.issues[0]`; multiple other files have the old `.errors[0]` pattern that this rule corrects |
+| §9 Ground truth types | "Lessons Learned" — "Doc 03 §15 Types Rule (Phase 12 retrospective)" |
+| §10 `hours_data` closed-day encoding | "Lessons Learned" — "`hours_data` closed-day encoding (Phase 12 retrospective)" |
+| §11 RLS Shadowban | Phase 4 — "🔴 The RLS Shadowban (Most Critical Learning from Phase 4)" |
+| §12 Tailwind literal classes | `DashboardShell.test.tsx` class assertions + Phase 11 Deep Night design tokens |
+
+---
+
+## 2026-02-22 — Bug Fix: "Ghost Data" — New User's Location Disappears After Navigation
+
+**Symptoms reported:**
+1. New user signs up → bypasses onboarding guard → adds a location → location briefly appears.
+2. After navigating away and back, the location "disappears" (unusable for magic-menus).
+3. Magic-menus page shows "No location found" even though the location IS in the DB.
+
+**Root cause: `createLocation` never set `is_primary = TRUE`.**
+
+The DB schema defaults `is_primary` to `FALSE`. Every query that matters in the product filters by `.eq('is_primary', true)`:
+- `DashboardLayout` OnboardingGuard — finds `null` → guard never fires → user bypasses onboarding
+- `app/dashboard/magic-menus/page.tsx` → finds `null` → "No location found"
+- `app/onboarding/page.tsx` → finds `null` → redirects back to dashboard
+
+Result: the location existed in `locations` table (visible on the Locations list page), but was invisible to every other feature. Users perceived this as the location "disappearing."
+
+**Secondary bug: `fetchLocations()` had no `org_id` filter.**
+
+The function relied entirely on RLS. Because two SELECT policies are OR'd by PostgreSQL (`org_isolation_select` + `public_published_location`), any org that has published a magic_menu has its location exposed to all authenticated users. A new user might see Charcoal N Chill's location in their list.
+
+**Fixes applied:**
+
+| File | Change |
+|------|--------|
+| `app/dashboard/actions.ts` | `createLocation`: check if org has an existing primary location; if not, set `is_primary: true`. Also revalidates `/dashboard` (not just `/dashboard/locations`) so the OnboardingGuard fires on the next RSC render. |
+| `app/dashboard/locations/page.tsx` | `fetchLocations(orgId)` now accepts and applies an explicit `.eq('org_id', orgId)` filter — belt-and-suspenders alongside RLS. |
+| `app/dashboard/layout.tsx` | Added comment explaining why the 0-location case intentionally does NOT redirect: doing so causes an infinite loop because `/dashboard/locations` is inside this layout. The `createLocation` fix makes the guard fire naturally after the first location is added. |
+
+**Intended user flow after fix:**
+1. New user signs up → 0 locations → guard doesn't fire → sees dashboard + Locations empty state.
+2. User clicks "Add Location" → `createLocation` inserts with `is_primary: TRUE`.
+3. `revalidatePath('/dashboard')` fires → RSC re-render → OnboardingGuard finds primary location with null data → **redirects to `/onboarding`**.
+4. User completes onboarding form → `saveGroundTruth` updates `hours_data` + `amenities`.
+5. Guard no longer fires. Dashboard is fully operational.
+
+---
+
+## 2026-02-22 — Phase 19: E2E Test Hardening Sprint (Complete)
+
+**Goal:** Pay down Phases 12–16 testing debt with a definitive Playwright E2E Functional Test Suite. No app code modified — only test infrastructure and the five new spec files.
+
+**Test suite: 25 tests across 10 spec files — 25/25 passing in ~28s**
+
+| Spec | Tests | Coverage |
+|------|-------|----------|
+| `01-viral-wedge.spec.ts` | 3 | Public scanner → hallucination card → CTA → /login |
+| `02-onboarding-guard.spec.ts` | 1 | Auth guard fires, wizard completes, /dashboard redirect |
+| `03-dashboard-fear-first.spec.ts` | 5 | AlertFeed leads, Reality Score=87, hamburger, Listings nav |
+| `04-magic-menu-pipeline.spec.ts` | 1 | Simulate AI Parsing → triage → certify → publish → modal |
+| `05-public-honeypot.spec.ts` | 4 | JSON-LD, llms.txt, ai-config.json |
+
+**Infrastructure delivered:**
+
+| File | Purpose |
+|------|---------|
+| `tests/e2e/global.setup.ts` | Admin API provisioning: e2e-tester@ (delete+recreate), reset incomplete@ location, reset upload@ magic menu. Saves 4 auth sessions. |
+| `playwright.config.ts` | Updated: serial workers (workers:1) to prevent intra-run race on shared upload@ user; MSW + Stripe-clear web server command. |
+| `tests/e2e/hybrid-upload.spec.ts` | Added beforeAll reset hook so CSV upload path always starts from UploadState regardless of run order. |
+| `tests/e2e/viral-wedge.spec.ts` | Removed racy "Scanning AI Models" isPending assertion. |
+
+**Key engineering decisions:**
+- `workers: 1` serializes spec files to prevent the intra-run race where `hybrid-upload.spec.ts` (beforeAll reset) and `04-magic-menu-pipeline.spec.ts` (create+publish) share the upload@ user
+- Tier count assertions in `04-magic-menu-pipeline.spec.ts` omit exact item counts because real OpenAI (when key is set) returns different confidence values than the deterministic mock fallback
+- `05-public-honeypot.spec.ts` scopes business name heading to `level: 1` to avoid strict mode violation against the Menu schema `<h2>`
+
+---
+
+## 2026-02-22 — Phase 20: Automated Web Audit Engine (In Progress)
+
+**Goal:** A background cron job that scans every paying org's primary location for AI hallucinations and persists findings to `ai_hallucinations`. No user interaction required — fires on a Vercel Cron schedule.
+
+**Architecture (separation of concerns):**
+
+| Layer | File | Responsibility |
+|-------|------|----------------|
+| Route Handler | `app/api/cron/audit/route.ts` | Auth guard → fetch paying orgs → loop → insert results |
+| AI Service | `src/services/ai-audit.service.ts` | Build prompt → call OpenAI → parse & return `DetectedHallucination[]` |
+
+**Security:** Route requires `Authorization: Bearer <CRON_SECRET>`. Uses `createServiceRoleClient()` (service role key, RLS bypassed) — mandatory because there is no user session in a background job. The user-scoped `createClient()` would silently return empty data through RLS.
+
+**Resilience:** Each org is wrapped in an individual `try/catch` inside a `for...of` loop. One org's OpenAI failure does not abort the run — `summary.failed` increments and the loop continues.
+
+**Plan gating:** Only orgs with `plan IN ('growth', 'agency') AND plan_status = 'active'` are processed. Trial and Starter orgs are excluded.
+
+**Demo mode:** When `OPENAI_API_KEY` is absent (local dev, CI), `auditLocation()` returns a single placeholder hallucination so the full insert pipeline can be exercised without a real API key.
+
+**Required env vars:**
+```
+# .env.local (add)
+CRON_SECRET=<generate a random 32-char secret>
+
+# .env.test (add)
+CRON_SECRET=test-cron-secret-abc
+```
+(`OPENAI_API_KEY` is already present from Phase 18 AI wiring.)
+
+**Vercel Cron config** (`vercel.json` — add when deploying):
+```json
+{
+  "crons": [{ "path": "/api/cron/audit", "schedule": "0 6 * * *" }]
+}
+```
+
+---
+
 ## 2026-02-22 — All Playwright E2E Tests Passing ✓
 
 All tests in the suite are now green. Final two fixes were strict mode violations in `tests/e2e/hybrid-upload.spec.ts`:
@@ -141,7 +275,7 @@ Replace mock delays with real LLM integrations:
 
 - **PostgreSQL UUID Syntax Constraints (Phase 10):** When generating mock UUIDs for `seed.sql` files, never increment the starting character beyond `f`. UUIDs are strictly hexadecimal (0-9, a-f). Generating a mock UUID that begins with `g` (e.g., `g0eebc99...`) will cause a fatal `invalid input syntax for type uuid` error during `npx supabase db reset`. Always stick to valid hex characters (e.g., `a`, `b`, `c`, `d`, `e`, `f`) when manually creating dummy UUIDs.
 
-- **Testing Debt (Phases 11–12):** AI_RULES §4 requires test files to be created *before* feature code ("Red-Green-Refactor"). Phases 11 and 12 skipped this step. Tests for the Deep Night shell (Sidebar, TopBar, DashboardShell), the onboarding wizard (TruthCalibrationForm), the saveGroundTruth Server Action, and the dashboard onboarding guard are outstanding. All tests must use the Charcoal N Chill golden-tenant fixture and MSW handlers — no live API calls. This debt must be cleared before any billing or production-readiness work begins.
+- **Testing Debt (Phases 11–12) — ✅ Cleared in Phase 12.5:** AI_RULES §4 requires test files to be created *before* feature code ("Red-Green-Refactor"). Phases 11 and 12 skipped this step. Tests for the Deep Night shell (Sidebar, TopBar, DashboardShell), the onboarding wizard (TruthCalibrationForm), the saveGroundTruth Server Action, and the dashboard onboarding guard were written retroactively in Phase 12.5. See Phase 12.5 for the full test inventory (85 tests: 22 + 16 + 32 + 15). All tests use the Charcoal N Chill golden-tenant fixture and MSW handlers — no live API calls.
 
 - **Doc 03 §15 Types Rule (Phase 12 retrospective):** The canonical JSONB interfaces live in `lib/types/ground-truth.ts`. Every file that touches `hours_data`, `amenities`, `categories`, or `attributes` on the `locations` table MUST import from there. Ad-hoc inline type definitions are a spec violation (AI_RULES §2).
 
@@ -233,6 +367,35 @@ Replace mock delays with real LLM integrations:
 - `supabase/seed.sql` Section 10 — Two open hallucinations (CRITICAL/openai-gpt4o + HIGH/perplexity-sonar) plus one fixed (MEDIUM/google-gemini) for the Charcoal N Chill golden tenant.
 
 ---
+## 2026-02-22 — Phase 12.5: Unit Test Debt Clearance — Phases 11 & 12 (Completed)
+
+**Goal:** Clear the testing debt explicitly flagged in the Lessons Learned section. Phases 11 and
+12 shipped feature code before writing tests, violating AI_RULES §4 ("Red-Green-Refactor"). This
+sprint writes all missing unit and integration tests for Phase 11 shell components and Phase 12
+onboarding components/actions. Every test uses the Charcoal N Chill golden-tenant fixture and MSW
+handlers — no live API calls.
+
+**Tests added:**
+
+- `src/__tests__/unit/components/layout/DashboardShell.test.tsx` — **22 Vitest tests** (Phase 11 debt). Covers the Deep Night shell: `DashboardShell` renders `Sidebar` + `TopBar` + `children`; `Sidebar` active route highlighting via `usePathname()`; `TopBar` hamburger fires `onMenuToggle`. Asserts literal Tailwind tokens (`bg-midnight-slate`, `bg-surface-dark/80`, `border-electric-indigo`) — validates AI_RULES §12 (no dynamic class concatenation).
+
+- `src/__tests__/unit/app/dashboard/layout.test.ts` — **16 Vitest tests** (Phase 12 debt). Covers the Dashboard Layout guard: Auth Guard (no session → redirect `/login`); Onboarding Guard — 5 cases: `hours_data=null & amenities=null` → redirect, `hours_data` populated → pass, `amenities` populated → pass, no primary location → redirect, auth missing → redirect; Render Props (`displayName`, `orgName` passed correctly to `DashboardShell`).
+
+- `src/__tests__/unit/components/onboarding/TruthCalibrationForm.test.tsx` — **32 Vitest tests** (Phase 12 debt). Covers the 3-step onboarding wizard: Step 1 (Business Name text input + prefill); Step 2 (amenity toggle state — Outdoor Seating, Serves Alcohol, Takes Reservations); Step 3 (hours grid — Closed toggle produces `"closed"` literal, time inputs produce `{ open, close }` object per AI_RULES §10); Submit path (calls `saveGroundTruth`, navigates on success, shows error on failure).
+
+- `src/__tests__/integration/onboarding-actions.test.ts` — **15 Vitest tests** (Phase 12 debt). Integration coverage for `saveGroundTruth()` Server Action: authentication & authorisation (unauthenticated → error, missing `orgId` → error); Zod v4 validation — uses `parsed.error.issues[0]` (AI_RULES §8); valid `"closed"` literal accepted; valid `{ open, close }` object accepted; invalid shape rejected; DB update writes correct JSONB to `locations`; Supabase error propagated cleanly.
+
+**Vitest run (these 4 files):**
+```bash
+npx vitest run \
+  src/__tests__/unit/components/layout/DashboardShell.test.tsx \
+  src/__tests__/unit/app/dashboard/layout.test.ts \
+  src/__tests__/unit/components/onboarding/TruthCalibrationForm.test.tsx \
+  src/__tests__/integration/onboarding-actions.test.ts
+# Expected: 85 tests passing (22 + 16 + 32 + 15)
+```
+
+---
 ## 2026-02-22 — Phase 12: Onboarding Guard & Truth Calibration Wizard (Completed)
 
 **Goal:** Enforce ground-truth collection before the dashboard is accessible. A multi-step wizard (Business Name → Amenities → Hours) collects the "Truth Calibration" data that powers the Fear Engine's hallucination comparisons. The dashboard layout acts as a gate: if `hours_data` AND `amenities` are both null on the primary location, the user is redirected to `/onboarding`.
@@ -263,6 +426,9 @@ Replace mock delays with real LLM integrations:
 - `components/layout/DashboardShell.tsx` — `'use client'`. Holds `sidebarOpen` boolean state. Renders mobile backdrop overlay, `Sidebar`, `TopBar`, and `<main>` content slot. Accepts `displayName`, `orgName`, `plan` as server-derived props; passes `children` as the RSC slot.
 
 - `app/dashboard/layout.tsx` — Stripped to a minimal Server Component: fetches auth context, assembles display strings, renders `<DashboardShell>` with children. No client-only APIs.
+
+**Tests added (Phase 12.5 retroactive sprint):**
+- `src/__tests__/unit/components/layout/DashboardShell.test.tsx` — 22 Vitest tests. See Phase 12.5 for full description.
 
 ---
 ## 2026-02-21 — Phase 10: AI Share of Voice (SOV) Dashboard (Completed)
@@ -321,6 +487,9 @@ Direct inserts into `auth.users` require `instance_id = '00000000-0000-0000-0000
 
 **⚠️ Hydration Fix — `toLocaleString()` server/client mismatch (resolved):**
 `formatTime()` in `EvaluationCard.tsx` uses `toLocaleString('en-US', ...)`. Node.js (server) and the browser bundle different ICU data, causing the date connector to differ (`Feb 21, 9:19 PM` vs `Feb 21 at 9:19 PM`). Fixed by adding `suppressHydrationWarning` to the `<p>` element containing the "Last run" timestamp — the standard React pattern for elements where server/client output legitimately diverges due to locale or time.
+
+**Tests added:**
+- `src/__tests__/unit/cron-audit.test.ts` — **7 Vitest tests.** Covers `GET /api/cron/audit`: returns 401 when `Authorization` header is absent; returns 401 when Bearer token is incorrect; returns 401 when `CRON_SECRET` env var is not configured; returns 200 with zero-count summary when no paying orgs exist; does not call `auditLocation` when no orgs are returned; calls `auditLocation` and inserts hallucinations for a paying org; increments failed count and continues when `auditLocation` throws. Uses MSW handlers — no live API calls.
 
 ---
 ## 2026-02-21 — Phase 8: API Sync Engine — Scaffolding & UI (Completed)
@@ -688,7 +857,7 @@ This is left as a deliberate red test — it surfaces the missing policy when `n
 | `app/api/auth/register/route.ts` | `POST /api/auth/register` |
 | `app/api/auth/login/route.ts` | `POST /api/auth/login` |
 | `app/api/auth/logout/route.ts` | `POST /api/auth/logout` |
-| `src/__tests__/unit/auth-routes.test.ts` | 13 unit tests — all passing |
+| `src/__tests__/unit/auth-routes.test.ts` | 15 unit tests — all passing |
 
 ### Architectural Decisions
 
