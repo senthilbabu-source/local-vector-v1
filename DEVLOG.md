@@ -2,6 +2,64 @@
 
 ---
 
+## 2026-02-23 — Sprint 33: Audit Flow — Smart Search + Diagnostic Screen + Public Scan Dashboard
+
+**Goal:** Turn the free ViralScanner into a full value-creation journey that ends on a public
+`/scan` result dashboard, gating the "fixes" behind signup to drive conversions.
+
+**Three parts delivered:**
+
+### Part 1 — Smart Search (URL Mode)
+Added dual-mode input to `ViralScanner.tsx`:
+- Auto-detects URL input via `looksLikeUrl()` regex (`http://`, `domain.com` patterns)
+- URL mode: suppresses Places autocomplete, shows "🔗 Scanning as website URL" hint
+- Passes `url` field to `runFreeScan()` which injects it as context into the Perplexity prompt
+
+### Part 2 — Diagnostic Processing Screen
+Replaced the plain spinner with a high-tech animated overlay during the `scanning` phase:
+- Signal-green pulsing dot + "Running AI Audit" header
+- 4s progress bar using existing `fill-bar` CSS keyframe (no Framer Motion)
+- 6 cycling messages every 650ms with `fade-up` re-animation via `key={msgIndex}` re-mount trick
+
+### Part 3 — Public `/scan` Result Dashboard
+New pages and utilities:
+
+| File | Action |
+|------|--------|
+| `app/scan/page.tsx` | **CREATED** — async Server Component; awaits `searchParams` (Next.js 16); parses URL params |
+| `app/scan/_components/ScanDashboard.tsx` | **CREATED** — `'use client'`; 5-section dashboard (nav, alert, KPIs, competitive, CTA) |
+| `app/scan/_utils/scan-params.ts` | **CREATED** — pure TS: `parseScanParams`, `buildScanParams`, `deriveKpiScores` |
+| `app/scan/_utils/sparkline.ts` | **CREATED** — pure TS: SVG polyline path generator for mini sparklines |
+| `app/_components/ViralScanner.tsx` | **EDITED** — URL mode, diagnostic overlay, `router.push` redirect for actionable results |
+| `app/actions/marketing.ts` | **EDITED** — reads `url` field from FormData; includes in Perplexity prompt |
+| `src/__tests__/unit/scan-params.test.ts` | **CREATED** — 10 unit tests |
+| `docs/Audit_Flow_Architecture.md` | **CREATED** — full architecture reference |
+| `docs/Brand_Strategy.md` | **EDITED** — Sprint 33 added to section map + free scan flow |
+
+**Redirect logic (AI_RULES §24 compliant):**
+- `fail` / `pass` / `not_found` → `router.push('/scan?params')` → ScanDashboard
+- `unavailable` / `rate_limited` → stay inline (not actionable audit results)
+- `invalid` params → simple fallback ("Run a free scan" link)
+
+**KPI honesty (AI_RULES §24 / §20):**
+All four KPI cards carry an "Estimated" badge. Scores are derived from the real Perplexity
+scan result (status + severity) using a fixed derivation table — not invented. They accurately
+reflect urgency without fabricating data.
+
+**TS errors fixed:** Two `phase === 'scanning'` checks that were dead code after early return
+(narrowing issue); one `result.status !== 'invalid'` check after narrowing in ScanDashboard.
+
+**Tests:** 331 passing, 7 skipped (+10 new from `scan-params.test.ts`). Pre-existing
+`rls-isolation.test.ts` failure (requires live DB) unaffected.
+
+```bash
+npx vitest run src/__tests__/unit/scan-params.test.ts   # 10 passing
+npx vitest run                                           # 331 passing, 7 skipped
+npx tsc --noEmit --skipLibCheck                          # 0 new errors (Sprint 33 clean)
+```
+
+---
+
 ## 2026-02-23 — Sprint 32: Landing Page Content Gaps (Items 1, 2, 6)
 
 **Goal:** Add three missing content items identified in landing page audit against brand spec.

@@ -55,7 +55,7 @@ These are LocalVector-owned terms. Use them consistently across all content:
 
 ---
 
-## 5. Landing Page Section Map *(as of Sprint 32)*
+## 5. Landing Page Section Map *(as of Sprint 33)*
 
 | # | Section | Key Message |
 |---|---------|-------------|
@@ -68,6 +68,26 @@ These are LocalVector-owned terms. Use them consistently across all content:
 | 7 | Case Study | $12,000 Steakhouse Hallucination |
 | 8 | Pricing | Free Audit / Starter $29 / AI Shield $59 / Brand Fortress Custom |
 | 9 | Footer | "Defending the Truth for Local Business. Built for the Generative Age." |
+
+### 5a. Free Scan Conversion Flow *(Sprint 33)*
+
+The ViralScanner (§2 Hero CTA) now routes actionable results to a full public dashboard at `/scan`,
+creating a value-creation journey for anonymous users:
+
+```
+Landing page ViralScanner
+    ↓  (submit: fail / pass / not_found)
+/scan?status=...  (ScanDashboard)
+    ↓
+Estimated KPI cards + competitive bars + locked fixes + CTA → /signup
+```
+
+**Key conversion design principles:**
+- Alert banner shows the **real** Perplexity result immediately (no fabrication — AI_RULES §24)
+- KPI scores labeled "Estimated" — urgent numbers derived from real scan status, not invented
+- Competitive bars locked behind a "Real competitor data unlocked after signup" overlay
+- Fixes item 1 is unlocked (real finding); items 2–3 blurred + lock icon to drive signup
+- Primary CTA: "Claim My AI Profile — Start Free" → `/signup`
 
 ---
 

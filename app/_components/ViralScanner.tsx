@@ -1,28 +1,35 @@
 'use client';
 // ---------------------------------------------------------------------------
-// ViralScanner — Free Hallucination Checker (Sprint 29: robust business search)
+// ViralScanner — Free Hallucination Checker (Sprint 33: Audit Flow)
 //
 // State machine:
-//   idle      → name input with debounced Places autocomplete (city hidden)
+//   idle      → name/URL input with debounced Places autocomplete (city hidden)
 //   selected  → business locked, verified address shown, city inferred
 //   manual    → name editable + city input shown (no autocomplete)
-//   scanning  → runFreeScan() in flight
-//   result    → final card (fail / pass / not_found / rate_limited / unavailable)
+//   scanning  → runFreeScan() in flight — shows diagnostic animation
+//   result    → inline result card (unavailable / rate_limited only)
+//               fail / pass / not_found redirect to /scan dashboard
 //
-// Autocomplete:
-//   • Calls /api/public/places/search (new public endpoint, IP rate-limited)
-//   • 300ms debounce, 3-char minimum — matches AddCompetitorForm.tsx pattern
-//   • onMouseDown on items (not onClick) — prevents blur closing dropdown early
-//   • 429 from Places endpoint → "search unavailable" message in dropdown
+// Smart Search (Sprint 33 Part 1):
+//   • Auto-detects URL input (http://, or domain.com pattern)
+//   • URL mode: disables Places autocomplete, passes url to runFreeScan()
+//   • Name mode: Places autocomplete (unchanged from Sprint 29)
 //
-// FormData sent to runFreeScan():
-//   businessName — always present
-//   address      — verified Places address (selected mode), or '' (manual mode)
-//   city         — manual city input, or '' (selected mode uses address)
+// Diagnostic Screen (Sprint 33 Part 2):
+//   • Full panel overlay during scanning with cycling messages + fill-bar
+//   • Uses existing CSS keyframes (fill-bar, fade-up, ping-dot) — no Framer Motion
+//
+// Redirect (Sprint 33 Part 3):
+//   • fail / pass / not_found → router.push('/scan?...') with result encoded
+//   • unavailable / rate_limited → stay inline
+//
+// AI_RULES §24: scan messages describe the process — never fabricated results.
 // ---------------------------------------------------------------------------
 
 import { useState, useTransition, useEffect, type FormEvent } from 'react';
+import { useRouter } from 'next/navigation';
 import { runFreeScan, type ScanResult } from '@/app/actions/marketing';
+import { buildScanParams } from '@/app/scan/_utils/scan-params';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -33,11 +40,37 @@ type Suggestion = { name: string; address: string };
 type Phase = 'idle' | 'selected' | 'manual' | 'scanning' | 'result';
 
 // ---------------------------------------------------------------------------
+// Constants
+// ---------------------------------------------------------------------------
+
+/** UI copy describing the scan process (AI_RULES §24 — process description, not data) */
+const SCAN_MESSAGES = [
+  'Initializing LocalVector Interrogation Engine...',
+  'Scanning ChatGPT-4o for mentions...',
+  'Scraping Perplexity RAG sources for address hallucinations...',
+  'Calculating sentiment delta on Google Gemini...',
+  'Comparing AI visibility against 3 local competitors...',
+  'Finalizing AI Visibility Score (AVS)...',
+] as const;
+
+// ---------------------------------------------------------------------------
+// URL detection helper (module-private, not exported)
+// ---------------------------------------------------------------------------
+
+function looksLikeUrl(input: string): boolean {
+  return (
+    /^https?:\/\//i.test(input) ||
+    /^(www\.)?[\w-]+\.(com|net|org|io|co|ai|app|biz|us)\b/i.test(input)
+  );
+}
+
+// ---------------------------------------------------------------------------
 // ViralScanner
 // ---------------------------------------------------------------------------
 
 export default function ViralScanner() {
   const [isPending, startTransition] = useTransition();
+  const router = useRouter();
 
   // ── Phase / result state ─────────────────────────────────────────────────
   const [phase,  setPhase]  = useState<Phase>('idle');
@@ -51,16 +84,41 @@ export default function ViralScanner() {
   const [noResults,     setNoResults]     = useState(false);
   const [searchError,   setSearchError]   = useState(false); // 429 from Places
 
+  // ── URL mode (Smart Search — Sprint 33) ─────────────────────────────────
+  const [isUrlMode, setIsUrlMode] = useState(false);
+
   // ── Selected business ────────────────────────────────────────────────────
   const [selectedPlace, setSelectedPlace] = useState<Suggestion | null>(null);
 
   // ── Manual mode ──────────────────────────────────────────────────────────
   const [cityInput, setCityInput] = useState('');
 
-  // ── Debounced Places autocomplete (idle phase only) ──────────────────────
+  // ── Diagnostic overlay message index (Sprint 33) ─────────────────────────
+  const [msgIndex, setMsgIndex] = useState(0);
+
+  // ── Message cycling while scanning ────────────────────────────────────────
+  useEffect(() => {
+    if (phase !== 'scanning') {
+      setMsgIndex(0);
+      return;
+    }
+    const id = setInterval(() => {
+      setMsgIndex((i) => Math.min(i + 1, SCAN_MESSAGES.length - 1));
+    }, 650);
+    return () => clearInterval(id);
+  }, [phase]);
+
+  // ── Debounced Places autocomplete (idle phase, name mode only) ───────────
   useEffect(() => {
     if (phase !== 'idle') return;
-    if (selectedPlace) return;                 // already picked — skip
+    if (selectedPlace) return;       // already picked — skip
+    if (isUrlMode) {                 // URL mode — no autocomplete
+      setSuggestions([]);
+      setShowDropdown(false);
+      setNoResults(false);
+      setSearchError(false);
+      return;
+    }
     if (nameInput.trim().length < 3) {
       setSuggestions([]);
       setShowDropdown(false);
@@ -99,7 +157,7 @@ export default function ViralScanner() {
     }, 300);
 
     return () => clearTimeout(id);
-  }, [nameInput, selectedPlace, phase]);
+  }, [nameInput, selectedPlace, phase, isUrlMode]);
 
   // ── Handlers ─────────────────────────────────────────────────────────────
 
@@ -120,6 +178,7 @@ export default function ViralScanner() {
     setNoResults(false);
     setSearchError(false);
     setCityInput('');
+    setIsUrlMode(false);
     setPhase('idle');
     setResult(null);
   }
@@ -138,16 +197,73 @@ export default function ViralScanner() {
     fd.append('businessName', nameInput.trim() || 'Your Business');
     fd.append('address',      selectedPlace?.address ?? '');
     fd.append('city',         phase === 'manual' ? cityInput.trim() : '');
+    fd.append('url',          isUrlMode ? nameInput.trim() : '');
 
     setPhase('scanning');
     startTransition(async () => {
       const scanResult = await runFreeScan(fd);
-      setResult(scanResult);
-      setPhase('result');
+
+      // Redirect actionable results to /scan dashboard (Sprint 33 Part 3)
+      if (
+        scanResult.status === 'fail' ||
+        scanResult.status === 'pass' ||
+        scanResult.status === 'not_found'
+      ) {
+        const params = buildScanParams(scanResult, nameInput.trim());
+        router.push(`/scan?${params.toString()}`);
+      } else {
+        // unavailable / rate_limited: stay inline
+        setResult(scanResult);
+        setPhase('result');
+      }
     });
   }
 
-  // ── Result cards ─────────────────────────────────────────────────────────
+  // ── Diagnostic overlay (scanning phase — Sprint 33 Part 2) ───────────────
+
+  if (phase === 'scanning') {
+    return (
+      <div className="w-full rounded-2xl bg-midnight-slate border border-signal-green/20 p-6 space-y-5">
+        {/* Header with ping dot */}
+        <div className="flex items-center gap-2">
+          <span className="relative flex h-2 w-2 shrink-0">
+            <span
+              className="absolute inline-flex h-full w-full rounded-full bg-signal-green opacity-75"
+              style={{ animation: 'ping-dot 1.5s cubic-bezier(0,0,0.2,1) infinite' }}
+            />
+            <span className="relative inline-flex h-2 w-2 rounded-full bg-signal-green" />
+          </span>
+          <p className="text-xs font-bold uppercase tracking-widest text-signal-green">
+            Running AI Audit
+          </p>
+        </div>
+
+        {/* Progress bar — 4 s fill using existing fill-bar keyframe */}
+        <div className="h-1 w-full rounded-full bg-white/5 overflow-hidden">
+          <div
+            className="h-full rounded-full bg-signal-green"
+            style={{
+              '--bar-w': '100%',
+              animation: 'fill-bar 4s cubic-bezier(0.4,0,0.2,1) forwards',
+            } as React.CSSProperties}
+          />
+        </div>
+
+        {/* Cycling message — key change forces re-mount → retriggeres fade-up */}
+        <p
+          key={msgIndex}
+          className="text-sm text-slate-300 min-h-[1.25rem]"
+          style={{ animation: 'fade-up 0.3s ease-out both' }}
+        >
+          {SCAN_MESSAGES[msgIndex]}
+        </p>
+
+        <p className="text-xs text-slate-600">Powered by LocalVector · Typically 5–10 seconds</p>
+      </div>
+    );
+  }
+
+  // ── Inline result cards (unavailable / rate_limited only) ─────────────────
 
   if (phase === 'result' && result?.status === 'rate_limited') {
     return (
@@ -186,114 +302,7 @@ export default function ViralScanner() {
     );
   }
 
-  if (phase === 'result' && result?.status === 'not_found') {
-    return (
-      <div data-testid="not-found-card" className="w-full rounded-2xl bg-surface-dark border-2 border-slate-600 p-6 space-y-4">
-        <div className="flex items-center gap-3">
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-5 w-5 shrink-0 text-slate-400" aria-hidden>
-            <path d="M9 3.5a5.5 5.5 0 100 11 5.5 5.5 0 000-11zM2 9a7 7 0 1112.452 4.391l3.328 3.329a.75.75 0 11-1.06 1.06l-3.329-3.328A7 7 0 012 9z" />
-          </svg>
-          <p className="text-base font-bold text-slate-300">Not Found in AI Search</p>
-        </div>
-        <div className="rounded-xl bg-midnight-slate border border-white/5 px-4 py-3 space-y-1">
-          <p className="text-xs text-slate-500 uppercase tracking-wide">Business</p>
-          <p className="text-sm font-semibold text-white">{result.business_name}</p>
-        </div>
-        <p className="text-xs text-slate-400 leading-relaxed">
-          {result.engine} has no coverage for this business yet. This means customers
-          searching AI assistants won&apos;t find you — which may be costing you revenue.
-          Set up monitoring to get indexed and stay visible.
-        </p>
-        <a
-          href="/signup"
-          className="flex items-center justify-center gap-2 w-full rounded-xl bg-slate-700 border border-slate-600 px-4 py-3 text-sm font-semibold text-slate-200 hover:bg-slate-600 transition"
-        >
-          Start Free Monitoring
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4 shrink-0" aria-hidden>
-            <path fillRule="evenodd" d="M3 10a.75.75 0 01.75-.75h10.638L10.23 5.29a.75.75 0 111.04-1.08l5.5 5.25a.75.75 0 010 1.08l-5.5 5.25a.75.75 0 11-1.04-1.08l4.158-3.96H3.75A.75.75 0 013 10z" clipRule="evenodd" />
-          </svg>
-        </a>
-      </div>
-    );
-  }
-
-  if (phase === 'result' && result?.status === 'pass') {
-    return (
-      <div data-testid="no-hallucination-card" className="w-full rounded-2xl bg-surface-dark border-2 border-truth-emerald p-6 space-y-4">
-        <div className="flex items-center gap-3">
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-5 w-5 shrink-0 text-truth-emerald" aria-hidden>
-            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z" clipRule="evenodd" />
-          </svg>
-          <p className="text-base font-bold text-truth-emerald">No AI Hallucinations Found</p>
-        </div>
-        <div className="rounded-xl bg-midnight-slate border border-white/5 px-4 py-3 space-y-1">
-          <p className="text-xs text-slate-500 uppercase tracking-wide">Business</p>
-          <p className="text-sm font-semibold text-white">{result.business_name}</p>
-        </div>
-        <p className="text-xs text-slate-400 leading-relaxed">
-          {result.engine} currently shows accurate information about your business.
-          AI hallucinations can appear at any time — set up monitoring so you&apos;re
-          the first to know if that changes.
-        </p>
-        <a
-          href="/signup"
-          className="flex items-center justify-center gap-2 w-full rounded-xl bg-truth-emerald/10 border border-truth-emerald/30 px-4 py-3 text-sm font-semibold text-truth-emerald hover:bg-truth-emerald/20 transition"
-        >
-          Start Free Monitoring
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4 shrink-0" aria-hidden>
-            <path fillRule="evenodd" d="M3 10a.75.75 0 01.75-.75h10.638L10.23 5.29a.75.75 0 111.04-1.08l5.5 5.25a.75.75 0 010 1.08l-5.5 5.25a.75.75 0 11-1.04-1.08l4.158-3.96H3.75A.75.75 0 013 10z" clipRule="evenodd" />
-          </svg>
-        </a>
-      </div>
-    );
-  }
-
-  if (phase === 'result' && result?.status === 'fail') {
-    return (
-      <div data-testid="hallucination-card" className="w-full rounded-2xl bg-surface-dark border-2 border-alert-crimson p-6 space-y-5">
-        <div className="flex items-center gap-3">
-          <span className="flex h-3 w-3 relative">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-alert-crimson opacity-75" />
-            <span className="relative inline-flex rounded-full h-3 w-3 bg-alert-crimson" />
-          </span>
-          <p className="text-base font-bold text-alert-crimson">AI Hallucination Detected</p>
-          <span className="ml-auto rounded-full bg-alert-crimson/15 px-2.5 py-0.5 text-xs font-semibold text-alert-crimson uppercase tracking-wide">
-            {result.severity}
-          </span>
-        </div>
-        <div className="rounded-xl bg-midnight-slate border border-white/5 px-4 py-3 space-y-1">
-          <p className="text-xs text-slate-500 uppercase tracking-wide">Business</p>
-          <p className="text-sm font-semibold text-white">{result.business_name}</p>
-        </div>
-        <div className="grid grid-cols-2 gap-3">
-          <div className="rounded-xl bg-alert-crimson/10 border border-alert-crimson/20 px-4 py-3">
-            <p className="text-xs text-slate-500 mb-1">{result.engine} Claims</p>
-            <p className="text-sm font-semibold text-alert-crimson">{result.claim_text}</p>
-          </div>
-          <div className="rounded-xl bg-truth-emerald/10 border border-truth-emerald/20 px-4 py-3">
-            <p className="text-xs text-slate-500 mb-1">Reality</p>
-            <p className="text-sm font-semibold text-truth-emerald">{result.expected_truth}</p>
-          </div>
-        </div>
-        <p className="text-xs text-slate-400 leading-relaxed">
-          {result.engine} is currently telling potential customers that your business is{' '}
-          <span className="text-alert-crimson font-semibold">{result.claim_text.toLowerCase()}</span>.
-          Every customer who sees this hallucination may visit a competitor instead.
-        </p>
-        <a
-          href="/login"
-          className="flex items-center justify-center gap-2 w-full rounded-xl bg-alert-crimson px-4 py-3 text-sm font-semibold text-white hover:bg-alert-crimson/90 transition"
-        >
-          Claim Your Profile to Fix This Now
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4 shrink-0" aria-hidden>
-            <path fillRule="evenodd" d="M3 10a.75.75 0 01.75-.75h10.638L10.23 5.29a.75.75 0 111.04-1.08l5.5 5.25a.75.75 0 010 1.08l-5.5 5.25a.75.75 0 11-1.04-1.08l4.158-3.96H3.75A.75.75 0 013 10z" clipRule="evenodd" />
-          </svg>
-        </a>
-      </div>
-    );
-  }
-
-  // ── Scan form (idle | selected | manual | scanning) ────────────────────
+  // ── Scan form (idle | selected | manual) ───────────────────────────────────
 
   return (
     <div className="w-full rounded-2xl bg-surface-dark border border-white/10 p-6">
@@ -306,7 +315,7 @@ export default function ViralScanner() {
 
       <form onSubmit={handleSubmit} className="space-y-3">
 
-        {/* ── Business name with autocomplete ──────────────────────────── */}
+        {/* ── Business name / URL with autocomplete ────────────────────── */}
         <div className="relative">
           <input
             name="businessName"
@@ -315,6 +324,7 @@ export default function ViralScanner() {
             value={nameInput}
             onChange={(e) => {
               setNameInput(e.target.value);
+              setIsUrlMode(looksLikeUrl(e.target.value));
               if (selectedPlace) {
                 // user started editing after selection → reset to idle
                 setSelectedPlace(null);
@@ -323,16 +333,14 @@ export default function ViralScanner() {
             }}
             onBlur={() => setTimeout(() => setShowDropdown(false), 150)}
             readOnly={phase === 'selected'}
-            placeholder={
-              isSearching ? 'Searching…' : 'Business Name'
-            }
-            disabled={isPending || phase === 'scanning'}
+            placeholder={isSearching ? 'Searching…' : 'Business Name or Website URL'}
+            disabled={isPending}
             className={[
               'w-full rounded-xl border px-4 py-2.5 text-sm text-white placeholder-slate-600 focus:outline-none transition',
               phase === 'selected'
                 ? 'border-electric-indigo/60 bg-midnight-slate/80 cursor-default'
                 : 'border-white/10 bg-midnight-slate focus:border-electric-indigo/50',
-              isPending || phase === 'scanning' ? 'opacity-50' : '',
+              isPending ? 'opacity-50' : '',
             ].join(' ')}
           />
 
@@ -355,8 +363,15 @@ export default function ViralScanner() {
             </ul>
           )}
 
+          {/* URL mode indicator */}
+          {isUrlMode && phase === 'idle' && (
+            <p className="mt-1.5 text-xs text-signal-green/70">
+              🔗 Scanning as website URL
+            </p>
+          )}
+
           {/* No results / search error hints */}
-          {!isSearching && noResults && nameInput.trim().length >= 3 && phase === 'idle' && (
+          {!isUrlMode && !isSearching && noResults && nameInput.trim().length >= 3 && phase === 'idle' && (
             <p className="mt-1.5 text-xs text-slate-500">
               No results.{' '}
               <button type="button" onClick={handleManualMode} className="text-electric-indigo underline underline-offset-2">
@@ -397,7 +412,7 @@ export default function ViralScanner() {
               value={cityInput}
               onChange={(e) => setCityInput(e.target.value)}
               placeholder="City, State"
-              disabled={isPending || phase === 'scanning'}
+              disabled={isPending}
               className="w-full rounded-xl border border-white/10 bg-midnight-slate px-4 py-2.5 text-sm text-white placeholder-slate-600 focus:outline-none focus:border-electric-indigo/50 disabled:opacity-50 transition"
             />
             <button
@@ -410,8 +425,8 @@ export default function ViralScanner() {
           </>
         )}
 
-        {/* ── Manual fallback link (idle, no error, typing active) ──────── */}
-        {phase === 'idle' && !noResults && !searchError && nameInput.trim().length === 0 && (
+        {/* ── Manual fallback link (idle, no error, empty input) ────────── */}
+        {phase === 'idle' && !noResults && !searchError && !isUrlMode && nameInput.trim().length === 0 && (
           <button
             type="button"
             onClick={handleManualMode}
@@ -424,38 +439,12 @@ export default function ViralScanner() {
         {/* ── Submit ────────────────────────────────────────────────────── */}
         <button
           type="submit"
-          disabled={isPending || phase === 'scanning'}
+          disabled={isPending}
           className="flex items-center justify-center gap-2 w-full rounded-xl bg-electric-indigo px-4 py-2.5 text-sm font-semibold text-white hover:bg-electric-indigo/90 disabled:opacity-60 disabled:cursor-not-allowed transition"
         >
-          {isPending || phase === 'scanning' ? (
-            <>
-              <SpinnerIcon />
-              Scanning AI Models&hellip;
-            </>
-          ) : (
-            'Scan for Hallucinations →'
-          )}
+          Scan for Hallucinations →
         </button>
       </form>
     </div>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// SpinnerIcon
-// ---------------------------------------------------------------------------
-
-function SpinnerIcon() {
-  return (
-    <svg
-      className="h-4 w-4 animate-spin"
-      xmlns="http://www.w3.org/2000/svg"
-      fill="none"
-      viewBox="0 0 24 24"
-      aria-hidden
-    >
-      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-    </svg>
   );
 }

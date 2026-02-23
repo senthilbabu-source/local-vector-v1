@@ -140,6 +140,8 @@ export async function runFreeScan(formData: FormData): Promise<ScanResult> {
   const city    = (formData.get('city')    as string | null)?.trim() || '';
   /** Verified address from Places autocomplete selection (optional) */
   const address = (formData.get('address') as string | null)?.trim() || '';
+  /** Website URL from URL-mode Smart Search (optional) */
+  const url     = (formData.get('url')     as string | null)?.trim() || '';
 
   // ── Rate limiting ──────────────────────────────────────────────────────────
   // Vercel sets x-forwarded-for on production; falls back to 'unknown' in dev.
@@ -188,9 +190,12 @@ export async function runFreeScan(formData: FormData): Promise<ScanResult> {
           },
           {
             role: 'user',
-            content: address
-              ? `Does ChatGPT or other AI models incorrectly report "${businessName}" located at "${address}" as permanently closed?`
-              : `Does ChatGPT or other AI models incorrectly report "${businessName}"${city ? ` in ${city}` : ''} as permanently closed?`,
+            content: (() => {
+              const urlCtx = url ? ` (website: ${url})` : '';
+              return address
+                ? `Does ChatGPT or other AI models incorrectly report "${businessName}" located at "${address}"${urlCtx} as permanently closed?`
+                : `Does ChatGPT or other AI models incorrectly report "${businessName}"${city ? ` in ${city}` : ''}${urlCtx} as permanently closed?`;
+            })(),
           },
         ],
       }),
