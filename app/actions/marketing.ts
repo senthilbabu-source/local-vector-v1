@@ -48,6 +48,15 @@ export type ScanResult =
       business_name: string;
     }
   | {
+      /**
+       * Business exists but Perplexity has no AI-model coverage for it.
+       * May indicate very low AI visibility (not indexed by LLMs).
+       */
+      status: 'not_found';
+      engine: string;
+      business_name: string;
+    }
+  | {
       status: 'rate_limited';
       retryAfterSeconds: number;
     };
@@ -83,6 +92,8 @@ async function checkRateLimit(
 // The system prompt instructs Perplexity to return exactly this shape.
 const PerplexityScanSchema = z.object({
   is_closed:      z.boolean(),
+  /** true when Perplexity cannot find AI-model coverage for this business */
+  is_unknown:     z.boolean().default(false),
   claim_text:     z.string(),
   expected_truth: z.string(),
   // Lowercase per AI_RULES and the PostgreSQL hallucination_severity ENUM.
@@ -111,7 +122,9 @@ function demoFallback(businessName: string): ScanResult {
 export async function runFreeScan(formData: FormData): Promise<ScanResult> {
   const businessName =
     (formData.get('businessName') as string | null)?.trim() || 'Your Business';
-  const city = (formData.get('city') as string | null)?.trim() || '';
+  const city    = (formData.get('city')    as string | null)?.trim() || '';
+  /** Verified address from Places autocomplete selection (optional) */
+  const address = (formData.get('address') as string | null)?.trim() || '';
 
   // ── Rate limiting ──────────────────────────────────────────────────────────
   // Vercel sets x-forwarded-for on production; falls back to 'unknown' in dev.
@@ -149,17 +162,20 @@ export async function runFreeScan(formData: FormData): Promise<ScanResult> {
             content: [
               'You are a business fact-checker.',
               'Respond ONLY with a valid JSON object — no markdown, no explanation.',
-              'Schema: { "is_closed": boolean, "claim_text": string, "expected_truth": string, "severity": "critical"|"high"|"medium" }',
+              'Schema: { "is_closed": boolean, "is_unknown": boolean, "claim_text": string, "expected_truth": string, "severity": "critical"|"high"|"medium" }',
+              'If you cannot find any AI-model coverage for this business at all, set is_unknown=true, is_closed=false.',
               'If AI models (ChatGPT, Perplexity, etc.) report this business as permanently closed:',
-              '  set is_closed=true, claim_text="Permanently Closed", expected_truth="Open".',
-              'If they report it as open:',
-              '  set is_closed=false, claim_text="Open", expected_truth="Open".',
+              '  set is_closed=true, is_unknown=false, claim_text="Permanently Closed", expected_truth="Open".',
+              'If they report it as open (correctly):',
+              '  set is_closed=false, is_unknown=false, claim_text="Open", expected_truth="Open".',
               'Severity MUST be lowercase: critical, high, or medium.',
             ].join(' '),
           },
           {
             role: 'user',
-            content: `Does ChatGPT or other AI models incorrectly report "${businessName}"${city ? ` in ${city}` : ''} as permanently closed?`,
+            content: address
+              ? `Does ChatGPT or other AI models incorrectly report "${businessName}" located at "${address}" as permanently closed?`
+              : `Does ChatGPT or other AI models incorrectly report "${businessName}"${city ? ` in ${city}` : ''} as permanently closed?`,
           },
         ],
       }),
@@ -185,7 +201,14 @@ export async function runFreeScan(formData: FormData): Promise<ScanResult> {
     try {
       const parsed = PerplexityScanSchema.safeParse(JSON.parse(cleaned));
       if (parsed.success) {
-        // Branch on is_closed — AI_RULES §21: always use every parsed field.
+        // Branch on every parsed field — AI_RULES §21: never ignore a parsed boolean.
+        if (parsed.data.is_unknown) {
+          return {
+            status:        'not_found',
+            engine:        'ChatGPT',
+            business_name: businessName,
+          };
+        }
         if (!parsed.data.is_closed) {
           return {
             status:        'pass',

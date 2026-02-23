@@ -167,4 +167,45 @@ describe('runFreeScan — is_closed branching (AI_RULES §21)', () => {
     }
   });
 
+  // ── Sprint 29: address param + not_found status ─────────────────────────
+
+  it('includes address in Perplexity user message when address present in formData', async () => {
+    const capturedBody = { value: '' };
+    vi.stubGlobal('fetch', vi.fn().mockImplementation(async (_url: unknown, opts: { body: string }) => {
+      capturedBody.value = opts.body;
+      return {
+        ok:   true,
+        json: async () => ({
+          choices: [{ message: { content: JSON.stringify({ is_closed: false, is_unknown: false, claim_text: 'Open', expected_truth: 'Open', severity: 'medium' }) } }],
+        }),
+      };
+    }));
+
+    const fd = new FormData();
+    fd.append('businessName', 'Charcoal N Chill');
+    fd.append('address',      '1234 Old Milton Pkwy, Alpharetta, GA 30005, USA');
+    fd.append('city',         '');
+    await runFreeScan(fd);
+
+    const parsed = JSON.parse(capturedBody.value) as { messages: { role: string; content: string }[] };
+    const userMsg = parsed.messages.find((m) => m.role === 'user')?.content ?? '';
+    expect(userMsg).toContain('located at "1234 Old Milton Pkwy, Alpharetta, GA 30005, USA"');
+  });
+
+  it('returns { status: "not_found" } when is_unknown=true from Perplexity', async () => {
+    mockPerplexityOk({ is_closed: false, is_unknown: true, claim_text: '', expected_truth: '', severity: 'medium' });
+    const result = await runFreeScan(makeForm('Ghost Kitchen'));
+    expect(result).toEqual({
+      status:        'not_found',
+      engine:        'ChatGPT',
+      business_name: 'Ghost Kitchen',
+    });
+  });
+
+  it('regression: is_unknown=false + is_closed=false still returns pass (not_found does not shadow pass)', async () => {
+    mockPerplexityOk({ is_closed: false, is_unknown: false, claim_text: 'Open', expected_truth: 'Open', severity: 'medium' });
+    const result = await runFreeScan(makeForm('Healthy Spot'));
+    expect(result.status).toBe('pass');
+  });
+
 });

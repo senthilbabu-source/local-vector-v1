@@ -393,4 +393,21 @@ When you define a Zod schema that includes a boolean (or any field) whose value 
 * **Test requirement:** Unit tests MUST cover both branches (`is_closed=true` → `fail`, `is_closed=false` → `pass`). A test suite that only exercises one branch does not validate the logic.
 
 ---
+
+## 22. 🌐 Public API Endpoint Pattern (Sprint 29)
+
+When a server-side feature must be accessible from an unauthenticated public page (e.g., the marketing landing page), create a **public endpoint** rather than relaxing auth on an existing authenticated endpoint.
+
+* **Namespace:** Public endpoints live under `app/api/public/` — visually distinct from auth-gated `app/api/v1/`.
+  * `app/api/public/places/search/route.ts` — Google Places autocomplete for the ViralScanner
+* **Rate limiting (mandatory):** Every public endpoint MUST implement IP-based rate limiting via Vercel KV (same `kv.incr + kv.expire + kv.ttl` pattern as `checkRateLimit()` in `app/actions/marketing.ts`).
+  * Exceeded → return `Response.json({ error: '...' }, { status: 429 })` — never silently bypass.
+  * `KV_REST_API_URL` absent (dev/CI) → bypass silently. *(AI_RULES §17 — KV is optional infrastructure)*
+  * KV throws → absorb in try/catch and allow the request. *(AI_RULES §17)*
+* **Safe empty response:** On any error (bad API key, network failure, non-200 upstream) → return the empty/safe response shape (e.g., `{ suggestions: [] }`). Never expose stack traces or error messages from upstream services.
+* **MSW registration:** Every new public endpoint must have a corresponding MSW handler in `src/mocks/handlers.ts` so Playwright E2E tests never hit real external APIs. Pattern: `http.get('*/api/public/<path>', ...)`.
+* **No auth guard:** Public endpoints intentionally omit `getSafeAuthContext()`. Do not add session checks — use rate limiting as the only abuse-prevention layer.
+* **Rate limit constants:** Choose limits appropriate to the use case (e.g., 20 searches/IP/hour for autocomplete; 5 scans/IP/day for AI model invocations). Document the rationale in a comment above the constants.
+
+---
 > **End of System Instructions**

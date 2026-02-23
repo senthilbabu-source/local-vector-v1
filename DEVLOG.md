@@ -2,6 +2,40 @@
 
 ---
 
+## 2026-02-23 — Sprint 29: Robust ViralScanner Business Autocomplete
+
+**Scope:** Replaced the raw free-text ViralScanner (Business Name + City inputs) with a state-machine-driven autocomplete backed by a new public Google Places endpoint. Users now select a verified business from a debounced dropdown, which passes the canonical address to Perplexity for a more accurate hallucination check. Added `not_found` scan result state for businesses with no AI coverage, and `is_unknown` Zod field to the Perplexity schema.
+
+| File | Action |
+|------|--------|
+| `app/api/public/places/search/route.ts` | **CREATED** — Public GET endpoint, no auth. 20 searches/IP/hour via Vercel KV (bypass when `KV_REST_API_URL` absent). Proxies Google Places `textsearch/json`, maps results to `{ name, address }[]`, returns max 5 suggestions. 429 JSON on rate exceeded. Any error → `{ suggestions: [] }` (safe). |
+| `app/_components/ViralScanner.tsx` | **REWRITTEN** — State machine (`idle | selected | manual | scanning | result`). Debounced autocomplete (300ms, 3-char min) calling `/api/public/places/search`. `onMouseDown` on dropdown items (not `onClick`) — prevents blur race. `readOnly` name input when `selected`. "Use different" and "Enter manually →" links. Appends `address` (from selection) or `city` (manual) to `FormData`. Added `not_found` result card (slate border, magnifying-glass icon, "Start Free Monitoring → /signup"). |
+| `app/actions/marketing.ts` | **EDITED** — Added `not_found` variant to `ScanResult` type. Added `is_unknown: z.boolean().default(false)` to `PerplexityScanSchema`. Extracts `address` from `FormData`. Refined Perplexity user message: uses `located at "${address}"` when address present. Added `is_unknown` branch before `is_closed` check (AI_RULES §21). Updated system prompt: instructs `is_unknown=true` when no AI coverage found. |
+| `src/mocks/handlers.ts` | **EDITED** — Added `publicPlacesSearchHandler` for `*/api/public/places/search`. Returns deterministic `Charcoal N Chill` suggestion for q≥3 chars, empty array for shorter. Exported in `handlers` array. |
+| `src/__tests__/unit/public-places-search.test.ts` | **CREATED** — 8 Vitest tests: valid query returns `{ name, address }`, short query returns empty without Google call, missing API key returns empty, Google non-200 returns empty, fetch throws returns empty, count>20 returns 429, KV absent bypasses rate limit, `kv.incr()` throws is absorbed gracefully. |
+| `src/__tests__/unit/free-scan-pass.test.ts` | **EDITED** — Extended from 7 to 10 tests. Added: (8) address in formData → Perplexity user message contains `located at "..."`, (9) `is_unknown=true` → `{ status: 'not_found' }`, (10) regression — `is_unknown=false` + `is_closed=false` → `status: 'pass'`. |
+| `tests/e2e/01-viral-wedge.spec.ts` | **EDITED** — Updated primary scan test to use new autocomplete flow (type 'Charcoal N Chill' → select from MSW dropdown → submit). Added new test: type 'Charcoal' → `places-suggestions` visible → select → address shown → submit → `hallucination-card` visible (6 tests total). |
+| `AI_RULES.md` | **EDITED** — Added §22: Public API Endpoint Pattern (namespace `app/api/public/`, mandatory IP rate limiting, 429 JSON on exceeded, safe empty responses, MSW registration required, no auth guard). |
+
+**Architecture decision:** `/api/v1/places/search` is hard auth-gated (401 for anon) — cannot be reused from the public landing page. New `/api/public/places/search` with IP rate limiting (20/hr) is the public-safe alternative. Public endpoints live under `app/api/public/` to be visually distinct from `app/api/v1/`.
+
+**Tests added:**
+- `src/__tests__/unit/public-places-search.test.ts` — **8 Vitest tests**
+- `src/__tests__/unit/free-scan-pass.test.ts` — **+3 tests** (7 → 10)
+- `tests/e2e/01-viral-wedge.spec.ts` — **+1 Playwright test** (5 → 6)
+
+**Tests:** 302 → 313 passing (7 skipped).
+
+**Run:**
+```bash
+npx vitest run src/__tests__/unit/public-places-search.test.ts   # 8 passing
+npx vitest run src/__tests__/unit/free-scan-pass.test.ts         # 10 passing
+npx vitest run                                                    # 313 passing, 7 skipped
+npx playwright test tests/e2e/01-viral-wedge.spec.ts             # 6 passing
+```
+
+---
+
 ## 2026-02-23 — Sprint 28B: Fix is_closed Logic Bug in runFreeScan()
 
 **Scope:** `runFreeScan()` (the public hallucination scanner) was ignoring the `is_closed` boolean returned by the Perplexity Sonar API and always returning `status: 'fail'` — showing a red "AI Hallucination Detected" alert even when the business was correctly described. Fixed by branching on `is_closed` to return `status: 'pass'` when no hallucination exists. New AI_RULES §21 added.

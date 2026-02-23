@@ -204,7 +204,36 @@ const perplexityHandler = http.post(
 );
 
 // ---------------------------------------------------------------------------
+// Public Places Search handler — Sprint 29 ViralScanner autocomplete
+// ---------------------------------------------------------------------------
+
+/**
+ * Intercepts GET /api/public/places/search?q=...
+ *
+ * Returns a deterministic Charcoal N Chill suggestion for any query ≥3 chars,
+ * and an empty array for shorter queries — matching the real endpoint's behaviour.
+ * Allows Playwright E2E tests to exercise the full autocomplete → submit flow
+ * without consuming real Google Places API quota.
+ */
+const publicPlacesSearchHandler = http.get(
+  '*/api/public/places/search',
+  ({ request }) => {
+    const url = new URL(request.url);
+    const q   = url.searchParams.get('q') ?? '';
+    if (q.length < 3) return HttpResponse.json({ suggestions: [] });
+    return HttpResponse.json({
+      suggestions: [
+        {
+          name:    'Charcoal N Chill',
+          address: '1234 Old Milton Pkwy, Alpharetta, GA 30005, USA',
+        },
+      ],
+    });
+  }
+);
+
+// ---------------------------------------------------------------------------
 // Export
 // ---------------------------------------------------------------------------
 
-export const handlers = [openAiHandler, perplexityHandler];
+export const handlers = [openAiHandler, perplexityHandler, publicPlacesSearchHandler];

@@ -12,8 +12,8 @@ LocalVector.ai uses a two-layer test stack:
 
 | Layer | Runner | Command | Result (current) |
 |-------|--------|---------|------------------|
-| Unit + Integration | Vitest | `npx vitest run` | **295 passing**, 7 skipped / **302 passing** 0 skipped when Supabase running with full migrations |
-| E2E Functional | Playwright | `npx playwright test` | 25 passing, 0 failing |
+| Unit + Integration | Vitest | `npx vitest run` | **313 passing**, 7 skipped / **320 passing** when Supabase running with full migrations |
+| E2E Functional | Playwright | `npx playwright test` | 26 passing, 0 failing |
 
 Tests MUST NOT call live external APIs (AI_RULES §4):
 - All AI calls are intercepted by MSW (`src/mocks/handlers.ts`) — activated via `instrumentation.ts`
@@ -55,11 +55,12 @@ Tests MUST NOT call live external APIs (AI_RULES §4):
 | `src/__tests__/unit/competitor-actions.test.ts` | addCompetitor (7), deleteCompetitor (3), runCompetitorIntercept (8), markInterceptActionComplete (4) | 22 | 0 | Phase 3: Competitor Intercept Server Actions — auth, plan gate, Zod, 2-stage LLM mock, org_id scope, gap_analysis JSONB |
 | `src/__tests__/unit/settings-actions.test.ts` | updateDisplayName, changePassword | 10 | 0 | Sprint 24B: Settings Server Actions — auth gate, Zod, DB success/error, revalidatePath |
 | `src/__tests__/unit/listings-actions.test.ts` | savePlatformUrl | 6 | 0 | Sprint 27A: `savePlatformUrl()` — auth gate, Zod URL validation, DB upsert, revalidatePath |
-| `src/__tests__/unit/free-scan-pass.test.ts` | runFreeScan — is_closed branching | 7 | 0 | Sprint 28B: `runFreeScan()` both result paths — `is_closed=true` → `fail`, `is_closed=false` → `pass`, demo fallback, HTTP error, markdown JSON, text-detection, severity propagation |
+| `src/__tests__/unit/free-scan-pass.test.ts` | runFreeScan — is_closed branching + is_unknown + address | 10 | 0 | Sprint 28B+29: `runFreeScan()` — `is_closed=true` → `fail`, `is_closed=false` → `pass`, demo fallback, HTTP error, markdown JSON, text-detection, severity, address in prompt, `is_unknown=true` → `not_found`, regression guard |
+| `src/__tests__/unit/public-places-search.test.ts` | GET /api/public/places/search | 8 | 0 | Sprint 29: Public Places autocomplete — valid query, short query (no Google call), missing API key, Google non-200, network error, 429 when over rate limit, KV absent bypasses, KV throws is absorbed |
 | `src/__tests__/integration/rls-isolation.test.ts` | *(pre-existing failure)* | — | 7 | RLS cross-tenant isolation — requires live DB; fails in CI without `supabase db reset` |
 
-**Total (active suites):** 15+22+16+32+15+12+30+20+10+8+32+16+8+6+22+6+8+10+6+7 = **302 passing** across 20 suites (plus 7 in rls-isolation = **309 passing** when Supabase running with full migrations)
-*(Sprint 28B: `free-scan-pass.test.ts` +7. Sprint 24A: `reality-score.test.ts` 8→10. Sprint 24B: `settings-actions.test.ts` +10. Sprint 27A: `listings-actions.test.ts` +6. Phase 22 correction: `generateMenuJsonLd.test.ts` 21→30, `parseCsvMenu.test.ts` 17→20. Pre-Phase 3: `plan-enforcer.test.ts` 12→16. Phase 3: `competitor-actions.test.ts` +22. Phase 3.1: `cron-audit.test.ts` 9→12; `places-search.test.ts` +6; `competitor-intercept-service.test.ts` +8. Group F: `plan-enforcer.test.ts` 16→32.)*
+**Total (active suites):** 15+22+16+32+15+12+30+20+10+8+32+16+8+6+22+6+8+10+6+10+8 = **313 passing** across 21 suites (plus 7 in rls-isolation = **320 passing** when Supabase running with full migrations)
+*(Sprint 29: `public-places-search.test.ts` +8 (new); `free-scan-pass.test.ts` 7→10. Sprint 28B: `free-scan-pass.test.ts` +7. Sprint 24A: `reality-score.test.ts` 8→10. Sprint 24B: `settings-actions.test.ts` +10. Sprint 27A: `listings-actions.test.ts` +6. Phase 22 correction: `generateMenuJsonLd.test.ts` 21→30, `parseCsvMenu.test.ts` 17→20. Pre-Phase 3: `plan-enforcer.test.ts` 12→16. Phase 3: `competitor-actions.test.ts` +22. Phase 3.1: `cron-audit.test.ts` 9→12; `places-search.test.ts` +6; `competitor-intercept-service.test.ts` +8. Group F: `plan-enforcer.test.ts` 16→32.)*
 
 ### Key validation subjects
 
@@ -126,7 +127,7 @@ tests that require a second tenant to be provisioned.
 
 | Spec file | Tests | Auth | Coverage |
 |-----------|-------|------|----------|
-| `tests/e2e/01-viral-wedge.spec.ts` | 3 | None (public) | Scan form → hallucination card → CTA `/login` → social proof badge → case study text |
+| `tests/e2e/01-viral-wedge.spec.ts` | 6 | None (public) | Scan form → hallucination card → CTA `/login` → social proof badge → case study text → AEO endpoints → autocomplete flow (Sprint 29) |
 | `tests/e2e/02-onboarding-guard.spec.ts` | 1 | `incomplete@` | Guard fires on `/dashboard/magic-menus` → redirect `/onboarding` → wizard → `/dashboard` |
 | `tests/e2e/03-dashboard-fear-first.spec.ts` | 5 | `e2e-tester@` | AlertFeed leads, Reality Score=87, hamburger opens sidebar, Listings nav, page title |
 | `tests/e2e/04-magic-menu-pipeline.spec.ts` | 1 | `upload@` | UploadState → Simulate AI Parsing → triage summary → certify → publish → LinkInjectionModal |
@@ -135,7 +136,7 @@ tests that require a second tenant to be provisioned.
 | `tests/e2e/hybrid-upload.spec.ts` | 4 | `upload@` | CSV Gold Standard upload path; `beforeAll` admin reset guarantees UploadState |
 | `tests/e2e/03-dashboard-fear-first.spec.ts` | 5 | `e2e-tester@` | See above |
 
-**Total: 25 tests, 25 passing, 0 failing**
+**Total: 26 tests, 26 passing, 0 failing**
 
 ### Key engineering decisions
 
@@ -190,7 +191,7 @@ npx playwright test --ui
 
 ---
 
-> **Last updated:** Group F remediation (2026-02-23) — 25/25 E2E + 276 unit/integration passing (283 with DB running). Group F: `plan-enforcer.test.ts` expanded 16→32 (+canRunAutopilot, canRunPageAudit, canRunOccasionEngine, canConnectGBP). Phase 3.1: added `places-search.test.ts` (+6), `competitor-intercept-service.test.ts` (+8), `cron-audit.test.ts` count corrected 9→12.
+> **Last updated:** Sprint 29 (2026-02-23) — 26/26 E2E + 313 unit/integration passing (320 with DB running). Sprint 29: `public-places-search.test.ts` +8, `free-scan-pass.test.ts` 7→10, `01-viral-wedge.spec.ts` 5→6. Sprint 28B: `free-scan-pass.test.ts` +7. Group F: `plan-enforcer.test.ts` 16→32. Phase 3.1: `places-search.test.ts` +6, `competitor-intercept-service.test.ts` +8, `cron-audit.test.ts` 9→12.
 
 ---
 

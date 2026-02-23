@@ -11,10 +11,16 @@
 // All selectors use accessible text and ARIA roles.
 // data-testid="hallucination-card" — ViralScanner fail-path card (is_closed=true).
 // data-testid="no-hallucination-card" — ViralScanner pass-path card (is_closed=false).
+// data-testid="places-suggestions"  — autocomplete dropdown (Sprint 29).
 //
 // MSW Perplexity handler (src/mocks/handlers.ts) returns is_closed=true so
 // the primary scanner flow always exercises the fail/hallucination path in E2E.
 // The pass path is unit-tested in free-scan-pass.test.ts (AI_RULES §21).
+//
+// Sprint 29: ViralScanner now uses debounced Places autocomplete. The primary
+// scan test selects a business from the MSW-mocked dropdown before submitting.
+// The dedicated autocomplete test (last in this file) verifies the full
+// type → dropdown → select → address-shown → submit → result flow.
 // ---------------------------------------------------------------------------
 
 import { test, expect } from '@playwright/test';
@@ -33,9 +39,12 @@ test.describe('01 — Viral Wedge: Free Hallucination Scanner', () => {
       page.getByRole('heading', { name: /Is AI Hallucinating Your Business/i })
     ).toBeVisible();
 
-    // ── 2. Fill in the free scan form ────────────────────────────────────────
+    // ── 2. Fill in the free scan form (Sprint 29: autocomplete flow) ─────────
+    // MSW publicPlacesSearchHandler returns 'Charcoal N Chill' for any query ≥3 chars.
     await page.getByPlaceholder('Business Name').fill('Charcoal N Chill');
-    await page.getByPlaceholder('City, State').fill('Alpharetta, GA');
+    await expect(page.getByText('Charcoal N Chill').first()).toBeVisible({ timeout: 2000 });
+    // Select from dropdown — onMouseDown fires before blur so the selection registers.
+    await page.getByText('Charcoal N Chill').first().click();
 
     // ── 3. Submit and wait for the result ───────────────────────────────────
     // The Server Action has a 2-second setTimeout (runFreeScan in marketing.ts).
@@ -103,5 +112,34 @@ test.describe('01 — Viral Wedge: Free Hallucination Scanner', () => {
     expect(contentType).toContain('application/json');
     const body = await response.json();
     expect(body).toHaveProperty('entity');
+  });
+
+  // ── Sprint 29: autocomplete flow ──────────────────────────────────────────
+
+  test('autocomplete: type → dropdown appears → select → address shown → submit → hallucination card', async ({ page }) => {
+    // ── 1. Load the landing page ─────────────────────────────────────────────
+    await page.goto('/');
+
+    // ── 2. Type ≥3 chars to trigger the debounced Places search (300ms) ──────
+    // MSW publicPlacesSearchHandler returns a deterministic Charcoal N Chill result.
+    await page.getByPlaceholder('Business Name').fill('Charcoal');
+
+    // ── 3. Wait for the autocomplete dropdown to appear ───────────────────────
+    await expect(page.getByTestId('places-suggestions')).toBeVisible({ timeout: 2000 });
+    await expect(page.getByText('Charcoal N Chill').first()).toBeVisible({ timeout: 2000 });
+
+    // ── 4. Select the suggestion — locks the name, shows verified address ─────
+    await page.getByText('Charcoal N Chill').first().click();
+
+    // Name input is now readOnly and shows the selected business name.
+    await expect(page.getByPlaceholder('Business Name')).toHaveValue('Charcoal N Chill');
+    // Verified address displayed below the locked input.
+    await expect(page.getByText('1234 Old Milton Pkwy')).toBeVisible();
+
+    // ── 5. Submit — MSW Perplexity handler returns is_closed=true ─────────────
+    await page.getByRole('button', { name: /Scan for Hallucinations/i }).click();
+
+    // ── 6. Hallucination card must appear ─────────────────────────────────────
+    await expect(page.getByTestId('hallucination-card')).toBeVisible({ timeout: 10_000 });
   });
 });
