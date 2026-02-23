@@ -1,0 +1,170 @@
+// ---------------------------------------------------------------------------
+// free-scan-pass.test.ts — Unit tests for runFreeScan() is_closed branching
+//
+// Tests app/actions/marketing.ts → runFreeScan():
+//   1. is_closed=true  API response   → { status: 'fail' } with correct fields
+//   2. is_closed=false API response   → { status: 'pass' } with engine + business_name
+//   3. No PERPLEXITY_API_KEY         → demo fallback → { status: 'fail', claim_text: 'Permanently Closed' }
+//   4. Non-OK HTTP (status 429)      → demo fallback → { status: 'fail' }
+//   5. Markdown-fenced JSON          → cleaned, parsed, is_closed respected
+//   6. Text-detection path           → "permanently closed" keyword → { status: 'fail', severity: 'critical' }
+//   7. Severity propagated           → 'medium' severity from API retained in fail result
+//
+// Mocks: @vercel/kv, next/headers, global fetch — hoisted (AI_RULES §4).
+//
+// Run:
+//   npx vitest run src/__tests__/unit/free-scan-pass.test.ts
+// ---------------------------------------------------------------------------
+
+// ── Hoist vi.mock declarations BEFORE any imports (AI_RULES §4) ───────────
+
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+
+vi.mock('@vercel/kv', () => ({
+  kv: { incr: vi.fn(), expire: vi.fn(), ttl: vi.fn() },
+}));
+vi.mock('next/headers', () => ({ headers: vi.fn() }));
+
+// ── Imports after mock declarations ──────────────────────────────────────
+
+import { runFreeScan } from '@/app/actions/marketing';
+import { headers } from 'next/headers';
+
+// ── Helpers ───────────────────────────────────────────────────────────────
+
+function makeForm(businessName = 'Biryani World Fusion and Grill', city = 'Atlanta, GA'): FormData {
+  const fd = new FormData();
+  fd.append('businessName', businessName);
+  fd.append('city', city);
+  return fd;
+}
+
+function mockHeadersHelper(ip = '1.2.3.4') {
+  vi.mocked(headers as ReturnType<typeof vi.fn>).mockResolvedValue({
+    get: (name: string) => (name === 'x-forwarded-for' ? ip : null),
+  });
+}
+
+/** Stubs global fetch to return a Perplexity-shaped OK response. */
+function mockPerplexityOk(content: object) {
+  vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+    ok: true,
+    json: async () => ({
+      choices: [{ message: { content: JSON.stringify(content) } }],
+    }),
+  }));
+}
+
+/** Stubs global fetch to return a non-OK response. */
+function mockPerplexityError(status = 429) {
+  vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+    ok: false,
+    status,
+    json: async () => ({ error: 'Too Many Requests' }),
+  }));
+}
+
+// ── Setup / teardown ──────────────────────────────────────────────────────
+
+beforeEach(() => {
+  // KV absent → rate limit bypassed
+  delete process.env.KV_REST_API_URL;
+  // API key present → real fetch path exercised
+  process.env.PERPLEXITY_API_KEY = 'test-key-123';
+  mockHeadersHelper();
+});
+
+afterEach(() => {
+  delete process.env.PERPLEXITY_API_KEY;
+  vi.restoreAllMocks();
+  vi.unstubAllGlobals();
+});
+
+// ── Tests ─────────────────────────────────────────────────────────────────
+
+describe('runFreeScan — is_closed branching (AI_RULES §21)', () => {
+
+  it('returns { status: "fail" } when is_closed=true', async () => {
+    mockPerplexityOk({ is_closed: true, claim_text: 'Permanently Closed', expected_truth: 'Open', severity: 'critical' });
+    const result = await runFreeScan(makeForm());
+    expect(result.status).toBe('fail');
+    if (result.status === 'fail') {
+      expect(result.claim_text).toBe('Permanently Closed');
+      expect(result.expected_truth).toBe('Open');
+      expect(result.engine).toBe('ChatGPT');
+      expect(result.business_name).toBe('Biryani World Fusion and Grill');
+    }
+  });
+
+  it('returns { status: "pass" } with engine and business_name when is_closed=false', async () => {
+    mockPerplexityOk({ is_closed: false, claim_text: 'Open', expected_truth: 'Open', severity: 'medium' });
+    const result = await runFreeScan(makeForm());
+    expect(result).toEqual({
+      status:        'pass',
+      engine:        'ChatGPT',
+      business_name: 'Biryani World Fusion and Grill',
+    });
+  });
+
+  it('returns demo fallback { status: "fail", claim_text: "Permanently Closed" } when no API key', async () => {
+    delete process.env.PERPLEXITY_API_KEY;
+    const result = await runFreeScan(makeForm('My Local Diner'));
+    expect(result.status).toBe('fail');
+    if (result.status === 'fail') {
+      expect(result.claim_text).toBe('Permanently Closed');
+      expect(result.expected_truth).toBe('Open');
+      expect(result.business_name).toBe('My Local Diner');
+    }
+  });
+
+  it('returns demo fallback when Perplexity returns non-OK status', async () => {
+    mockPerplexityError(429);
+    const result = await runFreeScan(makeForm());
+    expect(result.status).toBe('fail');
+    if (result.status === 'fail') {
+      expect(result.claim_text).toBe('Permanently Closed');
+    }
+  });
+
+  it('cleans markdown-fenced JSON and still branches on is_closed correctly', async () => {
+    const content = { is_closed: false, claim_text: 'Open', expected_truth: 'Open', severity: 'medium' };
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        choices: [{ message: { content: '```json\n' + JSON.stringify(content) + '\n```' } }],
+      }),
+    }));
+    const result = await runFreeScan(makeForm('Neon Sushi'));
+    expect(result.status).toBe('pass');
+    if (result.status === 'pass') {
+      expect(result.business_name).toBe('Neon Sushi');
+    }
+  });
+
+  it('falls back to text-detection and returns fail when JSON invalid but text contains "permanently closed"', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        choices: [{ message: { content: 'Yes, Biryani World has permanently closed its doors.' } }],
+      }),
+    }));
+    const result = await runFreeScan(makeForm());
+    expect(result.status).toBe('fail');
+    if (result.status === 'fail') {
+      expect(result.claim_text).toBe('Permanently Closed');
+      expect(result.severity).toBe('critical');
+    }
+  });
+
+  it('propagates non-critical severity from API when is_closed=true', async () => {
+    mockPerplexityOk({ is_closed: true, claim_text: 'Closed on Mondays', expected_truth: 'Open Monday', severity: 'medium' });
+    const result = await runFreeScan(makeForm());
+    expect(result.status).toBe('fail');
+    if (result.status === 'fail') {
+      expect(result.severity).toBe('medium');
+      expect(result.claim_text).toBe('Closed on Mondays');
+      expect(result.expected_truth).toBe('Open Monday');
+    }
+  });
+
+});

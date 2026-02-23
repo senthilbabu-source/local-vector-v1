@@ -21,7 +21,7 @@ test.describe('Viral Wedge — Free Hallucination Scanner', () => {
 
     // Assert the headline is present so we know the right page loaded.
     await expect(
-      page.getByRole('heading', { name: /Is ChatGPT Telling Your Customers/i })
+      page.getByRole('heading', { name: /Is AI Hallucinating Your Business/i })
     ).toBeVisible();
 
     // ── 2. Fill in the scanner form ──────────────────────────────────────────
@@ -65,14 +65,14 @@ test.describe('Viral Wedge — Free Hallucination Scanner', () => {
     await expect(ctaLink).toHaveAttribute('href', '/login');
   });
 
-  test('displays the social proof badge', async ({ page }) => {
+  test('displays the live detection eyebrow badge in the hero', async ({ page }) => {
     await page.goto('/');
-    await expect(page.getByText(/98\/100/i)).toBeVisible();
+    await expect(page.getByText(/Live AI Hallucination Detection/i)).toBeVisible();
   });
 
-  test('displays the Charcoal N Chill case study', async ({ page }) => {
+  test('displays the $12,000 steakhouse case study', async ({ page }) => {
     await page.goto('/');
-    await expect(page.getByText(/Charcoal N Chill/i)).toBeVisible();
-    await expect(page.getByText(/\$1,600\/month/i)).toBeVisible();
+    await expect(page.getByText(/\$12,000/i)).toBeVisible();
+    await expect(page.getByText(/Steakhouse Hallucination/i)).toBeVisible();
   });
 });

@@ -49,6 +49,46 @@ export default function ViralScanner() {
     );
   }
 
+  // ── No-hallucination card (is_closed=false path) ───────────────────────
+  if (result?.status === 'pass') {
+    return (
+      <div data-testid="no-hallucination-card" className="w-full rounded-2xl bg-surface-dark border-2 border-truth-emerald p-6 space-y-4">
+
+        {/* Green check header */}
+        <div className="flex items-center gap-3">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-5 w-5 shrink-0 text-truth-emerald" aria-hidden>
+            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z" clipRule="evenodd" />
+          </svg>
+          <p className="text-base font-bold text-truth-emerald">No AI Hallucinations Found</p>
+        </div>
+
+        {/* Business */}
+        <div className="rounded-xl bg-midnight-slate border border-white/5 px-4 py-3 space-y-1">
+          <p className="text-xs text-slate-500 uppercase tracking-wide">Business</p>
+          <p className="text-sm font-semibold text-white">{result.business_name}</p>
+        </div>
+
+        {/* Context note */}
+        <p className="text-xs text-slate-400 leading-relaxed">
+          {result.engine} currently shows accurate information about your business.
+          AI hallucinations can appear at any time — set up monitoring so you&apos;re
+          the first to know if that changes.
+        </p>
+
+        {/* CTA */}
+        <a
+          href="/signup"
+          className="flex items-center justify-center gap-2 w-full rounded-xl bg-truth-emerald/10 border border-truth-emerald/30 px-4 py-3 text-sm font-semibold text-truth-emerald hover:bg-truth-emerald/20 transition"
+        >
+          Start Free Monitoring
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4 shrink-0" aria-hidden>
+            <path fillRule="evenodd" d="M3 10a.75.75 0 01.75-.75h10.638L10.23 5.29a.75.75 0 111.04-1.08l5.5 5.25a.75.75 0 010 1.08l-5.5 5.25a.75.75 0 11-1.04-1.08l4.158-3.96H3.75A.75.75 0 013 10z" clipRule="evenodd" />
+          </svg>
+        </a>
+      </div>
+    );
+  }
+
   // ── Hallucination result card ───────────────────────────────────────────
   if (result?.status === 'fail') {
     return (

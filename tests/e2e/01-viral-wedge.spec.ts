@@ -9,7 +9,12 @@
 // timeout comfortably accommodates: 2s delay + React render + network.
 //
 // All selectors use accessible text and ARIA roles.
-// data-testid="hallucination-card" is on ViralScanner.tsx's result card.
+// data-testid="hallucination-card" — ViralScanner fail-path card (is_closed=true).
+// data-testid="no-hallucination-card" — ViralScanner pass-path card (is_closed=false).
+//
+// MSW Perplexity handler (src/mocks/handlers.ts) returns is_closed=true so
+// the primary scanner flow always exercises the fail/hallucination path in E2E.
+// The pass path is unit-tested in free-scan-pass.test.ts (AI_RULES §21).
 // ---------------------------------------------------------------------------
 
 import { test, expect } from '@playwright/test';
@@ -25,7 +30,7 @@ test.describe('01 — Viral Wedge: Free Hallucination Scanner', () => {
     await page.goto('/');
 
     await expect(
-      page.getByRole('heading', { name: /Is ChatGPT Telling Your Customers/i })
+      page.getByRole('heading', { name: /Is AI Hallucinating Your Business/i })
     ).toBeVisible();
 
     // ── 2. Fill in the free scan form ────────────────────────────────────────
@@ -71,15 +76,15 @@ test.describe('01 — Viral Wedge: Free Hallucination Scanner', () => {
 
   // ── Supporting assertions ─────────────────────────────────────────────────
 
-  test('displays the social proof badge with 98/100 score', async ({ page }) => {
+  test('displays the live detection eyebrow badge in the hero', async ({ page }) => {
     await page.goto('/');
-    await expect(page.getByText(/98\/100/i)).toBeVisible();
+    await expect(page.getByText(/Live AI Hallucination Detection/i)).toBeVisible();
   });
 
-  test('displays the Charcoal N Chill case study section', async ({ page }) => {
+  test('displays the $12,000 steakhouse case study section', async ({ page }) => {
     await page.goto('/');
-    await expect(page.getByText(/Charcoal N Chill/i)).toBeVisible();
-    await expect(page.getByText(/\$1,600\/month/i)).toBeVisible();
+    await expect(page.getByText(/\$12,000/i)).toBeVisible();
+    await expect(page.getByText(/Steakhouse Hallucination/i)).toBeVisible();
   });
 
   // ── AEO infrastructure (Sprint 25C) ───────────────────────────────────────

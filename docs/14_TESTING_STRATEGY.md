@@ -55,10 +55,11 @@ Tests MUST NOT call live external APIs (AI_RULES §4):
 | `src/__tests__/unit/competitor-actions.test.ts` | addCompetitor (7), deleteCompetitor (3), runCompetitorIntercept (8), markInterceptActionComplete (4) | 22 | 0 | Phase 3: Competitor Intercept Server Actions — auth, plan gate, Zod, 2-stage LLM mock, org_id scope, gap_analysis JSONB |
 | `src/__tests__/unit/settings-actions.test.ts` | updateDisplayName, changePassword | 10 | 0 | Sprint 24B: Settings Server Actions — auth gate, Zod, DB success/error, revalidatePath |
 | `src/__tests__/unit/listings-actions.test.ts` | savePlatformUrl | 6 | 0 | Sprint 27A: `savePlatformUrl()` — auth gate, Zod URL validation, DB upsert, revalidatePath |
+| `src/__tests__/unit/free-scan-pass.test.ts` | runFreeScan — is_closed branching | 7 | 0 | Sprint 28B: `runFreeScan()` both result paths — `is_closed=true` → `fail`, `is_closed=false` → `pass`, demo fallback, HTTP error, markdown JSON, text-detection, severity propagation |
 | `src/__tests__/integration/rls-isolation.test.ts` | *(pre-existing failure)* | — | 7 | RLS cross-tenant isolation — requires live DB; fails in CI without `supabase db reset` |
 
-**Total (active suites):** 15+22+16+32+15+12+30+20+10+8+32+16+8+6+22+6+8+10+6 = **295 passing** across 19 suites (plus 7 in rls-isolation = **302 passing** when Supabase running with full migrations)
-*(Sprint 24A: `reality-score.test.ts` 8→10. Sprint 24B: `settings-actions.test.ts` +10. Sprint 27A: `listings-actions.test.ts` +6. Phase 22 correction: `generateMenuJsonLd.test.ts` 21→30, `parseCsvMenu.test.ts` 17→20. Pre-Phase 3: `plan-enforcer.test.ts` 12→16. Phase 3: `competitor-actions.test.ts` +22. Phase 3.1: `cron-audit.test.ts` 9→12; `places-search.test.ts` +6; `competitor-intercept-service.test.ts` +8. Group F: `plan-enforcer.test.ts` 16→32.)*
+**Total (active suites):** 15+22+16+32+15+12+30+20+10+8+32+16+8+6+22+6+8+10+6+7 = **302 passing** across 20 suites (plus 7 in rls-isolation = **309 passing** when Supabase running with full migrations)
+*(Sprint 28B: `free-scan-pass.test.ts` +7. Sprint 24A: `reality-score.test.ts` 8→10. Sprint 24B: `settings-actions.test.ts` +10. Sprint 27A: `listings-actions.test.ts` +6. Phase 22 correction: `generateMenuJsonLd.test.ts` 21→30, `parseCsvMenu.test.ts` 17→20. Pre-Phase 3: `plan-enforcer.test.ts` 12→16. Phase 3: `competitor-actions.test.ts` +22. Phase 3.1: `cron-audit.test.ts` 9→12; `places-search.test.ts` +6; `competitor-intercept-service.test.ts` +8. Group F: `plan-enforcer.test.ts` 16→32.)*
 
 ### Key validation subjects
 

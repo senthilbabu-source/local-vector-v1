@@ -2,6 +2,36 @@
 
 ---
 
+## 2026-02-23 — Sprint 28B: Fix is_closed Logic Bug in runFreeScan()
+
+**Scope:** `runFreeScan()` (the public hallucination scanner) was ignoring the `is_closed` boolean returned by the Perplexity Sonar API and always returning `status: 'fail'` — showing a red "AI Hallucination Detected" alert even when the business was correctly described. Fixed by branching on `is_closed` to return `status: 'pass'` when no hallucination exists. New AI_RULES §21 added.
+
+| File | Action |
+|------|--------|
+| `app/actions/marketing.ts` | **EDITED** — Added `status: 'pass'` variant to `ScanResult` type. In the JSON parse path, branched on `parsed.data.is_closed`: `false` → `{ status: 'pass', engine, business_name }`; `true` → existing `{ status: 'fail', ... }` (unchanged). `demoFallback()` intentionally stays `fail` — the demo always shows the hallucination scenario for marketing impact. |
+| `app/_components/ViralScanner.tsx` | **EDITED** — Added `status === 'pass'` pass card (`data-testid="no-hallucination-card"`): green border (`border-truth-emerald`), checkmark icon, "No AI Hallucinations Found" heading, business name block, context note, "Start Free Monitoring → /signup" CTA. |
+| `src/__tests__/unit/free-scan-pass.test.ts` | **CREATED** — 7 unit tests covering both branches: `is_closed=true` → `fail` (correct fields), `is_closed=false` → `pass` (engine + business_name), demo fallback when no API key, non-OK HTTP → fallback, markdown-fenced JSON cleaned correctly, text-detection fires for "permanently closed" keyword, severity propagated from API. |
+| `tests/e2e/01-viral-wedge.spec.ts` | **EDITED** — Updated Sprint 28 heading check (`Is ChatGPT Telling Your Customers` → `Is AI Hallucinating Your Business`). Updated social proof test (removed stale `98/100` → `Live AI Hallucination Detection` badge). Updated case study test (`$1,600/month` → `$12,000 Steakhouse Hallucination`). |
+| `tests/e2e/viral-wedge.spec.ts` | **EDITED** — Same heading + social proof + case study assertion updates. |
+| `AI_RULES.md` | **EDITED** — Added §21: "Always Use Every Parsed Field" — documents the `is_closed` pattern, requires unit tests to cover both branches of any parsed boolean. |
+
+**Root cause:** `PerplexityScanSchema` includes `is_closed: z.boolean()` but the `safeParse` result path returned a hardcoded `status: 'fail'` without reading it. Classic "parse but don't use" bug (AI_RULES §21).
+
+**Preserved behaviour:** `demoFallback()` continues to return `status: 'fail'` with "Permanently Closed" — intentional for the landing page demo experience when no API key is configured.
+
+**Tests added:**
+- `src/__tests__/unit/free-scan-pass.test.ts` — **7 Vitest tests.** Both `is_closed` branches, demo fallback, non-OK HTTP, markdown-fenced JSON, text-detection keyword, severity propagation.
+
+**Tests:** 295 → 302 passing (7 skipped).
+
+**Run:**
+```bash
+npx vitest run src/__tests__/unit/free-scan-pass.test.ts   # 7 passing
+npx vitest run                                              # 302 passing, 7 skipped
+```
+
+---
+
 ## 2026-02-23 — Sprint 28: High-Converting Landing Page
 
 **Scope:** Replaced the placeholder landing page with a definitive high-converting marketing page for LocalVector.ai. Deep Navy (`#050A15`) / Signal Green (`#00F5A0`) / Alert Amber (`#FFB800`) colour palette. 9 sections with CSS keyframe animations (no JS deps). All sub-components co-located in `app/page.tsx`.

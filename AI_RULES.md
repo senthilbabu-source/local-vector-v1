@@ -366,4 +366,31 @@ When a live data source for a metric hasn't been seeded yet (e.g., the SOV cron 
 * **DB float → display integer:** Columns stored as `FLOAT` (e.g., `share_of_voice 0.0–1.0`) MUST be multiplied by 100 before display. Never display the raw float value.
 
 ---
+
+## 21. 🔍 Always Use Every Parsed Field (Sprint 28B)
+
+When you define a Zod schema that includes a boolean (or any field) whose value determines which code path to take, **the code MUST branch on that field**. Ignoring a parsed field produces always-fail or always-pass logic that the type system cannot catch.
+
+* **Rule:** If a parsed schema object has a field that determines the outcome of a function (e.g., `is_closed: boolean`), you MUST read that field and branch on it. Silently discarding it and returning a hardcoded outcome is a logic bug.
+* **Anti-pattern (the Sprint 28B bug):** `runFreeScan()` called `PerplexityScanSchema.safeParse()` which includes `is_closed`, then **ignored** `is_closed` and always returned `status: 'fail'` — meaning businesses correctly described by AI were shown a red "Hallucination Detected" alert.
+* **Correct pattern:**
+  ```typescript
+  const parsed = PerplexityScanSchema.safeParse(JSON.parse(cleaned));
+  if (parsed.success) {
+    // ✅ Branch on the parsed boolean — never ignore it
+    if (!parsed.data.is_closed) {
+      return { status: 'pass', engine: 'ChatGPT', business_name };
+    }
+    return { status: 'fail', ...parsed.data, business_name };
+  }
+
+  // ❌ Always returning 'fail' regardless of is_closed value
+  if (parsed.success) {
+    return { status: 'fail', ...parsed.data };  // is_closed ignored!
+  }
+  ```
+* **Scope:** Any function that parses an external API response (AI, webhook, third-party JSON) with a Zod schema. Review schemas after writing — every field should appear in a conditional, assignment, or return statement.
+* **Test requirement:** Unit tests MUST cover both branches (`is_closed=true` → `fail`, `is_closed=false` → `pass`). A test suite that only exercises one branch does not validate the logic.
+
+---
 > **End of System Instructions**

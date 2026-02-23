@@ -42,6 +42,12 @@ export type ScanResult =
       business_name: string;
     }
   | {
+      /** No hallucination found — AI correctly describes the business. */
+      status: 'pass';
+      engine: string;
+      business_name: string;
+    }
+  | {
       status: 'rate_limited';
       retryAfterSeconds: number;
     };
@@ -179,6 +185,14 @@ export async function runFreeScan(formData: FormData): Promise<ScanResult> {
     try {
       const parsed = PerplexityScanSchema.safeParse(JSON.parse(cleaned));
       if (parsed.success) {
+        // Branch on is_closed — AI_RULES §21: always use every parsed field.
+        if (!parsed.data.is_closed) {
+          return {
+            status:        'pass',
+            engine:        'ChatGPT',
+            business_name: businessName,
+          };
+        }
         return {
           status:         'fail',
           engine:         'ChatGPT',
