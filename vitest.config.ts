@@ -1,4 +1,5 @@
 import { defineConfig } from 'vitest/config';
+import react from '@vitejs/plugin-react';
 import path from 'path';
 
 /**
@@ -19,13 +20,19 @@ import path from 'path';
  * transparently redirecting test-only paths to src/.
  */
 export default defineConfig({
+  // react() adds JSX transformation for .tsx test files and all .tsx imports.
+  // Required for Steps 1 & 3 (component tests with jsdom environment).
+  plugins: [react()],
+
   test: {
     globals: true,
     environment: 'node',
     setupFiles: ['./src/__helpers__/setup.ts'],
     include: [
       'src/__tests__/unit/**/*.test.ts',
+      'src/__tests__/unit/**/*.test.tsx',
       'src/__tests__/integration/**/*.test.ts',
+      'src/__tests__/integration/**/*.test.tsx',
     ],
     coverage: {
       provider: 'v8',

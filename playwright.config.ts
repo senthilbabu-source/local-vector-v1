@@ -20,9 +20,21 @@ export default defineConfig({
   // Captures a trace on first retry to aid debugging flaky tests.
   retries: process.env.CI ? 2 : 0,
 
-  // Authentication state for Test 2 (Onboarding Guard) is set up in
-  // global-setup.ts by logging in as incomplete@localvector.ai.
-  globalSetup: './tests/global-setup.ts',
+  // Run all spec files serially. Several specs share the upload@ user
+  // (04-magic-menu-pipeline creates+publishes a menu; hybrid-upload.spec.ts
+  // resets it in beforeAll). Parallel workers cause a mid-test race where
+  // hybrid-upload's beforeAll deletes 04's in-progress magic_menus record.
+  // With workers:1 the alphabetical ordering guarantees 04 finishes before
+  // hybrid-upload's beforeAll cleans up, removing the conflict.
+  workers: 1,
+
+  // Global setup: provisions e2e-tester@ via Supabase admin API, resets
+  // incomplete@ location to NULL, and saves sessions for all 4 test users.
+  // The webServer starts before this runs so loginAndSave can reach /login.
+  globalSetup: './tests/e2e/global.setup.ts',
+
+  // Restrict to Chromium for speed — cross-browser is a separate concern.
+  projects: [{ name: 'chromium', use: { browserName: 'chromium' } }],
 
   use: {
     baseURL: 'http://localhost:3000',

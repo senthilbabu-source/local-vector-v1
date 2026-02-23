@@ -26,7 +26,28 @@
 // ---------------------------------------------------------------------------
 
 import { test, expect } from '@playwright/test';
+import { createClient } from '@supabase/supabase-js';
 import path from 'path';
+import dotenv from 'dotenv';
+
+// Load .env.local so Supabase env vars are available in the Playwright process.
+dotenv.config({ path: path.join(__dirname, '../../.env.local') });
+
+// ---------------------------------------------------------------------------
+// Admin client — bypasses RLS for test state reset
+// ---------------------------------------------------------------------------
+
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'http://127.0.0.1:54321';
+const SERVICE_ROLE_KEY =
+  process.env.SUPABASE_SERVICE_ROLE_KEY ??
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU';
+
+const admin = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, {
+  auth: { autoRefreshToken: false, persistSession: false },
+});
+
+// Org ID for upload@localvector.ai (from seed.sql §12)
+const UPLOAD_ORG_ID = 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380c22';
 
 // Fixture CSV — 2 items, confidence = 1.0 each (CSV path always auto-approves)
 const FIXTURE_CSV = path.join(__dirname, '../fixtures/sample-gold-menu.csv');
@@ -45,6 +66,23 @@ test.use({
 // ---------------------------------------------------------------------------
 
 test.describe('Hybrid Upload — Gold Standard CSV path', () => {
+
+  // ── Reset upload@ magic menu before each spec run ─────────────────────────
+  // 04-magic-menu-pipeline.spec.ts may have published a magic menu for upload@
+  // in the same Playwright run. Delete it so UploadState always renders.
+  test.beforeAll(async () => {
+    const { data: menu } = await admin
+      .from('magic_menus')
+      .select('id')
+      .eq('org_id', UPLOAD_ORG_ID)
+      .maybeSingle();
+
+    if (menu) {
+      await admin.from('menu_items').delete().eq('menu_id', menu.id);
+      await admin.from('menu_categories').delete().eq('menu_id', menu.id);
+      await admin.from('magic_menus').delete().eq('id', menu.id);
+    }
+  });
 
   // ── Tab visibility ─────────────────────────────────────────────────────────
 
