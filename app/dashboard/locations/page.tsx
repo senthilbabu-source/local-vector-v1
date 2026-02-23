@@ -26,19 +26,29 @@ type Location = {
 // Data fetching
 // ---------------------------------------------------------------------------
 
-async function fetchLocations(): Promise<Location[]> {
+async function fetchLocations(orgId: string | null): Promise<Location[]> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const supabase = (await createClient()) as any;
 
-  const { data, error } = await supabase
+  // Belt-and-suspenders: filter by org_id explicitly in addition to RLS.
+  // Without this, multiple SELECT policies (org_isolation_select OR
+  // public_published_location) are OR'd by PostgreSQL and can expose
+  // locations from other orgs (e.g. the golden tenant with a published menu).
+  let query = supabase
     .from('locations')
     .select(
       'id, name, business_name, address_line1, city, state, zip, phone, website_url, operational_status, is_primary, created_at'
     )
-    .order('created_at', { ascending: false }) as {
-      data: Location[] | null;
-      error: unknown;
-    };
+    .order('created_at', { ascending: false });
+
+  if (orgId) {
+    query = query.eq('org_id', orgId);
+  }
+
+  const { data, error } = await query as {
+    data: Location[] | null;
+    error: unknown;
+  };
 
   if (error) {
     console.error('[locations] fetch error:', error);
@@ -82,7 +92,7 @@ export default async function LocationsPage() {
     redirect('/login');
   }
 
-  const locations = await fetchLocations();
+  const locations = await fetchLocations(ctx.orgId);
 
   return (
     <div className="space-y-6">

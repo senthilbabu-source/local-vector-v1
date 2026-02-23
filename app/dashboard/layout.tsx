@@ -65,6 +65,13 @@ export default async function DashboardLayout({
 
     // Redirect to onboarding if a primary location exists but ground truth
     // hasn't been collected yet (both columns are null).
+    //
+    // NOTE: We intentionally do NOT redirect when primaryLocation is null
+    // (i.e. 0 locations). That would cause a redirect loop:
+    //   /dashboard → /onboarding → /dashboard/locations → /onboarding → ...
+    // because /dashboard/locations is inside this layout too.
+    // Instead, `createLocation` sets is_primary=true for the first location,
+    // so adding a location naturally triggers this guard on the next render.
     if (
       primaryLocation &&
       !primaryLocation.hours_data &&

@@ -66,6 +66,19 @@ export async function createLocation(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const supabase = (await createClient()) as any;
 
+  // Step 4a — determine whether this will be the primary location.
+  // The first location added for an org automatically becomes primary so that
+  // the OnboardingGuard and magic-menus page (both filter is_primary=true)
+  // can find it. Without is_primary=true the guard never fires and magic-menus
+  // always shows "No location found" for new users.
+  const { count: existingPrimaryCount } = await supabase
+    .from('locations')
+    .select('id', { count: 'exact', head: true })
+    .eq('org_id', ctx.orgId)
+    .eq('is_primary', true) as { count: number | null };
+
+  const isPrimary = (existingPrimaryCount ?? 0) === 0;
+
   const { error } = await supabase.from('locations').insert({
     org_id: ctx.orgId,
     name: business_name,
@@ -77,13 +90,17 @@ export async function createLocation(
     zip,
     phone: phone || null,
     website_url: website_url || null,
+    is_primary: isPrimary,
   });
 
   if (error) {
     return { success: false, error: error.message };
   }
 
+  // Revalidate both paths: the locations list AND the dashboard layout so the
+  // OnboardingGuard re-evaluates on the user's next navigation.
   revalidatePath('/dashboard/locations');
+  revalidatePath('/dashboard');
   return { success: true };
 }
 
