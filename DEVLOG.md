@@ -2,6 +2,36 @@
 
 ---
 
+## 2026-02-23 — Bug Fix: `model_provider` enum missing `openai-gpt4o-mini`
+
+**Problem:** `npx supabase db reset` failed with `SQLSTATE 22P02: invalid input value for enum model_provider: "openai-gpt4o-mini"`. The initial schema migration created `model_provider` with only 5 values; Phase 3 inserts `'openai-gpt4o-mini'` into `competitor_intercepts`.
+
+**Scope:**
+
+| File | Change |
+|------|--------|
+| `supabase/migrations/20260223000001_add_gpt4o_mini_model_provider.sql` | **CREATED** — `ALTER TYPE model_provider ADD VALUE IF NOT EXISTS 'openai-gpt4o-mini';` |
+| `supabase/prod_schema.sql` | Updated canonical `model_provider` enum to include `'openai-gpt4o-mini'`. |
+| `docs/03-DATABASE-SCHEMA.md` | Updated `model_provider` enum definition to include `'openai-gpt4o-mini'`. |
+
+**Verified:** `npx supabase db reset` runs clean.
+
+---
+
+## 2026-02-23 — Bug Fix: Golden Tenant seed defaults to `trial` plan
+
+**Problem:** After `db reset`, `dev@localvector.ai` landed on the `UpgradeGate` for `/dashboard/compete` because the `organizations` row defaulted to `plan = 'trial'`.
+
+**Scope:**
+
+| File | Change |
+|------|--------|
+| `supabase/seed.sql` | Added `UPDATE public.organizations SET plan = 'growth' WHERE id = 'a0eebc99-...'` after the membership INSERT. Section renamed "3. ORG MEMBERSHIP + PLAN". |
+
+**Test credentials:** `dev@localvector.ai` / `Password123!` — Growth plan after `db reset`.
+
+---
+
 ## 2026-02-23 — Phase 3: Competitor Intercept / Greed Engine (Complete)
 
 **Goal:** Build the full Competitor Intercept feature — two-stage LLM pipeline (Perplexity Sonar → GPT-4o-mini), CRUD management UI, intercept result cards with actionable tasks, and Growth-plan gating.

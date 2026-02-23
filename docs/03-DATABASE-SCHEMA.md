@@ -96,7 +96,7 @@ BEGIN
 
   -- Model Providers
   IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'model_provider') THEN
-    CREATE TYPE model_provider AS ENUM ('openai-gpt4o', 'perplexity-sonar', 'google-gemini', 'anthropic-claude', 'microsoft-copilot');
+    CREATE TYPE model_provider AS ENUM ('openai-gpt4o', 'openai-gpt4o-mini', 'perplexity-sonar', 'google-gemini', 'anthropic-claude', 'microsoft-copilot');
   END IF;
 
   -- Listing Sync Status
