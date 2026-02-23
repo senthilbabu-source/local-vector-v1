@@ -495,4 +495,64 @@ Next.js 16 enforces that **every exported function** in a `'use server'` file is
 * **Scope:** Applies to `app/actions/*.ts`, `app/dashboard/*/actions.ts`, and any other file with the `'use server'` directive at module level.
 
 ---
+
+## 26. 📊 Derived KPI Scores — Label as "Estimated", Never Fabricate (Sprint 33)
+
+When displaying KPI scores on a public result/audit page where no live monitored data exists,
+scores MUST be derived from a real upstream result (e.g., scan status + severity) and labeled
+"Estimated" in the UI. They MUST NOT be random, hardcoded, or presented as live data.
+
+* **Derivation rule:** Map the real result to a deterministic score table. Example:
+  ```typescript
+  // ✅ Correct — derived from real scan result, labeled "Estimated"
+  if (data.status === 'fail' && data.severity === 'critical') {
+    return { avs: 18, sentiment: 12, citation: 22 };  // low scores, correctly urgent
+  }
+  if (data.status === 'pass') {
+    return { avs: 79, sentiment: 74, citation: 82 };  // high scores, correctly positive
+  }
+
+  // ❌ Fabrication — never acceptable
+  return { avs: Math.floor(Math.random() * 100) };  // random
+  return { avs: 95 };  // always-good hardcode, ignores real result
+  ```
+* **UI label requirement:** Every KPI card MUST display an "Estimated" badge (e.g.,
+  `<span className="border border-alert-amber/30 text-alert-amber text-[10px]">Estimated</span>`).
+* **Scope:** Applies to any public page that shows business intelligence metrics for anonymous
+  users who have not run persistent monitored scans. The `/scan` dashboard is the canonical example.
+* **See also:** AI_RULES §24 (no fabricated scan results), AI_RULES §20 (null states).
+
+---
+
+## 27. 🎬 CSS Animation Re-trigger — Use `key` Prop, Not JS Animation Libraries (Sprint 33)
+
+To re-trigger a CSS keyframe animation on a React element (e.g., cycling through messages with
+a fade-in effect), use the `key` prop to force React to unmount and remount the element.
+This restarts the CSS animation without any JavaScript animation library.
+
+* **Pattern:**
+  ```tsx
+  // ✅ Correct — key change forces remount → CSS animation restarts
+  <p
+    key={msgIndex}
+    style={{ animation: 'fade-up 0.3s ease-out both' }}
+  >
+    {MESSAGES[msgIndex]}
+  </p>
+
+  // ❌ Avoid — adds a JS animation dependency for something CSS handles natively
+  <motion.p
+    key={msgIndex}
+    initial={{ opacity: 0, y: 8 }}
+    animate={{ opacity: 1, y: 0 }}
+  >
+    {MESSAGES[msgIndex]}
+  </motion.p>
+  ```
+* **Rule:** This project uses CSS keyframes only (no Framer Motion). The existing keyframes
+  (`fill-bar`, `fade-up`, `ping-dot`, `pulse-glow-green`, `shield-beat`) in `globals.css` MUST
+  be reused before adding new animations. Do NOT install `framer-motion`.
+* **Scope:** All animated UI in `app/` — loading states, scan overlays, KPI cards, progress bars.
+
+---
 > **End of System Instructions**

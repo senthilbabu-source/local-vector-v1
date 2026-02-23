@@ -1,7 +1,7 @@
 # LocalVector.ai — Testing Strategy
 
 > **Source:** This document is derived from `DEVLOG.md`, the `src/__tests__/` directory,
-> and the `tests/e2e/` directory. Last updated: Group F remediation (2026-02-23).
+> and the `tests/e2e/` directory. Last updated: Sprint 33 (2026-02-23).
 > All test counts are from the live `vitest run` and `playwright test` outputs.
 
 ---
@@ -12,7 +12,7 @@ LocalVector.ai uses a two-layer test stack:
 
 | Layer | Runner | Command | Result (current) |
 |-------|--------|---------|------------------|
-| Unit + Integration | Vitest | `npx vitest run` | **321 passing**, 7 skipped / **328 passing** when Supabase running with full migrations |
+| Unit + Integration | Vitest | `npx vitest run` | **331 passing**, 7 skipped / **338 passing** when Supabase running with full migrations |
 | E2E Functional | Playwright | `npx playwright test` | 26 passing, 0 failing |
 
 Tests MUST NOT call live external APIs (AI_RULES §4):
@@ -58,10 +58,11 @@ Tests MUST NOT call live external APIs (AI_RULES §4):
 | `src/__tests__/unit/free-scan-pass.test.ts` | runFreeScan — is_closed branching + unavailable + is_unknown + address | 11 | 0 | Sprint 28B+29+31: `runFreeScan()` — `is_closed=true` → `fail`, `is_closed=false` → `pass`, `no_api_key` → `unavailable`, HTTP error → `unavailable`, markdown JSON, text-detection, severity, address in prompt, `is_unknown=true` → `not_found`, regression guard, network failure → `unavailable` |
 | `src/__tests__/unit/public-places-search.test.ts` | GET /api/public/places/search | 8 | 0 | Sprint 29: Public Places autocomplete — valid query, short query (no Google call), missing API key, Google non-200, network error, 429 when over rate limit, KV absent bypasses, KV throws is absorbed |
 | `src/__tests__/unit/scan-health-utils.test.ts` | formatRelativeTime, nextSundayLabel | 7 | 0 | Sprint 30: Pure timestamp utilities for AI Scan Health card — all relative time branches + next Sunday future-date assertion |
+| `src/__tests__/unit/scan-params.test.ts` | parseScanParams, deriveKpiScores, buildSparklinePath | 10 | 0 | Sprint 33: `/scan` dashboard URL param encoding/decoding + KPI score derivation + sparkline path generation |
 | `src/__tests__/integration/rls-isolation.test.ts` | *(pre-existing failure)* | — | 7 | RLS cross-tenant isolation — requires live DB; fails in CI without `supabase db reset` |
 
-**Total (active suites):** 15+22+16+32+15+12+30+20+10+8+32+16+8+6+22+6+8+10+6+11+8+7 = **321 passing** across 22 suites (plus 7 in rls-isolation = **328 passing** when Supabase running with full migrations)
-*(Sprint 31: `free-scan-pass.test.ts` 10→11. Sprint 30: `scan-health-utils.test.ts` +7 (new). Sprint 29: `public-places-search.test.ts` +8 (new); `free-scan-pass.test.ts` 7→10. Sprint 28B: `free-scan-pass.test.ts` +7. Sprint 24A: `reality-score.test.ts` 8→10. Sprint 24B: `settings-actions.test.ts` +10. Sprint 27A: `listings-actions.test.ts` +6. Phase 22 correction: `generateMenuJsonLd.test.ts` 21→30, `parseCsvMenu.test.ts` 17→20. Pre-Phase 3: `plan-enforcer.test.ts` 12→16. Phase 3: `competitor-actions.test.ts` +22. Phase 3.1: `cron-audit.test.ts` 9→12; `places-search.test.ts` +6; `competitor-intercept-service.test.ts` +8. Group F: `plan-enforcer.test.ts` 16→32.)*
+**Total (active suites):** 15+22+16+32+15+12+30+20+10+8+32+16+8+6+22+6+8+10+6+11+8+7+10 = **331 passing** across 23 suites (plus 7 in rls-isolation = **338 passing** when Supabase running with full migrations)
+*(Sprint 33: `scan-params.test.ts` +10 (new). Sprint 31: `free-scan-pass.test.ts` 10→11. Sprint 30: `scan-health-utils.test.ts` +7 (new). Sprint 29: `public-places-search.test.ts` +8 (new); `free-scan-pass.test.ts` 7→10. Sprint 28B: `free-scan-pass.test.ts` +7. Sprint 24A: `reality-score.test.ts` 8→10. Sprint 24B: `settings-actions.test.ts` +10. Sprint 27A: `listings-actions.test.ts` +6. Phase 22 correction: `generateMenuJsonLd.test.ts` 21→30, `parseCsvMenu.test.ts` 17→20. Pre-Phase 3: `plan-enforcer.test.ts` 12→16. Phase 3: `competitor-actions.test.ts` +22. Phase 3.1: `cron-audit.test.ts` 9→12; `places-search.test.ts` +6; `competitor-intercept-service.test.ts` +8. Group F: `plan-enforcer.test.ts` 16→32.)*
 
 ### Key validation subjects
 
@@ -192,7 +193,7 @@ npx playwright test --ui
 
 ---
 
-> **Last updated:** Sprint 29 (2026-02-23) — 26/26 E2E + 313 unit/integration passing (320 with DB running). Sprint 29: `public-places-search.test.ts` +8, `free-scan-pass.test.ts` 7→10, `01-viral-wedge.spec.ts` 5→6. Sprint 28B: `free-scan-pass.test.ts` +7. Group F: `plan-enforcer.test.ts` 16→32. Phase 3.1: `places-search.test.ts` +6, `competitor-intercept-service.test.ts` +8, `cron-audit.test.ts` 9→12.
+> **Last updated:** Sprint 33 (2026-02-23) — 26/26 E2E + 331 unit/integration passing (338 with DB running). Sprint 33: `scan-params.test.ts` +10 (new). Sprint 31: `free-scan-pass.test.ts` 10→11. Sprint 30: `scan-health-utils.test.ts` +7. Sprint 29: `public-places-search.test.ts` +8, `free-scan-pass.test.ts` 7→10, `01-viral-wedge.spec.ts` 5→6. Sprint 28B: `free-scan-pass.test.ts` +7. Group F: `plan-enforcer.test.ts` 16→32. Phase 3.1: `places-search.test.ts` +6, `competitor-intercept-service.test.ts` +8, `cron-audit.test.ts` 9→12.
 
 ---
 

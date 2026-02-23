@@ -125,6 +125,11 @@
   - [x] Frontend: Render Pass/Fail report card
   - [x] Implement rate limiting: 5 per IP per day (Vercel KV) *(Phase 22 — `checkRateLimit()` in `app/actions/marketing.ts`)*
   - [x] CTA: "Fix this Alert" → redirect to signup
+  - [x] Google Places autocomplete — debounced dropdown, manual city fallback, `not_found` state *(Sprint 29)*
+  - [x] Honest `unavailable` state — no fabricated fail results when API is unconfigured *(Sprint 31)*
+  - [x] Smart Search — dual-mode input: Business Name OR Website URL (auto-detected via regex) *(Sprint 33)*
+  - [x] Diagnostic processing screen — CSS animated overlay with cycling messages during scan *(Sprint 33)*
+  - [x] Public `/scan` result dashboard — alert banner + estimated KPI cards + locked competitive bars + locked fixes + CTA *(Sprint 33)*
 - [x] **Risk Dashboard (Private)**
 
   > **Architectural note (Phase 22):** The hallucination endpoints below were implemented
