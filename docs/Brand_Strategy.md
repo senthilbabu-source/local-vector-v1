@@ -55,7 +55,7 @@ These are LocalVector-owned terms. Use them consistently across all content:
 
 ---
 
-## 5. Landing Page Section Map *(as of Sprint 33)*
+## 5. Landing Page Section Map *(as of Sprint 34)*
 
 | # | Section | Key Message |
 |---|---------|-------------|

@@ -129,7 +129,7 @@
   - [x] Honest `unavailable` state — no fabricated fail results when API is unconfigured *(Sprint 31)*
   - [x] Smart Search — dual-mode input: Business Name OR Website URL (auto-detected via regex) *(Sprint 33)*
   - [x] Diagnostic processing screen — CSS animated overlay with cycling messages during scan *(Sprint 33)*
-  - [x] Public `/scan` result dashboard — alert banner + estimated KPI cards + locked competitive bars + locked fixes + CTA *(Sprint 33)*
+  - [x] Public `/scan` result dashboard — alert banner + real AI-presence fields (mentions, sentiment) + locked numerical scores + locked competitive bars + locked fixes + CTA *(Sprint 33, refined Sprint 34)*
 - [x] **Risk Dashboard (Private)**
 
   > **Architectural note (Phase 22):** The hallucination endpoints below were implemented
