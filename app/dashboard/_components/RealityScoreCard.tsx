@@ -1,16 +1,19 @@
 // Server Component — no interactivity required for Phase 13.
 // Score expansion ("click to show breakdown") is deferred to a future phase.
 
+import { formatRelativeTime, nextSundayLabel } from './scan-health-utils';
+
 // ---------------------------------------------------------------------------
 // Props
 // ---------------------------------------------------------------------------
 
 interface RealityScoreCardProps {
-  realityScore: number | null; // null until first SOV snapshot runs (Phase 5)
-  visibility:   number | null; // null until first SOV snapshot; live from visibility_analytics
-  accuracy:     number;        // 0–100; degrades with open alert count
-  dataHealth:   number;        // 0–100
-  openAlertCount: number;      // used for the sub-headline only
+  realityScore:   number | null; // null until first SOV snapshot runs (Phase 5)
+  visibility:     number | null; // null until first SOV snapshot; live from visibility_analytics
+  accuracy:       number;        // 0–100; degrades with open alert count
+  dataHealth:     number;        // 0–100
+  openAlertCount: number;        // used for the sub-headline only
+  lastAuditAt:    string | null; // ISO timestamp of most recent AI scan; null if never run
 }
 
 // ---------------------------------------------------------------------------
@@ -152,10 +155,11 @@ export default function RealityScoreCard({
   accuracy,
   dataHealth,
   openAlertCount,
+  lastAuditAt,
 }: RealityScoreCardProps) {
   const subline =
     realityScore === null
-      ? 'First AI visibility scan runs Sunday at 2 AM. Check back Monday.'
+      ? `First AI visibility scan runs Sunday, ${nextSundayLabel()}. Check back then.`
       : openAlertCount === 0
         ? 'All clear — no AI lies detected'
         : `${openAlertCount} open ${openAlertCount === 1 ? 'alert is' : 'alerts are'} lowering your Accuracy score`;
@@ -173,9 +177,9 @@ export default function RealityScoreCard({
           </h2>
           <p className="text-xs text-slate-500 mt-0.5">{subline}</p>
         </div>
-        {/* Doc 06 §8.2: tabular-nums on all scores */}
+        {/* Real last-scan timestamp — replaces the hardcoded "Updated just now" */}
         <span className="text-xs font-medium text-slate-500 tabular-nums">
-          Updated just now
+          {lastAuditAt ? `Updated ${formatRelativeTime(lastAuditAt)}` : 'No scans yet'}
         </span>
       </div>
 
@@ -192,22 +196,28 @@ export default function RealityScoreCard({
         </div>
       </div>
 
-      {/* ── Crawl Health (hardcoded bots — Doc 06 §3) ────────────── */}
+      {/* ── AI Scan Health — replaces the fake hardcoded bot list ─── */}
       <div className="mt-4 pt-4 border-t border-white/5">
-        <p className="text-xs text-slate-500 mb-2">Crawl Health (last 24h)</p>
-        <div className="flex flex-wrap gap-x-4 gap-y-1">
-          {[
-            { bot: 'GPTBot',      time: '2h ago' },
-            { bot: 'Perplexity',  time: '5h ago' },
-            { bot: 'Google',      time: '1d ago' },
-          ].map(({ bot, time }) => (
-            <span key={bot} className="text-xs text-slate-400">
-              <span className="text-slate-300 font-medium">{bot}</span>
-              {' · '}
-              {time}
-            </span>
-          ))}
-        </div>
+        <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">
+          AI Scan Health
+        </p>
+        {lastAuditAt ? (
+          <div className="flex items-center gap-2">
+            <span className="flex h-2 w-2 rounded-full bg-truth-emerald shrink-0" aria-hidden />
+            <p className="text-sm text-slate-300">
+              Last scan:{' '}
+              <span className="text-white font-medium">{formatRelativeTime(lastAuditAt)}</span>
+            </p>
+          </div>
+        ) : (
+          <div className="flex items-center gap-2">
+            <span className="flex h-2 w-2 rounded-full bg-slate-600 shrink-0" aria-hidden />
+            <p className="text-sm text-slate-400">
+              First scan runs{' '}
+              <span className="text-slate-300 font-medium">Sunday, {nextSundayLabel()}</span>
+            </p>
+          </div>
+        )}
       </div>
     </section>
   );

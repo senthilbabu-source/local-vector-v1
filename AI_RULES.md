@@ -410,4 +410,61 @@ When a server-side feature must be accessible from an unauthenticated public pag
 * **Rate limit constants:** Choose limits appropriate to the use case (e.g., 20 searches/IP/hour for autocomplete; 5 scans/IP/day for AI model invocations). Document the rationale in a comment above the constants.
 
 ---
+
+## 23. 🕒 Never Show Fake Timestamps or Hardcoded Status Lists (Sprint 30)
+
+When a live data source for a timestamp or status indicator hasn't run yet, the correct response is **a clear pending state** — never a hardcoded string that looks like real data.
+
+* **Rule:** Any "last updated" timestamp or status list derived from a DB row MUST use the real DB value. UI MUST display "No scans yet" / "First scan runs Sunday, [date]" when the row is absent — not a fabricated relative time.
+* **Anti-pattern:** Hardcoding `"Updated just now"` or a static list of bot names + fake times (e.g., `"GPTBot — 2h ago"`, `"Perplexity — 5h ago"`) in a Server Component. Every customer sees the same fabricated values. This is indistinguishable from a lie to paying users.
+* **Correct pattern for timestamps:**
+  ```typescript
+  // ✅ Real DB value → formatRelativeTime(); absent → honest pending state
+  {lastAuditAt ? `Updated ${formatRelativeTime(lastAuditAt)}` : 'No scans yet'}
+
+  // ❌ Hardcoded — static string, never reflects reality
+  <p>Updated just now</p>
+  ```
+* **Correct pattern for status lists:**
+  ```tsx
+  // ✅ Conditional on real DB timestamp
+  {lastAuditAt ? (
+    <p>Last scan: {formatRelativeTime(lastAuditAt)}</p>
+  ) : (
+    <p>First scan runs Sunday, {nextSundayLabel()}</p>
+  )}
+
+  // ❌ Hardcoded list — every user sees the same fake bots
+  <p>GPTBot — 2h ago</p>
+  <p>Perplexity — 5h ago</p>
+  ```
+* **Pure utility functions → co-located utils file:** Timestamp formatting helpers MUST be extracted to a pure TS module (no React imports) so they can be unit tested without jsdom. Pattern: `app/dashboard/_components/scan-health-utils.ts`.
+* **Scope:** Applies to all dashboard status cards, last-run timestamps, bot health indicators, crawl status lists — anything that shows a "when did this last happen" or "who ran recently" indicator.
+
+---
+
+## 24. 🚫 Never Return Fabricated Scan Results (Sprint 31)
+
+When an external API (e.g., Perplexity) is unavailable (no API key, non-OK HTTP, network failure), the correct response is an **`unavailable` result state** — never a hardcoded fabricated result that looks like a real detection.
+
+* **Rule:** Fallback paths in scan functions MUST return `{ status: 'unavailable', reason: ... }` — never a hardcoded `{ status: 'fail', claim_text: '...' }` that would display a false "Hallucination Detected" alert to the user.
+* **Anti-pattern:** A `demoFallback()` function that returns `{ status: 'fail', claim_text: 'Permanently Closed' }` on all error paths. Every scan with no API key returns a red alert — even for legitimately open, well-described businesses.
+* **Correct pattern:**
+  ```typescript
+  // ✅ Honest unavailable state
+  if (!apiKey) return { status: 'unavailable', reason: 'no_api_key' };
+  if (!response.ok) return { status: 'unavailable', reason: 'api_error' };
+
+  // ❌ Fabricated failure — misleads users
+  if (!apiKey) return demoFallback(businessName);  // { status: 'fail', claim_text: 'Permanently Closed' }
+  ```
+* **`unavailable` ScanResult variant:**
+  ```typescript
+  | { status: 'unavailable'; reason: 'no_api_key' | 'api_error' }
+  ```
+* **UI:** The `unavailable` card uses a neutral amber border (`border-yellow-500/40`), "Scan Unavailable" heading, and a "Try again →" button. It MUST NOT use a red error color (that implies a detected hallucination).
+* **Demo functions:** If a hardcoded demo/fallback shape is needed for testing the fail-path UI, it MUST be: (a) named with an `@internal` / test-only marker (e.g., `_demoFallbackForTesting()`), (b) never called automatically on error paths in production, (c) exported only for explicit test import.
+* **Test requirement:** Unit tests MUST cover all three unavailable paths: `no_api_key`, `api_error` (non-OK HTTP), and `api_error` (uncaught/network error).
+
+---
 > **End of System Instructions**

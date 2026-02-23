@@ -2,6 +2,68 @@
 
 ---
 
+## 2026-02-23 — Sprint 31: ViralScanner Integrity — Honest Unavailable State
+
+**Goal:** Stop fabricating "AI Hallucination Detected" results when the Perplexity API is unavailable, broken, or unconfigured.
+
+**Scope:**
+
+| File | Action |
+|------|--------|
+| `app/actions/marketing.ts` | **EDITED** — Added `{ status: 'unavailable'; reason: 'no_api_key' \| 'api_error' }` variant to `ScanResult` type. Renamed `demoFallback()` → `_demoFallbackForTesting()` (exported, `@internal` marked, never called from production paths). Replaced all 4 `demoFallback()` auto-call sites: no API key → `{ status: 'unavailable', reason: 'no_api_key' }`; non-OK HTTP → `{ status: 'unavailable', reason: 'api_error' }`; no keyword match after JSON parse fail → `{ status: 'unavailable', reason: 'api_error' }`; outer catch → `{ status: 'unavailable', reason: 'api_error' }`. Updated header comment to reflect AI_RULES §24. |
+| `app/_components/ViralScanner.tsx` | **EDITED** — Added `unavailable` result card (`data-testid="unavailable-card"`) between rate-limited and not-found cards. Amber border (`border-yellow-500/40`), "Scan Unavailable" heading, contextual message (no-key vs api-error), "Try again →" button via `handleReset`. Updated Phase state machine doc comment. |
+| `src/__tests__/unit/free-scan-pass.test.ts` | **EDITED** — Replaced 2 demo-fallback tests (tests 3 & 4) with `unavailable` assertions. Added test 11: network failure (fetch throws) → `{ status: 'unavailable', reason: 'api_error' }`. Net: 10 → 11 tests. |
+| `src/__tests__/unit/rate-limit.test.ts` | **EDITED** — Updated 4 assertions that expected `status: 'fail'` (demo fallback path) to `not.toBe('rate_limited')` — these tests verify rate limiting behavior, not scan outcome; with AI_RULES §24, the no-key path now returns `'unavailable'`. Count unchanged: 6 tests. |
+
+**Architecture decision:** `demoFallback()` renamed and marked `@internal` rather than deleted — still available for tests that want to exercise the fail-path UI directly. Production code paths never reach it automatically.
+
+**Side effect fixed:** `rate-limit.test.ts` assertions updated from `expect(result.status).toBe('fail')` to `expect(result.status).not.toBe('rate_limited')` — precisely captures what those tests actually verify (rate limiting passthrough), not the scan outcome.
+
+**Tests updated:**
+- `src/__tests__/unit/free-scan-pass.test.ts` — **11 Vitest tests** (was 10). Tests 3 & 4 replaced; test 11 added.
+- `src/__tests__/unit/rate-limit.test.ts` — **6 Vitest tests** (count unchanged; assertions updated).
+
+**Tests:** 320 → 321 passing (7 skipped).
+
+**Run:**
+```bash
+npx vitest run src/__tests__/unit/free-scan-pass.test.ts   # 11 passing
+npx vitest run src/__tests__/unit/rate-limit.test.ts       # 6 passing
+npx vitest run                                              # 321 passing, 7 skipped
+npx tsc --noEmit --skipLibCheck                             # 0 new errors (ViralScanner TS2367 pre-existing from Sprint 29)
+```
+
+---
+
+## 2026-02-23 — Sprint 30: Dashboard Honesty — Replace Fake Crawl Health + Fix Timestamp
+
+**Goal:** Remove all hardcoded/fabricated data from the Reality Score Card before showing the product to paying customers.
+
+**Scope:**
+
+| File | Action |
+|------|--------|
+| `app/dashboard/_components/scan-health-utils.ts` | **CREATED** — Pure TS module (no React). `formatRelativeTime(isoDate)` → "just now" \| "Xh ago" \| "yesterday" \| "X days ago" \| "Jan 15". `nextSundayLabel()` → next Sunday as "Mar 2" (always future, `skip = day === 0 ? 7 : 7 − day`). Co-located with the component so it can be imported in both the component and unit tests without a jsdom environment (AI_RULES §4). |
+| `app/dashboard/page.tsx` | **EDITED** — Added 5th parallel query to `fetchDashboardData()`: `ai_audits.audit_date` scoped by `org_id` (`.eq('org_id', orgId)` — `ai_audits` is not auto-scoped by RLS). Destructured as `lastAuditResult`; extracted `lastAuditAt: string | null`. Passed `lastAuditAt` to both `<RealityScoreCard>` usages (alert and clean-board branches). |
+| `app/dashboard/_components/RealityScoreCard.tsx` | **EDITED** — Added `lastAuditAt: string | null` prop. Replaced hardcoded `"Updated just now"` with `{lastAuditAt ? \`Updated ${formatRelativeTime(lastAuditAt)}\` : 'No scans yet'}`. Updated null subline to use concrete next-Sunday date via `nextSundayLabel()`. Replaced fake hardcoded Crawl Health bot list (GPTBot / Perplexity / Google with static fake times) with a real "AI Scan Health" section: green dot + "Last scan: Xh ago" when `lastAuditAt` exists; gray dot + "First scan runs Sunday, Mar 2" when absent. |
+| `src/__tests__/unit/scan-health-utils.test.ts` | **CREATED** — 7 Vitest tests covering all `formatRelativeTime` branches and `nextSundayLabel` future-date assertion. |
+| `AI_RULES.md` | **EDITED** — Added §23: Never Show Fake Timestamps or Hardcoded Status Lists. Added §24: Never Return Fabricated Scan Results (Sprint 31 prep). |
+
+**Architecture decision:** Timestamp utilities extracted to `scan-health-utils.ts` (pure TS, no React imports) following AI_RULES §4 — avoids jsdom requirement in unit tests. `ai_audits` requires explicit `org_id` filter (not RLS-auto-scoped). Adding the 5th parallel query to the existing `Promise.all` block has no latency penalty.
+
+**Tests added:**
+- `src/__tests__/unit/scan-health-utils.test.ts` — **7 Vitest tests.** `formatRelativeTime`: < 1h → "just now", ≥1h < 24h → "Xh ago", 1 day → "yesterday", 2–6 days → "X days ago", ≥7 days → short date. `nextSundayLabel`: "Mon DD" format, always 1–7 days in the future.
+
+**Tests:** 313 → 320 passing (7 skipped). *(+7 from `scan-health-utils.test.ts`, not +6 as planned — one extra `it` block for the nextSundayLabel format assertion.)*
+
+**Run:**
+```bash
+npx vitest run src/__tests__/unit/scan-health-utils.test.ts   # 7 passing
+npx vitest run                                                 # 320 passing, 7 skipped
+```
+
+---
+
 ## 2026-02-23 — Sprint 29: Robust ViralScanner Business Autocomplete
 
 **Scope:** Replaced the raw free-text ViralScanner (Business Name + City inputs) with a state-machine-driven autocomplete backed by a new public Google Places endpoint. Users now select a verified business from a debounced dropdown, which passes the canonical address to Perplexity for a more accurate hallucination check. Added `not_found` scan result state for businesses with no AI coverage, and `is_unknown` Zod field to the Perplexity schema.

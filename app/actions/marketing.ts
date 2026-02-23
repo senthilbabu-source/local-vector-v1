@@ -18,11 +18,12 @@
 //   Note: @vercel/kv is deprecated; production deployments should use the Upstash
 //   Redis integration from the Vercel Marketplace (env vars are identical).
 //
-// Graceful degradation:
-//   • Missing PERPLEXITY_API_KEY → immediate demo fallback (keeps CI green).
-//   • Non-OK HTTP response       → demo fallback.
-//   • JSON parse / Zod failure   → text-detection fallback.
-//   • Any uncaught error         → demo fallback.
+// Graceful degradation (AI_RULES §24 — never fabricate scan results):
+//   • Missing PERPLEXITY_API_KEY → { status: 'unavailable', reason: 'no_api_key' }.
+//   • Non-OK HTTP response       → { status: 'unavailable', reason: 'api_error' }.
+//   • JSON parse / Zod failure   → text-detection fallback (keyword match → 'fail').
+//   • No keyword match           → { status: 'unavailable', reason: 'api_error' }.
+//   • Any uncaught error         → { status: 'unavailable', reason: 'api_error' }.
 
 import { headers } from 'next/headers';
 import { kv } from '@vercel/kv';
@@ -59,6 +60,15 @@ export type ScanResult =
   | {
       status: 'rate_limited';
       retryAfterSeconds: number;
+    }
+  | {
+      /**
+       * Scan could not be completed: API key absent or upstream error.
+       * NOT a hallucination result — shows a neutral "Scan Unavailable" card.
+       * See AI_RULES §24.
+       */
+      status:  'unavailable';
+      reason:  'no_api_key' | 'api_error';
     };
 
 // ---------------------------------------------------------------------------
@@ -101,10 +111,15 @@ const PerplexityScanSchema = z.object({
 });
 
 // ---------------------------------------------------------------------------
-// Internal — demo result used when the API is unavailable
+// Test-only — demo result for exercising the fail-path UI in unit tests
 // ---------------------------------------------------------------------------
 
-function demoFallback(businessName: string): ScanResult {
+/**
+ * @internal NOT called in production. Only for unit tests that need to exercise
+ * the hallucination-card UI path without a real Perplexity response.
+ * See AI_RULES §24 — production error paths return `{ status: 'unavailable' }`.
+ */
+export function _demoFallbackForTesting(businessName: string): ScanResult {
   return {
     status:         'fail',
     engine:         'ChatGPT',
@@ -140,9 +155,9 @@ export async function runFreeScan(formData: FormData): Promise<ScanResult> {
 
   const apiKey = process.env.PERPLEXITY_API_KEY;
 
-  // No key present → instant demo fallback (dev / CI without credentials).
+  // No key present → honest unavailable state (AI_RULES §24 — no fabricated results).
   if (!apiKey) {
-    return demoFallback(businessName);
+    return { status: 'unavailable', reason: 'no_api_key' };
   }
 
   try {
@@ -182,7 +197,7 @@ export async function runFreeScan(formData: FormData): Promise<ScanResult> {
     });
 
     if (!response.ok) {
-      return demoFallback(businessName);
+      return { status: 'unavailable', reason: 'api_error' };
     }
 
     const data = (await response.json()) as {
@@ -247,8 +262,10 @@ export async function runFreeScan(formData: FormData): Promise<ScanResult> {
       };
     }
 
-    return demoFallback(businessName);
+    // No keyword match and JSON parse failed → service returned unusable data
+    return { status: 'unavailable', reason: 'api_error' };
   } catch {
-    return demoFallback(businessName);
+    // Network failure or other uncaught error
+    return { status: 'unavailable', reason: 'api_error' };
   }
 }

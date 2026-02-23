@@ -40,12 +40,13 @@ export type HallucinationRow = {
  * Fetches all data needed for the Reality Score Dashboard in parallel.
  * RLS (org_isolation_select on ai_hallucinations) automatically scopes every
  * query to the logged-in user's org via the JWT — no manual org_id filter needed.
- * visibility_analytics requires an explicit org_id filter (no RLS policy on that table).
+ * visibility_analytics and ai_audits require explicit org_id filters.
  *
  * Returns:
  *   openAlerts      — correction_status = 'open', sorted critical-first.
  *   fixedCount      — count of correction_status = 'fixed' rows (Quick Stats).
  *   visibilityScore — live integer 0–100 from share_of_voice; null if no snapshot yet.
+ *   lastAuditAt     — ISO timestamp of most recent AI scan; null if never run.
  */
 async function fetchDashboardData(orgId: string) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -53,7 +54,7 @@ async function fetchDashboardData(orgId: string) {
 
   const monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString();
 
-  const [openResult, fixedResult, interceptResult, visibilityResult] = await Promise.all([
+  const [openResult, fixedResult, interceptResult, visibilityResult, lastAuditResult] = await Promise.all([
     // Open alerts — columns AlertFeed and RealityScoreCard need.
     supabase
       .from('ai_hallucinations')
@@ -85,6 +86,16 @@ async function fetchDashboardData(orgId: string) {
       .order('snapshot_date', { ascending: false })
       .limit(1)
       .maybeSingle() as Promise<{ data: { share_of_voice: number } | null; error: unknown }>,
+
+    // Most recent AI audit — audit_date is the canonical scan timestamp.
+    // Returns null for new customers who have not had their first cron run.
+    supabase
+      .from('ai_audits')
+      .select('audit_date')
+      .eq('org_id', orgId)
+      .order('audit_date', { ascending: false })
+      .limit(1)
+      .maybeSingle() as Promise<{ data: { audit_date: string } | null; error: unknown }>,
   ]);
 
   const rawOpen = openResult.data ?? [];
@@ -104,11 +115,15 @@ async function fetchDashboardData(orgId: string) {
       ? Math.round(visRow.share_of_voice * 100)
       : null;
 
+  // ISO timestamp of most recent AI audit; null if no audit has ever run.
+  const lastAuditAt: string | null = lastAuditResult.data?.audit_date ?? null;
+
   return {
     openAlerts,
     fixedCount:           fixedResult.count ?? 0,
     interceptsThisMonth:  interceptResult.count ?? 0,
     visibilityScore,
+    lastAuditAt,
   };
 }
 
@@ -151,7 +166,7 @@ export default async function DashboardPage() {
     redirect('/login');
   }
 
-  const { openAlerts, fixedCount, interceptsThisMonth, visibilityScore } = await fetchDashboardData(ctx.orgId ?? '');
+  const { openAlerts, fixedCount, interceptsThisMonth, visibilityScore, lastAuditAt } = await fetchDashboardData(ctx.orgId ?? '');
   const scores = deriveRealityScore(openAlerts.length, visibilityScore);
   const firstName = ctx.fullName?.split(' ')[0] ?? ctx.email.split('@')[0];
   const hasOpenAlerts = openAlerts.length > 0;
@@ -179,11 +194,11 @@ export default async function DashboardPage() {
       {hasOpenAlerts ? (
         <>
           <AlertFeed alerts={openAlerts} />
-          <RealityScoreCard {...scores} openAlertCount={openAlerts.length} />
+          <RealityScoreCard {...scores} openAlertCount={openAlerts.length} lastAuditAt={lastAuditAt} />
         </>
       ) : (
         <>
-          <RealityScoreCard {...scores} openAlertCount={0} />
+          <RealityScoreCard {...scores} openAlertCount={0} lastAuditAt={lastAuditAt} />
           <AlertFeed alerts={[]} />
         </>
       )}

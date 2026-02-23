@@ -7,7 +7,7 @@
 //   selected  → business locked, verified address shown, city inferred
 //   manual    → name editable + city input shown (no autocomplete)
 //   scanning  → runFreeScan() in flight
-//   result    → final card (fail / pass / not_found / rate_limited)
+//   result    → final card (fail / pass / not_found / rate_limited / unavailable)
 //
 // Autocomplete:
 //   • Calls /api/public/places/search (new public endpoint, IP rate-limited)
@@ -162,6 +162,26 @@ export default function ViralScanner() {
         <a href="/login" className="inline-block text-sm text-electric-indigo underline underline-offset-2">
           Sign up for unlimited scans →
         </a>
+      </div>
+    );
+  }
+
+  if (phase === 'result' && result?.status === 'unavailable') {
+    return (
+      <div data-testid="unavailable-card" className="w-full rounded-2xl bg-surface-dark border-2 border-yellow-500/40 p-6 space-y-4 text-center">
+        <p className="text-base font-semibold text-yellow-400">Scan Unavailable</p>
+        <p className="text-sm text-slate-400">
+          {result.reason === 'no_api_key'
+            ? 'This scanner requires configuration. Contact support if this persists.'
+            : "We couldn\u2019t complete this scan right now. Please try again in a moment."}
+        </p>
+        <button
+          type="button"
+          onClick={handleReset}
+          className="text-sm text-electric-indigo underline underline-offset-2"
+        >
+          Try again →
+        </button>
       </div>
     );
   }

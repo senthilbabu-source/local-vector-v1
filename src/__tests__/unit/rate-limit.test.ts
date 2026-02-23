@@ -49,7 +49,7 @@ describe('runFreeScan — rate limiting', () => {
   describe('when KV is configured', () => {
     beforeEach(() => {
       process.env.KV_REST_API_URL = 'http://localhost:6379';
-      delete process.env.PERPLEXITY_API_KEY; // force demo fallback; no real fetch
+      delete process.env.PERPLEXITY_API_KEY; // force unavailable; no real fetch (AI_RULES §24)
       mockHeaders();
       vi.mocked(kv.expire as ReturnType<typeof vi.fn>).mockResolvedValue(1);
       vi.mocked(kv.ttl as ReturnType<typeof vi.fn>).mockResolvedValue(86400);
@@ -63,13 +63,15 @@ describe('runFreeScan — rate limiting', () => {
     it('returns scan result when request count is under limit (count=1)', async () => {
       vi.mocked(kv.incr as ReturnType<typeof vi.fn>).mockResolvedValue(1);
       const result = await runFreeScan(makeForm());
-      expect(result.status).toBe('fail');
+      // No API key → unavailable (AI_RULES §24); key point is NOT rate_limited
+      expect(result.status).not.toBe('rate_limited');
     });
 
     it('returns scan result when request count equals limit exactly (count=5)', async () => {
       vi.mocked(kv.incr as ReturnType<typeof vi.fn>).mockResolvedValue(5);
       const result = await runFreeScan(makeForm());
-      expect(result.status).toBe('fail');
+      // No API key → unavailable (AI_RULES §24); key point is NOT rate_limited
+      expect(result.status).not.toBe('rate_limited');
     });
 
     it('returns { status: "rate_limited" } when count exceeds limit (count=6)', async () => {
@@ -99,8 +101,8 @@ describe('runFreeScan — rate limiting', () => {
 
     it('skips rate limiting entirely when KV_REST_API_URL is absent', async () => {
       const result = await runFreeScan(makeForm());
-      // Demo fallback path — not rate limited
-      expect(result.status).toBe('fail');
+      // No API key → unavailable (AI_RULES §24); key point is KV.incr never called
+      expect(result.status).not.toBe('rate_limited');
       expect(kv.incr).not.toHaveBeenCalled();
     });
   });
@@ -122,8 +124,8 @@ describe('runFreeScan — rate limiting', () => {
         new Error('KV connection refused')
       );
       const result = await runFreeScan(makeForm());
-      // try/catch in runFreeScan absorbs the KV failure — scan continues via demo fallback
-      expect(result.status).toBe('fail');
+      // KV failure absorbed; no API key → unavailable (AI_RULES §24); key point is NOT rate_limited
+      expect(result.status).not.toBe('rate_limited');
     });
   });
 });

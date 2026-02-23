@@ -4,11 +4,16 @@
 // Tests app/actions/marketing.ts → runFreeScan():
 //   1. is_closed=true  API response   → { status: 'fail' } with correct fields
 //   2. is_closed=false API response   → { status: 'pass' } with engine + business_name
-//   3. No PERPLEXITY_API_KEY         → demo fallback → { status: 'fail', claim_text: 'Permanently Closed' }
-//   4. Non-OK HTTP (status 429)      → demo fallback → { status: 'fail' }
+//   3. No PERPLEXITY_API_KEY         → { status: 'unavailable', reason: 'no_api_key' } (AI_RULES §24)
+//   4. Non-OK HTTP (status 429)      → { status: 'unavailable', reason: 'api_error' }
 //   5. Markdown-fenced JSON          → cleaned, parsed, is_closed respected
 //   6. Text-detection path           → "permanently closed" keyword → { status: 'fail', severity: 'critical' }
 //   7. Severity propagated           → 'medium' severity from API retained in fail result
+//
+//   8. address in formData          → Perplexity user message contains address string
+//   9. is_unknown=true from API     → { status: 'not_found' }
+//  10. is_unknown=false+is_closed=false → { status: 'pass' } regression guard
+//  11. Network failure (fetch throws) → { status: 'unavailable', reason: 'api_error' }
 //
 // Mocks: @vercel/kv, next/headers, global fetch — hoisted (AI_RULES §4).
 //
@@ -106,23 +111,21 @@ describe('runFreeScan — is_closed branching (AI_RULES §21)', () => {
     });
   });
 
-  it('returns demo fallback { status: "fail", claim_text: "Permanently Closed" } when no API key', async () => {
+  it('returns { status: "unavailable", reason: "no_api_key" } when PERPLEXITY_API_KEY is absent (AI_RULES §24)', async () => {
     delete process.env.PERPLEXITY_API_KEY;
     const result = await runFreeScan(makeForm('My Local Diner'));
-    expect(result.status).toBe('fail');
-    if (result.status === 'fail') {
-      expect(result.claim_text).toBe('Permanently Closed');
-      expect(result.expected_truth).toBe('Open');
-      expect(result.business_name).toBe('My Local Diner');
+    expect(result.status).toBe('unavailable');
+    if (result.status === 'unavailable') {
+      expect(result.reason).toBe('no_api_key');
     }
   });
 
-  it('returns demo fallback when Perplexity returns non-OK status', async () => {
+  it('returns { status: "unavailable", reason: "api_error" } when Perplexity returns non-OK status', async () => {
     mockPerplexityError(429);
     const result = await runFreeScan(makeForm());
-    expect(result.status).toBe('fail');
-    if (result.status === 'fail') {
-      expect(result.claim_text).toBe('Permanently Closed');
+    expect(result.status).toBe('unavailable');
+    if (result.status === 'unavailable') {
+      expect(result.reason).toBe('api_error');
     }
   });
 
@@ -164,6 +167,17 @@ describe('runFreeScan — is_closed branching (AI_RULES §21)', () => {
       expect(result.severity).toBe('medium');
       expect(result.claim_text).toBe('Closed on Mondays');
       expect(result.expected_truth).toBe('Open Monday');
+    }
+  });
+
+  // ── Sprint 31: unavailable on uncaught error ─────────────────────────────
+
+  it('returns { status: "unavailable", reason: "api_error" } when fetch throws (network failure)', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('network failure')));
+    const result = await runFreeScan(makeForm());
+    expect(result.status).toBe('unavailable');
+    if (result.status === 'unavailable') {
+      expect(result.reason).toBe('api_error');
     }
   });
 
