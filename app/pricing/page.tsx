@@ -151,7 +151,8 @@ export default function PricingPage() {
       {/* ── Navigation ───────────────────────────────────────────────────── */}
       <nav className="sticky top-0 z-10 border-b border-white/5 bg-midnight-slate/80 backdrop-blur-sm">
         <div className="mx-auto flex max-w-5xl items-center justify-between px-6 py-4">
-          <a href="/" className="text-lg font-bold text-electric-indigo tracking-tight hover:opacity-80 transition">
+          <a href="/" className="flex items-center gap-2 text-lg font-bold text-electric-indigo tracking-tight hover:opacity-80 transition">
+            <img src="/logo.svg" alt="" className="h-7 w-auto" aria-hidden />
             LocalVector
           </a>
           <a

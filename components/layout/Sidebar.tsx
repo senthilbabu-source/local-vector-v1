@@ -129,9 +129,7 @@ export default function Sidebar({ isOpen, onClose, displayName, orgName, plan }:
         {/* ── Brand header ───────────────────────────────────────── */}
         <div className="flex items-center justify-between border-b border-white/5 px-5 py-4">
           <div className="flex items-center gap-2.5">
-            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-electric-indigo text-white font-bold text-sm select-none">
-              LV
-            </span>
+            <img src="/logo.svg" alt="LocalVector" className="h-8 w-8 shrink-0" />
             <div className="min-w-0">
               <p className="truncate text-sm font-semibold text-white leading-none tracking-tight">
                 LocalVector<span className="text-electric-indigo">.ai</span>

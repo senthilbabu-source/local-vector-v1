@@ -142,7 +142,8 @@ export default function ScanDashboard({ result }: Props) {
       {/* ── 0. Nav strip ─────────────────────────────────────────────────── */}
       <nav className="sticky top-0 z-10 -mx-4 px-4 py-4 flex items-center justify-between border-b border-white/5 backdrop-blur-sm"
         style={{ backgroundColor: 'rgba(5,10,21,0.92)' }}>
-        <span className="text-base font-bold tracking-tight">
+        <span className="flex items-center gap-2 text-base font-bold tracking-tight">
+          <img src="/logo.svg" alt="" className="h-6 w-auto" aria-hidden />
           <span style={{ color: '#00F5A0' }}>LocalVector</span>
           <span className="text-slate-600">.ai</span>
         </span>

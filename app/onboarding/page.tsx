@@ -77,9 +77,7 @@ export default async function OnboardingPage() {
         {/* ── Header — Doc 06 §7 headline ─────────────────────────────── */}
         <div className="mb-8 text-center">
           <div className="inline-flex items-center gap-2 mb-4">
-            <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-electric-indigo text-white font-bold text-sm select-none">
-              LV
-            </span>
+            <img src="/logo.svg" alt="LocalVector" className="h-9 w-9" />
             <span className="text-lg font-semibold text-white tracking-tight">
               LocalVector<span className="text-electric-indigo">.ai</span>
             </span>

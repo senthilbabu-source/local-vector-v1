@@ -97,7 +97,8 @@ export default function RootPage() {
       >
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
           {/* Logo */}
-          <span className="text-lg font-bold tracking-tight">
+          <span className="flex items-center gap-2 text-lg font-bold tracking-tight">
+            <img src="/logo.svg" alt="" className="h-7 w-auto" aria-hidden />
             <span style={{ color: '#00F5A0' }}>LocalVector</span>
             <span className="text-slate-600">.ai</span>
           </span>

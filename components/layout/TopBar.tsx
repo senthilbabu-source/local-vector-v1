@@ -34,9 +34,7 @@ export default function TopBar({ onMenuToggle, orgName, plan }: TopBarProps) {
 
         {/* Logo — hidden on mobile (shown in sidebar), visible on desktop */}
         <div className="hidden lg:flex items-center gap-2">
-          <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-electric-indigo text-white font-bold text-xs select-none">
-            LV
-          </span>
+          <img src="/logo.svg" alt="LocalVector" className="h-7 w-7 shrink-0" />
           <span className="text-sm font-semibold text-white tracking-tight">
             LocalVector<span className="text-electric-indigo">.ai</span>
           </span>
