@@ -1,5 +1,5 @@
 // ---------------------------------------------------------------------------
-// scan-params.test.ts — Unit tests for /scan URL param utilities (Sprint 34)
+// scan-params.test.ts — Unit tests for /scan URL param utilities (Sprint 34+35)
 //
 // Tests app/scan/_utils/scan-params.ts:
 //   • parseScanParams  — decodes URL search params to ScanDisplayData
@@ -10,6 +10,7 @@
 //
 // Sprint 34: replaced deriveKpiScores tests (function removed) with real-field
 // tests for mentions, sentiment, accuracyIssues.
+// Sprint 35: +3 tests for issue_cats encoding/decoding (accuracyIssueCategories).
 //
 // Run:
 //   npx vitest run src/__tests__/unit/scan-params.test.ts
@@ -147,27 +148,71 @@ describe('parseScanParams', () => {
       ]);
     }
   });
+
+  // ── Sprint 35: issue_cats decoding ──────────────────────────────────────
+
+  it('decodes issue_cats=hours|address to accuracyIssueCategories array', () => {
+    const params = {
+      status:     'pass',
+      biz:        'Test Biz',
+      engine:     'ChatGPT',
+      issue_cats: 'hours|address',
+    };
+    const result = parseScanParams(params);
+    expect(result.status).toBe('pass');
+    if (result.status === 'pass') {
+      expect(result.accuracyIssueCategories).toEqual(['hours', 'address']);
+    }
+  });
+
+  it('defaults accuracyIssueCategories to [] when issue_cats param is absent (Sprint 34 URL backwards-compat)', () => {
+    // Sprint 34 URL — no issue_cats param
+    const params = { status: 'pass', biz: 'Old Cafe', engine: 'ChatGPT' };
+    const result = parseScanParams(params);
+    expect(result.status).toBe('pass');
+    if (result.status === 'pass') {
+      expect(result.accuracyIssueCategories).toEqual([]);
+    }
+  });
 });
 
 // ---------------------------------------------------------------------------
 // buildScanParams — Sprint 34: encodes mentions and sentiment
+//                   Sprint 35: encodes issue_cats
 // ---------------------------------------------------------------------------
 
 describe('buildScanParams', () => {
   it('encodes mentions and sentiment params for pass result', () => {
     const passResult: ScanResult = {
-      status:          'pass',
-      engine:          'ChatGPT',
-      business_name:   'Test Cafe',
-      mentions_volume: 'high',
-      sentiment:       'positive',
-      accuracy_issues: [],
+      status:                    'pass',
+      engine:                    'ChatGPT',
+      business_name:             'Test Cafe',
+      mentions_volume:           'high',
+      sentiment:                 'positive',
+      accuracy_issues:           [],
+      accuracy_issue_categories: [],
     };
     const params = buildScanParams(passResult, 'Test Cafe');
     expect(params.get('mentions')).toBe('high');
     expect(params.get('sentiment')).toBe('positive');
     expect(params.get('status')).toBe('pass');
     expect(params.get('biz')).toBe('Test Cafe');
+  });
+
+  // ── Sprint 35: issue_cats encoding ──────────────────────────────────────
+
+  it('encodes accuracy_issue_categories as issue_cats param (pipe-separated)', () => {
+    const result: ScanResult = {
+      status:                    'pass',
+      engine:                    'ChatGPT',
+      business_name:             'Test Cafe',
+      mentions_volume:           'low',
+      sentiment:                 'neutral',
+      accuracy_issues:           ['AI shows wrong address'],
+      accuracy_issue_categories: ['address'],
+    };
+    const params = buildScanParams(result, 'Test Cafe');
+    expect(params.get('issue_cats')).toBe('address');
   });
 });
 

@@ -558,4 +558,27 @@ This restarts the CSS animation without any JavaScript animation library.
 * **Scope:** All animated UI in `app/` — loading states, scan overlays, KPI cards, progress bars.
 
 ---
+
+## 28. 🏷️ Parallel Array Pattern — Categories for Structured Lists (Sprint 35)
+
+When a Perplexity/OpenAI response returns an array of string findings (e.g., `accuracy_issues`),
+use a **parallel array** of categories/types (`accuracy_issue_categories`) at the same index,
+rather than nesting objects. This keeps URL encoding simple and Zod defaults clean.
+
+* **Pattern:**
+  ```typescript
+  // ✅ Parallel arrays — clean Zod, simple URL encoding
+  accuracy_issues:           z.array(z.string()).max(3).default([]),
+  accuracy_issue_categories: z.array(z.enum(['hours','address','menu','phone','other'])).max(3).default([]),
+
+  // ❌ Avoid nested objects (harder to URL-encode, more complex Zod schema)
+  accuracy_issues: z.array(z.object({ text: z.string(), category: z.enum([...]) })).max(3).default([]),
+  ```
+* **Invariant:** Both arrays MUST have the same length. The system prompt MUST state: "A parallel array of the SAME LENGTH as `accuracy_issues`". The Zod schema enforces `max(3)` on both.
+* **URL encoding:** The categories array encodes as a single `issue_cats` param (pipe-separated). Categories are not URL-encoded (they are a fixed enum with no special characters).
+* **Graceful defaults:** Both arrays default to `[]` via Zod. Missing `issue_cats` in a URL (Sprint 33/34 backwards-compat) decodes to `[]` — `??[0] ?? 'other'` at render time handles index mismatches gracefully.
+* **Index access:** Always use `array[i] ?? 'other'` (never `array[i]!`) to access the parallel array — protects against off-by-one if the model returns mismatched lengths.
+* **See also:** AI_RULES §21 (all parsed fields must be branched on), AI_RULES §24 (no fabricated results).
+
+---
 > **End of System Instructions**

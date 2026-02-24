@@ -2,6 +2,58 @@
 
 ---
 
+## 2026-02-23 — Sprint 35: Accuracy Issues Full Display + Issue Categories
+
+**Goal:** Surface all `accuracy_issues` from Perplexity as real Detected Issues items (items 1–3
+in Section 4 of ScanDashboard), with a category badge per issue. Previously, items 2–3 were
+generic locked copy even when Perplexity returned specific inaccuracies. Sprint 35 fixes this:
+item 1 (unlocked) = first accuracy issue; items 2–3 (locked/blurred) = next real issues or
+generic fallback when fewer than 2/3 issues exist. Each issue now carries a category badge
+(`Hours | Address | Menu | Phone | Other`) from the new `accuracy_issue_categories` parallel array.
+
+**AI_RULES compliance:**
+- §24: Items 2–3 now show *real* locked findings — more compelling AND honest (no fabrication)
+- §26: Same free/locked split — first item free, rest require signup
+- §12: All Tailwind class strings are literals (ternary-only `categoryColor()` / `categoryLabel()`)
+- §21: All new parsed fields (`accuracy_issue_categories`) branched on in every return path
+
+### Part 1 — Perplexity Schema Expansion (`app/actions/marketing.ts`)
+- Added `accuracy_issue_categories` to `PerplexityScanSchema` (parallel array, max 3, `default([])`)
+- Updated system prompt: `accuracy_issue_categories` instruction (parallel to `accuracy_issues`)
+- Updated `Schema:` comment in system prompt
+- `ScanResult` union: `fail` and `pass` get `accuracy_issue_categories: Array<IssueCategory>`
+- All return branches updated: `pass`, `fail`, text-detection fallback, `_demoFallbackForTesting`
+
+### Part 2 — URL Params + Data Flow (`app/scan/_utils/scan-params.ts`)
+- Exported `IssueCategory` type: `'hours' | 'address' | 'menu' | 'phone' | 'other'`
+- `ScanDisplayData`: `fail` and `pass` get `accuracyIssueCategories: IssueCategory[]`
+- Added `VALID_CATEGORIES` constant for decoding validation
+- `parseScanParams`: decodes `issue_cats` pipe-separated param; missing → `[]` (backwards-compat)
+- `buildScanParams`: encodes `issue_cats` when non-empty
+- Added `getAccuracyIssueCategories()` helper function (parallel to `getAccuracyIssues()`)
+
+### Part 3 — ScanDashboard Redesign (`app/scan/_components/ScanDashboard.tsx`)
+- Imported `IssueCategory` and `getAccuracyIssueCategories` from `scan-params`
+- Added `categoryLabel()` and `categoryColor()` helper functions (AI_RULES §12: ternary literals)
+- New `AccuracyIssueItem` sub-component: category badge + issue text; handles locked/unlocked states
+- Section 4 refactored:
+  - When `accuracyIssues.length > 0`: Item 1 = `AccuracyIssueItem` (unlocked); items 2–3 = `AccuracyIssueItem` (locked) if present, else `LockedFixItem` (generic fallback)
+  - When `accuracyIssues.length === 0`: existing fail/pass/not_found rendering (no regression)
+
+### Part 4 — MSW Mock (`src/mocks/handlers.ts`)
+- Added `accuracy_issue_categories: []` to Perplexity mock (parallel to `accuracy_issues: []`)
+
+### Tests
+| Suite | Before | After |
+|-------|--------|-------|
+| `scan-params.test.ts` | 11 | **14** (+3: decode `issue_cats`, missing → `[]`, encode in `buildScanParams`) |
+| `free-scan-pass.test.ts` | 15 | **17** (updated `toEqual` + 2 new: categories propagation + Zod default) |
+| **Vitest total** | **336** | **341** |
+
+**Verification:** 341 passing, 7 skipped · 0 new TypeScript errors
+
+---
+
 ## 2026-02-23 — Sprint 34: Real AI Audit Data — Honest Free Tier + Locked Scores + "AI Audit" Renaming
 
 **Goal:** Replace Sprint 33's 5-row KPI lookup table (identical scores for every "pass" scan) with

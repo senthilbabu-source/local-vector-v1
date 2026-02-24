@@ -1,5 +1,5 @@
 'use server';
-// Server Action — runFreeScan (Sprint 34: real AI-presence audit)
+// Server Action — runFreeScan (Sprint 34+35: real AI-presence audit + issue categories)
 //
 // Powers the free AI Audit on the public marketing landing page.
 // Calls the Perplexity Sonar API with a JSON-mode system prompt to audit how
@@ -45,6 +45,8 @@ export type ScanResult =
       mentions_volume: 'none' | 'low' | 'medium' | 'high';
       sentiment: 'positive' | 'neutral' | 'negative';
       accuracy_issues: string[];
+      /** Sprint 35: parallel category per accuracy_issue (hours|address|menu|phone|other) */
+      accuracy_issue_categories: Array<'hours' | 'address' | 'menu' | 'phone' | 'other'>;
     }
   | {
       /** No hallucination found — AI correctly describes the business. */
@@ -55,6 +57,8 @@ export type ScanResult =
       mentions_volume: 'none' | 'low' | 'medium' | 'high';
       sentiment: 'positive' | 'neutral' | 'negative';
       accuracy_issues: string[];
+      /** Sprint 35: parallel category per accuracy_issue (hours|address|menu|phone|other) */
+      accuracy_issue_categories: Array<'hours' | 'address' | 'menu' | 'phone' | 'other'>;
     }
   | {
       /**
@@ -120,6 +124,10 @@ const PerplexityScanSchema = z.object({
   mentions_volume: z.enum(['none', 'low', 'medium', 'high']).default('low'),
   sentiment:       z.enum(['positive', 'neutral', 'negative']).default('neutral'),
   accuracy_issues: z.array(z.string().max(120)).max(3).default([]),
+  // Sprint 35: parallel category per accuracy_issue — Zod default absorbs old responses.
+  accuracy_issue_categories: z.array(
+    z.enum(['hours', 'address', 'menu', 'phone', 'other'])
+  ).max(3).default([]),
 });
 
 // ---------------------------------------------------------------------------
@@ -139,9 +147,10 @@ export async function _demoFallbackForTesting(businessName: string): Promise<Sca
     claim_text:      'Permanently Closed',
     expected_truth:  'Open',
     business_name:   businessName,
-    mentions_volume: 'low',
-    sentiment:       'negative',
-    accuracy_issues: [],
+    mentions_volume:           'low',
+    sentiment:                 'negative',
+    accuracy_issues:           [],
+    accuracy_issue_categories: [],
   };
 }
 
@@ -194,13 +203,14 @@ export async function runFreeScan(formData: FormData): Promise<ScanResult> {
             content: [
               'You are a business AI-presence auditor.',
               'Respond ONLY with a valid JSON object — no markdown, no explanation.',
-              'Schema: { "is_closed": boolean, "is_unknown": boolean, "claim_text": string, "expected_truth": string, "severity": "critical"|"high"|"medium", "mentions_volume": "none"|"low"|"medium"|"high", "sentiment": "positive"|"neutral"|"negative", "accuracy_issues": [string] }',
+              'Schema: { "is_closed": boolean, "is_unknown": boolean, "claim_text": string, "expected_truth": string, "severity": "critical"|"high"|"medium", "mentions_volume": "none"|"low"|"medium"|"high", "sentiment": "positive"|"neutral"|"negative", "accuracy_issues": [string], "accuracy_issue_categories": [string] }',
               'is_unknown=true if you cannot find any AI-model coverage for this business at all.',
               'If AI models report this business as permanently closed: is_closed=true, claim_text="Permanently Closed", expected_truth="Open".',
               'If AI models report it as open (correctly): is_closed=false, claim_text="Open", expected_truth="Open".',
               'mentions_volume: "none"=no AI data about this business, "low"=brief mentions only, "medium"=moderate detail, "high"=prominently described with rich context.',
               'sentiment: "positive"=AI describes the business favorably/premium, "neutral"=factual/no strong tone, "negative"=AI describes it unfavorably/budget.',
               'accuracy_issues: Up to 3 short strings (max 80 chars each) describing specific inaccuracies AI states about this business (e.g. "AI reports Monday hours as 9am-5pm"). Empty array [] if none.',
+              'accuracy_issue_categories: A parallel array of the SAME LENGTH as accuracy_issues. Each entry is one of: "hours", "address", "menu", "phone", or "other". Classifies the type of inaccuracy described by the corresponding accuracy_issues entry.',
               'Severity MUST be lowercase: critical, high, or medium.',
             ].join(' '),
           },
@@ -248,24 +258,26 @@ export async function runFreeScan(formData: FormData): Promise<ScanResult> {
         }
         if (!parsed.data.is_closed) {
           return {
-            status:          'pass',
-            engine:          'ChatGPT',
-            business_name:   businessName,
-            mentions_volume: parsed.data.mentions_volume,
-            sentiment:       parsed.data.sentiment,
-            accuracy_issues: parsed.data.accuracy_issues,
+            status:                    'pass',
+            engine:                    'ChatGPT',
+            business_name:             businessName,
+            mentions_volume:           parsed.data.mentions_volume,
+            sentiment:                 parsed.data.sentiment,
+            accuracy_issues:           parsed.data.accuracy_issues,
+            accuracy_issue_categories: parsed.data.accuracy_issue_categories,
           };
         }
         return {
-          status:          'fail',
-          engine:          'ChatGPT',
-          severity:        parsed.data.severity,
-          claim_text:      parsed.data.claim_text,
-          expected_truth:  parsed.data.expected_truth,
-          business_name:   businessName,
-          mentions_volume: parsed.data.mentions_volume,
-          sentiment:       parsed.data.sentiment,
-          accuracy_issues: parsed.data.accuracy_issues,
+          status:                    'fail',
+          engine:                    'ChatGPT',
+          severity:                  parsed.data.severity,
+          claim_text:                parsed.data.claim_text,
+          expected_truth:            parsed.data.expected_truth,
+          business_name:             businessName,
+          mentions_volume:           parsed.data.mentions_volume,
+          sentiment:                 parsed.data.sentiment,
+          accuracy_issues:           parsed.data.accuracy_issues,
+          accuracy_issue_categories: parsed.data.accuracy_issue_categories,
         };
       }
     } catch {
@@ -282,15 +294,16 @@ export async function runFreeScan(formData: FormData): Promise<ScanResult> {
     ) {
       // Hard-code new fields on text-detection path — no structured data available
       return {
-        status:          'fail',
-        engine:          'ChatGPT',
-        severity:        'critical',
-        claim_text:      'Permanently Closed',
-        expected_truth:  'Open',
-        business_name:   businessName,
-        mentions_volume: 'low',
-        sentiment:       'negative',
-        accuracy_issues: [],
+        status:                    'fail',
+        engine:                    'ChatGPT',
+        severity:                  'critical',
+        claim_text:                'Permanently Closed',
+        expected_truth:            'Open',
+        business_name:             businessName,
+        mentions_volume:           'low',
+        sentiment:                 'negative',
+        accuracy_issues:           [],
+        accuracy_issue_categories: [],
       };
     }
 

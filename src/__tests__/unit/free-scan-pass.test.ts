@@ -102,16 +102,17 @@ describe('runFreeScan — is_closed branching (AI_RULES §21)', () => {
   });
 
   it('returns { status: "pass" } with engine, business_name, and real AI-presence fields when is_closed=false', async () => {
-    // Mock omits Sprint 34 fields → Zod applies defaults: mentions_volume='low', sentiment='neutral', accuracy_issues=[]
+    // Mock omits Sprint 34+35 fields → Zod applies defaults
     mockPerplexityOk({ is_closed: false, claim_text: 'Open', expected_truth: 'Open', severity: 'medium' });
     const result = await runFreeScan(makeForm());
     expect(result).toEqual({
-      status:          'pass',
-      engine:          'ChatGPT',
-      business_name:   'Biryani World Fusion and Grill',
-      mentions_volume: 'low',    // Zod default
-      sentiment:       'neutral', // Zod default
-      accuracy_issues: [],        // Zod default
+      status:                    'pass',
+      engine:                    'ChatGPT',
+      business_name:             'Biryani World Fusion and Grill',
+      mentions_volume:           'low',     // Zod default
+      sentiment:                 'neutral',  // Zod default
+      accuracy_issues:           [],         // Zod default
+      accuracy_issue_categories: [],         // Zod default (Sprint 35)
     });
   });
 
@@ -272,6 +273,35 @@ describe('runFreeScan — is_closed branching (AI_RULES §21)', () => {
     expect(result.status).toBe('pass');
     if (result.status === 'pass') {
       expect(result.mentions_volume).toBe('low');
+    }
+  });
+
+  // ── Sprint 35: accuracy_issue_categories propagation ─────────────────────
+
+  it('propagates accuracy_issue_categories from Perplexity response to ScanResult', async () => {
+    mockPerplexityOk({
+      is_closed: false, claim_text: 'Open', expected_truth: 'Open', severity: 'medium',
+      mentions_volume: 'medium', sentiment: 'neutral',
+      accuracy_issues: ['AI reports Monday as closed'],
+      accuracy_issue_categories: ['hours'],
+    });
+    const result = await runFreeScan(makeForm('Healthy Spot'));
+    expect(result.status).toBe('pass');
+    if (result.status === 'pass') {
+      expect(result.accuracy_issue_categories).toEqual(['hours']);
+    }
+  });
+
+  it('Zod defaults accuracy_issue_categories to [] when Perplexity response omits it', async () => {
+    // Response without accuracy_issue_categories — Zod .default([]) applies
+    mockPerplexityOk({
+      is_closed: false, claim_text: 'Open', expected_truth: 'Open', severity: 'medium',
+      mentions_volume: 'low', sentiment: 'neutral', accuracy_issues: [],
+    });
+    const result = await runFreeScan(makeForm('Healthy Spot'));
+    expect(result.status).toBe('pass');
+    if (result.status === 'pass') {
+      expect(result.accuracy_issue_categories).toEqual([]);
     }
   });
 

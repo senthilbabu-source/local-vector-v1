@@ -1,5 +1,5 @@
-# Audit Flow Architecture — Sprint 34
-#### Version: 2.0 | Created: 2026-02-23 | Updated: 2026-02-23
+# Audit Flow Architecture — Sprint 34+35
+#### Version: 2.1 | Created: 2026-02-23 | Updated: 2026-02-23
 
 ---
 
@@ -44,9 +44,9 @@ User types on landing page
 | `app/actions/marketing.ts` | `runFreeScan()` Server Action — Perplexity API, rate limiting |
 | `app/scan/page.tsx` | Async Server Component — awaits `searchParams`, parses, renders ScanDashboard |
 | `app/scan/_components/ScanDashboard.tsx` | `'use client'` — full result dashboard (5 sections) |
-| `app/scan/_utils/scan-params.ts` | Pure TS — URL param encoding/decoding; real fields (Sprint 34) |
+| `app/scan/_utils/scan-params.ts` | Pure TS — URL param encoding/decoding; real fields (Sprint 34) + issue categories (Sprint 35) |
 | `app/scan/_utils/sparkline.ts` | Pure TS — SVG polyline path generator (still used for trend lines) |
-| `src/__tests__/unit/scan-params.test.ts` | 11 unit tests for the pure TS utilities |
+| `src/__tests__/unit/scan-params.test.ts` | 14 unit tests for the pure TS utilities |
 
 ---
 
@@ -139,16 +139,18 @@ Result is encoded entirely in URL search params (ephemeral — no server storage
 | `mentions` | fail, pass | `none`\|`low`\|`medium`\|`high` — real from Perplexity (Sprint 34) |
 | `sentiment` | fail, pass | `positive`\|`neutral`\|`negative` — real from Perplexity (Sprint 34) |
 | `issues` | fail, pass (optional) | Pipe-separated accuracy issues, URL-encoded (Sprint 34) |
+| `issue_cats` | fail, pass (optional) | Pipe-separated issue categories — `hours`\|`address`\|`menu`\|`phone`\|`other` (Sprint 35) |
 
 **Example URLs:**
 ```
 /scan?status=fail&biz=My+Cafe&engine=ChatGPT&severity=critical&claim=Permanently+Closed&truth=Open&mentions=low&sentiment=negative
+/scan?status=fail&biz=My+Cafe&engine=ChatGPT&...&issues=AI+shows+wrong+address&issue_cats=address
 /scan?status=pass&biz=My+Cafe&engine=ChatGPT&mentions=high&sentiment=positive
 /scan?status=not_found&biz=My+Cafe&engine=ChatGPT
 ```
 
-**Backwards-compat:** Sprint 33 URLs lacking `mentions`/`sentiment` params are decoded with
-graceful defaults (`'low'` / `'neutral'`) — never returns `invalid` for missing optional params.
+**Backwards-compat:** Sprint 33/34 URLs lacking `mentions`/`sentiment`/`issue_cats` params are
+decoded with graceful defaults — never returns `invalid` for missing optional params.
 
 **Invalid / missing params** → `parseScanParams` returns `{ status: 'invalid' }` →
 ScanDashboard renders a simple fallback with a "Run a free scan" link.
@@ -172,8 +174,8 @@ returned directly by Perplexity. The `/scan` dashboard now uses a **free / locke
 | AI Visibility Score (AVS) | `██/100` with lock overlay |
 | Citation Integrity (CI) | `██/100` with lock overlay |
 
-The `accuracy_issues` field (up to 3 strings) from Perplexity is shown in Item 1 of the
-Detected Issues section if non-empty (pass result only, cautious framing).
+The `accuracy_issues` field (up to 3 strings) and `accuracy_issue_categories` parallel array
+from Perplexity are used in the Detected Issues section (Sprint 35 — see below).
 
 ---
 
@@ -186,7 +188,7 @@ Detected Issues section if non-empty (pass result only, cautious framing).
 | 2 | **Row 1: "From Your Scan"** — AI Mentions + AI Sentiment (real categoricals) | Real from Perplexity, "Live" badge (§26) |
 | 2 | **Row 2: "Unlock Full Scores"** — AVS + Citation Integrity (locked ██/100) | Honest about monitoring required (§26) |
 | 3 | Competitive landscape — My Brand bar (colored, no score) + 3 sample bars, locked | "Sample data" disclaimer, no fake numbers |
-| 4 | Locked Fixes — item 1 real (+ accuracy_issues if any), items 2–3 blurred | Item 1 = real result (§24) |
+| 4 | **Detected Issues** — item 1 unlocked: first `accuracy_issue` (if any) or main result; items 2–3 locked/blurred: next real issues or generic fallback | Sprint 35: real issues with category badge (§24, §26) |
 | 5 | CTA — "Claim My AI Profile — Start Free" → `/signup` | — |
 
 ---

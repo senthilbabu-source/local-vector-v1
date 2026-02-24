@@ -1,6 +1,6 @@
 'use client';
 // ---------------------------------------------------------------------------
-// ScanDashboard — Public AI Audit Result Dashboard (Sprint 34)
+// ScanDashboard — Public AI Audit Result Dashboard (Sprint 34+35)
 //
 // Receives parsed ScanDisplayData from the Server Component page.
 //
@@ -10,12 +10,18 @@
 //   • Locked     — AI Visibility Score ██/100 + Citation Integrity ██/100
 //                  Numerical scores require continuous monitoring (plan required)
 //
+// Sprint 35: Detected Issues section uses real accuracy_issues:
+//   • Item 1 (unlocked) — first accuracy issue with category badge,
+//     falls back to the main result (fail/pass/not_found) if no issues
+//   • Items 2–3 (locked/blurred) — real accuracy issues if present,
+//     else generic locked items (zero-issues fallback)
+//
 // Sections:
 //   0. Nav strip (logo + "Run another scan" link)
 //   1. Alert banner (real result: fail / pass / not_found)
 //   2. KPI section — Row 1: 2 real free cards | Row 2: 2 locked score cards
 //   3. Competitive landscape (sample data, clearly labeled + locked)
-//   4. Locked fixes (item 1 = real result, items 2–3 = locked)
+//   4. Detected Issues (items 1–3 with real or generic locked content)
 //   5. Primary CTA (Claim My AI Profile → /signup)
 //
 // AI_RULES §12: all Tailwind class strings are literals (ternary operators only).
@@ -23,7 +29,8 @@
 //               requiring monitoring — no fabricated numbers anywhere.
 // ---------------------------------------------------------------------------
 
-import type { ScanDisplayData } from '../_utils/scan-params';
+import type { ScanDisplayData, IssueCategory } from '../_utils/scan-params';
+import { getAccuracyIssueCategories } from '../_utils/scan-params';
 
 // ---------------------------------------------------------------------------
 // Props
@@ -74,6 +81,24 @@ function sentimentDescription(s: 'positive' | 'neutral' | 'negative'): string {
        :                    'AI describes your business in a neutral, factual tone';
 }
 
+/** Sprint 35: human-readable label for an issue category badge. */
+function categoryLabel(c: IssueCategory): string {
+  return c === 'hours'   ? 'Hours'
+       : c === 'address' ? 'Address'
+       : c === 'menu'    ? 'Menu'
+       : c === 'phone'   ? 'Phone'
+       :                   'Other';
+}
+
+/** Sprint 35: Tailwind border+text classes for an issue category badge. AI_RULES §12: ternary literals. */
+function categoryColor(c: IssueCategory): string {
+  return c === 'hours'   ? 'border-alert-amber/40 text-alert-amber'
+       : c === 'address' ? 'border-electric-indigo/40 text-electric-indigo'
+       : c === 'menu'    ? 'border-signal-green/30 text-signal-green'
+       : c === 'phone'   ? 'border-slate-500/40 text-slate-400'
+       :                   'border-slate-600/40 text-slate-500';
+}
+
 /** Extract mentions — not_found is implicitly 'none' (no AI coverage). */
 function getMentions(r: ScanDisplayData): 'none' | 'low' | 'medium' | 'high' {
   return r.status === 'fail' || r.status === 'pass' ? r.mentions : 'none';
@@ -106,9 +131,10 @@ export default function ScanDashboard({ result }: Props) {
     );
   }
 
-  const mentions       = getMentions(result);
-  const sentiment      = getSentiment(result);
-  const accuracyIssues = getAccuracyIssues(result);
+  const mentions                = getMentions(result);
+  const sentiment               = getSentiment(result);
+  const accuracyIssues          = getAccuracyIssues(result);
+  const accuracyIssueCategories = getAccuracyIssueCategories(result);
 
   return (
     <div className="mx-auto max-w-4xl px-4 pb-20">
@@ -263,71 +289,92 @@ export default function ScanDashboard({ result }: Props) {
         </div>
       </div>
 
-      {/* ── 4. Locked Fixes ──────────────────────────────────────────────── */}
+      {/* ── 4. Detected Issues & Fixes ───────────────────────────────────── */}
       <div className="mt-10">
         <p className="text-xs font-bold uppercase tracking-widest text-slate-500 mb-4">
           Detected Issues &amp; Fixes
         </p>
         <div className="space-y-3">
-          {/* Item 1 — UNLOCKED: based on real scan result */}
-          <div className="rounded-xl border border-white/10 bg-surface-dark px-5 py-4">
-            {result.status === 'fail' && (
-              <div className="flex items-start gap-3">
-                <span className="mt-0.5 rounded-full bg-alert-crimson/10 px-2 py-0.5 text-xs font-bold text-alert-crimson uppercase shrink-0">
-                  {result.severity}
-                </span>
-                <div>
-                  <p className="text-sm font-semibold text-white">
-                    {result.engine} reports &ldquo;{result.businessName}&rdquo; as &ldquo;{result.claimText}&rdquo;
-                  </p>
-                  <p className="text-xs text-slate-500 mt-1">Detected via Perplexity Sonar scan · Reality: {result.expectedTruth}</p>
-                </div>
-              </div>
-            )}
-            {result.status === 'pass' && (
-              <div className="flex items-start gap-3">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"
-                  className="h-4 w-4 shrink-0 mt-0.5 text-truth-emerald" aria-hidden>
-                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z" clipRule="evenodd" />
-                </svg>
-                <div>
-                  <p className="text-sm font-semibold text-truth-emerald">No critical hallucinations found</p>
-                  <p className="text-xs text-slate-500 mt-1">
-                    {result.engine} currently shows accurate information. Monitoring ensures it stays that way.
-                  </p>
-                  {accuracyIssues.length > 0 && (
-                    <p className="mt-2 text-xs text-slate-500">
-                      Note: AI was observed describing your business as: &ldquo;{accuracyIssues[0]}&rdquo;
+
+          {/* Item 1 — UNLOCKED: real accuracy issue if present, else scan result */}
+          {accuracyIssues.length > 0 ? (
+            <AccuracyIssueItem
+              text={accuracyIssues[0]}
+              category={accuracyIssueCategories[0] ?? 'other'}
+              isLocked={false}
+            />
+          ) : (
+            <div className="rounded-xl border border-white/10 bg-surface-dark px-5 py-4">
+              {result.status === 'fail' && (
+                <div className="flex items-start gap-3">
+                  <span className="mt-0.5 rounded-full bg-alert-crimson/10 px-2 py-0.5 text-xs font-bold text-alert-crimson uppercase shrink-0">
+                    {result.severity}
+                  </span>
+                  <div>
+                    <p className="text-sm font-semibold text-white">
+                      {result.engine} reports &ldquo;{result.businessName}&rdquo; as &ldquo;{result.claimText}&rdquo;
                     </p>
-                  )}
+                    <p className="text-xs text-slate-500 mt-1">Detected via Perplexity Sonar scan · Reality: {result.expectedTruth}</p>
+                  </div>
                 </div>
-              </div>
-            )}
-            {result.status === 'not_found' && (
-              <div className="flex items-start gap-3">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"
-                  className="h-4 w-4 shrink-0 mt-0.5 text-slate-400" aria-hidden>
-                  <path d="M9 3.5a5.5 5.5 0 100 11 5.5 5.5 0 000-11zM2 9a7 7 0 1112.452 4.391l3.328 3.329a.75.75 0 11-1.06 1.06l-3.329-3.328A7 7 0 012 9z" />
-                </svg>
-                <div>
-                  <p className="text-sm font-semibold text-slate-300">AI models have no data about your business</p>
-                  <p className="text-xs text-slate-500 mt-1">You have zero AI visibility — potential customers can&apos;t find you via AI search.</p>
+              )}
+              {result.status === 'pass' && (
+                <div className="flex items-start gap-3">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"
+                    className="h-4 w-4 shrink-0 mt-0.5 text-truth-emerald" aria-hidden>
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z" clipRule="evenodd" />
+                  </svg>
+                  <div>
+                    <p className="text-sm font-semibold text-truth-emerald">No critical hallucinations found</p>
+                    <p className="text-xs text-slate-500 mt-1">
+                      {result.engine} currently shows accurate information. Monitoring ensures it stays that way.
+                    </p>
+                  </div>
                 </div>
-              </div>
-            )}
-          </div>
+              )}
+              {result.status === 'not_found' && (
+                <div className="flex items-start gap-3">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"
+                    className="h-4 w-4 shrink-0 mt-0.5 text-slate-400" aria-hidden>
+                    <path d="M9 3.5a5.5 5.5 0 100 11 5.5 5.5 0 000-11zM2 9a7 7 0 1112.452 4.391l3.328 3.329a.75.75 0 11-1.06 1.06l-3.329-3.328A7 7 0 012 9z" />
+                  </svg>
+                  <div>
+                    <p className="text-sm font-semibold text-slate-300">AI models have no data about your business</p>
+                    <p className="text-xs text-slate-500 mt-1">You have zero AI visibility — potential customers can&apos;t find you via AI search.</p>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
 
-          {/* Item 2 — LOCKED */}
-          <LockedFixItem
-            title="Suppress hallucination across 6 AI Knowledge Graphs"
-            description="Push verified business data to override incorrect AI sources"
-          />
+          {/* Item 2 — LOCKED: real issue[1] if present, else generic */}
+          {accuracyIssues.length >= 2 ? (
+            <AccuracyIssueItem
+              text={accuracyIssues[1]}
+              category={accuracyIssueCategories[1] ?? 'other'}
+              isLocked={true}
+            />
+          ) : (
+            <LockedFixItem
+              title="Suppress hallucination across 6 AI Knowledge Graphs"
+              description="Push verified business data to override incorrect AI sources"
+            />
+          )}
 
-          {/* Item 3 — LOCKED */}
-          <LockedFixItem
-            title="Inject verified NAP data via Magic Menu"
-            description="Convert your menu + hours into structured data AI models trust"
-          />
+          {/* Item 3 — LOCKED: real issue[2] if present, else generic */}
+          {accuracyIssues.length >= 3 ? (
+            <AccuracyIssueItem
+              text={accuracyIssues[2]}
+              category={accuracyIssueCategories[2] ?? 'other'}
+              isLocked={true}
+            />
+          ) : (
+            <LockedFixItem
+              title="Inject verified NAP data via Magic Menu"
+              description="Convert your menu + hours into structured data AI models trust"
+            />
+          )}
+
         </div>
 
         <p className="mt-3 text-xs text-slate-600">
@@ -480,6 +527,58 @@ function CompetitorBar({
       <span className={['text-xs tabular-nums shrink-0 w-8 text-right', isMine ? 'text-white font-bold' : 'text-slate-600'].join(' ')}>
         {score !== undefined ? score : '—'}
       </span>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// AccuracyIssueItem — Sprint 35: real accuracy issue with category badge
+// Handles both unlocked (item 1) and locked/blurred (items 2–3) states.
+// AI_RULES §12: ternary literals only for all Tailwind class strings.
+// ---------------------------------------------------------------------------
+
+function AccuracyIssueItem({
+  text,
+  category,
+  isLocked,
+}: {
+  text:     string;
+  category: IssueCategory;
+  isLocked: boolean;
+}) {
+  const inner = (
+    <div className="flex items-start gap-3">
+      <span className={[
+        'mt-0.5 shrink-0 rounded border px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide',
+        categoryColor(category),
+      ].join(' ')}>
+        {categoryLabel(category)}
+      </span>
+      <p className="text-sm text-slate-300">{text}</p>
+    </div>
+  );
+
+  if (!isLocked) {
+    return (
+      <div className="rounded-xl border border-white/10 bg-surface-dark px-5 py-4">
+        {inner}
+      </div>
+    );
+  }
+
+  return (
+    <div className="relative rounded-xl border border-white/5 bg-surface-dark px-5 py-4 overflow-hidden select-none">
+      {/* Blur overlay — same pattern as LockedFixItem */}
+      <div className="absolute inset-0 backdrop-blur-[2px] bg-midnight-slate/60 flex items-center justify-center z-10">
+        <div className="flex items-center gap-2 rounded-full border border-white/10 bg-midnight-slate/90 px-3 py-1.5">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor"
+            className="h-3.5 w-3.5 text-slate-400" aria-hidden>
+            <path fillRule="evenodd" d="M8 1a3.5 3.5 0 0 0-3.5 3.5V7A1.5 1.5 0 0 0 3 8.5v5A1.5 1.5 0 0 0 4.5 15h7a1.5 1.5 0 0 0 1.5-1.5v-5A1.5 1.5 0 0 0 11 7V4.5A3.5 3.5 0 0 0 8 1Zm2 6V4.5a2 2 0 1 0-4 0V7h4Z" clipRule="evenodd" />
+          </svg>
+          <span className="text-xs text-slate-400 font-medium">Signup to unlock</span>
+        </div>
+      </div>
+      {inner}
     </div>
   );
 }
