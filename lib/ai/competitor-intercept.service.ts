@@ -1,0 +1,240 @@
+// ---------------------------------------------------------------------------
+// lib/services/competitor-intercept.service.ts — Competitor Intercept Pipeline
+//
+// Surgery 1 Rewrite: Now uses Vercel AI SDK with Zod-validated structured
+// output instead of raw fetch() + manual JSON.parse().
+//
+// Extracted from app/dashboard/compete/actions.ts so that the 2-stage
+// Perplexity → GPT-4o-mini pipeline can be called from two contexts:
+//
+//   1. Server Action (RLS-scoped client, user session)
+//   2. Cron route   (service-role client, no user session)
+//
+// Both callers pass their already-created Supabase client as a parameter.
+// This module never creates its own client — it is a pure service.
+//
+// AI_RULES §19.1: GapAnalysis imported from lib/types/ground-truth.
+// AI_RULES §19.3: Model discrimination — gpt-4o-mini for intercept analysis.
+// AI_RULES §4:    Mock fallback (3s delay) when API keys are absent.
+//
+// WHAT CHANGED (Surgery 1):
+//   • raw fetch('https://api.perplexity.ai/...') → AI SDK generateText()
+//   • raw fetch('https://api.openai.com/...') → AI SDK generateText()
+//   • manual JSON.parse + regex extraction → Output.object({ schema })
+//   • API key passed as parameter → AI SDK reads from env automatically
+//
+// WHAT DIDN'T CHANGE:
+//   • InterceptParams interface and runInterceptForCompetitor() signature
+//   • Mock fallback behavior (3s delay, mock data)
+//   • DB insert shape — identical row written to competitor_intercepts
+//   • Prompt text — identical system/user messages
+// ---------------------------------------------------------------------------
+
+import { generateText, Output } from 'ai';
+import { getModel, hasApiKey } from '@/lib/ai/providers';
+import {
+  PerplexityHeadToHeadSchema,
+  InterceptAnalysisSchema,
+  type PerplexityHeadToHeadOutput,
+  type InterceptAnalysisOutput,
+} from '@/lib/ai/schemas';
+import type { GapAnalysis } from '@/lib/types/ground-truth';
+
+// ---------------------------------------------------------------------------
+// Public params interface — UNCHANGED
+// ---------------------------------------------------------------------------
+
+export interface InterceptParams {
+  orgId:        string;
+  locationId:   string | null;
+  businessName: string;
+  categories:   string[];
+  city:         string | null;
+  state:        string | null;
+  competitor: {
+    id:              string;
+    competitor_name: string;
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Stage 1 — Perplexity head-to-head comparison (sonar model)
+// ---------------------------------------------------------------------------
+
+async function callPerplexityHeadToHead(
+  myBusiness:     string,
+  competitorName: string,
+  queryAsked:     string,
+): Promise<PerplexityHeadToHeadOutput> {
+  const { output } = await generateText({
+    model: getModel('greed-headtohead'),
+    output: Output.object({ schema: PerplexityHeadToHeadSchema }),
+    system: 'You are an AI search analyst. Always respond with valid JSON only.',
+    prompt:
+      `Compare "${myBusiness}" and "${competitorName}" for someone searching: "${queryAsked}". ` +
+      `Which would you recommend and why? Consider reviews, atmosphere, and value.\n\n` +
+      `Return ONLY valid JSON:\n` +
+      `{\n  "winner": "Business Name",\n  "reasoning": "Why they won",\n  "key_differentiators": ["factor1"]\n}`,
+    temperature: 0.3,
+  });
+
+  // Fallback if structured output fails to parse
+  return output ?? {
+    winner: competitorName,
+    reasoning: '',
+    key_differentiators: [],
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Stage 2 — GPT-4o-mini intercept analysis (AI_RULES §19.3)
+// ---------------------------------------------------------------------------
+
+async function callGptIntercept(
+  myBusiness:       string,
+  competitorName:   string,
+  perplexityResult: PerplexityHeadToHeadOutput,
+): Promise<InterceptAnalysisOutput> {
+  const { output } = await generateText({
+    model: getModel('greed-intercept'),
+    output: Output.object({ schema: InterceptAnalysisSchema }),
+    system: 'You are an AI search analyst for local businesses.',
+    prompt:
+      `User's Business: ${myBusiness}\n` +
+      `Competitor: ${competitorName}\n` +
+      `AI Recommendation: ${JSON.stringify(perplexityResult)}\n\n` +
+      `Analyze WHY the winner won and extract one specific action the losing business can take THIS WEEK.\n\n` +
+      `Return ONLY valid JSON:\n` +
+      `{\n` +
+      `  "winner": "string",\n` +
+      `  "winning_factor": "string",\n` +
+      `  "gap_magnitude": "high|medium|low",\n` +
+      `  "gap_details": { "competitor_mentions": number, "your_mentions": number },\n` +
+      `  "suggested_action": "string",\n` +
+      `  "action_category": "reviews|menu|attributes|content|photos"\n` +
+      `}`,
+    temperature: 0.3,
+  });
+
+  // Fallback if structured output fails to parse
+  return output ?? {
+    winner: competitorName,
+    winning_factor: '',
+    gap_magnitude: 'medium',
+    gap_details: { competitor_mentions: 0, your_mentions: 0 },
+    suggested_action: '',
+    action_category: 'content',
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Mock fallbacks — used when API keys absent or calls fail (AI_RULES §4)
+// UNCHANGED — identical mock data.
+// ---------------------------------------------------------------------------
+
+function mockPerplexityResult(competitorName: string): PerplexityHeadToHeadOutput {
+  return {
+    winner:              competitorName,
+    reasoning:           '[MOCK] Configure PERPLEXITY_API_KEY in .env.local to run real comparisons.',
+    key_differentiators: ['more reviews', 'late-night hours'],
+  };
+}
+
+function mockInterceptAnalysis(competitorName: string): InterceptAnalysisOutput {
+  return {
+    winner:           competitorName,
+    winning_factor:   '[MOCK] Configure OPENAI_API_KEY in .env.local for real analysis.',
+    gap_magnitude:    'medium',
+    gap_details:      { competitor_mentions: 5, your_mentions: 2 },
+    suggested_action: '[MOCK] Configure OPENAI_API_KEY in .env.local to get real action items.',
+    action_category:  'content',
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Main export — SAME SIGNATURE, same behavior
+// ---------------------------------------------------------------------------
+
+/**
+ * Run a 2-stage Perplexity → GPT-4o-mini intercept analysis and persist the
+ * result to competitor_intercepts using the provided Supabase client.
+ *
+ * Accepts any Supabase client:
+ *   • RLS-scoped (createClient) from Server Actions — org isolation via RLS
+ *   • Service-role (createServiceRoleClient) from cron — bypasses RLS
+ *
+ * Falls back to mock results when API keys are absent (AI_RULES §4).
+ * Throws on DB insert error — the caller is responsible for error handling.
+ */
+export async function runInterceptForCompetitor(
+  params:  InterceptParams,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  supabase: any,
+): Promise<void> {
+  const { orgId, locationId, businessName, categories, city, state, competitor } = params;
+
+  // ── Build query string ──────────────────────────────────────────────────
+  const primaryCategory = categories[0] ?? 'restaurant';
+  const cityState       = [city, state].filter(Boolean).join(', ');
+  const queryAsked      = `Best ${primaryCategory} in ${cityState}`;
+
+  // ── Stage 1: Perplexity head-to-head ─────────────────────────────────
+  let perplexityResult: PerplexityHeadToHeadOutput;
+
+  if (!hasApiKey('perplexity')) {
+    await new Promise((r) => setTimeout(r, 3000));
+    perplexityResult = mockPerplexityResult(competitor.competitor_name);
+  } else {
+    try {
+      perplexityResult = await callPerplexityHeadToHead(
+        businessName,
+        competitor.competitor_name,
+        queryAsked,
+      );
+    } catch {
+      await new Promise((r) => setTimeout(r, 3000));
+      perplexityResult = mockPerplexityResult(competitor.competitor_name);
+    }
+  }
+
+  // ── Stage 2: GPT-4o-mini intercept analysis ───────────────────────────
+  let interceptAnalysis: InterceptAnalysisOutput;
+
+  if (!hasApiKey('openai')) {
+    await new Promise((r) => setTimeout(r, 3000));
+    interceptAnalysis = mockInterceptAnalysis(competitor.competitor_name);
+  } else {
+    try {
+      interceptAnalysis = await callGptIntercept(
+        businessName,
+        competitor.competitor_name,
+        perplexityResult,
+      );
+    } catch {
+      await new Promise((r) => setTimeout(r, 3000));
+      interceptAnalysis = mockInterceptAnalysis(competitor.competitor_name);
+    }
+  }
+
+  // ── Persist result ────────────────────────────────────────────────────
+  const gapAnalysis: GapAnalysis = interceptAnalysis.gap_details;
+
+  const { error: insertError } = await supabase.from('competitor_intercepts').insert({
+    org_id:           orgId,
+    location_id:      locationId,
+    competitor_name:  competitor.competitor_name,
+    query_asked:      queryAsked,
+    model_provider:   'openai-gpt4o-mini',
+    winner:           interceptAnalysis.winner,
+    winner_reason:    perplexityResult.reasoning,
+    winning_factor:   interceptAnalysis.winning_factor,
+    gap_analysis:     gapAnalysis,
+    gap_magnitude:    interceptAnalysis.gap_magnitude,
+    suggested_action: interceptAnalysis.suggested_action,
+    action_status:    'pending',
+  });
+
+  if (insertError) {
+    throw new Error(insertError.message);
+  }
+}

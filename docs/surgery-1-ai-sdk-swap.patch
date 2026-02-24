@@ -1,0 +1,779 @@
+diff --git a/app/dashboard/share-of-voice/actions.ts b/app/dashboard/share-of-voice/actions.ts
+index dcba324..c4fe7f3 100644
+--- a/app/dashboard/share-of-voice/actions.ts
++++ b/app/dashboard/share-of-voice/actions.ts
+@@ -10,6 +10,9 @@ import {
+   type RunSovInput,
+   type SovEngine,
+ } from '@/lib/schemas/sov';
++import { generateText, Output } from 'ai';
++import { getModel, hasApiKey } from '@/lib/ai/providers';
++import { SovQueryResultSchema } from '@/lib/ai/schemas';
+ 
+ // ---------------------------------------------------------------------------
+ // Shared result type
+@@ -80,84 +83,41 @@ function mockSovResult(engine: SovEngine): SovResult {
+ }
+ 
+ // ---------------------------------------------------------------------------
+-// OpenAI API call
++// AI SDK calls — Surgery 1: Replaces raw fetch() with Vercel AI SDK
+ // ---------------------------------------------------------------------------
+ 
+-async function callOpenAI(prompt: string, apiKey: string): Promise<SovResult> {
+-  const res = await fetch('https://api.openai.com/v1/chat/completions', {
+-    method: 'POST',
+-    headers: {
+-      Authorization: `Bearer ${apiKey}`,
+-      'Content-Type': 'application/json',
+-    },
+-    body: JSON.stringify({
+-      model: 'gpt-4o',
+-      messages: [{ role: 'user', content: prompt }],
+-      response_format: { type: 'json_object' },
+-      temperature: 0.3,
+-    }),
++async function callOpenAI(prompt: string): Promise<SovResult> {
++  const { output } = await generateText({
++    model: getModel('sov-query-openai'),
++    output: Output.object({ schema: SovQueryResultSchema }),
++    prompt,
++    temperature: 0.3,
+   });
+ 
+-  if (!res.ok) {
+-    throw new Error(`OpenAI API error: ${res.status} ${res.statusText}`);
+-  }
+-
+-  const json = await res.json();
+-  const content: string = json.choices?.[0]?.message?.content ?? '{}';
+-  const parsed = JSON.parse(content);
++  if (!output) return { rank_position: null, mentioned_competitors: [], raw_response: '' };
+ 
+-  const rank = parsed.rank_position;
+   return {
+-    rank_position: rank !== null && rank !== undefined ? Math.max(1, Number(rank)) : null,
+-    mentioned_competitors: Array.isArray(parsed.mentioned_competitors)
+-      ? (parsed.mentioned_competitors as string[])
+-      : [],
+-    raw_response: String(parsed.raw_response ?? content),
++    rank_position: output.rank_position !== null ? Math.max(1, output.rank_position) : null,
++    mentioned_competitors: output.mentioned_competitors,
++    raw_response: output.raw_response,
+   };
+ }
+ 
+-// ---------------------------------------------------------------------------
+-// Perplexity API call
+-// ---------------------------------------------------------------------------
+-
+-async function callPerplexity(prompt: string, apiKey: string): Promise<SovResult> {
+-  const res = await fetch('https://api.perplexity.ai/chat/completions', {
+-    method: 'POST',
+-    headers: {
+-      Authorization: `Bearer ${apiKey}`,
+-      'Content-Type': 'application/json',
+-    },
+-    body: JSON.stringify({
+-      model: 'sonar',
+-      messages: [
+-        {
+-          role: 'system',
+-          content: 'You are a Share of Voice analyst. Always respond with valid JSON only.',
+-        },
+-        { role: 'user', content: prompt },
+-      ],
+-      temperature: 0.3,
+-    }),
++async function callPerplexity(prompt: string): Promise<SovResult> {
++  const { output } = await generateText({
++    model: getModel('sov-query'),
++    output: Output.object({ schema: SovQueryResultSchema }),
++    system: 'You are a Share of Voice analyst. Always respond with valid JSON only.',
++    prompt,
++    temperature: 0.3,
+   });
+ 
+-  if (!res.ok) {
+-    throw new Error(`Perplexity API error: ${res.status} ${res.statusText}`);
+-  }
+-
+-  const json = await res.json();
+-  const content: string = json.choices?.[0]?.message?.content ?? '{}';
+-
+-  // Perplexity may wrap JSON in markdown fences — extract the raw object
+-  const jsonMatch = content.match(/\{[\s\S]*\}/);
+-  const parsed = jsonMatch ? JSON.parse(jsonMatch[0]) : {};
++  if (!output) return { rank_position: null, mentioned_competitors: [], raw_response: '' };
+ 
+-  const rank = parsed.rank_position;
+   return {
+-    rank_position: rank !== null && rank !== undefined ? Math.max(1, Number(rank)) : null,
+-    mentioned_competitors: Array.isArray(parsed.mentioned_competitors)
+-      ? (parsed.mentioned_competitors as string[])
+-      : [],
+-    raw_response: String(parsed.raw_response ?? content),
++    rank_position: output.rank_position !== null ? Math.max(1, output.rank_position) : null,
++    mentioned_competitors: output.mentioned_competitors,
++    raw_response: output.raw_response,
+   };
+ }
+ 
+@@ -270,22 +230,19 @@ export async function runSovEvaluation(input: RunSovInput): Promise<ActionResult
+     queryRow.query_text
+   );
+ 
+-  const apiKey =
+-    engine === 'openai'
+-      ? process.env.OPENAI_API_KEY
+-      : process.env.PERPLEXITY_API_KEY;
++  const hasKey = hasApiKey(engine === 'openai' ? 'openai' : 'perplexity');
+ 
+   let result: SovResult;
+ 
+-  if (!apiKey) {
++  if (!hasKey) {
+     await new Promise((r) => setTimeout(r, 3000));
+     result = mockSovResult(engine);
+   } else {
+     try {
+       result =
+         engine === 'openai'
+-          ? await callOpenAI(promptText, apiKey)
+-          : await callPerplexity(promptText, apiKey);
++          ? await callOpenAI(promptText)
++          : await callPerplexity(promptText);
+     } catch {
+       await new Promise((r) => setTimeout(r, 3000));
+       result = mockSovResult(engine);
+diff --git a/lib/ai/providers.ts b/lib/ai/providers.ts
+new file mode 100644
+index 0000000..016bf45
+--- /dev/null
++++ b/lib/ai/providers.ts
+@@ -0,0 +1,95 @@
++// ---------------------------------------------------------------------------
++// lib/ai/providers.ts — Centralized AI Provider Configuration (Vercel AI SDK)
++//
++// Surgery 1: Replaces raw fetch() calls across all services with the Vercel
++// AI SDK unified provider API. All AI model access goes through this module.
++//
++// Benefits over raw fetch():
++//   • Unified API across OpenAI, Perplexity, Anthropic, Google
++//   • Zod-validated structured output (Output.object) — no manual JSON.parse
++//   • Built-in retries, error typing, and streaming support
++//   • Single point of change for model upgrades or provider swaps
++//   • OpenTelemetry-ready for Sentry integration
++//
++// Usage:
++//   import { openai, perplexity, getModel } from '@/lib/ai/providers';
++//   const { output } = await generateText({
++//     model: getModel('openai'),
++//     output: Output.object({ schema: MyZodSchema }),
++//     prompt: '...',
++//   });
++// ---------------------------------------------------------------------------
++
++import { createOpenAI } from '@ai-sdk/openai';
++
++// ── Provider instances ──────────────────────────────────────────────────────
++
++/**
++ * OpenAI provider — used for Fear Engine (GPT-4o) and Greed Engine (GPT-4o-mini).
++ * API key sourced from OPENAI_API_KEY env var automatically.
++ */
++export const openai = createOpenAI({
++  apiKey: process.env.OPENAI_API_KEY,
++  compatibility: 'strict',
++});
++
++/**
++ * Perplexity provider — uses OpenAI-compatible API.
++ * Used for SOV Engine queries and Greed Engine Stage 1 (head-to-head).
++ * API key sourced from PERPLEXITY_API_KEY env var.
++ */
++export const perplexity = createOpenAI({
++  apiKey: process.env.PERPLEXITY_API_KEY,
++  baseURL: 'https://api.perplexity.ai/',
++  compatibility: 'compatible',
++  name: 'perplexity',
++});
++
++// ── Model registry ──────────────────────────────────────────────────────────
++
++/**
++ * Canonical model IDs used across the platform.
++ * Centralised here so model upgrades require exactly one change.
++ */
++export const MODELS = {
++  /** Fear Engine — hallucination detection (high reasoning) */
++  'fear-audit': openai('gpt-4o'),
++
++  /** Greed Engine Stage 2 — intercept analysis (cost-efficient) */
++  'greed-intercept': openai('gpt-4o-mini'),
++
++  /** Greed Engine Stage 1 — head-to-head comparison (live web) */
++  'greed-headtohead': perplexity('sonar'),
++
++  /** SOV Engine — share-of-voice queries (live web results) */
++  'sov-query': perplexity('sonar'),
++
++  /** SOV Engine — OpenAI alternative for multi-model SOV */
++  'sov-query-openai': openai('gpt-4o'),
++} as const;
++
++export type ModelKey = keyof typeof MODELS;
++
++/**
++ * Get a model instance by its canonical key.
++ * Throws if the key is unknown — fail fast during development.
++ */
++export function getModel(key: ModelKey) {
++  const model = MODELS[key];
++  if (!model) {
++    throw new Error(`[ai/providers] Unknown model key: ${key}`);
++  }
++  return model;
++}
++
++// ── API key availability check ──────────────────────────────────────────────
++
++/**
++ * Check if the required API key for a provider is configured.
++ * Used by services to determine whether to run in demo/mock mode.
++ */
++export function hasApiKey(provider: 'openai' | 'perplexity'): boolean {
++  if (provider === 'openai') return !!process.env.OPENAI_API_KEY;
++  if (provider === 'perplexity') return !!process.env.PERPLEXITY_API_KEY;
++  return false;
++}
+diff --git a/lib/ai/schemas.ts b/lib/ai/schemas.ts
+new file mode 100644
+index 0000000..ff13f12
+--- /dev/null
++++ b/lib/ai/schemas.ts
+@@ -0,0 +1,81 @@
++// ---------------------------------------------------------------------------
++// lib/ai/schemas.ts — Zod Schemas for AI Response Validation
++//
++// Surgery 1: These schemas are used with Vercel AI SDK's Output.object()
++// to get compile-time type safety AND runtime validation on AI responses.
++//
++// Replaces: manual JSON.parse() + type assertions in ai-audit.service.ts,
++// competitor-intercept.service.ts, and share-of-voice/actions.ts.
++//
++// Every schema here mirrors the exact shape expected by the corresponding
++// Supabase insert — enum values match prod_schema.sql.
++// ---------------------------------------------------------------------------
++
++import { z } from 'zod';
++
++// ── Fear Engine — Hallucination Audit ────────────────────────────────────────
++
++export const HallucinationItemSchema = z.object({
++  model_provider: z.enum([
++    'openai-gpt4o',
++    'perplexity-sonar',
++    'google-gemini',
++    'anthropic-claude',
++    'microsoft-copilot',
++  ]),
++  severity: z.enum(['critical', 'high', 'medium', 'low']),
++  category: z.enum(['status', 'hours', 'amenity', 'menu', 'address', 'phone']),
++  claim_text: z.string(),
++  expected_truth: z.string(),
++});
++
++export const AuditResultSchema = z.object({
++  hallucinations: z.array(HallucinationItemSchema),
++});
++
++export type AuditResultOutput = z.infer<typeof AuditResultSchema>;
++
++// ── Greed Engine — Perplexity Head-to-Head ──────────────────────────────────
++
++export const PerplexityHeadToHeadSchema = z.object({
++  winner: z.string(),
++  reasoning: z.string(),
++  key_differentiators: z.array(z.string()),
++});
++
++export type PerplexityHeadToHeadOutput = z.infer<typeof PerplexityHeadToHeadSchema>;
++
++// ── Greed Engine — GPT Intercept Analysis ───────────────────────────────────
++
++export const InterceptAnalysisSchema = z.object({
++  winner: z.string(),
++  winning_factor: z.string(),
++  gap_magnitude: z.enum(['high', 'medium', 'low']),
++  gap_details: z.object({
++    competitor_mentions: z.number(),
++    your_mentions: z.number(),
++  }),
++  suggested_action: z.string(),
++  action_category: z.enum(['reviews', 'menu', 'attributes', 'content', 'photos']),
++});
++
++export type InterceptAnalysisOutput = z.infer<typeof InterceptAnalysisSchema>;
++
++// ── SOV Engine — Share of Voice Query ───────────────────────────────────────
++
++export const SovQueryResultSchema = z.object({
++  rank_position: z.number().nullable(),
++  mentioned_competitors: z.array(z.string()),
++  raw_response: z.string(),
++});
++
++export type SovQueryResultOutput = z.infer<typeof SovQueryResultSchema>;
++
++// ── SOV Engine — Cron batch query (Doc 04c §4.2 prompt shape) ───────────────
++
++export const SovCronResultSchema = z.object({
++  businesses: z.array(z.string()),
++  cited_url: z.string().nullable(),
++});
++
++export type SovCronResultOutput = z.infer<typeof SovCronResultSchema>;
+diff --git a/lib/services/ai-audit.service.ts b/lib/services/ai-audit.service.ts
+index 9ab023b..2036cb1 100644
+--- a/lib/services/ai-audit.service.ts
++++ b/lib/services/ai-audit.service.ts
+@@ -1,6 +1,9 @@
+ // ---------------------------------------------------------------------------
+ // AI Audit Service — Phase 20: Automated Web Audit Engine
+ //
++// Surgery 1 Rewrite: Now uses Vercel AI SDK with Zod-validated structured
++// output instead of raw fetch() + manual JSON.parse().
++//
+ // Accepts a location's ground-truth data, constructs a structured prompt,
+ // and asks OpenAI GPT-4o to identify discrepancies between the ground truth
+ // and what the model "knows" about the restaurant.
+@@ -12,9 +15,25 @@
+ // Demo mode: when OPENAI_API_KEY is absent (local dev, CI), returns one
+ // placeholder hallucination so the route's insert pipeline can be exercised
+ // end-to-end without a real API key.
++//
++// WHAT CHANGED (Surgery 1):
++//   • raw fetch('https://api.openai.com/...') → AI SDK generateText()
++//   • manual JSON.parse(content) as AuditResult → Output.object({ schema })
++//   • OpenAIResponse / AuditResult internal types → Zod schema in lib/ai/schemas
++//
++// WHAT DIDN'T CHANGE:
++//   • All exported types (ModelProvider, HallucinationSeverity, etc.)
++//   • auditLocation() function signature and return type
++//   • Demo mode fallback behavior
++//   • SYSTEM_PROMPT and buildAuditPrompt() — identical prompt text
+ // ---------------------------------------------------------------------------
+ 
++import { generateText, Output } from 'ai';
++import { getModel, hasApiKey } from '@/lib/ai/providers';
++import { AuditResultSchema } from '@/lib/ai/schemas';
++
+ // ── Types (mirror prod_schema.sql enums exactly) ───────────────────────────
++// UNCHANGED — all consumers import these from here.
+ 
+ export type ModelProvider =
+   | 'openai-gpt4o'
+@@ -52,21 +71,8 @@ export interface DetectedHallucination {
+   expected_truth: string;
+ }
+ 
+-// ── OpenAI response shape ──────────────────────────────────────────────────
+-
+-interface OpenAIResponse {
+-  choices: Array<{
+-    message: { content: string };
+-  }>;
+-}
+-
+-interface AuditResult {
+-  hallucinations: DetectedHallucination[];
+-}
+-
+ // ── Demo result ────────────────────────────────────────────────────────────
+-// Returned in local dev / CI when OPENAI_API_KEY is absent. Allows the
+-// cron route's database insert pipeline to be exercised without a real key.
++// UNCHANGED — returned in local dev / CI when OPENAI_API_KEY is absent.
+ 
+ const DEMO_HALLUCINATION: DetectedHallucination = {
+   model_provider: 'openai-gpt4o',
+@@ -78,6 +84,7 @@ const DEMO_HALLUCINATION: DetectedHallucination = {
+ };
+ 
+ // ── Prompt construction ────────────────────────────────────────────────────
++// UNCHANGED — identical prompt text.
+ 
+ const SYSTEM_PROMPT = `You are an AI hallucination auditor specialising in local restaurants.
+ Given ground-truth data about a restaurant, identify any facts that the
+@@ -137,16 +144,15 @@ function buildAuditPrompt(location: LocationAuditInput): string {
+ /**
+  * Audits a single location for AI hallucinations.
+  *
+- * Calls OpenAI GPT-4o with a structured ground-truth prompt and parses the
+- * JSON response into DetectedHallucination objects. Falls back to a single
+- * demo hallucination when OPENAI_API_KEY is absent.
++ * Calls OpenAI GPT-4o via Vercel AI SDK with Zod-validated structured output.
++ * Falls back to a single demo hallucination when OPENAI_API_KEY is absent.
+  *
+  * Throws on network or API errors — the cron route catches these per-org.
+  */
+ export async function auditLocation(
+   location: LocationAuditInput
+ ): Promise<DetectedHallucination[]> {
+-  if (!process.env.OPENAI_API_KEY) {
++  if (!hasApiKey('openai')) {
+     console.log(
+       '[ai-audit] OPENAI_API_KEY absent — returning demo result for:',
+       location.business_name
+@@ -154,32 +160,18 @@ export async function auditLocation(
+     return [DEMO_HALLUCINATION];
+   }
+ 
+-  const response = await fetch('https://api.openai.com/v1/chat/completions', {
+-    method: 'POST',
+-    headers: {
+-      'Content-Type': 'application/json',
+-      Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+-    },
+-    body: JSON.stringify({
+-      model: 'gpt-4o',
+-      response_format: { type: 'json_object' },
+-      messages: [
+-        { role: 'system', content: SYSTEM_PROMPT },
+-        { role: 'user', content: buildAuditPrompt(location) },
+-      ],
+-    }),
++  // ── AI SDK call with Zod-validated structured output ────────────────────
++  // Output.object() ensures the response matches AuditResultSchema.
++  // No manual JSON.parse, no type assertions, no regex extraction needed.
++  const { output } = await generateText({
++    model: getModel('fear-audit'),
++    output: Output.object({ schema: AuditResultSchema }),
++    system: SYSTEM_PROMPT,
++    prompt: buildAuditPrompt(location),
+   });
+ 
+-  if (!response.ok) {
+-    throw new Error(
+-      `OpenAI API error: ${response.status} ${response.statusText}`
+-    );
+-  }
+-
+-  const data = (await response.json()) as OpenAIResponse;
+-  const content = data.choices?.[0]?.message?.content;
+-  if (!content) return [];
++  // output is null if the model didn't produce valid structured output
++  if (!output) return [];
+ 
+-  const parsed = JSON.parse(content) as AuditResult;
+-  return Array.isArray(parsed.hallucinations) ? parsed.hallucinations : [];
++  return Array.isArray(output.hallucinations) ? output.hallucinations : [];
+ }
+diff --git a/lib/services/competitor-intercept.service.ts b/lib/services/competitor-intercept.service.ts
+index 694e242..5de3a62 100644
+--- a/lib/services/competitor-intercept.service.ts
++++ b/lib/services/competitor-intercept.service.ts
+@@ -1,6 +1,9 @@
+ // ---------------------------------------------------------------------------
+ // lib/services/competitor-intercept.service.ts — Competitor Intercept Pipeline
+ //
++// Surgery 1 Rewrite: Now uses Vercel AI SDK with Zod-validated structured
++// output instead of raw fetch() + manual JSON.parse().
++//
+ // Extracted from app/dashboard/compete/actions.ts so that the 2-stage
+ // Perplexity → GPT-4o-mini pipeline can be called from two contexts:
+ //
+@@ -13,31 +16,32 @@
+ // AI_RULES §19.1: GapAnalysis imported from lib/types/ground-truth.
+ // AI_RULES §19.3: Model discrimination — gpt-4o-mini for intercept analysis.
+ // AI_RULES §4:    Mock fallback (3s delay) when API keys are absent.
++//
++// WHAT CHANGED (Surgery 1):
++//   • raw fetch('https://api.perplexity.ai/...') → AI SDK generateText()
++//   • raw fetch('https://api.openai.com/...') → AI SDK generateText()
++//   • manual JSON.parse + regex extraction → Output.object({ schema })
++//   • API key passed as parameter → AI SDK reads from env automatically
++//
++// WHAT DIDN'T CHANGE:
++//   • InterceptParams interface and runInterceptForCompetitor() signature
++//   • Mock fallback behavior (3s delay, mock data)
++//   • DB insert shape — identical row written to competitor_intercepts
++//   • Prompt text — identical system/user messages
+ // ---------------------------------------------------------------------------
+ 
++import { generateText, Output } from 'ai';
++import { getModel, hasApiKey } from '@/lib/ai/providers';
++import {
++  PerplexityHeadToHeadSchema,
++  InterceptAnalysisSchema,
++  type PerplexityHeadToHeadOutput,
++  type InterceptAnalysisOutput,
++} from '@/lib/ai/schemas';
+ import type { GapAnalysis } from '@/lib/types/ground-truth';
+ 
+ // ---------------------------------------------------------------------------
+-// Internal types
+-// ---------------------------------------------------------------------------
+-
+-type PerplexityResult = {
+-  winner:              string;
+-  reasoning:           string;
+-  key_differentiators: string[];
+-};
+-
+-type InterceptAnalysis = {
+-  winner:           string;
+-  winning_factor:   string;
+-  gap_magnitude:    string;
+-  gap_details:      GapAnalysis;
+-  suggested_action: string;
+-  action_category:  string;
+-};
+-
+-// ---------------------------------------------------------------------------
+-// Public params interface
++// Public params interface — UNCHANGED
+ // ---------------------------------------------------------------------------
+ 
+ export interface InterceptParams {
+@@ -61,45 +65,24 @@ async function callPerplexityHeadToHead(
+   myBusiness:     string,
+   competitorName: string,
+   queryAsked:     string,
+-  apiKey:         string,
+-): Promise<PerplexityResult> {
+-  const res = await fetch('https://api.perplexity.ai/chat/completions', {
+-    method: 'POST',
+-    headers: {
+-      Authorization:  `Bearer ${apiKey}`,
+-      'Content-Type': 'application/json',
+-    },
+-    body: JSON.stringify({
+-      model: 'sonar',
+-      messages: [
+-        {
+-          role: 'system',
+-          content: 'You are an AI search analyst. Always respond with valid JSON only.',
+-        },
+-        {
+-          role: 'user',
+-          content:
+-            `Compare "${myBusiness}" and "${competitorName}" for someone searching: "${queryAsked}". ` +
+-            `Which would you recommend and why? Consider reviews, atmosphere, and value.\n\n` +
+-            `Return ONLY valid JSON:\n` +
+-            `{\n  "winner": "Business Name",\n  "reasoning": "Why they won",\n  "key_differentiators": ["factor1"]\n}`,
+-        },
+-      ],
+-      temperature: 0.3,
+-    }),
++): Promise<PerplexityHeadToHeadOutput> {
++  const { output } = await generateText({
++    model: getModel('greed-headtohead'),
++    output: Output.object({ schema: PerplexityHeadToHeadSchema }),
++    system: 'You are an AI search analyst. Always respond with valid JSON only.',
++    prompt:
++      `Compare "${myBusiness}" and "${competitorName}" for someone searching: "${queryAsked}". ` +
++      `Which would you recommend and why? Consider reviews, atmosphere, and value.\n\n` +
++      `Return ONLY valid JSON:\n` +
++      `{\n  "winner": "Business Name",\n  "reasoning": "Why they won",\n  "key_differentiators": ["factor1"]\n}`,
++    temperature: 0.3,
+   });
+ 
+-  if (!res.ok) throw new Error(`Perplexity API error: ${res.status} ${res.statusText}`);
+-
+-  const json = await res.json();
+-  const content: string = json.choices?.[0]?.message?.content ?? '{}';
+-  const jsonMatch = content.match(/\{[\s\S]*\}/);
+-  const parsed = jsonMatch ? JSON.parse(jsonMatch[0]) : {};
+-
+-  return {
+-    winner:              String(parsed.winner ?? competitorName),
+-    reasoning:           String(parsed.reasoning ?? ''),
+-    key_differentiators: Array.isArray(parsed.key_differentiators) ? parsed.key_differentiators : [],
++  // Fallback if structured output fails to parse
++  return output ?? {
++    winner: competitorName,
++    reasoning: '',
++    key_differentiators: [],
+   };
+ }
+ 
+@@ -110,69 +93,46 @@ async function callPerplexityHeadToHead(
+ async function callGptIntercept(
+   myBusiness:       string,
+   competitorName:   string,
+-  perplexityResult: PerplexityResult,
+-  apiKey:           string,
+-): Promise<InterceptAnalysis> {
+-  const res = await fetch('https://api.openai.com/v1/chat/completions', {
+-    method: 'POST',
+-    headers: {
+-      Authorization:  `Bearer ${apiKey}`,
+-      'Content-Type': 'application/json',
+-    },
+-    body: JSON.stringify({
+-      model: 'gpt-4o-mini',
+-      messages: [
+-        {
+-          role: 'system',
+-          content: 'You are an AI search analyst for local businesses.',
+-        },
+-        {
+-          role: 'user',
+-          content:
+-            `User's Business: ${myBusiness}\n` +
+-            `Competitor: ${competitorName}\n` +
+-            `AI Recommendation: ${JSON.stringify(perplexityResult)}\n\n` +
+-            `Analyze WHY the winner won and extract one specific action the losing business can take THIS WEEK.\n\n` +
+-            `Return ONLY valid JSON:\n` +
+-            `{\n` +
+-            `  "winner": "string",\n` +
+-            `  "winning_factor": "string",\n` +
+-            `  "gap_magnitude": "high|medium|low",\n` +
+-            `  "gap_details": { "competitor_mentions": number, "your_mentions": number },\n` +
+-            `  "suggested_action": "string",\n` +
+-            `  "action_category": "reviews|menu|attributes|content|photos"\n` +
+-            `}`,
+-        },
+-      ],
+-      response_format: { type: 'json_object' },
+-      temperature: 0.3,
+-    }),
++  perplexityResult: PerplexityHeadToHeadOutput,
++): Promise<InterceptAnalysisOutput> {
++  const { output } = await generateText({
++    model: getModel('greed-intercept'),
++    output: Output.object({ schema: InterceptAnalysisSchema }),
++    system: 'You are an AI search analyst for local businesses.',
++    prompt:
++      `User's Business: ${myBusiness}\n` +
++      `Competitor: ${competitorName}\n` +
++      `AI Recommendation: ${JSON.stringify(perplexityResult)}\n\n` +
++      `Analyze WHY the winner won and extract one specific action the losing business can take THIS WEEK.\n\n` +
++      `Return ONLY valid JSON:\n` +
++      `{\n` +
++      `  "winner": "string",\n` +
++      `  "winning_factor": "string",\n` +
++      `  "gap_magnitude": "high|medium|low",\n` +
++      `  "gap_details": { "competitor_mentions": number, "your_mentions": number },\n` +
++      `  "suggested_action": "string",\n` +
++      `  "action_category": "reviews|menu|attributes|content|photos"\n` +
++      `}`,
++    temperature: 0.3,
+   });
+ 
+-  if (!res.ok) throw new Error(`OpenAI API error: ${res.status} ${res.statusText}`);
+-
+-  const json = await res.json();
+-  const content: string = json.choices?.[0]?.message?.content ?? '{}';
+-  const parsed = JSON.parse(content);
+-
+-  return {
+-    winner:           String(parsed.winner ?? competitorName),
+-    winning_factor:   String(parsed.winning_factor ?? ''),
+-    gap_magnitude:    String(parsed.gap_magnitude ?? 'medium'),
+-    gap_details: {
+-      competitor_mentions: Number(parsed.gap_details?.competitor_mentions ?? 0),
+-      your_mentions:       Number(parsed.gap_details?.your_mentions ?? 0),
+-    },
+-    suggested_action: String(parsed.suggested_action ?? ''),
+-    action_category:  String(parsed.action_category ?? 'content'),
++  // Fallback if structured output fails to parse
++  return output ?? {
++    winner: competitorName,
++    winning_factor: '',
++    gap_magnitude: 'medium',
++    gap_details: { competitor_mentions: 0, your_mentions: 0 },
++    suggested_action: '',
++    action_category: 'content',
+   };
+ }
+ 
+ // ---------------------------------------------------------------------------
+ // Mock fallbacks — used when API keys absent or calls fail (AI_RULES §4)
++// UNCHANGED — identical mock data.
+ // ---------------------------------------------------------------------------
+ 
+-function mockPerplexityResult(competitorName: string): PerplexityResult {
++function mockPerplexityResult(competitorName: string): PerplexityHeadToHeadOutput {
+   return {
+     winner:              competitorName,
+     reasoning:           '[MOCK] Configure PERPLEXITY_API_KEY in .env.local to run real comparisons.',
+@@ -180,7 +140,7 @@ function mockPerplexityResult(competitorName: string): PerplexityResult {
+   };
+ }
+ 
+-function mockInterceptAnalysis(competitorName: string): InterceptAnalysis {
++function mockInterceptAnalysis(competitorName: string): InterceptAnalysisOutput {
+   return {
+     winner:           competitorName,
+     winning_factor:   '[MOCK] Configure OPENAI_API_KEY in .env.local for real analysis.',
+@@ -192,7 +152,7 @@ function mockInterceptAnalysis(competitorName: string): InterceptAnalysis {
+ }
+ 
+ // ---------------------------------------------------------------------------
+-// Main export
++// Main export — SAME SIGNATURE, same behavior
+ // ---------------------------------------------------------------------------
+ 
+ /**
+@@ -219,10 +179,9 @@ export async function runInterceptForCompetitor(
+   const queryAsked      = `Best ${primaryCategory} in ${cityState}`;
+ 
+   // ── Stage 1: Perplexity head-to-head ─────────────────────────────────
+-  let perplexityResult: PerplexityResult;
+-  const perplexityKey = process.env.PERPLEXITY_API_KEY;
++  let perplexityResult: PerplexityHeadToHeadOutput;
+ 
+-  if (!perplexityKey) {
++  if (!hasApiKey('perplexity')) {
+     await new Promise((r) => setTimeout(r, 3000));
+     perplexityResult = mockPerplexityResult(competitor.competitor_name);
+   } else {
+@@ -231,7 +190,6 @@ export async function runInterceptForCompetitor(
+         businessName,
+         competitor.competitor_name,
+         queryAsked,
+-        perplexityKey,
+       );
+     } catch {
+       await new Promise((r) => setTimeout(r, 3000));
+@@ -240,10 +198,9 @@ export async function runInterceptForCompetitor(
+   }
+ 
+   // ── Stage 2: GPT-4o-mini intercept analysis ───────────────────────────
+-  let interceptAnalysis: InterceptAnalysis;
+-  const openaiKey = process.env.OPENAI_API_KEY;
++  let interceptAnalysis: InterceptAnalysisOutput;
+ 
+-  if (!openaiKey) {
++  if (!hasApiKey('openai')) {
+     await new Promise((r) => setTimeout(r, 3000));
+     interceptAnalysis = mockInterceptAnalysis(competitor.competitor_name);
+   } else {
+@@ -252,7 +209,6 @@ export async function runInterceptForCompetitor(
+         businessName,
+         competitor.competitor_name,
+         perplexityResult,
+-        openaiKey,
+       );
+     } catch {
+       await new Promise((r) => setTimeout(r, 3000));
+diff --git a/package.json b/package.json
+index 7ca458c..f537871 100644
+--- a/package.json
++++ b/package.json
+@@ -13,11 +13,13 @@
+     "test:coverage": "vitest run --coverage"
+   },
+   "dependencies": {
++    "@ai-sdk/openai": "^1.3.22",
+     "@hookform/resolvers": "^5.2.2",
+     "@sentry/nextjs": "^10.39.0",
+     "@supabase/ssr": "^0.8.0",
+     "@supabase/supabase-js": "^2.97.0",
+     "@vercel/kv": "^3.0.0",
++    "ai": "^4.3.16",
+     "lucide-react": "^0.575.0",
+     "next": "16.1.6",
+     "papaparse": "^5.5.3",
