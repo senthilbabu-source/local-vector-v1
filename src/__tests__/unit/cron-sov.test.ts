@@ -1,0 +1,268 @@
+// ---------------------------------------------------------------------------
+// cron-sov.test.ts — Unit tests for GET /api/cron/sov
+//
+// Strategy (mirrors cron-audit.test.ts):
+//   • The SOV service (runSOVQuery, writeSOVResults) is mocked completely —
+//     no real Perplexity calls, no MSW needed.
+//   • The Supabase service-role client is mocked to return configurable data.
+//   • Per-org resilience is tested: one org's failure never aborts the run.
+//
+// Run:
+//   npx vitest run src/__tests__/unit/cron-sov.test.ts
+// ---------------------------------------------------------------------------
+
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { NextRequest } from 'next/server';
+
+// ── Mock the SOV engine service ──────────────────────────────────────────
+vi.mock('@/lib/services/sov-engine.service', () => ({
+  runSOVQuery: vi.fn().mockResolvedValue({
+    queryId: 'q1',
+    queryText: 'best hookah in Alpharetta GA',
+    queryCategory: 'discovery',
+    locationId: 'loc-uuid-001',
+    ourBusinessCited: false,
+    businessesFound: [],
+    citationUrl: null,
+  }),
+  writeSOVResults: vi.fn().mockResolvedValue({
+    shareOfVoice: 0,
+    citationRate: 0,
+    firstMoverCount: 0,
+  }),
+  sleep: vi.fn().mockResolvedValue(undefined),
+}));
+
+// ── Mock the Supabase service-role client ────────────────────────────────
+vi.mock('@/lib/supabase/server', () => ({
+  createServiceRoleClient: vi.fn(),
+}));
+
+// ── Mock the email helper ────────────────────────────────────────────────
+vi.mock('@/lib/email', () => ({
+  sendSOVReport: vi.fn().mockResolvedValue(undefined),
+}));
+
+// ── Import handler and mocks after vi.mock declarations ──────────────────
+import { GET } from '@/app/api/cron/sov/route';
+import { createServiceRoleClient } from '@/lib/supabase/server';
+import { runSOVQuery, writeSOVResults } from '@/lib/services/sov-engine.service';
+import { sendSOVReport } from '@/lib/email';
+
+// ── Constants ────────────────────────────────────────────────────────────
+
+const CRON_SECRET = 'test-cron-secret-sov';
+
+const MOCK_QUERY = {
+  id: 'q-uuid-001',
+  query_text: 'best hookah bar in Alpharetta GA',
+  location_id: 'loc-uuid-001',
+  org_id: 'org-uuid-001',
+  locations: { business_name: 'Charcoal N Chill', city: 'Alpharetta', state: 'GA' },
+  organizations: { plan_status: 'active', plan: 'growth' },
+};
+
+// ── Helpers ──────────────────────────────────────────────────────────────
+
+function makeRequest(secret?: string): NextRequest {
+  const headers = new Headers();
+  if (secret) headers.set('Authorization', `Bearer ${secret}`);
+  return new NextRequest('http://localhost:3000/api/cron/sov', { headers });
+}
+
+/**
+ * Build a mock Supabase client. Returns configurable query results.
+ */
+function makeMockSupabase(queries: unknown[] = []) {
+  const mockMaybeSingle = vi.fn().mockResolvedValue({
+    data: { users: { email: 'owner@test.com' } },
+    error: null,
+  });
+
+  return {
+    from: vi.fn((table: string) => {
+      if (table === 'target_queries') {
+        return {
+          select: vi.fn().mockReturnThis(),
+          eq: vi.fn().mockReturnThis(),
+          or: vi.fn().mockReturnThis(),
+          limit: vi.fn().mockResolvedValue({ data: queries, error: null }),
+        };
+      }
+      if (table === 'memberships') {
+        return {
+          select: vi.fn().mockReturnThis(),
+          eq: vi.fn().mockReturnThis(),
+          limit: vi.fn().mockReturnValue({ maybeSingle: mockMaybeSingle }),
+        };
+      }
+      return {
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        limit: vi.fn().mockReturnThis(),
+        maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }),
+        insert: vi.fn().mockResolvedValue({ data: null, error: null }),
+        upsert: vi.fn().mockResolvedValue({ data: null, error: null }),
+        update: vi.fn().mockReturnValue({
+          eq: vi.fn().mockResolvedValue({ data: null, error: null }),
+        }),
+      };
+    }),
+  };
+}
+
+// ── Setup / Teardown ─────────────────────────────────────────────────────
+
+beforeEach(() => {
+  vi.stubEnv('CRON_SECRET', CRON_SECRET);
+  vi.stubEnv('PERPLEXITY_API_KEY', 'test-key');
+  delete process.env.STOP_SOV_CRON;
+});
+
+afterEach(() => {
+  vi.restoreAllMocks();
+  vi.unstubAllEnvs();
+});
+
+// ── Tests ────────────────────────────────────────────────────────────────
+
+describe('GET /api/cron/sov', () => {
+  it('returns 401 when no Authorization header is present', async () => {
+    const res = await GET(makeRequest());
+    expect(res.status).toBe(401);
+    const body = await res.json();
+    expect(body.error).toBe('Unauthorized');
+  });
+
+  it('returns 401 when Authorization header has wrong secret', async () => {
+    const res = await GET(makeRequest('wrong-secret'));
+    expect(res.status).toBe(401);
+  });
+
+  it('returns 200 with halted flag when STOP_SOV_CRON is set', async () => {
+    vi.stubEnv('STOP_SOV_CRON', 'true');
+    const res = await GET(makeRequest(CRON_SECRET));
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.halted).toBe(true);
+  });
+
+  it('returns 200 with zero counts when no eligible queries exist', async () => {
+    const mock = makeMockSupabase([]);
+    vi.mocked(createServiceRoleClient).mockReturnValue(mock as never);
+
+    const res = await GET(makeRequest(CRON_SECRET));
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.ok).toBe(true);
+    expect(body.queries_run).toBe(0);
+  });
+
+  it('calls runSOVQuery for each query in the batch', async () => {
+    const queries = [
+      { ...MOCK_QUERY, id: 'q1' },
+      { ...MOCK_QUERY, id: 'q2', query_text: 'best Indian food Alpharetta' },
+    ];
+    const mock = makeMockSupabase(queries);
+    vi.mocked(createServiceRoleClient).mockReturnValue(mock as never);
+
+    const res = await GET(makeRequest(CRON_SECRET));
+    expect(res.status).toBe(200);
+
+    const body = await res.json();
+    expect(body.queries_run).toBe(2);
+    expect(vi.mocked(runSOVQuery)).toHaveBeenCalledTimes(2);
+  });
+
+  it('calls writeSOVResults after processing all queries for an org', async () => {
+    const mock = makeMockSupabase([MOCK_QUERY]);
+    vi.mocked(createServiceRoleClient).mockReturnValue(mock as never);
+
+    await GET(makeRequest(CRON_SECRET));
+
+    expect(vi.mocked(writeSOVResults)).toHaveBeenCalled();
+    expect(vi.mocked(writeSOVResults)).toHaveBeenLastCalledWith(
+      'org-uuid-001',
+      expect.any(Array),
+      expect.anything(),
+    );
+  });
+
+  it('sends SOV report email after processing', async () => {
+    const mock = makeMockSupabase([MOCK_QUERY]);
+    vi.mocked(createServiceRoleClient).mockReturnValue(mock as never);
+
+    await GET(makeRequest(CRON_SECRET));
+
+    expect(vi.mocked(sendSOVReport)).toHaveBeenCalled();
+    expect(vi.mocked(sendSOVReport)).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        to: 'owner@test.com',
+        businessName: 'Charcoal N Chill',
+      }),
+    );
+  });
+
+  it('continues processing when a single query throws', async () => {
+    const queries = [
+      { ...MOCK_QUERY, id: 'q1' },
+      { ...MOCK_QUERY, id: 'q2' },
+    ];
+    const mock = makeMockSupabase(queries);
+    vi.mocked(createServiceRoleClient).mockReturnValue(mock as never);
+
+    // First call throws, second succeeds
+    vi.mocked(runSOVQuery)
+      .mockRejectedValueOnce(new Error('Perplexity rate limit'))
+      .mockResolvedValueOnce({
+        queryId: 'q2',
+        queryText: 'test',
+        queryCategory: 'discovery',
+        locationId: 'loc-uuid-001',
+        ourBusinessCited: true,
+        businessesFound: [],
+        citationUrl: 'https://yelp.com/test',
+      });
+
+    const res = await GET(makeRequest(CRON_SECRET));
+    const body = await res.json();
+
+    // Only one query succeeded
+    expect(body.queries_run).toBe(1);
+    expect(body.queries_cited).toBe(1);
+    expect(body.orgs_processed).toBe(1);
+    expect(body.orgs_failed).toBe(0);
+  });
+
+  it('increments orgs_failed when writeSOVResults throws', async () => {
+    const mock = makeMockSupabase([MOCK_QUERY]);
+    vi.mocked(createServiceRoleClient).mockReturnValue(mock as never);
+    vi.mocked(writeSOVResults).mockRejectedValueOnce(new Error('DB write failed'));
+
+    const res = await GET(makeRequest(CRON_SECRET));
+    const body = await res.json();
+
+    expect(body.orgs_failed).toBe(1);
+    expect(body.orgs_processed).toBe(0);
+  });
+
+  it('tracks queries_cited count when businesses are found', async () => {
+    const mock = makeMockSupabase([MOCK_QUERY]);
+    vi.mocked(createServiceRoleClient).mockReturnValue(mock as never);
+
+    vi.mocked(runSOVQuery).mockResolvedValueOnce({
+      queryId: 'q1',
+      queryText: 'test',
+      queryCategory: 'discovery',
+      locationId: 'loc-uuid-001',
+      ourBusinessCited: true,
+      businessesFound: ['Cloud 9 Lounge'],
+      citationUrl: 'https://yelp.com/charcoal-n-chill',
+    });
+
+    const res = await GET(makeRequest(CRON_SECRET));
+    const body = await res.json();
+
+    expect(body.queries_cited).toBe(1);
+  });
+});
