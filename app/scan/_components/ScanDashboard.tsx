@@ -1,23 +1,19 @@
 'use client';
 // ---------------------------------------------------------------------------
-// ScanDashboard — Public AI Audit Result Dashboard (Sprint 34+35)
+// ScanDashboard — Public AI Audit Result Dashboard (Sprint 34+35, restyled Sprint 39)
 //
 // Receives parsed ScanDisplayData from the Server Component page.
 //
-// Sprint 34: replaced fake KPI lookup table with real scan fields:
-//   • Free tier  — AI Mentions (categorical) + AI Sentiment (categorical)
-//                  Both are real from Perplexity; shown with a "Live" badge
-//   • Locked     — AI Visibility Score ██/100 + Citation Integrity ██/100
-//                  Numerical scores require continuous monitoring (plan required)
+// Sprint 39: full visual restyle to match Sprint 37 landing page design
+// language. Uses .lv-card, .lv-section, .lv-grid2, Reveal scroll animations,
+// Bar progress fills, SectionLabel eyebrow text, JetBrains Mono for data
+// elements, and alternating navy/navyLight section backgrounds.
 //
-// Sprint 35: Detected Issues section uses real accuracy_issues:
-//   • Item 1 (unlocked) — first accuracy issue with category badge,
-//     falls back to the main result (fail/pass/not_found) if no issues
-//   • Items 2–3 (locked/blurred) — real accuracy issues if present,
-//     else generic locked items (zero-issues fallback)
+// Data flow is unchanged — all business logic, helper functions, and
+// scan-params.ts types are identical to Sprint 35.
 //
 // Sections:
-//   0. Nav strip (logo + "Run another scan" link)
+//   0. Nav strip (logo + "Run Another Scan" outline button)
 //   1. Alert banner (real result: fail / pass / not_found)
 //   2. KPI section — Row 1: 2 real free cards | Row 2: 2 locked score cards
 //   3. Competitive landscape (sample data, clearly labeled + locked)
@@ -25,12 +21,14 @@
 //   5. Primary CTA (Claim My AI Profile → /signup)
 //
 // AI_RULES §12: all Tailwind class strings are literals (ternary operators only).
-// AI_RULES §24: real categoricals shown free; locked numericals honest about
-//               requiring monitoring — no fabricated numbers anywhere.
+// AI_RULES §24: real categoricals shown free; locked numericals honest.
+// DESIGN-SYSTEM.md: all colors, fonts, animations, and hard rules followed.
 // ---------------------------------------------------------------------------
 
 import type { ScanDisplayData, IssueCategory } from '../_utils/scan-params';
 import { getAccuracyIssueCategories } from '../_utils/scan-params';
+import Reveal from '@/app/_components/Reveal';
+import Bar from '@/app/_components/Bar';
 
 // ---------------------------------------------------------------------------
 // Props
@@ -41,21 +39,83 @@ interface Props {
 }
 
 // ---------------------------------------------------------------------------
+// Local sub-component: SectionLabel (mirrors app/page.tsx)
+// ---------------------------------------------------------------------------
+
+function SectionLabel({ children, color = '#00F5A0' }: { children: React.ReactNode; color?: string }) {
+  return (
+    <p
+      className="text-xs font-bold uppercase mb-3"
+      style={{
+        color,
+        letterSpacing: '0.14em',
+        fontFamily: 'var(--font-jetbrains-mono), monospace',
+      }}
+    >
+      {children}
+    </p>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Local sub-component: LockOverlay (SVG lock icon, no emoji)
+// ---------------------------------------------------------------------------
+
+function LockOverlay({ text = 'Sign up to unlock' }: { text?: string }) {
+  return (
+    <div
+      className="absolute inset-0 flex flex-col items-center justify-center z-10"
+      style={{ backgroundColor: 'rgba(10,22,40,0.85)', backdropFilter: 'blur(3px)', borderRadius: 16 }}
+    >
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor"
+        className="h-5 w-5 text-slate-500 mb-2" aria-hidden>
+        <path fillRule="evenodd" d="M8 1a3.5 3.5 0 0 0-3.5 3.5V7A1.5 1.5 0 0 0 3 8.5v5A1.5 1.5 0 0 0 4.5 15h7a1.5 1.5 0 0 0 1.5-1.5v-5A1.5 1.5 0 0 0 11 7V4.5A3.5 3.5 0 0 0 8 1Zm2 6V4.5a2 2 0 1 0-4 0V7h4Z" clipRule="evenodd" />
+      </svg>
+      <p
+        className="text-xs font-semibold"
+        style={{ color: '#94A3B8', fontFamily: 'var(--font-jetbrains-mono), monospace' }}
+      >
+        {text}
+      </p>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Local sub-component: LockPill (inline pill for locked items)
+// ---------------------------------------------------------------------------
+
+function LockPill() {
+  return (
+    <div className="absolute inset-0 backdrop-blur-[2px] flex items-center justify-center z-10"
+      style={{ backgroundColor: 'rgba(10,22,40,0.75)', borderRadius: 16 }}>
+      <div className="flex items-center gap-2 rounded-full border border-white/10 px-3 py-1.5"
+        style={{ backgroundColor: 'rgba(10,22,40,0.9)' }}>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor"
+          className="h-3.5 w-3.5 text-slate-400" aria-hidden>
+          <path fillRule="evenodd" d="M8 1a3.5 3.5 0 0 0-3.5 3.5V7A1.5 1.5 0 0 0 3 8.5v5A1.5 1.5 0 0 0 4.5 15h7a1.5 1.5 0 0 0 1.5-1.5v-5A1.5 1.5 0 0 0 11 7V4.5A3.5 3.5 0 0 0 8 1Zm2 6V4.5a2 2 0 1 0-4 0V7h4Z" clipRule="evenodd" />
+        </svg>
+        <span className="text-xs text-slate-400 font-medium">Signup to unlock</span>
+      </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Helper functions — AI_RULES §12: ternary literals only, no template concat
 // ---------------------------------------------------------------------------
 
 function mentionsColor(m: 'none' | 'low' | 'medium' | 'high'): string {
-  return m === 'high'   ? 'text-signal-green'
-       : m === 'medium' ? 'text-alert-amber'
-       : m === 'low'    ? 'text-slate-400'
-       :                  'text-slate-600';
+  return m === 'high'   ? '#00F5A0'
+       : m === 'medium' ? '#FFB800'
+       : m === 'low'    ? '#94A3B8'
+       :                  '#475569';
 }
 
-function mentionsDotColor(m: 'none' | 'low' | 'medium' | 'high'): string {
-  return m === 'high'   ? 'bg-signal-green'
-       : m === 'medium' ? 'bg-alert-amber'
-       : m === 'low'    ? 'bg-slate-500'
-       :                  'bg-slate-700';
+function mentionsBorderColor(m: 'none' | 'low' | 'medium' | 'high'): string {
+  return m === 'high'   ? '#00F5A0'
+       : m === 'medium' ? '#FFB800'
+       :                  '#64748B';
 }
 
 function mentionsDescription(m: 'none' | 'low' | 'medium' | 'high'): string {
@@ -66,9 +126,11 @@ function mentionsDescription(m: 'none' | 'low' | 'medium' | 'high'): string {
 }
 
 function sentimentColor(s: 'positive' | 'neutral' | 'negative'): string {
-  return s === 'positive' ? 'text-signal-green'
-       : s === 'negative' ? 'text-alert-crimson'
-       :                    'text-slate-400';
+  return s === 'positive' ? '#00F5A0' : s === 'negative' ? '#EF4444' : '#94A3B8';
+}
+
+function sentimentBorderColor(s: 'positive' | 'neutral' | 'negative'): string {
+  return s === 'positive' ? '#00F5A0' : s === 'negative' ? '#EF4444' : '#64748B';
 }
 
 function sentimentIcon(s: 'positive' | 'neutral' | 'negative'): string {
@@ -81,7 +143,6 @@ function sentimentDescription(s: 'positive' | 'neutral' | 'negative'): string {
        :                    'AI describes your business in a neutral, factual tone';
 }
 
-/** Sprint 35: human-readable label for an issue category badge. */
 function categoryLabel(c: IssueCategory): string {
   return c === 'hours'   ? 'Hours'
        : c === 'address' ? 'Address'
@@ -90,28 +151,28 @@ function categoryLabel(c: IssueCategory): string {
        :                   'Other';
 }
 
-/** Sprint 35: Tailwind border+text classes for an issue category badge. AI_RULES §12: ternary literals. */
-function categoryColor(c: IssueCategory): string {
-  return c === 'hours'   ? 'border-alert-amber/40 text-alert-amber'
-       : c === 'address' ? 'border-electric-indigo/40 text-electric-indigo'
-       : c === 'menu'    ? 'border-signal-green/30 text-signal-green'
-       : c === 'phone'   ? 'border-slate-500/40 text-slate-400'
-       :                   'border-slate-600/40 text-slate-500';
+function categoryBorderColor(c: IssueCategory): string {
+  return c === 'hours'   ? '#FFB800'
+       : c === 'address' ? '#6366f1'
+       : c === 'menu'    ? '#00F5A0'
+       :                   '#64748B';
 }
 
-/** Extract mentions — not_found is implicitly 'none' (no AI coverage). */
 function getMentions(r: ScanDisplayData): 'none' | 'low' | 'medium' | 'high' {
   return r.status === 'fail' || r.status === 'pass' ? r.mentions : 'none';
 }
 
-/** Extract sentiment — not_found is implicitly 'neutral'. */
 function getSentiment(r: ScanDisplayData): 'positive' | 'neutral' | 'negative' {
   return r.status === 'fail' || r.status === 'pass' ? r.sentiment : 'neutral';
 }
 
-/** Extract accuracy issues — not_found returns empty array. */
 function getAccuracyIssues(r: ScanDisplayData): string[] {
   return r.status === 'fail' || r.status === 'pass' ? r.accuracyIssues : [];
+}
+
+/** Accent color for the alert banner per result status. */
+function statusAccent(s: 'fail' | 'pass' | 'not_found'): string {
+  return s === 'fail' ? '#EF4444' : s === 'pass' ? '#00F5A0' : '#64748B';
 }
 
 // ---------------------------------------------------------------------------
@@ -123,8 +184,10 @@ export default function ScanDashboard({ result }: Props) {
   if (result.status === 'invalid') {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center px-4 text-center">
-        <p className="text-base font-semibold text-slate-400 mb-4">No valid scan result found.</p>
-        <a href="/" className="text-sm text-signal-green underline underline-offset-2">
+        <p className="text-base font-semibold mb-4" style={{ color: '#94A3B8' }}>
+          No valid scan result found.
+        </p>
+        <a href="/" className="lv-btn-outline" style={{ padding: '8px 24px', fontSize: 13 }}>
           ← Run a free scan
         </a>
       </div>
@@ -135,326 +198,510 @@ export default function ScanDashboard({ result }: Props) {
   const sentiment               = getSentiment(result);
   const accuracyIssues          = getAccuracyIssues(result);
   const accuracyIssueCategories = getAccuracyIssueCategories(result);
+  const accent                  = statusAccent(result.status);
 
   return (
-    <div className="mx-auto max-w-4xl px-4 pb-20">
-
-      {/* ── 0. Nav strip ─────────────────────────────────────────────────── */}
-      <nav className="sticky top-0 z-10 -mx-4 px-4 py-4 flex items-center justify-between border-b border-white/5 backdrop-blur-sm"
-        style={{ backgroundColor: 'rgba(5,10,21,0.92)' }}>
-        <span className="flex items-center gap-2 text-base font-bold tracking-tight">
-          <img src="/logo.svg" alt="" className="h-6 w-auto" aria-hidden />
-          <span style={{ color: '#00F5A0' }}>LocalVector</span>
-          <span className="text-slate-600">.ai</span>
-        </span>
-        <a href="/" className="text-xs text-slate-500 underline underline-offset-2 hover:text-slate-300 transition">
-          ← Run another scan
-        </a>
+    <>
+      {/* ── 0. Nav Strip ─────────────────────────────────────────────────── */}
+      <nav
+        className="sticky top-0 z-20 border-b border-white/5 backdrop-blur-sm"
+        style={{ backgroundColor: 'rgba(5,10,21,0.92)' }}
+      >
+        <div className="mx-auto flex max-w-[1120px] items-center justify-between px-6" style={{ height: 64 }}>
+          <a href="/" className="flex items-center gap-2 text-base font-bold" style={{ letterSpacing: '-0.02em' }}>
+            <img src="/logo.svg" alt="" className="h-7 w-auto" aria-hidden />
+            <span style={{ color: '#00F5A0' }}>LocalVector</span>
+            <span className="text-slate-600">.ai</span>
+          </a>
+          <a
+            href="/"
+            className="lv-btn-outline"
+            style={{ padding: '8px 20px', fontSize: 13, animation: 'none' }}
+          >
+            Run Another Scan &rarr;
+          </a>
+        </div>
       </nav>
 
       {/* ── 1. Alert Banner ──────────────────────────────────────────────── */}
-      <div className="mt-8">
-        {result.status === 'fail' && (
-          <div className="rounded-2xl border-2 border-alert-crimson/50 bg-alert-crimson/5 px-6 py-5">
-            <div className="flex flex-wrap items-center gap-3 mb-2">
-              <span className="relative flex h-3 w-3 shrink-0">
-                <span className="absolute inline-flex h-full w-full rounded-full bg-alert-crimson opacity-75"
-                  style={{ animation: 'ping-dot 1.5s cubic-bezier(0,0,0.2,1) infinite' }} />
-                <span className="relative inline-flex h-3 w-3 rounded-full bg-alert-crimson" />
-              </span>
-              <p className="text-base font-bold text-alert-crimson">AI Hallucination Detected</p>
-              <span className="rounded-full bg-alert-crimson/15 px-2.5 py-0.5 text-xs font-semibold text-alert-crimson uppercase tracking-wide">
-                {result.severity}
-              </span>
-            </div>
-            <p className="text-sm text-slate-300 leading-relaxed">
-              <span className="font-semibold text-white">{result.engine}</span> is reporting your business{' '}
-              <span className="font-semibold text-alert-crimson">&ldquo;{result.businessName}&rdquo;</span>{' '}
-              as <span className="font-semibold text-alert-crimson">&ldquo;{result.claimText}&rdquo;</span>.{' '}
-              Reality: <span className="font-semibold text-truth-emerald">{result.expectedTruth}</span>.
-            </p>
-          </div>
-        )}
-        {result.status === 'pass' && (
-          <div className="rounded-2xl border-2 border-truth-emerald/40 bg-truth-emerald/5 px-6 py-5">
-            <div className="flex items-center gap-3 mb-2">
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"
-                className="h-5 w-5 shrink-0 text-truth-emerald" aria-hidden>
-                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z" clipRule="evenodd" />
-              </svg>
-              <p className="text-base font-bold text-truth-emerald">No Hallucinations Detected</p>
-            </div>
-            <p className="text-sm text-slate-300 leading-relaxed">
-              <span className="font-semibold text-white">{result.engine}</span> currently describes{' '}
-              <span className="font-semibold text-white">&ldquo;{result.businessName}&rdquo;</span>{' '}
-              accurately. AI hallucinations can appear at any time — monitoring keeps you protected.
-            </p>
-          </div>
-        )}
-        {result.status === 'not_found' && (
-          <div className="rounded-2xl border-2 border-slate-600/60 bg-slate-800/20 px-6 py-5">
-            <div className="flex items-center gap-3 mb-2">
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"
-                className="h-5 w-5 shrink-0 text-slate-400" aria-hidden>
-                <path d="M9 3.5a5.5 5.5 0 100 11 5.5 5.5 0 000-11zM2 9a7 7 0 1112.452 4.391l3.328 3.329a.75.75 0 11-1.06 1.06l-3.329-3.328A7 7 0 012 9z" />
-              </svg>
-              <p className="text-base font-bold text-slate-300">Zero AI Visibility</p>
-            </div>
-            <p className="text-sm text-slate-400 leading-relaxed">
-              <span className="font-semibold text-slate-200">{result.engine}</span> has no data for{' '}
-              <span className="font-semibold text-slate-200">&ldquo;{result.businessName}&rdquo;</span>.
-              Customers searching AI assistants won&apos;t find you — costing you revenue silently.
-            </p>
-          </div>
-        )}
-      </div>
+      <section className="px-4" style={{ backgroundColor: '#050A15' }}>
+        <div className="lv-section" style={{ paddingTop: 48, paddingBottom: 48 }}>
+          <Reveal>
+            <SectionLabel color={accent}>AI Audit Result</SectionLabel>
+          </Reveal>
+          <Reveal delay={80}>
+            <h1
+              className="font-bold leading-tight mb-8"
+              style={{
+                fontSize: 'clamp(24px,3.5vw,38px)',
+                letterSpacing: '-0.02em',
+                color: '#F1F5F9',
+              }}
+            >
+              AI Audit: {result.businessName}
+            </h1>
+          </Reveal>
 
-      {/* ── 2. KPI Section ───────────────────────────────────────────────── */}
-      <div className="mt-8 space-y-6">
-
-        {/* Row 1: Real data from scan — shown free */}
-        <div>
-          <div className="flex items-center justify-between mb-3">
-            <p className="text-xs font-bold uppercase tracking-widest text-slate-500">
-              From Your Scan
-            </p>
-            <span className="rounded-full border border-signal-green/30 px-2.5 py-0.5 text-[10px] font-semibold text-signal-green uppercase tracking-wide">
-              Live
-            </span>
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <RealMentionsCard mentions={mentions} />
-            <RealSentimentCard sentiment={sentiment} />
-          </div>
-        </div>
-
-        {/* Row 2: Locked numerical scores — require continuous monitoring */}
-        <div>
-          <div className="flex items-center justify-between mb-3">
-            <p className="text-xs font-bold uppercase tracking-widest text-slate-500">
-              Unlock Full Scores
-            </p>
-            <span className="rounded-full border border-alert-amber/30 px-2.5 py-0.5 text-[10px] font-semibold text-alert-amber uppercase tracking-wide">
-              Plan required
-            </span>
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <LockedScoreCard
-              title="AI Visibility Score"
-              abbr="AVS"
-              description="How often AI cites your business accurately"
-            />
-            <LockedScoreCard
-              title="Citation Integrity"
-              abbr="CI"
-              description="AI accuracy on hours, address, and menu"
-            />
-          </div>
-        </div>
-
-      </div>
-
-      {/* ── 3. Competitive Landscape ─────────────────────────────────────── */}
-      <div className="mt-10">
-        <div className="flex items-center justify-between mb-4">
-          <p className="text-xs font-bold uppercase tracking-widest text-slate-500">
-            Competitive Landscape
-          </p>
-          <span className="text-[10px] text-slate-700 uppercase tracking-wide">Sample data</span>
-        </div>
-        <div className="relative rounded-2xl bg-surface-dark border border-white/5 p-6">
-          {/* Lock overlay */}
-          <div className="absolute inset-0 rounded-2xl flex items-end justify-center pb-5 z-10"
-            style={{ background: 'linear-gradient(to bottom, transparent 30%, rgba(5,10,21,0.92) 80%)' }}>
-            <div className="text-center">
-              <p className="text-sm font-semibold text-slate-400 mb-1">
-                🔒 Real competitor data unlocked after signup
-              </p>
-              <p className="text-xs text-slate-600">Sample data · Real analysis requires an account</p>
-            </div>
-          </div>
-
-          <div className="space-y-4 select-none">
-            {/* My Brand — colored bar, no numerical score */}
-            <CompetitorBar
-              label="My Brand"
-              sublabel={result.businessName}
-              isMine
-              isGood={result.status === 'pass'}
-            />
-            {/* Static sample competitors — no scores shown */}
-            <CompetitorBar label="Top Competitor 1" sublabel="Sample · Real data after signup" isMine={false} isGood={false} />
-            <CompetitorBar label="Top Competitor 2" sublabel="Sample · Real data after signup" isMine={false} isGood={false} />
-            <CompetitorBar label="Top Competitor 3" sublabel="Sample · Real data after signup" isMine={false} isGood={false} />
-          </div>
-        </div>
-      </div>
-
-      {/* ── 4. Detected Issues & Fixes ───────────────────────────────────── */}
-      <div className="mt-10">
-        <p className="text-xs font-bold uppercase tracking-widest text-slate-500 mb-4">
-          Detected Issues &amp; Fixes
-        </p>
-        <div className="space-y-3">
-
-          {/* Item 1 — UNLOCKED: real accuracy issue if present, else scan result */}
-          {accuracyIssues.length > 0 ? (
-            <AccuracyIssueItem
-              text={accuracyIssues[0]}
-              category={accuracyIssueCategories[0] ?? 'other'}
-              isLocked={false}
-            />
-          ) : (
-            <div className="rounded-xl border border-white/10 bg-surface-dark px-5 py-4">
-              {result.status === 'fail' && (
-                <div className="flex items-start gap-3">
-                  <span className="mt-0.5 rounded-full bg-alert-crimson/10 px-2 py-0.5 text-xs font-bold text-alert-crimson uppercase shrink-0">
+          <Reveal delay={160}>
+            {result.status === 'fail' && (
+              <div
+                className="lv-card relative overflow-hidden"
+                style={{ borderLeft: '3px solid #EF4444' }}
+              >
+                {/* Scan sweep line */}
+                <div
+                  aria-hidden
+                  className="absolute top-0 left-0 right-0"
+                  style={{
+                    height: 1,
+                    background: 'linear-gradient(90deg, transparent, rgba(239,68,68,0.27), transparent)',
+                    animation: 'lv-scan 3s linear infinite',
+                    opacity: 0.5,
+                  }}
+                />
+                <div className="flex flex-wrap items-center gap-3 mb-3">
+                  {/* PulseDot */}
+                  <span className="relative flex h-2.5 w-2.5 shrink-0">
+                    <span
+                      className="absolute inline-flex h-full w-full rounded-full"
+                      style={{ background: '#EF4444', animation: 'lv-ping 1.8s cubic-bezier(0,0,0.2,1) infinite' }}
+                    />
+                    <span className="relative inline-flex h-2.5 w-2.5 rounded-full" style={{ background: '#EF4444' }} />
+                  </span>
+                  <p className="text-base font-bold" style={{ color: '#EF4444' }}>
+                    AI Hallucination Detected
+                  </p>
+                  <span
+                    className="rounded-md px-2.5 py-0.5 text-xs font-semibold uppercase"
+                    style={{
+                      color: '#EF4444',
+                      background: 'rgba(239,68,68,0.10)',
+                      fontFamily: 'var(--font-jetbrains-mono), monospace',
+                      letterSpacing: '0.06em',
+                    }}
+                  >
                     {result.severity}
                   </span>
-                  <div>
-                    <p className="text-sm font-semibold text-white">
-                      {result.engine} reports &ldquo;{result.businessName}&rdquo; as &ldquo;{result.claimText}&rdquo;
-                    </p>
-                    <p className="text-xs text-slate-500 mt-1">Detected via Perplexity Sonar scan · Reality: {result.expectedTruth}</p>
-                  </div>
                 </div>
-              )}
-              {result.status === 'pass' && (
-                <div className="flex items-start gap-3">
+                <p className="text-sm leading-relaxed" style={{ color: '#CBD5E1' }}>
+                  <span className="font-semibold" style={{ color: '#F1F5F9' }}>{result.engine}</span>{' '}
+                  is reporting your business{' '}
+                  <span className="font-semibold" style={{ color: '#EF4444' }}>&ldquo;{result.businessName}&rdquo;</span>{' '}
+                  as <span className="font-semibold" style={{ color: '#EF4444' }}>&ldquo;{result.claimText}&rdquo;</span>.{' '}
+                  Reality: <span className="font-semibold" style={{ color: '#00F5A0' }}>{result.expectedTruth}</span>.
+                </p>
+              </div>
+            )}
+            {result.status === 'pass' && (
+              <div
+                className="lv-card relative overflow-hidden"
+                style={{ borderLeft: '3px solid #00F5A0' }}
+              >
+                <div
+                  aria-hidden
+                  className="absolute top-0 left-0 right-0"
+                  style={{
+                    height: 1,
+                    background: 'linear-gradient(90deg, transparent, rgba(0,245,160,0.27), transparent)',
+                    animation: 'lv-scan 3s linear infinite',
+                    opacity: 0.5,
+                  }}
+                />
+                <div className="flex items-center gap-3 mb-3">
                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"
-                    className="h-4 w-4 shrink-0 mt-0.5 text-truth-emerald" aria-hidden>
+                    className="h-5 w-5 shrink-0" style={{ color: '#00F5A0' }} aria-hidden>
                     <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z" clipRule="evenodd" />
                   </svg>
-                  <div>
-                    <p className="text-sm font-semibold text-truth-emerald">No critical hallucinations found</p>
-                    <p className="text-xs text-slate-500 mt-1">
-                      {result.engine} currently shows accurate information. Monitoring ensures it stays that way.
-                    </p>
-                  </div>
+                  <p className="text-base font-bold" style={{ color: '#00F5A0' }}>
+                    No Hallucinations Detected
+                  </p>
                 </div>
-              )}
-              {result.status === 'not_found' && (
-                <div className="flex items-start gap-3">
+                <p className="text-sm leading-relaxed" style={{ color: '#CBD5E1' }}>
+                  <span className="font-semibold" style={{ color: '#F1F5F9' }}>{result.engine}</span>{' '}
+                  currently describes{' '}
+                  <span className="font-semibold" style={{ color: '#F1F5F9' }}>&ldquo;{result.businessName}&rdquo;</span>{' '}
+                  accurately. AI hallucinations can appear at any time — monitoring keeps you protected.
+                </p>
+              </div>
+            )}
+            {result.status === 'not_found' && (
+              <div
+                className="lv-card relative overflow-hidden"
+                style={{ borderLeft: '3px solid #64748B' }}
+              >
+                <div className="flex items-center gap-3 mb-3">
                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"
-                    className="h-4 w-4 shrink-0 mt-0.5 text-slate-400" aria-hidden>
+                    className="h-5 w-5 shrink-0" style={{ color: '#94A3B8' }} aria-hidden>
                     <path d="M9 3.5a5.5 5.5 0 100 11 5.5 5.5 0 000-11zM2 9a7 7 0 1112.452 4.391l3.328 3.329a.75.75 0 11-1.06 1.06l-3.329-3.328A7 7 0 012 9z" />
                   </svg>
-                  <div>
-                    <p className="text-sm font-semibold text-slate-300">AI models have no data about your business</p>
-                    <p className="text-xs text-slate-500 mt-1">You have zero AI visibility — potential customers can&apos;t find you via AI search.</p>
-                  </div>
+                  <p className="text-base font-bold" style={{ color: '#CBD5E1' }}>
+                    Zero AI Visibility
+                  </p>
                 </div>
-              )}
+                <p className="text-sm leading-relaxed" style={{ color: '#94A3B8' }}>
+                  <span className="font-semibold" style={{ color: '#CBD5E1' }}>{result.engine}</span>{' '}
+                  has no data for{' '}
+                  <span className="font-semibold" style={{ color: '#CBD5E1' }}>&ldquo;{result.businessName}&rdquo;</span>.
+                  Customers searching AI assistants won&apos;t find you — costing you revenue silently.
+                </p>
+              </div>
+            )}
+          </Reveal>
+        </div>
+      </section>
+
+      {/* ── 2. KPI Section ───────────────────────────────────────────────── */}
+      <section
+        className="px-4"
+        style={{
+          background: '#0A1628',
+          borderTop: '1px solid rgba(255,255,255,0.03)',
+          borderBottom: '1px solid rgba(255,255,255,0.03)',
+        }}
+      >
+        <div className="lv-section">
+
+          {/* Row 1: Real data from scan — shown free */}
+          <Reveal>
+            <div className="flex items-center justify-between mb-4">
+              <SectionLabel>From Your Scan</SectionLabel>
+              <span
+                className="text-xs font-semibold rounded-md px-2.5 py-1"
+                style={{
+                  color: '#00F5A0',
+                  background: 'rgba(0,245,160,0.12)',
+                  fontFamily: 'var(--font-jetbrains-mono), monospace',
+                }}
+              >
+                Live
+              </span>
             </div>
-          )}
+          </Reveal>
+          <div className="lv-grid2 mb-12">
+            <Reveal delay={0}>
+              <RealMentionsCard mentions={mentions} />
+            </Reveal>
+            <Reveal delay={150}>
+              <RealSentimentCard sentiment={sentiment} />
+            </Reveal>
+          </div>
 
-          {/* Item 2 — LOCKED: real issue[1] if present, else generic */}
-          {accuracyIssues.length >= 2 ? (
-            <AccuracyIssueItem
-              text={accuracyIssues[1]}
-              category={accuracyIssueCategories[1] ?? 'other'}
-              isLocked={true}
-            />
-          ) : (
-            <LockedFixItem
-              title="Suppress hallucination across 6 AI Knowledge Graphs"
-              description="Push verified business data to override incorrect AI sources"
-            />
-          )}
-
-          {/* Item 3 — LOCKED: real issue[2] if present, else generic */}
-          {accuracyIssues.length >= 3 ? (
-            <AccuracyIssueItem
-              text={accuracyIssues[2]}
-              category={accuracyIssueCategories[2] ?? 'other'}
-              isLocked={true}
-            />
-          ) : (
-            <LockedFixItem
-              title="Inject verified NAP data via Magic Menu"
-              description="Convert your menu + hours into structured data AI models trust"
-            />
-          )}
+          {/* Row 2: Locked numerical scores — require continuous monitoring */}
+          <Reveal delay={200}>
+            <div className="flex items-center justify-between mb-4">
+              <SectionLabel color="#FFB800">Unlock Full Scores</SectionLabel>
+              <span
+                className="text-xs font-semibold rounded-md px-2.5 py-1"
+                style={{
+                  color: '#FFB800',
+                  background: 'rgba(255,184,0,0.12)',
+                  fontFamily: 'var(--font-jetbrains-mono), monospace',
+                }}
+              >
+                Plan required
+              </span>
+            </div>
+          </Reveal>
+          <div className="lv-grid2">
+            <Reveal delay={250}>
+              <LockedScoreCard
+                title="AI Visibility Score"
+                abbr="AVS"
+                description="How often AI cites your business accurately"
+              />
+            </Reveal>
+            <Reveal delay={400}>
+              <LockedScoreCard
+                title="Citation Integrity"
+                abbr="CI"
+                description="AI accuracy on hours, address, and menu"
+              />
+            </Reveal>
+          </div>
 
         </div>
+      </section>
 
-        <p className="mt-3 text-xs text-slate-600">
-          Unlock all fixes and set up continuous monitoring with a free account.
-        </p>
-      </div>
+      {/* ── 3. Competitive Landscape ─────────────────────────────────────── */}
+      <section className="px-4" style={{ backgroundColor: '#050A15' }}>
+        <div className="lv-section">
+          <Reveal>
+            <div className="flex items-center justify-between mb-4">
+              <SectionLabel color="#FFB800">Competitive Landscape</SectionLabel>
+              <span
+                style={{ fontSize: 11, color: '#334155', fontFamily: 'var(--font-jetbrains-mono), monospace', letterSpacing: '0.08em', textTransform: 'uppercase' as const }}
+              >
+                Sample data
+              </span>
+            </div>
+          </Reveal>
+          <Reveal delay={160}>
+            <div className="lv-card relative overflow-hidden" style={{ padding: 24 }}>
+              {/* Gradient lock overlay */}
+              <div
+                className="absolute inset-0 flex items-end justify-center pb-5 z-10"
+                style={{ background: 'linear-gradient(to bottom, transparent 20%, rgba(5,10,21,0.95) 75%)', borderRadius: 16 }}
+              >
+                <div className="text-center">
+                  <div className="flex items-center justify-center gap-2 mb-1">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor"
+                      className="h-3.5 w-3.5 text-slate-500" aria-hidden>
+                      <path fillRule="evenodd" d="M8 1a3.5 3.5 0 0 0-3.5 3.5V7A1.5 1.5 0 0 0 3 8.5v5A1.5 1.5 0 0 0 4.5 15h7a1.5 1.5 0 0 0 1.5-1.5v-5A1.5 1.5 0 0 0 11 7V4.5A3.5 3.5 0 0 0 8 1Zm2 6V4.5a2 2 0 1 0-4 0V7h4Z" clipRule="evenodd" />
+                    </svg>
+                    <p className="text-sm font-semibold" style={{ color: '#94A3B8' }}>
+                      Real competitor data unlocked after signup
+                    </p>
+                  </div>
+                  <p style={{ fontSize: 11, color: '#475569', fontFamily: 'var(--font-jetbrains-mono), monospace' }}>
+                    Sample data · Real analysis requires an account
+                  </p>
+                </div>
+              </div>
+
+              <div className="space-y-5 select-none">
+                <CompetitorBar
+                  label="My Brand"
+                  sublabel={result.businessName}
+                  pct={result.status === 'pass' ? 70 : 30}
+                  color={result.status === 'pass' ? '#00F5A0' : '#EF4444'}
+                  isMine
+                />
+                <CompetitorBar label="Top Competitor 1" sublabel="Sample · Real data after signup" pct={60} color="#334155" isMine={false} />
+                <CompetitorBar label="Top Competitor 2" sublabel="Sample · Real data after signup" pct={45} color="#334155" isMine={false} />
+                <CompetitorBar label="Top Competitor 3" sublabel="Sample · Real data after signup" pct={35} color="#334155" isMine={false} />
+              </div>
+            </div>
+          </Reveal>
+        </div>
+      </section>
+
+      {/* ── 4. Detected Issues & Fixes ───────────────────────────────────── */}
+      <section
+        className="px-4"
+        style={{
+          background: '#0A1628',
+          borderTop: '1px solid rgba(255,255,255,0.03)',
+          borderBottom: '1px solid rgba(255,255,255,0.03)',
+        }}
+      >
+        <div className="lv-section">
+          <Reveal>
+            <SectionLabel color="#EF4444">Detected Issues &amp; Fixes</SectionLabel>
+          </Reveal>
+          <Reveal delay={80}>
+            <h2
+              className="font-bold leading-tight mb-8"
+              style={{ fontSize: 'clamp(24px,3.5vw,38px)', letterSpacing: '-0.02em', color: '#F1F5F9' }}
+            >
+              What AI gets wrong about your business
+            </h2>
+          </Reveal>
+
+          <div className="space-y-4">
+            {/* Item 1 — UNLOCKED */}
+            <Reveal delay={120}>
+              {accuracyIssues.length > 0 ? (
+                <AccuracyIssueItem
+                  text={accuracyIssues[0]}
+                  category={accuracyIssueCategories[0] ?? 'other'}
+                  isLocked={false}
+                />
+              ) : (
+                <FallbackIssueCard result={result} />
+              )}
+            </Reveal>
+
+            {/* Item 2 — LOCKED */}
+            <Reveal delay={240}>
+              {accuracyIssues.length >= 2 ? (
+                <AccuracyIssueItem
+                  text={accuracyIssues[1]}
+                  category={accuracyIssueCategories[1] ?? 'other'}
+                  isLocked
+                />
+              ) : (
+                <LockedFixItem
+                  title="Suppress hallucination across 6 AI Knowledge Graphs"
+                  description="Push verified business data to override incorrect AI sources"
+                />
+              )}
+            </Reveal>
+
+            {/* Item 3 — LOCKED */}
+            <Reveal delay={360}>
+              {accuracyIssues.length >= 3 ? (
+                <AccuracyIssueItem
+                  text={accuracyIssues[2]}
+                  category={accuracyIssueCategories[2] ?? 'other'}
+                  isLocked
+                />
+              ) : (
+                <LockedFixItem
+                  title="Inject verified NAP data via Magic Menu"
+                  description="Convert your menu + hours into structured data AI models trust"
+                />
+              )}
+            </Reveal>
+          </div>
+
+          <Reveal delay={480}>
+            <p
+              className="mt-5"
+              style={{ fontSize: 11, color: '#475569', fontFamily: 'var(--font-jetbrains-mono), monospace' }}
+            >
+              Unlock all fixes and set up continuous monitoring with a free account.
+            </p>
+          </Reveal>
+        </div>
+      </section>
 
       {/* ── 5. Primary CTA ───────────────────────────────────────────────── */}
-      <div className="mt-10">
-        <a
-          href="/signup"
-          className="block w-full rounded-xl py-3.5 text-center text-sm font-bold transition hover:opacity-90"
-          style={{ backgroundColor: '#00F5A0', color: '#050A15' }}
-        >
-          Claim My AI Profile — Start Free
-        </a>
-        <p className="mt-2 text-center text-xs text-slate-500">
-          No credit card required · Cancel anytime
-        </p>
-        <div className="mt-4 text-center">
-          <a href="/" className="text-xs text-slate-600 underline underline-offset-2 hover:text-slate-300 transition">
-            ← Run another scan
-          </a>
-        </div>
-      </div>
+      <section
+        className="relative overflow-hidden px-4"
+        style={{ background: 'linear-gradient(180deg, #050A15 0%, #0A1628 100%)' }}
+      >
+        {/* Floating glow */}
+        <div
+          aria-hidden
+          className="pointer-events-none absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"
+          style={{
+            width: 600,
+            height: 600,
+            background: 'radial-gradient(circle, rgba(0,245,160,0.06) 0%, transparent 70%)',
+            animation: 'lv-float 6s ease-in-out infinite',
+          }}
+        />
 
-    </div>
+        <div className="lv-section relative text-center">
+          <Reveal>
+            <h2
+              className="font-extrabold leading-tight mb-4"
+              style={{ fontSize: 'clamp(26px,4vw,44px)', letterSpacing: '-0.03em', color: '#F1F5F9' }}
+            >
+              Your AI profile is live.
+              <br />
+              <span style={{ color: '#00F5A0' }}>Take control of it.</span>
+            </h2>
+          </Reveal>
+          <Reveal delay={120}>
+            <p className="text-base mb-9" style={{ color: '#94A3B8' }}>
+              Claim your AI profile. Fix the lies. Monitor forever.
+            </p>
+          </Reveal>
+          <Reveal delay={240}>
+            <a
+              href="/signup"
+              className="lv-btn-green"
+              style={{ display: 'inline-block', fontSize: 15, padding: '16px 40px' }}
+            >
+              Claim My AI Profile — Start Free
+            </a>
+            <p
+              className="mt-3"
+              style={{ fontSize: 11, color: '#475569', fontFamily: 'var(--font-jetbrains-mono), monospace' }}
+            >
+              No credit card required &middot; Cancel anytime
+            </p>
+            <div className="mt-5">
+              <a
+                href="/"
+                className="lv-btn-outline"
+                style={{ display: 'inline-block', padding: '8px 24px', fontSize: 13 }}
+              >
+                ← Run Another Scan
+              </a>
+            </div>
+          </Reveal>
+        </div>
+      </section>
+    </>
   );
 }
 
 // ---------------------------------------------------------------------------
-// RealMentionsCard — real categorical from Perplexity scan (Sprint 34)
-// AI_RULES §12: all class strings are literals via helper functions
+// RealMentionsCard — real categorical from Perplexity scan
 // ---------------------------------------------------------------------------
 
 function RealMentionsCard({ mentions }: { mentions: 'none' | 'low' | 'medium' | 'high' }) {
+  const color = mentionsColor(mentions);
+  const border = mentionsBorderColor(mentions);
+
   return (
-    <div className="rounded-2xl bg-surface-dark border border-white/5 p-5">
-      <div className="mb-3">
-        <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">AI Mentions</p>
-        <p className="text-[10px] text-slate-600">Volume detected</p>
+    <div className="lv-card" style={{ borderLeft: `3px solid ${border}` }}>
+      <div className="mb-4">
+        <p
+          className="text-xs font-bold uppercase mb-0.5"
+          style={{ color: '#64748B', letterSpacing: '0.14em', fontFamily: 'var(--font-jetbrains-mono), monospace' }}
+        >
+          AI Mentions
+        </p>
+        <p style={{ fontSize: 11, color: '#475569' }}>Volume detected</p>
       </div>
-      <div className="flex items-center gap-2">
-        <span className={['h-3 w-3 rounded-full shrink-0', mentionsDotColor(mentions)].join(' ')} />
-        <p className={['text-2xl font-bold', mentionsColor(mentions)].join(' ')}>
-          {mentions.charAt(0).toUpperCase() + mentions.slice(1)}
+      <div className="flex items-center gap-3 mb-3">
+        {/* PulseDot */}
+        <span className="relative flex h-2 w-2 shrink-0">
+          <span
+            className="absolute inline-flex h-full w-full rounded-full"
+            style={{ background: color, animation: 'lv-ping 1.8s cubic-bezier(0,0,0.2,1) infinite' }}
+          />
+          <span className="relative inline-flex h-2 w-2 rounded-full" style={{ background: color }} />
+        </span>
+        <p
+          className="font-extrabold capitalize"
+          style={{ fontSize: 'clamp(28px,3.5vw,40px)', color, fontFamily: 'var(--font-jetbrains-mono), monospace' }}
+        >
+          {mentions}
         </p>
       </div>
-      <p className="mt-2 text-[10px] text-slate-500">{mentionsDescription(mentions)}</p>
+      <p className="text-sm leading-relaxed" style={{ color: '#94A3B8' }}>
+        {mentionsDescription(mentions)}
+      </p>
     </div>
   );
 }
 
 // ---------------------------------------------------------------------------
-// RealSentimentCard — real categorical from Perplexity scan (Sprint 34)
+// RealSentimentCard — real categorical from Perplexity scan
 // ---------------------------------------------------------------------------
 
 function RealSentimentCard({ sentiment }: { sentiment: 'positive' | 'neutral' | 'negative' }) {
+  const color = sentimentColor(sentiment);
+  const border = sentimentBorderColor(sentiment);
+
   return (
-    <div className="rounded-2xl bg-surface-dark border border-white/5 p-5">
-      <div className="mb-3">
-        <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">AI Sentiment</p>
-        <p className="text-[10px] text-slate-600">Tone AI uses for your brand</p>
+    <div className="lv-card" style={{ borderLeft: `3px solid ${border}` }}>
+      <div className="mb-4">
+        <p
+          className="text-xs font-bold uppercase mb-0.5"
+          style={{ color: '#64748B', letterSpacing: '0.14em', fontFamily: 'var(--font-jetbrains-mono), monospace' }}
+        >
+          AI Sentiment
+        </p>
+        <p style={{ fontSize: 11, color: '#475569' }}>Tone AI uses for your brand</p>
       </div>
-      <div className="flex items-center gap-2">
-        <p className={['text-2xl font-bold', sentimentColor(sentiment)].join(' ')}>
+      <div className="flex items-center gap-3 mb-3">
+        <p
+          className="font-extrabold"
+          style={{ fontSize: 'clamp(28px,3.5vw,40px)', color, fontFamily: 'var(--font-jetbrains-mono), monospace' }}
+        >
           {sentimentIcon(sentiment)}
         </p>
-        <p className={['text-2xl font-bold capitalize', sentimentColor(sentiment)].join(' ')}>
-          {sentiment.charAt(0).toUpperCase() + sentiment.slice(1)}
+        <p
+          className="font-extrabold capitalize"
+          style={{ fontSize: 'clamp(28px,3.5vw,40px)', color, fontFamily: 'var(--font-jetbrains-mono), monospace' }}
+        >
+          {sentiment}
         </p>
       </div>
-      <p className="mt-2 text-[10px] text-slate-500">{sentimentDescription(sentiment)}</p>
+      <p className="text-sm leading-relaxed" style={{ color: '#94A3B8' }}>
+        {sentimentDescription(sentiment)}
+      </p>
     </div>
   );
 }
 
 // ---------------------------------------------------------------------------
-// LockedScoreCard — numerical score gated behind plan (Sprint 34)
+// LockedScoreCard — numerical score gated behind plan
 // ---------------------------------------------------------------------------
 
 function LockedScoreCard({
@@ -467,75 +714,68 @@ function LockedScoreCard({
   description: string;
 }) {
   return (
-    <div className="relative rounded-2xl bg-surface-dark border border-white/5 p-5 overflow-hidden">
-      {/* Lock overlay */}
-      <div
-        className="absolute inset-0 flex flex-col items-center justify-center rounded-2xl z-10"
-        style={{ backgroundColor: 'rgba(5,10,21,0.82)', backdropFilter: 'blur(3px)' }}
-      >
-        <span className="text-lg mb-1" aria-hidden>🔒</span>
-        <p className="text-xs font-semibold text-slate-400">Sign up to unlock</p>
-      </div>
+    <div className="lv-card relative overflow-hidden" style={{ borderLeft: '3px solid rgba(100,116,139,0.3)' }}>
+      <LockOverlay />
       {/* Background content (behind lock overlay) */}
-      <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">{title}</p>
-      <p className="text-[10px] text-slate-600 mb-3">{abbr}</p>
-      <p className="text-4xl font-bold text-slate-700 select-none tabular-nums">
+      <p
+        className="text-xs font-bold uppercase mb-0.5"
+        style={{ color: '#475569', letterSpacing: '0.14em', fontFamily: 'var(--font-jetbrains-mono), monospace' }}
+      >
+        {title}
+      </p>
+      <p style={{ fontSize: 11, color: '#334155', marginBottom: 12 }}>{abbr}</p>
+      <p
+        className="font-extrabold select-none tabular-nums mb-3"
+        style={{ fontSize: 'clamp(32px,4vw,48px)', color: '#334155', fontFamily: 'var(--font-jetbrains-mono), monospace' }}
+      >
         ██<span className="text-xl">/100</span>
       </p>
-      <p className="mt-2 text-[10px] text-slate-700">{description}</p>
+      <Bar pct={0} color="#334155" />
+      <p className="mt-3" style={{ fontSize: 11, color: '#334155' }}>{description}</p>
     </div>
   );
 }
 
 // ---------------------------------------------------------------------------
-// CompetitorBar — score is optional (Sprint 34: no fake numbers)
+// CompetitorBar — redesigned with Bar component
 // ---------------------------------------------------------------------------
 
 function CompetitorBar({
   label,
   sublabel,
-  score,
+  pct,
+  color,
   isMine,
-  isGood,
 }: {
   label: string;
   sublabel: string;
-  score?: number;
+  pct: number;
+  color: string;
   isMine: boolean;
-  isGood: boolean;
 }) {
-  const barPct = score !== undefined ? `${score}%` : '50%';
-  const fill   = isMine
-    ? isGood ? '#00F5A0' : '#ef4444'
-    : '#374151';
-
   return (
-    <div className="flex items-center gap-3">
-      <div className="w-28 shrink-0">
-        <p className={['text-xs font-semibold leading-tight', isMine ? 'text-white' : 'text-slate-500'].join(' ')}>
+    <div
+      className="flex items-center gap-4"
+      style={isMine ? { borderLeft: `2px solid ${color}`, paddingLeft: 12 } : undefined}
+    >
+      <div className="w-32 shrink-0">
+        <p
+          className="text-xs font-semibold leading-tight"
+          style={{ color: isMine ? '#F1F5F9' : '#64748B' }}
+        >
           {label}
         </p>
-        {sublabel && (
-          <p className="text-[10px] text-slate-600 truncate">{sublabel}</p>
-        )}
+        <p className="truncate" style={{ fontSize: 10, color: '#475569' }}>{sublabel}</p>
       </div>
-      <div className="flex-1 h-2 rounded-full bg-white/5 overflow-hidden">
-        <div
-          className="h-full rounded-full"
-          style={{ backgroundColor: fill, width: barPct }}
-        />
+      <div className="flex-1">
+        <Bar pct={pct} color={color} />
       </div>
-      <span className={['text-xs tabular-nums shrink-0 w-8 text-right', isMine ? 'text-white font-bold' : 'text-slate-600'].join(' ')}>
-        {score !== undefined ? score : '—'}
-      </span>
     </div>
   );
 }
 
 // ---------------------------------------------------------------------------
-// AccuracyIssueItem — Sprint 35: real accuracy issue with category badge
-// Handles both unlocked (item 1) and locked/blurred (items 2–3) states.
-// AI_RULES §12: ternary literals only for all Tailwind class strings.
+// AccuracyIssueItem — real accuracy issue with category badge
 // ---------------------------------------------------------------------------
 
 function AccuracyIssueItem({
@@ -543,49 +783,139 @@ function AccuracyIssueItem({
   category,
   isLocked,
 }: {
-  text:     string;
+  text: string;
   category: IssueCategory;
   isLocked: boolean;
 }) {
+  const accent = categoryBorderColor(category);
+
   const inner = (
     <div className="flex items-start gap-3">
-      <span className={[
-        'mt-0.5 shrink-0 rounded border px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide',
-        categoryColor(category),
-      ].join(' ')}>
+      <span
+        className="mt-0.5 shrink-0 rounded-md px-2 py-0.5"
+        style={{
+          fontSize: 11,
+          fontWeight: 700,
+          color: accent,
+          border: `1px solid ${accent}33`,
+          fontFamily: 'var(--font-jetbrains-mono), monospace',
+        }}
+      >
         {categoryLabel(category)}
       </span>
-      <p className="text-sm text-slate-300">{text}</p>
+      <p className="text-sm" style={{ color: '#CBD5E1' }}>{text}</p>
     </div>
   );
 
   if (!isLocked) {
     return (
-      <div className="rounded-xl border border-white/10 bg-surface-dark px-5 py-4">
+      <div className="lv-card" style={{ borderLeft: `3px solid ${accent}` }}>
         {inner}
+        {/* "Detected via" sub-card */}
+        <div
+          className="mt-3 rounded-xl p-3"
+          style={{ background: 'rgba(255,255,255,0.03)', borderLeft: `2px solid ${accent}44` }}
+        >
+          <p
+            className="text-xs font-semibold uppercase mb-1"
+            style={{ color: '#64748B', letterSpacing: '0.08em' }}
+          >
+            Detected via
+          </p>
+          <p className="text-xs" style={{ color: '#CBD5E1' }}>Perplexity Sonar scan</p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="relative rounded-xl border border-white/5 bg-surface-dark px-5 py-4 overflow-hidden select-none">
-      {/* Blur overlay — same pattern as LockedFixItem */}
-      <div className="absolute inset-0 backdrop-blur-[2px] bg-midnight-slate/60 flex items-center justify-center z-10">
-        <div className="flex items-center gap-2 rounded-full border border-white/10 bg-midnight-slate/90 px-3 py-1.5">
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor"
-            className="h-3.5 w-3.5 text-slate-400" aria-hidden>
-            <path fillRule="evenodd" d="M8 1a3.5 3.5 0 0 0-3.5 3.5V7A1.5 1.5 0 0 0 3 8.5v5A1.5 1.5 0 0 0 4.5 15h7a1.5 1.5 0 0 0 1.5-1.5v-5A1.5 1.5 0 0 0 11 7V4.5A3.5 3.5 0 0 0 8 1Zm2 6V4.5a2 2 0 1 0-4 0V7h4Z" clipRule="evenodd" />
-          </svg>
-          <span className="text-xs text-slate-400 font-medium">Signup to unlock</span>
-        </div>
-      </div>
+    <div className="lv-card relative overflow-hidden select-none" style={{ borderLeft: `3px solid ${accent}33` }}>
+      <LockPill />
       {inner}
     </div>
   );
 }
 
 // ---------------------------------------------------------------------------
-// LockedFixItem
+// FallbackIssueCard — shown when no accuracy issues, uses scan result
+// ---------------------------------------------------------------------------
+
+function FallbackIssueCard({ result }: { result: ScanDisplayData }) {
+  if (result.status === 'invalid') return null;
+
+  if (result.status === 'fail') {
+    return (
+      <div className="lv-card" style={{ borderLeft: '3px solid #EF4444' }}>
+        <div className="flex items-start gap-3">
+          <span
+            className="mt-0.5 shrink-0 rounded-md px-2 py-0.5"
+            style={{
+              fontSize: 11,
+              fontWeight: 700,
+              color: '#EF4444',
+              background: 'rgba(239,68,68,0.10)',
+              fontFamily: 'var(--font-jetbrains-mono), monospace',
+            }}
+          >
+            {result.severity}
+          </span>
+          <div>
+            <p className="text-sm font-semibold" style={{ color: '#F1F5F9' }}>
+              {result.engine} reports &ldquo;{result.businessName}&rdquo; as &ldquo;{result.claimText}&rdquo;
+            </p>
+            <p className="text-xs mt-1" style={{ color: '#64748B' }}>
+              Detected via Perplexity Sonar scan · Reality: {result.expectedTruth}
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (result.status === 'pass') {
+    return (
+      <div className="lv-card" style={{ borderLeft: '3px solid #00F5A0' }}>
+        <div className="flex items-start gap-3">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"
+            className="h-4 w-4 shrink-0 mt-0.5" style={{ color: '#00F5A0' }} aria-hidden>
+            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z" clipRule="evenodd" />
+          </svg>
+          <div>
+            <p className="text-sm font-semibold" style={{ color: '#00F5A0' }}>
+              No critical hallucinations found
+            </p>
+            <p className="text-xs mt-1" style={{ color: '#64748B' }}>
+              {result.engine} currently shows accurate information. Monitoring ensures it stays that way.
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // not_found
+  return (
+    <div className="lv-card" style={{ borderLeft: '3px solid #64748B' }}>
+      <div className="flex items-start gap-3">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"
+          className="h-4 w-4 shrink-0 mt-0.5" style={{ color: '#94A3B8' }} aria-hidden>
+          <path d="M9 3.5a5.5 5.5 0 100 11 5.5 5.5 0 000-11zM2 9a7 7 0 1112.452 4.391l3.328 3.329a.75.75 0 11-1.06 1.06l-3.329-3.328A7 7 0 012 9z" />
+        </svg>
+        <div>
+          <p className="text-sm font-semibold" style={{ color: '#CBD5E1' }}>
+            AI models have no data about your business
+          </p>
+          <p className="text-xs mt-1" style={{ color: '#64748B' }}>
+            You have zero AI visibility — potential customers can&apos;t find you via AI search.
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// LockedFixItem — generic locked item
 // ---------------------------------------------------------------------------
 
 function LockedFixItem({
@@ -596,20 +926,10 @@ function LockedFixItem({
   description: string;
 }) {
   return (
-    <div className="relative rounded-xl border border-white/5 bg-surface-dark px-5 py-4 overflow-hidden select-none">
-      {/* Blur overlay */}
-      <div className="absolute inset-0 backdrop-blur-[2px] bg-midnight-slate/60 flex items-center justify-center z-10">
-        <div className="flex items-center gap-2 rounded-full border border-white/10 bg-midnight-slate/90 px-3 py-1.5">
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor"
-            className="h-3.5 w-3.5 text-slate-400" aria-hidden>
-            <path fillRule="evenodd" d="M8 1a3.5 3.5 0 0 0-3.5 3.5V7A1.5 1.5 0 0 0 3 8.5v5A1.5 1.5 0 0 0 4.5 15h7a1.5 1.5 0 0 0 1.5-1.5v-5A1.5 1.5 0 0 0 11 7V4.5A3.5 3.5 0 0 0 8 1Zm2 6V4.5a2 2 0 1 0-4 0V7h4Z" clipRule="evenodd" />
-          </svg>
-          <span className="text-xs text-slate-400 font-medium">Signup to unlock</span>
-        </div>
-      </div>
-      {/* Background content (blurred) */}
-      <p className="text-sm font-semibold text-white">{title}</p>
-      <p className="text-xs text-slate-500 mt-1">{description}</p>
+    <div className="lv-card relative overflow-hidden select-none">
+      <LockPill />
+      <p className="text-sm font-semibold" style={{ color: '#F1F5F9' }}>{title}</p>
+      <p className="text-xs mt-1" style={{ color: '#64748B' }}>{description}</p>
     </div>
   );
 }

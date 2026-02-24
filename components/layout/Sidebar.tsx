@@ -132,7 +132,7 @@ export default function Sidebar({ isOpen, onClose, displayName, orgName, plan }:
             <img src="/logo.svg" alt="LocalVector" className="h-8 w-8 shrink-0" />
             <div className="min-w-0">
               <p className="truncate text-sm font-semibold text-white leading-none tracking-tight">
-                LocalVector<span className="text-electric-indigo">.ai</span>
+                LocalVector<span className="text-signal-green">.ai</span>
               </p>
               <p className="mt-0.5 truncate text-xs text-slate-500">{orgName}</p>
             </div>
@@ -174,12 +174,12 @@ export default function Sidebar({ isOpen, onClose, displayName, orgName, plan }:
                 className={[
                   'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition',
                   active
-                    ? 'bg-electric-indigo/15 text-electric-indigo'
+                    ? 'bg-signal-green/15 text-signal-green'
                     : 'text-slate-400 hover:bg-white/5 hover:text-white',
                 ].join(' ')}
               >
                 <Icon
-                  className={['h-4 w-4 shrink-0', active ? 'text-electric-indigo' : ''].join(' ')}
+                  className={['h-4 w-4 shrink-0', active ? 'text-signal-green' : ''].join(' ')}
                 />
                 {item.label}
               </Link>
@@ -192,7 +192,7 @@ export default function Sidebar({ isOpen, onClose, displayName, orgName, plan }:
           {/* Plan tier badge */}
           <div className="rounded-xl bg-midnight-slate px-4 py-3">
             <p className="text-xs font-medium text-slate-400 mb-1.5">Current Plan</p>
-            <span className="inline-flex items-center rounded-md bg-electric-indigo/15 px-2 py-0.5 text-xs font-semibold text-electric-indigo">
+            <span className="inline-flex items-center rounded-md bg-signal-green/15 px-2 py-0.5 text-xs font-semibold text-signal-green">
               {planLabel(plan)}
             </span>
           </div>

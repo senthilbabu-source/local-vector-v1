@@ -18,7 +18,7 @@ export type EvaluationEngine = (typeof EVALUATION_ENGINES)[number];
 export const RunEvaluationSchema = z.object({
   location_id: z.string().uuid('A valid location ID is required'),
   engine: z.enum(EVALUATION_ENGINES, {
-    errorMap: () => ({ message: 'Engine must be openai or perplexity' }),
+    message: 'Engine must be openai or perplexity',
   }),
 });
 

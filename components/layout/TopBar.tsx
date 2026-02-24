@@ -36,7 +36,7 @@ export default function TopBar({ onMenuToggle, orgName, plan }: TopBarProps) {
         <div className="hidden lg:flex items-center gap-2">
           <img src="/logo.svg" alt="LocalVector" className="h-7 w-7 shrink-0" />
           <span className="text-sm font-semibold text-white tracking-tight">
-            LocalVector<span className="text-electric-indigo">.ai</span>
+            LocalVector<span className="text-signal-green">.ai</span>
           </span>
         </div>
 
@@ -50,7 +50,7 @@ export default function TopBar({ onMenuToggle, orgName, plan }: TopBarProps) {
       <div className="hidden lg:flex items-center gap-2">
         <span className="text-sm font-medium text-slate-300 truncate max-w-xs">{orgName}</span>
         {plan && (
-          <span className="rounded-full bg-electric-indigo/15 px-2.5 py-0.5 text-xs font-medium text-electric-indigo capitalize">
+          <span className="rounded-full bg-signal-green/15 px-2.5 py-0.5 text-xs font-medium text-signal-green capitalize">
             {plan}
           </span>
         )}
@@ -66,7 +66,7 @@ export default function TopBar({ onMenuToggle, orgName, plan }: TopBarProps) {
           <HelpCircle className="h-4 w-4" />
         </button>
         <button
-          className="flex h-8 w-8 items-center justify-center rounded-lg bg-electric-indigo/15 text-electric-indigo hover:bg-electric-indigo/25 transition"
+          className="flex h-8 w-8 items-center justify-center rounded-lg bg-signal-green/15 text-signal-green hover:bg-signal-green/25 transition"
           aria-label="User profile"
           title="User profile"
         >

@@ -1,5 +1,5 @@
 // ---------------------------------------------------------------------------
-// /scan — Public AI Audit Result Dashboard (Sprint 33)
+// /scan — Public AI Audit Result Dashboard (Sprint 33, restyled Sprint 39)
 //
 // Reads scan result from URL search params (set by ViralScanner after
 // runFreeScan() returns fail / pass / not_found).
@@ -8,6 +8,9 @@
 // proxy.ts runs but passes through since /scan is not protected.
 //
 // robots: noindex — individual result pages should not be indexed.
+//
+// Sprint 39: loads Outfit + JetBrains Mono (design system fonts) so the
+// restyled ScanDashboard can use var(--font-outfit) / var(--font-jetbrains-mono).
 // ---------------------------------------------------------------------------
 
 import type { Metadata } from 'next';

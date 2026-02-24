@@ -305,4 +305,307 @@ describe('runFreeScan — is_closed branching (AI_RULES §21)', () => {
     }
   });
 
+  // ── Sprint 36: resilient JSON extraction from prose ──────────────────────
+
+  it('extracts JSON from prose-wrapped Perplexity response (charcoalnchill scenario)', async () => {
+    const jsonPayload = {
+      is_closed: false, is_unknown: false, claim_text: 'Open', expected_truth: 'Open',
+      severity: 'medium', mentions_volume: 'high', sentiment: 'positive',
+      accuracy_issues: [], accuracy_issue_categories: [],
+    };
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        choices: [{
+          message: {
+            content: 'Based on my research, here is the analysis:\n\n' +
+              JSON.stringify(jsonPayload) +
+              '\n\nThis business appears to be well-established.',
+          },
+        }],
+      }),
+    }));
+    const result = await runFreeScan(makeForm('Charcoal N Chill'));
+    expect(result.status).toBe('pass');
+    if (result.status === 'pass') {
+      expect(result.business_name).toBe('Charcoal N Chill');
+      expect(result.mentions_volume).toBe('high');
+      expect(result.sentiment).toBe('positive');
+    }
+  });
+
+  // ── Sprint 36c: bulletproof scan pipeline edge cases ────────────────────
+
+  it('coerces uppercase severity and string booleans via preprocessor', async () => {
+    // Perplexity returns "Critical" (uppercase) and "false" (string) — Zod would
+    // reject both without preprocessScanResponse() normalizing first.
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        choices: [{
+          message: {
+            content: JSON.stringify({
+              is_closed: 'false', is_unknown: 'false',
+              claim_text: 'Open', expected_truth: 'Open',
+              severity: 'Medium', mentions_volume: 'High', sentiment: 'Positive',
+              accuracy_issues: [], accuracy_issue_categories: [],
+            }),
+          },
+        }],
+      }),
+    }));
+    const result = await runFreeScan(makeForm('Charcoal N Chill'));
+    expect(result.status).toBe('pass');
+    if (result.status === 'pass') {
+      expect(result.mentions_volume).toBe('high');
+      expect(result.sentiment).toBe('positive');
+    }
+  });
+
+  it('returns not_found when Perplexity returns empty content', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        choices: [{ message: { content: '' } }],
+      }),
+    }));
+    const result = await runFreeScan(makeForm('Ghost Kitchen'));
+    expect(result).toEqual({
+      status:        'not_found',
+      engine:        'ChatGPT',
+      business_name: 'Ghost Kitchen',
+    });
+  });
+
+  it('returns unavailable when fetch is aborted by timeout', async () => {
+    // Simulate AbortController abort by making fetch reject with AbortError
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(
+      Object.assign(new Error('The operation was aborted'), { name: 'AbortError' }),
+    ));
+    const result = await runFreeScan(makeForm('Slow Restaurant'));
+    expect(result.status).toBe('unavailable');
+    if (result.status === 'unavailable') {
+      expect(result.reason).toBe('api_error');
+    }
+  });
+
+  it('extracts last JSON object when response contains multiple objects', async () => {
+    // Perplexity self-corrects: first object has is_closed=true, second has is_closed=false.
+    // extractJson() should pick the last balanced {...} — the corrected answer.
+    const wrong   = JSON.stringify({ is_closed: true, is_unknown: false, claim_text: 'Closed', expected_truth: 'Open', severity: 'critical' });
+    const correct = JSON.stringify({ is_closed: false, is_unknown: false, claim_text: 'Open', expected_truth: 'Open', severity: 'medium', mentions_volume: 'high', sentiment: 'positive', accuracy_issues: [], accuracy_issue_categories: [] });
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        choices: [{
+          message: { content: `First attempt: ${wrong}\n\nActually, corrected: ${correct}` },
+        }],
+      }),
+    }));
+    const result = await runFreeScan(makeForm('Charcoal N Chill'));
+    expect(result.status).toBe('pass');
+    if (result.status === 'pass') {
+      expect(result.mentions_volume).toBe('high');
+      expect(result.sentiment).toBe('positive');
+    }
+  });
+
+  it('trims stray whitespace in JSON key names — variant 1: space inside key (valid JSON)', async () => {
+    // Perplexity returned `" accuracy_issue_categories"` (leading space in key).
+    // JSON.parse succeeds, then preprocessScanResponse() trims all keys.
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        choices: [{
+          message: {
+            content: '{"is_closed":false,"is_unknown":false,"claim_text":"Open","expected_truth":"Open","severity":"medium","mentions_volume":"high","sentiment":"positive","accuracy_issues":[]," accuracy_issue_categories":[]}',
+          },
+        }],
+      }),
+    }));
+    const result = await runFreeScan(makeForm('Charcoal N Chill'));
+    expect(result.status).toBe('pass');
+    if (result.status === 'pass') {
+      expect(result.mentions_volume).toBe('high');
+      expect(result.sentiment).toBe('positive');
+      expect(result.accuracy_issue_categories).toEqual([]);
+    }
+  });
+
+  it('repairs stray-space key split — variant 2: space breaks JSON syntax (invalid JSON)', async () => {
+    // Perplexity returned ," "accuracy_issue_categories" — the space splits the key
+    // into '" "' + bare token, making JSON.parse fail. Pre-parse repair collapses
+    // ," " back to ," so the key name parses correctly.
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        choices: [{
+          message: {
+            content: '{"is_closed":false,"is_unknown":true,"claim_text":"","expected_truth":"","severity":"medium","mentions_volume":"none","sentiment":"neutral","accuracy_issues":[]," "accuracy_issue_categories":[]}',
+          },
+        }],
+      }),
+    }));
+    const result = await runFreeScan(makeForm('Charcoal N Chill'));
+    expect(result.status).toBe('not_found');
+    if (result.status === 'not_found') {
+      expect(result.business_name).toBe('Charcoal N Chill');
+    }
+  });
+
+  it('repairs doubled-quote key — variant 3: no space, just "" before key name', async () => {
+    // Perplexity returned ,""accuracy_issue_categories" — doubled quote with no space.
+    // Pre-parse regex (/,"\s*"(?=[a-z_])/gi → ,") collapses the stutter.
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        choices: [{
+          message: {
+            content: '{"is_closed":false,"is_unknown":false,"claim_text":"Open","expected_truth":"Open","severity":"medium","mentions_volume":"medium","sentiment":"positive","accuracy_issues":[],""accuracy_issue_categories":[]}',
+          },
+        }],
+      }),
+    }));
+    const result = await runFreeScan(makeForm('Kismet Lounge'));
+    expect(result.status).toBe('pass');
+    if (result.status === 'pass') {
+      expect(result.business_name).toBe('Kismet Lounge');
+      expect(result.mentions_volume).toBe('medium');
+      expect(result.sentiment).toBe('positive');
+    }
+  });
+
+  it('text-detection returns pass when natural language confirms business is open', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        choices: [{
+          message: { content: 'Charcoal N Chill is open and currently operating in Alpharetta, GA.' },
+        }],
+      }),
+    }));
+    const result = await runFreeScan(makeForm('Charcoal N Chill'));
+    expect(result.status).toBe('pass');
+    if (result.status === 'pass') {
+      expect(result.business_name).toBe('Charcoal N Chill');
+      expect(result.mentions_volume).toBe('low');     // conservative default
+      expect(result.sentiment).toBe('neutral');        // conservative default
+    }
+  });
+
+  it('truncates verbose accuracy_issues instead of rejecting (4 items, long strings)', async () => {
+    const longIssue = 'A'.repeat(200); // 200 chars — exceeds old 120 limit
+    mockPerplexityOk({
+      is_closed: false, claim_text: 'Open', expected_truth: 'Open', severity: 'medium',
+      mentions_volume: 'medium', sentiment: 'neutral',
+      accuracy_issues: [longIssue, 'Issue 2', 'Issue 3', 'Issue 4'], // 4 items — exceeds old max(3)
+      accuracy_issue_categories: ['hours', 'address', 'menu', 'phone'],
+    });
+    const result = await runFreeScan(makeForm('Verbose Restaurant'));
+    expect(result.status).toBe('pass');
+    if (result.status === 'pass') {
+      // Should truncate to 3 items, each capped at 120 chars
+      expect(result.accuracy_issues).toHaveLength(3);
+      expect(result.accuracy_issues[0]).toHaveLength(120);
+      expect(result.accuracy_issue_categories).toHaveLength(3);
+    }
+  });
+
+  // ── Sprint 36d: best-of-2 parallel strategy ──────────────────────────────
+
+  it('best-of-2: picks pass over not_found when Perplexity returns different results', async () => {
+    // First call returns not_found, second returns pass with rich data.
+    // runFreeScan fires 2 parallel calls — should pick the pass result.
+    let callCount = 0;
+    const notFoundPayload = { is_closed: false, is_unknown: true, claim_text: '', expected_truth: '', severity: 'medium' };
+    const passPayload = {
+      is_closed: false, is_unknown: false, claim_text: 'Open', expected_truth: 'Open',
+      severity: 'medium', mentions_volume: 'high', sentiment: 'positive',
+      accuracy_issues: [], accuracy_issue_categories: [],
+    };
+    vi.stubGlobal('fetch', vi.fn().mockImplementation(async () => {
+      callCount++;
+      const payload = callCount === 1 ? notFoundPayload : passPayload;
+      return {
+        ok: true,
+        json: async () => ({
+          choices: [{ message: { content: JSON.stringify(payload) } }],
+        }),
+      };
+    }));
+    const result = await runFreeScan(makeForm('Royalz Hookah Lounge'));
+    expect(result.status).toBe('pass');
+    if (result.status === 'pass') {
+      expect(result.mentions_volume).toBe('high');
+      expect(result.sentiment).toBe('positive');
+    }
+    expect(callCount).toBe(2); // Confirms 2 parallel calls were made
+  });
+
+  it('best-of-2: picks fail over unavailable when one call errors', async () => {
+    // First call returns a valid fail result, second call network-errors.
+    let callCount = 0;
+    const failPayload = {
+      is_closed: true, is_unknown: false, claim_text: 'Permanently Closed',
+      expected_truth: 'Open', severity: 'critical', mentions_volume: 'low',
+      sentiment: 'negative', accuracy_issues: [], accuracy_issue_categories: [],
+    };
+    vi.stubGlobal('fetch', vi.fn().mockImplementation(async () => {
+      callCount++;
+      if (callCount === 2) throw new Error('network failure');
+      return {
+        ok: true,
+        json: async () => ({
+          choices: [{ message: { content: JSON.stringify(failPayload) } }],
+        }),
+      };
+    }));
+    const result = await runFreeScan(makeForm('Failing Restaurant'));
+    expect(result.status).toBe('fail');
+    if (result.status === 'fail') {
+      expect(result.claim_text).toBe('Permanently Closed');
+    }
+  });
+
+  it('best-of-2: prefers higher mentions_volume among two pass results', async () => {
+    // Both calls return pass but with different richness levels.
+    let callCount = 0;
+    const lowPayload = {
+      is_closed: false, is_unknown: false, claim_text: 'Open', expected_truth: 'Open',
+      severity: 'medium', mentions_volume: 'low', sentiment: 'neutral',
+      accuracy_issues: [], accuracy_issue_categories: [],
+    };
+    const highPayload = {
+      is_closed: false, is_unknown: false, claim_text: 'Open', expected_truth: 'Open',
+      severity: 'medium', mentions_volume: 'high', sentiment: 'positive',
+      accuracy_issues: ['AI says closed Mondays'], accuracy_issue_categories: ['hours'],
+    };
+    vi.stubGlobal('fetch', vi.fn().mockImplementation(async () => {
+      callCount++;
+      const payload = callCount === 1 ? lowPayload : highPayload;
+      return {
+        ok: true,
+        json: async () => ({
+          choices: [{ message: { content: JSON.stringify(payload) } }],
+        }),
+      };
+    }));
+    const result = await runFreeScan(makeForm('Charcoal N Chill'));
+    expect(result.status).toBe('pass');
+    if (result.status === 'pass') {
+      expect(result.mentions_volume).toBe('high');
+      expect(result.sentiment).toBe('positive');
+    }
+  });
+
+  it('best-of-2: returns unavailable only when both calls fail', async () => {
+    // Both calls return network errors — both settle as unavailable.
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('network failure')));
+    const result = await runFreeScan(makeForm('Dead Restaurant'));
+    expect(result.status).toBe('unavailable');
+    if (result.status === 'unavailable') {
+      expect(result.reason).toBe('api_error');
+    }
+  });
+
 });

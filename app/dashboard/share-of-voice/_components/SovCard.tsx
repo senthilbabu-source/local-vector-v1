@@ -37,12 +37,12 @@ const ENGINE_CONFIG: Record<SovEngine, { label: string; badge: string; badgeClas
   openai: {
     label: 'OpenAI',
     badge: 'AI',
-    badgeClass: 'bg-emerald-100 text-emerald-700',
+    badgeClass: 'bg-signal-green/15 text-signal-green',
   },
   perplexity: {
     label: 'Perplexity',
     badge: 'PX',
-    badgeClass: 'bg-indigo-100 text-indigo-700',
+    badgeClass: 'bg-electric-indigo/15 text-electric-indigo',
   },
 };
 
@@ -51,10 +51,10 @@ const ENGINE_CONFIG: Record<SovEngine, { label: string; badge: string; badgeClas
 // ---------------------------------------------------------------------------
 
 function rankBg(rank: number | null): string {
-  if (rank === null) return 'bg-slate-100 text-slate-500 ring-slate-500/20';
-  if (rank === 1) return 'bg-emerald-50 text-emerald-700 ring-emerald-600/20';
-  if (rank <= 3) return 'bg-yellow-50 text-yellow-700 ring-yellow-600/20';
-  return 'bg-red-50 text-red-700 ring-red-600/20';
+  if (rank === null) return 'bg-white/5 text-[#94A3B8] ring-white/10';
+  if (rank === 1) return 'bg-signal-green/10 text-signal-green ring-signal-green/20';
+  if (rank <= 3) return 'bg-alert-amber/10 text-alert-amber ring-alert-amber/20';
+  return 'bg-alert-crimson/10 text-alert-crimson ring-alert-crimson/20';
 }
 
 function rankLabel(rank: number | null): string {
@@ -117,7 +117,7 @@ function EngineCell({
       <button
         onClick={() => onRun(queryId, engine)}
         disabled={isRunPending}
-        className="inline-flex shrink-0 items-center gap-1 rounded-md border border-slate-200 bg-white px-2 py-1 text-xs font-medium text-slate-600 transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-1 disabled:cursor-not-allowed disabled:opacity-50"
+        className="inline-flex shrink-0 items-center gap-1 rounded-md border border-white/10 bg-surface-dark px-2 py-1 text-xs font-medium text-[#94A3B8] transition hover:bg-white/5 focus:outline-none focus:ring-2 focus:ring-signal-green focus:ring-offset-1 disabled:cursor-not-allowed disabled:opacity-50"
       >
         {isLoading ? (
           <>
@@ -200,7 +200,7 @@ function QueryRow({
   return (
     <div className="py-4 first:pt-0">
       {/* Query text */}
-      <p className="mb-2.5 text-sm font-medium text-slate-800 leading-snug">
+      <p className="mb-2.5 text-sm font-medium text-white leading-snug">
         &ldquo;{query.query_text}&rdquo;
       </p>
 
@@ -227,12 +227,12 @@ function QueryRow({
       {/* Competitor mentions */}
       {allCompetitors.length > 0 && (
         <div className="mt-2.5 pl-1">
-          <p className="mb-1 text-xs font-medium text-slate-500">Competitors mentioned:</p>
+          <p className="mb-1 text-xs font-medium text-[#94A3B8]">Competitors mentioned:</p>
           <div className="flex flex-wrap gap-1.5">
             {allCompetitors.map((name) => (
               <span
                 key={name}
-                className="rounded-full bg-red-50 px-2.5 py-0.5 text-xs font-medium text-red-700 ring-1 ring-inset ring-red-600/20"
+                className="rounded-full bg-alert-crimson/10 px-2.5 py-0.5 text-xs font-medium text-alert-crimson ring-1 ring-inset ring-alert-crimson/20"
               >
                 {name}
               </span>
@@ -297,19 +297,19 @@ export default function SovCard({ locationId, locationLabel, queries }: Props) {
 
   return (
     <div
-      className={`overflow-hidden rounded-xl bg-white shadow-sm ring-1 ring-slate-900/5 transition-opacity ${
+      className={`overflow-hidden rounded-xl bg-surface-dark border border-white/5 transition-opacity ${
         isRunPending ? 'opacity-75' : ''
       }`}
     >
       {/* Card header */}
-      <div className="border-b border-slate-100 bg-slate-50 px-5 py-3">
-        <h2 className="text-sm font-semibold text-slate-800">{locationLabel}</h2>
-        <p className="text-xs text-slate-500">AI share of voice by query</p>
+      <div className="border-b border-white/5 bg-midnight-slate px-5 py-3">
+        <h2 className="text-sm font-semibold text-white">{locationLabel}</h2>
+        <p className="text-xs text-[#94A3B8]">AI share of voice by query</p>
       </div>
 
       {/* Query rows */}
       {queries.length > 0 ? (
-        <div className="divide-y divide-slate-100 px-5">
+        <div className="divide-y divide-white/5 px-5">
           {queries.map((query) => (
             <QueryRow
               key={query.id}
@@ -328,13 +328,13 @@ export default function SovCard({ locationId, locationLabel, queries }: Props) {
 
       {/* Run error */}
       {runError && (
-        <div className="border-t border-red-100 bg-red-50 px-5 py-2.5">
-          <p className="text-xs font-medium text-red-600">{runError}</p>
+        <div className="border-t border-alert-crimson/20 bg-alert-crimson/10 px-5 py-2.5">
+          <p className="text-xs font-medium text-alert-crimson">{runError}</p>
         </div>
       )}
 
       {/* Add query form */}
-      <div className="border-t border-slate-100 px-5 py-4">
+      <div className="border-t border-white/5 px-5 py-4">
         <form onSubmit={handleAddQuery} className="flex items-center gap-2">
           <input
             type="text"
@@ -343,12 +343,12 @@ export default function SovCard({ locationId, locationLabel, queries }: Props) {
             placeholder='e.g. "Best BBQ in Alpharetta GA"'
             disabled={isAddPending}
             maxLength={500}
-            className="min-w-0 flex-1 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs text-slate-800 placeholder-slate-400 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 disabled:opacity-50"
+            className="min-w-0 flex-1 rounded-lg border border-white/10 bg-surface-dark px-3 py-1.5 text-xs text-white placeholder-slate-400 focus:border-signal-green/50 focus:outline-none focus:ring-2 focus:ring-signal-green/20 disabled:opacity-50"
           />
           <button
             type="submit"
             disabled={isAddPending || queryText.trim().length < 3}
-            className="inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-indigo-600 px-3 py-1.5 text-xs font-medium text-white transition hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-1 disabled:cursor-not-allowed disabled:opacity-50"
+            className="inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-signal-green px-3 py-1.5 text-xs font-medium text-deep-navy transition hover:brightness-110 focus:outline-none focus:ring-2 focus:ring-signal-green focus:ring-offset-1 disabled:cursor-not-allowed disabled:opacity-50"
           >
             {isAddPending ? (
               <>
@@ -391,7 +391,7 @@ export default function SovCard({ locationId, locationLabel, queries }: Props) {
             )}
           </button>
         </form>
-        {addError && <p className="mt-1.5 text-xs text-red-600">{addError}</p>}
+        {addError && <p className="mt-1.5 text-xs text-alert-crimson">{addError}</p>}
       </div>
     </div>
   );

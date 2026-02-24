@@ -157,7 +157,7 @@ export default async function IntegrationsPage() {
           </p>
           <Link
             href="/dashboard/locations"
-            className="mt-4 inline-flex items-center rounded-lg bg-electric-indigo px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:opacity-90"
+            className="mt-4 inline-flex items-center rounded-lg bg-signal-green px-4 py-2 text-sm font-semibold text-deep-navy shadow-sm transition hover:opacity-90"
           >
             Add a Location
           </Link>

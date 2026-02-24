@@ -109,11 +109,11 @@ function formatPrice(price: number | null, currency: string): string {
 }
 
 const STATUS_STYLES: Record<string, string> = {
-  uploading:    'bg-blue-50 text-blue-700 ring-blue-600/20',
-  processing:   'bg-indigo-50 text-indigo-700 ring-indigo-600/20',
-  review_ready: 'bg-yellow-50 text-yellow-700 ring-yellow-600/20',
-  published:    'bg-emerald-50 text-emerald-700 ring-emerald-600/20',
-  failed:       'bg-red-50 text-red-700 ring-red-600/20',
+  uploading:    'bg-blue-500/10 text-blue-400 ring-blue-600/20',
+  processing:   'bg-electric-indigo/10 text-electric-indigo ring-electric-indigo/20',
+  review_ready: 'bg-alert-amber/10 text-alert-amber ring-alert-amber/20',
+  published:    'bg-signal-green/10 text-signal-green ring-signal-green/20',
+  failed:       'bg-alert-crimson/10 text-alert-crimson ring-alert-crimson/20',
 };
 
 const STATUS_LABELS: Record<string, string> = {
@@ -162,7 +162,7 @@ export default async function MenuEditorPage({
       <div>
         <Link
           href="/dashboard/magic-menus"
-          className="inline-flex items-center gap-1.5 text-sm text-slate-500 transition hover:text-slate-700"
+          className="inline-flex items-center gap-1.5 text-sm text-[#94A3B8] transition hover:text-[#CBD5E1]"
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -179,12 +179,12 @@ export default async function MenuEditorPage({
       </div>
 
       {/* ── Menu Header Card ─────────────────────────────────────── */}
-      <div className="rounded-xl bg-white p-6 shadow-sm ring-1 ring-slate-900/5">
+      <div className="rounded-xl bg-surface-dark p-6 border border-white/5">
         <div className="flex flex-wrap items-start justify-between gap-4">
           {/* Left: menu info */}
           <div>
-            <h1 className="text-xl font-semibold text-slate-900">{menuDisplayName}</h1>
-            <p className="mt-0.5 text-sm text-slate-500">
+            <h1 className="text-xl font-semibold text-white">{menuDisplayName}</h1>
+            <p className="mt-0.5 text-sm text-[#94A3B8]">
               {locationName}
               {locationCity && (
                 <>
@@ -203,16 +203,16 @@ export default async function MenuEditorPage({
             )}
 
             {/* Stats */}
-            <div className="mt-3 flex flex-wrap items-center gap-3 text-xs text-slate-500">
+            <div className="mt-3 flex flex-wrap items-center gap-3 text-xs text-[#94A3B8]">
               <span>
-                <span className="font-semibold tabular-nums text-slate-700">
+                <span className="font-semibold tabular-nums text-[#CBD5E1]">
                   {categories.length}
                 </span>{' '}
                 {categories.length === 1 ? 'category' : 'categories'}
               </span>
-              <span className="text-slate-300">·</span>
+              <span className="text-white/20">·</span>
               <span>
-                <span className="font-semibold tabular-nums text-slate-700">
+                <span className="font-semibold tabular-nums text-[#CBD5E1]">
                   {totalItems}
                 </span>{' '}
                 {totalItems === 1 ? 'item' : 'items'}
@@ -224,13 +224,13 @@ export default async function MenuEditorPage({
           <div className="flex flex-col items-end gap-3">
             <span
               className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 ring-inset ${
-                STATUS_STYLES[menu.processing_status] ?? 'bg-slate-100 text-slate-600'
+                STATUS_STYLES[menu.processing_status] ?? 'bg-white/5 text-[#94A3B8]'
               }`}
             >
               {STATUS_LABELS[menu.processing_status] ?? menu.processing_status}
             </span>
             <div className="flex items-center gap-2">
-              <span className="text-xs text-slate-500">
+              <span className="text-xs text-[#94A3B8]">
                 {menu.is_published ? 'Live' : 'Draft'}
               </span>
               <PublishToggle menuId={menu.id} isPublished={menu.is_published} />
@@ -243,13 +243,13 @@ export default async function MenuEditorPage({
       <div className="space-y-4">
         {/* Header row */}
         <div className="flex items-center justify-between">
-          <h2 className="text-base font-semibold text-slate-800">Menu Categories</h2>
+          <h2 className="text-base font-semibold text-white">Menu Categories</h2>
           <AddCategoryModal menuId={id} />
         </div>
 
         {/* Empty state — no categories yet */}
         {categories.length === 0 && (
-          <div className="rounded-xl border-2 border-dashed border-slate-200 bg-white p-10 text-center">
+          <div className="rounded-xl border-2 border-dashed border-white/10 bg-surface-dark p-10 text-center">
             <svg
               xmlns="http://www.w3.org/2000/svg"
               className="mx-auto h-8 w-8 text-slate-300"
@@ -264,7 +264,7 @@ export default async function MenuEditorPage({
                 d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"
               />
             </svg>
-            <p className="mt-3 text-sm font-medium text-slate-500">No categories yet</p>
+            <p className="mt-3 text-sm font-medium text-[#94A3B8]">No categories yet</p>
             <p className="mt-1 text-xs text-slate-400">
               Add your first category (e.g. Starters, Mains, Desserts) to begin building
               your AI-readable menu.
@@ -276,13 +276,13 @@ export default async function MenuEditorPage({
         {categories.map((category) => (
           <div
             key={category.id}
-            className="overflow-hidden rounded-xl bg-white shadow-sm ring-1 ring-slate-900/5"
+            className="overflow-hidden rounded-xl bg-surface-dark border border-white/5"
           >
             {/* Category header */}
-            <div className="flex items-center justify-between border-b border-slate-100 bg-slate-50 px-5 py-3">
+            <div className="flex items-center justify-between border-b border-white/5 bg-midnight-slate px-5 py-3">
               <div className="flex items-center gap-2">
-                <h3 className="text-sm font-semibold text-slate-800">{category.name}</h3>
-                <span className="rounded-full bg-slate-200 px-2 py-0.5 text-xs font-medium text-slate-600 tabular-nums">
+                <h3 className="text-sm font-semibold text-white">{category.name}</h3>
+                <span className="rounded-full bg-white/10 px-2 py-0.5 text-xs font-medium text-[#94A3B8] tabular-nums">
                   {category.menu_items.length}
                 </span>
               </div>
@@ -301,9 +301,9 @@ export default async function MenuEditorPage({
                 </p>
               </div>
             ) : (
-              <table className="min-w-full divide-y divide-slate-100">
+              <table className="min-w-full divide-y divide-white/5">
                 <thead>
-                  <tr className="bg-white">
+                  <tr className="bg-surface-dark">
                     <th className="py-2.5 pl-5 pr-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-400">
                       Item
                     </th>
@@ -318,26 +318,26 @@ export default async function MenuEditorPage({
                     </th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100">
+                <tbody className="divide-y divide-white/5">
                   {category.menu_items.map((item) => (
-                    <tr key={item.id} className="transition hover:bg-slate-50">
+                    <tr key={item.id} className="transition hover:bg-white/5">
                       {/* Name */}
                       <td className="py-3 pl-5 pr-3">
-                        <span className="text-sm font-medium text-slate-900">
+                        <span className="text-sm font-medium text-white">
                           {item.name}
                         </span>
                       </td>
 
                       {/* Description */}
                       <td className="max-w-xs px-3 py-3">
-                        <span className="block truncate text-sm text-slate-500">
-                          {item.description ?? <span className="italic text-slate-300">No description</span>}
+                        <span className="block truncate text-sm text-[#94A3B8]">
+                          {item.description ?? <span className="italic text-slate-400">No description</span>}
                         </span>
                       </td>
 
                       {/* Price */}
                       <td className="whitespace-nowrap px-3 py-3 text-right">
-                        <span className="font-mono text-sm font-semibold text-slate-900 tabular-nums">
+                        <span className="font-mono text-sm font-semibold text-white tabular-nums">
                           {formatPrice(item.price, item.currency)}
                         </span>
                       </td>
@@ -345,7 +345,7 @@ export default async function MenuEditorPage({
                       {/* Available */}
                       <td className="whitespace-nowrap px-3 py-3">
                         {item.is_available ? (
-                          <span className="inline-flex items-center gap-1 text-xs font-medium text-emerald-600">
+                          <span className="inline-flex items-center gap-1 text-xs font-medium text-signal-green">
                             <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
                             Available
                           </span>

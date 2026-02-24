@@ -13,11 +13,14 @@
 
 import { Resend } from 'resend';
 
-// The Resend client is initialised lazily at the module level.
-// When RESEND_API_KEY is absent, the constructor accepts undefined; the
-// instance is still created but all calls will fail — the no-op guard in
-// sendHallucinationAlert() prevents any calls from reaching the SDK.
-const resend = new Resend(process.env.RESEND_API_KEY);
+// Lazily initialised — only created when sendHallucinationAlert() is actually
+// called with a valid RESEND_API_KEY. Avoids build-time crash during static
+// page data collection when the env var is absent.
+let _resend: Resend | null = null;
+function getResend(): Resend {
+  if (!_resend) _resend = new Resend(process.env.RESEND_API_KEY);
+  return _resend;
+}
 
 // ---------------------------------------------------------------------------
 // Types
@@ -58,7 +61,7 @@ export async function sendHallucinationAlert(
     `⚠️ ${payload.hallucinationCount} AI hallucination` +
     `${payload.hallucinationCount === 1 ? '' : 's'} detected for ${payload.businessName}`;
 
-  await resend.emails.send({
+  await getResend().emails.send({
     from: 'LocalVector Alerts <alerts@localvector.ai>',
     to: payload.to,
     subject,

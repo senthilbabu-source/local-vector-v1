@@ -26,7 +26,7 @@ interface InterceptCardProps {
 const GAP_COLORS: Record<string, string> = {
   high:   'text-red-400 bg-red-950/30 border-red-500/30',
   medium: 'text-yellow-400 bg-yellow-950/30 border-yellow-500/30',
-  low:    'text-truth-emerald bg-emerald-950/30 border-emerald-500/30',
+  low:    'text-signal-green bg-emerald-950/30 border-emerald-500/30',
 };
 
 export default function InterceptCard({ intercept, myBusiness }: InterceptCardProps) {
@@ -60,11 +60,11 @@ export default function InterceptCard({ intercept, myBusiness }: InterceptCardPr
         </div>
         <div className="shrink-0 flex items-center gap-1.5">
           {myBizWon ? (
-            <CheckCircle2 className="h-4 w-4 text-truth-emerald" />
+            <CheckCircle2 className="h-4 w-4 text-signal-green" />
           ) : (
             <XCircle className="h-4 w-4 text-red-400" />
           )}
-          <span className={['text-sm font-semibold', myBizWon ? 'text-truth-emerald' : 'text-red-400'].join(' ')}>
+          <span className={['text-sm font-semibold', myBizWon ? 'text-signal-green' : 'text-red-400'].join(' ')}>
             {intercept.winner ?? intercept.competitor_name} wins
           </span>
         </div>
@@ -102,7 +102,7 @@ export default function InterceptCard({ intercept, myBusiness }: InterceptCardPr
           </div>
           <div className="h-1.5 w-full rounded-full bg-white/5 overflow-hidden">
             <div
-              className="h-full rounded-full bg-electric-indigo"
+              className="h-full rounded-full bg-signal-green"
               style={{
                 width: `${Math.min(
                   100,
@@ -117,8 +117,8 @@ export default function InterceptCard({ intercept, myBusiness }: InterceptCardPr
 
       {/* Suggested action */}
       {intercept.suggested_action && (
-        <div className="rounded-lg border border-electric-indigo/20 bg-electric-indigo/5 px-4 py-3">
-          <p className="text-xs font-semibold text-electric-indigo mb-1">Your action this week</p>
+        <div className="rounded-lg border border-signal-green/20 bg-signal-green/5 px-4 py-3">
+          <p className="text-xs font-semibold text-signal-green mb-1">Your action this week</p>
           <p className="text-sm text-slate-300">{intercept.suggested_action}</p>
         </div>
       )}
@@ -129,7 +129,7 @@ export default function InterceptCard({ intercept, myBusiness }: InterceptCardPr
           <button
             onClick={() => handleMark('completed')}
             disabled={isPending}
-            className="flex items-center gap-1.5 rounded-lg bg-truth-emerald/10 border border-truth-emerald/30 px-3 py-1.5 text-xs font-medium text-truth-emerald hover:bg-truth-emerald/20 disabled:opacity-50 transition"
+            className="flex items-center gap-1.5 rounded-lg bg-signal-green/10 border border-signal-green/30 px-3 py-1.5 text-xs font-medium text-signal-green hover:bg-signal-green/20 disabled:opacity-50 transition"
           >
             <CheckCircle2 className="h-3.5 w-3.5" />
             {isPending ? '…' : 'Mark Complete'}

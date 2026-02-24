@@ -208,22 +208,22 @@ export default async function DashboardPage() {
         <QuickStat
           label="Hallucinations fixed"
           value={fixedCount}
-          color="text-truth-emerald"
+          color="text-signal-green"
         />
         <QuickStat
           label="Open alerts"
           value={openAlerts.length}
-          color={hasOpenAlerts ? 'text-alert-crimson' : 'text-truth-emerald'}
+          color={hasOpenAlerts ? 'text-alert-crimson' : 'text-signal-green'}
         />
         <QuickStat
           label="Intercept analyses"
           value={interceptsThisMonth}
-          color="text-electric-indigo"
+          color="text-signal-green"
         />
         <QuickStat
           label="AI Visibility Score"
           value={scores.visibility != null ? `${scores.visibility}/100` : '—'}
-          color="text-electric-indigo"
+          color="text-signal-green"
         />
       </div>
 

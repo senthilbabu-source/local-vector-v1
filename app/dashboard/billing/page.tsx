@@ -5,7 +5,7 @@
 //
 // Three-tier pricing aligned with plan_tier DB enum (starter|growth|agency)
 // and Doc 08 §6 pricing ($29 Starter / $59 Growth / Custom Agency).
-// The Growth tier is highlighted with electric-indigo (Doc 06 §8 brand accent).
+// The Growth tier is highlighted with signal-green (Doc 06 §8 brand accent).
 //
 // Upgrade button calls createCheckoutSession Server Action. When STRIPE_SECRET_KEY
 // is absent (local dev / preview) it shows a "Demo mode" banner instead of
@@ -133,8 +133,8 @@ function UpgradeButton({ tier }: { tier: Tier }) {
       className={[
         'w-full rounded-xl px-4 py-2.5 text-sm font-semibold transition',
         tier.highlight
-          ? 'bg-electric-indigo text-white hover:bg-electric-indigo/90'
-          : 'border border-white/10 text-slate-300 hover:border-electric-indigo/50 hover:text-electric-indigo',
+          ? 'bg-signal-green text-deep-navy hover:bg-signal-green/90'
+          : 'border border-white/10 text-slate-300 hover:border-signal-green/50 hover:text-signal-green',
         status === 'loading' ? 'opacity-60 cursor-not-allowed' : '',
       ].join(' ')}
     >
@@ -153,14 +153,14 @@ function TierCard({ tier }: { tier: Tier }) {
       className={[
         'flex flex-col rounded-2xl p-8 transition',
         tier.highlight
-          ? 'bg-surface-dark border-2 border-electric-indigo shadow-xl shadow-electric-indigo/10'
+          ? 'bg-surface-dark border-2 border-signal-green shadow-xl shadow-signal-green/10'
           : 'bg-surface-dark border border-white/5',
       ].join(' ')}
     >
       {/* Header */}
       <div className="mb-6">
         {tier.highlight && (
-          <span className="mb-3 inline-block rounded-full bg-electric-indigo/15 px-3 py-0.5 text-xs font-semibold text-electric-indigo">
+          <span className="mb-3 inline-block rounded-full bg-signal-green/15 px-3 py-0.5 text-xs font-semibold text-signal-green">
             Most popular
           </span>
         )}
@@ -179,7 +179,7 @@ function TierCard({ tier }: { tier: Tier }) {
       <ul className="mb-8 flex-1 space-y-2.5">
         {tier.features.map((feature) => (
           <li key={feature} className="flex items-start gap-2.5">
-            <Check className="mt-0.5 h-4 w-4 shrink-0 text-truth-emerald" />
+            <Check className="mt-0.5 h-4 w-4 shrink-0 text-signal-green" />
             <span className="text-sm text-slate-300">{feature}</span>
           </li>
         ))}

@@ -29,7 +29,7 @@ export type Big6Platform = (typeof BIG_6_PLATFORMS)[number];
  */
 export const SavePlatformUrlSchema = z.object({
   platform: z.enum(BIG_6_PLATFORMS, {
-    errorMap: () => ({ message: 'Platform must be one of the Big 6 listing platforms' }),
+    message: 'Platform must be one of the Big 6 listing platforms',
   }),
   url: z
     .string()
@@ -53,7 +53,7 @@ export type SavePlatformUrlInput = z.infer<typeof SavePlatformUrlSchema>;
 export const ToggleIntegrationSchema = z.object({
   location_id: z.string().uuid('A valid location ID is required'),
   platform: z.enum(INTEGRATION_PLATFORMS, {
-    errorMap: () => ({ message: 'Platform must be google, apple, or bing' }),
+    message: 'Platform must be google, apple, or bing',
   }),
   connect: z.boolean(),
 });
@@ -68,7 +68,7 @@ export type ToggleIntegrationInput = z.infer<typeof ToggleIntegrationSchema>;
 export const SyncIntegrationSchema = z.object({
   location_id: z.string().uuid('A valid location ID is required'),
   platform: z.enum(INTEGRATION_PLATFORMS, {
-    errorMap: () => ({ message: 'Platform must be google, apple, or bing' }),
+    message: 'Platform must be google, apple, or bing',
   }),
 });
 

@@ -215,9 +215,9 @@ describe('Sidebar — active route highlighting', () => {
       />,
     );
     const dashboardLink = container.querySelector('a[href="/dashboard"]');
-    // Active state: bg-electric-indigo/15 + text-electric-indigo
-    expect(dashboardLink?.className).toContain('bg-electric-indigo/15');
-    expect(dashboardLink?.className).toContain('text-electric-indigo');
+    // Active state: bg-signal-green/15 + text-signal-green
+    expect(dashboardLink?.className).toContain('bg-signal-green/15');
+    expect(dashboardLink?.className).toContain('text-signal-green');
   });
 
   it('does NOT highlight Dashboard link on /dashboard/magic-menus (exact:true)', () => {
@@ -233,7 +233,7 @@ describe('Sidebar — active route highlighting', () => {
     );
     const dashboardLink = container.querySelector('a[href="/dashboard"]');
     // Dashboard nav uses exact:true — sub-route must NOT activate it
-    expect(dashboardLink?.className).not.toContain('bg-electric-indigo/15');
+    expect(dashboardLink?.className).not.toContain('bg-signal-green/15');
   });
 
   it('highlights Menu link on /dashboard/magic-menus (startsWith match)', () => {
@@ -248,7 +248,7 @@ describe('Sidebar — active route highlighting', () => {
       />,
     );
     const menuLink = container.querySelector('a[href="/dashboard/magic-menus"]');
-    expect(menuLink?.className).toContain('bg-electric-indigo/15');
+    expect(menuLink?.className).toContain('bg-signal-green/15');
   });
 
   it('highlights Menu link on a nested sub-route /dashboard/magic-menus/abc', () => {
@@ -263,7 +263,7 @@ describe('Sidebar — active route highlighting', () => {
       />,
     );
     const menuLink = container.querySelector('a[href="/dashboard/magic-menus"]');
-    expect(menuLink?.className).toContain('bg-electric-indigo/15');
+    expect(menuLink?.className).toContain('bg-signal-green/15');
   });
 
   it('displays displayName in sidebar footer user-info', () => {
@@ -424,6 +424,6 @@ describe('TopBar', () => {
     );
     const badge = screen.getByText('growth');
     // TAILWIND LITERALS — exact class token per project rule 5
-    expect(badge.className).toContain('text-electric-indigo');
+    expect(badge.className).toContain('text-signal-green');
   });
 });

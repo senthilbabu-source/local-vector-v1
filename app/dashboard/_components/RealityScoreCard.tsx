@@ -22,14 +22,14 @@ interface RealityScoreCardProps {
 
 /** Color class for a 0–100 score: emerald ≥80, amber 60–79, crimson <60. */
 function scoreColor(score: number): string {
-  if (score >= 80) return 'text-truth-emerald';
+  if (score >= 80) return 'text-signal-green';
   if (score >= 60) return 'text-amber-400';
   return 'text-alert-crimson';
 }
 
 /** SVG stroke color matching scoreColor. */
 function ringColor(score: number): string {
-  if (score >= 80) return 'stroke-truth-emerald';
+  if (score >= 80) return 'stroke-signal-green';
   if (score >= 60) return 'stroke-amber-400';
   return 'stroke-alert-crimson';
 }
@@ -40,7 +40,7 @@ function ringColor(score: number): string {
  * because the scanner won't detect dynamically constructed class names.
  */
 function barFillColor(score: number): string {
-  if (score >= 80) return 'bg-truth-emerald';
+  if (score >= 80) return 'bg-signal-green';
   if (score >= 60) return 'bg-amber-400';
   return 'bg-alert-crimson';
 }
@@ -203,7 +203,7 @@ export default function RealityScoreCard({
         </p>
         {lastAuditAt ? (
           <div className="flex items-center gap-2">
-            <span className="flex h-2 w-2 rounded-full bg-truth-emerald shrink-0" aria-hidden />
+            <span className="flex h-2 w-2 rounded-full bg-signal-green shrink-0" aria-hidden />
             <p className="text-sm text-slate-300">
               Last scan:{' '}
               <span className="text-white font-medium">{formatRelativeTime(lastAuditAt)}</span>

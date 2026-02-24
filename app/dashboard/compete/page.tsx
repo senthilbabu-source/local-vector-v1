@@ -46,7 +46,7 @@ function UpgradeGate() {
       </p>
       <a
         href="/dashboard/billing"
-        className="rounded-lg bg-electric-indigo px-6 py-2.5 text-sm font-semibold text-white hover:bg-electric-indigo/90 transition"
+        className="rounded-lg bg-signal-green px-6 py-2.5 text-sm font-semibold text-deep-navy hover:bg-signal-green/90 transition"
       >
         Upgrade to Growth — $59/mo
       </a>
@@ -103,7 +103,7 @@ async function fetchPageData(orgId: string): Promise<{
 
 export default async function CompetePage() {
   const ctx = await getSafeAuthContext();
-  if (!ctx) {
+  if (!ctx || !ctx.orgId) {
     redirect('/login');
   }
 

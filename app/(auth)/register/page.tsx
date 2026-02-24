@@ -94,26 +94,31 @@ export default function RegisterPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-slate-50 px-4">
+    <div className="flex min-h-screen items-center justify-center bg-midnight-slate px-4">
     <div className="w-full max-w-md">
       {/* Card */}
-      <div className="rounded-2xl bg-white px-8 py-10 shadow-lg ring-1 ring-slate-900/5">
+      <div className="rounded-2xl bg-surface-dark px-8 py-10 border border-white/5">
         {/* Brand */}
         <div className="mb-8 text-center">
-          <span className="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-600 text-white font-bold text-lg select-none">
-            LV
-          </span>
-          <h1 className="mt-3 text-2xl font-semibold tracking-tight text-slate-900">
-            LocalVector<span className="text-indigo-600">.ai</span>
+          <svg width="40" height="40" viewBox="0 0 28 28" fill="none" aria-hidden className="mx-auto">
+            <rect width="28" height="28" rx="7" fill="url(#lv-reg-grad)" />
+            <text x="50%" y="54%" dominantBaseline="middle" textAnchor="middle"
+              fill="#050A15" fontSize="13" fontWeight="800" fontFamily="var(--font-outfit), sans-serif">LV</text>
+            <defs><linearGradient id="lv-reg-grad" x1="0" y1="0" x2="28" y2="28">
+              <stop stopColor="#00F5A0" /><stop offset="1" stopColor="#00F5A088" />
+            </linearGradient></defs>
+          </svg>
+          <h1 className="mt-3" style={{ fontSize: 22, fontWeight: 700, color: '#F1F5F9', letterSpacing: '-0.02em' }}>
+            LocalVector<span style={{ color: '#00F5A0' }}>.ai</span>
           </h1>
-          <p className="mt-1 text-sm text-slate-500">Create your free account</p>
+          <p style={{ marginTop: 4, fontSize: 14, color: '#94A3B8' }}>Create your free account</p>
         </div>
 
         {/* Global error */}
         {globalError && (
           <div
             role="alert"
-            className="mb-5 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700 ring-1 ring-red-200"
+            className="mb-5 rounded-lg bg-alert-crimson/10 px-4 py-3 text-sm text-alert-crimson ring-1 ring-alert-crimson/30"
           >
             {globalError}
           </div>
@@ -124,7 +129,7 @@ export default function RegisterPage() {
             <div key={name}>
               <label
                 htmlFor={name}
-                className="mb-1.5 block text-sm font-medium text-slate-700"
+                style={{ display: 'block', marginBottom: 6, fontSize: 13, fontWeight: 500, color: '#CBD5E1' }}
               >
                 {label}
               </label>
@@ -134,20 +139,21 @@ export default function RegisterPage() {
                 autoComplete={autoComplete}
                 placeholder={placeholder}
                 {...register(name)}
-                className={`w-full rounded-lg border px-3 py-2.5 text-sm text-slate-900 placeholder-slate-400 shadow-sm outline-none transition focus:ring-2 ${
+                className={`w-full rounded-lg border px-3 py-2.5 text-sm outline-none transition focus:ring-2 ${
                   errors[name]
-                    ? 'border-red-400 focus:ring-red-300'
-                    : 'border-slate-300 focus:border-indigo-500 focus:ring-indigo-200'
+                    ? 'border-alert-crimson/50 focus:ring-alert-crimson/30'
+                    : 'border-white/10 focus:border-signal-green/50 focus:ring-signal-green/20'
                 }`}
+                style={{ backgroundColor: '#050A15', color: '#F1F5F9', fontSize: 14 }}
               />
               {errors[name] && (
-                <p className="mt-1.5 text-xs text-red-600">{errors[name]?.message}</p>
+                <p className="mt-1.5 text-xs text-alert-crimson">{errors[name]?.message}</p>
               )}
             </div>
           ))}
 
           {/* Password hint */}
-          <p className="text-xs text-slate-400">
+          <p style={{ fontSize: 12, color: '#64748B' }}>
             Must be 8+ characters with an uppercase letter, lowercase letter, and number.
           </p>
 
@@ -155,18 +161,20 @@ export default function RegisterPage() {
           <button
             type="submit"
             disabled={isSubmitting}
-            className="mt-1 w-full rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
+            className="lv-btn-green mt-1 w-full disabled:cursor-not-allowed disabled:opacity-60"
+            style={{ padding: '12px 24px', fontSize: 14, animation: 'none' }}
           >
             {isSubmitting ? 'Creating account…' : 'Create account'}
           </button>
         </form>
 
         {/* Footer link */}
-        <p className="mt-6 text-center text-sm text-slate-500">
+        <p style={{ marginTop: 24, textAlign: 'center', fontSize: 14, color: '#94A3B8' }}>
           Already have an account?{' '}
           <Link
             href="/login"
-            className="font-medium text-indigo-600 hover:text-indigo-500"
+            style={{ fontWeight: 600, color: '#00F5A0' }}
+            className="hover:underline"
           >
             Sign in
           </Link>

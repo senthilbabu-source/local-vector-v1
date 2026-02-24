@@ -169,19 +169,19 @@ describe('TruthCalibrationForm — Step 2: Amenities', () => {
     expect(checkbox.checked).toBe(true);
   });
 
-  it('checked amenity row receives bg-electric-indigo/10 highlight (TAILWIND LITERAL)', async () => {
+  it('checked amenity row receives bg-signal-green/10 highlight (TAILWIND LITERAL)', async () => {
     const user = await navigateTo(2);
     const alcoholLabel = screen.getByText('Serves alcohol').closest('label')!;
     await user.click(alcoholLabel);
 
     // Rule 5: exact literal class token
-    expect(alcoholLabel.className).toContain('bg-electric-indigo/10');
+    expect(alcoholLabel.className).toContain('bg-signal-green/10');
   });
 
-  it('unchecked amenity row does NOT have bg-electric-indigo/10', async () => {
+  it('unchecked amenity row does NOT have bg-signal-green/10', async () => {
     await navigateTo(2);
     const hookahLabel = screen.getByText('Hookah lounge').closest('label')!;
-    expect(hookahLabel.className).not.toContain('bg-electric-indigo/10');
+    expect(hookahLabel.className).not.toContain('bg-signal-green/10');
   });
 
   it('toggling amenity twice returns it to unchecked', async () => {

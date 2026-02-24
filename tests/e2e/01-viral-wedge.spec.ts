@@ -36,7 +36,7 @@ test.describe('01 — Viral Wedge: Free Hallucination Scanner', () => {
     await page.goto('/');
 
     await expect(
-      page.getByRole('heading', { name: /Is AI Hallucinating Your Business/i })
+      page.getByRole('heading', { name: /11,000 questions/i })
     ).toBeVisible();
 
     // ── 2. Fill in the free scan form (Sprint 29: autocomplete flow) ─────────
@@ -87,13 +87,13 @@ test.describe('01 — Viral Wedge: Free Hallucination Scanner', () => {
 
   test('displays the live detection eyebrow badge in the hero', async ({ page }) => {
     await page.goto('/');
-    await expect(page.getByText(/Live AI Hallucination Detection/i)).toBeVisible();
+    await expect(page.getByText(/RIGHT NOW.*AI is answering/i)).toBeVisible();
   });
 
   test('displays the $12,000 steakhouse case study section', async ({ page }) => {
     await page.goto('/');
     await expect(page.getByText(/\$12,000/i)).toBeVisible();
-    await expect(page.getByText(/Steakhouse Hallucination/i)).toBeVisible();
+    await expect(page.getByText(/Steakhouse That Didn.t Exist/i)).toBeVisible();
   });
 
   // ── AEO infrastructure (Sprint 25C) ───────────────────────────────────────

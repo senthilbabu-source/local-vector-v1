@@ -23,7 +23,7 @@ const DAYS: { key: DayOfWeek; label: string }[] = [
 // Doc 03 §15.2 — all 6 core amenities.
 // Doc 06 §7 specifies: Alcohol, Outdoor Seating, Reservations, Live Music (required UI).
 // has_hookah and is_kid_friendly are also core per Doc 03 §15.2.
-const AMENITY_FIELDS: { key: keyof Amenities; label: string }[] = [
+const AMENITY_FIELDS: { key: keyof AmenitiesState; label: string }[] = [
   { key: 'serves_alcohol',       label: 'Serves alcohol' },
   { key: 'has_outdoor_seating',  label: 'Outdoor seating' },
   { key: 'takes_reservations',   label: 'Takes reservations' },
@@ -197,9 +197,9 @@ export default function TruthCalibrationForm({
               className={[
                 'flex-1 py-3 text-center text-xs font-medium transition-colors',
                 isActive
-                  ? 'text-electric-indigo border-b-2 border-electric-indigo -mb-px'
+                  ? 'text-signal-green border-b-2 border-signal-green -mb-px'
                   : isDone
-                  ? 'text-truth-emerald'
+                  ? 'text-signal-green'
                   : 'text-slate-500',
               ].join(' ')}
             >
@@ -228,7 +228,7 @@ export default function TruthCalibrationForm({
               type="text"
               value={businessName}
               onChange={(e) => setBusinessName(e.target.value)}
-              className="w-full rounded-lg border border-white/10 bg-midnight-slate px-3 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-electric-indigo/50 focus:border-electric-indigo/50 transition"
+              className="w-full rounded-lg border border-white/10 bg-midnight-slate px-3 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-signal-green/50 focus:border-signal-green/50 transition"
               placeholder="e.g. Charcoal N Chill"
               maxLength={255}
             />
@@ -254,7 +254,7 @@ export default function TruthCalibrationForm({
                   className={[
                     'flex items-center gap-3 w-full rounded-lg px-4 py-3 text-sm font-medium border cursor-pointer transition select-none',
                     amenities[key]
-                      ? 'bg-electric-indigo/10 border-electric-indigo/40 text-white'
+                      ? 'bg-signal-green/10 border-signal-green/40 text-white'
                       : 'bg-midnight-slate border-white/5 text-slate-400 hover:border-white/10',
                   ].join(' ')}
                 >
@@ -262,7 +262,7 @@ export default function TruthCalibrationForm({
                     type="checkbox"
                     checked={amenities[key]}
                     onChange={() => toggleAmenity(key)}
-                    className="h-4 w-4 rounded border-white/20 bg-midnight-slate accent-electric-indigo"
+                    className="h-4 w-4 rounded border-white/20 bg-midnight-slate accent-signal-green"
                   />
                   {label}
                 </label>
@@ -301,7 +301,7 @@ export default function TruthCalibrationForm({
                       title={day.closed ? 'Mark as open' : 'Mark as closed'}
                       className={[
                         'shrink-0 flex h-5 w-9 items-center rounded-full transition-colors',
-                        day.closed ? 'bg-alert-crimson/70' : 'bg-truth-emerald/70',
+                        day.closed ? 'bg-alert-crimson/70' : 'bg-signal-green/70',
                       ].join(' ')}
                     >
                       <span
@@ -325,7 +325,7 @@ export default function TruthCalibrationForm({
                           onChange={(e) =>
                             updateHours(key, 'open', e.target.value)
                           }
-                          className="flex-1 min-w-0 rounded-md border border-white/10 bg-surface-dark px-2 py-1 text-xs text-white focus:outline-none focus:ring-1 focus:ring-electric-indigo/50"
+                          className="flex-1 min-w-0 rounded-md border border-white/10 bg-surface-dark px-2 py-1 text-xs text-white focus:outline-none focus:ring-1 focus:ring-signal-green/50"
                         />
                         <span className="text-slate-500 text-xs shrink-0">–</span>
                         <input
@@ -334,7 +334,7 @@ export default function TruthCalibrationForm({
                           onChange={(e) =>
                             updateHours(key, 'close', e.target.value)
                           }
-                          className="flex-1 min-w-0 rounded-md border border-white/10 bg-surface-dark px-2 py-1 text-xs text-white focus:outline-none focus:ring-1 focus:ring-electric-indigo/50"
+                          className="flex-1 min-w-0 rounded-md border border-white/10 bg-surface-dark px-2 py-1 text-xs text-white focus:outline-none focus:ring-1 focus:ring-signal-green/50"
                         />
                       </div>
                     )}
@@ -369,7 +369,7 @@ export default function TruthCalibrationForm({
             <button
               type="button"
               onClick={advanceStep}
-              className="flex-1 rounded-lg bg-electric-indigo px-4 py-2.5 text-sm font-semibold text-white hover:bg-electric-indigo/85 transition"
+              className="flex-1 rounded-lg bg-signal-green px-4 py-2.5 text-sm font-semibold text-deep-navy hover:brightness-110 transition"
             >
               Next
             </button>
@@ -378,7 +378,7 @@ export default function TruthCalibrationForm({
               type="button"
               onClick={handleSubmit}
               disabled={isPending}
-              className="flex-1 rounded-lg bg-electric-indigo px-4 py-2.5 text-sm font-semibold text-white hover:bg-electric-indigo/85 transition disabled:opacity-60"
+              className="flex-1 rounded-lg bg-signal-green px-4 py-2.5 text-sm font-semibold text-deep-navy hover:brightness-110 transition disabled:opacity-60"
             >
               {isPending ? 'Saving…' : 'Save & Continue'}
             </button>

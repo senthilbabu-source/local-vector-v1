@@ -70,13 +70,13 @@ function formatAddress(loc: Location): string {
 function statusBadge(status: string | null) {
   if (!status || status === 'OPERATIONAL') {
     return (
-      <span className="inline-flex items-center rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-medium text-emerald-700 ring-1 ring-inset ring-emerald-600/20">
+      <span className="inline-flex items-center rounded-full bg-signal-green/10 px-2.5 py-0.5 text-xs font-medium text-signal-green ring-1 ring-inset ring-signal-green/20">
         Operational
       </span>
     );
   }
   return (
-    <span className="inline-flex items-center rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-600">
+    <span className="inline-flex items-center rounded-full bg-white/5 px-2.5 py-0.5 text-xs font-medium text-[#94A3B8]">
       {status}
     </span>
   );
@@ -99,8 +99,8 @@ export default async function LocationsPage() {
       {/* Page header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-semibold text-slate-900">Locations</h1>
-          <p className="mt-0.5 text-sm text-slate-500">
+          <h1 className="text-xl font-semibold text-white">Locations</h1>
+          <p className="mt-0.5 text-sm text-[#94A3B8]">
             Manage the physical locations you are monitoring for AI accuracy.
           </p>
         </div>
@@ -108,7 +108,7 @@ export default async function LocationsPage() {
       </div>
 
       {/* Table card */}
-      <div className="overflow-hidden rounded-xl bg-white shadow-sm ring-1 ring-slate-900/5">
+      <div className="overflow-hidden rounded-xl bg-surface-dark border border-white/5">
         {locations.length === 0 ? (
           /* Empty state */
           <div className="flex flex-col items-center justify-center px-6 py-16 text-center">
@@ -131,43 +131,43 @@ export default async function LocationsPage() {
                 d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
               />
             </svg>
-            <p className="mt-3 text-sm font-medium text-slate-500">No locations yet</p>
+            <p className="mt-3 text-sm font-medium text-[#94A3B8]">No locations yet</p>
             <p className="mt-1 text-xs text-slate-400">
               Click &quot;Add Location&quot; to register your first business location.
             </p>
           </div>
         ) : (
-          <table className="min-w-full divide-y divide-slate-200">
-            <thead className="bg-slate-50">
+          <table className="min-w-full divide-y divide-white/5">
+            <thead className="bg-midnight-slate">
               <tr>
-                <th className="py-3 pl-6 pr-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+                <th className="py-3 pl-6 pr-3 text-left text-xs font-semibold uppercase tracking-wide text-[#94A3B8]">
                   Location
                 </th>
-                <th className="px-3 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+                <th className="px-3 py-3 text-left text-xs font-semibold uppercase tracking-wide text-[#94A3B8]">
                   City / State
                 </th>
-                <th className="px-3 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+                <th className="px-3 py-3 text-left text-xs font-semibold uppercase tracking-wide text-[#94A3B8]">
                   Phone
                 </th>
-                <th className="px-3 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+                <th className="px-3 py-3 text-left text-xs font-semibold uppercase tracking-wide text-[#94A3B8]">
                   Status
                 </th>
-                <th className="px-3 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+                <th className="px-3 py-3 text-left text-xs font-semibold uppercase tracking-wide text-[#94A3B8]">
                   Added
                 </th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100 bg-white">
+            <tbody className="divide-y divide-white/5 bg-surface-dark">
               {locations.map((loc) => (
-                <tr key={loc.id} className="transition hover:bg-slate-50">
+                <tr key={loc.id} className="transition hover:bg-white/5">
                   {/* Name */}
                   <td className="py-3.5 pl-6 pr-3">
                     <div className="flex items-center gap-2">
-                      <span className="text-sm font-medium text-slate-900">
+                      <span className="text-sm font-medium text-white">
                         {loc.business_name}
                       </span>
                       {loc.is_primary && (
-                        <span className="rounded-full bg-indigo-50 px-2 py-0.5 text-xs font-medium text-indigo-700 ring-1 ring-inset ring-indigo-600/20">
+                        <span className="rounded-full bg-electric-indigo/10 px-2 py-0.5 text-xs font-medium text-electric-indigo ring-1 ring-inset ring-electric-indigo/20">
                           Primary
                         </span>
                       )}
@@ -178,12 +178,12 @@ export default async function LocationsPage() {
                   </td>
 
                   {/* City / State */}
-                  <td className="whitespace-nowrap px-3 py-3.5 text-sm text-slate-600">
+                  <td className="whitespace-nowrap px-3 py-3.5 text-sm text-[#94A3B8]">
                     {formatAddress(loc)}
                   </td>
 
                   {/* Phone */}
-                  <td className="whitespace-nowrap px-3 py-3.5 text-sm text-slate-600">
+                  <td className="whitespace-nowrap px-3 py-3.5 text-sm text-[#94A3B8]">
                     {loc.phone ?? '—'}
                   </td>
 

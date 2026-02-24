@@ -29,7 +29,7 @@ export type AddQueryInput = z.infer<typeof AddQuerySchema>;
 export const RunSovSchema = z.object({
   query_id: z.string().uuid('A valid query ID is required'),
   engine: z.enum(SOV_ENGINES, {
-    errorMap: () => ({ message: 'Engine must be openai or perplexity' }),
+    message: 'Engine must be openai or perplexity',
   }),
 });
 

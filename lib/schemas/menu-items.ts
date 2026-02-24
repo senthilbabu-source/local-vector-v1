@@ -32,7 +32,7 @@ export const CreateMenuItemSchema = z.object({
     .optional()
     .or(z.literal('')),
   price: z.coerce
-    .number({ invalid_type_error: 'Price must be a number' })
+    .number({ message: 'Price must be a number' })
     .min(0, 'Price must be $0.00 or more')
     .max(9999.99, 'Price must be under $10,000'),
   category_id: z.string().uuid('A category must be selected'),

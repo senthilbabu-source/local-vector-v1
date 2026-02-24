@@ -72,7 +72,8 @@ export default function AddItemModal({ menuId, categories, defaultCategoryId }: 
     reset,
     formState: { errors, isSubmitting },
   } = useForm<CreateMenuItemInput>({
-    resolver: zodResolver(CreateMenuItemSchema),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    resolver: zodResolver(CreateMenuItemSchema) as any,
     defaultValues: {
       menu_id: menuId,
       category_id: defaultCategoryId ?? '',

@@ -29,7 +29,7 @@ export default function RunAnalysisButton({ competitorId, competitorName }: RunA
         onClick={handleClick}
         disabled={isPending}
         data-testid="run-analysis-btn"
-        className="flex items-center gap-2 rounded-lg border border-electric-indigo/40 px-3 py-1.5 text-xs font-medium text-electric-indigo hover:bg-electric-indigo/10 disabled:opacity-50 transition"
+        className="flex items-center gap-2 rounded-lg border border-signal-green/40 px-3 py-1.5 text-xs font-medium text-signal-green hover:bg-signal-green/10 disabled:opacity-50 transition"
       >
         <Swords className="h-3.5 w-3.5" />
         {isPending ? 'Analyzing…' : `Run Analysis vs ${competitorName}`}

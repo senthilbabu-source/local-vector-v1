@@ -123,8 +123,8 @@ export default function AddCompetitorForm({ currentCount, maxAllowed }: AddCompe
             readOnly={!!selectedPlace}
             className={`w-full rounded-lg border px-3 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-1 disabled:opacity-50 ${
               selectedPlace
-                ? 'border-electric-indigo/60 bg-midnight-slate/80 cursor-default'
-                : 'border-white/10 bg-midnight-slate focus:ring-electric-indigo'
+                ? 'border-signal-green/60 bg-midnight-slate/80 cursor-default'
+                : 'border-white/10 bg-midnight-slate focus:ring-signal-green'
             }`}
           />
 
@@ -132,7 +132,7 @@ export default function AddCompetitorForm({ currentCount, maxAllowed }: AddCompe
           {showDropdown && suggestions.length > 0 && (
             <ul
               data-testid="places-suggestions"
-              className="absolute left-0 right-0 top-full z-20 mt-1 rounded-lg border border-white/10 bg-[#1a1f2e] py-1 shadow-xl"
+              className="absolute left-0 right-0 top-full z-20 mt-1 rounded-lg border border-white/10 bg-surface-dark py-1 shadow-xl"
             >
               {suggestions.map((s, i) => (
                 <li
@@ -158,8 +158,8 @@ export default function AddCompetitorForm({ currentCount, maxAllowed }: AddCompe
           readOnly={!!selectedPlace}
           className={`flex-1 rounded-lg border px-3 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-1 disabled:opacity-50 ${
             selectedPlace
-              ? 'border-electric-indigo/60 bg-midnight-slate/80 cursor-default'
-              : 'border-white/10 bg-midnight-slate focus:ring-electric-indigo'
+              ? 'border-signal-green/60 bg-midnight-slate/80 cursor-default'
+              : 'border-white/10 bg-midnight-slate focus:ring-signal-green'
           }`}
         />
 
@@ -179,7 +179,7 @@ export default function AddCompetitorForm({ currentCount, maxAllowed }: AddCompe
         <button
           type="submit"
           disabled={isPending}
-          className="rounded-lg bg-electric-indigo px-4 py-2 text-sm font-semibold text-white hover:bg-electric-indigo/90 disabled:opacity-50 transition whitespace-nowrap"
+          className="rounded-lg bg-signal-green px-4 py-2 text-sm font-semibold text-deep-navy hover:bg-signal-green/90 disabled:opacity-50 transition whitespace-nowrap"
         >
           {isPending ? 'Adding…' : '+ Add Competitor'}
         </button>

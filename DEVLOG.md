@@ -2,6 +2,392 @@
 
 ---
 
+## 2026-02-24 — Sprint 40: Design System Skinning — All Pages
+
+**Goal:** Skin every page in the application to match the design system established in Sprint 37 (landing) and Sprint 39 (scan results). Design elements only — no business logic, data flow, or form validation changes.
+
+### Strategy: Two high-leverage global changes first
+
+**Token remap (`globals.css`)** — Updated `@theme` color tokens so every existing Tailwind class automatically picks up design system colors:
+- `--color-midnight-slate`: `#0f111a` → `#050A15` (navy)
+- `--color-surface-dark`: `#1a1d27` → `#0A1628` (navyLight)
+- `--background`: `#0f111a` → `#050A15`
+- `--foreground`: `#cbd5e1` → `#F1F5F9`
+- Font variables: `--font-geist-sans` → `--font-outfit`, `--font-geist-mono` → `--font-jetbrains-mono`
+
+**Root layout font swap (`layout.tsx`)** — Replaced Geist + Geist_Mono with Outfit + JetBrains_Mono in the root layout, making design system fonts available to every page. Removed duplicate font loading from `app/page.tsx` and `app/scan/page.tsx`.
+
+### Auth pages (login + register)
+Full dark theme conversion — right panel `bg-slate-50` → `bg-surface-dark`, card `bg-white` → dark card with `border-white/5`, inputs with dark backgrounds, submit button `bg-indigo-600` → `lv-btn-green`, all link colors indigo → signal-green, SVG logo matching design system branding.
+
+### Public pages (pricing, privacy, terms)
+- Pricing: `electric-indigo` → `signal-green` for all accent colors (borders, backgrounds, text, shadows), `font-mono` on price numbers, highlighted tier CTA with `text-deep-navy`
+- Privacy + Terms: `text-electric-indigo` → `text-signal-green` on all links
+
+### Onboarding
+- Page + TruthCalibrationForm: All `electric-indigo` → `signal-green` variants (bg, border, ring, accent, text), `truth-emerald` → `signal-green`, buttons get `text-deep-navy`
+
+### Dashboard shell (Sidebar + TopBar)
+- Active nav: `bg-electric-indigo/15 text-electric-indigo` → `bg-signal-green/15 text-signal-green`
+- Plan badges + user button: same indigo → green swap
+
+### Dashboard pages — accent swaps (already dark)
+13 files updated with `electric-indigo` → `signal-green` accent swaps:
+- Main dashboard, compete, magic-menus, billing, integrations pages
+- RealityScoreCard, AlertFeed, LogoutButton (`hover:bg-slate-800` → `hover:bg-white/5`)
+- SettingsForm, InterceptCard, AddCompetitorForm, RunAnalysisButton, PlatformRow
+- All `bg-signal-green` buttons use `text-deep-navy` for contrast
+
+### Dashboard pages — light-to-dark conversions
+7 files converted from `bg-white`/`bg-slate-50` light theme to dark:
+- `hallucinations/page.tsx` — tables, headers, severity badges, hover states
+- `locations/page.tsx` — tables, status badges, primary badge
+- `share-of-voice/page.tsx` — headers, empty state
+- `magic-menus/[id]/page.tsx` — full page: status badges, breadcrumbs, category cards, tables
+- `EvaluationCard.tsx` — engine badges, score colors, Run Audit button, error states
+- `StatusDropdown.tsx` — select element dark styling
+- `SovCard.tsx` — engine badges, rank badges, Run button, query forms, competitor chips
+
+### Test updates
+Updated 5 test assertions in `DashboardShell.test.tsx` and `TruthCalibrationForm.test.tsx` to expect `signal-green` instead of `electric-indigo` class tokens.
+
+### Files modified
+| # | File | Type of Change |
+|---|------|---------------|
+| 1 | `app/globals.css` | Token remap (colors + font vars) |
+| 2 | `app/layout.tsx` | Font swap (Geist → Outfit + JetBrains Mono) |
+| 3 | `app/page.tsx` | Remove duplicate font loading |
+| 4 | `app/scan/page.tsx` | Remove duplicate font loading |
+| 5 | `app/(auth)/login/page.tsx` | Full dark theme conversion |
+| 6 | `app/(auth)/register/page.tsx` | Full dark theme conversion |
+| 7 | `app/pricing/page.tsx` | Accent swap + font-mono |
+| 8 | `app/privacy/page.tsx` | Accent swap |
+| 9 | `app/terms/page.tsx` | Accent swap |
+| 10 | `app/onboarding/page.tsx` | Accent swap |
+| 11 | `app/onboarding/_components/TruthCalibrationForm.tsx` | Accent swap |
+| 12 | `components/layout/Sidebar.tsx` | Accent swap |
+| 13 | `components/layout/TopBar.tsx` | Accent swap |
+| 14 | `app/dashboard/page.tsx` | Accent swap |
+| 15 | `app/dashboard/hallucinations/page.tsx` | Light → dark |
+| 16 | `app/dashboard/hallucinations/_components/EvaluationCard.tsx` | Light → dark |
+| 17 | `app/dashboard/hallucinations/_components/StatusDropdown.tsx` | Light → dark |
+| 18 | `app/dashboard/locations/page.tsx` | Light → dark |
+| 19 | `app/dashboard/share-of-voice/page.tsx` | Light → dark |
+| 20 | `app/dashboard/share-of-voice/_components/SovCard.tsx` | Light → dark |
+| 21 | `app/dashboard/magic-menus/page.tsx` | Accent swap |
+| 22 | `app/dashboard/magic-menus/[id]/page.tsx` | Light → dark |
+| 23 | `app/dashboard/billing/page.tsx` | Accent swap |
+| 24 | `app/dashboard/compete/page.tsx` | Accent swap |
+| 25 | `app/dashboard/compete/_components/InterceptCard.tsx` | Accent swap |
+| 26 | `app/dashboard/compete/_components/AddCompetitorForm.tsx` | Accent swap |
+| 27 | `app/dashboard/compete/_components/RunAnalysisButton.tsx` | Accent swap |
+| 28 | `app/dashboard/integrations/page.tsx` | Accent swap |
+| 29 | `app/dashboard/integrations/_components/PlatformRow.tsx` | Accent swap |
+| 30 | `app/dashboard/settings/_components/SettingsForm.tsx` | Accent swap |
+| 31 | `app/dashboard/_components/RealityScoreCard.tsx` | Accent swap |
+| 32 | `app/dashboard/_components/AlertFeed.tsx` | Accent swap |
+| 33 | `app/dashboard/_components/LogoutButton.tsx` | Hover fix |
+| 34 | `src/__tests__/unit/components/layout/DashboardShell.test.tsx` | Test assertions update |
+| 35 | `src/__tests__/unit/components/onboarding/TruthCalibrationForm.test.tsx` | Test assertion update |
+| 36 | `DEVLOG.md` | This entry |
+
+### Verification
+- `npx next build` — clean (0 type errors, 0 compilation errors)
+- `npx vitest run` — 355 passed, 7 skipped (1 pre-existing RLS test failure requiring Supabase)
+
+---
+
+## 2026-02-24 — Sprint 39: Scan Results Page Polish
+
+**Goal:** Restyle the `/scan` results page (free AI audit landing) to match the Sprint 37 landing page design language — design system classes, alternating section backgrounds, Reveal animations, and JetBrains Mono for data elements.
+
+### What changed
+
+**Font loading** — Added Outfit + JetBrains Mono via `next/font/google` to `app/scan/page.tsx`, matching the landing page pattern with CSS variables `--font-outfit` / `--font-jetbrains-mono`.
+
+**Full ScanDashboard restyle** — Rewrote `app/scan/_components/ScanDashboard.tsx` (~700 lines) from ad-hoc Tailwind to design system vocabulary:
+
+- **Outer structure:** Single `<div>` → multiple `<section>` elements with alternating navy `#050A15` / navyLight `#0A1628` backgrounds, each containing `<div className="lv-section">` (max-width 1120px)
+- **Nav strip:** Matches landing page — sticky, backdrop-blur, `lv-btn-outline` for "Run Another Scan"
+- **Alert banner:** `.lv-card` with accent `borderLeft`, `lv-scan` sweep animation, `lv-ping` PulseDot, JetBrains Mono severity badge. Added `<h1>AI Audit: {businessName}</h1>` page heading with `SectionLabel` eyebrow
+- **KPI section:** `lv-grid2` layout with "From Your Scan" (live) and "Unlock Full Scores" (locked) rows. Cards use `.lv-card` + colored borderLeft + JetBrains Mono stat values
+- **Locked score cards:** SVG lock icon (no emoji), `Bar pct={0}` behind overlay, blur effect
+- **Competitive landscape:** `Bar` component for competitor fills, SVG lock in gradient overlay, "Sample data" micro-copy
+- **Detected issues:** `.lv-card` + accent borderLeft by category (hours=amber, address=indigo, menu=green), "Detected via" sub-card pattern, `LockPill` overlay for locked items
+- **CTA section:** Gradient background + floating glow orb (`lv-float 6s`), single `lv-btn-green`, JetBrains Mono micro-copy
+
+**Design system compliance:** All sections wrapped in staggered `<Reveal>` components. No animation libraries. One accent per card. `#F1F5F9` for white text (not #FFF). JetBrains Mono for data elements only.
+
+### New sub-components (local to ScanDashboard)
+- `SectionLabel` — eyebrow text with colored accent dot
+- `LockOverlay` — blurred gradient overlay with SVG lock icon + CTA
+- `LockPill` — compact inline lock badge for individual locked items
+- `FallbackIssueCard` — extracted no-issues state card
+
+### Files modified
+| File | Change |
+|------|--------|
+| `app/scan/page.tsx` | Added Outfit + JetBrains Mono font loading |
+| `app/scan/_components/ScanDashboard.tsx` | Full visual restyle (~700 lines) |
+| `DEVLOG.md` | This entry |
+
+### Verification
+- `npx next build` — clean (0 type errors, 0 compilation errors)
+- `npx vitest run` — 355 passed, 7 skipped
+
+---
+
+## 2026-02-24 — Sprint 38: Build Hardening & E2E Selector Fixes
+
+**Goal:** Fix all pre-existing build errors and update E2E tests broken by Sprint 37 landing page text changes.
+
+### Build fixes (pre-existing type errors on main)
+- `app/dashboard/compete/page.tsx` — added null guard for `ctx.orgId` (`string | null` → redirect if null)
+- `app/dashboard/magic-menus/[id]/_components/AddItemModal.tsx` — `z.coerce.number()` + `zodResolver` type mismatch → cast resolver
+- `app/onboarding/_components/TruthCalibrationForm.tsx` — `keyof Amenities` → `keyof AmenitiesState` for Pick'd type
+- `lib/schemas/evaluations.ts`, `lib/schemas/integrations.ts`, `lib/schemas/sov.ts` — Zod v4 migration: `errorMap` → `message`
+- `lib/schemas/menu-items.ts` — Zod v4 migration: `invalid_type_error` → `message`
+- `lib/email.ts` — lazy-init Resend client to prevent build-time crash when `RESEND_API_KEY` is absent
+- `app/page.tsx` — `as const` type narrowing: added `isZero: false` to all items; spread `features` array for readonly→mutable
+
+### E2E test selector updates (Sprint 37 text changes)
+- `tests/e2e/viral-wedge.spec.ts` — hero heading, eyebrow badge, case study title selectors
+- `tests/e2e/01-viral-wedge.spec.ts` — same 3 selectors updated
+
+### Comparison table mobile responsiveness
+- `app/page.tsx` — wrapped comparison grid in `overflow-x-auto` container with `min-width: 540px` inner wrapper
+
+### Verification
+- `npx next build` — clean (0 type errors, 0 compilation errors)
+- `npx vitest run` — 355 passed, 7 skipped (RLS integration test requires running Supabase)
+
+---
+
+## 2026-02-24 — Sprint 37: Landing Page Content & Layout Refresh
+
+**Goal:** Update landing page text content, section layout, and visual structure to match
+the refined reference design (`docs/localvector-landing.jsx`).
+
+### What changed
+
+**New copy throughout** — Hero headline rewrote from "Is AI Hallucinating..." to
+"Every hour, ChatGPT answers 11,000 questions about local restaurants. Yours included."
+Amber eyebrow badge, narrative subheadline, ViralScanner wrapped in card container.
+
+**Practice What We Preach** — Replaced CompareRow checkmark/X format with animated
+`Bar` progress components. LocalVector.ai scores (97/100/0) vs "Average Local Business"
+(Unknown/Unknown/Unknown with gray bars). New `Bar.tsx` client component.
+
+**Three Engines** — Renamed from "Three Stages. Zero Hallucinations." to "Detect the lies.
+Steal the spotlight. Force the truth." Cards now use Fear Engine (crimson), Greed Engine
+(amber), Magic Engine (green) naming with "What you see" sub-cards per the reference.
+
+**Comparison Table** — Expanded from 4 to 6 feature rows with reference copy. Swapped
+from `<table>` to CSS grid. Added self-honest row: "Pushes to 48 directories nobody
+visits" (us: ✗, them: ✓).
+
+**Case Study** — Rewrote from structured CaseRow/ResultCard to narrative storytelling with
+before/after comparison cards. "The $12,000 Steakhouse That Didn't Exist" with green
+highlight box "The fix took 24 hours."
+
+**Pricing** — Updated copy: "Cheaper than one lost table." headline, reference feature
+lists, `.lv-btn-green`/`.lv-btn-outline` CTA styles. Added "14-day free trial" note.
+
+**FAQ** — Added "built by a restaurant owner who also runs a lounge in Alpharetta, GA."
+
+**Nav** — "Sign In" replaced with "How It Works" anchor (#how). CTA changed to
+"Free AI Audit →" with `animation: none`.
+
+**Footer** — Brand left, links right layout. Added "© 2026 LocalVector.ai".
+
+### Preserved (no changes)
+- ViralScanner component (hero + final CTA)
+- AVS Dashboard section (kept, restyled)
+- JSON-LD schema
+- All CSS keyframes in globals.css
+- Design system compliance (DESIGN-SYSTEM.md)
+
+### Files modified
+| File | Change |
+|------|--------|
+| `app/page.tsx` | Full content + layout rewrite (all 13 sections) |
+| `app/_components/Bar.tsx` | New — animated progress bar (scroll-reveal) |
+| `DEVLOG.md` | This entry |
+
+### Removed sub-components (no longer needed)
+- `CompareRow` — replaced by Bar-based layout
+- `CaseRow` — replaced by narrative paragraphs
+- `ResultCard` — replaced by before/after cards
+- `TrustPill` — replaced by JetBrains Mono micro-copy
+
+### Verification
+- `npx next build` — compiles successfully (pre-existing type error in `compete/page.tsx` unrelated)
+- Visual: all 13 sections render with correct content and animations
+
+---
+
+## 2026-02-23 — Sprint 36d: Best-of-2 Parallel Scan Strategy
+
+**Goal:** Eliminate non-deterministic scan results caused by Perplexity Sonar's live
+search + LLM combination. Same business can return `not_found` on one call and
+`pass` with high mentions on the next.
+
+### Architecture
+
+Refactored `runFreeScan()` in `app/actions/marketing.ts`:
+
+1. **`_singlePerplexityCall()`** — Extracted single API call + response parsing into a
+   pure helper function. Accepts `{ businessName, city, address, url, apiKey }`, returns
+   `ScanResult`. All Sprint 36c hardening (preprocessor, extractJson, AbortController,
+   text-detection) preserved inside the helper.
+
+2. **`_scoreScanResult()`** — Ranks results for comparison. Scoring:
+   - `pass`/`fail` with data: **100 + mentions_volume rank** (0–3)
+   - `not_found`: **10**
+   - `unavailable`/`rate_limited`: **0**
+   - Among equal statuses, higher `mentions_volume` wins.
+
+3. **`runFreeScan()`** — Now fires 2 parallel calls via `Promise.allSettled`, scores
+   both results, and returns the richer one. Rate limiting + API key check happen once
+   before the parallel calls.
+
+### Trade-offs
+- **Cost:** ~2x Perplexity API usage per scan
+- **Latency:** No change — both calls run concurrently within the same 15s window
+- **Consistency:** Dramatically improved — the richer of 2 non-deterministic results wins
+
+### Tests
+- `src/__tests__/unit/free-scan-pass.test.ts`: **31 tests, 31 passing** (+4 new)
+  - "picks pass over not_found" — first call returns `not_found`, second returns `pass` → `pass` wins
+  - "picks fail over unavailable" — first call returns `fail`, second errors → `fail` wins
+  - "prefers higher mentions_volume" — both calls return `pass` but with different richness → richer wins
+  - "returns unavailable only when both calls fail" — both error → `unavailable`
+- `src/__tests__/unit/rate-limit.test.ts`: **6 tests, 6 passing** (no regression)
+
+---
+
+## 2026-02-23 — Sprint 36c: Bulletproof Scan Pipeline — 5 Edge Case Fixes
+
+**Goal:** Eliminate all remaining "Scan Unavailable" edge cases in `runFreeScan()` where
+Perplexity returns usable data but the parser can't handle it.
+
+### Fixes (all in `app/actions/marketing.ts`)
+
+1. **`preprocessScanResponse()`** — Normalizes near-valid JSON before Zod: trims whitespace
+   from key names (Perplexity bug: `" accuracy_issue_categories"` → `"accuracy_issue_categories"`),
+   coerces string booleans (`"true"` → `true`), and lowercases enum fields (`"Critical"` →
+   `"critical"`). Prevents silent `safeParse` failures.
+
+2. **Empty response guard** — `choices: []` or empty `content` now returns `not_found`
+   instead of falling through to `unavailable`.
+
+3. **AbortController (15s timeout)** — Caps Perplexity fetch at 15 seconds so users get
+   a clean "Scan Unavailable" instead of staring at the animation for 30s+.
+
+4. **`extractJson()` balanced-brace parser** — Replaces greedy `/{[\s\S]*}/` regex.
+   Handles self-correcting LLM responses with multiple JSON objects by picking the last
+   complete `{...}` block.
+
+5. **"Open" business text-detection** — New keyword fallback (`"is open"`, `"currently
+   operating"`, `"still open"`, `"actively operating"`) returns `pass` with conservative
+   defaults when JSON parse fails but natural language confirms the business is open.
+
+6. **Zod truncate instead of reject** — `accuracy_issues` strings capped at 120 chars via
+   `.transform(s => s.slice(0, 120))` instead of `.max(120)`. Arrays sliced to 3 items via
+   `.transform(arr => arr.slice(0, 3))` instead of `.max(3)`. Verbose Perplexity responses
+   no longer blow up the entire parse.
+
+7. **Zod issue logging** — When `safeParse` fails but `JSON.parse` succeeded, Zod issues
+   are now logged in dev mode. Catches the next "Charcoal N Chill"-type surprise faster.
+
+8. **Pre-parse JSON repair** — Perplexity has three variants of a key malformation bug:
+   v1: `" accuracy_issue_categories"` (space in key, valid JSON — handled by key trim);
+   v2: `," "accuracy_issue_categories"` (space splits key — breaks JSON.parse);
+   v3: `,""accuracy_issue_categories"` (doubled quote, no space — breaks JSON.parse).
+   Regex `/,"\s*"(?=[a-z_])/gi → ,"`  repairs v2+v3 before `JSON.parse`. Lookahead
+   ensures valid JSON like `,"":value` (empty-string key) is not affected.
+
+### AI_RULES compliance
+- §24: Never fabricate — `unavailable` still returned when no data is extractable
+- §21: All parsed boolean branches preserved
+- §17: Side-effect resilience — `clearTimeout` always runs after fetch completes
+- §28: Parallel array pattern — `accuracy_issue_categories` lowercased in preprocessor
+
+### Tests
+- `src/__tests__/unit/free-scan-pass.test.ts`: **27 tests, 27 passing** (+9 new)
+- `src/__tests__/unit/rate-limit.test.ts`: **6 tests, 6 passing** (no regression)
+- Run: `npx vitest run src/__tests__/unit/free-scan-pass.test.ts`
+
+---
+
+## 2026-02-23 — Sprint 36b: Resilient JSON Extraction for Free Scan
+
+**Goal:** Fix "Scan Unavailable" errors for businesses like Charcoal N Chill (charcoalnchill.com)
+where Perplexity wraps valid JSON in natural-language prose instead of returning pure JSON.
+
+**Root cause:** `runFreeScan()` only stripped markdown fences (```` ```json ````) but couldn't
+extract a JSON object embedded in explanatory text. The response parsed as invalid JSON and fell
+through all fallbacks to `{ status: 'unavailable', reason: 'api_error' }`.
+
+### Changes
+
+- **`app/actions/marketing.ts`** — Added `/{[\s\S]*}/` regex extraction between fence-stripping
+  and `JSON.parse()`. Same pattern already used in `competitor-intercept.service.ts:96` and
+  `hallucinations/actions.ts:166`. Added dev-only `console.warn` on parse failure for diagnostics.
+- **`src/__tests__/unit/free-scan-pass.test.ts`** — New test: prose-wrapped JSON scenario
+  ("charcoalnchill case"). Suite now at **18 tests, 18 passing**.
+
+### AI_RULES compliance
+- §24: Never fabricate results — still returns `unavailable` when no JSON extractable at all
+- §17: KV/rate-limit resilience unchanged
+
+---
+
+## 2026-02-23 — Sprint 36: Landing Page Selective Upgrade (Design System Alignment)
+
+**Goal:** Upgrade the existing landing page (`app/page.tsx`) with richer interactions and missing
+sections from the design prototype (`docs/localvector-landing.jsx`), following DESIGN-SYSTEM.md
+conventions. Adds scroll-reveal animations, animated counters, FAQ accordion, and landing-scoped
+Outfit + JetBrains Mono fonts — while preserving all existing content and structure.
+
+### New CSS (globals.css)
+- 5 new `lv-` keyframes: `lv-scan`, `lv-float`, `lv-shimmer`, `lv-ping`, `lv-glow`
+- 6 utility classes: `.lv-card`, `.lv-btn-green`, `.lv-btn-outline`, `.lv-section`, `.lv-grid2`, `.lv-grid3`
+- Responsive breakpoint at 840px for grid collapse
+
+### New Client Components (app/_components/)
+- `use-reveal.ts` — shared IntersectionObserver hook (fires once at threshold)
+- `Reveal.tsx` — scroll-triggered fade-in wrapper (threshold 0.12, translateY 36→0, 0.7s)
+- `Counter.tsx` — animated number counter (threshold 0.3, counts to `end` over 1.8s)
+- `FaqAccordion.tsx` — FAQ item with open/close accordion + lighter scroll-reveal + `aria-expanded`
+- `ScrollHint.tsx` — decorative scroll indicator at bottom of hero (CSS-only `lv-float`)
+
+### Landing Page Updates (app/page.tsx)
+- **Font scoping:** Outfit + JetBrains Mono loaded via `next/font/google` at module scope,
+  applied to wrapper `<div>` with CSS variables. Dashboard keeps Geist fonts.
+- **Hero enhancements:** Model strip (ChatGPT/Perplexity/Gemini/Claude/Copilot chips with
+  `lv-shimmer` staggered animation) + `<ScrollHint />` at bottom of hero
+- **NEW section: "The Invisible Revenue Leak"** — 3 stat cards with `<Counter>` ($1,600/month,
+  68%, 0 alerts), `lv-card` styling, colored left borders, `lv-scan` accent sweeps
+- **NEW section: FAQ** — 5 `<FaqAccordion>` items with staggered delays (80ms increments)
+- **NEW section: Final CTA** — radial floating glow background, headline, reused `<ViralScanner />`
+- **Scroll-reveal:** All existing sections wrapped in `<Reveal>` with staggered delays
+- **MetricCard cleanup:** Removed redundant `fade-up` animation and `delay` prop (replaced by `<Reveal>`)
+
+### Section order (final)
+1. JSON-LD → 2. Nav → 3. Hero (+model strip, +scroll hint) → 4. Invisible Revenue Leak [NEW] →
+5. AVS Metrics → 6. Practice What We Preach → 7. Us vs Them → 8. How It Works →
+9. Case Study → 10. Pricing → 11. FAQ [NEW] → 12. Final CTA [NEW] → 13. Footer
+
+### Constraints
+- No animation libraries — CSS keyframes + IntersectionObserver only
+- All new keyframes use `lv-` prefix in `globals.css`
+- JetBrains Mono for data elements only; Outfit for prose/headings/buttons
+- Page remains a Server Component; client components are imported islands
+- Literal CSS class strings throughout (AI_RULES §12)
+
+---
+
 ## 2026-02-23 — Sprint 35: Accuracy Issues Full Display + Issue Categories
 
 **Goal:** Surface all `accuracy_issues` from Perplexity as real Detected Issues items (items 1–3

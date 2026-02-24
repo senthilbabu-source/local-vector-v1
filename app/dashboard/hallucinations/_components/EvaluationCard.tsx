@@ -31,12 +31,12 @@ const ENGINE_CONFIG: Record<EvaluationEngine, { label: string; badge: string; ba
   openai: {
     label: 'OpenAI GPT-4o',
     badge: 'AI',
-    badgeClass: 'bg-emerald-100 text-emerald-700',
+    badgeClass: 'bg-signal-green/15 text-signal-green',
   },
   perplexity: {
     label: 'Perplexity Sonar',
     badge: 'PX',
-    badgeClass: 'bg-indigo-100 text-indigo-700',
+    badgeClass: 'bg-electric-indigo/15 text-electric-indigo',
   },
 };
 
@@ -46,18 +46,18 @@ const ENGINE_CONFIG: Record<EvaluationEngine, { label: string; badge: string; ba
 
 function scoreColor(score: number | null): string {
   if (score === null) return 'text-slate-400';
-  if (score >= 90) return 'text-emerald-600';
-  if (score >= 70) return 'text-yellow-600';
-  if (score >= 50) return 'text-orange-500';
-  return 'text-red-600';
+  if (score >= 90) return 'text-signal-green';
+  if (score >= 70) return 'text-alert-amber';
+  if (score >= 50) return 'text-orange-400';
+  return 'text-alert-crimson';
 }
 
 function scoreBg(score: number | null): string {
-  if (score === null) return 'bg-slate-100 text-slate-500 ring-slate-500/20';
-  if (score >= 90) return 'bg-emerald-50 text-emerald-700 ring-emerald-600/20';
-  if (score >= 70) return 'bg-yellow-50 text-yellow-700 ring-yellow-600/20';
-  if (score >= 50) return 'bg-orange-50 text-orange-700 ring-orange-600/20';
-  return 'bg-red-50 text-red-700 ring-red-600/20';
+  if (score === null) return 'bg-white/5 text-[#94A3B8] ring-white/10';
+  if (score >= 90) return 'bg-signal-green/10 text-signal-green ring-signal-green/20';
+  if (score >= 70) return 'bg-alert-amber/10 text-alert-amber ring-alert-amber/20';
+  if (score >= 50) return 'bg-orange-500/10 text-orange-400 ring-orange-500/20';
+  return 'bg-alert-crimson/10 text-alert-crimson ring-alert-crimson/20';
 }
 
 function scoreLabel(score: number | null): string {
@@ -113,7 +113,7 @@ function EngineRow({
 
         {/* Engine name + score */}
         <div className="min-w-0 flex-1">
-          <p className="text-sm font-medium text-slate-900">{config.label}</p>
+          <p className="text-sm font-medium text-white">{config.label}</p>
           {evalData?.created_at && (
             <p className="text-xs text-slate-400" suppressHydrationWarning>
               Last run: {formatTime(evalData.created_at)}
@@ -137,7 +137,7 @@ function EngineRow({
         <button
           onClick={() => onRun(engine)}
           disabled={isPending}
-          className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-1 disabled:cursor-not-allowed disabled:opacity-50"
+          className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-white/10 bg-surface-dark px-3 py-1.5 text-xs font-medium text-[#CBD5E1] transition hover:bg-white/5 focus:outline-none focus:ring-2 focus:ring-signal-green focus:ring-offset-1 disabled:cursor-not-allowed disabled:opacity-50"
         >
           {isThisEngineLoading ? (
             <>
@@ -191,8 +191,8 @@ function EngineRow({
       {hallucinations.length > 0 && (
         <ul className="mt-2.5 ml-11 space-y-1.5">
           {hallucinations.map((item, idx) => (
-            <li key={idx} className="flex items-start gap-2 text-xs text-slate-600">
-              <span className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-red-100 text-red-600 font-bold text-[10px]">
+            <li key={idx} className="flex items-start gap-2 text-xs text-[#94A3B8]">
+              <span className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-alert-crimson/15 text-alert-crimson font-bold text-[10px]">
                 !
               </span>
               {item}
@@ -202,7 +202,7 @@ function EngineRow({
       )}
 
       {evalData && hallucinations.length === 0 && (
-        <p className="mt-2 ml-11 flex items-center gap-1.5 text-xs text-emerald-600">
+        <p className="mt-2 ml-11 flex items-center gap-1.5 text-xs text-signal-green">
           <svg
             xmlns="http://www.w3.org/2000/svg"
             className="h-3.5 w-3.5"
@@ -252,18 +252,18 @@ export default function EvaluationCard({
 
   return (
     <div
-      className={`overflow-hidden rounded-xl bg-white shadow-sm ring-1 ring-slate-900/5 transition-opacity ${
+      className={`overflow-hidden rounded-xl bg-surface-dark border border-white/5 transition-opacity ${
         isPending ? 'opacity-75' : ''
       }`}
     >
       {/* Card header */}
-      <div className="border-b border-slate-100 bg-slate-50 px-5 py-3">
-        <h2 className="text-sm font-semibold text-slate-800">{locationLabel}</h2>
-        <p className="text-xs text-slate-500">AI accuracy audit results</p>
+      <div className="border-b border-white/5 bg-midnight-slate px-5 py-3">
+        <h2 className="text-sm font-semibold text-white">{locationLabel}</h2>
+        <p className="text-xs text-[#94A3B8]">AI accuracy audit results</p>
       </div>
 
       {/* Engine rows */}
-      <div className="divide-y divide-slate-100 px-5">
+      <div className="divide-y divide-white/5 px-5">
         <EngineRow
           engine="openai"
           evalData={openaiEval}
@@ -282,8 +282,8 @@ export default function EvaluationCard({
 
       {/* Inline error */}
       {error && (
-        <div className="border-t border-red-100 bg-red-50 px-5 py-2.5">
-          <p className="text-xs font-medium text-red-600">{error}</p>
+        <div className="border-t border-alert-crimson/20 bg-alert-crimson/10 px-5 py-2.5">
+          <p className="text-xs font-medium text-alert-crimson">{error}</p>
         </div>
       )}
     </div>

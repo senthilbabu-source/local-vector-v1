@@ -90,7 +90,7 @@ const STATUS_CONFIG: Record<string, { label: string; className: string }> = {
   },
   syncing: {
     label: 'Syncing…',
-    className: 'bg-electric-indigo/10 text-electric-indigo ring-electric-indigo/20',
+    className: 'bg-signal-green/10 text-signal-green ring-signal-green/20',
   },
   error: {
     label: 'Error',
@@ -228,7 +228,7 @@ export default function PlatformRow({ locationId, platform, integration }: Props
           <button
             onClick={handleSync}
             disabled={isPending}
-            className="hidden shrink-0 items-center gap-1.5 rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-medium text-slate-300 transition hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-electric-indigo focus:ring-offset-1 focus:ring-offset-surface-dark disabled:cursor-not-allowed disabled:opacity-50 sm:inline-flex"
+            className="hidden shrink-0 items-center gap-1.5 rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-medium text-slate-300 transition hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-signal-green focus:ring-offset-1 focus:ring-offset-midnight-slate disabled:cursor-not-allowed disabled:opacity-50 sm:inline-flex"
           >
             {isPending ? (
               <>
@@ -258,8 +258,8 @@ export default function PlatformRow({ locationId, platform, integration }: Props
             aria-checked={isConnected}
             aria-label={`${isConnected ? 'Disconnect from' : 'Connect to'} ${config.name}`}
             className={[
-              'relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-electric-indigo focus:ring-offset-2 focus:ring-offset-surface-dark disabled:cursor-not-allowed disabled:opacity-50',
-              isConnected ? 'bg-electric-indigo' : 'bg-slate-700',
+              'relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-signal-green focus:ring-offset-2 focus:ring-offset-midnight-slate disabled:cursor-not-allowed disabled:opacity-50',
+              isConnected ? 'bg-signal-green' : 'bg-slate-700',
             ].join(' ')}
           >
             <span
@@ -282,7 +282,7 @@ export default function PlatformRow({ locationId, platform, integration }: Props
             onBlur={handleUrlBlur}
             placeholder={`https://www.${platform === 'google' ? 'g.page' : platform}.com/your-business`}
             disabled={isPending}
-            className="w-full max-w-md rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-xs text-slate-300 placeholder-slate-600 transition focus:border-electric-indigo/60 focus:outline-none focus:ring-1 focus:ring-electric-indigo/60 disabled:cursor-not-allowed disabled:opacity-50"
+            className="w-full max-w-md rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-xs text-slate-300 placeholder-slate-600 transition focus:border-signal-green/60 focus:outline-none focus:ring-1 focus:ring-signal-green/60 disabled:cursor-not-allowed disabled:opacity-50"
             aria-label={`${config.name} listing URL`}
           />
           {/* Saved confirmation */}

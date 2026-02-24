@@ -92,14 +92,14 @@ function TierCard({ tier }: { tier: PricingTier }) {
       className={[
         'relative flex flex-col rounded-2xl p-8',
         tier.highlight
-          ? 'bg-surface-dark border-2 border-electric-indigo shadow-xl shadow-electric-indigo/10'
+          ? 'bg-surface-dark border-2 border-signal-green shadow-xl shadow-signal-green/10'
           : 'bg-surface-dark border border-white/5',
       ].join(' ')}
     >
       {/* Header */}
       <div className="mb-6">
         {tier.highlight && (
-          <span className="mb-3 inline-block rounded-full bg-electric-indigo/15 px-3 py-0.5 text-xs font-semibold text-electric-indigo">
+          <span className="mb-3 inline-block rounded-full bg-signal-green/15 px-3 py-0.5 text-xs font-semibold text-signal-green">
             Most Popular
           </span>
         )}
@@ -107,7 +107,7 @@ function TierCard({ tier }: { tier: PricingTier }) {
         <p className="mt-1 text-sm text-slate-400">{tier.tagline}</p>
 
         <div className="mt-4 flex items-baseline gap-1">
-          <span className="text-4xl font-bold text-white">{tier.price}</span>
+          <span className="text-4xl font-bold text-white font-mono">{tier.price}</span>
           {tier.period && (
             <span className="text-sm text-slate-500">{tier.period}</span>
           )}
@@ -118,7 +118,7 @@ function TierCard({ tier }: { tier: PricingTier }) {
       <ul className="mb-8 flex-1 space-y-2.5">
         {tier.features.map((feature) => (
           <li key={feature} className="flex items-start gap-2.5">
-            <Check className="mt-0.5 h-4 w-4 shrink-0 text-truth-emerald" />
+            <Check className="mt-0.5 h-4 w-4 shrink-0 text-signal-green" />
             <span className="text-sm text-slate-300">{feature}</span>
           </li>
         ))}
@@ -130,8 +130,8 @@ function TierCard({ tier }: { tier: PricingTier }) {
         className={[
           'block w-full rounded-xl px-4 py-3 text-center text-sm font-semibold transition',
           tier.highlight
-            ? 'bg-electric-indigo text-white hover:bg-electric-indigo/90'
-            : 'border border-white/10 text-slate-300 hover:border-electric-indigo/50 hover:text-electric-indigo',
+            ? 'bg-signal-green text-deep-navy font-bold hover:brightness-110'
+            : 'border border-white/10 text-slate-300 hover:border-signal-green/50 hover:text-signal-green',
         ].join(' ')}
       >
         {tier.cta}
@@ -151,7 +151,7 @@ export default function PricingPage() {
       {/* ── Navigation ───────────────────────────────────────────────────── */}
       <nav className="sticky top-0 z-10 border-b border-white/5 bg-midnight-slate/80 backdrop-blur-sm">
         <div className="mx-auto flex max-w-5xl items-center justify-between px-6 py-4">
-          <a href="/" className="flex items-center gap-2 text-lg font-bold text-electric-indigo tracking-tight hover:opacity-80 transition">
+          <a href="/" className="flex items-center gap-2 text-lg font-bold text-signal-green tracking-tight hover:opacity-80 transition">
             <img src="/logo.svg" alt="" className="h-7 w-auto" aria-hidden />
             LocalVector
           </a>

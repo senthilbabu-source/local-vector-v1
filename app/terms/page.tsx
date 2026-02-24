@@ -14,7 +14,7 @@ export default function TermsPage() {
       {/* ── Navigation ───────────────────────────────────────────────────── */}
       <nav className="sticky top-0 z-10 border-b border-white/5 bg-midnight-slate/80 backdrop-blur-sm">
         <div className="mx-auto flex max-w-3xl items-center justify-between px-6 py-4">
-          <a href="/" className="text-lg font-bold text-electric-indigo tracking-tight hover:opacity-80 transition">
+          <a href="/" className="text-lg font-bold text-signal-green tracking-tight hover:opacity-80 transition">
             LocalVector
           </a>
         </div>
@@ -96,7 +96,7 @@ export default function TermsPage() {
           We may suspend or terminate your account for material breach of these Terms, non-payment, or abuse of
           the Service, with notice where practicable. You may terminate your account at any time through the
           billing settings or by emailing{' '}
-          <a href="mailto:hello@localvector.ai" className="text-electric-indigo hover:underline">
+          <a href="mailto:hello@localvector.ai" className="text-signal-green hover:underline">
             hello@localvector.ai
           </a>.
           Upon termination, your data will be retained per our Privacy Policy.
@@ -116,7 +116,7 @@ export default function TermsPage() {
 
         <ProseSection title="12. Contact">
           Questions about these Terms? Contact us at{' '}
-          <a href="mailto:hello@localvector.ai" className="text-electric-indigo hover:underline">
+          <a href="mailto:hello@localvector.ai" className="text-signal-green hover:underline">
             hello@localvector.ai
           </a>.
         </ProseSection>

@@ -97,7 +97,7 @@ export default function SettingsForm({ displayName, email, orgName, plan }: Sett
               minLength={2}
               maxLength={80}
               required
-              className="w-full rounded-xl bg-midnight-slate border border-white/10 px-3 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-electric-indigo"
+              className="w-full rounded-xl bg-midnight-slate border border-white/10 px-3 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-signal-green"
             />
           </div>
           <div>
@@ -106,7 +106,7 @@ export default function SettingsForm({ displayName, email, orgName, plan }: Sett
           </div>
 
           {nameStatus && (
-            <p className={`text-xs ${nameStatus.success ? 'text-truth-emerald' : 'text-alert-crimson'}`}>
+            <p className={`text-xs ${nameStatus.success ? 'text-signal-green' : 'text-alert-crimson'}`}>
               {nameStatus.message}
             </p>
           )}
@@ -114,7 +114,7 @@ export default function SettingsForm({ displayName, email, orgName, plan }: Sett
           <button
             type="submit"
             disabled={nameIsPending}
-            className="rounded-xl bg-electric-indigo px-4 py-2 text-sm font-semibold text-white hover:bg-electric-indigo/90 disabled:opacity-60 transition"
+            className="rounded-xl bg-signal-green px-4 py-2 text-sm font-semibold text-deep-navy hover:bg-signal-green/90 disabled:opacity-60 transition"
           >
             {nameIsPending ? 'Saving…' : 'Save changes'}
           </button>
@@ -135,7 +135,7 @@ export default function SettingsForm({ displayName, email, orgName, plan }: Sett
               type="password"
               minLength={8}
               required
-              className="w-full rounded-xl bg-midnight-slate border border-white/10 px-3 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-electric-indigo"
+              className="w-full rounded-xl bg-midnight-slate border border-white/10 px-3 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-signal-green"
             />
           </div>
           <div>
@@ -148,12 +148,12 @@ export default function SettingsForm({ displayName, email, orgName, plan }: Sett
               type="password"
               minLength={8}
               required
-              className="w-full rounded-xl bg-midnight-slate border border-white/10 px-3 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-electric-indigo"
+              className="w-full rounded-xl bg-midnight-slate border border-white/10 px-3 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-signal-green"
             />
           </div>
 
           {pwStatus && (
-            <p className={`text-xs ${pwStatus.success ? 'text-truth-emerald' : 'text-alert-crimson'}`}>
+            <p className={`text-xs ${pwStatus.success ? 'text-signal-green' : 'text-alert-crimson'}`}>
               {pwStatus.message}
             </p>
           )}
@@ -161,7 +161,7 @@ export default function SettingsForm({ displayName, email, orgName, plan }: Sett
           <button
             type="submit"
             disabled={pwIsPending}
-            className="rounded-xl bg-electric-indigo px-4 py-2 text-sm font-semibold text-white hover:bg-electric-indigo/90 disabled:opacity-60 transition"
+            className="rounded-xl bg-signal-green px-4 py-2 text-sm font-semibold text-deep-navy hover:bg-signal-green/90 disabled:opacity-60 transition"
           >
             {pwIsPending ? 'Updating…' : 'Update password'}
           </button>
@@ -179,13 +179,13 @@ export default function SettingsForm({ displayName, email, orgName, plan }: Sett
           <div className="flex items-center justify-between">
             <div>
               <p className="text-xs font-medium text-slate-400 mb-1.5">Plan</p>
-              <span className="inline-flex items-center rounded-md bg-electric-indigo/15 px-2 py-0.5 text-xs font-semibold text-electric-indigo">
+              <span className="inline-flex items-center rounded-md bg-signal-green/15 px-2 py-0.5 text-xs font-semibold text-signal-green">
                 {planLabel}
               </span>
             </div>
             <Link
               href="/dashboard/billing"
-              className="text-xs font-medium text-electric-indigo hover:underline"
+              className="text-xs font-medium text-signal-green hover:underline"
             >
               Manage billing →
             </Link>

@@ -97,7 +97,7 @@ export default async function MagicMenusPage() {
           </p>
           <a
             href="/dashboard/locations"
-            className="mt-4 inline-flex items-center rounded-xl bg-electric-indigo/10 border border-electric-indigo/30 px-4 py-2 text-xs font-semibold text-electric-indigo hover:bg-electric-indigo/20 transition"
+            className="mt-4 inline-flex items-center rounded-xl bg-signal-green/10 border border-signal-green/30 px-4 py-2 text-xs font-semibold text-signal-green hover:bg-signal-green/20 transition"
           >
             Add a Location →
           </a>

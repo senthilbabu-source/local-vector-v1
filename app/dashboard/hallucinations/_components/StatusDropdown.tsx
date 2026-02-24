@@ -31,7 +31,7 @@ export default function StatusDropdown({ hallucinationId, currentStatus }: Props
       defaultValue={currentStatus}
       onChange={handleChange}
       disabled={isPending}
-      className="rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-xs font-medium text-slate-700 shadow-sm outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 disabled:cursor-wait disabled:opacity-60"
+      className="rounded-lg border border-white/10 bg-surface-dark px-2.5 py-1.5 text-xs font-medium text-[#CBD5E1] outline-none transition focus:border-signal-green/50 focus:ring-2 focus:ring-signal-green/20 disabled:cursor-wait disabled:opacity-60"
     >
       {STATUS_OPTIONS.map(({ value, label }) => (
         <option key={value} value={value}>

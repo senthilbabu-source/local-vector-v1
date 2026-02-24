@@ -1,44 +1,47 @@
 // ---------------------------------------------------------------------------
-// Landing Page — LocalVector.ai (Sprint 28)
+// Landing Page — LocalVector.ai (Sprint 37)
 //
-// High-converting landing page per Doc 08 §§1-10 + Sprint 28 design spec.
-// Server Component throughout; only ViralScanner is 'use client'.
+// High-converting landing page updated to match reference design
+// (docs/localvector-landing.jsx) — refined copy, Fear/Greed/Magic engine
+// naming, narrative case study, animated progress bars.
+//
+// Server Component throughout; only ViralScanner, Reveal, Counter, Bar,
+// FaqAccordion, ScrollHint are 'use client'.
 //
 // Sections:
-//   1. JSON-LD  — SoftwareApplication schema (Doc 08 §9, Sprint 25C)
-//   2. Nav      — sticky, Logo + Pricing + Sign In + Get Started
-//   3. Hero     — deep-navy bg, AI-hallucination headline, ViralScanner CTA
-//   4. AVS      — Proprietary Metrics (3 animated progress-bar gauge cards)
-//   5. Compare  — "Practice What We Preach" comparison table
-//   6. Engine   — "How It Works" 3-column grid
-//   7. Proof    — "$12,000 Steakhouse Hallucination" case study + result cards
-//   8. Pricing  — Free Audit / Starter $29 / AI Shield $59 / Brand Fortress Custom
-//   9. Footer   — brand line + legal links
+//   1. JSON-LD  — SoftwareApplication schema
+//   2. Nav      — sticky, Logo + How It Works + Pricing + Free AI Audit
+//   3. Hero     — "11,000 questions" headline, ViralScanner CTA
+//   4. Problem  — The Invisible Revenue Leak (3 stat cards)
+//   5. AVS      — Proprietary Metrics (3 gauge cards)
+//   6. Compare  — "Practice What We Preach" with animated Bar components
+//   7. Table    — Us vs Listing Tools (6-row grid)
+//   8. Engines  — Fear / Greed / Magic (3-column)
+//   9. Case     — "$12,000 Steakhouse" narrative + before/after cards
+//  10. Pricing  — Free / Starter $29 / AI Shield $59 / Brand Fortress
+//  11. FAQ      — 5 accordions
+//  12. CTA      — Final ViralScanner
+//  13. Footer
 //
-// Color palette (added to globals.css Sprint 28):
-//   deep-navy    (#050A15)  — hero + nav + footer background
-//   signal-green (#00F5A0)  — positive metrics, CTAs, success states
-//   alert-amber  (#FFB800)  — warning / watch states
-//
-// Animations: CSS keyframes in globals.css (fill-bar, fade-up,
-//   pulse-glow-green, shield-beat, ping-dot). No Framer Motion required.
-//
-// Pricing note: "AI Shield" ($59/mo) and "Brand Fortress" (Custom) are
-//   marketing names for the Growth and Agency DB plan tiers respectively.
-//   CTA buttons point to /signup or /pricing — never to a direct checkout URL.
+// Design system: docs/DESIGN-SYSTEM.md tokens, animations, hard rules.
+// No Framer Motion. CSS keyframes + IntersectionObserver only.
 // ---------------------------------------------------------------------------
 
 import ViralScanner from './_components/ViralScanner';
+import Reveal from './_components/Reveal';
+import Counter from './_components/Counter';
+import Bar from './_components/Bar';
+import FaqAccordion from './_components/FaqAccordion';
+import ScrollHint from './_components/ScrollHint';
 import { safeJsonLd } from './m/[slug]/page';
 import {
   Shield,
   Zap,
   Cpu,
   CheckCircle,
-  XCircle,
-  TrendingUp,
   Eye,
   Star,
+  TrendingUp,
 } from 'lucide-react';
 
 // ---------------------------------------------------------------------------
@@ -47,9 +50,12 @@ import {
 
 export default function RootPage() {
   return (
+    <div
+      style={{ fontFamily: 'var(--font-outfit), sans-serif' }}
+    >
     <main className="min-h-screen text-slate-300 overflow-x-hidden">
 
-      {/* ── 1. JSON-LD ── SoftwareApplication schema (Doc 08 §9) ──────────── */}
+      {/* ── 1. JSON-LD ─────────────────────────────────────────────────────── */}
       <script
         type="application/ld+json"
         // eslint-disable-next-line react/no-danger
@@ -95,489 +101,942 @@ export default function RootPage() {
         className="sticky top-0 z-20 border-b border-white/5 backdrop-blur-sm"
         style={{ backgroundColor: 'rgba(5,10,21,0.92)' }}
       >
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
+        <div className="mx-auto flex max-w-[1120px] items-center justify-between px-6" style={{ height: 64 }}>
           {/* Logo */}
-          <span className="flex items-center gap-2 text-lg font-bold tracking-tight">
+          <span className="flex items-center gap-2 text-base font-bold" style={{ letterSpacing: '-0.02em' }}>
             <img src="/logo.svg" alt="" className="h-7 w-auto" aria-hidden />
             <span style={{ color: '#00F5A0' }}>LocalVector</span>
             <span className="text-slate-600">.ai</span>
           </span>
 
           {/* Links */}
-          <div className="flex items-center gap-4">
-            <a href="/pricing" className="hidden sm:block text-sm text-slate-400 hover:text-white transition">
+          <div className="flex items-center gap-7 text-sm font-medium text-slate-400">
+            <a href="#how" className="hidden sm:block hover:text-white transition">
+              How It Works
+            </a>
+            <a href="#pricing" className="hidden sm:block hover:text-white transition">
               Pricing
             </a>
             <a
-              href="/login"
-              className="rounded-xl border border-white/10 px-4 py-2 text-sm text-slate-300 hover:bg-white/5 hover:text-white transition"
-            >
-              Sign In
-            </a>
-            <a
               href="/signup"
-              className="rounded-xl px-4 py-2 text-sm font-bold transition hover:opacity-90"
-              style={{
-                backgroundColor: '#00F5A0',
-                color: '#050A15',
-                animation: 'pulse-glow-green 3s ease-in-out infinite',
-              }}
+              className="lv-btn-green"
+              style={{ padding: '8px 20px', fontSize: 13, animation: 'none' }}
             >
-              Get Started Free
+              Free AI Audit &rarr;
             </a>
           </div>
         </div>
       </nav>
 
-      {/* ── 3. Hero ─────────────────────────────────────────────────────────── */}
+      {/* ── 3. Hero ───────────────────────────────────────────────────────── */}
       <section
-        className="relative px-4 pt-24 pb-24 overflow-hidden"
-        style={{ backgroundColor: '#050A15' }}
+        className="relative flex flex-col justify-center overflow-hidden"
+        style={{
+          minHeight: '100vh',
+          paddingTop: 80,
+          backgroundColor: '#050A15',
+          backgroundImage: 'radial-gradient(ellipse 70% 50% at 50% 30%, rgba(0,245,160,0.06) 0%, transparent 70%)',
+        }}
       >
-        {/* Radial green glow behind headline */}
+        {/* Grid overlay */}
         <div
           aria-hidden
           className="pointer-events-none absolute inset-0"
           style={{
+            opacity: 0.03,
             backgroundImage:
-              'radial-gradient(ellipse 80% 45% at 50% -5%, rgba(0,245,160,0.07) 0%, transparent 70%)',
+              'linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px)',
+            backgroundSize: '60px 60px',
           }}
         />
 
-        <div className="relative mx-auto max-w-3xl text-center">
-
-          {/* Live eyebrow badge */}
-          <div className="inline-flex items-center gap-2.5 rounded-full border border-signal-green/20 bg-signal-green/5 px-4 py-1.5 text-xs font-semibold text-signal-green mb-8">
-            <span className="relative flex h-2 w-2">
-              <span
-                className="absolute inline-flex h-full w-full rounded-full bg-signal-green opacity-75"
-                style={{ animation: 'ping-dot 1.5s cubic-bezier(0,0,0.2,1) infinite' }}
-              />
-              <span className="relative inline-flex h-2 w-2 rounded-full bg-signal-green" />
-            </span>
-            Live AI Hallucination Detection
-          </div>
-
-          {/* Headline — per spec */}
-          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-white leading-tight tracking-tight">
-            Is AI Hallucinating Your Business{' '}
-            <span className="text-alert-crimson">Out of Existence?</span>
-          </h1>
-
-          {/* Sub-headline — per spec */}
-          <p className="mt-6 text-lg sm:text-xl text-slate-400 max-w-2xl mx-auto leading-relaxed">
-            When ChatGPT, Gemini, or Perplexity tell customers you&apos;re closed,{' '}
-            <strong className="text-white">you lose revenue instantly.</strong>{' '}
-            LocalVector.ai is the world&apos;s first AI Defense Layer that detects
-            misinformation and forces the truth.
-          </p>
-
-          {/* ViralScanner — free scan CTA (preserved from Sprint 25C) */}
-          <div className="mt-10 mx-auto max-w-sm">
-            <ViralScanner />
-          </div>
-
-          {/* Trust strip */}
-          <div className="mt-8 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-xs text-slate-600">
-            <TrustPill>No signup required</TrustPill>
-            <TrustPill>Results in 60 seconds</TrustPill>
-            <TrustPill>ChatGPT · Gemini · Perplexity</TrustPill>
-          </div>
-        </div>
-      </section>
-
-      {/* ── 4. AVS — Proprietary Metrics ────────────────────────────────────── */}
-      <section className="bg-midnight-slate px-4 py-20">
-        <div className="mx-auto max-w-5xl">
-
-          <SectionLabel>Proprietary Intelligence</SectionLabel>
-          <h2 className="mt-3 text-center text-3xl font-bold text-white">
-            The AI Visibility Score (AVS) Dashboard
-          </h2>
-          <p className="mt-3 text-center text-slate-400 max-w-xl mx-auto">
-            Three signals that tell you exactly how AI engines perceive your business —
-            and precisely what to fix.
-          </p>
-
-          <div className="mt-12 grid grid-cols-1 sm:grid-cols-3 gap-6">
-            <MetricCard
-              icon={<Eye className="h-5 w-5" />}
-              iconColor="text-signal-green"
-              title="AI Visibility Score"
-              subtitle="AVS"
-              score={98}
-              outOf={100}
-              barColor="#00F5A0"
-              delay="0s"
-              description="How often your business is accurately cited when users ask AI about businesses like yours."
-            />
-            <MetricCard
-              icon={<TrendingUp className="h-5 w-5" />}
-              iconColor="text-electric-indigo"
-              title="Sentiment Index"
-              subtitle="SI"
-              score={87}
-              outOf={100}
-              barColor="#6366f1"
-              delay="0.15s"
-              description="Whether AI mentions of your business are positive, neutral, or damaging your reputation."
-            />
-            <MetricCard
-              icon={<Star className="h-5 w-5" />}
-              iconColor="text-alert-amber"
-              title="Citation Accuracy"
-              subtitle="CA"
-              score={94}
-              outOf={100}
-              barColor="#FFB800"
-              delay="0.3s"
-              description="How precisely AI engines reproduce your hours, address, menu, and pricing."
-            />
-          </div>
-        </div>
-      </section>
-
-      {/* ── 5. Practice What We Preach ──────────────────────────────────────── */}
-      <section className="bg-surface-dark px-4 py-20">
-        <div className="mx-auto max-w-5xl">
-
-          <SectionLabel>Credibility</SectionLabel>
-          <h2 className="mt-3 text-center text-3xl font-bold text-white">
-            We Practice What We Preach
-          </h2>
-          <p className="mt-3 text-center text-slate-400 max-w-xl mx-auto">
-            We run LocalVector&apos;s own AVS every day. Compare our score against a
-            typical SEO agency that doesn&apos;t think about AI visibility.
-          </p>
-
-          <div className="mt-12 grid grid-cols-1 sm:grid-cols-2 gap-6 max-w-3xl mx-auto">
-
-            {/* LocalVector */}
-            <div className="rounded-2xl border-2 border-signal-green/40 bg-midnight-slate p-6">
-              <div className="flex items-center justify-between mb-6">
-                <div>
-                  <p className="text-xs font-bold text-signal-green uppercase tracking-widest mb-1">
-                    LocalVector.ai
-                  </p>
-                  <p className="text-4xl font-bold text-white tabular-nums">100</p>
-                  <p className="text-xs text-slate-500 mt-0.5">AI Visibility Score</p>
-                </div>
-                <Shield
-                  className="h-12 w-12 text-signal-green"
-                  style={{ animation: 'shield-beat 2.5s ease-in-out infinite' }}
+        <div className="lv-section relative" style={{ padding: '0 24px' }}>
+          {/* Eyebrow — amber "RIGHT NOW" badge */}
+          <Reveal>
+            <div
+              className="inline-flex items-center gap-2 rounded-full px-4 py-1.5 mb-7"
+              style={{ background: 'rgba(255,184,0,0.12)' }}
+            >
+              <span className="relative flex h-1.5 w-1.5">
+                <span
+                  className="absolute inline-flex h-full w-full rounded-full"
+                  style={{ background: '#FFB800', animation: 'lv-ping 1.8s cubic-bezier(0,0,0.2,1) infinite' }}
                 />
-              </div>
-              <div className="space-y-3">
-                <CompareRow label="ChatGPT Accuracy"    value="100%" positive />
-                <CompareRow label="Gemini Citations"    value="100%" positive />
-                <CompareRow label="Perplexity Accuracy" value="99%"  positive />
-                <CompareRow label="Hallucinations"      value="0 detected" positive />
-              </div>
-            </div>
-
-            {/* Competitor */}
-            <div className="rounded-2xl border border-white/10 bg-midnight-slate p-6">
-              <div className="flex items-center justify-between mb-6">
-                <div>
-                  <p className="text-xs font-bold text-slate-600 uppercase tracking-widest mb-1">
-                    Generic SEO Firm
-                  </p>
-                  <p className="text-4xl font-bold text-alert-crimson tabular-nums">34</p>
-                  <p className="text-xs text-slate-500 mt-0.5">AI Visibility Score</p>
-                </div>
-                <XCircle className="h-12 w-12 text-alert-crimson" />
-              </div>
-              <div className="space-y-3">
-                <CompareRow label="ChatGPT Accuracy"    value="41%"  positive={false} />
-                <CompareRow label="Gemini Citations"    value="28%"  positive={false} />
-                <CompareRow label="Perplexity Accuracy" value="35%"  positive={false} />
-                <CompareRow label="Hallucinations"      value="12 detected" positive={false} />
-              </div>
-            </div>
-          </div>
-
-          <p className="mt-5 text-center text-xs text-slate-700">
-            Comparison is illustrative. Generic SEO Firm represents industry average
-            for businesses without active AI visibility management.
-          </p>
-        </div>
-      </section>
-
-      {/* ── 6. US VS THEM — Why Static Listings Aren't Enough ───────────────── */}
-      <section className="bg-midnight-slate px-4 py-20">
-        <div className="mx-auto max-w-4xl">
-
-          <SectionLabel>The Difference</SectionLabel>
-          <h2 className="mt-3 text-center text-3xl font-bold text-white">
-            Why Static Listings Aren&apos;t Enough
-          </h2>
-          <p className="mt-3 text-center text-slate-400 max-w-xl mx-auto">
-            Legacy listing tools were built for Google. AI runs on a completely different trust model.
-          </p>
-
-          <div className="mt-10 overflow-x-auto">
-            <table className="w-full text-sm border-collapse">
-              <thead>
-                <tr>
-                  <th className="text-left px-5 py-3 text-xs font-bold uppercase tracking-widest text-slate-500 w-1/2">Feature</th>
-                  <th className="px-5 py-3 text-center text-xs font-bold uppercase tracking-widest text-signal-green">LocalVector.ai</th>
-                  <th className="px-5 py-3 text-center text-xs font-bold uppercase tracking-widest text-slate-600">Enterprise Listing Tools</th>
-                </tr>
-              </thead>
-              <tbody>
-                {[
-                  { feature: 'Hallucination Detection', sub: 'Catches when AI lies about your business status, hours, or location' },
-                  { feature: 'AI Sentiment Steering', sub: 'Shapes the tone AI uses — Premium vs. Budget, Recommended vs. Ignored' },
-                  { feature: 'Real-time RAG Updates', sub: 'Pushes your ground truth into the sources LLMs actively trust and cite' },
-                  { feature: 'Localized GEO', sub: 'Optimizes your presence in generative-engine outputs for local intent queries' },
-                ].map(({ feature, sub }, i) => (
-                  <tr
-                    key={feature}
-                    className={i % 2 === 0 ? 'bg-surface-dark/60' : 'bg-transparent'}
-                  >
-                    <td className="px-5 py-4 rounded-l-xl">
-                      <p className="font-semibold text-white text-sm">{feature}</p>
-                      <p className="text-xs text-slate-500 mt-0.5 leading-relaxed">{sub}</p>
-                    </td>
-                    <td className="px-5 py-4 text-center">
-                      <span className="inline-flex items-center justify-center h-6 w-6 rounded-full bg-signal-green/10 border border-signal-green/30">
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" className="h-3.5 w-3.5 text-signal-green" aria-hidden>
-                          <path fillRule="evenodd" d="M12.416 3.376a.75.75 0 0 1 .208 1.04l-5 7.5a.75.75 0 0 1-1.154.114l-3-3a.75.75 0 0 1 1.06-1.06l2.353 2.353 4.493-6.74a.75.75 0 0 1 1.04-.207Z" clipRule="evenodd" />
-                        </svg>
-                      </span>
-                    </td>
-                    <td className="px-5 py-4 text-center rounded-r-xl">
-                      <span className="inline-flex items-center justify-center h-6 w-6 rounded-full bg-alert-crimson/10 border border-alert-crimson/20">
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" className="h-3.5 w-3.5 text-alert-crimson" aria-hidden>
-                          <path d="M5.28 4.22a.75.75 0 0 0-1.06 1.06L6.94 8l-2.72 2.72a.75.75 0 1 0 1.06 1.06L8 9.06l2.72 2.72a.75.75 0 1 0 1.06-1.06L9.06 8l2.72-2.72a.75.75 0 0 0-1.06-1.06L8 6.94 5.28 4.22Z" />
-                        </svg>
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </section>
-
-      {/* ── 7. The Engine — How It Works ────────────────────────────────────── */}
-      <section className="bg-midnight-slate px-4 py-20">
-        <div className="mx-auto max-w-5xl">
-
-          <SectionLabel>The Engine</SectionLabel>
-          <h2 className="mt-3 text-center text-3xl font-bold text-white">
-            Three Stages. Zero Hallucinations.
-          </h2>
-          <p className="mt-3 text-center text-slate-400 max-w-xl mx-auto">
-            LocalVector runs a continuous loop — every day, across every major AI engine.
-          </p>
-
-          <div className="mt-12 grid grid-cols-1 sm:grid-cols-3 gap-6">
-            <EngineCard
-              number="01"
-              icon={<Zap className="h-6 w-6 text-alert-amber" />}
-              iconBg="bg-alert-amber/10"
-              title="Active Interrogation"
-              description="Every day we ask ChatGPT, Gemini, Perplexity, and Claude what they know about your business — then compare answers to your verified ground truth."
-              highlight="Daily LLM Testing"
-              highlightColor="text-alert-amber"
-            />
-            <EngineCard
-              number="02"
-              icon={<Cpu className="h-6 w-6 text-electric-indigo" />}
-              iconBg="bg-electric-indigo/10"
-              title="RAG Injection"
-              description="When we detect a hallucination we push your verified data — hours, menu, address, attributes — into every source AI models use to train. Your truth wins."
-              highlight="Source-Truth Alignment"
-              highlightColor="text-electric-indigo"
-            />
-            <EngineCard
-              number="03"
-              icon={<Shield className="h-6 w-6 text-signal-green" />}
-              iconBg="bg-signal-green/10"
-              title="The Shield"
-              description="A permanent watch layer monitors for new hallucinations, competitor intercepts, and listing drift. You get alerted the moment something changes."
-              highlight="24 / 7 Monitoring"
-              highlightColor="text-signal-green"
-            />
-          </div>
-        </div>
-      </section>
-
-      {/* ── 7. Social Proof — Case Study ────────────────────────────────────── */}
-      <section className="bg-surface-dark px-4 py-20">
-        <div className="mx-auto max-w-4xl">
-
-          <SectionLabel>Social Proof</SectionLabel>
-          <h2 className="mt-3 text-center text-3xl font-bold text-white">
-            The <span className="text-alert-crimson">$12,000</span> Steakhouse Hallucination
-          </h2>
-          <p className="mt-3 text-center text-slate-400 max-w-xl mx-auto">
-            A single incorrect AI answer — running unchecked for three months — quietly
-            cost one restaurant twelve thousand dollars in lost Monday revenue.
-          </p>
-
-          <div className="mt-10 rounded-2xl bg-midnight-slate border border-white/5 p-6 sm:p-8 space-y-5">
-            <div className="flex flex-wrap gap-2">
-              <span className="rounded-full bg-alert-crimson/10 border border-alert-crimson/20 px-3 py-1 text-xs font-semibold text-alert-crimson uppercase tracking-wide">
-                Real Client · Identity Protected
+                <span className="relative inline-flex h-1.5 w-1.5 rounded-full" style={{ background: '#FFB800' }} />
+              </span>
+              <span
+                className="text-xs font-semibold"
+                style={{ color: '#FFB800', fontFamily: 'var(--font-jetbrains-mono), monospace' }}
+              >
+                RIGHT NOW: AI is answering questions about your business
               </span>
             </div>
+          </Reveal>
 
-            <CaseRow icon="⚠️" label="AI Claim"  value='Perplexity answered "Closed on Mondays" to every user who searched.'        labelColor="text-alert-crimson" />
-            <CaseRow icon="✓"  label="Reality"   value="Open Monday — full dinner service, highest-margin night of the week."         labelColor="text-truth-emerald" />
-            <CaseRow icon="$"  label="Damage"    value="6 tables/night × $80 avg × 4 Mondays × 3 months = $5,760 direct + ~$6,480 repeat-customer loss." labelColor="text-alert-amber" />
-            <CaseRow icon="⚡" label="Fix Time"  value="Detected by LocalVector within 24 hours. Corrected via Magic Menu + Big 6 listing push." labelColor="text-electric-indigo" />
-            <CaseRow icon="📈" label="Outcome"   value="Monday traffic restored within 2 weeks. Competitor intercept removed."         labelColor="text-truth-emerald" />
-          </div>
-
-          <div className="mt-8 grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <ResultCard value="$12,500+" label="Revenue Protected"       color="text-signal-green"    />
-            <ResultCard value="24 hrs"   label="Detection Time"          color="text-electric-indigo" />
-            <ResultCard value="3"        label="Competitors Intercepted" color="text-alert-amber"     />
-          </div>
-
-          <div className="mt-8 text-center">
-            <a
-              href="/signup"
-              className="inline-flex items-center gap-2 rounded-xl px-8 py-3 text-sm font-bold transition hover:opacity-90"
-              style={{ backgroundColor: '#00F5A0', color: '#050A15' }}
+          {/* Headline */}
+          <Reveal delay={120}>
+            <h1
+              className="font-extrabold text-white leading-tight"
+              style={{
+                fontSize: 'clamp(32px, 5vw, 58px)',
+                letterSpacing: '-0.03em',
+                maxWidth: 780,
+                marginBottom: 20,
+              }}
             >
-              Protect My Revenue Now
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4 shrink-0" aria-hidden>
-                <path fillRule="evenodd" d="M3 10a.75.75 0 01.75-.75h10.638L10.23 5.29a.75.75 0 111.04-1.08l5.5 5.25a.75.75 0 010 1.08l-5.5 5.25a.75.75 0 11-1.04-1.08l4.158-3.96H3.75A.75.75 0 013 10z" clipRule="evenodd" />
-              </svg>
-            </a>
-            <p className="mt-3 text-xs text-slate-600">No credit card required for the free scan.</p>
+              Every hour, ChatGPT answers{' '}
+              <span className="relative" style={{ color: '#00F5A0' }}>
+                11,000 questions
+                <span
+                  className="absolute left-0 right-0"
+                  style={{
+                    bottom: -2,
+                    height: 3,
+                    background: 'linear-gradient(90deg, #00F5A0, transparent)',
+                    borderRadius: 2,
+                    opacity: 0.5,
+                  }}
+                />
+              </span>{' '}
+              about local restaurants.
+              <br />
+              Yours included.
+            </h1>
+          </Reveal>
+
+          {/* Subheadline */}
+          <Reveal delay={240}>
+            <p
+              className="text-lg leading-relaxed text-slate-400"
+              style={{ maxWidth: 620, marginBottom: 40 }}
+            >
+              Most of those answers are wrong. Wrong hours. Wrong prices.
+              &ldquo;Permanently closed&rdquo; when you&apos;re wide open.
+              Every wrong answer sends a customer to your competitor &mdash;
+              and you never know it happened.
+            </p>
+          </Reveal>
+
+          {/* CTA area — ViralScanner in card container */}
+          <Reveal delay={360}>
+            <div
+              className="lv-card"
+              style={{
+                maxWidth: 560,
+                border: '1px solid rgba(0,245,160,0.12)',
+              }}
+            >
+              <p className="text-sm font-medium text-slate-400 mb-3.5">
+                See exactly what AI is telling your customers right now.
+              </p>
+              <ViralScanner />
+              <p
+                className="text-xs mt-2.5"
+                style={{
+                  color: '#475569',
+                  fontFamily: 'var(--font-jetbrains-mono), monospace',
+                }}
+              >
+                No signup &middot; No credit card &middot; 8 seconds &middot; Real results
+              </p>
+            </div>
+          </Reveal>
+
+          {/* Model strip */}
+          <Reveal delay={480}>
+            <div className="flex flex-wrap items-center gap-5 mt-12">
+              <span
+                className="text-xs uppercase font-semibold text-slate-600"
+                style={{ letterSpacing: '0.1em', fontFamily: 'var(--font-jetbrains-mono), monospace' }}
+              >
+                Monitoring:
+              </span>
+              {(['ChatGPT', 'Perplexity', 'Google Gemini', 'Claude', 'Copilot'] as const).map((model, i) => (
+                <span
+                  key={model}
+                  className="text-xs font-medium text-slate-500 px-3 py-1 rounded-md"
+                  style={{
+                    background: 'rgba(255,255,255,0.03)',
+                    opacity: 0,
+                    animation: 'lv-shimmer 2s ease-in-out forwards',
+                    animationDelay: `${600 + i * 150}ms`,
+                  }}
+                >
+                  {model}
+                </span>
+              ))}
+            </div>
+          </Reveal>
+        </div>
+
+        {/* Scroll hint */}
+        <ScrollHint />
+      </section>
+
+      {/* ── 4. The Invisible Revenue Leak ─────────────────────────────────── */}
+      <section
+        className="px-4"
+        style={{
+          background: '#0A1628',
+          borderTop: '1px solid rgba(255,255,255,0.03)',
+          borderBottom: '1px solid rgba(255,255,255,0.03)',
+        }}
+      >
+        <div className="lv-section">
+          <Reveal>
+            <SectionLabel color="#FFB800">The Invisible Revenue Leak</SectionLabel>
+          </Reveal>
+          <Reveal delay={80}>
+            <h2
+              className="font-bold text-white leading-tight mb-12"
+              style={{ fontSize: 'clamp(24px,3.5vw,40px)', letterSpacing: '-0.02em', maxWidth: 700 }}
+            >
+              AI doesn&apos;t guess. It states. And when it&apos;s wrong,
+              customers don&apos;t verify &mdash; they leave.
+            </h2>
+          </Reveal>
+
+          <div className="lv-grid3">
+            {([
+              { val: 1600, prefix: '$', suffix: '/month', desc: "Revenue one restaurant lost because ChatGPT said they were closed on Mondays. They weren't.", border: '#EF4444' },
+              { val: 68, prefix: '', suffix: '%', desc: 'Of consumers now use AI assistants to decide where to eat — before they ever see your website.', border: '#FFB800' },
+              { val: 0, prefix: '', suffix: ' alerts', desc: 'How many notifications you get when AI sends customers to your competitor. It happens silently. Every day.', border: '#EF4444' },
+            ] as const).map((c, i) => (
+              <Reveal key={i} delay={i * 120}>
+                <div
+                  className="lv-card"
+                  style={{ borderLeft: `3px solid ${c.border}`, position: 'relative', overflow: 'hidden' }}
+                >
+                  <div
+                    aria-hidden
+                    style={{
+                      position: 'absolute', top: 0, left: 0, right: 0, height: 1,
+                      background: `linear-gradient(90deg, transparent, ${c.border}44, transparent)`,
+                      animation: 'lv-scan 3s linear infinite',
+                      animationDelay: `${i * 1000}ms`,
+                      opacity: 0.5,
+                    }}
+                  />
+                  <div
+                    className="font-extrabold text-white mb-2"
+                    style={{
+                      fontSize: 'clamp(32px,4vw,48px)',
+                      fontFamily: 'var(--font-jetbrains-mono), monospace',
+                    }}
+                  >
+                    {c.val === 0
+                      ? <>0<span className="text-2xl font-normal">{c.suffix}</span></>
+                      : <Counter end={c.val} prefix={c.prefix} suffix={c.suffix} />
+                    }
+                  </div>
+                  <p className="text-sm leading-relaxed text-slate-400">{c.desc}</p>
+                </div>
+              </Reveal>
+            ))}
           </div>
+
+          <Reveal delay={400}>
+            <p className="text-center text-sm text-slate-500 mt-10 max-w-xl mx-auto">
+              Traditional SEO tools check if your address is right on Yelp.
+              They never check if ChatGPT is telling customers you don&apos;t exist.
+            </p>
+          </Reveal>
         </div>
       </section>
 
-      {/* ── 8. Pricing ──────────────────────────────────────────────────────── */}
-      <section className="bg-midnight-slate px-4 py-20" id="pricing">
-        <div className="mx-auto max-w-5xl">
-
-          <SectionLabel>Pricing</SectionLabel>
-          <h2 className="mt-3 text-center text-3xl font-bold text-white">
-            Simple, Transparent Pricing
-          </h2>
-          <p className="mt-3 text-center text-slate-400">
-            No contracts. Cancel anytime. Protect your revenue from day one.
-          </p>
-
-          <div className="mt-12 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-            <PricingCard
-              name="The Audit"
-              price="Free"
-              period=""
-              description="Instant snapshot of what AI engines say about you right now."
-              features={['One-time free scan', 'ChatGPT + Perplexity check', 'Hallucination report']}
-              cta="Run Free Scan"
-              ctaHref="/"
-              ctaStyle="border"
-              highlighted={false}
-            />
-            <PricingCard
-              name="Starter"
-              price="$29"
-              period="/mo"
-              description="Weekly monitoring and one-click fixes for one location."
-              features={[
-                'Weekly AI audits',
-                'Reality Score dashboard',
-                'Magic Menu digitization',
-                'Google Business Profile connect',
-                'Email hallucination alerts',
-              ]}
-              cta="Get Started"
-              ctaHref="/signup"
-              ctaStyle="indigo"
-              highlighted={false}
-            />
-            <PricingCard
-              name="AI Shield"
-              price="$59"
-              period="/mo"
-              description="Daily monitoring + competitor intercept. The most-loved plan."
-              features={[
-                'Daily AI audits',
-                'Competitor Intercept (up to 3)',
-                'Share of Voice tracking',
-                'Big 6 listing distribution',
-                'Priority support',
-              ]}
-              cta="Start Protecting"
-              ctaHref="/signup"
-              ctaStyle="green"
-              highlighted={true}
-              badge="Most Popular"
-            />
-            <PricingCard
-              name="Brand Fortress"
-              price="Custom"
-              period=""
-              description="Multi-location enterprise. White-label reports. Dedicated manager."
-              features={[
-                'Up to 10 locations',
-                'Unlimited competitors',
-                'White-label PDF reports',
-                'API access',
-                'Dedicated success manager',
-              ]}
-              cta="Contact Us"
-              ctaHref="mailto:hello@localvector.ai"
-              ctaStyle="border"
-              highlighted={false}
-            />
-          </div>
-        </div>
-      </section>
-
-      {/* ── 9. Footer ───────────────────────────────────────────────────────── */}
-      <footer
-        className="border-t border-white/5 py-10"
+      {/* ── 5. AVS — Proprietary Metrics ──────────────────────────────────── */}
+      <section
+        className="px-4"
         style={{ backgroundColor: '#050A15' }}
       >
-        <div className="mx-auto max-w-5xl px-6 space-y-4">
-          <p className="text-center text-sm font-semibold text-slate-500">
-            LocalVector.ai &mdash; Defending the Truth for Local Business.
-            Built for the Generative Age.
-          </p>
-          <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2">
-            <a href="/pricing" className="text-xs text-slate-600 hover:text-slate-300 transition">Pricing</a>
-            <span className="text-slate-800">&middot;</span>
-            <a href="/privacy" className="text-xs text-slate-600 hover:text-slate-300 transition">Privacy Policy</a>
-            <span className="text-slate-800">&middot;</span>
-            <a href="/terms"   className="text-xs text-slate-600 hover:text-slate-300 transition">Terms of Service</a>
-            <span className="text-slate-800">&middot;</span>
-            <a href="mailto:hello@localvector.ai" className="text-xs text-slate-600 hover:text-slate-300 transition">
-              hello@localvector.ai
-            </a>
+        <div className="lv-section">
+          <Reveal><SectionLabel>Proprietary Intelligence</SectionLabel></Reveal>
+          <Reveal delay={80}>
+            <h2
+              className="font-bold text-white leading-tight mb-3"
+              style={{ fontSize: 'clamp(24px,3.5vw,38px)', letterSpacing: '-0.02em' }}
+            >
+              The AI Visibility Score (AVS) Dashboard
+            </h2>
+            <p className="text-slate-400 max-w-xl mb-12">
+              Three signals that tell you exactly how AI engines perceive your business —
+              and precisely what to fix.
+            </p>
+          </Reveal>
+
+          <div className="lv-grid3">
+            <Reveal delay={0}>
+              <MetricCard
+                icon={<Eye className="h-5 w-5" />}
+                iconColor="text-signal-green"
+                title="AI Visibility Score"
+                subtitle="AVS"
+                score={98}
+                outOf={100}
+                barColor="#00F5A0"
+                description="How often your business is accurately cited when users ask AI about businesses like yours."
+              />
+            </Reveal>
+            <Reveal delay={150}>
+              <MetricCard
+                icon={<TrendingUp className="h-5 w-5" />}
+                iconColor="text-electric-indigo"
+                title="Sentiment Index"
+                subtitle="SI"
+                score={87}
+                outOf={100}
+                barColor="#6366f1"
+                description="Whether AI mentions of your business are positive, neutral, or damaging your reputation."
+              />
+            </Reveal>
+            <Reveal delay={300}>
+              <MetricCard
+                icon={<Star className="h-5 w-5" />}
+                iconColor="text-alert-amber"
+                title="Citation Accuracy"
+                subtitle="CA"
+                score={94}
+                outOf={100}
+                barColor="#FFB800"
+                description="How precisely AI engines reproduce your hours, address, menu, and pricing."
+              />
+            </Reveal>
           </div>
+        </div>
+      </section>
+
+      {/* ── 6. Practice What We Preach ────────────────────────────────────── */}
+      <section
+        className="px-4"
+        style={{
+          background: '#0A1628',
+          borderTop: '1px solid rgba(255,255,255,0.03)',
+          borderBottom: '1px solid rgba(255,255,255,0.03)',
+        }}
+      >
+        <div className="lv-section">
+          <Reveal><SectionLabel>Practice What We Preach</SectionLabel></Reveal>
+          <Reveal delay={80}>
+            <h2
+              className="font-bold text-white leading-tight mb-12"
+              style={{ fontSize: 'clamp(24px,3.5vw,38px)', letterSpacing: '-0.02em' }}
+            >
+              We built an AI Visibility platform. So we score ourselves.
+            </h2>
+          </Reveal>
+
+          <div className="lv-grid2">
+            {/* Our score */}
+            <Reveal delay={100}>
+              <div
+                className="lv-card relative overflow-hidden"
+                style={{ border: '1px solid rgba(0,245,160,0.2)' }}
+              >
+                <div
+                  aria-hidden
+                  className="absolute inset-0"
+                  style={{ opacity: 0.04, background: 'radial-gradient(circle at 30% 30%, #00F5A0, transparent 60%)' }}
+                />
+                <div className="relative">
+                  <div className="flex items-center justify-between mb-6">
+                    <span className="text-sm font-bold text-white">LocalVector.ai</span>
+                    <span
+                      className="text-xs font-semibold rounded-md px-2.5 py-1"
+                      style={{ color: '#00F5A0', background: 'rgba(0,245,160,0.12)' }}
+                    >
+                      Fully Protected
+                    </span>
+                  </div>
+                  {([
+                    { label: 'AI Visibility Score', val: 97, color: '#00F5A0', isZero: false },
+                    { label: 'Citation Accuracy', val: 100, color: '#00F5A0', isZero: false },
+                    { label: 'Hallucinations Detected', val: 0, color: '#00F5A0', isZero: true },
+                  ] as const).map((r, i) => (
+                    <div key={i} className="mb-4">
+                      <div className="flex justify-between mb-1.5 text-sm text-slate-400">
+                        <span>{r.label}</span>
+                        <span
+                          className="font-bold text-white"
+                          style={{ fontFamily: 'var(--font-jetbrains-mono), monospace' }}
+                        >
+                          {r.isZero ? '0' : <Counter end={r.val} />}
+                          {!r.isZero && '/100'}
+                        </span>
+                      </div>
+                      <Bar pct={r.isZero ? 100 : r.val} color={r.color} delay={i * 200} />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </Reveal>
+
+            {/* Average business */}
+            <Reveal delay={250}>
+              <div
+                className="lv-card relative overflow-hidden"
+                style={{ border: '1px solid rgba(239,68,68,0.12)' }}
+              >
+                <div
+                  aria-hidden
+                  className="absolute inset-0"
+                  style={{ opacity: 0.03, background: 'radial-gradient(circle at 70% 70%, #EF4444, transparent 60%)' }}
+                />
+                <div className="relative">
+                  <div className="flex items-center justify-between mb-6">
+                    <span className="text-sm font-bold text-white">Average Local Business</span>
+                    <span
+                      className="text-xs font-semibold rounded-md px-2.5 py-1"
+                      style={{ color: '#FFB800', background: 'rgba(255,184,0,0.12)' }}
+                    >
+                      Flying Blind
+                    </span>
+                  </div>
+                  {([
+                    { label: 'AI Visibility Score', display: 'Unknown' },
+                    { label: 'Citation Accuracy', display: 'Unknown' },
+                    { label: 'Hallucinations Detected', display: 'Unknown' },
+                  ] as const).map((r, i) => (
+                    <div key={i} className="mb-4">
+                      <div className="flex justify-between mb-1.5 text-sm text-slate-400">
+                        <span>{r.label}</span>
+                        <span
+                          className="font-bold"
+                          style={{
+                            color: '#475569',
+                            fontFamily: 'var(--font-jetbrains-mono), monospace',
+                          }}
+                        >
+                          {r.display}
+                        </span>
+                      </div>
+                      <Bar pct={12} color="#334155" delay={i * 200} />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </Reveal>
+          </div>
+
+          <Reveal delay={400}>
+            <p className="text-center text-slate-400 text-base font-medium mt-10">
+              You wouldn&apos;t run a restaurant without a fire alarm.
+              <br />
+              Why run one without an AI alarm?
+            </p>
+          </Reveal>
+        </div>
+      </section>
+
+      {/* ── 7. Comparison Table ────────────────────────────────────────────── */}
+      <section className="px-4" style={{ backgroundColor: '#050A15' }}>
+        <div className="lv-section">
+          <Reveal><SectionLabel color="#FFB800">The Difference</SectionLabel></Reveal>
+          <Reveal delay={80}>
+            <h2
+              className="font-bold text-white leading-tight mb-12"
+              style={{ fontSize: 'clamp(24px,3.5vw,36px)', letterSpacing: '-0.02em' }}
+            >
+              Static listings were built for Google.
+              <br />
+              <span style={{ color: '#00F5A0' }}>AI runs on a completely different trust model.</span>
+            </h2>
+          </Reveal>
+
+          <Reveal delay={160}>
+            <div
+              className="rounded-2xl overflow-x-auto"
+              style={{ border: '1px solid rgba(255,255,255,0.05)' }}
+            >
+            <div style={{ minWidth: 540 }}>
+              {/* Header row */}
+              <div
+                className="grid gap-0 px-6 py-3.5"
+                style={{
+                  gridTemplateColumns: '1fr 160px 160px',
+                  background: '#111D33',
+                  borderBottom: '1px solid rgba(255,255,255,0.05)',
+                }}
+              >
+                <span className="text-xs font-bold uppercase text-slate-500" style={{ letterSpacing: '0.08em' }}>Capability</span>
+                <span className="text-xs font-bold text-center" style={{ color: '#00F5A0' }}>LocalVector</span>
+                <span className="text-xs font-bold text-center text-slate-500">Listing Tools</span>
+              </div>
+
+              {([
+                ['Detects AI hallucinations about your business', true, false],
+                ['Shows what ChatGPT actually says about you', true, false],
+                ['Tells you WHY competitors win AI recommendations', true, false],
+                ['Converts PDF menu into AI-readable data', true, false],
+                ['Monitors AI sentiment (Premium vs. Budget)', true, false],
+                ['Pushes to 48 directories nobody visits', false, true],
+              ] as const).map(([cap, us, them], i) => (
+                <div
+                  key={i}
+                  className="grid gap-0 px-6 py-3.5"
+                  style={{
+                    gridTemplateColumns: '1fr 160px 160px',
+                    background: i % 2 === 0 ? '#0A1628' : 'transparent',
+                    borderBottom: '1px solid rgba(255,255,255,0.03)',
+                  }}
+                >
+                  <span className="text-sm text-slate-300">{cap}</span>
+                  <span className="text-center text-base">
+                    {us
+                      ? <span style={{ color: '#00F5A0' }}>&check;</span>
+                      : <span style={{ color: '#334155' }}>&mdash;</span>
+                    }
+                  </span>
+                  <span className="text-center text-base">
+                    {them
+                      ? <span className="text-slate-500">&check;</span>
+                      : <span style={{ color: '#EF4444', opacity: 0.6 }}>&times;</span>
+                    }
+                  </span>
+                </div>
+              ))}
+            </div>
+            </div>
+          </Reveal>
+        </div>
+      </section>
+
+      {/* ── 8. Three Engines — How It Works ───────────────────────────────── */}
+      <section
+        id="how"
+        className="px-4"
+        style={{
+          background: '#0A1628',
+          borderTop: '1px solid rgba(255,255,255,0.03)',
+          borderBottom: '1px solid rgba(255,255,255,0.03)',
+        }}
+      >
+        <div className="lv-section">
+          <Reveal><SectionLabel>The Three Engines</SectionLabel></Reveal>
+          <Reveal delay={80}>
+            <h2
+              className="font-bold text-white leading-tight mb-14"
+              style={{ fontSize: 'clamp(24px,3.5vw,38px)', letterSpacing: '-0.02em' }}
+            >
+              Detect the lies. Steal the spotlight. Force the truth.
+            </h2>
+          </Reveal>
+
+          <div className="lv-grid3">
+            {([
+              {
+                num: '01', accent: '#EF4444',
+                title: 'The Fear Engine',
+                subtitle: 'AI Hallucination Auditor',
+                body: 'We interrogate ChatGPT, Perplexity, and Gemini with the same questions your customers ask. Then we compare every answer against your verified data. When AI says you\'re closed and you\'re not — Red Alert.',
+                result: 'A priority-ranked feed of every lie AI is telling about you, with severity scores and dollar-cost estimates.',
+              },
+              {
+                num: '02', accent: '#FFB800',
+                title: 'The Greed Engine',
+                subtitle: 'Competitor Intelligence',
+                body: 'We ask AI: "Who\'s the best in your city?" Then we analyze exactly why your competitor won — and you didn\'t. Not vague advice. Specific action items you can execute this week.',
+                result: 'Competitor gap analysis showing the exact words and signals costing you recommendations.',
+              },
+              {
+                num: '03', accent: '#00F5A0',
+                title: 'The Magic Engine',
+                subtitle: 'AI-Readable Menu Generator',
+                body: "AI can't read your PDF menu. So it guesses — or pulls prices from DoorDash with their 30% markup. Upload your menu. We convert it into structured data every AI on earth can understand.",
+                result: 'Your menu, readable by every AI, hosted on a page you control — with one-click Google injection.',
+              },
+            ] as const).map((e, i) => (
+              <Reveal key={i} delay={i * 150}>
+                <div className="lv-card relative overflow-hidden h-full" style={{ display: 'flex', flexDirection: 'column' }}>
+                  {/* Top accent line */}
+                  <div
+                    aria-hidden
+                    className="absolute top-0 left-0 right-0"
+                    style={{ height: 2, background: e.accent, opacity: 0.5 }}
+                  />
+                  <div
+                    aria-hidden
+                    className="absolute top-0 left-0"
+                    style={{
+                      width: 60, height: 2,
+                      background: e.accent,
+                      animation: 'lv-scan 4s linear infinite',
+                      animationDelay: `${i * 600}ms`,
+                    }}
+                  />
+
+                  <div className="flex items-center gap-3 mb-5">
+                    <span
+                      className="text-xs font-bold rounded-md px-2 py-0.5"
+                      style={{
+                        color: e.accent,
+                        border: `1px solid ${e.accent}33`,
+                        fontFamily: 'var(--font-jetbrains-mono), monospace',
+                      }}
+                    >
+                      {e.num}
+                    </span>
+                  </div>
+
+                  <h3 className="text-xl font-bold text-white mb-1">{e.title}</h3>
+                  <p
+                    className="text-xs font-semibold mb-4"
+                    style={{ color: e.accent, fontFamily: 'var(--font-jetbrains-mono), monospace' }}
+                  >
+                    {e.subtitle}
+                  </p>
+                  <p className="text-sm leading-relaxed text-slate-400 mb-5 flex-1">{e.body}</p>
+
+                  {/* "What you see" sub-card */}
+                  <div
+                    className="rounded-xl p-3"
+                    style={{
+                      background: 'rgba(255,255,255,0.03)',
+                      borderLeft: `2px solid ${e.accent}44`,
+                    }}
+                  >
+                    <p
+                      className="text-xs font-semibold uppercase mb-1 text-slate-500"
+                      style={{ letterSpacing: '0.08em' }}
+                    >
+                      What you see
+                    </p>
+                    <p className="text-xs leading-relaxed text-slate-300">{e.result}</p>
+                  </div>
+                </div>
+              </Reveal>
+            ))}
+          </div>
+
+          <Reveal delay={500}>
+            <p className="text-center text-sm font-semibold mt-12" style={{ color: '#00F5A0' }}>
+              Every engine runs automatically. Open the dashboard, see the problems, fix them in minutes.
+            </p>
+          </Reveal>
+        </div>
+      </section>
+
+      {/* ── 9. Case Study ─────────────────────────────────────────────────── */}
+      <section className="px-4" style={{ backgroundColor: '#050A15' }}>
+        <div className="lv-section">
+          <Reveal><SectionLabel color="#EF4444">Real Damage. Real Recovery.</SectionLabel></Reveal>
+          <Reveal delay={80}>
+            <h2
+              className="font-bold text-white leading-tight mb-12"
+              style={{ fontSize: 'clamp(24px,3.5vw,38px)', letterSpacing: '-0.02em' }}
+            >
+              The $12,000 Steakhouse That Didn&apos;t Exist
+            </h2>
+          </Reveal>
+
+          <div className="lv-grid2" style={{ gap: 32 }}>
+            {/* Narrative */}
+            <Reveal delay={120}>
+              <div>
+                <p className="text-sm leading-relaxed text-slate-400 mb-5">
+                  A well-reviewed steakhouse in Dallas ran a thriving Friday night business for 11 years.
+                  In September 2025, their revenue started dropping. They blamed the economy. Changed the menu twice.
+                </p>
+                <p className="text-sm leading-relaxed text-slate-300 mb-5">
+                  <strong className="text-white">The actual problem:</strong> ChatGPT had been telling customers
+                  the restaurant was &ldquo;permanently closed&rdquo; since August. For three months, every person who asked
+                  &ldquo;best steakhouse near downtown Dallas&rdquo; was sent somewhere else.
+                </p>
+                <p className="text-sm leading-relaxed text-slate-400 mb-7">
+                  Nobody told them. No tool flagged it. No alert fired. By the time they found out &mdash; by accident &mdash;
+                  they&apos;d lost an estimated <strong style={{ color: '#EF4444' }}>$12,000</strong>.
+                </p>
+                <div
+                  className="rounded-xl p-4"
+                  style={{ background: 'rgba(0,245,160,0.12)', borderLeft: '3px solid #00F5A0' }}
+                >
+                  <p className="text-sm font-semibold" style={{ color: '#00F5A0' }}>
+                    The fix took 24 hours.
+                  </p>
+                </div>
+              </div>
+            </Reveal>
+
+            {/* Before / After cards */}
+            <Reveal delay={280}>
+              <div className="flex flex-col gap-4">
+                {/* Before */}
+                <div className="lv-card" style={{ borderLeft: '3px solid #EF4444' }}>
+                  <p
+                    className="text-xs font-bold uppercase mb-3.5"
+                    style={{ color: '#EF4444', letterSpacing: '0.1em' }}
+                  >
+                    Before LocalVector
+                  </p>
+                  {([
+                    ['AI Status', '"Permanently Closed" \u274C'],
+                    ['Monthly AI Recommendations', '0'],
+                    ['Revenue Impact', '\u2212$4,000/mo'],
+                    ['Time to Discovery', '3 months (by accident)'],
+                  ] as const).map(([k, v], i) => (
+                    <div
+                      key={i}
+                      className="flex justify-between py-1.5"
+                      style={{ borderBottom: i < 3 ? '1px solid rgba(255,255,255,0.04)' : 'none' }}
+                    >
+                      <span className="text-xs text-slate-500">{k}</span>
+                      <span
+                        className="text-xs font-semibold text-slate-300"
+                        style={{ fontFamily: 'var(--font-jetbrains-mono), monospace' }}
+                      >
+                        {v}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+
+                {/* After */}
+                <div className="lv-card" style={{ borderLeft: '3px solid #00F5A0' }}>
+                  <p
+                    className="text-xs font-bold uppercase mb-3.5"
+                    style={{ color: '#00F5A0', letterSpacing: '0.1em' }}
+                  >
+                    After LocalVector
+                  </p>
+                  {([
+                    ['AI Status', '"Open, Serving Dinner" \u2705'],
+                    ['Monthly AI Recommendations', '47'],
+                    ['Revenue Recovered', '+$4,000/mo'],
+                    ['Time to Detection', '24 hours (automated)'],
+                  ] as const).map(([k, v], i) => (
+                    <div
+                      key={i}
+                      className="flex justify-between py-1.5"
+                      style={{ borderBottom: i < 3 ? '1px solid rgba(255,255,255,0.04)' : 'none' }}
+                    >
+                      <span className="text-xs text-slate-500">{k}</span>
+                      <span
+                        className="text-xs font-semibold text-slate-300"
+                        style={{ fontFamily: 'var(--font-jetbrains-mono), monospace' }}
+                      >
+                        {v}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </Reveal>
+          </div>
+        </div>
+      </section>
+
+      {/* ── 10. Pricing ───────────────────────────────────────────────────── */}
+      <section
+        id="pricing"
+        className="px-4"
+        style={{
+          background: '#0A1628',
+          borderTop: '1px solid rgba(255,255,255,0.03)',
+          borderBottom: '1px solid rgba(255,255,255,0.03)',
+        }}
+      >
+        <div className="lv-section">
+          <Reveal><SectionLabel>Pricing</SectionLabel></Reveal>
+          <Reveal delay={80}>
+            <h2
+              className="font-bold text-white leading-tight mb-2"
+              style={{ fontSize: 'clamp(24px,3.5vw,38px)', letterSpacing: '-0.02em' }}
+            >
+              Cheaper than one lost table.
+            </h2>
+            <p className="text-base text-slate-400 mb-14" style={{ maxWidth: 540 }}>
+              One wrong AI answer costs you a customer. One lost Friday reservation: $120.
+              Our monthly price: less than that.
+            </p>
+          </Reveal>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {([
+              {
+                name: 'THE AUDIT', price: 'Free', period: '', sub: 'See the damage.', popular: false,
+                features: ['One-time AI hallucination scan', 'Real AI mentions + sentiment', 'ChatGPT, Perplexity, Gemini', 'No signup required'],
+                cta: 'Run Free Audit \u2192', ctaStyle: 'outline' as const, ctaHref: '/',
+              },
+              {
+                name: 'STARTER', price: '$29', period: '/mo', sub: 'Stop the bleeding.', popular: false,
+                features: ['Weekly automated AI audits', 'Hallucination email alerts', 'Reality Score dashboard', 'Magic Menu (1 menu)', 'Big 6 listing tracker', '1 location'],
+                cta: 'Start for $29/mo \u2192', ctaStyle: 'outline' as const, ctaHref: '/signup',
+              },
+              {
+                name: 'AI SHIELD', price: '$59', period: '/mo', sub: 'Go on offense.', popular: true,
+                features: ['Daily AI audits', 'Competitor Intercept analysis', 'AI Sentiment tracking', 'Content recommendations', 'Share of Voice tracking', 'Priority alerts', '1 location'],
+                cta: 'Get AI Shield \u2192', ctaStyle: 'green' as const, ctaHref: '/signup',
+              },
+              {
+                name: 'BRAND FORTRESS', price: 'Custom', period: '', sub: 'Agencies & multi-location.', popular: false,
+                features: ['Up to 25 locations', 'White-label reports', 'Agency dashboard', 'Dedicated onboarding', 'Custom query monitoring', 'API access'],
+                cta: 'Talk to Us \u2192', ctaStyle: 'outline' as const, ctaHref: 'mailto:hello@localvector.ai',
+              },
+            ] as const).map((tier, i) => (
+              <Reveal key={i} delay={i * 100}>
+                <PricingCard
+                  name={tier.name}
+                  price={tier.price}
+                  period={tier.period}
+                  description={tier.sub}
+                  features={[...tier.features]}
+                  cta={tier.cta}
+                  ctaHref={tier.ctaHref}
+                  ctaStyle={tier.ctaStyle}
+                  highlighted={tier.popular}
+                  badge={tier.popular ? 'Most Popular' : undefined}
+                />
+              </Reveal>
+            ))}
+          </div>
+
+          <Reveal delay={500}>
+            <p className="text-center text-sm text-slate-500 mt-8">
+              14-day free trial on all plans. Cancel anytime. No contracts. No setup fees.
+            </p>
+          </Reveal>
+        </div>
+      </section>
+
+      {/* ── 11. FAQ ───────────────────────────────────────────────────────── */}
+      <section
+        className="px-4"
+        style={{
+          background: '#050A15',
+          borderTop: '1px solid rgba(255,255,255,0.03)',
+        }}
+      >
+        <div className="lv-section">
+          <Reveal><SectionLabel>Questions</SectionLabel></Reveal>
+          <Reveal delay={80}>
+            <h2
+              className="font-bold text-white mb-12"
+              style={{ fontSize: 'clamp(24px,3.5vw,36px)', letterSpacing: '-0.02em' }}
+            >
+              Straight answers.
+            </h2>
+          </Reveal>
+
+          <FaqAccordion
+            q="What exactly does LocalVector do?"
+            a={'LocalVector monitors what AI models (ChatGPT, Gemini, Perplexity) say about your business. When they get something wrong \u2014 wrong hours, wrong prices, "permanently closed" when you\'re open \u2014 we detect it, alert you, and give you the tools to fix it.'}
+            delay={0}
+          />
+          <FaqAccordion
+            q="How is this different from Yelp or Google Business Profile?"
+            a="Yelp and GBP manage your listings on their specific platforms. LocalVector monitors what AI engines synthesize from ALL sources. AI combines data from Yelp, TripAdvisor, Reddit, food blogs, and more. If any source is wrong, AI will be wrong. We catch errors across the entire AI ecosystem."
+            delay={80}
+          />
+          <FaqAccordion
+            q="I'm not a tech person. Can I actually use this?"
+            a="Yes. Sign up, enter your business details, and monitoring starts automatically. When something is wrong, you get a plain-English alert. Fixing it is one click. The whole product was built by a restaurant owner who also runs a lounge in Alpharetta, GA."
+            delay={160}
+          />
+          <FaqAccordion
+            q="What if AI isn't saying anything wrong about me?"
+            a={'Then your dashboard shows "All Clear" and your Reality Score. But AI models update constantly \u2014 a clean audit today doesn\'t guarantee next month. We keep watching so you don\'t have to.'}
+            delay={240}
+          />
+          <FaqAccordion
+            q="Do I need to cancel my BrightLocal or Yext?"
+            a="No. Those tools manage directory listings, which is still useful. LocalVector monitors and optimizes for AI answers \u2014 a layer those tools don't touch. Many customers use both."
+            delay={320}
+          />
+        </div>
+      </section>
+
+      {/* ── 12. Final CTA ─────────────────────────────────────────────────── */}
+      <section
+        className="relative overflow-hidden px-4"
+        style={{
+          background: 'linear-gradient(180deg, #050A15 0%, #0A1628 100%)',
+        }}
+      >
+        {/* Radial floating glow */}
+        <div
+          aria-hidden
+          className="pointer-events-none absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"
+          style={{
+            width: 600,
+            height: 600,
+            background: 'radial-gradient(circle, rgba(0,245,160,0.06) 0%, transparent 70%)',
+            animation: 'lv-float 6s ease-in-out infinite',
+          }}
+        />
+
+        <div className="lv-section relative text-center">
+          <Reveal>
+            <h2
+              className="font-extrabold text-white leading-tight mb-4"
+              style={{ fontSize: 'clamp(26px,4vw,44px)', letterSpacing: '-0.03em' }}
+            >
+              Right now, AI is describing your business to someone.
+              <br />
+              <span style={{ color: '#00F5A0' }}>Is it telling the truth?</span>
+            </h2>
+          </Reveal>
+          <Reveal delay={120}>
+            <p className="text-slate-400 text-base mb-9">
+              Find out in 8 seconds. No signup required.
+            </p>
+          </Reveal>
+          <Reveal delay={240}>
+            <div className="max-w-md mx-auto">
+              <ViralScanner />
+              <p
+                className="mt-3 text-xs text-slate-600"
+                style={{ fontFamily: 'var(--font-jetbrains-mono), monospace' }}
+              >
+                Free &middot; Instant &middot; Real results from real AI models
+              </p>
+            </div>
+          </Reveal>
+        </div>
+      </section>
+
+      {/* ── 13. Footer ────────────────────────────────────────────────────── */}
+      <footer
+        className="border-t border-white/5 py-10 px-6"
+        style={{ backgroundColor: '#050A15' }}
+      >
+        <div className="mx-auto max-w-[1120px] flex flex-wrap items-center justify-between gap-5">
+          <div>
+            <span className="text-sm font-bold text-white">
+              LocalVector<span style={{ color: '#00F5A0' }}>.ai</span>
+            </span>
+            <p className="text-xs text-slate-600 mt-1">
+              Defending the truth for local business. Built for the Generative Age.
+            </p>
+          </div>
+          <div className="flex gap-5 text-xs text-slate-600">
+            <a href="/privacy" className="hover:text-slate-300 transition">Privacy</a>
+            <a href="/terms" className="hover:text-slate-300 transition">Terms</a>
+            <a href="/login" className="hover:text-slate-300 transition">Log In</a>
+          </div>
+        </div>
+        <div className="mx-auto max-w-[1120px] mt-5 text-center">
+          <p className="text-xs" style={{ color: '#334155' }}>&copy; 2026 LocalVector.ai</p>
         </div>
       </footer>
 
     </main>
+    </div>
   );
 }
 
 // ---------------------------------------------------------------------------
-// Sub-components (Server, co-located — AI_RULES §12: all class strings are literals)
+// Sub-components (Server, co-located)
 // ---------------------------------------------------------------------------
 
-function TrustPill({ children }: { children: React.ReactNode }) {
+function SectionLabel({ children, color = '#00F5A0' }: { children: React.ReactNode; color?: string }) {
   return (
-    <span className="flex items-center gap-1.5">
-      <CheckCircle className="h-3.5 w-3.5 text-signal-green" />
-      {children}
-    </span>
-  );
-}
-
-function SectionLabel({ children }: { children: React.ReactNode }) {
-  return (
-    <p className="text-center text-xs font-bold uppercase tracking-widest text-signal-green">
+    <p
+      className="text-xs font-bold uppercase mb-3"
+      style={{
+        color,
+        letterSpacing: '0.14em',
+        fontFamily: 'var(--font-jetbrains-mono), monospace',
+      }}
+    >
       {children}
     </p>
   );
@@ -593,7 +1052,6 @@ function MetricCard({
   score,
   outOf,
   barColor,
-  delay,
   description,
 }: {
   icon: React.ReactNode;
@@ -603,15 +1061,11 @@ function MetricCard({
   score: number;
   outOf: number;
   barColor: string;
-  delay: string;
   description: string;
 }) {
   const pct = Math.round((score / outOf) * 100);
   return (
-    <div
-      className="rounded-2xl bg-surface-dark border border-white/5 p-6"
-      style={{ animation: `fade-up 0.6s ease-out ${delay} both` }}
-    >
+    <div className="lv-card">
       <div className={['flex items-center gap-3 mb-4', iconColor].join(' ')}>
         {icon}
         <div>
@@ -625,108 +1079,18 @@ function MetricCard({
         <span className="text-lg text-slate-600 font-normal">/{outOf}</span>
       </p>
 
-      {/* CSS-only fill animation — set --bar-w via inline style (AI_RULES §12) */}
       <div className="mt-3 h-2 w-full rounded-full bg-white/5 overflow-hidden">
         <div
           className="h-full rounded-full"
           style={{
             backgroundColor: barColor,
             '--bar-w': `${pct}%`,
-            animation: `fill-bar 1.4s cubic-bezier(0.4,0,0.2,1) ${delay} both`,
+            animation: 'fill-bar 1.4s cubic-bezier(0.4,0,0.2,1) 0.3s both',
           } as React.CSSProperties}
         />
       </div>
 
       <p className="mt-4 text-xs text-slate-500 leading-relaxed">{description}</p>
-    </div>
-  );
-}
-
-// ── CompareRow ────────────────────────────────────────────────────────────
-
-function CompareRow({ label, value, positive }: {
-  label: string;
-  value: string;
-  positive: boolean;
-}) {
-  return (
-    <div className="flex items-center justify-between gap-3">
-      <span className="text-xs text-slate-500">{label}</span>
-      <span className={['text-xs font-semibold tabular-nums', positive ? 'text-signal-green' : 'text-alert-crimson'].join(' ')}>
-        {positive ? '✓ ' : '✗ '}{value}
-      </span>
-    </div>
-  );
-}
-
-// ── EngineCard ────────────────────────────────────────────────────────────
-
-function EngineCard({
-  number,
-  icon,
-  iconBg,
-  title,
-  description,
-  highlight,
-  highlightColor,
-}: {
-  number: string;
-  icon: React.ReactNode;
-  iconBg: string;
-  title: string;
-  description: string;
-  highlight: string;
-  highlightColor: string;
-}) {
-  return (
-    <div className="rounded-2xl bg-surface-dark border border-white/5 p-6">
-      <div className="flex items-start gap-4 mb-4">
-        <div className={['flex h-11 w-11 shrink-0 items-center justify-center rounded-xl', iconBg].join(' ')}>
-          {icon}
-        </div>
-        <div>
-          <p className="text-xs font-bold text-slate-700 tabular-nums mb-0.5">{number}</p>
-          <p className="text-sm font-semibold text-white leading-tight">{title}</p>
-        </div>
-      </div>
-      <p className="text-xs text-slate-400 leading-relaxed mb-4">{description}</p>
-      <span className={['text-xs font-bold uppercase tracking-widest', highlightColor].join(' ')}>
-        {highlight}
-      </span>
-    </div>
-  );
-}
-
-// ── CaseRow ───────────────────────────────────────────────────────────────
-
-function CaseRow({ icon, label, value, labelColor }: {
-  icon: string;
-  label: string;
-  value: string;
-  labelColor: string;
-}) {
-  return (
-    <div className="flex items-start gap-4">
-      <span className="text-base shrink-0 mt-0.5 select-none">{icon}</span>
-      <div>
-        <span className={['text-xs font-bold mr-2', labelColor].join(' ')}>{label}</span>
-        <span className="text-sm text-slate-300 leading-relaxed">{value}</span>
-      </div>
-    </div>
-  );
-}
-
-// ── ResultCard ────────────────────────────────────────────────────────────
-
-function ResultCard({ value, label, color }: {
-  value: string;
-  label: string;
-  color: string;
-}) {
-  return (
-    <div className="rounded-2xl bg-midnight-slate border border-white/5 p-6 text-center">
-      <p className={['text-3xl font-bold tabular-nums', color].join(' ')}>{value}</p>
-      <p className="mt-1 text-xs text-slate-500">{label}</p>
     </div>
   );
 }
@@ -752,49 +1116,63 @@ function PricingCard({
   features: string[];
   cta: string;
   ctaHref: string;
-  ctaStyle: 'green' | 'indigo' | 'border';
+  ctaStyle: 'green' | 'outline';
   highlighted: boolean;
   badge?: string;
 }) {
   return (
     <div
-      className={[
-        'relative flex flex-col rounded-2xl p-6',
-        highlighted
-          ? 'border-2 border-signal-green/50 bg-signal-green/5'
-          : 'border border-white/5 bg-surface-dark',
-      ].join(' ')}
+      className="lv-card relative flex flex-col h-full overflow-hidden"
+      style={highlighted ? { border: '1px solid rgba(0,245,160,0.3)' } : undefined}
     >
       {badge && (
-        <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-signal-green px-3 py-0.5 text-xs font-bold text-deep-navy">
+        <div
+          className="absolute text-xs font-bold uppercase"
+          style={{
+            top: 12,
+            right: 12,
+            color: '#050A15',
+            background: '#00F5A0',
+            padding: '3px 10px',
+            borderRadius: 100,
+            letterSpacing: '0.06em',
+            fontSize: 10,
+          }}
+        >
           {badge}
-        </span>
+        </div>
       )}
 
-      <p className="text-xs font-bold uppercase tracking-widest text-slate-500 mb-2">{name}</p>
-      <div className="flex items-baseline gap-1 mb-1">
-        <span className="text-3xl font-bold text-white">{price}</span>
+      <p
+        className="text-xs font-bold uppercase text-slate-500 mb-3"
+        style={{ letterSpacing: '0.1em' }}
+      >
+        {name}
+      </p>
+      <div className="mb-1">
+        <span
+          className="text-4xl font-extrabold text-white"
+          style={{ fontFamily: 'var(--font-jetbrains-mono), monospace' }}
+        >
+          {price}
+        </span>
         {period && <span className="text-sm text-slate-500">{period}</span>}
       </div>
-      <p className="text-xs text-slate-500 mb-5 leading-relaxed">{description}</p>
+      <p className="text-sm text-slate-400 mb-6">{description}</p>
 
-      <ul className="space-y-2 mb-6 flex-1">
+      <div className="flex-1">
         {features.map((f) => (
-          <li key={f} className="flex items-start gap-2 text-xs text-slate-400">
-            <CheckCircle className="h-3.5 w-3.5 shrink-0 mt-0.5 text-signal-green" />
-            {f}
-          </li>
+          <div key={f} className="flex items-start gap-2 mb-2.5">
+            <span className="text-sm leading-5 shrink-0" style={{ color: '#00F5A0' }}>&check;</span>
+            <span className="text-sm text-slate-400 leading-5">{f}</span>
+          </div>
         ))}
-      </ul>
+      </div>
 
       <a
         href={ctaHref}
-        className={[
-          'block w-full rounded-xl py-2.5 text-center text-sm font-semibold transition hover:opacity-90',
-          ctaStyle === 'indigo' ? 'bg-electric-indigo text-white' : '',
-          ctaStyle === 'border' ? 'border border-white/20 text-slate-300 hover:bg-white/5' : '',
-        ].join(' ')}
-        style={ctaStyle === 'green' ? { backgroundColor: '#00F5A0', color: '#050A15' } : undefined}
+        className={ctaStyle === 'green' ? 'lv-btn-green' : 'lv-btn-outline'}
+        style={{ width: '100%', marginTop: 20, fontSize: 13, textAlign: 'center', display: 'block' }}
       >
         {cta}
       </a>

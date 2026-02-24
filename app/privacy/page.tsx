@@ -14,7 +14,7 @@ export default function PrivacyPage() {
       {/* ── Navigation ───────────────────────────────────────────────────── */}
       <nav className="sticky top-0 z-10 border-b border-white/5 bg-midnight-slate/80 backdrop-blur-sm">
         <div className="mx-auto flex max-w-3xl items-center justify-between px-6 py-4">
-          <a href="/" className="text-lg font-bold text-electric-indigo tracking-tight hover:opacity-80 transition">
+          <a href="/" className="text-lg font-bold text-signal-green tracking-tight hover:opacity-80 transition">
             LocalVector
           </a>
         </div>
@@ -77,7 +77,7 @@ export default function PrivacyPage() {
           We retain your account and business data for as long as your account is active or as needed to provide
           the service. AI scan results are retained for 24 months. You may request deletion of your account and
           associated data at any time by emailing{' '}
-          <a href="mailto:hello@localvector.ai" className="text-electric-indigo hover:underline">
+          <a href="mailto:hello@localvector.ai" className="text-signal-green hover:underline">
             hello@localvector.ai
           </a>.
           We will process deletion requests within 30 days.
@@ -87,7 +87,7 @@ export default function PrivacyPage() {
           Depending on your jurisdiction, you may have the right to access, correct, or delete personal data
           we hold about you, to object to processing, or to request data portability. To exercise these rights,
           contact us at{' '}
-          <a href="mailto:hello@localvector.ai" className="text-electric-indigo hover:underline">
+          <a href="mailto:hello@localvector.ai" className="text-signal-green hover:underline">
             hello@localvector.ai
           </a>.
         </ProseSection>
@@ -111,7 +111,7 @@ export default function PrivacyPage() {
 
         <ProseSection title="10. Contact">
           For privacy questions or requests, contact us at{' '}
-          <a href="mailto:hello@localvector.ai" className="text-electric-indigo hover:underline">
+          <a href="mailto:hello@localvector.ai" className="text-signal-green hover:underline">
             hello@localvector.ai
           </a>.
         </ProseSection>

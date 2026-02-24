@@ -79,7 +79,7 @@ export default async function OnboardingPage() {
           <div className="inline-flex items-center gap-2 mb-4">
             <img src="/logo.svg" alt="LocalVector" className="h-9 w-9" />
             <span className="text-lg font-semibold text-white tracking-tight">
-              LocalVector<span className="text-electric-indigo">.ai</span>
+              LocalVector<span className="text-signal-green">.ai</span>
             </span>
           </div>
           <h1 className="text-2xl font-bold text-white tracking-tight mb-2">

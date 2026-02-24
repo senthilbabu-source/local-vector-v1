@@ -124,7 +124,7 @@ function AlertCard({ alert }: { alert: HallucinationRow }) {
         {/* ── The Truth ─────────────────────────────────────────── */}
         {alert.expected_truth && (
           <div className="mt-2 flex items-start gap-2">
-            <span className="text-xs font-semibold text-truth-emerald shrink-0 mt-px">
+            <span className="text-xs font-semibold text-signal-green shrink-0 mt-px">
               Truth:
             </span>
             <p className="text-xs text-slate-400 leading-snug">
@@ -143,7 +143,7 @@ function AlertCard({ alert }: { alert: HallucinationRow }) {
           {/* Doc 06 §4 — "Fix with Magic Menu" links to magic-menus */}
           <Link
             href="/dashboard/magic-menus"
-            className="inline-flex items-center rounded-lg bg-electric-indigo/10 border border-electric-indigo/30 px-3 py-1.5 text-xs font-semibold text-electric-indigo hover:bg-electric-indigo/20 transition"
+            className="inline-flex items-center rounded-lg bg-signal-green/10 border border-signal-green/30 px-3 py-1.5 text-xs font-semibold text-signal-green hover:bg-signal-green/20 transition"
           >
             Fix with Magic Menu →
           </Link>
@@ -161,13 +161,13 @@ export default function AlertFeed({ alerts }: { alerts: HallucinationRow[] }) {
   // ── Empty state (Doc 06 §10: "All clear! No AI lies detected.") ──────────
   if (alerts.length === 0) {
     return (
-      <div className="flex items-center gap-3 rounded-xl border border-truth-emerald/25 bg-truth-emerald/8 px-5 py-4">
+      <div className="flex items-center gap-3 rounded-xl border border-signal-green/25 bg-signal-green/8 px-5 py-4">
         {/* Checkmark icon — inline SVG, no lucide import needed for one icon */}
         <svg
           xmlns="http://www.w3.org/2000/svg"
           viewBox="0 0 20 20"
           fill="currentColor"
-          className="h-5 w-5 shrink-0 text-truth-emerald"
+          className="h-5 w-5 shrink-0 text-signal-green"
           aria-hidden
         >
           <path
@@ -176,7 +176,7 @@ export default function AlertFeed({ alerts }: { alerts: HallucinationRow[] }) {
             clipRule="evenodd"
           />
         </svg>
-        <p className="text-sm font-medium text-truth-emerald">
+        <p className="text-sm font-medium text-signal-green">
           All clear! No AI lies detected.
         </p>
       </div>
