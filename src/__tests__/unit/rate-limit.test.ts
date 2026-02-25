@@ -15,8 +15,13 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 // ── Hoist vi.mock declarations before any imports (AI_RULES §4) ──────────
 
-vi.mock('@vercel/kv', () => ({
-  kv: { incr: vi.fn(), expire: vi.fn(), ttl: vi.fn() },
+const mockRedis = {
+  incr: vi.fn(),
+  expire: vi.fn(),
+  ttl: vi.fn(),
+};
+vi.mock('@/lib/redis', () => ({
+  getRedis: vi.fn(() => mockRedis),
 }));
 vi.mock('next/headers', () => ({ headers: vi.fn() }));
 vi.mock('@/lib/supabase/server', () => ({ createClient: vi.fn() }));
@@ -25,7 +30,6 @@ vi.mock('@/lib/auth', () => ({ getSafeAuthContext: vi.fn() }));
 // ── Import subjects and mocks after declarations ──────────────────────────
 
 import { runFreeScan } from '@/app/actions/marketing';
-import { kv } from '@vercel/kv';
 import { headers } from 'next/headers';
 
 // ── Helpers ───────────────────────────────────────────────────────────────
@@ -51,8 +55,8 @@ describe('runFreeScan — rate limiting', () => {
       process.env.KV_REST_API_URL = 'http://localhost:6379';
       delete process.env.PERPLEXITY_API_KEY; // force unavailable; no real fetch (AI_RULES §24)
       mockHeaders();
-      vi.mocked(kv.expire as ReturnType<typeof vi.fn>).mockResolvedValue(1);
-      vi.mocked(kv.ttl as ReturnType<typeof vi.fn>).mockResolvedValue(86400);
+      mockRedis.expire.mockResolvedValue(1);
+      mockRedis.ttl.mockResolvedValue(86400);
     });
 
     afterEach(() => {
@@ -61,28 +65,28 @@ describe('runFreeScan — rate limiting', () => {
     });
 
     it('returns scan result when request count is under limit (count=1)', async () => {
-      vi.mocked(kv.incr as ReturnType<typeof vi.fn>).mockResolvedValue(1);
+      mockRedis.incr.mockResolvedValue(1);
       const result = await runFreeScan(makeForm());
       // No API key → unavailable (AI_RULES §24); key point is NOT rate_limited
       expect(result.status).not.toBe('rate_limited');
     });
 
     it('returns scan result when request count equals limit exactly (count=5)', async () => {
-      vi.mocked(kv.incr as ReturnType<typeof vi.fn>).mockResolvedValue(5);
+      mockRedis.incr.mockResolvedValue(5);
       const result = await runFreeScan(makeForm());
       // No API key → unavailable (AI_RULES §24); key point is NOT rate_limited
       expect(result.status).not.toBe('rate_limited');
     });
 
     it('returns { status: "rate_limited" } when count exceeds limit (count=6)', async () => {
-      vi.mocked(kv.incr as ReturnType<typeof vi.fn>).mockResolvedValue(6);
+      mockRedis.incr.mockResolvedValue(6);
       const result = await runFreeScan(makeForm());
       expect(result.status).toBe('rate_limited');
     });
 
     it('rate_limited result includes retryAfterSeconds from KV ttl()', async () => {
-      vi.mocked(kv.incr as ReturnType<typeof vi.fn>).mockResolvedValue(6);
-      vi.mocked(kv.ttl as ReturnType<typeof vi.fn>).mockResolvedValue(7200);
+      mockRedis.incr.mockResolvedValue(6);
+      mockRedis.ttl.mockResolvedValue(7200);
       const result = await runFreeScan(makeForm());
       expect(result).toEqual({ status: 'rate_limited', retryAfterSeconds: 7200 });
     });
@@ -103,7 +107,7 @@ describe('runFreeScan — rate limiting', () => {
       const result = await runFreeScan(makeForm());
       // No API key → unavailable (AI_RULES §24); key point is KV.incr never called
       expect(result.status).not.toBe('rate_limited');
-      expect(kv.incr).not.toHaveBeenCalled();
+      expect(mockRedis.incr).not.toHaveBeenCalled();
     });
   });
 
@@ -120,7 +124,7 @@ describe('runFreeScan — rate limiting', () => {
     });
 
     it('falls through to scan when kv.incr() throws (resilience — no crash)', async () => {
-      vi.mocked(kv.incr as ReturnType<typeof vi.fn>).mockRejectedValue(
+      mockRedis.incr.mockRejectedValue(
         new Error('KV connection refused')
       );
       const result = await runFreeScan(makeForm());

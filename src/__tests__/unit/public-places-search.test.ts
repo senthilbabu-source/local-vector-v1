@@ -11,7 +11,7 @@
 //   7. Bypasses rate limit and returns suggestions when KV_REST_API_URL absent
 //   8. Absorbs KV failure gracefully when kv.incr() throws
 //
-// Mocks: @vercel/kv, next/headers, global fetch — hoisted (AI_RULES §4).
+// Mocks: @/lib/redis, next/headers, global fetch — hoisted (AI_RULES §4).
 //
 // Run:
 //   npx vitest run src/__tests__/unit/public-places-search.test.ts
@@ -21,15 +21,19 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
-vi.mock('@vercel/kv', () => ({
-  kv: { incr: vi.fn(), expire: vi.fn(), ttl: vi.fn() },
+const mockRedis = {
+  incr: vi.fn(),
+  expire: vi.fn(),
+  ttl: vi.fn(),
+};
+vi.mock('@/lib/redis', () => ({
+  getRedis: vi.fn(() => mockRedis),
 }));
 vi.mock('next/headers', () => ({ headers: vi.fn() }));
 
 // ── Imports after mock declarations ──────────────────────────────────────
 
 import { GET } from '@/app/api/public/places/search/route';
-import { kv } from '@vercel/kv';
 import { headers } from 'next/headers';
 
 // ── Helpers ───────────────────────────────────────────────────────────────
@@ -68,9 +72,9 @@ beforeEach(() => {
   process.env.GOOGLE_PLACES_API_KEY = 'test-key-456';
   mockHeaders();
   // KV mocks: succeed by default (count = 1)
-  vi.mocked(kv.incr   as ReturnType<typeof vi.fn>).mockResolvedValue(1);
-  vi.mocked(kv.expire as ReturnType<typeof vi.fn>).mockResolvedValue(1);
-  vi.mocked(kv.ttl    as ReturnType<typeof vi.fn>).mockResolvedValue(3600);
+  mockRedis.incr.mockResolvedValue(1);
+  mockRedis.expire.mockResolvedValue(1);
+  mockRedis.ttl.mockResolvedValue(3600);
 });
 
 afterEach(() => {
@@ -137,7 +141,7 @@ describe('GET /api/public/places/search', () => {
 
   it('returns HTTP 429 with error message when IP has exceeded 20 searches/hour', async () => {
     process.env.KV_REST_API_URL = 'http://localhost:6379';
-    vi.mocked(kv.incr as ReturnType<typeof vi.fn>).mockResolvedValue(21); // over limit
+    mockRedis.incr.mockResolvedValue(21); // over limit
     const res  = await GET(makeRequest('charcoal'));
     const body = await res.json() as { error: string };
     expect(res.status).toBe(429);
@@ -151,12 +155,12 @@ describe('GET /api/public/places/search', () => {
     const body = await res.json() as { suggestions: unknown[] };
     expect(res.status).toBe(200);
     expect(body.suggestions).toHaveLength(1);
-    expect(kv.incr).not.toHaveBeenCalled();
+    expect(mockRedis.incr).not.toHaveBeenCalled();
   });
 
   it('absorbs KV failure gracefully and returns suggestions when kv.incr() throws', async () => {
     process.env.KV_REST_API_URL = 'http://localhost:6379';
-    vi.mocked(kv.incr as ReturnType<typeof vi.fn>).mockRejectedValue(new Error('KV down'));
+    mockRedis.incr.mockRejectedValue(new Error('KV down'));
     mockGoogleOk([{ name: 'Resilient Biz', formatted_address: '200 Oak Ave, Atlanta, GA' }]);
     const res  = await GET(makeRequest('resilient'));
     const body = await res.json() as { suggestions: unknown[] };

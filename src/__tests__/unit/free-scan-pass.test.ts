@@ -15,7 +15,7 @@
 //  10. is_unknown=false+is_closed=false → { status: 'pass' } regression guard
 //  11. Network failure (fetch throws) → { status: 'unavailable', reason: 'api_error' }
 //
-// Mocks: @vercel/kv, next/headers, global fetch — hoisted (AI_RULES §4).
+// Mocks: @/lib/redis, next/headers, global fetch — hoisted (AI_RULES §4).
 //
 // Run:
 //   npx vitest run src/__tests__/unit/free-scan-pass.test.ts
@@ -25,8 +25,13 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
-vi.mock('@vercel/kv', () => ({
-  kv: { incr: vi.fn(), expire: vi.fn(), ttl: vi.fn() },
+const mockRedis = {
+  incr: vi.fn(),
+  expire: vi.fn(),
+  ttl: vi.fn(),
+};
+vi.mock('@/lib/redis', () => ({
+  getRedis: vi.fn(() => mockRedis),
 }));
 vi.mock('next/headers', () => ({ headers: vi.fn() }));
 

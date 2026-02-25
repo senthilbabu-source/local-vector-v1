@@ -23,7 +23,7 @@
     "@supabase/ssr": "^0.8.0",
     "@supabase/supabase-js": "^2.97.0",
     "@testing-library/dom": "^10.4.1",
-    "@vercel/kv": "^3.0.0",
+    "@upstash/redis": "^1.36.2",
     "ai": "^4.3.16",
     "cheerio": "^1.0.0",
     "jszip": "^3.10.1",

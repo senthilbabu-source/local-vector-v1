@@ -24,7 +24,7 @@
 // ---------------------------------------------------------------------------
 
 import { headers } from 'next/headers';
-import { kv } from '@vercel/kv';
+import { getRedis } from '@/lib/redis';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -59,8 +59,8 @@ async function checkRateLimit(
 
   try {
     const key   = `ratelimit:places:${ip}`;
-    const count = await kv.incr(key);
-    if (count === 1) await kv.expire(key, RATE_LIMIT_WINDOW);
+    const count = await getRedis().incr(key);
+    if (count === 1) await getRedis().expire(key, RATE_LIMIT_WINDOW);
     return { allowed: count <= RATE_LIMIT_MAX };
   } catch {
     // KV unreachable — allow the search (AI_RULES §17)

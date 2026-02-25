@@ -15,8 +15,8 @@
 //   IP-based, 5 scans per IP per 24 hours via Vercel KV (Upstash Redis).
 //   Bypassed automatically when KV_REST_API_URL is absent (dev / CI).
 //   KV unavailability is absorbed by try/catch — never aborts the scan (AI_RULES §17).
-//   Note: @vercel/kv is deprecated; production deployments should use the Upstash
-//   Redis integration from the Vercel Marketplace (env vars are identical).
+//   Uses @upstash/redis via lib/redis.ts. Reads UPSTASH_REDIS_REST_URL (preferred)
+//   or KV_REST_API_URL (Vercel legacy fallback). Env vars are identical.
 //
 // Graceful degradation (AI_RULES §24 — never fabricate scan results):
 //   • Missing PERPLEXITY_API_KEY → { status: 'unavailable', reason: 'no_api_key' }.
@@ -41,7 +41,7 @@
 //   • Cost: ~2x API usage but both calls run within the same 15s window.
 
 import { headers } from 'next/headers';
-import { kv } from '@vercel/kv';
+import { getRedis } from '@/lib/redis';
 import { z } from 'zod';
 
 // ---------------------------------------------------------------------------
@@ -112,11 +112,11 @@ async function checkRateLimit(
   if (!process.env.KV_REST_API_URL) return { allowed: true, retryAfterSeconds: 0 };
 
   const key   = `ratelimit:scan:${ip}`;
-  const count = await kv.incr(key);
-  if (count === 1) await kv.expire(key, RATE_LIMIT_WINDOW); // set TTL on first hit only
+  const count = await getRedis().incr(key);
+  if (count === 1) await getRedis().expire(key, RATE_LIMIT_WINDOW); // set TTL on first hit only
 
   if (count > RATE_LIMIT_MAX) {
-    const ttl = await kv.ttl(key);
+    const ttl = await getRedis().ttl(key);
     return { allowed: false, retryAfterSeconds: Math.max(ttl, 0) };
   }
   return { allowed: true, retryAfterSeconds: 0 };
