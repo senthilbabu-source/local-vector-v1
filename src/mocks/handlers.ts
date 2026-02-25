@@ -87,9 +87,10 @@ const MOCK_INTERCEPT_ANALYSIS = {
   winner:          'Cloud 9 Lounge',
   winner_reason:   'More review mentions of late-night atmosphere and happy hour deals.',
   winning_factor:  '15 more review mentions of "late night" atmosphere',
-  gap_analysis:    { competitor_mentions: 15, your_mentions: 2 },
+  gap_details:     { competitor_mentions: 15, your_mentions: 2 },
   gap_magnitude:   'high',
   suggested_action:'Ask 3 customers to mention "late night" in their reviews this week',
+  action_category: 'reviews',
 };
 
 // ---------------------------------------------------------------------------
