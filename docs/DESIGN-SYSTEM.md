@@ -44,6 +44,24 @@ const T = {
 ```
 Common inline RGBAs: borders `rgba(255,255,255, 0.03|0.05|0.08)`, green glows `rgba(0,245,160, 0.06|0.12|0.15|0.3)`, shadow `rgba(0,0,0,0.3)`, accent suffixes `${hex}44`=27% `${hex}33`=20% `${hex}88`=53%.
 
+### shadcn/ui Integration
+
+The `:root` CSS variables in `app/globals.css` pre-map shadcn/ui defaults to Deep Night tokens. All shadcn components automatically inherit these colors — no additional theming needed.
+
+| shadcn variable | Value | Design system token |
+|-----------------|-------|---------------------|
+| `--primary` | `#00F5A0` | signal-green (CTA, success) |
+| `--accent` | `#6366f1` | electric-indigo (interactive) |
+| `--destructive` | `#ef4444` | alert-crimson (errors, alerts) |
+| `--card` / `--popover` | `#0A1628` | surface-dark (panel bg) |
+| `--background` | `#050A15` | midnight-slate (primary bg) |
+| `--muted` | `#1E293B` | slate-800 (secondary surfaces) |
+| `--muted-foreground` | `#94A3B8` | slate-400 (subdued text) |
+| `--ring` | `#00F5A0` | signal-green (focus rings) |
+| `--radius` | `0.625rem` | 10px (matches `.lv-btn` border-radius) |
+
+**shadcn components** live in `components/ui/`. Add new ones with `npx shadcn@latest add <name> --yes --overwrite`. Never run `npx shadcn@latest init`.
+
 ## Fonts
 ```css
 @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600;700&display=swap');

@@ -64,7 +64,10 @@
 
 ## 6. 📂 Architecture & Stack
 * **Framework:** Next.js 16 (App Router). Use Server Components by default.
-* **Styling:** Tailwind CSS + shadcn/ui.
+* **Styling:** Tailwind CSS v4 + shadcn/ui (manually installed — **NEVER** run `npx shadcn@latest init`, it overwrites `globals.css`).
+  * Add new shadcn components via `npx shadcn@latest add <component> --yes --overwrite`. The `.npmrc` has `legacy-peer-deps=true` for Zod v4 compatibility.
+  * Components live in `components/ui/`. The `cn()` helper is at `lib/utils.ts` (coexists with `lib/utils/` directory).
+  * shadcn CSS variables in `app/globals.css` `:root` are pre-mapped to Deep Night tokens (signal-green → `--primary`, electric-indigo → `--accent`, etc.). See `DESIGN-SYSTEM.md` for the full mapping.
 * **Routing:**
     * `app.localvector.ai` → Dashboard (Authenticated)
     * `menu.localvector.ai` → Public Magic Menus (Edge Cached, No Auth).
