@@ -163,16 +163,20 @@ tests that require a second tenant to be provisioned.
 
 | Spec file | Tests | Auth | Coverage |
 |-----------|-------|------|----------|
-| `tests/e2e/01-viral-wedge.spec.ts` | 6 | None (public) | Scan form → hallucination card → CTA `/login` → social proof badge → case study text → AEO endpoints → autocomplete flow (Sprint 29) |
+| `tests/e2e/01-viral-wedge.spec.ts` | 6 | None (public) | Scanner form → /scan redirect, eyebrow badge, $12k case study, AEO endpoints, autocomplete flow |
 | `tests/e2e/02-onboarding-guard.spec.ts` | 1 | `incomplete@` | Guard fires on `/dashboard/magic-menus` → redirect `/onboarding` → wizard → `/dashboard` |
-| `tests/e2e/03-dashboard-fear-first.spec.ts` | 5 | `e2e-tester@` | AlertFeed leads, Reality Score=87, hamburger opens sidebar, Listings nav, page title |
+| `tests/e2e/03-dashboard-fear-first.spec.ts` | 5 | `e2e-tester@` | AlertFeed leads, Reality Score em-dash (no scan data), hamburger sidebar, Listings nav, Fix CTA |
 | `tests/e2e/04-magic-menu-pipeline.spec.ts` | 1 | `upload@` | UploadState → Simulate AI Parsing → triage summary → certify → publish → LinkInjectionModal |
 | `tests/e2e/05-public-honeypot.spec.ts` | 4 | None (public) | Page renders, Restaurant + Menu JSON-LD valid, `llms.txt` 200+structure, `ai-config.json` 200+GEO fields |
-| `tests/e2e/viral-wedge.spec.ts` *(legacy)* | 3 | None (public) | Legacy spec — kept for regression; racy "Scanning AI Models" assertion removed |
-| `tests/e2e/hybrid-upload.spec.ts` | 4 | `upload@` | CSV Gold Standard upload path; `beforeAll` admin reset guarantees UploadState |
-| `tests/e2e/03-dashboard-fear-first.spec.ts` | 5 | `e2e-tester@` | See above |
+| `tests/e2e/06-share-of-voice.spec.ts` | 4 | `dev@` | Header, SOV score ring, quick stats, sidebar nav |
+| `tests/e2e/07-listings.spec.ts` | 4 | `dev@` | Header, location card + platform rows, summary strip, sidebar nav |
+| `tests/e2e/08-content-drafts.spec.ts` | 3 | `dev@` | Header + summary strip, filter tabs, sidebar nav |
+| `tests/e2e/hybrid-upload.spec.ts` | 2 | `upload@` | Upload tabs visible, CSV upload → ReviewState |
+| `tests/e2e/auth.spec.ts` | 3 | None (public) | Login layout, error on invalid creds, signup form fields |
+| `tests/e2e/billing.spec.ts` | 2 | `dev@` | Three tiers with Growth highlighted (signal-green), upgrade demo mode |
+| `tests/e2e/onboarding.spec.ts` | 1 | `incomplete@` | Redirect to /onboarding + 3-step wizard completion |
 
-**Total: 26 tests, 26 passing, 0 failing**
+**Total: 36 tests, 36 passing, 0 failing** (Sprint 42, 2026-02-24)
 
 ### Key engineering decisions
 
@@ -197,8 +201,8 @@ match violation. Adding `level: 1` scopes the assertion to the page's primary he
 **Skipping racy `isPending` assertions**
 The `runFreeScan()` Server Action has a 2-second `setTimeout`, but on a warm dev server with MSW
 the response can arrive before Playwright polls for the "Scanning AI Models…" loading text.
-Both `01-viral-wedge.spec.ts` and the legacy `viral-wedge.spec.ts` omit this assertion and
-wait directly for the result card with a 10s timeout.
+`01-viral-wedge.spec.ts` omits this assertion and waits directly for the /scan page heading
+with a 10s timeout. The legacy `viral-wedge.spec.ts` was deleted (superseded by `01-viral-wedge`).
 
 ---
 

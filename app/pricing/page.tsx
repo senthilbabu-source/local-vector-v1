@@ -2,7 +2,7 @@
 // /pricing — Public Pricing Page (Sprint 25A)
 //
 // No auth required. Three tiers aligned with plan_tier enum (starter|growth|agency)
-// and Doc 08 §6 pricing. Growth column highlighted with electric-indigo.
+// and Doc 08 §6 pricing. Growth column highlighted with signal-green.
 // No Stripe calls — pure marketing page.
 // ---------------------------------------------------------------------------
 

@@ -581,4 +581,47 @@ rather than nesting objects. This keeps URL encoding simple and Zod defaults cle
 * **See also:** AI_RULES §21 (all parsed fields must be branched on), AI_RULES §24 (no fabricated results).
 
 ---
+
+## 29. 🧪 Playwright E2E Spec Patterns (Sprint 42)
+
+The E2E suite lives in `tests/e2e/` with 12 spec files and 36 tests. Key patterns:
+
+### 29.1 — Locator hygiene
+* **Duplicated components:** ViralScanner renders in both hero and CTA sections. All form locators MUST use `.first()`:
+  ```typescript
+  await page.getByPlaceholder('Business Name').first().fill('Charcoal N Chill');
+  await page.getByRole('button', { name: /Run Free AI Audit/i }).first().click();
+  ```
+* **Heading levels:** Always specify `level` to avoid strict-mode violations:
+  ```typescript
+  page.getByRole('heading', { name: /Content Drafts/i, level: 1 })
+  ```
+* **Text vs role disambiguation:** When a string appears in both a `<button>` and a `<p>`, scope with role:
+  ```typescript
+  // ❌ Matches both filter tab button AND summary strip paragraph
+  page.getByText('Approved', { exact: true });
+  // ✅ Scoped to paragraph
+  page.getByRole('paragraph').filter({ hasText: 'Approved' });
+  ```
+
+### 29.2 — API-result-agnostic assertions
+MSW server-side interception does NOT reliably intercept Perplexity/OpenAI in E2E (real APIs get called).
+* **Never** assert specific pass/fail text from an AI API response:
+  ```typescript
+  // ❌ Brittle — real API may return pass or fail
+  await expect(page.getByText('AI Hallucination Detected')).toBeVisible();
+  // ✅ Structural — works regardless of API result
+  await expect(page.getByRole('heading', { name: /AI Audit/i, level: 1 })).toBeVisible();
+  ```
+
+### 29.3 — Auth session files
+* `dev-user.json` — dev@localvector.ai (Growth plan, golden tenant). Used for all dashboard specs.
+* `e2e-tester.json` — dynamically provisioned by global.setup.ts.
+* `incomplete-user.json` — incomplete@ (null hours/amenities). Used for onboarding guard.
+* `upload-user.json` — upload@ (shared for hybrid-upload). `workers: 1` prevents race conditions.
+
+### 29.4 — Test count verification
+E2E spec inventory is maintained in `docs/DEVLOG.md` (bottom section). Update it when adding/removing specs.
+
+---
 > **End of System Instructions**

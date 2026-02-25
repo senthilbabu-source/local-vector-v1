@@ -1,7 +1,37 @@
 # LocalVector.ai — Design System Rules
 > Read before editing any frontend file. For full component JSX, see `DESIGN-SYSTEM-COMPONENTS.md`.
 
-## Color Tokens (use `T.` object — never hardcode hex)
+## Color Tokens
+
+### Tailwind v4 Design Tokens (from `globals.css` — use as utility classes)
+
+These are registered via `@theme inline` in `app/globals.css` and available as Tailwind utilities
+(e.g., `bg-midnight-slate`, `text-electric-indigo`, `border-signal-green`):
+
+```css
+/* ── Background surfaces ── */
+--color-midnight-slate:  #050A15;   /* bg-midnight-slate — primary dark bg */
+--color-surface-dark:    #0A1628;   /* bg-surface-dark — card/panel bg */
+
+/* ── Brand / Accent ── */
+--color-electric-indigo: #6366f1;   /* text-electric-indigo — dashboard interactive accent */
+--color-signal-green:    #00F5A0;   /* text-signal-green — brand CTA, success, Growth tier */
+
+/* ── Semantic colours ── */
+--color-alert-crimson:   #ef4444;   /* text-alert-crimson — errors, hallucination alerts */
+--color-truth-emerald:   #10b981;   /* text-truth-emerald — verified/healthy states */
+--color-alert-amber:     #FFB800;   /* text-alert-amber — warnings, stale states */
+--color-deep-navy:       #050A15;   /* alias for midnight-slate */
+```
+
+**Color usage contexts:**
+- **signal-green** → brand CTAs (`.lv-btn-green`), Growth tier highlight (`border-signal-green`), success states
+- **electric-indigo** → dashboard interactive elements (buttons, inputs, AI assistant, badges, form focus rings)
+- **alert-crimson** → hallucination alerts, error states, danger badges
+- **alert-amber** → warnings, stale sync, pending review states
+- **truth-emerald** → healthy/verified status badges
+
+### Legacy `T.` Object (inline styles on marketing pages)
 ```js
 const T = {
   navy: "#050A15", navyLight: "#0A1628", navyMid: "#111D33",
