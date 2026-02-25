@@ -68,6 +68,10 @@
   * Add new shadcn components via `npx shadcn@latest add <component> --yes --overwrite`. The `.npmrc` has `legacy-peer-deps=true` for Zod v4 compatibility.
   * Components live in `components/ui/`. The `cn()` helper is at `lib/utils.ts` (coexists with `lib/utils/` directory).
   * shadcn CSS variables in `app/globals.css` `:root` are pre-mapped to Deep Night tokens (signal-green → `--primary`, electric-indigo → `--accent`, etc.). See `DESIGN-SYSTEM.md` for the full mapping.
+* **Charts:** Tremor Raw (copy-paste) + Recharts. **NEVER `npm install @tremor/react`** — it requires `tailwind.config.js` (incompatible with Tailwind v4).
+  * Chart components go in `components/tremor/` (not `components/ui/`).
+  * Tremor components import `{ cx }` from `@/lib/utils` and colors from `@/lib/chartUtils`.
+  * `cx()` and `cn()` are identical (`twMerge(clsx(…))`). Both exported from `lib/utils.ts`.
 * **Routing:**
     * `app.localvector.ai` → Dashboard (Authenticated)
     * `menu.localvector.ai` → Public Magic Menus (Edge Cached, No Auth).

@@ -62,6 +62,15 @@ The `:root` CSS variables in `app/globals.css` pre-map shadcn/ui defaults to Dee
 
 **shadcn components** live in `components/ui/`. Add new ones with `npx shadcn@latest add <name> --yes --overwrite`. Never run `npx shadcn@latest init`.
 
+### Tremor Raw Charts
+
+Chart components (AreaChart, BarChart, DonutChart, etc.) use copy-paste **Tremor Raw** built on Recharts. **Never `npm install @tremor/react`** (incompatible with Tailwind v4).
+
+- Components live in `components/tremor/` (not `components/ui/`).
+- Chart colors defined in `lib/chartUtils.ts` — 9-color palette: indigo (brand), emerald, violet, amber, gray, cyan, pink, lime, fuchsia.
+- Tremor components use `cx()` from `lib/utils.ts` (identical to shadcn's `cn()`).
+- Focus utilities (`focusInput`, `focusRing`, `hasErrorInput`) in `lib/utils.ts` use `electric-indigo` / `alert-crimson`.
+
 ## Fonts
 ```css
 @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600;700&display=swap');
