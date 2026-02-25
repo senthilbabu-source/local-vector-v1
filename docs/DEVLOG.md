@@ -4,6 +4,20 @@
 
 ---
 
+## 2026-02-25 — Bug Fix: Missing RLS Policies on `competitor_intercepts` (Completed)
+
+**Goal:** Fix "new row violates row-level security policy for table competitor_intercepts" error when running competitor analysis from the dashboard.
+
+**Root cause:** The `competitor_intercepts` table had RLS enabled but only an `org_isolation_select` policy. INSERT (from `runCompetitorIntercept`), UPDATE (from `markInterceptActionComplete`), and DELETE were all silently blocked by RLS.
+
+**Scope:**
+- `supabase/migrations/20260226000003_competitor_intercepts_rls_policies.sql` — **NEW.** Adds `org_isolation_insert`, `org_isolation_update`, `org_isolation_delete` policies matching the standard tenant-isolation pattern.
+- `supabase/prod_schema.sql` — Added the same 3 policies to the authoritative schema file.
+
+**Verification:** `supabase db reset` succeeds. All 4 policies confirmed via `pg_policies` query. "Run Analysis" now inserts into `competitor_intercepts` without RLS error.
+
+---
+
 ## 2026-02-25 — Sprint 48: Autopilot Engine — Full Publish Pipeline (Completed)
 
 **Goal:** Build the Autopilot Engine — the ACT layer that closes the DETECT → DIAGNOSE → ACT → MEASURE loop. Converts detected gaps (first mover, competitor gap, occasion, prompt missing, manual) into AI-generated drafts via GPT-4o-mini, routes them through a strict HITL approval workflow, and publishes to 3 targets (Download HTML, GBP Post, WordPress). Post-publish SOV re-check at 14 days.
