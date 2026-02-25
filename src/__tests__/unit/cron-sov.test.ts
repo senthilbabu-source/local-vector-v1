@@ -43,11 +43,24 @@ vi.mock('@/lib/email', () => ({
   sendSOVReport: vi.fn().mockResolvedValue(undefined),
 }));
 
+// ── Mock the Occasion Engine ─────────────────────────────────────────────
+vi.mock('@/lib/services/occasion-engine.service', () => ({
+  runOccasionScheduler: vi.fn().mockResolvedValue({
+    orgId: 'org-uuid-001',
+    locationId: 'loc-uuid-001',
+    alerts: [],
+    alertsFired: 0,
+    alertsSkipped: 0,
+    draftsCreated: 0,
+  }),
+}));
+
 // ── Import handler and mocks after vi.mock declarations ──────────────────
 import { GET } from '@/app/api/cron/sov/route';
 import { createServiceRoleClient } from '@/lib/supabase/server';
 import { runSOVQuery, writeSOVResults } from '@/lib/services/sov-engine.service';
 import { sendSOVReport } from '@/lib/email';
+import { runOccasionScheduler } from '@/lib/services/occasion-engine.service';
 
 // ── Constants ────────────────────────────────────────────────────────────
 
@@ -277,5 +290,41 @@ describe('GET /api/cron/sov', () => {
     expect(vi.mocked(runSOVQuery)).toHaveBeenCalledWith(
       expect.objectContaining({ query_category: 'occasion' }),
     );
+  });
+
+  it('calls runOccasionScheduler after writeSOVResults', async () => {
+    const mock = makeMockSupabase([MOCK_QUERY]);
+    vi.mocked(createServiceRoleClient).mockReturnValue(mock as never);
+
+    await GET(makeRequest(CRON_SECRET));
+
+    expect(vi.mocked(runOccasionScheduler)).toHaveBeenCalledWith(
+      'org-uuid-001',
+      'loc-uuid-001',
+      expect.any(Array),
+      expect.any(String),
+      expect.any(Array),
+      'Charcoal N Chill',
+      'Alpharetta',
+      'GA',
+      expect.any(String),
+      expect.anything(),
+    );
+  });
+
+  it('does not crash when occasion engine throws', async () => {
+    const mock = makeMockSupabase([MOCK_QUERY]);
+    vi.mocked(createServiceRoleClient).mockReturnValue(mock as never);
+    vi.mocked(runOccasionScheduler).mockRejectedValueOnce(
+      new Error('Occasion engine failed'),
+    );
+
+    const res = await GET(makeRequest(CRON_SECRET));
+    const body = await res.json();
+
+    // Cron should still succeed — occasion engine is non-critical
+    expect(res.status).toBe(200);
+    expect(body.orgs_processed).toBe(1);
+    expect(body.orgs_failed).toBe(0);
   });
 });

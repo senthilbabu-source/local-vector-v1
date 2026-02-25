@@ -35,6 +35,7 @@ import {
   type SOVQueryResult,
 } from '@/lib/services/sov-engine.service';
 import { sendSOVReport } from '@/lib/email';
+import { runOccasionScheduler } from '@/lib/services/occasion-engine.service';
 
 // Force dynamic so Vercel never caches this route between cron invocations.
 export const dynamic = 'force-dynamic';
@@ -98,7 +99,7 @@ export async function GET(request: NextRequest) {
     .from('target_queries')
     .select(`
       id, query_text, query_category, location_id, org_id,
-      locations ( business_name, city, state ),
+      locations ( business_name, city, state, categories ),
       organizations ( plan_status, plan )
     `)
     .eq('organizations.plan_status', 'active')
@@ -122,6 +123,7 @@ export async function GET(request: NextRequest) {
     queries_run: 0,
     queries_cited: 0,
     first_mover_alerts: 0,
+    occasion_drafts: 0,
   };
 
   // Filter to valid queries (with locations and active orgs)
@@ -194,6 +196,35 @@ export async function GET(request: NextRequest) {
           }).catch((err: unknown) =>
             console.error('[cron-sov] Email send failed:', err),
           );
+        }
+
+        // ── 8. Occasion Engine sub-step (Doc 16 §3.1) ────────────────────
+        try {
+          const locationId = batch[0].location_id;
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const loc = (batch[0] as any).locations;
+          const locationCategories: string[] = loc?.categories ?? ['restaurant'];
+          const city = loc?.city ?? '';
+          const state = loc?.state ?? '';
+          const primaryCategory = locationCategories[0] ?? 'restaurant';
+
+          const occasionResult = await runOccasionScheduler(
+            orgId,
+            locationId,
+            locationCategories,
+            plan,
+            results,
+            businessName,
+            city,
+            state,
+            primaryCategory,
+            supabase,
+          );
+          summary.occasion_drafts += occasionResult.draftsCreated;
+        } catch (err) {
+          const occasionMsg = err instanceof Error ? err.message : String(err);
+          console.error(`[cron-sov] Occasion engine failed for org ${orgId}:`, occasionMsg);
+          // Non-critical — never abort SOV cron for occasion failures
         }
       }
 

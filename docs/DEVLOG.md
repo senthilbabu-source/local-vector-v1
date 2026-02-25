@@ -4,6 +4,38 @@
 
 ---
 
+## 2026-02-25 — Sprint 45: Occasion Engine (Completed)
+
+**Goal:** Build the Occasion Engine — a temporal layer that detects upcoming seasonal events (Valentine's Day, NYE, Mother's Day, etc.) and proactively creates content drafts so businesses can be AI-visible before peak dates. Runs as a sub-step inside the existing weekly SOV cron.
+
+**Spec:** `docs/16-OCCASION-ENGINE.md`
+
+**Scope:**
+- `lib/types/occasions.ts` — **NEW.** TypeScript interfaces: `LocalOccasionRow`, `OccasionAlert`, `OccasionSchedulerResult`, `OccasionQueryPattern`.
+- `lib/services/occasion-engine.service.ts` — **NEW.** Pure service (~250 lines). Exports `getDaysUntilPeak()` (fixed MM-DD dates + evergreen null), `checkOccasionAlerts()` (window + category relevance + Redis dedup + SOV citation check), `generateOccasionDraft()` (21-day window + idempotency + GPT-4o-mini via `getModel('greed-intercept')`), `runOccasionScheduler()` (top-level orchestrator called from SOV cron).
+- `lib/ai/schemas.ts` — Added `OccasionDraftSchema` (Zod: title, content, estimated_aeo_score, target_keywords).
+- `app/api/cron/sov/route.ts` — Added occasion engine sub-step (§8) after `writeSOVResults()` inside per-org try/catch. Added `categories` to locations SELECT. Added `occasion_drafts` to summary JSON. Non-critical: failures never abort the SOV cron.
+- `supabase/seed.sql` — Expanded `local_occasions` from 3 to 20 seeds across 4 tiers: Hospitality Core (7), Celebration Milestones (6), Cultural & Ethnic (5), Seasonal (2). All with `peak_query_patterns` and `relevant_categories`. `ON CONFLICT (name) DO NOTHING` for idempotency.
+
+**Key design decisions:**
+- Reuses `'greed-intercept'` model key (GPT-4o-mini) — no new provider entry.
+- Redis dedup key: `occasion_alert:{orgId}:{occasionId}:{weekNumber}`, 8-day TTL. Wrapped in try/catch per AI_RULES §17.
+- Draft idempotency via SELECT-before-INSERT (no unique constraint on content_drafts trigger columns).
+- Plan gating: `canRunOccasionEngine(plan)` — Growth/Agency only (already existed in `lib/plan-enforcer.ts`).
+
+**Tests added:**
+- `src/__tests__/unit/occasion-engine-service.test.ts` — **19 Vitest tests** (new). getDaysUntilPeak (fixed/evergreen/exact-date), checkOccasionAlerts (empty/window/category/dedup/Redis-degradation/citation), generateOccasionDraft (conditions/idempotency/mock/real-AI), runOccasionScheduler (empty/growth/starter).
+- `src/__tests__/unit/cron-sov.test.ts` — **13 Vitest tests** (was 11). Two new: occasion scheduler called after writeSOVResults, occasion failure doesn't crash cron.
+
+**Run commands:**
+```bash
+npx vitest run src/__tests__/unit/occasion-engine-service.test.ts  # 19 tests passing
+npx vitest run src/__tests__/unit/cron-sov.test.ts                 # 13 tests passing
+npx vitest run                                                      # 563 tests passing
+```
+
+---
+
 ## 2026-02-25 — Bug Fix: query_category Column Missing from target_queries (Completed)
 
 **Goal:** Fix critical silent bug where `query_category` column was missing from `target_queries` table, causing First Mover Alerts to never fire (the SOV engine's `writeSOVResults()` filters on `['discovery', 'occasion', 'near_me']` but `queryCategory` was always `undefined`).

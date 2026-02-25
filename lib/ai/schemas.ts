@@ -79,3 +79,14 @@ export const SovCronResultSchema = z.object({
 });
 
 export type SovCronResultOutput = z.infer<typeof SovCronResultSchema>;
+
+// ── Occasion Engine — Draft generation (Doc 16 §4.2) ───────────────────────
+
+export const OccasionDraftSchema = z.object({
+  title: z.string(),
+  content: z.string(),
+  estimated_aeo_score: z.number().min(0).max(100),
+  target_keywords: z.array(z.string()),
+});
+
+export type OccasionDraftOutput = z.infer<typeof OccasionDraftSchema>;

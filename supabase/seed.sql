@@ -741,18 +741,21 @@ ON CONFLICT (id) DO NOTHING;
 --   occasion NYE   : c2eebc99-9c0b-4ef8-bb6d-6bb9bd380a11
 --   occasion Bday  : c3eebc99-9c0b-4ef8-bb6d-6bb9bd380a11
 
--- ── 14a. local_occasions (shared reference table — no org_id) ─────────────────
+-- ── 14a. local_occasions (shared reference table — no org_id, 20 occasions) ────
+-- Doc 16 §6: Priority seeding — Phase 6 minimum (20 occasions).
+-- ON CONFLICT (name) DO NOTHING for idempotent re-seeding.
 INSERT INTO public.local_occasions (
   id, name, occasion_type, trigger_days_before, annual_date,
   peak_query_patterns, relevant_categories, is_active
 ) VALUES
+-- Tier 1 — Hospitality Core
 (
   'c1eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
   'Valentine''s Day',
   'holiday',
   28,
   '02-14',
-  '[{"query":"best date night restaurant near me","category":"occasion"},{"query":"romantic restaurants for valentines day","category":"occasion"}]'::jsonb,
+  '[{"query":"romantic dinner {city}","category":"occasion"},{"query":"best place for date night {city}","category":"occasion"},{"query":"Valentine''s dinner {city}","category":"occasion"}]'::jsonb,
   '["restaurant","hookah lounge","bar","event venue","lounge"]'::jsonb,
   TRUE
 ),
@@ -760,20 +763,193 @@ INSERT INTO public.local_occasions (
   'c2eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
   'New Year''s Eve',
   'holiday',
-  21,
+  42,
   '12-31',
-  '[{"query":"new years eve party near me","category":"occasion"},{"query":"best nye dinner reservation","category":"occasion"}]'::jsonb,
+  '[{"query":"NYE dinner {city}","category":"occasion"},{"query":"New Year''s Eve plans {city}","category":"occasion"},{"query":"NYE party venue {city}","category":"occasion"}]'::jsonb,
   '["restaurant","hookah lounge","bar","nightclub","event venue","lounge"]'::jsonb,
   TRUE
 ),
+(
+  'c4eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+  'Mother''s Day',
+  'holiday',
+  28,
+  '05-11',
+  '[{"query":"Mother''s Day brunch {city}","category":"occasion"},{"query":"Mother''s Day dinner {city}","category":"occasion"},{"query":"where to take mom {city}","category":"occasion"}]'::jsonb,
+  '["restaurant","cafe","bakery","brunch"]'::jsonb,
+  TRUE
+),
+(
+  'c5eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+  'Father''s Day',
+  'holiday',
+  21,
+  '06-15',
+  '[{"query":"Father''s Day dinner {city}","category":"occasion"},{"query":"Father''s Day restaurant {city}","category":"occasion"}]'::jsonb,
+  '["restaurant","bar","steakhouse","bbq","grill"]'::jsonb,
+  TRUE
+),
+(
+  'c6eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+  'Christmas Eve',
+  'holiday',
+  21,
+  '12-24',
+  '[{"query":"Christmas Eve dinner {city}","category":"occasion"},{"query":"holiday dinner {city}","category":"occasion"}]'::jsonb,
+  '["restaurant","bar","lounge","event venue"]'::jsonb,
+  TRUE
+),
+(
+  'c7eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+  'Thanksgiving Eve',
+  'holiday',
+  21,
+  '11-27',
+  '[{"query":"Thanksgiving Eve bar {city}","category":"occasion"},{"query":"Wednesday before Thanksgiving plans {city}","category":"occasion"}]'::jsonb,
+  '["bar","lounge","hookah lounge","nightclub","restaurant"]'::jsonb,
+  TRUE
+),
+(
+  'c8eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+  'New Year''s Day',
+  'holiday',
+  14,
+  '01-01',
+  '[{"query":"New Year''s Day brunch {city}","category":"occasion"},{"query":"hangover brunch {city}","category":"occasion"}]'::jsonb,
+  '["restaurant","cafe","brunch","bar"]'::jsonb,
+  TRUE
+),
+-- Tier 2 — Celebration Milestones
 (
   'c3eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
   'Birthday Celebration',
   'recurring',
   14,
   NULL,
-  '[{"query":"best restaurant for birthday dinner","category":"occasion"},{"query":"birthday party venues near me","category":"occasion"}]'::jsonb,
+  '[{"query":"best restaurant for birthday dinner {city}","category":"occasion"},{"query":"birthday party venues near me","category":"occasion"}]'::jsonb,
   '["restaurant","hookah lounge","bar","event venue","lounge"]'::jsonb,
+  TRUE
+),
+(
+  'c9eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+  'Bachelorette Party',
+  'celebration',
+  60,
+  NULL,
+  '[{"query":"bachelorette party venue {city}","category":"occasion"},{"query":"girls night out {city}","category":"occasion"},{"query":"bachelorette dinner {city}","category":"occasion"}]'::jsonb,
+  '["bar","lounge","hookah lounge","nightclub","event venue","restaurant"]'::jsonb,
+  TRUE
+),
+(
+  'ca00bc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+  'Anniversary Dinner',
+  'recurring',
+  14,
+  NULL,
+  '[{"query":"anniversary restaurant {city}","category":"occasion"},{"query":"romantic anniversary dinner {city}","category":"occasion"}]'::jsonb,
+  '["restaurant","lounge","bar","steakhouse"]'::jsonb,
+  TRUE
+),
+(
+  'cb00bc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+  'Graduation Dinner',
+  'celebration',
+  21,
+  NULL,
+  '[{"query":"graduation dinner {city}","category":"occasion"},{"query":"graduation celebration {city}","category":"occasion"}]'::jsonb,
+  '["restaurant","event venue","bar","lounge"]'::jsonb,
+  TRUE
+),
+(
+  'cc00bc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+  'Baby Shower Brunch',
+  'celebration',
+  14,
+  NULL,
+  '[{"query":"baby shower venue {city}","category":"occasion"},{"query":"baby shower brunch {city}","category":"occasion"}]'::jsonb,
+  '["restaurant","cafe","brunch","event venue"]'::jsonb,
+  TRUE
+),
+(
+  'cd00bc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+  'Engagement Celebration',
+  'celebration',
+  14,
+  NULL,
+  '[{"query":"engagement party venue {city}","category":"occasion"},{"query":"where to celebrate engagement {city}","category":"occasion"}]'::jsonb,
+  '["restaurant","bar","lounge","event venue"]'::jsonb,
+  TRUE
+),
+-- Tier 3 — Cultural & Ethnic Occasions
+(
+  'ce00bc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+  'Diwali',
+  'holiday',
+  21,
+  NULL,
+  '[{"query":"Diwali dinner {city}","category":"occasion"},{"query":"Diwali celebration restaurant {city}","category":"occasion"}]'::jsonb,
+  '["restaurant","indian","lounge","event venue"]'::jsonb,
+  TRUE
+),
+(
+  'cf00bc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+  'St. Patrick''s Day',
+  'holiday',
+  21,
+  '03-17',
+  '[{"query":"St Patrick''s Day bar {city}","category":"occasion"},{"query":"St Patrick''s Day party {city}","category":"occasion"}]'::jsonb,
+  '["bar","pub","lounge","restaurant"]'::jsonb,
+  TRUE
+),
+(
+  'd000bc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+  'Cinco de Mayo',
+  'holiday',
+  21,
+  '05-05',
+  '[{"query":"Cinco de Mayo party {city}","category":"occasion"},{"query":"Cinco de Mayo restaurant {city}","category":"occasion"}]'::jsonb,
+  '["bar","mexican","restaurant","lounge"]'::jsonb,
+  TRUE
+),
+(
+  'd100bc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+  'Eid al-Fitr',
+  'holiday',
+  28,
+  NULL,
+  '[{"query":"iftar dinner {city}","category":"occasion"},{"query":"Eid celebration restaurant {city}","category":"occasion"}]'::jsonb,
+  '["restaurant","halal","hookah lounge","event venue"]'::jsonb,
+  TRUE
+),
+(
+  'd200bc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+  'Lunar New Year',
+  'holiday',
+  28,
+  NULL,
+  '[{"query":"Lunar New Year dinner {city}","category":"occasion"},{"query":"Chinese New Year restaurant {city}","category":"occasion"}]'::jsonb,
+  '["restaurant","asian","lounge","event venue"]'::jsonb,
+  TRUE
+),
+-- Tier 4 — Seasonal & Recurring
+(
+  'd300bc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+  'Super Bowl Sunday',
+  'seasonal',
+  14,
+  '02-09',
+  '[{"query":"Super Bowl watch party venue {city}","category":"occasion"},{"query":"game day bar {city}","category":"occasion"}]'::jsonb,
+  '["bar","lounge","hookah lounge","restaurant","pub"]'::jsonb,
+  TRUE
+),
+(
+  'd400bc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+  'Holiday Party Season',
+  'seasonal',
+  21,
+  '11-01',
+  '[{"query":"holiday party venue {city}","category":"occasion"},{"query":"corporate holiday dinner {city}","category":"occasion"}]'::jsonb,
+  '["restaurant","bar","lounge","event venue","hookah lounge"]'::jsonb,
   TRUE
 )
 ON CONFLICT (name) DO NOTHING;
