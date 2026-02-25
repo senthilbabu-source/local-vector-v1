@@ -47,7 +47,7 @@ export async function POST(req: Request) {
     const tools = makeVisibilityTools(ctx.orgId);
 
     const result = streamText({
-        model: getModel('fear-audit'),
+        model: getModel('chat-assistant'),
         system: SYSTEM_PROMPT,
         messages,
         tools,

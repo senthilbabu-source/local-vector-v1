@@ -96,6 +96,9 @@ export const MODELS = {
 
   /** Truth Audit — Perplexity engine (multi-engine comparison, live web) */
   'truth-audit-perplexity': perplexity('sonar'),
+
+  /** AI Chat Assistant — streaming conversational agent with tool calls */
+  'chat-assistant': openai('gpt-4o'),
 } as const;
 
 export type ModelKey = keyof typeof MODELS;
