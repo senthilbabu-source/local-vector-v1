@@ -1,13 +1,16 @@
 // @vitest-environment node
 /**
- * Content Drafts Server Actions — Unit Tests (Sprint 42 §2f)
+ * Content Drafts Server Actions — Unit Tests (Sprint 42 §2f + Autopilot Engine)
  *
  * Covers:
  *   - approveDraft: updates status, human_approved, approved_at
- *   - rejectDraft: updates status to rejected
+ *   - rejectDraft: returns draft to editable state (Doc 19 §4.2)
  *   - createManualDraft: inserts with correct fields + Zod validation
+ *   - archiveDraft: sets status to archived
+ *   - editDraft: updates content, blocks approved/published, recalculates AEO
+ *   - publishDraft: HITL validation, plan gating, download target
  *   - Auth failure returns error
- *   - Plan gating blocks trial/starter on createManualDraft
+ *   - Plan gating blocks trial/starter
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
@@ -25,6 +28,33 @@ vi.mock('@/lib/auth', () => ({
   getSafeAuthContext: () => mockGetSafeAuthContext(),
 }));
 
+// Mock autopilot modules to avoid import chain issues
+vi.mock('@/lib/autopilot/score-content', () => ({
+  scoreContentHeuristic: vi.fn(() => 72),
+}));
+
+vi.mock('@/lib/autopilot/publish-download', () => ({
+  publishAsDownload: vi.fn(() =>
+    Promise.resolve({ publishedUrl: null, status: 'published', downloadPayload: 'PGh0bWw+' }),
+  ),
+}));
+
+vi.mock('@/lib/autopilot/publish-gbp', () => ({
+  publishToGBP: vi.fn(() =>
+    Promise.resolve({ publishedUrl: 'https://gbp.google.com/post/123', status: 'published' }),
+  ),
+}));
+
+vi.mock('@/lib/autopilot/publish-wordpress', () => ({
+  publishToWordPress: vi.fn(() =>
+    Promise.resolve({ publishedUrl: 'https://example.com/?p=42', status: 'published' }),
+  ),
+}));
+
+vi.mock('@/lib/autopilot/post-publish', () => ({
+  schedulePostPublishRecheck: vi.fn(() => Promise.resolve()),
+}));
+
 // Chainable Supabase mock — uses a mutable ref that tests can swap
 const supabaseRef: { current: ReturnType<typeof makeSupabaseMock> } = {
   current: null!,
@@ -34,10 +64,12 @@ function makeSupabaseMock(opts: {
   updateError?: { message: string } | null;
   insertError?: { message: string } | null;
   planData?: { plan: string } | null;
+  draftData?: Record<string, unknown> | null;
 } = {}) {
   const updateError = opts.updateError ?? null;
   const insertError = opts.insertError ?? null;
   const planData = opts.planData ?? null;
+  const draftData = opts.draftData ?? null;
 
   // Update chain: from('content_drafts').update({}).eq('id', x).eq('org_id', y)
   const updateSecondEq = vi.fn().mockResolvedValue({ error: updateError });
@@ -48,29 +80,54 @@ function makeSupabaseMock(opts: {
   const insert = vi.fn().mockResolvedValue({ error: insertError });
 
   // Select chain for plan fetch: from('organizations').select('plan').eq('id', x).single()
-  const single = vi.fn().mockResolvedValue({ data: planData });
-  const selectEq = vi.fn().mockReturnValue({ single });
-  const select = vi.fn().mockReturnValue({ eq: selectEq });
+  const planSingle = vi.fn().mockResolvedValue({ data: planData });
+  const planSelectEq = vi.fn().mockReturnValue({ single: planSingle });
+  const planSelect = vi.fn().mockReturnValue({ eq: planSelectEq });
+
+  // Select chain for draft fetch: from('content_drafts').select('*').eq('id', x).eq('org_id', y).single()
+  const draftSingle = vi.fn().mockResolvedValue({ data: draftData });
+  const draftSecondEq = vi.fn().mockReturnValue({ single: draftSingle });
+  const draftFirstEq = vi.fn().mockReturnValue({ eq: draftSecondEq });
+  const draftSelect = vi.fn().mockReturnValue({ eq: draftFirstEq });
 
   const from = vi.fn().mockImplementation((table: string) => {
     if (table === 'organizations') {
-      return { select };
+      return { select: planSelect };
     }
-    return { update, insert };
+    // Return both update, insert, and select for content_drafts
+    return { update, insert, select: draftSelect };
   });
 
-  return { from, update, insert, updateFirstEq, updateSecondEq, select, selectEq, single };
+  return {
+    from,
+    update,
+    insert,
+    updateFirstEq,
+    updateSecondEq,
+    select: planSelect,
+    selectEq: planSelectEq,
+    single: planSingle,
+    draftSelect,
+  };
 }
 
 vi.mock('@/lib/supabase/server', () => ({
   createClient: () => Promise.resolve(supabaseRef.current),
+  createServiceRoleClient: () => supabaseRef.current,
 }));
 
 // ---------------------------------------------------------------------------
 // Imports (after mocks)
 // ---------------------------------------------------------------------------
 
-import { approveDraft, rejectDraft, createManualDraft } from '@/app/dashboard/content-drafts/actions';
+import {
+  approveDraft,
+  rejectDraft,
+  createManualDraft,
+  archiveDraft,
+  editDraft,
+  publishDraft,
+} from '@/app/dashboard/content-drafts/actions';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -147,7 +204,7 @@ describe('rejectDraft', () => {
     expect(result).toEqual({ success: false, error: 'Unauthorized' });
   });
 
-  it('updates draft to rejected status', async () => {
+  it('returns draft to editable state (Doc 19 §4.2)', async () => {
     mockGetSafeAuthContext.mockResolvedValue(AUTH_CTX);
     const mock = makeSupabaseMock();
     supabaseRef.current = mock;
@@ -155,7 +212,7 @@ describe('rejectDraft', () => {
     const result = await rejectDraft(makeFormData({ draft_id: VALID_UUID }));
     expect(result).toEqual({ success: true });
 
-    expect(mock.update).toHaveBeenCalledWith({ status: 'rejected' });
+    expect(mock.update).toHaveBeenCalledWith({ status: 'draft', human_approved: false });
   });
 });
 
@@ -282,5 +339,161 @@ describe('createManualDraft', () => {
       }),
     );
     expect(result.success).toBe(false);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// archiveDraft
+// ---------------------------------------------------------------------------
+
+describe('archiveDraft', () => {
+  beforeEach(() => {
+    mockGetSafeAuthContext.mockReset();
+    supabaseRef.current = makeSupabaseMock();
+  });
+
+  it('returns error when not authenticated', async () => {
+    mockGetSafeAuthContext.mockResolvedValue(null);
+    const result = await archiveDraft(makeFormData({ draft_id: VALID_UUID }));
+    expect(result).toEqual({ success: false, error: 'Unauthorized' });
+  });
+
+  it('sets status to archived', async () => {
+    mockGetSafeAuthContext.mockResolvedValue(AUTH_CTX);
+    const mock = makeSupabaseMock();
+    supabaseRef.current = mock;
+
+    const result = await archiveDraft(makeFormData({ draft_id: VALID_UUID }));
+    expect(result).toEqual({ success: true });
+    expect(mock.update).toHaveBeenCalledWith({ status: 'archived' });
+  });
+
+  it('returns error on DB failure', async () => {
+    mockGetSafeAuthContext.mockResolvedValue(AUTH_CTX);
+    supabaseRef.current = makeSupabaseMock({ updateError: { message: 'DB error' } });
+
+    const result = await archiveDraft(makeFormData({ draft_id: VALID_UUID }));
+    expect(result).toEqual({ success: false, error: 'DB error' });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// editDraft
+// ---------------------------------------------------------------------------
+
+describe('editDraft', () => {
+  beforeEach(() => {
+    mockGetSafeAuthContext.mockReset();
+  });
+
+  it('returns error when not authenticated', async () => {
+    mockGetSafeAuthContext.mockResolvedValue(null);
+    const result = await editDraft(
+      makeFormData({ draft_id: VALID_UUID, draft_title: 'New Title' }),
+    );
+    expect(result).toEqual({ success: false, error: 'Unauthorized' });
+  });
+
+  it('blocks edit of approved drafts', async () => {
+    mockGetSafeAuthContext.mockResolvedValue(AUTH_CTX);
+    supabaseRef.current = makeSupabaseMock({
+      draftData: { id: VALID_UUID, status: 'approved', draft_content: 'old', location_id: null },
+    });
+
+    const result = await editDraft(
+      makeFormData({ draft_id: VALID_UUID, draft_title: 'New Title' }),
+    );
+    expect(result).toEqual({ success: false, error: 'Reject the draft before editing' });
+  });
+
+  it('blocks edit of published drafts', async () => {
+    mockGetSafeAuthContext.mockResolvedValue(AUTH_CTX);
+    supabaseRef.current = makeSupabaseMock({
+      draftData: { id: VALID_UUID, status: 'published', draft_content: 'old', location_id: null },
+    });
+
+    const result = await editDraft(
+      makeFormData({ draft_id: VALID_UUID, draft_title: 'New Title' }),
+    );
+    expect(result).toEqual({ success: false, error: 'Published drafts cannot be edited' });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// publishDraft
+// ---------------------------------------------------------------------------
+
+describe('publishDraft', () => {
+  beforeEach(() => {
+    mockGetSafeAuthContext.mockReset();
+  });
+
+  it('returns error when not authenticated', async () => {
+    mockGetSafeAuthContext.mockResolvedValue(null);
+    const result = await publishDraft(
+      makeFormData({ draft_id: VALID_UUID, publish_target: 'download' }),
+    );
+    expect(result).toEqual({ success: false, error: 'Unauthorized' });
+  });
+
+  it('blocks trial plan from publishing', async () => {
+    mockGetSafeAuthContext.mockResolvedValue(AUTH_CTX);
+    supabaseRef.current = makeSupabaseMock({ planData: { plan: 'trial' } });
+
+    const result = await publishDraft(
+      makeFormData({ draft_id: VALID_UUID, publish_target: 'download' }),
+    );
+    expect(result).toEqual({
+      success: false,
+      error: 'Upgrade to Growth to publish content drafts',
+    });
+  });
+
+  it('blocks publishing unapproved draft', async () => {
+    mockGetSafeAuthContext.mockResolvedValue(AUTH_CTX);
+    supabaseRef.current = makeSupabaseMock({
+      planData: { plan: 'growth' },
+      draftData: {
+        id: VALID_UUID,
+        status: 'draft',
+        human_approved: false,
+        draft_content: 'content',
+        draft_title: 'title',
+        location_id: null,
+        target_prompt: null,
+      },
+    });
+
+    const result = await publishDraft(
+      makeFormData({ draft_id: VALID_UUID, publish_target: 'download' }),
+    );
+    expect(result).toEqual({
+      success: false,
+      error: 'Draft must be approved before publishing',
+    });
+  });
+
+  it('blocks publishing when human_approved is false', async () => {
+    mockGetSafeAuthContext.mockResolvedValue(AUTH_CTX);
+    supabaseRef.current = makeSupabaseMock({
+      planData: { plan: 'growth' },
+      draftData: {
+        id: VALID_UUID,
+        status: 'approved',
+        human_approved: false,
+        draft_content: 'content',
+        draft_title: 'title',
+        location_id: null,
+        target_prompt: null,
+      },
+    });
+
+    const result = await publishDraft(
+      makeFormData({ draft_id: VALID_UUID, publish_target: 'download' }),
+    );
+    expect(result).toEqual({
+      success: false,
+      error: 'Draft must be approved before publishing',
+    });
   });
 });

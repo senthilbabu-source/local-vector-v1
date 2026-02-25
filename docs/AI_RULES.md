@@ -55,7 +55,7 @@
   - `canRunDailyAudit` — daily automated AI audit cron (Growth+)
   - `canRunSovEvaluation` — Share of Voice on-demand evaluation (Growth+)
   - `canRunCompetitorIntercept` — Greed Engine competitor analysis (Growth+)
-  - `canRunAutopilot` — Autopilot content draft generation (Growth+)
+  - `canRunAutopilot` — Autopilot content draft generation + publish pipeline (Growth+)
   - `canRunPageAudit` — Content Grader / AEO page audit (Growth+)
   - `canRunOccasionEngine` — Occasion Module seasonal scheduler (Growth+)
   - `canConnectGBP` — Google Business Profile OAuth connection (Starter+)
@@ -591,7 +591,7 @@ rather than nesting objects. This keeps URL encoding simple and Zod defaults cle
 
 ## 29. 🧪 Playwright E2E Spec Patterns (Sprint 42)
 
-The E2E suite lives in `tests/e2e/` with 12 spec files and 36 tests. Key patterns:
+The E2E suite lives in `tests/e2e/` with 14 spec files and 47 tests. Key patterns:
 
 ### 29.1 — Locator hygiene
 * **Duplicated components:** ViralScanner renders in both hero and CTA sections. All form locators MUST use `.first()`:

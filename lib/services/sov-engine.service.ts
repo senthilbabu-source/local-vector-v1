@@ -19,6 +19,7 @@
 import { generateText } from 'ai';
 import { getModel, hasApiKey } from '@/lib/ai/providers';
 import { SovCronResultSchema, type SovCronResultOutput } from '@/lib/ai/schemas';
+import { createDraft } from '@/lib/autopilot/create-draft';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -212,20 +213,15 @@ export async function writeSOVResults(
   );
 
   for (const opp of firstMoverOpps) {
-    await supabase.from('content_drafts').upsert(
+    await createDraft(
       {
-        org_id: orgId,
-        location_id: opp.locationId,
-        trigger_type: 'first_mover',
-        trigger_id: opp.queryId,
-        draft_title: `First Mover: ${opp.queryText}`,
-        draft_content: `No business is being recommended for "${opp.queryText}". Create content targeting this query to be the first AI-cited business.`,
-        target_prompt: opp.queryText,
-        content_type: 'blog_post',
-        status: 'draft',
-        human_approved: false,
+        triggerType: 'first_mover',
+        triggerId: opp.queryId,
+        orgId,
+        locationId: opp.locationId,
+        context: { targetQuery: opp.queryText },
       },
-      { onConflict: 'trigger_type,trigger_id', ignoreDuplicates: true },
+      supabase,
     );
   }
 

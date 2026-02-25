@@ -37,7 +37,7 @@ test.describe('08 — Content Drafts page', () => {
     await expect(page.getByRole('button', { name: 'Drafts' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Approved' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Published' })).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Rejected' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Archived' })).toBeVisible();
   });
 
   test('can navigate to Content Drafts from sidebar', async ({ page }) => {

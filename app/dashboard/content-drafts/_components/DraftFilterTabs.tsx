@@ -11,7 +11,7 @@ const TABS = [
   { value: 'draft', label: 'Drafts' },
   { value: 'approved', label: 'Approved' },
   { value: 'published', label: 'Published' },
-  { value: 'rejected', label: 'Rejected' },
+  { value: 'archived', label: 'Archived' },
 ] as const;
 
 export default function DraftFilterTabs() {

@@ -4,6 +4,60 @@
 
 ---
 
+## 2026-02-25 — Sprint 48: Autopilot Engine — Full Publish Pipeline (Completed)
+
+**Goal:** Build the Autopilot Engine — the ACT layer that closes the DETECT → DIAGNOSE → ACT → MEASURE loop. Converts detected gaps (first mover, competitor gap, occasion, prompt missing, manual) into AI-generated drafts via GPT-4o-mini, routes them through a strict HITL approval workflow, and publishes to 3 targets (Download HTML, GBP Post, WordPress). Post-publish SOV re-check at 14 days.
+
+**Spec:** `docs/19-AUTOPILOT-ENGINE.md`
+
+**Scope:**
+
+*New files:*
+- `lib/types/autopilot.ts` — **NEW.** TypeScript interfaces: `DraftTriggerType`, `DraftContentType`, `DraftStatus`, `PublishTarget`, `DraftTrigger`, `DraftContext`, `ContentDraftRow`, `PublishResult`, `PostPublishMeasurementTask`, `AutopilotLocationContext`.
+- `lib/autopilot/score-content.ts` — **NEW.** Pure heuristic AEO scorer (0–100). 5 dimensions: answer-first (35pt), content depth (25pt), keyword coverage (20pt), CTA signals (10pt), title quality (10pt). No API calls.
+- `lib/autopilot/generate-brief.ts` — **NEW.** GPT-4o-mini brief generator using Vercel AI SDK `generateText()` + `getModel('greed-intercept')`. `buildContextBlock()` switches on 5 trigger types. Mock fallback with `[MOCK]`-prefixed deterministic output when `!hasApiKey('openai')`. Parses via `AutopilotDraftSchema.safeParse()`.
+- `lib/autopilot/create-draft.ts` — **NEW.** Master draft creator — single entry point for all triggers. `createDraft(trigger, supabase)` → `ContentDraftRow | null`. Steps: idempotency SELECT → pending cap (5) → load location → determine content type → generate brief → score → INSERT. Catches unique violation `23505` for DB-level idempotency backup. Exports `archiveExpiredOccasionDrafts()` with 7-day grace period. `PENDING_DRAFT_CAP = 5`.
+- `lib/autopilot/publish-download.ts` — **NEW.** HTML download publisher. `publishAsDownload()` returns base64 HTML with embedded JSON-LD (LocalBusiness + FAQPage). `buildLocalBusinessSchema()`, `buildFaqSchemaFromContent()` extract Q:/A: pairs.
+- `lib/autopilot/publish-gbp.ts` — **NEW.** GBP Post publisher. `publishToGBP()` with OAuth token refresh + 401 retry. `truncateAtSentence()` at `GBP_MAX_CHARS = 1500`. Token fetched via service-role client (no RLS).
+- `lib/autopilot/publish-wordpress.ts` — **NEW.** WordPress REST API publisher. `publishToWordPress()` creates WP draft via `wp/v2/pages`. `contentToWPBlocks()` wraps in `<!-- wp:paragraph -->` blocks. Basic auth via Application Password.
+- `lib/autopilot/post-publish.ts` — **NEW.** Redis-based SOV re-check scheduling. `schedulePostPublishRecheck()`, `getPendingRechecks()`, `completeRecheck()`. Redis SET `sov_recheck:pending` + individual keys with 15-day TTL. Graceful degradation per AI_RULES §17.
+- `supabase/migrations/20260226000002_autopilot_trigger_idempotency.sql` — **NEW.** Drops non-unique `idx_content_drafts_trigger`, creates `UNIQUE INDEX idx_content_drafts_trigger_unique ON content_drafts (trigger_type, trigger_id) WHERE trigger_id IS NOT NULL`.
+- `app/dashboard/content-drafts/[id]/page.tsx` — **NEW.** Server component draft detail view. Async params, `getSafeAuthContext()`, RLS fetch, `notFound()`. Breadcrumb, header with badges/AEO/dates, two-column layout (editor left, context panel right).
+- `app/dashboard/content-drafts/[id]/_components/DraftEditor.tsx` — **NEW.** Client component. Editable title/content when `status === 'draft'`, read-only otherwise. Live AEO score recalculation via `scoreContentHeuristic`. Save/Approve/Reject/Archive buttons.
+- `app/dashboard/content-drafts/[id]/_components/PublishDropdown.tsx` — **NEW.** Client component. 3 publish targets (Download HTML, GBP Post, WordPress). Factual disclaimer modal. Browser download trigger for HTML target.
+
+*Modified files:*
+- `lib/ai/schemas.ts` — Added `AutopilotDraftSchema` + `AutopilotDraftOutput` type (shape: `{ title, content, estimated_aeo_score, target_keywords }`).
+- `app/dashboard/content-drafts/actions.ts` — **Fixed `rejectDraft()`**: `{ status: 'rejected' }` → `{ status: 'draft', human_approved: false }` per Doc 19 §4.2. Added `archiveDraft()`, `editDraft()` (blocks approved/published, recalculates AEO on content change), `publishDraft()` (NON-NEGOTIABLE HITL: `human_approved === true && status === 'approved'`, plan gating, dispatches to target publisher, schedules post-publish recheck).
+- `app/dashboard/content-drafts/_components/ContentDraftCard.tsx` — Title wrapped in `<Link>` to detail view. Added Publish button (signal-green) for approved drafts. Added Archive button for non-published states.
+- `app/dashboard/content-drafts/_components/DraftFilterTabs.tsx` — Replaced "Rejected" tab with "Archived" (reject now returns to draft status, not a terminal state).
+- `lib/services/sov-engine.service.ts` — Replaced bare-bones `content_drafts.upsert()` for first_mover alerts with `createDraft()` call (AI-generated content instead of placeholder text).
+- `app/api/cron/sov/route.ts` — Replaced bare-bones `prompt_missing` upsert with `createDraft()`. Added sub-step 10: `archiveExpiredOccasionDrafts()`. Added sub-step 11: post-publish SOV re-checks via `getPendingRechecks()` + `completeRecheck()`.
+- `src/__tests__/unit/sov-engine-service.test.ts` — Added `vi.mock('@/lib/autopilot/create-draft')` to prevent chained Supabase calls in tests.
+- `tests/e2e/08-content-drafts.spec.ts` — Updated filter tab assertion: "Rejected" → "Archived".
+
+**Tests added:**
+- `src/__tests__/unit/autopilot-score-content.test.ts` — **10 Vitest tests** (new). High score for answer-first+keywords, low for generic, 0 for empty, null city, CTA bonus, title bonus, word count scaling, combined perfect score, missing categories.
+- `src/__tests__/unit/autopilot-create-draft.test.ts` — **17 Vitest tests** (new). `determineContentType` (6 trigger mappings), `PENDING_DRAFT_CAP` constant, `buildContextBlock` (5 trigger types), `generateDraftBrief` (3: mock fallback, FAQ content, business name inclusion), `archiveExpiredOccasionDrafts` (2: empty + null trigger_ids).
+- `src/__tests__/unit/autopilot-publish.test.ts` — **19 Vitest tests** (new). Download: valid HTML, JSON-LD LocalBusiness, FAQPage extraction, base64 encoding, meta description, escaping. GBP: truncation at 1500, sentence boundary, word boundary fallback, under-limit passthrough, token refresh, missing token error. WordPress: REST API call, WP block format, auth failure, draft status.
+- `src/__tests__/unit/autopilot-post-publish.test.ts` — **13 Vitest tests** (new). Redis scheduling, key format, TTL, pending scan, graceful degradation (schedule/scan/cleanup), completion cleanup, empty pending list, multiple tasks.
+- `src/__tests__/unit/content-drafts-actions.test.ts` — **23 Vitest tests** (was 10, +13). Updated `rejectDraft` test. Added `archiveDraft` (3), `editDraft` (3: auth, blocks approved, blocks published), `publishDraft` (4: auth, plan gate, blocks unapproved, blocks when `human_approved=false`).
+- `src/__tests__/unit/cron-sov.test.ts` — **21 Vitest tests** (was 16 after Sprint 47, +5). Added `archiveExpiredOccasionDrafts` (2: called, crash-safe), `getPendingRechecks` (2: called, crash-safe), SOV recheck + completeRecheck integration.
+
+**Run commands:**
+```bash
+npx vitest run src/__tests__/unit/autopilot-score-content.test.ts  # 10 tests passing
+npx vitest run src/__tests__/unit/autopilot-create-draft.test.ts   # 17 tests passing
+npx vitest run src/__tests__/unit/autopilot-publish.test.ts        # 19 tests passing
+npx vitest run src/__tests__/unit/autopilot-post-publish.test.ts   # 13 tests passing
+npx vitest run src/__tests__/unit/content-drafts-actions.test.ts   # 23 tests passing
+npx vitest run src/__tests__/unit/cron-sov.test.ts                 # 21 tests passing
+npx vitest run                                                      # 711 tests passing, 7 skipped
+npx playwright test --project=chromium tests/e2e/08-content-drafts.spec.ts  # 3 tests passing
+```
+
+---
+
 ## 2026-02-25 — Sprint 47: Prompt Intelligence Service (Completed)
 
 **Goal:** Build the Prompt Intelligence Service — a strategic layer on top of the SOV Engine that detects 3 types of gaps in a tenant's query library (untracked, competitor-discovered, zero-citation clusters) and surfaces actionable gaps via API and cron-driven content drafts.
@@ -571,12 +625,12 @@ npx next build                                                     # 0 errors
 
 ---
 
-## Current Test Counts (2026-02-24)
+## Current Test Counts (2026-02-25)
 
 | Suite | Count | Command |
 |-------|-------|---------|
-| Vitest unit/integration | 481 passing, 7 skipped | `npx vitest run` |
-| Playwright E2E | 36 passing (12 spec files) | `npx playwright test --project=chromium` |
+| Vitest unit/integration | 711 passing, 7 skipped | `npx vitest run` |
+| Playwright E2E | 47 passing (14 spec files) | `npx playwright test --project=chromium` |
 
 ### E2E Spec Inventory
 
@@ -589,7 +643,9 @@ npx next build                                                     # 0 errors
 | `05-public-honeypot.spec.ts` | 4 | Business name, menu items, JSON-LD blocks, /llms.txt, /ai-config.json |
 | `06-share-of-voice.spec.ts` | 4 | Header, score ring, quick stats, sidebar nav |
 | `07-listings.spec.ts` | 4 | Header, location card + platforms, summary strip, sidebar nav |
-| `08-content-drafts.spec.ts` | 3 | Header + summary strip, filter tabs, sidebar nav |
+| `08-content-drafts.spec.ts` | 3 | Header + summary strip, filter tabs (All/Drafts/Approved/Published/Archived), sidebar nav |
+| `09-revenue-leak.spec.ts` | 5 | RevenueLeakCard render + dollar range, 3 breakdown chips, Configure link nav, settings pre-fill, form submit |
+| `10-truth-audit.spec.ts` | 6 | Page title "AI Truth Audit", TruthScoreCard + 4 engines, EngineComparisonGrid, EvaluationCard rows, seed scores, Run Audit buttons |
 | `auth.spec.ts` | 3 | Login layout, error on invalid creds, signup form fields |
 | `billing.spec.ts` | 2 | Three tiers with Growth highlighted, upgrade demo mode |
 | `hybrid-upload.spec.ts` | 2 | Upload tabs visible, CSV upload → ReviewState |

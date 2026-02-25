@@ -1,7 +1,8 @@
 'use client';
 
 import { useTransition } from 'react';
-import { approveDraft, rejectDraft } from '../actions';
+import Link from 'next/link';
+import { approveDraft, rejectDraft, archiveDraft, publishDraft } from '../actions';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -85,6 +86,8 @@ export default function ContentDraftCard({ draft }: ContentDraftCardProps) {
   const trigger = triggerBadge(draft.trigger_type);
   const status = statusBadge(draft.status);
   const isDraft = draft.status === 'draft';
+  const isApproved = draft.status === 'approved';
+  const isPublished = draft.status === 'published';
 
   function handleApprove() {
     startTransition(async () => {
@@ -99,6 +102,35 @@ export default function ContentDraftCard({ draft }: ContentDraftCardProps) {
       const fd = new FormData();
       fd.set('draft_id', draft.id);
       await rejectDraft(fd);
+    });
+  }
+
+  function handleArchive() {
+    startTransition(async () => {
+      const fd = new FormData();
+      fd.set('draft_id', draft.id);
+      await archiveDraft(fd);
+    });
+  }
+
+  function handlePublishDownload() {
+    startTransition(async () => {
+      const fd = new FormData();
+      fd.set('draft_id', draft.id);
+      fd.set('publish_target', 'download');
+      const result = await publishDraft(fd);
+      if (result.success && result.downloadPayload) {
+        const html = atob(result.downloadPayload);
+        const blob = new Blob([html], { type: 'text/html' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'content-draft.html';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      }
     });
   }
 
@@ -129,7 +161,12 @@ export default function ContentDraftCard({ draft }: ContentDraftCardProps) {
 
       {/* ── Title ──────────────────────────────────────────────── */}
       <h3 className="text-sm font-semibold text-white leading-snug mb-1">
-        {draft.draft_title}
+        <Link
+          href={`/dashboard/content-drafts/${draft.id}`}
+          className="hover:text-signal-green transition"
+        >
+          {draft.draft_title}
+        </Link>
       </h3>
 
       {/* ── Content preview (3 lines) ──────────────────────────── */}
@@ -153,28 +190,52 @@ export default function ContentDraftCard({ draft }: ContentDraftCardProps) {
           </span>
         </div>
 
-        {isDraft && (
-          <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2">
+          {isDraft && (
+            <>
+              <button
+                type="button"
+                onClick={handleApprove}
+                disabled={isPending}
+                className="rounded-md bg-signal-green/10 px-3 py-1 text-xs font-semibold text-signal-green hover:bg-signal-green/20 transition disabled:opacity-50"
+                data-testid="approve-btn"
+              >
+                Approve
+              </button>
+              <button
+                type="button"
+                onClick={handleReject}
+                disabled={isPending}
+                className="rounded-md bg-white/5 px-3 py-1 text-xs font-semibold text-slate-400 hover:bg-white/10 transition disabled:opacity-50"
+                data-testid="reject-btn"
+              >
+                Reject
+              </button>
+            </>
+          )}
+          {isApproved && (
             <button
               type="button"
-              onClick={handleApprove}
+              onClick={handlePublishDownload}
               disabled={isPending}
-              className="rounded-md bg-signal-green/10 px-3 py-1 text-xs font-semibold text-signal-green hover:bg-signal-green/20 transition disabled:opacity-50"
-              data-testid="approve-btn"
+              className="rounded-md bg-signal-green px-3 py-1 text-xs font-semibold text-deep-navy hover:bg-signal-green/90 transition disabled:opacity-50"
+              data-testid="publish-btn"
             >
-              Approve
+              {isPending ? 'Publishing...' : 'Publish'}
             </button>
+          )}
+          {!isPublished && (
             <button
               type="button"
-              onClick={handleReject}
+              onClick={handleArchive}
               disabled={isPending}
               className="rounded-md bg-white/5 px-3 py-1 text-xs font-semibold text-slate-400 hover:bg-white/10 transition disabled:opacity-50"
-              data-testid="reject-btn"
+              data-testid="archive-btn"
             >
-              Reject
+              Archive
             </button>
-          </div>
-        )}
+          )}
+        </div>
       </div>
     </div>
   );

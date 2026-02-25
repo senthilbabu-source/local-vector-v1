@@ -1,7 +1,7 @@
 # LocalVector.ai — Testing Strategy
 
 > **Source:** This document is derived from `DEVLOG.md`, the `src/__tests__/` directory,
-> and the `tests/e2e/` directory. Last updated: Post-Sprint 46 Citation Intelligence (2026-02-25).
+> and the `tests/e2e/` directory. Last updated: Post-Sprint 48 Autopilot Engine (2026-02-25).
 > All test counts are from the live `vitest run` and `playwright test` outputs.
 
 ---
@@ -12,7 +12,7 @@ LocalVector.ai uses a two-layer test stack:
 
 | Layer | Runner | Command | Result (current) |
 |-------|--------|---------|------------------|
-| Unit + Integration | Vitest | `npx vitest run` | **618 passing**, 7 skipped (after `supabase db reset`) |
+| Unit + Integration | Vitest | `npx vitest run` | **711 passing**, 7 skipped (after `supabase db reset`) |
 | E2E Functional | Playwright | `npx playwright test` | 47 passing, 0 failing |
 
 Tests MUST NOT call live external APIs (AI_RULES §4):
@@ -59,8 +59,9 @@ Tests MUST NOT call live external APIs (AI_RULES §4):
 | `src/__tests__/unit/public-places-search.test.ts` | GET /api/public/places/search | 8 | 0 | Sprint 29: Public Places autocomplete — valid query, short query (no Google call), missing API key, Google non-200, network error, 429 when over rate limit, KV absent bypasses, KV throws is absorbed |
 | `src/__tests__/unit/scan-health-utils.test.ts` | formatRelativeTime, nextSundayLabel | 7 | 0 | Sprint 30: Pure timestamp utilities for AI Scan Health card — all relative time branches + next Sunday future-date assertion |
 | `src/__tests__/unit/scan-params.test.ts` | parseScanParams, buildScanParams, buildSparklinePath | 14 | 0 | Sprint 33+34+35: `/scan` dashboard URL param encoding/decoding + sparkline; Sprint 34: removed `deriveKpiScores` (−4 tests), added real-field tests (+5: `mentions`, `sentiment`, `accuracyIssues`, graceful defaults, `buildScanParams` encoding); Sprint 35: +3 `issue_cats` tests (decode `hours\|address`, missing → `[]`, encode `address` in `buildScanParams`) |
-| `src/__tests__/unit/sov-engine-service.test.ts` | SOV query execution, result aggregation, first mover category filtering | 11 | 0 | Surgery 2 + Bug Fix (query_category): SOV service — Perplexity mock, share_of_voice calculation, visibility_analytics upsert, First Mover Alert detection (category-filtered: discovery/occasion/near_me only), custom/comparison excluded, competitors-found exclusion |
-| `src/__tests__/unit/cron-sov.test.ts` | GET /api/cron/sov | 13 | 0 | Surgery 2 + Bug Fix (query_category) + Sprint 45: SOV cron route — CRON_SECRET auth guard (401), kill switch, empty batch, per-query execution, writeSOVResults call, email report, per-query error resilience, org-level failure, queries_cited tracking, query_category passthrough, occasion scheduler integration, occasion failure resilience |
+| `src/__tests__/unit/sov-engine-service.test.ts` | SOV query execution, result aggregation, first mover category filtering | 11 | 0 | Surgery 2 + Bug Fix (query_category) + Sprint 48: SOV service — Perplexity mock, share_of_voice calculation, visibility_analytics upsert, First Mover Alert detection (category-filtered: discovery/occasion/near_me only), custom/comparison excluded, competitors-found exclusion. Sprint 48: `createDraft` mocked at module level. |
+| `src/__tests__/unit/cron-sov.test.ts` | GET /api/cron/sov | 21 | 0 | Surgery 2 + Bug Fix (query_category) + Sprint 45 + Sprint 47 + Sprint 48: SOV cron route — CRON_SECRET auth guard (401), kill switch, empty batch, per-query execution, writeSOVResults call, email report, per-query error resilience, org-level failure, queries_cited tracking, query_category passthrough, occasion scheduler integration, occasion failure resilience; Sprint 47: +3 (prompt intelligence sub-step called, gap detection passthrough, prompt-intelligence failure resilience); Sprint 48: +5 (archiveExpiredOccasionDrafts called/crash-safe, getPendingRechecks called/crash-safe, SOV recheck+completeRecheck integration) |
+| `src/__tests__/unit/prompt-intelligence-service.test.ts` | buildReferenceLibrary, detectQueryGaps, computeCategoryBreakdown | 16 | 0 | Sprint 47: Prompt Intelligence service — reference library builder (system queries, category breakdown), gap detection (untracked queries, competitor-discovered, zero-citation clusters), category breakdown computation |
 | `src/__tests__/unit/occasion-engine-service.test.ts` | getDaysUntilPeak, checkOccasionAlerts, generateOccasionDraft, runOccasionScheduler | 19 | 0 | Sprint 45: Occasion Engine service — getDaysUntilPeak (fixed dates, next-year rollover, evergreen, exact-date), checkOccasionAlerts (empty/window/category-relevance/Redis-dedup/Redis-degradation/SOV-citation), generateOccasionDraft (all-conditions-met/daysUntilPeak-skip/cited-skip/idempotency/real-AI), runOccasionScheduler (empty/growth-drafts/starter-no-drafts) |
 | `src/__tests__/unit/content-crawler.test.ts` | HTML parsing, Schema.org extraction | 8 | 0 | Surgery 3: Content crawler — heading extraction (H1–H6), meta tag parsing, Schema.org JSON-LD extraction, body text extraction, malformed HTML handling, empty page handling |
 | `src/__tests__/unit/page-auditor.test.ts` | AEO scoring dimensions, weighted aggregation | 7 | 0 | Surgery 3: Page auditor — answer-first structure score, schema completeness score, keyword density score, FAQ presence detection, weighted formula aggregation, missing schema penalty, edge cases (empty content, no headings) |
@@ -68,7 +69,7 @@ Tests MUST NOT call live external APIs (AI_RULES §4):
 | `src/__tests__/unit/visibility-tools.test.ts` | makeVisibilityTools, tool definitions, return types | 5 | 0 | Surgery 6: Visibility tools for chat — `makeVisibilityTools(orgId)` returns 4 tools, Zod v4 schemas, `type` field in return for UI card mapping, Supabase query chain mock |
 | `src/__tests__/unit/components/dashboard-null-states.test.tsx` | SOVScoreRing null state, welcome banner | 4 | 0 | Sprint 42: Dashboard null state copy verification |
 | `src/__tests__/unit/components/content-drafts/ContentDraftCard.test.tsx` | Trigger badges, AEO thresholds, approve/reject | 10 | 0 | Sprint 42: Content Drafts card component |
-| `src/__tests__/unit/content-drafts-actions.test.ts` | approveDraft, rejectDraft, createManualDraft, auth, plan gate | 10 | 0 | Sprint 42: Content Drafts Server Actions |
+| `src/__tests__/unit/content-drafts-actions.test.ts` | approveDraft, rejectDraft, createManualDraft, archiveDraft, editDraft, publishDraft, auth, plan gate | 23 | 0 | Sprint 42 + Sprint 48: Content Drafts Server Actions — approve, reject (fixed: returns to draft), manual create, auth gate, plan gate; Sprint 48: +13 (archiveDraft success/auth/DB, editDraft auth/blocks-approved/blocks-published, publishDraft auth/plan-gate/blocks-unapproved/blocks-human_approved-false) |
 | `src/__tests__/unit/components/sov/SovCard-plan-gate.test.tsx` | Run button gating by plan tier, delete button | 6 | 0 | Sprint 42: SOV query editor plan-gating |
 | `src/__tests__/unit/integrations-health.test.ts` | getListingHealth, healthBadge, edge cases | 8 | 0 | Sprint 42: Listings health utilities |
 | `src/__tests__/unit/schema-types.test.ts` | toJsonLdScript typed wrapper | 1 | 0 | Package install: schema-dts typed helpers |
@@ -81,11 +82,15 @@ Tests MUST NOT call live external APIs (AI_RULES §4):
 | `src/__tests__/unit/multi-engine-action.test.ts` | runMultiEngineEvaluation | 6 | 0 | Sprint 44: Multi-engine Server Action — auth gate, Zod UUID, location not found, 4-engine parallel insert, all-fail error, partial-success |
 | `src/__tests__/unit/citation-engine-service.test.ts` | extractPlatform, runCitationQuery, runCitationSample, writeCitationResults, calculateCitationGapScore, constants | 42 | 0 | Sprint 46: Citation Intelligence service — platform extraction (14 domains), citation query (mock/real/unparseable), sample orchestration (counting/no-key/resilience), DB upsert (frequency calc/errors), gap score (8 coverage scenarios), constants validation |
 | `src/__tests__/unit/cron-citation.test.ts` | GET /api/cron/citation | 13 | 0 | Sprint 46: Citation cron route — CRON_SECRET auth guard (401), kill switch, service-role client, 180-combination processing, writeCitationResults count, summary accumulation (categories/metros/queries/platforms), per-combination error resilience, argument passthrough, zero-queries skip |
+| `src/__tests__/unit/autopilot-score-content.test.ts` | scoreContentHeuristic dimensions, edge cases | 10 | 0 | Sprint 48: AEO scoring heuristic — high score for answer-first+keywords, low for generic, 0 for empty, null city, CTA bonus, title bonus, word count scaling, combined perfect score, missing categories |
+| `src/__tests__/unit/autopilot-create-draft.test.ts` | determineContentType, buildContextBlock, generateDraftBrief, archiveExpiredOccasionDrafts | 17 | 0 | Sprint 48: Autopilot draft creation — content type mapping (6 trigger types), PENDING_DRAFT_CAP constant, context block builder (5 trigger types), mock brief generation (3: fallback/FAQ/business-name), occasion draft archival (2: empty/null-triggers) |
+| `src/__tests__/unit/autopilot-publish.test.ts` | publishAsDownload, publishToGBP, publishToWordPress, truncateAtSentence | 19 | 0 | Sprint 48: Autopilot publish pipeline — download (6: HTML/JSON-LD/FAQPage/base64/meta/escaping), GBP (6: truncation/sentence-boundary/word-fallback/passthrough/refresh/missing-token), WordPress (4: REST-API/WP-blocks/auth-failure/draft-status), truncation (3: boundary/fallback/under-limit) |
+| `src/__tests__/unit/autopilot-post-publish.test.ts` | schedulePostPublishRecheck, getPendingRechecks, completeRecheck | 13 | 0 | Sprint 48: Post-publish measurement — Redis scheduling (3: key-format/TTL/SET-add), pending scan (2: multiple-tasks/empty), graceful degradation (3: schedule/scan/cleanup), completion (2: key-delete/SET-remove) |
 | `src/__tests__/integration/rls-isolation.test.ts` | RLS cross-tenant isolation | 7 | 0 | RLS isolation — requires live DB (`supabase db reset`); all 7 pass after reset |
 
-**Total (active suites):** **618 passing** across 47 suites (includes 7 rls-isolation tests now passing after `supabase db reset`)
+**Total (active suites):** **711 passing** across 51 suites (includes 7 rls-isolation tests now passing after `supabase db reset`)
 
-*(Sprint 46: `citation-engine-service.test.ts` +42 (new), `cron-citation.test.ts` +13 (new). Sprint 46 total: +55 tests from 2 new suites. Sprint 45: `occasion-engine-service.test.ts` +19 (new), `cron-sov.test.ts` 11→13 (+2). Sprint 45 total: +21 tests from 1 new suite + 2 added to existing suite. Bug Fix (query_category): `sov-engine-service.test.ts` 9→11 (+2), `cron-sov.test.ts` 10→11 (+1). Net: +3 tests. Sprint 44: `truth-audit-service.test.ts` +23 (new), `multi-engine-action.test.ts` +6 (new), `rls-isolation.test.ts` 0→7 (previously skipped, now passing). Sprint 44 total: +36 tests from 2 new suites + 7 unblocked. Sprint 43: `revenue-leak-service.test.ts` +17 (new), `revenue-leak-action.test.ts` +6 (new). Sprint 43 total: +23 tests from 2 new suites. AI SDK provider install: `ai-providers.test.ts` +5. Package install: `schema-types.test.ts` +1, `zip-bundle.test.ts` +2. Sprint 42: `dashboard-null-states.test.tsx` +4, `ContentDraftCard.test.tsx` +10, `content-drafts-actions.test.ts` +10, `SovCard-plan-gate.test.tsx` +6, `integrations-health.test.ts` +8, `share-of-voice-actions.test.ts` +4 (deleteTargetQuery). Sprint 42 total: +46 tests from 5 new suites + 4 added to existing suite. Package+SDK installs: +8 from 3 new suites.)*
+*(Sprint 48: `autopilot-score-content.test.ts` +10 (new), `autopilot-create-draft.test.ts` +17 (new), `autopilot-publish.test.ts` +19 (new), `autopilot-post-publish.test.ts` +13 (new), `content-drafts-actions.test.ts` 10→23 (+13), `cron-sov.test.ts` 16→21 (+5). Sprint 48 total: +77 tests from 4 new suites + 18 added to 2 existing suites. Sprint 47: `prompt-intelligence-service.test.ts` +16 (new), `cron-sov.test.ts` 13→16 (+3). Sprint 47 total: +19 tests from 1 new suite + 3 added to existing suite. Sprint 46: `citation-engine-service.test.ts` +42 (new), `cron-citation.test.ts` +13 (new). Sprint 46 total: +55 tests from 2 new suites. Sprint 45: `occasion-engine-service.test.ts` +19 (new), `cron-sov.test.ts` 11→13 (+2). Sprint 45 total: +21 tests from 1 new suite + 2 added to existing suite. Bug Fix (query_category): `sov-engine-service.test.ts` 9→11 (+2), `cron-sov.test.ts` 10→11 (+1). Net: +3 tests. Sprint 44: `truth-audit-service.test.ts` +23 (new), `multi-engine-action.test.ts` +6 (new), `rls-isolation.test.ts` 0→7 (previously skipped, now passing). Sprint 44 total: +36 tests from 2 new suites + 7 unblocked. Sprint 43: `revenue-leak-service.test.ts` +17 (new), `revenue-leak-action.test.ts` +6 (new). Sprint 43 total: +23 tests from 2 new suites. AI SDK provider install: `ai-providers.test.ts` +5. Package install: `schema-types.test.ts` +1, `zip-bundle.test.ts` +2. Sprint 42: `dashboard-null-states.test.tsx` +4, `ContentDraftCard.test.tsx` +10, `content-drafts-actions.test.ts` +10, `SovCard-plan-gate.test.tsx` +6, `integrations-health.test.ts` +8, `share-of-voice-actions.test.ts` +4 (deleteTargetQuery). Sprint 42 total: +46 tests from 5 new suites + 4 added to existing suite. Package+SDK installs: +8 from 3 new suites.)*
 
 *(Sprint 35: `free-scan-pass.test.ts` 15→17 (+2: `accuracy_issue_categories` propagation + Zod default), `scan-params.test.ts` 11→14 (+3: `issue_cats` decode, missing → `[]`, encode). Sprint 34: `free-scan-pass.test.ts` 11→15 (+4 real-field propagation tests), `scan-params.test.ts` 10→11 (−4 deriveKpiScores, +5 real-field tests). Sprint 33: `scan-params.test.ts` +10 (new). Sprint 31: `free-scan-pass.test.ts` 10→11. Sprint 30: `scan-health-utils.test.ts` +7 (new). Sprint 29: `public-places-search.test.ts` +8 (new); `free-scan-pass.test.ts` 7→10. Sprint 28B: `free-scan-pass.test.ts` +7. Sprint 24A: `reality-score.test.ts` 8→10. Sprint 24B: `settings-actions.test.ts` +10. Sprint 27A: `listings-actions.test.ts` +6. Phase 22 correction: `generateMenuJsonLd.test.ts` 21→30, `parseCsvMenu.test.ts` 17→20. Pre-Phase 3: `plan-enforcer.test.ts` 12→16. Phase 3: `competitor-actions.test.ts` +22. Phase 3.1: `cron-audit.test.ts` 9→12; `places-search.test.ts` +6; `competitor-intercept-service.test.ts` +8. Group F: `plan-enforcer.test.ts` 16→32.)*
 
@@ -150,6 +155,17 @@ tests that require a second tenant to be provisioned.
 | Perplexity custom provider | `vi.mock('@ai-sdk/openai', ...)` mocking `createOpenAI()` | SOV service tests |
 | MCP `createMcpHandler()` | `vi.mock('mcp-handler', ...)` | MCP tools tests |
 
+### New Mock Patterns (Sprint 48 Autopilot Engine)
+
+| Mock Target | Pattern | Used By |
+|-------------|---------|---------|
+| Autopilot `createDraft()` | `vi.mock('@/lib/autopilot/create-draft', ...)` returning `null` | SOV engine service, cron-sov tests |
+| Autopilot `archiveExpiredOccasionDrafts()` | `vi.mock('@/lib/autopilot/create-draft', ...)` returning `0` | cron-sov tests |
+| Autopilot post-publish | `vi.mock('@/lib/autopilot/post-publish', ...)` returning `[]` / `undefined` | cron-sov tests |
+| Autopilot publishers | `vi.mock('@/lib/autopilot/publish-download')`, `publish-gbp`, `publish-wordpress` | content-drafts-actions tests |
+| Redis (autopilot) | `vi.mock('@/lib/redis')` with `getRedis()` returning mock SET/GET/DEL | autopilot-post-publish tests |
+| AI `generateText()` (autopilot) | `vi.mock('ai', ...)` + `vi.mock('@/lib/ai/providers', ...)` | autopilot-create-draft tests |
+
 ---
 
 ## E2E Functional Tests (Playwright)
@@ -188,7 +204,7 @@ tests that require a second tenant to be provisioned.
 | `tests/e2e/05-public-honeypot.spec.ts` | 4 | None (public) | Page renders, Restaurant + Menu JSON-LD valid, `llms.txt` 200+structure, `ai-config.json` 200+GEO fields |
 | `tests/e2e/06-share-of-voice.spec.ts` | 4 | `dev@` | Header, SOV score ring, quick stats, sidebar nav |
 | `tests/e2e/07-listings.spec.ts` | 4 | `dev@` | Header, location card + platform rows, summary strip, sidebar nav |
-| `tests/e2e/08-content-drafts.spec.ts` | 3 | `dev@` | Header + summary strip, filter tabs, sidebar nav |
+| `tests/e2e/08-content-drafts.spec.ts` | 3 | `dev@` | Header + summary strip, filter tabs (All/Drafts/Approved/Published/Archived), sidebar nav |
 | `tests/e2e/hybrid-upload.spec.ts` | 2 | `upload@` | Upload tabs visible, CSV upload → ReviewState |
 | `tests/e2e/auth.spec.ts` | 3 | None (public) | Login layout, error on invalid creds, signup form fields |
 | `tests/e2e/09-revenue-leak.spec.ts` | 5 | `dev@` | RevenueLeakCard render + dollar range, breakdown chips, Configure link nav, settings pre-fill, form submit |
@@ -263,7 +279,7 @@ npx playwright test --ui
 |-----------|----------------|---------------|--------|
 | `src/__tests__/unit/sov-cron.test.ts` | SOV cron query execution, `writeSOVResults()`, queryCap per plan | Doc 04c §4 | ✅ Partially covered (8 tests in surgical suite) |
 | `src/__tests__/unit/visibility-score.test.ts` | `calculateVisibilityScore()` — including null state (no cron run yet), never returns 0 | Doc 04c §5 | Planned |
-| `src/__tests__/unit/content-draft-workflow.test.ts` | `createDraft()` idempotency, HITL state machine, draft queue cap (max 5 pending) | Doc 19 §3–§4 | Planned |
+| `src/__tests__/unit/content-draft-workflow.test.ts` | `createDraft()` idempotency, HITL state machine, draft queue cap (max 5 pending) | Doc 19 §3–§4 | ✅ Fulfilled by Sprint 48: `autopilot-create-draft.test.ts` (17 tests), `autopilot-publish.test.ts` (19 tests), `autopilot-post-publish.test.ts` (13 tests), `content-drafts-actions.test.ts` (23 tests) |
 | `src/__tests__/unit/page-auditor.test.ts` | 5-dimension scoring, `extractVisibleText()`, `extractJsonLd()`, FAQ schema detection | Doc 17 §2–§3 | ✅ Partially covered (7 tests in surgical suite) |
 | `src/__tests__/unit/citation-gap-scorer.test.ts` | `calculateCitationGapScore()`, threshold (>= 0.30), `topGap` computation | Doc 18 §3 | Planned |
 | `src/__tests__/unit/gbp-data-mapper.test.ts` | GBP hours → `HoursData` mapping, attribute → amenities mapping, timezone gap handling | Doc 09 Phase 8 | Planned |
@@ -284,4 +300,4 @@ npx playwright test --ui
 
 ---
 
-> **Last updated:** Post-query_category bug fix (2026-02-25) — 47/47 E2E + 549 unit/integration passing. Bug fix: `sov-engine-service.test.ts` +2, `cron-sov.test.ts` +1 (query_category passthrough + first mover category filtering). Sprint 44: `truth-audit-service.test.ts` +23, `multi-engine-action.test.ts` +6, `10-truth-audit.spec.ts` +6 E2E. Sprint 43: `revenue-leak-service.test.ts` +17, `revenue-leak-action.test.ts` +6, `09-revenue-leak.spec.ts` +5 E2E. Sprint 42: +46 unit tests, +10 E2E. Sprint 36: +49 tests from Surgical Integration day.
+> **Last updated:** Post-Sprint 48 Autopilot Engine (2026-02-25) — 47/47 E2E + 711 unit/integration passing. Sprint 48: +77 tests from 4 new suites (`autopilot-score-content` +10, `autopilot-create-draft` +17, `autopilot-publish` +19, `autopilot-post-publish` +13) + 18 added to existing suites (`content-drafts-actions` 10→23, `cron-sov` 16→21). E2E: `08-content-drafts.spec.ts` updated (Rejected→Archived tab). Sprint 47: +19 new (`prompt-intelligence-service` +16 new, `cron-sov` 13→16). Sprint 46: +55 new. Sprint 45: +21. Sprint 44: +36. Sprint 43: +23. Sprint 42: +46 unit + 10 E2E. Sprint 36: +49 from Surgical Integration day.

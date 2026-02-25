@@ -65,6 +65,18 @@ vi.mock('@/lib/plan-enforcer', () => ({
   canRunAutopilot: vi.fn().mockReturnValue(true),
 }));
 
+// ── Mock the Autopilot Create Draft ──────────────────────────────────────
+vi.mock('@/lib/autopilot/create-draft', () => ({
+  createDraft: vi.fn().mockResolvedValue(null),
+  archiveExpiredOccasionDrafts: vi.fn().mockResolvedValue(0),
+}));
+
+// ── Mock the Autopilot Post-Publish ──────────────────────────────────────
+vi.mock('@/lib/autopilot/post-publish', () => ({
+  getPendingRechecks: vi.fn().mockResolvedValue([]),
+  completeRecheck: vi.fn().mockResolvedValue(undefined),
+}));
+
 // ── Import handler and mocks after vi.mock declarations ──────────────────
 import { GET } from '@/app/api/cron/sov/route';
 import { createServiceRoleClient } from '@/lib/supabase/server';
@@ -73,6 +85,8 @@ import { sendSOVReport } from '@/lib/email';
 import { runOccasionScheduler } from '@/lib/services/occasion-engine.service';
 import { detectQueryGaps } from '@/lib/services/prompt-intelligence.service';
 import { canRunAutopilot } from '@/lib/plan-enforcer';
+import { createDraft, archiveExpiredOccasionDrafts } from '@/lib/autopilot/create-draft';
+import { getPendingRechecks, completeRecheck } from '@/lib/autopilot/post-publish';
 
 // ── Constants ────────────────────────────────────────────────────────────
 
@@ -386,5 +400,69 @@ describe('GET /api/cron/sov', () => {
     expect(res.status).toBe(200);
     expect(body.orgs_processed).toBe(1);
     expect(body.orgs_failed).toBe(0);
+  });
+
+  it('calls archiveExpiredOccasionDrafts after org processing', async () => {
+    const mock = makeMockSupabase([MOCK_QUERY]);
+    vi.mocked(createServiceRoleClient).mockReturnValue(mock as never);
+
+    await GET(makeRequest(CRON_SECRET));
+
+    expect(vi.mocked(archiveExpiredOccasionDrafts)).toHaveBeenCalled();
+  });
+
+  it('does not crash when archiveExpiredOccasionDrafts throws', async () => {
+    const mock = makeMockSupabase([MOCK_QUERY]);
+    vi.mocked(createServiceRoleClient).mockReturnValue(mock as never);
+    vi.mocked(archiveExpiredOccasionDrafts).mockRejectedValueOnce(
+      new Error('Archive failed'),
+    );
+
+    const res = await GET(makeRequest(CRON_SECRET));
+    expect(res.status).toBe(200);
+  });
+
+  it('calls getPendingRechecks after org processing', async () => {
+    const mock = makeMockSupabase([MOCK_QUERY]);
+    vi.mocked(createServiceRoleClient).mockReturnValue(mock as never);
+
+    await GET(makeRequest(CRON_SECRET));
+
+    expect(vi.mocked(getPendingRechecks)).toHaveBeenCalled();
+  });
+
+  it('does not crash when getPendingRechecks throws', async () => {
+    const mock = makeMockSupabase([MOCK_QUERY]);
+    vi.mocked(createServiceRoleClient).mockReturnValue(mock as never);
+    vi.mocked(getPendingRechecks).mockRejectedValueOnce(
+      new Error('Redis down'),
+    );
+
+    const res = await GET(makeRequest(CRON_SECRET));
+    expect(res.status).toBe(200);
+  });
+
+  it('runs SOV recheck and completes for pending tasks', async () => {
+    const mock = makeMockSupabase([MOCK_QUERY]);
+    vi.mocked(createServiceRoleClient).mockReturnValue(mock as never);
+    vi.mocked(getPendingRechecks).mockResolvedValueOnce([
+      {
+        taskType: 'sov_recheck' as const,
+        targetDate: new Date().toISOString(),
+        payload: {
+          draftId: 'draft-123',
+          locationId: 'loc-uuid-001',
+          targetQuery: 'best italian austin',
+          publishedAt: new Date().toISOString(),
+        },
+      },
+    ]);
+
+    await GET(makeRequest(CRON_SECRET));
+
+    expect(vi.mocked(runSOVQuery)).toHaveBeenCalledWith(
+      expect.objectContaining({ query_text: 'best italian austin' }),
+    );
+    expect(vi.mocked(completeRecheck)).toHaveBeenCalledWith('draft-123');
   });
 });

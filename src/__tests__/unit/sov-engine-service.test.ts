@@ -23,6 +23,11 @@ vi.mock('@/lib/ai/providers', () => ({
   hasApiKey: vi.fn().mockReturnValue(true),
 }));
 
+// ── Mock the Autopilot Create Draft ─────────────────────────────────────
+vi.mock('@/lib/autopilot/create-draft', () => ({
+  createDraft: vi.fn().mockResolvedValue(null),
+}));
+
 import {
   runSOVQuery,
   writeSOVResults,

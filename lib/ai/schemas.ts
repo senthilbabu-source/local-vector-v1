@@ -91,6 +91,17 @@ export const OccasionDraftSchema = z.object({
 
 export type OccasionDraftOutput = z.infer<typeof OccasionDraftSchema>;
 
+// ── Autopilot Engine — Draft brief generation (Doc 19 §3.2) ─────────────────
+
+export const AutopilotDraftSchema = z.object({
+  title: z.string(),
+  content: z.string(),
+  estimated_aeo_score: z.number().min(0).max(100),
+  target_keywords: z.array(z.string()),
+});
+
+export type AutopilotDraftOutput = z.infer<typeof AutopilotDraftSchema>;
+
 // ── Citation Intelligence — Citation cron response (Doc 18 §2.1) ────────────
 
 export const CitationCronResultSchema = z.object({

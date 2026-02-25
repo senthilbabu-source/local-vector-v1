@@ -38,6 +38,8 @@ import { sendSOVReport } from '@/lib/email';
 import { runOccasionScheduler } from '@/lib/services/occasion-engine.service';
 import { detectQueryGaps } from '@/lib/services/prompt-intelligence.service';
 import { canRunAutopilot, type PlanTier } from '@/lib/plan-enforcer';
+import { createDraft, archiveExpiredOccasionDrafts } from '@/lib/autopilot/create-draft';
+import { getPendingRechecks, completeRecheck } from '@/lib/autopilot/post-publish';
 
 // Force dynamic so Vercel never caches this route between cron invocations.
 export const dynamic = 'force-dynamic';
@@ -239,20 +241,15 @@ export async function GET(request: NextRequest) {
           // Auto-create content drafts for zero_citation_cluster gaps (Growth+ only)
           if (canRunAutopilot(plan as PlanTier)) {
             for (const gap of gaps.filter((g) => g.gapType === 'zero_citation_cluster')) {
-              await supabase.from('content_drafts').upsert(
+              await createDraft(
                 {
-                  org_id: orgId,
-                  location_id: locationId,
-                  trigger_type: 'prompt_missing',
-                  trigger_id: null,
-                  draft_title: `Content Gap: ${gap.queryText.split(',')[0]}`,
-                  draft_content: gap.suggestedAction,
-                  target_prompt: gap.queryText,
-                  content_type: 'blog_post',
-                  status: 'draft',
-                  human_approved: false,
+                  triggerType: 'prompt_missing',
+                  triggerId: null,
+                  orgId,
+                  locationId,
+                  context: { zeroCitationQueries: gap.queryText.split(',').map((q: string) => q.trim()) },
                 },
-                { onConflict: 'trigger_type,trigger_id', ignoreDuplicates: true },
+                supabase,
               );
             }
           }
@@ -269,6 +266,44 @@ export async function GET(request: NextRequest) {
       console.error(`[cron-sov] Org ${orgId} failed:`, msg);
       summary.orgs_failed++;
     }
+  }
+
+  // ── 10. Archive expired occasion drafts ──────────────────────────────────
+  try {
+    const archivedCount = await archiveExpiredOccasionDrafts(supabase);
+    if (archivedCount > 0) {
+      console.log(`[cron-sov] Archived ${archivedCount} expired occasion drafts`);
+    }
+  } catch (err) {
+    const archiveMsg = err instanceof Error ? err.message : String(err);
+    console.error(`[cron-sov] Occasion draft archival failed:`, archiveMsg);
+    // Non-critical — never abort SOV cron for archival failures
+  }
+
+  // ── 11. Post-publish SOV re-checks ───────────────────────────────────────
+  try {
+    const rechecks = await getPendingRechecks();
+    for (const task of rechecks) {
+      try {
+        const result = await runSOVQuery({
+          id: task.payload.draftId,
+          query_text: task.payload.targetQuery,
+          query_category: 'discovery',
+          location_id: task.payload.locationId,
+          org_id: '',
+        });
+        console.log(
+          `[cron-sov] Post-publish recheck for draft ${task.payload.draftId}: cited=${result.ourBusinessCited}`,
+        );
+        await completeRecheck(task.payload.draftId);
+      } catch (recheckErr) {
+        console.error(`[cron-sov] Recheck failed for draft ${task.payload.draftId}:`, recheckErr);
+      }
+    }
+  } catch (err) {
+    const recheckMsg = err instanceof Error ? err.message : String(err);
+    console.error(`[cron-sov] Post-publish recheck scan failed:`, recheckMsg);
+    // Non-critical — never abort SOV cron for recheck failures
   }
 
   console.log('[cron-sov] Run complete:', summary);
