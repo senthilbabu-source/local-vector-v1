@@ -4,6 +4,28 @@
 
 ---
 
+## 2026-02-24 — Copy Tremor Raw Chart Components (Completed)
+
+**Goal:** Copy 5 Tremor Raw chart components from tremor.so for dashboard visualizations. Copy-paste only — NOT the `@tremor/react` npm package.
+
+**Scope:**
+- `components/tremor/AreaChart.tsx` — **NEW.** ~620 lines. SOV trend, revenue leak timeline.
+- `components/tremor/BarChart.tsx` — **NEW.** ~600 lines. Competitor gap bars, query magnitude.
+- `components/tremor/DonutChart.tsx` — **NEW.** ~310 lines. Share of voice breakdown.
+- `components/tremor/CategoryBar.tsx` — **NEW.** ~230 lines. Segmented score visualization.
+- `components/tremor/BarList.tsx` — **NEW.** ~155 lines. Ranked horizontal bars.
+- `components/tremor/Tooltip.tsx` — **NEW.** ~90 lines. Radix-based tooltip (CategoryBar marker dependency).
+- `components/tremor/index.ts` — **NEW.** Barrel export for all 5 chart components.
+
+**All components import from existing foundation:** `@/lib/chartUtils`, `@/lib/useOnWindowResize`, `@/lib/utils` (cx). Source: Tremor Raw (Apache 2.0).
+
+**Tests added:**
+- `src/__tests__/unit/tremor-charts.test.ts` — **6 Vitest tests.** Module export verification for all 5 components + barrel re-export.
+
+**Verification:** 487 Vitest passing (481 + 6 new), 36 Playwright E2E passing. `npx next build` clean.
+
+---
+
 ## 2026-02-24 — Tremor Raw Foundation (Copy-Paste Utilities, No Chart Components Yet) (Completed)
 
 **Goal:** Install the Tremor Raw foundation layer — utility files and npm deps that Tremor chart components need. **NOT** the `@tremor/react` npm package (incompatible with Tailwind v4). No actual chart components copied yet.

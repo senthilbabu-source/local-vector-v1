@@ -1,7 +1,7 @@
 # LocalVector.ai — Testing Strategy
 
 > **Source:** This document is derived from `DEVLOG.md`, the `src/__tests__/` directory,
-> and the `tests/e2e/` directory. Last updated: Post-Sprint 42 + AI SDK install (2026-02-24).
+> and the `tests/e2e/` directory. Last updated: Post-Sprint 42 + Tremor Raw charts (2026-02-24).
 > All test counts are from the live `vitest run` and `playwright test` outputs.
 
 ---
@@ -12,7 +12,7 @@ LocalVector.ai uses a two-layer test stack:
 
 | Layer | Runner | Command | Result (current) |
 |-------|--------|---------|------------------|
-| Unit + Integration | Vitest | `npx vitest run` | **481 passing**, 7 skipped / **488 passing** when Supabase running with full migrations |
+| Unit + Integration | Vitest | `npx vitest run` | **487 passing**, 7 skipped / **494 passing** when Supabase running with full migrations |
 | E2E Functional | Playwright | `npx playwright test` | 36 passing, 0 failing |
 
 Tests MUST NOT call live external APIs (AI_RULES §4):
@@ -73,9 +73,10 @@ Tests MUST NOT call live external APIs (AI_RULES §4):
 | `src/__tests__/unit/schema-types.test.ts` | toJsonLdScript typed wrapper | 1 | 0 | Package install: schema-dts typed helpers |
 | `src/__tests__/unit/zip-bundle.test.ts` | createZipBundle with files, empty list | 2 | 0 | Package install: JSZip bundle generator |
 | `src/__tests__/unit/ai-providers.test.ts` | Provider exports, truth-audit keys, getModel, hasApiKey | 5 | 0 | AI SDK install: Anthropic + Google provider integration |
+| `src/__tests__/unit/tremor-charts.test.ts` | Module export verification: AreaChart, BarChart, DonutChart, CategoryBar, BarList + barrel | 6 | 0 | Tremor Raw chart components copy-paste |
 | `src/__tests__/integration/rls-isolation.test.ts` | *(pre-existing failure)* | — | 7 | RLS cross-tenant isolation — requires live DB; fails in CI without `supabase db reset` |
 
-**Total (active suites):** 15+22+16+32+15+12+30+20+10+8+32+16+8+6+22+6+8+10+6+17+8+7+14+12+8+8+7+9+5+4+10+10+6+8+1+2+5 = **481 passing** across 37 suites (plus 7 in rls-isolation = **488 passing** when Supabase running with full migrations)
+**Total (active suites):** 15+22+16+32+15+12+30+20+10+8+32+16+8+6+22+6+8+10+6+17+8+7+14+12+8+8+7+9+5+4+10+10+6+8+1+2+5+6 = **487 passing** across 38 suites (plus 7 in rls-isolation = **494 passing** when Supabase running with full migrations)
 
 *(AI SDK provider install: `ai-providers.test.ts` +5. Package install: `schema-types.test.ts` +1, `zip-bundle.test.ts` +2. Sprint 42: `dashboard-null-states.test.tsx` +4, `ContentDraftCard.test.tsx` +10, `content-drafts-actions.test.ts` +10, `SovCard-plan-gate.test.tsx` +6, `integrations-health.test.ts` +8, `share-of-voice-actions.test.ts` +4 (deleteTargetQuery). Sprint 42 total: +46 tests from 5 new suites + 4 added to existing suite. Package+SDK installs: +8 from 3 new suites. Grand delta from Sprint 36: 402 + 46 + 8 + 25 (E2E fixes/Sprint 37-41 growth) = 481.)*
 
@@ -113,7 +114,7 @@ prerequisite, not an application bug. The 7 `skip`s are deliberate skips within 
 tests that require a second tenant to be provisioned.
 
 **After `npx supabase db reset` all 7 previously-skipped tests pass (488 total). In CI without a**
-**running Supabase, 7 tests are skipped and the suite shows 481 passing — this does not block CI.**
+**running Supabase, 7 tests are skipped and the suite shows 487 passing — this does not block CI.**
 
 ---
 
