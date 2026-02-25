@@ -4,6 +4,24 @@
 
 ---
 
+## 2026-02-24 — Package Install: schema-dts, jszip, @react-email/components (Completed)
+
+**Goal:** Install three zero-risk packages for upcoming killer features. No changes to existing code.
+
+**Scope:**
+- `package.json` — Added `schema-dts` (typed Schema.org JSON-LD, Feature #3), `jszip` (ZIP bundle downloads, Feature #3), `@react-email/components` (React email templates, Feature #7), `@types/jszip` (devDep).
+- `lib/schema/types.ts` — **NEW.** Schema.org typed re-exports + `toJsonLdScript<T extends Thing>()` helper.
+- `lib/utils/zipBundle.ts` — **NEW.** `createZipBundle()` ZIP generator wrapping JSZip.
+- `emails/WeeklyDigest.tsx` — **NEW.** Weekly digest React Email template scaffold (SOV stats, first mover alerts, CTA).
+
+**Tests added:**
+- `src/__tests__/unit/schema-types.test.ts` — **1 Vitest test.** Validates `toJsonLdScript` wraps typed Schema.org objects in `<script>` tags.
+- `src/__tests__/unit/zip-bundle.test.ts` — **2 Vitest tests.** ZIP creation with files and empty file list.
+
+**Verification:** 476 Vitest passing (473 + 3 new), 36 Playwright E2E passing. `npx next build` clean.
+
+---
+
 ## 2026-02-24 — Docs Sync: Eliminate Stale/Missing Documentation (Completed)
 
 **Goal:** Audit all docs for conflicts, stale counts, and missing information after Sprint 42 + E2E fixes.
@@ -282,7 +300,7 @@
 
 | Suite | Count | Command |
 |-------|-------|---------|
-| Vitest unit/integration | 473 passing, 7 skipped | `npx vitest run` |
+| Vitest unit/integration | 476 passing, 7 skipped | `npx vitest run` |
 | Playwright E2E | 36 passing (12 spec files) | `npx playwright test --project=chromium` |
 
 ### E2E Spec Inventory
