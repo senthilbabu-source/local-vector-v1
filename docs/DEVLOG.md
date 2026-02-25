@@ -4,6 +4,34 @@
 
 ---
 
+## 2026-02-25 — Sprint 50: AI SDK Migration — Competitor Intercept Service (Completed)
+
+**Goal:** Migrate the last remaining raw `fetch()` calls (Perplexity + OpenAI) in the Competitor Intercept Service to the Vercel AI SDK (`generateText` / `generateObject`), completing the Surgery 2 wave. Eliminates manual HTTP construction and `JSON.parse` in the Greed Engine pipeline.
+
+**Scope:**
+
+*Modified files:*
+- `lib/services/competitor-intercept.service.ts` — **REWRITTEN.** 2-stage LLM pipeline migrated:
+  - Stage 1 (`callPerplexityHeadToHead`): raw `fetch('https://api.perplexity.ai/...')` → `generateText({ model: getModel('greed-headtohead'), ... })` + `PerplexityHeadToHeadSchema.parse()`. Uses `generateText` (not `generateObject`) because Perplexity's `compatibility: 'compatible'` mode does not support `response_format: json_schema`.
+  - Stage 2 (`callGptIntercept`): raw `fetch('https://api.openai.com/...')` → `generateObject({ model: getModel('greed-intercept'), schema: InterceptAnalysisSchema, ... })`. OpenAI enforces structured output server-side; no manual `JSON.parse` needed.
+  - API key checks: `process.env.PERPLEXITY_API_KEY` / `OPENAI_API_KEY` → `hasApiKey('perplexity')` / `hasApiKey('openai')`.
+  - Removed 2 inline type definitions (`PerplexityResult`, `InterceptAnalysis`) — replaced with Zod-inferred types from `lib/ai/schemas.ts`.
+  - Updated comment block to document 3rd caller context (Inngest steps from Sprint 49).
+- `src/__tests__/unit/competitor-intercept-service.test.ts` — **REWRITTEN.** 8 tests. Replaced `vi.stubGlobal('fetch', ...)` with `vi.mock('ai')` + `vi.mock('@/lib/ai/providers')`. Mock helpers return SDK-shaped `{ text }` / `{ object }` instead of HTTP Response objects. `process.env.*_API_KEY` manipulation replaced with `vi.mocked(hasApiKey)` calls.
+- `src/__tests__/unit/competitor-actions.test.ts` — **REWRITTEN.** 22 tests. Same mock strategy migration: `vi.stubGlobal('fetch', mockFetch)` → `vi.mocked(generateText).mockResolvedValue(...)` / `vi.mocked(generateObject).mockResolvedValue(...)`. `process.env` teardown replaced with `vi.clearAllMocks()` + `vi.mocked(hasApiKey).mockReturnValue(true)`.
+
+**Tests:** 30 tests across 2 files (8 + 22), all passing. Test count neutral (tests rewritten, not added/removed).
+
+**Run commands:**
+```bash
+npx vitest run src/__tests__/unit/competitor-intercept-service.test.ts  # 8 tests passing
+npx vitest run src/__tests__/unit/competitor-actions.test.ts            # 22 tests passing
+npx vitest run                                                          # 742 tests passing, 7 skipped
+npx next build                                                          # 0 errors
+```
+
+---
+
 ## 2026-02-25 — Sprint 49: Inngest Job Queue System (Completed)
 
 **Goal:** Replace sequential `for...of` loops in 3 Vercel Cron routes (SOV, Audit, Content Audit) with Inngest event-driven step functions providing per-org fan-out, automatic retries, independent timeouts, and parallelism. Add durable 14-day sleep for post-publish SOV re-checks (replaces Redis TTL scheduling).

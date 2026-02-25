@@ -9,8 +9,8 @@
 //
 // Strategy:
 //   • Supabase client, auth context, and next/cache mocked via vi.mock() (hoisted).
+//   • vi.mock('ai') + vi.mock('@/lib/ai/providers') intercepts AI SDK calls.
 //   • vi.useFakeTimers() eliminates the 3-second mock delay in fallback paths.
-//   • vi.stubGlobal('fetch') intercepts Perplexity + OpenAI calls.
 //   • Fixture data from golden-tenant.ts (AI_RULES §19.4).
 //
 // Run:
@@ -24,6 +24,11 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 vi.mock('@/lib/supabase/server', () => ({ createClient: vi.fn() }));
 vi.mock('@/lib/auth', () => ({ getSafeAuthContext: vi.fn() }));
 vi.mock('next/cache', () => ({ revalidatePath: vi.fn() }));
+vi.mock('ai', () => ({ generateText: vi.fn(), generateObject: vi.fn() }));
+vi.mock('@/lib/ai/providers', () => ({
+  getModel:  vi.fn().mockReturnValue('mock-model'),
+  hasApiKey: vi.fn().mockReturnValue(true),
+}));
 
 // ── Imports after mock declarations ──────────────────────────────────────
 
@@ -37,6 +42,8 @@ import { createClient } from '@/lib/supabase/server';
 import { getSafeAuthContext } from '@/lib/auth';
 import { revalidatePath } from 'next/cache';
 import { MOCK_COMPETITOR, MOCK_INTERCEPT } from '@/src/__fixtures__/golden-tenant';
+import { generateText, generateObject } from 'ai';
+import { hasApiKey } from '@/lib/ai/providers';
 
 // ── Shared fixtures ───────────────────────────────────────────────────────
 
@@ -66,42 +73,30 @@ const MOCK_COMPETITOR_ROW = {
   competitor_address: MOCK_COMPETITOR.competitor_address,
 };
 
-// ── Perplexity + GPT-4o-mini mock fetch responses ─────────────────────────
+// ── AI SDK mock response helpers ──────────────────────────────────────────
 
-function mockPerplexityResponse() {
+/** Mock generateText return value for Stage 1 (Perplexity). */
+function mockGenerateTextResult() {
   return {
-    ok: true,
-    json: async () => ({
-      choices: [{
-        message: {
-          content: JSON.stringify({
-            winner:              'Cloud 9 Lounge',
-            reasoning:           'More review mentions of late-night atmosphere.',
-            key_differentiators: ['late-night hours', 'happy hour'],
-          }),
-        },
-      }],
+    text: JSON.stringify({
+      winner:              'Cloud 9 Lounge',
+      reasoning:           'More review mentions of late-night atmosphere.',
+      key_differentiators: ['late-night hours', 'happy hour'],
     }),
   };
 }
 
-function mockGptResponse() {
+/** Mock generateObject return value for Stage 2 (OpenAI). */
+function mockGenerateObjectResult() {
   return {
-    ok: true,
-    json: async () => ({
-      choices: [{
-        message: {
-          content: JSON.stringify({
-            winner:           'Cloud 9 Lounge',
-            winning_factor:   '15 more review mentions of "late night" atmosphere',
-            gap_magnitude:    'high',
-            gap_details:      { competitor_mentions: 15, your_mentions: 2 },
-            suggested_action: 'Ask 3 customers to mention "late night" in reviews this week',
-            action_category:  'reviews',
-          }),
-        },
-      }],
-    }),
+    object: {
+      winner:           'Cloud 9 Lounge',
+      winning_factor:   '15 more review mentions of "late night" atmosphere',
+      gap_magnitude:    'high' as const,
+      gap_details:      { competitor_mentions: 15, your_mentions: 2 },
+      suggested_action: 'Ask 3 customers to mention "late night" in reviews this week',
+      action_category:  'reviews' as const,
+    },
   };
 }
 
@@ -390,12 +385,12 @@ describe('runCompetitorIntercept', () => {
   beforeEach(() => {
     vi.mocked(getSafeAuthContext).mockResolvedValue(MOCK_AUTH as never);
     vi.useFakeTimers(); // eliminates 3-second mock delay (AI_RULES §4)
+    // Default: both API keys present (hasApiKey returns true for all)
+    vi.mocked(hasApiKey).mockReturnValue(true);
   });
 
   afterEach(() => {
     vi.useRealTimers();
-    delete process.env.PERPLEXITY_API_KEY;
-    delete process.env.OPENAI_API_KEY;
     vi.clearAllMocks();
     vi.restoreAllMocks();
   });
@@ -428,51 +423,36 @@ describe('runCompetitorIntercept', () => {
     expect(result).toEqual({ success: false, error: 'Competitor not found or access denied' });
   });
 
-  it('calls Perplexity then OpenAI (gpt-4o-mini) when both API keys are set', async () => {
-    process.env.PERPLEXITY_API_KEY = 'pplx-test-key';
-    process.env.OPENAI_API_KEY     = 'sk-test-key';
-
-    const mockFetch = vi.fn()
-      .mockResolvedValueOnce(mockPerplexityResponse()) // Stage 1
-      .mockResolvedValueOnce(mockGptResponse());        // Stage 2
-    vi.stubGlobal('fetch', mockFetch);
+  it('calls Perplexity (generateText) then OpenAI (generateObject) when both API keys are set', async () => {
+    vi.mocked(generateText).mockResolvedValue(mockGenerateTextResult() as never);
+    vi.mocked(generateObject).mockResolvedValue(mockGenerateObjectResult() as never);
     mockSupabaseForIntercept();
 
     const resultPromise = runCompetitorIntercept(COMPETITOR_ID);
     await vi.runAllTimersAsync();
     await resultPromise;
 
-    expect(mockFetch).toHaveBeenCalledTimes(2);
-    const [url1] = mockFetch.mock.calls[0] as [string];
-    const [url2] = mockFetch.mock.calls[1] as [string];
-    expect(url1).toBe('https://api.perplexity.ai/chat/completions');
-    expect(url2).toBe('https://api.openai.com/v1/chat/completions');
-    // Verify gpt-4o-mini model was used in Stage 2
-    const body2 = JSON.parse(mockFetch.mock.calls[1][1].body as string) as { model: string };
-    expect(body2.model).toBe('gpt-4o-mini');
+    expect(vi.mocked(generateText)).toHaveBeenCalledOnce();
+    expect(vi.mocked(generateObject)).toHaveBeenCalledOnce();
   });
 
-  it('uses mock fallback (no fetch calls) when API keys are absent', async () => {
+  it('uses mock fallback (no AI SDK calls) when API keys are absent', async () => {
     // Both keys absent — mock fallback path
-    const mockFetch = vi.fn();
-    vi.stubGlobal('fetch', mockFetch);
+    vi.mocked(hasApiKey).mockReturnValue(false);
     mockSupabaseForIntercept();
 
     const resultPromise = runCompetitorIntercept(COMPETITOR_ID);
     await vi.runAllTimersAsync();
     const result = await resultPromise;
 
-    expect(mockFetch).not.toHaveBeenCalled();
+    expect(vi.mocked(generateText)).not.toHaveBeenCalled();
+    expect(vi.mocked(generateObject)).not.toHaveBeenCalled();
     expect(result).toEqual({ success: true });
   });
 
   it('inserts into competitor_intercepts with server-derived org_id and model_provider=openai-gpt4o-mini', async () => {
-    process.env.PERPLEXITY_API_KEY = 'pplx-test-key';
-    process.env.OPENAI_API_KEY     = 'sk-test-key';
-
-    vi.stubGlobal('fetch', vi.fn()
-      .mockResolvedValueOnce(mockPerplexityResponse())
-      .mockResolvedValueOnce(mockGptResponse()));
+    vi.mocked(generateText).mockResolvedValue(mockGenerateTextResult() as never);
+    vi.mocked(generateObject).mockResolvedValue(mockGenerateObjectResult() as never);
 
     const { mockInsert } = mockSupabaseForIntercept();
 
@@ -488,12 +468,8 @@ describe('runCompetitorIntercept', () => {
   });
 
   it('gap_analysis JSONB contains correct competitor_mentions and your_mentions', async () => {
-    process.env.PERPLEXITY_API_KEY = 'pplx-test-key';
-    process.env.OPENAI_API_KEY     = 'sk-test-key';
-
-    vi.stubGlobal('fetch', vi.fn()
-      .mockResolvedValueOnce(mockPerplexityResponse())
-      .mockResolvedValueOnce(mockGptResponse())); // gap_details: { competitor_mentions: 15, your_mentions: 2 }
+    vi.mocked(generateText).mockResolvedValue(mockGenerateTextResult() as never);
+    vi.mocked(generateObject).mockResolvedValue(mockGenerateObjectResult() as never);
 
     const { mockInsert } = mockSupabaseForIntercept();
 
@@ -506,14 +482,10 @@ describe('runCompetitorIntercept', () => {
   });
 
   it('handles Perplexity error gracefully and falls back to mock, still inserts successfully', async () => {
-    process.env.PERPLEXITY_API_KEY = 'pplx-test-key';
-    process.env.OPENAI_API_KEY     = 'sk-test-key';
-
     // Perplexity call throws → mock fallback for Stage 1
     // OpenAI call succeeds
-    vi.stubGlobal('fetch', vi.fn()
-      .mockRejectedValueOnce(new Error('Perplexity network error'))
-      .mockResolvedValueOnce(mockGptResponse()));
+    vi.mocked(generateText).mockRejectedValue(new Error('Perplexity network error'));
+    vi.mocked(generateObject).mockResolvedValue(mockGenerateObjectResult() as never);
 
     const { mockInsert } = mockSupabaseForIntercept();
 

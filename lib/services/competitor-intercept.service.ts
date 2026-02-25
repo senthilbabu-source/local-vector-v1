@@ -1,11 +1,15 @@
 // ---------------------------------------------------------------------------
 // lib/services/competitor-intercept.service.ts — Competitor Intercept Pipeline
 //
-// Extracted from app/dashboard/compete/actions.ts so that the 2-stage
-// Perplexity → GPT-4o-mini pipeline can be called from two contexts:
+// 2-stage LLM pipeline: Perplexity (head-to-head) → GPT-4o-mini (intercept).
+// Uses Vercel AI SDK for both stages:
+//   • Stage 1: generateText + Zod validation (Perplexity — compatible mode)
+//   • Stage 2: generateObject with Zod schema (OpenAI — strict structured output)
 //
+// Called from:
 //   1. Server Action (RLS-scoped client, user session)
 //   2. Cron route   (service-role client, no user session)
+//   3. Inngest step (service-role client, fan-out)
 //
 // Both callers pass their already-created Supabase client as a parameter.
 // This module never creates its own client — it is a pure service.
@@ -15,26 +19,15 @@
 // AI_RULES §4:    Mock fallback (3s delay) when API keys are absent.
 // ---------------------------------------------------------------------------
 
+import { generateText, generateObject } from 'ai';
+import { getModel, hasApiKey } from '@/lib/ai/providers';
+import {
+  PerplexityHeadToHeadSchema,
+  InterceptAnalysisSchema,
+  type PerplexityHeadToHeadOutput,
+  type InterceptAnalysisOutput,
+} from '@/lib/ai/schemas';
 import type { GapAnalysis } from '@/lib/types/ground-truth';
-
-// ---------------------------------------------------------------------------
-// Internal types
-// ---------------------------------------------------------------------------
-
-type PerplexityResult = {
-  winner:              string;
-  reasoning:           string;
-  key_differentiators: string[];
-};
-
-type InterceptAnalysis = {
-  winner:           string;
-  winning_factor:   string;
-  gap_magnitude:    string;
-  gap_details:      GapAnalysis;
-  suggested_action: string;
-  action_category:  string;
-};
 
 // ---------------------------------------------------------------------------
 // Public params interface
@@ -55,124 +48,63 @@ export interface InterceptParams {
 
 // ---------------------------------------------------------------------------
 // Stage 1 — Perplexity head-to-head comparison (sonar model)
+//
+// Uses generateText + manual Zod validation because Perplexity's
+// OpenAI-compatible API (compatibility: 'compatible') does not support
+// response_format: { type: 'json_schema' } required by generateObject.
 // ---------------------------------------------------------------------------
 
 async function callPerplexityHeadToHead(
   myBusiness:     string,
   competitorName: string,
   queryAsked:     string,
-  apiKey:         string,
-): Promise<PerplexityResult> {
-  const res = await fetch('https://api.perplexity.ai/chat/completions', {
-    method: 'POST',
-    headers: {
-      Authorization:  `Bearer ${apiKey}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      model: 'sonar',
-      messages: [
-        {
-          role: 'system',
-          content: 'You are an AI search analyst. Always respond with valid JSON only.',
-        },
-        {
-          role: 'user',
-          content:
-            `Compare "${myBusiness}" and "${competitorName}" for someone searching: "${queryAsked}". ` +
-            `Which would you recommend and why? Consider reviews, atmosphere, and value.\n\n` +
-            `Return ONLY valid JSON:\n` +
-            `{\n  "winner": "Business Name",\n  "reasoning": "Why they won",\n  "key_differentiators": ["factor1"]\n}`,
-        },
-      ],
-      temperature: 0.3,
-    }),
+): Promise<PerplexityHeadToHeadOutput> {
+  const { text } = await generateText({
+    model: getModel('greed-headtohead'),
+    system: 'You are an AI search analyst. Always respond with valid JSON only.',
+    prompt:
+      `Compare "${myBusiness}" and "${competitorName}" for someone searching: "${queryAsked}". ` +
+      `Which would you recommend and why? Consider reviews, atmosphere, and value.\n\n` +
+      `Return ONLY valid JSON:\n` +
+      `{\n  "winner": "Business Name",\n  "reasoning": "Why they won",\n  "key_differentiators": ["factor1"]\n}`,
+    temperature: 0.3,
   });
 
-  if (!res.ok) throw new Error(`Perplexity API error: ${res.status} ${res.statusText}`);
-
-  const json = await res.json();
-  const content: string = json.choices?.[0]?.message?.content ?? '{}';
-  const jsonMatch = content.match(/\{[\s\S]*\}/);
-  const parsed = jsonMatch ? JSON.parse(jsonMatch[0]) : {};
-
-  return {
-    winner:              String(parsed.winner ?? competitorName),
-    reasoning:           String(parsed.reasoning ?? ''),
-    key_differentiators: Array.isArray(parsed.key_differentiators) ? parsed.key_differentiators : [],
-  };
+  return PerplexityHeadToHeadSchema.parse(JSON.parse(text));
 }
 
 // ---------------------------------------------------------------------------
 // Stage 2 — GPT-4o-mini intercept analysis (AI_RULES §19.3)
+//
+// Uses generateObject with Zod schema — OpenAI enforces structured output
+// server-side, SDK validates with Zod, no manual JSON.parse needed.
 // ---------------------------------------------------------------------------
 
 async function callGptIntercept(
   myBusiness:       string,
   competitorName:   string,
-  perplexityResult: PerplexityResult,
-  apiKey:           string,
-): Promise<InterceptAnalysis> {
-  const res = await fetch('https://api.openai.com/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      Authorization:  `Bearer ${apiKey}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      model: 'gpt-4o-mini',
-      messages: [
-        {
-          role: 'system',
-          content: 'You are an AI search analyst for local businesses.',
-        },
-        {
-          role: 'user',
-          content:
-            `User's Business: ${myBusiness}\n` +
-            `Competitor: ${competitorName}\n` +
-            `AI Recommendation: ${JSON.stringify(perplexityResult)}\n\n` +
-            `Analyze WHY the winner won and extract one specific action the losing business can take THIS WEEK.\n\n` +
-            `Return ONLY valid JSON:\n` +
-            `{\n` +
-            `  "winner": "string",\n` +
-            `  "winning_factor": "string",\n` +
-            `  "gap_magnitude": "high|medium|low",\n` +
-            `  "gap_details": { "competitor_mentions": number, "your_mentions": number },\n` +
-            `  "suggested_action": "string",\n` +
-            `  "action_category": "reviews|menu|attributes|content|photos"\n` +
-            `}`,
-        },
-      ],
-      response_format: { type: 'json_object' },
-      temperature: 0.3,
-    }),
+  perplexityResult: PerplexityHeadToHeadOutput,
+): Promise<InterceptAnalysisOutput> {
+  const { object } = await generateObject({
+    model: getModel('greed-intercept'),
+    schema: InterceptAnalysisSchema,
+    system: 'You are an AI search analyst for local businesses.',
+    prompt:
+      `User's Business: ${myBusiness}\n` +
+      `Competitor: ${competitorName}\n` +
+      `AI Recommendation: ${JSON.stringify(perplexityResult)}\n\n` +
+      `Analyze WHY the winner won and extract one specific action the losing business can take THIS WEEK.`,
+    temperature: 0.3,
   });
 
-  if (!res.ok) throw new Error(`OpenAI API error: ${res.status} ${res.statusText}`);
-
-  const json = await res.json();
-  const content: string = json.choices?.[0]?.message?.content ?? '{}';
-  const parsed = JSON.parse(content);
-
-  return {
-    winner:           String(parsed.winner ?? competitorName),
-    winning_factor:   String(parsed.winning_factor ?? ''),
-    gap_magnitude:    String(parsed.gap_magnitude ?? 'medium'),
-    gap_details: {
-      competitor_mentions: Number(parsed.gap_details?.competitor_mentions ?? 0),
-      your_mentions:       Number(parsed.gap_details?.your_mentions ?? 0),
-    },
-    suggested_action: String(parsed.suggested_action ?? ''),
-    action_category:  String(parsed.action_category ?? 'content'),
-  };
+  return object as InterceptAnalysisOutput;
 }
 
 // ---------------------------------------------------------------------------
 // Mock fallbacks — used when API keys absent or calls fail (AI_RULES §4)
 // ---------------------------------------------------------------------------
 
-function mockPerplexityResult(competitorName: string): PerplexityResult {
+function mockPerplexityResult(competitorName: string): PerplexityHeadToHeadOutput {
   return {
     winner:              competitorName,
     reasoning:           '[MOCK] Configure PERPLEXITY_API_KEY in .env.local to run real comparisons.',
@@ -180,7 +112,7 @@ function mockPerplexityResult(competitorName: string): PerplexityResult {
   };
 }
 
-function mockInterceptAnalysis(competitorName: string): InterceptAnalysis {
+function mockInterceptAnalysis(competitorName: string): InterceptAnalysisOutput {
   return {
     winner:           competitorName,
     winning_factor:   '[MOCK] Configure OPENAI_API_KEY in .env.local for real analysis.',
@@ -219,10 +151,9 @@ export async function runInterceptForCompetitor(
   const queryAsked      = `Best ${primaryCategory} in ${cityState}`;
 
   // ── Stage 1: Perplexity head-to-head ─────────────────────────────────
-  let perplexityResult: PerplexityResult;
-  const perplexityKey = process.env.PERPLEXITY_API_KEY;
+  let perplexityResult: PerplexityHeadToHeadOutput;
 
-  if (!perplexityKey) {
+  if (!hasApiKey('perplexity')) {
     await new Promise((r) => setTimeout(r, 3000));
     perplexityResult = mockPerplexityResult(competitor.competitor_name);
   } else {
@@ -231,7 +162,6 @@ export async function runInterceptForCompetitor(
         businessName,
         competitor.competitor_name,
         queryAsked,
-        perplexityKey,
       );
     } catch {
       await new Promise((r) => setTimeout(r, 3000));
@@ -240,10 +170,9 @@ export async function runInterceptForCompetitor(
   }
 
   // ── Stage 2: GPT-4o-mini intercept analysis ───────────────────────────
-  let interceptAnalysis: InterceptAnalysis;
-  const openaiKey = process.env.OPENAI_API_KEY;
+  let interceptAnalysis: InterceptAnalysisOutput;
 
-  if (!openaiKey) {
+  if (!hasApiKey('openai')) {
     await new Promise((r) => setTimeout(r, 3000));
     interceptAnalysis = mockInterceptAnalysis(competitor.competitor_name);
   } else {
@@ -252,7 +181,6 @@ export async function runInterceptForCompetitor(
         businessName,
         competitor.competitor_name,
         perplexityResult,
-        openaiKey,
       );
     } catch {
       await new Promise((r) => setTimeout(r, 3000));
