@@ -75,7 +75,7 @@
 * **Routing:**
     * `app.localvector.ai` → Dashboard (Authenticated)
     * `menu.localvector.ai` → Public Magic Menus (Edge Cached, No Auth).
-* **Cron Jobs:** All scheduled operations run as **Next.js Route Handlers** at `app/api/cron/*/route.ts`. Every cron endpoint is a standard `GET` handler secured by the `CRON_SECRET` header check. **Do NOT create files under `supabase/functions/`** — Supabase Edge Functions (Deno) are not used in this project.
+* **Cron Jobs:** All scheduled operations run as **Next.js Route Handlers** at `app/api/cron/*/route.ts`. Every cron endpoint is a standard `GET` handler secured by the `CRON_SECRET` header check. Cron routes are thin dispatchers: they validate auth, check kill switches, then dispatch to Inngest (primary) with an inline fallback (AI_RULES §17, §30). **Do NOT create files under `supabase/functions/`** — Supabase Edge Functions (Deno) are not used in this project.
 * **Middleware filename:** The Next.js middleware file is **`proxy.ts`** (at the project root), not `middleware.ts`. This rename follows the Next.js 16 convention adopted on 2026-02-23 (see DEVLOG). Do not create a new `middleware.ts` — it will be ignored by the framework.
 
 ## 7. 🔑 PostgreSQL UUID Hex Constraint (Phase 10)
@@ -629,6 +629,55 @@ MSW server-side interception does NOT reliably intercept Perplexity/OpenAI in E2
 
 ### 29.4 — Test count verification
 E2E spec inventory is maintained in `docs/DEVLOG.md` (bottom section). Update it when adding/removing specs.
+
+## 30. 🚀 Inngest Job Queue — Dispatcher + Fan-Out Patterns (Sprint 49)
+
+All async cron pipelines use **Inngest** for event-driven fan-out with automatic retries, per-step timeouts, and concurrency limits. The cron route is a thin dispatcher; the real work lives in `lib/inngest/functions/`.
+
+### 30.1 — Cron route dispatcher pattern
+Every cron route follows this structure: auth guard → kill switch → Inngest dispatch → inline fallback:
+```typescript
+// ── Primary: Inngest dispatch ──
+try {
+  await inngest.send({ name: 'cron/sov.weekly', data: {} });
+  return NextResponse.json({ ok: true, dispatched: true });
+} catch (inngestErr) {
+  console.error('[cron] Inngest dispatch failed, running inline:', inngestErr);
+}
+// ── Fallback: inline sequential loop (AI_RULES §17) ──
+return await runInlineSOV();
+```
+* Kill switches: `STOP_SOV_CRON`, `STOP_AUDIT_CRON`, `STOP_CONTENT_AUDIT_CRON`
+* The inline fallback (`runInline*()`) keeps the full original orchestration as a private function in the same file.
+
+### 30.2 — Inngest function architecture
+* **Client:** `lib/inngest/client.ts` — singleton with typed `EventSchemas`
+* **Events:** `lib/inngest/events.ts` — typed event definitions (4 events)
+* **Functions:** `lib/inngest/functions/*.ts` — one file per function
+* **Webhook:** `app/api/inngest/route.ts` — registers all functions via `serve()`
+
+### 30.3 — Service-role client per step
+`createServiceRoleClient()` MUST be called **inside each `step.run()`**. The Supabase client cannot be serialized across Inngest step boundaries:
+```typescript
+step.run('audit-org', async () => {
+  const supabase = createServiceRoleClient(); // ← inside the step
+  // ... use supabase
+});
+```
+
+### 30.4 — Concurrency limits (respects API rate limits)
+* SOV: `concurrency: { limit: 3 }` (Perplexity rate limit)
+* Audit: `concurrency: { limit: 5 }` (OpenAI rate limit)
+* Content Audit: `concurrency: { limit: 3 }` (polite crawling)
+
+### 30.5 — Durable sleep for deferred work
+Use `step.sleep()` instead of Redis TTL scheduling for long-running waits:
+```typescript
+await step.sleep('wait-14-days', '14d');  // survives deploys + restarts
+```
+
+### 30.6 — Testability pattern
+Export the per-org/per-location processor function (e.g., `processOrgSOV`, `processOrgAudit`, `processLocationAudit`) for unit testing. The Inngest function definition wraps these processors in `step.run()` calls.
 
 ---
 > **End of System Instructions**

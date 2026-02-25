@@ -4,6 +4,48 @@
 
 ---
 
+## 2026-02-25 — Sprint 49: Inngest Job Queue System (Completed)
+
+**Goal:** Replace sequential `for...of` loops in 3 Vercel Cron routes (SOV, Audit, Content Audit) with Inngest event-driven step functions providing per-org fan-out, automatic retries, independent timeouts, and parallelism. Add durable 14-day sleep for post-publish SOV re-checks (replaces Redis TTL scheduling).
+
+**Spec:** `docs/CLAUDE-06-queue-system.md`
+
+**Scope:**
+
+*New files:*
+- `lib/inngest/client.ts` — **NEW.** Inngest client singleton with typed `EventSchemas`. App ID: `localvector`.
+- `lib/inngest/events.ts` — **NEW.** 4 typed event definitions: `cron/sov.weekly`, `cron/audit.daily`, `cron/content-audit.monthly`, `publish/post-publish-check`.
+- `app/api/inngest/route.ts` — **NEW.** Inngest webhook handler. Registers all 4 functions via `serve()`. `maxDuration = 60` (Vercel Pro limit).
+- `lib/inngest/functions/sov-cron.ts` — **NEW.** SOV weekly fan-out function. Exports `processOrgSOV(batch)` for testability. Replicates all 11 sub-steps: query execution, writeSOVResults, email, occasion engine, prompt intelligence, archive expired drafts, post-publish rechecks. `concurrency: { limit: 3 }`, `retries: 3`.
+- `lib/inngest/functions/audit-cron.ts` — **NEW.** Audit daily fan-out. Exports `processOrgAudit()` and `processOrgIntercepts()`. Two separate step groups: hallucination audits then competitor intercepts. `concurrency: { limit: 5 }`, `retries: 3`.
+- `lib/inngest/functions/content-audit-cron.ts` — **NEW.** Content Audit monthly fan-out. Exports `processLocationAudit()`. Per-location page audit with plan-based caps. `concurrency: { limit: 3 }`, `retries: 2`.
+- `lib/inngest/functions/post-publish-check.ts` — **NEW.** Durable 14-day `step.sleep('14d')` + SOV re-check. Replaces Redis TTL scheduling.
+
+*Modified files:*
+- `app/api/cron/sov/route.ts` — Transformed into thin Inngest dispatcher. Auth guard + kill switch preserved. Primary: `inngest.send('cron/sov.weekly')` → returns `{ dispatched: true }`. Fallback: `runInlineSOV()` private function (original loop, AI_RULES §17).
+- `app/api/cron/audit/route.ts` — Same dispatcher pattern. Added kill switch `STOP_AUDIT_CRON`. Primary: `inngest.send('cron/audit.daily')`. Fallback: `runInlineAudit()`.
+- `app/api/cron/content-audit/route.ts` — Same dispatcher pattern. Added kill switch `STOP_CONTENT_AUDIT_CRON`. Primary: `inngest.send('cron/content-audit.monthly')`. Fallback: `runInlineContentAudit()`.
+- `.env.local.example` — Added `INNGEST_EVENT_KEY` and `INNGEST_SIGNING_KEY` placeholders.
+
+**Tests added:**
+- `src/__tests__/unit/inngest-sov-cron.test.ts` — **11 Vitest tests** (new). `processOrgSOV`: query execution, cited counting, per-query resilience, all-fail returns `success: false`, email payload, email failure absorbed, occasion engine called + failure absorbed, prompt intelligence called + failure absorbed, first mover tracking.
+- `src/__tests__/unit/inngest-audit-cron.test.ts` — **9 Vitest tests** (new). `processOrgAudit` (5): zero hallucinations, insert + email alert, skip no location, email failure absorbed, throws on audit failure. `processOrgIntercepts` (4): no competitors, per-competitor calls, error absorption, no location skip.
+- `src/__tests__/unit/inngest-content-audit-cron.test.ts` — **6 Vitest tests** (new). `processLocationAudit`: plan cap enforcement (growth=9 pages), starter homepage-only, score collection, page failure handling, continuation after failure, upsert shape.
+- `src/__tests__/unit/cron-sov.test.ts` — **23 Vitest tests** (was 21, +2). Added: Inngest dispatch returns `{ dispatched: true }`, Inngest failure falls back to inline.
+- `src/__tests__/unit/cron-audit.test.ts` — **15 Vitest tests** (was 12, +3). Added: `STOP_AUDIT_CRON` kill switch, Inngest dispatch returns `{ dispatched: true }`, Inngest failure falls back to inline.
+
+**Run commands:**
+```bash
+npx vitest run src/__tests__/unit/inngest-sov-cron.test.ts            # 11 tests passing
+npx vitest run src/__tests__/unit/inngest-audit-cron.test.ts          # 9 tests passing
+npx vitest run src/__tests__/unit/inngest-content-audit-cron.test.ts  # 6 tests passing
+npx vitest run src/__tests__/unit/cron-sov.test.ts                    # 23 tests passing
+npx vitest run src/__tests__/unit/cron-audit.test.ts                  # 15 tests passing
+npx vitest run                                                         # 749 tests passing, 7 skipped
+```
+
+---
+
 ## 2026-02-25 — Bug Fix: Missing RLS Policies on `competitor_intercepts` (Completed)
 
 **Goal:** Fix "new row violates row-level security policy for table competitor_intercepts" error when running competitor analysis from the dashboard.

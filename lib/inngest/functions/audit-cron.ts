@@ -1,0 +1,225 @@
+// ---------------------------------------------------------------------------
+// lib/inngest/functions/audit-cron.ts — AI Audit Daily Fan-Out Function
+//
+// Replaces the sequential for...of loops in app/api/cron/audit/route.ts
+// with an Inngest step function that fans out per org.
+//
+// Event: 'cron/audit.daily' (dispatched by Vercel Cron → Audit route)
+//
+// Architecture:
+//   Step 1: fetch-audit-orgs       — one DB call
+//   Step 2: audit-org-{orgId}      — fan-out hallucination audits (parallel, max 5)
+//   Step 3: intercept-org-{orgId}  — fan-out competitor intercepts (parallel, max 5)
+//
+// Hallucination audits and intercepts run as separate step groups so
+// intercept failures never affect hallucination counts.
+// ---------------------------------------------------------------------------
+
+import { inngest } from '../client';
+import { createServiceRoleClient } from '@/lib/supabase/server';
+import {
+  auditLocation,
+  type DetectedHallucination,
+} from '@/lib/services/ai-audit.service';
+import { runInterceptForCompetitor } from '@/lib/services/competitor-intercept.service';
+import { sendHallucinationAlert } from '@/lib/email';
+
+// ---------------------------------------------------------------------------
+// Per-org audit processor — exported for testability
+// ---------------------------------------------------------------------------
+
+export interface AuditOrgResult {
+  success: boolean;
+  hallucinationsInserted: number;
+}
+
+export async function processOrgAudit(org: { id: string; name: string }): Promise<AuditOrgResult> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const supabase = createServiceRoleClient() as any;
+
+  const { data: location, error: locError } = await supabase
+    .from('locations')
+    .select(
+      'id, org_id, business_name, city, state, address_line1, hours_data, amenities',
+    )
+    .eq('org_id', org.id)
+    .eq('is_primary', true)
+    .maybeSingle();
+
+  if (locError) throw new Error(`Location fetch failed: ${locError.message}`);
+  if (!location) {
+    console.warn(`[inngest-audit] No primary location for org ${org.id} (${org.name}) — skipping`);
+    return { success: true, hallucinationsInserted: 0 };
+  }
+
+  const hallucinations: DetectedHallucination[] = await auditLocation(location);
+
+  if (hallucinations.length > 0) {
+    const { error: insertError } = await supabase
+      .from('ai_hallucinations')
+      .insert(
+        hallucinations.map((h) => ({
+          org_id: location.org_id,
+          location_id: location.id,
+          model_provider: h.model_provider,
+          severity: h.severity,
+          category: h.category,
+          claim_text: h.claim_text,
+          expected_truth: h.expected_truth,
+          correction_status: 'open',
+        })),
+      );
+
+    if (insertError) throw new Error(`Insert failed: ${insertError.message}`);
+
+    // Send email alert (fire-and-forget)
+    const { data: membershipRow } = await supabase
+      .from('memberships')
+      .select('users(email)')
+      .eq('org_id', org.id)
+      .eq('role', 'owner')
+      .limit(1)
+      .maybeSingle();
+
+    const ownerEmail = (
+      membershipRow?.users as { email: string } | null
+    )?.email;
+
+    if (ownerEmail) {
+      await sendHallucinationAlert({
+        to: ownerEmail,
+        orgName: org.name,
+        businessName: location.business_name,
+        hallucinationCount: hallucinations.length,
+        dashboardUrl: 'https://app.localvector.ai/dashboard',
+      }).catch((err: unknown) =>
+        console.error('[inngest-audit] Email send failed:', err),
+      );
+    }
+  }
+
+  return { success: true, hallucinationsInserted: hallucinations.length };
+}
+
+// ---------------------------------------------------------------------------
+// Per-org competitor intercept processor — exported for testability
+// ---------------------------------------------------------------------------
+
+export interface InterceptOrgResult {
+  interceptsInserted: number;
+}
+
+export async function processOrgIntercepts(org: { id: string; name: string }): Promise<InterceptOrgResult> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const supabase = createServiceRoleClient() as any;
+  let interceptsInserted = 0;
+
+  const { data: location } = await supabase
+    .from('locations')
+    .select('id, business_name, city, state, categories')
+    .eq('org_id', org.id)
+    .eq('is_primary', true)
+    .maybeSingle();
+
+  if (!location) return { interceptsInserted: 0 };
+
+  const { data: competitors } = await supabase
+    .from('competitors')
+    .select('id, competitor_name')
+    .eq('org_id', org.id);
+
+  for (const competitor of competitors ?? []) {
+    try {
+      await runInterceptForCompetitor(
+        {
+          orgId: org.id,
+          locationId: location.id,
+          businessName: location.business_name,
+          categories: Array.isArray(location.categories) ? location.categories : [],
+          city: location.city,
+          state: location.state,
+          competitor,
+        },
+        supabase,
+      );
+      interceptsInserted++;
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      console.error(
+        `[inngest-audit] Intercept failed for ${competitor.competitor_name} (org ${org.id}):`,
+        msg,
+      );
+    }
+  }
+
+  return { interceptsInserted };
+}
+
+// ---------------------------------------------------------------------------
+// Inngest function definition
+// ---------------------------------------------------------------------------
+
+export const auditCronFunction = inngest.createFunction(
+  {
+    id: 'audit-daily-cron',
+    concurrency: { limit: 5 },
+    retries: 3,
+  },
+  { event: 'cron/audit.daily' },
+  async ({ step }) => {
+    // Step 1: Fetch all active paying orgs
+    const orgs = await step.run('fetch-audit-orgs', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const supabase = createServiceRoleClient() as any;
+
+      const { data, error } = await supabase
+        .from('organizations')
+        .select('id, name')
+        .in('plan', ['growth', 'agency'])
+        .eq('plan_status', 'active');
+
+      if (error) throw new Error(`DB error: ${error.message}`);
+      return (data ?? []) as Array<{ id: string; name: string }>;
+    });
+
+    if (!orgs.length) return { orgs_found: 0, processed: 0 };
+
+    // Step 2: Fan out hallucination audits (one step per org)
+    const auditResults = await Promise.all(
+      orgs.map((org) =>
+        step.run(`audit-org-${org.id}`, async () => {
+          try {
+            return await processOrgAudit(org);
+          } catch (err) {
+            const msg = err instanceof Error ? err.message : String(err);
+            console.error(`[inngest-audit] Org ${org.id} (${org.name}) failed:`, msg);
+            return { success: false, hallucinationsInserted: 0 };
+          }
+        }),
+      ),
+    );
+
+    // Step 3: Fan out competitor intercepts (one step per org)
+    const interceptResults = await Promise.all(
+      orgs.map((org) =>
+        step.run(`intercept-org-${org.id}`, async () => {
+          try {
+            return await processOrgIntercepts(org);
+          } catch (err) {
+            const msg = err instanceof Error ? err.message : String(err);
+            console.error(`[inngest-audit] Competitor loop failed for org ${org.id}:`, msg);
+            return { interceptsInserted: 0 };
+          }
+        }),
+      ),
+    );
+
+    return {
+      orgs_found: orgs.length,
+      processed: auditResults.filter((r) => r.success).length,
+      failed: auditResults.filter((r) => !r.success).length,
+      hallucinations_inserted: auditResults.reduce((sum, r) => sum + r.hallucinationsInserted, 0),
+      intercepts_inserted: interceptResults.reduce((sum, r) => sum + r.interceptsInserted, 0),
+    };
+  },
+);

@@ -77,6 +77,13 @@ vi.mock('@/lib/autopilot/post-publish', () => ({
   completeRecheck: vi.fn().mockResolvedValue(undefined),
 }));
 
+// ── Mock the Inngest client ──────────────────────────────────────────────
+// Default: throw so inline fallback runs (existing tests exercise fallback path).
+const mockInngestSend = vi.fn().mockRejectedValue(new Error('Inngest unavailable'));
+vi.mock('@/lib/inngest/client', () => ({
+  inngest: { send: (...args: unknown[]) => mockInngestSend(...args) },
+}));
+
 // ── Import handler and mocks after vi.mock declarations ──────────────────
 import { GET } from '@/app/api/cron/sov/route';
 import { createServiceRoleClient } from '@/lib/supabase/server';
@@ -154,9 +161,12 @@ function makeMockSupabase(queries: unknown[] = []) {
 // ── Setup / Teardown ─────────────────────────────────────────────────────
 
 beforeEach(() => {
+  vi.clearAllMocks();
   vi.stubEnv('CRON_SECRET', CRON_SECRET);
   vi.stubEnv('PERPLEXITY_API_KEY', 'test-key');
   delete process.env.STOP_SOV_CRON;
+  // Re-set Inngest mock default (throw → forces inline fallback in most tests)
+  mockInngestSend.mockRejectedValue(new Error('Inngest unavailable'));
 });
 
 afterEach(() => {
@@ -186,6 +196,34 @@ describe('GET /api/cron/sov', () => {
     const body = await res.json();
     expect(body.halted).toBe(true);
   });
+
+  // ── Inngest dispatch ──────────────────────────────────────────────────
+
+  it('dispatches to Inngest and returns early when Inngest is available', async () => {
+    mockInngestSend.mockResolvedValueOnce(undefined);
+    const res = await GET(makeRequest(CRON_SECRET));
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.dispatched).toBe(true);
+    expect(mockInngestSend).toHaveBeenCalledWith({ name: 'cron/sov.weekly', data: {} });
+    // Inline fallback should NOT have run
+    expect(vi.mocked(createServiceRoleClient)).not.toHaveBeenCalled();
+  });
+
+  it('falls back to inline when Inngest dispatch throws', async () => {
+    // Default mock already throws — inline fallback should run
+    const mock = makeMockSupabase([MOCK_QUERY]);
+    vi.mocked(createServiceRoleClient).mockReturnValue(mock as never);
+
+    const res = await GET(makeRequest(CRON_SECRET));
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    // Inline fallback ran — no dispatched flag, but has orgs_processed
+    expect(body.dispatched).toBeUndefined();
+    expect(body.orgs_processed).toBe(1);
+  });
+
+  // ── Inline fallback (existing orchestration tests) ────────────────────
 
   it('returns 200 with zero counts when no eligible queries exist', async () => {
     const mock = makeMockSupabase([]);

@@ -1,37 +1,29 @@
 // ---------------------------------------------------------------------------
-// GET /api/cron/content-audit — Surgery 3: Monthly Content Audit Cron
+// GET /api/cron/content-audit — Content Audit Monthly Cron (Inngest Dispatcher)
 //
-// Triggered by Vercel Cron monthly. Audits each active org's website pages
-// and writes scores to the page_audits table.
+// Triggered by Vercel Cron. Dispatches to Inngest for fan-out processing.
+// Falls back to inline execution if Inngest is unavailable (AI_RULES §17).
 //
-// Architecture mirrors GET /api/cron/audit and GET /api/cron/sov:
+// Architecture:
 //   • CRON_SECRET auth guard
-//   • Service-role client (bypasses RLS)
-//   • Per-org try/catch resilience
-//   • Plan-gated page caps (1/10/50 by tier)
+//   • Kill switch (STOP_CONTENT_AUDIT_CRON)
+//   • Primary: Inngest event dispatch → fan-out per location
+//   • Fallback: Inline sequential loop (original architecture)
 //
 // Schedule: Monthly, 1st of month at 3 AM EST (configured in vercel.json)
-//
 // Spec: docs/17-CONTENT-GRADER.md §3
-//
-// Required env vars:
-//   CRON_SECRET              — shared secret
-//   SUPABASE_SERVICE_ROLE_KEY — used by createServiceRoleClient()
-//   OPENAI_API_KEY           — used for Answer-First scoring (falls back to heuristic)
-//
-// Local dev:
-//   curl -H "Authorization: Bearer <CRON_SECRET>" http://localhost:3000/api/cron/content-audit
 // ---------------------------------------------------------------------------
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createServiceRoleClient } from '@/lib/supabase/server';
 import { auditPage, type PageType } from '@/lib/page-audit/auditor';
+import { inngest } from '@/lib/inngest/client';
 
 // Force dynamic so Vercel never caches this route between cron invocations.
 export const dynamic = 'force-dynamic';
 
 // ---------------------------------------------------------------------------
-// Plan-based page audit caps (Doc 17 §3.2)
+// Helpers (used by inline fallback)
 // ---------------------------------------------------------------------------
 
 function getAuditCap(plan: string): number {
@@ -43,50 +35,31 @@ function getAuditCap(plan: string): number {
   }
 }
 
-// ---------------------------------------------------------------------------
-// Detect page type from URL path
-// ---------------------------------------------------------------------------
-
 function inferPageType(url: string): PageType {
   const lower = url.toLowerCase();
   if (lower.match(/\/menu/)) return 'menu';
   if (lower.match(/\/about/)) return 'about';
   if (lower.match(/\/faq|\/questions/)) return 'faq';
   if (lower.match(/\/event/)) return 'events';
-  // Root or index = homepage
   const path = new URL(url).pathname;
   if (path === '/' || path === '' || path === '/index.html') return 'homepage';
   return 'other';
 }
 
-// ---------------------------------------------------------------------------
-// Generate page URLs to audit from a website base URL
-// ---------------------------------------------------------------------------
-
 function generateAuditUrls(websiteUrl: string, cap: number): { url: string; pageType: PageType }[] {
-  // Normalize base URL
   let base = websiteUrl.trim();
   if (!base.startsWith('http')) base = `https://${base}`;
-  // Remove trailing slash
   base = base.replace(/\/+$/, '');
 
-  // Always audit homepage first
   const pages: { url: string; pageType: PageType }[] = [
     { url: base, pageType: 'homepage' },
   ];
 
   if (cap <= 1) return pages;
 
-  // Common restaurant/business pages to probe
   const commonPaths = [
-    '/menu',
-    '/about',
-    '/about-us',
-    '/faq',
-    '/events',
-    '/contact',
-    '/hours',
-    '/reservations',
+    '/menu', '/about', '/about-us', '/faq', '/events',
+    '/contact', '/hours', '/reservations',
   ];
 
   for (const path of commonPaths) {
@@ -110,11 +83,33 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  // ── 2. Service-role client ─────────────────────────────────────────────
+  // ── 2. Kill switch ────────────────────────────────────────────────────
+  if (process.env.STOP_CONTENT_AUDIT_CRON === 'true') {
+    console.log('[cron-content-audit] Content audit cron halted by kill switch.');
+    return NextResponse.json({ ok: true, halted: true });
+  }
+
+  // ── 3. Dispatch to Inngest (primary path) ──────────────────────────────
+  try {
+    await inngest.send({ name: 'cron/content-audit.monthly', data: {} });
+    console.log('[cron-content-audit] Dispatched to Inngest.');
+    return NextResponse.json({ ok: true, dispatched: true });
+  } catch (inngestErr) {
+    console.error('[cron-content-audit] Inngest dispatch failed, running inline:', inngestErr);
+  }
+
+  // ── 4. Inline fallback (runs when Inngest is unavailable) ──────────────
+  return await runInlineContentAudit();
+}
+
+// ---------------------------------------------------------------------------
+// Inline fallback — original sequential orchestration
+// ---------------------------------------------------------------------------
+
+async function runInlineContentAudit(): Promise<NextResponse> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const supabase = createServiceRoleClient() as any;
 
-  // ── 3. Fetch all active orgs with locations that have website_url ──────
   const { data: locations, error: locError } = await supabase
     .from('locations')
     .select(`
@@ -134,7 +129,6 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ ok: true, locations_audited: 0, pages_audited: 0 });
   }
 
-  // ── 4. Filter to active orgs only ──────────────────────────────────────
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const activeLocations = locations.filter((loc: any) =>
     loc.organizations?.plan_status === 'active' && loc.website_url,
@@ -150,7 +144,6 @@ export async function GET(request: NextRequest) {
 
   const allScores: number[] = [];
 
-  // ── 5. Audit each location's website ───────────────────────────────────
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   for (const loc of activeLocations as any[]) {
     try {
@@ -168,7 +161,6 @@ export async function GET(request: NextRequest) {
             amenities: loc.amenities,
           });
 
-          // Upsert into page_audits (unique on org_id + page_url)
           await supabase.from('page_audits').upsert(
             {
               org_id: loc.org_id,
@@ -205,7 +197,6 @@ export async function GET(request: NextRequest) {
     }
   }
 
-  // Calculate average score
   summary.avg_score = allScores.length > 0
     ? Math.round(allScores.reduce((a, b) => a + b, 0) / allScores.length)
     : 0;

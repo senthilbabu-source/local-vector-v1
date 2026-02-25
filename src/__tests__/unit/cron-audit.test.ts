@@ -45,6 +45,13 @@ vi.mock('@/lib/email', () => ({
   sendHallucinationAlert: vi.fn().mockResolvedValue(undefined),
 }));
 
+// ── Mock the Inngest client ──────────────────────────────────────────────
+// Default: throw so inline fallback runs (existing tests exercise fallback path).
+const mockInngestSend = vi.fn().mockRejectedValue(new Error('Inngest unavailable'));
+vi.mock('@/lib/inngest/client', () => ({
+  inngest: { send: (...args: unknown[]) => mockInngestSend(...args) },
+}));
+
 // ── Import handler and mocks after vi.mock declarations ──────────────────
 import { GET } from '@/app/api/cron/audit/route';
 import { createServiceRoleClient } from '@/lib/supabase/server';
@@ -182,11 +189,13 @@ function mockSupabaseWithOrgAndLocation(
 describe('GET /api/cron/audit', () => {
   beforeEach(() => {
     process.env.CRON_SECRET = CRON_SECRET;
+    delete process.env.STOP_AUDIT_CRON;
     mockSupabaseNoOrgs(); // safe default: no DB writes
   });
 
   afterEach(() => {
     delete process.env.CRON_SECRET;
+    delete process.env.STOP_AUDIT_CRON;
     vi.clearAllMocks();
   });
 
@@ -213,7 +222,43 @@ describe('GET /api/cron/audit', () => {
     expect(res.status).toBe(401);
   });
 
-  // ── Success — no paying orgs ──────────────────────────────────────────
+  // ── Kill switch ────────────────────────────────────────────────────────
+
+  it('returns 200 with halted flag when STOP_AUDIT_CRON is set', async () => {
+    process.env.STOP_AUDIT_CRON = 'true';
+    const res = await GET(makeRequest(`Bearer ${CRON_SECRET}`));
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.halted).toBe(true);
+  });
+
+  // ── Inngest dispatch ──────────────────────────────────────────────────
+
+  it('dispatches to Inngest and returns early when Inngest is available', async () => {
+    mockInngestSend.mockResolvedValueOnce(undefined);
+    const res = await GET(makeRequest(`Bearer ${CRON_SECRET}`));
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.dispatched).toBe(true);
+    expect(mockInngestSend).toHaveBeenCalledWith({ name: 'cron/audit.daily', data: {} });
+    // Inline fallback should NOT have run
+    expect(vi.mocked(createServiceRoleClient)).not.toHaveBeenCalled();
+  });
+
+  it('falls back to inline when Inngest dispatch throws', async () => {
+    // Default mock already throws — inline fallback should run
+    mockSupabaseNoOrgs();
+
+    const res = await GET(makeRequest(`Bearer ${CRON_SECRET}`));
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    // Inline fallback ran — no dispatched flag
+    expect(body.dispatched).toBeUndefined();
+    expect(body.ok).toBe(true);
+    expect(body.orgs_found).toBe(0);
+  });
+
+  // ── Success — no paying orgs (inline fallback) ────────────────────────
 
   it('returns 200 with zero-count summary when no paying orgs exist', async () => {
     const res = await GET(makeRequest(`Bearer ${CRON_SECRET}`));

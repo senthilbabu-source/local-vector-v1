@@ -1,29 +1,16 @@
 // ---------------------------------------------------------------------------
-// GET /api/cron/audit — Phase 20: Automated Web Audit Engine
+// GET /api/cron/audit — AI Audit Daily Cron (Inngest Dispatcher)
 //
-// Triggered by Vercel Cron (or curl in local dev). Scans every paying org's
-// primary location for AI hallucinations and persists findings to the
-// ai_hallucinations table.
+// Triggered by Vercel Cron. Dispatches to Inngest for fan-out processing.
+// Falls back to inline execution if Inngest is unavailable (AI_RULES §17).
 //
-// Security:
-//   • Requires `Authorization: Bearer <CRON_SECRET>` — rejects with 401 otherwise.
-//   • Uses createServiceRoleClient() to bypass RLS. There is no user session
-//     in a background job; the anon/user-scoped client would silently return
-//     empty data through RLS policies.
+// Architecture:
+//   • CRON_SECRET auth guard
+//   • Kill switch (STOP_AUDIT_CRON)
+//   • Primary: Inngest event dispatch → fan-out per org
+//   • Fallback: Inline sequential loop (original architecture)
 //
-// Resilience:
-//   • Each org is processed inside its own try/catch. One failure increments
-//     summary.failed and the loop continues — a flaky OpenAI call never aborts
-//     the entire run.
-//
-// Plan gating:
-//   • Only orgs with plan IN ('growth', 'agency') AND plan_status = 'active'
-//     are processed (Pro AI Defense + Enterprise API — paying tiers).
-//
-// Required env vars:
-//   CRON_SECRET              — shared secret validated below
-//   SUPABASE_SERVICE_ROLE_KEY — already used by createServiceRoleClient()
-//   OPENAI_API_KEY           — used by ai-audit.service (falls back to demo)
+// Schedule: Daily, 3 AM EST (configured in vercel.json)
 // ---------------------------------------------------------------------------
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -34,14 +21,17 @@ import {
 } from '@/lib/services/ai-audit.service';
 import { runInterceptForCompetitor } from '@/lib/services/competitor-intercept.service';
 import { sendHallucinationAlert } from '@/lib/email';
+import { inngest } from '@/lib/inngest/client';
 
 // Force dynamic so Vercel never caches this route between cron invocations.
 export const dynamic = 'force-dynamic';
 
+// ---------------------------------------------------------------------------
+// Route handler
+// ---------------------------------------------------------------------------
+
 export async function GET(request: NextRequest) {
   // ── 1. Auth guard ──────────────────────────────────────────────────────
-  // Vercel Cron passes the secret in the Authorization header. In local dev,
-  // use: curl -H "Authorization: Bearer <CRON_SECRET>" http://localhost:3000/api/cron/audit
   const cronSecret = process.env.CRON_SECRET;
   const authHeader = request.headers.get('authorization');
 
@@ -49,13 +39,33 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  // ── 2. Service-role client (bypasses RLS — mandatory for background jobs) ─
+  // ── 2. Kill switch ────────────────────────────────────────────────────
+  if (process.env.STOP_AUDIT_CRON === 'true') {
+    console.log('[cron-audit] Audit cron halted by kill switch.');
+    return NextResponse.json({ ok: true, halted: true });
+  }
+
+  // ── 3. Dispatch to Inngest (primary path) ──────────────────────────────
+  try {
+    await inngest.send({ name: 'cron/audit.daily', data: {} });
+    console.log('[cron-audit] Dispatched to Inngest.');
+    return NextResponse.json({ ok: true, dispatched: true });
+  } catch (inngestErr) {
+    console.error('[cron-audit] Inngest dispatch failed, running inline:', inngestErr);
+  }
+
+  // ── 4. Inline fallback (runs when Inngest is unavailable) ──────────────
+  return await runInlineAudit();
+}
+
+// ---------------------------------------------------------------------------
+// Inline fallback — original sequential orchestration
+// ---------------------------------------------------------------------------
+
+async function runInlineAudit(): Promise<NextResponse> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const supabase = createServiceRoleClient() as any;
 
-  // ── 3. Fetch all active paying orgs ───────────────────────────────────
-  // plan_tier enum: 'trial' | 'starter' | 'growth' | 'agency'
-  // UI names:  Free Scanner → trial/starter, Pro AI Defense → growth, Enterprise → agency
   const { data: orgs, error: orgsError } = await supabase
     .from('organizations')
     .select('id, name')
@@ -76,14 +86,8 @@ export async function GET(request: NextRequest) {
     intercepts_inserted: 0,
   };
 
-  // ── 4. Process each org independently ─────────────────────────────────
-  // for...of + individual try/catch: one org's failure never aborts the run.
   for (const org of orgs ?? []) {
     try {
-      // Fetch this org's primary location via service role (RLS bypassed).
-      // Explicit .eq('org_id', org.id) is belt-and-suspenders because the
-      // public_published_location policy could otherwise leak cross-org rows
-      // (same bug documented in the magic-menus page fix — DEVLOG 2026-02-22).
       const { data: location, error: locError } = await supabase
         .from('locations')
         .select(
@@ -104,11 +108,9 @@ export async function GET(request: NextRequest) {
         continue;
       }
 
-      // ── 5. Run AI audit for this location ──────────────────────────────
       const hallucinations: DetectedHallucination[] =
         await auditLocation(location);
 
-      // ── 6. Persist findings ────────────────────────────────────────────
       if (hallucinations.length > 0) {
         const { error: insertError } = await supabase
           .from('ai_hallucinations')
@@ -116,7 +118,6 @@ export async function GET(request: NextRequest) {
             hallucinations.map((h) => ({
               org_id: location.org_id,
               location_id: location.id,
-              // Enum values from prod_schema.sql (all lowercase):
               model_provider: h.model_provider,
               severity: h.severity,
               category: h.category,
@@ -132,9 +133,6 @@ export async function GET(request: NextRequest) {
 
         summary.hallucinations_inserted += hallucinations.length;
 
-        // ── 7. Notify org owner via email ───────────────────────────────
-        // Fetch the org owner's email via the memberships → users join.
-        // .catch() ensures email failures never abort the cron run.
         const { data: membershipRow } = await supabase
           .from('memberships')
           .select('users(email)')
@@ -172,8 +170,6 @@ export async function GET(request: NextRequest) {
   }
 
   // ── Competitor intercept loop ──────────────────────────────────────────
-  // Separate pass over the same orgs list. Runs after hallucination audits so
-  // a flaky intercept call never affects the processed/failed hallucination counts.
   for (const org of orgs ?? []) {
     try {
       const { data: location } = await supabase
