@@ -83,7 +83,7 @@
 | Information Gain Analysis | roadmap.md #14 (brief mention) | GAP — no dedicated doc |
 | Agentic Accessibility (Agent-SEO) | roadmap.md #19 (brief mention) | GAP — no dedicated doc |
 | Citation Ecosystem Resilience | Doc 18 (Citation Intelligence) | COVERED — velocity/decay not spec'd |
-| Multi-LLM Interrogation | Doc 04 (Fear Engine, Perplexity only) | PARTIAL — only Perplexity Sonar |
+| Multi-LLM Interrogation | Doc 04 (Fear Engine) + lib/ai/providers.ts | EXPANDED — Perplexity Sonar + Anthropic Claude + Google Gemini + OpenAI for Truth Audit |
 | AVS 2.0 Formula | Doc 04 §6 (Reality Score) | DIFFERENT — formulas diverge |
 | Blind Taste Test | Doc 04c §4.2 (SOV prompt) | PARTIAL — similar concept |
 | Hallucination Detection | Doc 04 §2 (Fear Engine) | FULLY COVERED |
@@ -94,7 +94,7 @@
 | Reddit/Quora monitoring | Doc 18 §6 (Reddit monitoring) | PARTIALLY COVERED |
 | Citation Authority Tiering | Doc 18 §4 (Platform Priority Tiers) | COVERED |
 | 3D Vector Space Mapping | Not in any doc | COMPLETE GAP |
-| Reasoning models (o1/o3) | Not in any doc | GAP — only Perplexity/OpenAI used |
+| Reasoning models (o1/o3) | Not in any doc | GAP — OpenAI/Perplexity/Anthropic/Google used, but no reasoning-class models |
 | Open-source models (Llama/DeepSeek) | Not in any doc | GAP |
 | Grok / Social search | Not in any doc | GAP |
 

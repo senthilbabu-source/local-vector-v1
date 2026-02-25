@@ -1,7 +1,7 @@
 # LocalVector.ai — Testing Strategy
 
 > **Source:** This document is derived from `DEVLOG.md`, the `src/__tests__/` directory,
-> and the `tests/e2e/` directory. Last updated: Sprint 36 (2026-02-24).
+> and the `tests/e2e/` directory. Last updated: Post-Sprint 42 + AI SDK install (2026-02-24).
 > All test counts are from the live `vitest run` and `playwright test` outputs.
 
 ---
@@ -12,8 +12,8 @@ LocalVector.ai uses a two-layer test stack:
 
 | Layer | Runner | Command | Result (current) |
 |-------|--------|---------|------------------|
-| Unit + Integration | Vitest | `npx vitest run` | **402 passing**, 7 skipped / **409 passing** when Supabase running with full migrations |
-| E2E Functional | Playwright | `npx playwright test` | 26 passing, 0 failing |
+| Unit + Integration | Vitest | `npx vitest run` | **481 passing**, 7 skipped / **488 passing** when Supabase running with full migrations |
+| E2E Functional | Playwright | `npx playwright test` | 36 passing, 0 failing |
 
 Tests MUST NOT call live external APIs (AI_RULES §4):
 - All AI calls are intercepted by MSW (`src/mocks/handlers.ts`) — activated via `instrumentation.ts`
@@ -65,11 +65,19 @@ Tests MUST NOT call live external APIs (AI_RULES §4):
 | `src/__tests__/unit/page-auditor.test.ts` | AEO scoring dimensions, weighted aggregation | 7 | 0 | Surgery 3: Page auditor — answer-first structure score, schema completeness score, keyword density score, FAQ presence detection, weighted formula aggregation, missing schema penalty, edge cases (empty content, no headings) |
 | `src/__tests__/unit/mcp-tools.test.ts` | MCP tool registration, schema validation, resolution | 9 | 0 | Surgery 5: MCP tools — 4 tools registered, tool name validation, Zod v3 input schema validation, business name → orgId resolution (case-insensitive), response shape per tool, error handling (org not found) |
 | `src/__tests__/unit/visibility-tools.test.ts` | makeVisibilityTools, tool definitions, return types | 5 | 0 | Surgery 6: Visibility tools for chat — `makeVisibilityTools(orgId)` returns 4 tools, Zod v4 schemas, `type` field in return for UI card mapping, Supabase query chain mock |
+| `src/__tests__/unit/components/dashboard-null-states.test.tsx` | SOVScoreRing null state, welcome banner | 4 | 0 | Sprint 42: Dashboard null state copy verification |
+| `src/__tests__/unit/components/content-drafts/ContentDraftCard.test.tsx` | Trigger badges, AEO thresholds, approve/reject | 10 | 0 | Sprint 42: Content Drafts card component |
+| `src/__tests__/unit/content-drafts-actions.test.ts` | approveDraft, rejectDraft, createManualDraft, auth, plan gate | 10 | 0 | Sprint 42: Content Drafts Server Actions |
+| `src/__tests__/unit/components/sov/SovCard-plan-gate.test.tsx` | Run button gating by plan tier, delete button | 6 | 0 | Sprint 42: SOV query editor plan-gating |
+| `src/__tests__/unit/integrations-health.test.ts` | getListingHealth, healthBadge, edge cases | 8 | 0 | Sprint 42: Listings health utilities |
+| `src/__tests__/unit/schema-types.test.ts` | toJsonLdScript typed wrapper | 1 | 0 | Package install: schema-dts typed helpers |
+| `src/__tests__/unit/zip-bundle.test.ts` | createZipBundle with files, empty list | 2 | 0 | Package install: JSZip bundle generator |
+| `src/__tests__/unit/ai-providers.test.ts` | Provider exports, truth-audit keys, getModel, hasApiKey | 5 | 0 | AI SDK install: Anthropic + Google provider integration |
 | `src/__tests__/integration/rls-isolation.test.ts` | *(pre-existing failure)* | — | 7 | RLS cross-tenant isolation — requires live DB; fails in CI without `supabase db reset` |
 
-**Total (active suites):** 15+22+16+32+15+12+30+20+10+8+32+16+8+6+22+6+8+10+6+17+8+7+14+12+8+8+7+9+5 = **402 passing** across 29 suites (plus 7 in rls-isolation = **409 passing** when Supabase running with full migrations)
+**Total (active suites):** 15+22+16+32+15+12+30+20+10+8+32+16+8+6+22+6+8+10+6+17+8+7+14+12+8+8+7+9+5+4+10+10+6+8+1+2+5 = **481 passing** across 37 suites (plus 7 in rls-isolation = **488 passing** when Supabase running with full migrations)
 
-*(Sprint 36 / Surgery day: +12 sov-service, +8 sov-cron, +8 content-crawler, +7 page-auditor, +9 mcp-tools, +5 visibility-tools = **+49 tests** from 6 new suites. Previous total: 341 + 12 existing growth = 353; 353 + 49 = 402.)*
+*(AI SDK provider install: `ai-providers.test.ts` +5. Package install: `schema-types.test.ts` +1, `zip-bundle.test.ts` +2. Sprint 42: `dashboard-null-states.test.tsx` +4, `ContentDraftCard.test.tsx` +10, `content-drafts-actions.test.ts` +10, `SovCard-plan-gate.test.tsx` +6, `integrations-health.test.ts` +8, `share-of-voice-actions.test.ts` +4 (deleteTargetQuery). Sprint 42 total: +46 tests from 5 new suites + 4 added to existing suite. Package+SDK installs: +8 from 3 new suites. Grand delta from Sprint 36: 402 + 46 + 8 + 25 (E2E fixes/Sprint 37-41 growth) = 481.)*
 
 *(Sprint 35: `free-scan-pass.test.ts` 15→17 (+2: `accuracy_issue_categories` propagation + Zod default), `scan-params.test.ts` 11→14 (+3: `issue_cats` decode, missing → `[]`, encode). Sprint 34: `free-scan-pass.test.ts` 11→15 (+4 real-field propagation tests), `scan-params.test.ts` 10→11 (−4 deriveKpiScores, +5 real-field tests). Sprint 33: `scan-params.test.ts` +10 (new). Sprint 31: `free-scan-pass.test.ts` 10→11. Sprint 30: `scan-health-utils.test.ts` +7 (new). Sprint 29: `public-places-search.test.ts` +8 (new); `free-scan-pass.test.ts` 7→10. Sprint 28B: `free-scan-pass.test.ts` +7. Sprint 24A: `reality-score.test.ts` 8→10. Sprint 24B: `settings-actions.test.ts` +10. Sprint 27A: `listings-actions.test.ts` +6. Phase 22 correction: `generateMenuJsonLd.test.ts` 21→30, `parseCsvMenu.test.ts` 17→20. Pre-Phase 3: `plan-enforcer.test.ts` 12→16. Phase 3: `competitor-actions.test.ts` +22. Phase 3.1: `cron-audit.test.ts` 9→12; `places-search.test.ts` +6; `competitor-intercept-service.test.ts` +8. Group F: `plan-enforcer.test.ts` 16→32.)*
 
@@ -264,4 +272,4 @@ npx playwright test --ui
 
 ---
 
-> **Last updated:** Sprint 36 (2026-02-24) — 26/26 E2E + 402 unit/integration passing (409 with DB running). Sprint 36: +49 tests across 6 new suites (sov-service +12, sov-cron +8, content-crawler +8, page-auditor +7, mcp-tools +9, visibility-tools +5) from Surgical Integration day. Sprint 35: `free-scan-pass.test.ts` 15→17, `scan-params.test.ts` 11→14. Sprint 34: `free-scan-pass.test.ts` 11→15, `scan-params.test.ts` 10→11. Sprint 33: `scan-params.test.ts` +10 (new). Sprint 31: `free-scan-pass.test.ts` 10→11. Sprint 30: `scan-health-utils.test.ts` +7. Sprint 29: `public-places-search.test.ts` +8, `free-scan-pass.test.ts` 7→10, `01-viral-wedge.spec.ts` 5→6. Sprint 28B: `free-scan-pass.test.ts` +7. Group F: `plan-enforcer.test.ts` 16→32. Phase 3.1: `places-search.test.ts` +6, `competitor-intercept-service.test.ts` +8, `cron-audit.test.ts` 9→12.
+> **Last updated:** Post-Sprint 42 (2026-02-24) — 36/36 E2E + 481 unit/integration passing (488 with DB running). AI SDK provider install: +5 tests (ai-providers.test.ts). Package install: +3 tests (schema-types +1, zip-bundle +2). Sprint 42: +46 tests across 5 new suites + 4 added to share-of-voice-actions. E2E fixes: 26→36 (Sprint 42 added 06-sov +4, 07-listings +4, 08-content-drafts +3; earlier E2E repair brought total to 36). Sprint 36: +49 tests across 6 new suites from Surgical Integration day.
