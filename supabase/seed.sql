@@ -24,6 +24,10 @@ CREATE EXTENSION IF NOT EXISTS pgcrypto;
 --   occasion Val   : c1eebc99-9c0b-4ef8-bb6d-6bb9bd380a11
 --   occasion NYE   : c2eebc99-9c0b-4ef8-bb6d-6bb9bd380a11
 --   occasion Bday  : c3eebc99-9c0b-4ef8-bb6d-6bb9bd380a11
+--   revenue_config : d2eebc99-9c0b-4ef8-bb6d-6bb9bd380a11
+--   rev_snapshot_1 : d3eebc99-9c0b-4ef8-bb6d-6bb9bd380a11
+--   rev_snapshot_2 : d4eebc99-9c0b-4ef8-bb6d-6bb9bd380a11
+--   rev_snapshot_3 : d5eebc99-9c0b-4ef8-bb6d-6bb9bd380a11
 --
 -- Phase 19 Test User (Playwright Onboarding Guard test):
 --   auth user id   : 00000000-0000-0000-0000-000000000010
@@ -811,3 +815,71 @@ INSERT INTO public.citation_source_intelligence (
   25, 'perplexity-sonar', NOW() - INTERVAL '1 day'
 )
 ON CONFLICT (business_category, city, state, platform, model_provider) DO NOTHING;
+
+-- ── 15. REVENUE LEAK CONFIG (Feature #1) ─────────────────────────────────────
+INSERT INTO public.revenue_config (
+    id, org_id, location_id, business_type, avg_ticket,
+    monthly_searches, local_conversion_rate, walk_away_rate
+)
+SELECT
+    'd2eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+    'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+    l.id,
+    'restaurant', 47.50, 2400, 0.0320, 0.6500
+FROM public.locations l
+WHERE l.org_id = 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11'
+  AND l.slug   = 'alpharetta'
+LIMIT 1
+ON CONFLICT (org_id, location_id) DO NOTHING;
+
+-- ── 15b. REVENUE SNAPSHOTS (3 weeks of mock data) ────────────────────────────
+INSERT INTO public.revenue_snapshots (
+    id, org_id, location_id, leak_low, leak_high, breakdown, inputs_snapshot, snapshot_date
+)
+SELECT
+    'd3eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+    'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+    l.id,
+    2100.00, 3800.00,
+    '{"hallucination_cost":{"low":800,"high":1400},"sov_gap_cost":{"low":900,"high":1600},"competitor_steal_cost":{"low":400,"high":800}}'::jsonb,
+    '{"avg_ticket":47.50,"monthly_searches":2400,"local_conversion_rate":0.032,"walk_away_rate":0.65}'::jsonb,
+    CURRENT_DATE - INTERVAL '14 days'
+FROM public.locations l
+WHERE l.org_id = 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11'
+  AND l.slug   = 'alpharetta'
+LIMIT 1
+ON CONFLICT (org_id, location_id, snapshot_date) DO NOTHING;
+
+INSERT INTO public.revenue_snapshots (
+    id, org_id, location_id, leak_low, leak_high, breakdown, inputs_snapshot, snapshot_date
+)
+SELECT
+    'd4eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+    'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+    l.id,
+    2400.00, 4100.00,
+    '{"hallucination_cost":{"low":900,"high":1500},"sov_gap_cost":{"low":1000,"high":1700},"competitor_steal_cost":{"low":500,"high":900}}'::jsonb,
+    '{"avg_ticket":47.50,"monthly_searches":2400,"local_conversion_rate":0.032,"walk_away_rate":0.65}'::jsonb,
+    CURRENT_DATE - INTERVAL '7 days'
+FROM public.locations l
+WHERE l.org_id = 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11'
+  AND l.slug   = 'alpharetta'
+LIMIT 1
+ON CONFLICT (org_id, location_id, snapshot_date) DO NOTHING;
+
+INSERT INTO public.revenue_snapshots (
+    id, org_id, location_id, leak_low, leak_high, breakdown, inputs_snapshot, snapshot_date
+)
+SELECT
+    'd5eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+    'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+    l.id,
+    2600.00, 4400.00,
+    '{"hallucination_cost":{"low":1000,"high":1700},"sov_gap_cost":{"low":1100,"high":1800},"competitor_steal_cost":{"low":500,"high":900}}'::jsonb,
+    '{"avg_ticket":47.50,"monthly_searches":2400,"local_conversion_rate":0.032,"walk_away_rate":0.65}'::jsonb,
+    CURRENT_DATE
+FROM public.locations l
+WHERE l.org_id = 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11'
+  AND l.slug   = 'alpharetta'
+LIMIT 1
+ON CONFLICT (org_id, location_id, snapshot_date) DO NOTHING;

@@ -1,7 +1,7 @@
 # LocalVector.ai — Testing Strategy
 
 > **Source:** This document is derived from `DEVLOG.md`, the `src/__tests__/` directory,
-> and the `tests/e2e/` directory. Last updated: Post-Sprint 42 + Tremor Raw charts (2026-02-24).
+> and the `tests/e2e/` directory. Last updated: Post-Sprint 43 Revenue Leak Scorecard (2026-02-24).
 > All test counts are from the live `vitest run` and `playwright test` outputs.
 
 ---
@@ -12,8 +12,8 @@ LocalVector.ai uses a two-layer test stack:
 
 | Layer | Runner | Command | Result (current) |
 |-------|--------|---------|------------------|
-| Unit + Integration | Vitest | `npx vitest run` | **487 passing**, 7 skipped / **494 passing** when Supabase running with full migrations |
-| E2E Functional | Playwright | `npx playwright test` | 36 passing, 0 failing |
+| Unit + Integration | Vitest | `npx vitest run` | **510 passing**, 7 skipped / **517 passing** when Supabase running with full migrations |
+| E2E Functional | Playwright | `npx playwright test` | 41 passing, 0 failing |
 
 Tests MUST NOT call live external APIs (AI_RULES §4):
 - All AI calls are intercepted by MSW (`src/mocks/handlers.ts`) — activated via `instrumentation.ts`
@@ -74,11 +74,13 @@ Tests MUST NOT call live external APIs (AI_RULES §4):
 | `src/__tests__/unit/zip-bundle.test.ts` | createZipBundle with files, empty list | 2 | 0 | Package install: JSZip bundle generator |
 | `src/__tests__/unit/ai-providers.test.ts` | Provider exports, truth-audit keys, getModel, hasApiKey | 5 | 0 | AI SDK install: Anthropic + Google provider integration |
 | `src/__tests__/unit/tremor-charts.test.ts` | Module export verification: AreaChart, BarChart, DonutChart, CategoryBar, BarList + barrel | 6 | 0 | Tremor Raw chart components copy-paste |
+| `src/__tests__/unit/revenue-leak-service.test.ts` | calculateHallucinationCost, calculateSOVGapCost, calculateCompetitorStealCost, calculateRevenueLeak | 17 | 0 | Sprint 43: Revenue Leak pure function service — severity multipliers, open-only filter, SOV gap thresholds, competitor steal, integration sums, golden tenant scenario |
+| `src/__tests__/unit/revenue-leak-action.test.ts` | saveRevenueConfig | 6 | 0 | Sprint 43: Revenue Config Server Action — auth gate, Zod validation, no-location error, upsert success, DB error |
 | `src/__tests__/integration/rls-isolation.test.ts` | *(pre-existing failure)* | — | 7 | RLS cross-tenant isolation — requires live DB; fails in CI without `supabase db reset` |
 
-**Total (active suites):** 15+22+16+32+15+12+30+20+10+8+32+16+8+6+22+6+8+10+6+17+8+7+14+12+8+8+7+9+5+4+10+10+6+8+1+2+5+6 = **487 passing** across 38 suites (plus 7 in rls-isolation = **494 passing** when Supabase running with full migrations)
+**Total (active suites):** 15+22+16+32+15+12+30+20+10+8+32+16+8+6+22+6+8+10+6+17+8+7+14+12+8+8+7+9+5+4+10+10+6+8+1+2+5+6+17+6 = **510 passing** across 40 suites (plus 7 in rls-isolation = **517 passing** when Supabase running with full migrations)
 
-*(AI SDK provider install: `ai-providers.test.ts` +5. Package install: `schema-types.test.ts` +1, `zip-bundle.test.ts` +2. Sprint 42: `dashboard-null-states.test.tsx` +4, `ContentDraftCard.test.tsx` +10, `content-drafts-actions.test.ts` +10, `SovCard-plan-gate.test.tsx` +6, `integrations-health.test.ts` +8, `share-of-voice-actions.test.ts` +4 (deleteTargetQuery). Sprint 42 total: +46 tests from 5 new suites + 4 added to existing suite. Package+SDK installs: +8 from 3 new suites. Grand delta from Sprint 36: 402 + 46 + 8 + 25 (E2E fixes/Sprint 37-41 growth) = 481.)*
+*(Sprint 43: `revenue-leak-service.test.ts` +17 (new), `revenue-leak-action.test.ts` +6 (new). Sprint 43 total: +23 tests from 2 new suites. AI SDK provider install: `ai-providers.test.ts` +5. Package install: `schema-types.test.ts` +1, `zip-bundle.test.ts` +2. Sprint 42: `dashboard-null-states.test.tsx` +4, `ContentDraftCard.test.tsx` +10, `content-drafts-actions.test.ts` +10, `SovCard-plan-gate.test.tsx` +6, `integrations-health.test.ts` +8, `share-of-voice-actions.test.ts` +4 (deleteTargetQuery). Sprint 42 total: +46 tests from 5 new suites + 4 added to existing suite. Package+SDK installs: +8 from 3 new suites.)*
 
 *(Sprint 35: `free-scan-pass.test.ts` 15→17 (+2: `accuracy_issue_categories` propagation + Zod default), `scan-params.test.ts` 11→14 (+3: `issue_cats` decode, missing → `[]`, encode). Sprint 34: `free-scan-pass.test.ts` 11→15 (+4 real-field propagation tests), `scan-params.test.ts` 10→11 (−4 deriveKpiScores, +5 real-field tests). Sprint 33: `scan-params.test.ts` +10 (new). Sprint 31: `free-scan-pass.test.ts` 10→11. Sprint 30: `scan-health-utils.test.ts` +7 (new). Sprint 29: `public-places-search.test.ts` +8 (new); `free-scan-pass.test.ts` 7→10. Sprint 28B: `free-scan-pass.test.ts` +7. Sprint 24A: `reality-score.test.ts` 8→10. Sprint 24B: `settings-actions.test.ts` +10. Sprint 27A: `listings-actions.test.ts` +6. Phase 22 correction: `generateMenuJsonLd.test.ts` 21→30, `parseCsvMenu.test.ts` 17→20. Pre-Phase 3: `plan-enforcer.test.ts` 12→16. Phase 3: `competitor-actions.test.ts` +22. Phase 3.1: `cron-audit.test.ts` 9→12; `places-search.test.ts` +6; `competitor-intercept-service.test.ts` +8. Group F: `plan-enforcer.test.ts` 16→32.)*
 
@@ -182,10 +184,11 @@ tests that require a second tenant to be provisioned.
 | `tests/e2e/08-content-drafts.spec.ts` | 3 | `dev@` | Header + summary strip, filter tabs, sidebar nav |
 | `tests/e2e/hybrid-upload.spec.ts` | 2 | `upload@` | Upload tabs visible, CSV upload → ReviewState |
 | `tests/e2e/auth.spec.ts` | 3 | None (public) | Login layout, error on invalid creds, signup form fields |
+| `tests/e2e/09-revenue-leak.spec.ts` | 5 | `dev@` | RevenueLeakCard render + dollar range, breakdown chips, Configure link nav, settings pre-fill, form submit |
 | `tests/e2e/billing.spec.ts` | 2 | `dev@` | Three tiers with Growth highlighted (signal-green), upgrade demo mode |
 | `tests/e2e/onboarding.spec.ts` | 1 | `incomplete@` | Redirect to /onboarding + 3-step wizard completion |
 
-**Total: 36 tests, 36 passing, 0 failing** (Sprint 42, 2026-02-24)
+**Total: 41 tests, 41 passing, 0 failing** (Sprint 43, 2026-02-24)
 
 ### Key engineering decisions
 

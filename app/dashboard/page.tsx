@@ -8,6 +8,11 @@ import SOVTrendChart, { type SOVDataPoint } from './_components/SOVTrendChart';
 import HallucinationsByModel, { type ModelHallucinationData } from './_components/HallucinationsByModel';
 import CompetitorComparison, { type CompetitorComparisonData } from './_components/CompetitorComparison';
 import MetricCard from './_components/MetricCard';
+import RevenueLeakCard from './_components/RevenueLeakCard';
+import LeakBreakdownChart from './_components/LeakBreakdownChart';
+import LeakTrendChart, { type LeakSnapshotPoint } from './_components/LeakTrendChart';
+import { calculateRevenueLeak, DEFAULT_CONFIG, type RevenueConfig } from '@/lib/services/revenue-leak.service';
+import type { PlanTier } from '@/lib/plan-enforcer';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -104,7 +109,7 @@ async function fetchDashboardData(orgId: string) {
   ]);
 
   // ── Surgery 4: Fetch chart data in parallel ─────────────────────────────
-  const [sovTrendResult, modelCountResult, interceptCompResult] = await Promise.all([
+  const [sovTrendResult, modelCountResult, interceptCompResult, revenueConfigResult, revenueSnapshotsResult, orgPlanResult] = await Promise.all([
     // SOV trend: last 12 snapshots for the trend chart
     supabase
       .from('visibility_analytics')
@@ -125,6 +130,29 @@ async function fetchDashboardData(orgId: string) {
       .select('competitor_name, gap_analysis')
       .gte('created_at', monthStart)
       .limit(50) as Promise<{ data: { competitor_name: string; gap_analysis: { competitor_mentions: number; your_mentions: number } }[] | null; error: unknown }>,
+
+    // Revenue config for the org
+    supabase
+      .from('revenue_config')
+      .select('avg_ticket, monthly_searches, local_conversion_rate, walk_away_rate')
+      .eq('org_id', orgId)
+      .limit(1)
+      .maybeSingle() as Promise<{ data: RevenueConfig | null; error: unknown }>,
+
+    // Revenue snapshots (last 12 for trend chart)
+    supabase
+      .from('revenue_snapshots')
+      .select('snapshot_date, leak_low, leak_high, breakdown')
+      .eq('org_id', orgId)
+      .order('snapshot_date', { ascending: true })
+      .limit(12) as Promise<{ data: { snapshot_date: string; leak_low: number; leak_high: number; breakdown: unknown }[] | null; error: unknown }>,
+
+    // Org plan for plan-gating
+    supabase
+      .from('organizations')
+      .select('plan')
+      .eq('id', orgId)
+      .single() as Promise<{ data: { plan: string } | null; error: unknown }>,
   ]);
 
   const rawOpen = openResult.data ?? [];
@@ -147,6 +175,41 @@ async function fetchDashboardData(orgId: string) {
   // ISO timestamp of most recent AI audit; null if no audit has ever run.
   const lastAuditAt: string | null = lastAuditResult.data?.audit_date ?? null;
 
+  // Revenue leak: use org config (or defaults) to compute live leak from current data
+  const revenueConfig: RevenueConfig | null = revenueConfigResult.data ?? null;
+  const config = revenueConfig ?? DEFAULT_CONFIG;
+  const currentSOV = visRow?.share_of_voice ?? 0;
+
+  // Build intercept inputs for competitor steal calculation
+  const interceptRows = interceptCompResult.data ?? [];
+  const competitorInputs = interceptRows.map((r) => ({
+    winner: r.competitor_name,
+    business_name: '', // all intercepts are losses (competitor_name is the winner)
+  }));
+
+  const currentLeak = rawOpen.length > 0 || currentSOV < 0.25 || competitorInputs.length > 0
+    ? calculateRevenueLeak(
+        rawOpen.map((h) => ({ severity: h.severity, correction_status: h.correction_status })),
+        currentSOV,
+        competitorInputs,
+        interceptRows.length || 1,
+        config,
+      )
+    : null;
+
+  // Revenue snapshots for trend chart; previous snapshot for delta
+  const revenueSnapshots = (revenueSnapshotsResult.data ?? []).map((s) => ({
+    snapshot_date: s.snapshot_date,
+    leak_high: Number(s.leak_high),
+  })) as LeakSnapshotPoint[];
+
+  const previousLeak = revenueSnapshots.length >= 2
+    ? { leak_high: revenueSnapshots[revenueSnapshots.length - 2].leak_high }
+    : null;
+
+  // Org plan
+  const orgPlan = (orgPlanResult.data?.plan ?? 'trial') as PlanTier;
+
   return {
     openAlerts,
     fixedCount: fixedResult.count ?? 0,
@@ -160,6 +223,12 @@ async function fetchDashboardData(orgId: string) {
     })) as SOVDataPoint[],
     hallucinationsByModel: aggregateByModel(modelCountResult.data ?? []),
     competitorComparison: aggregateCompetitors(interceptCompResult.data ?? []),
+    // Revenue leak data
+    currentLeak,
+    previousLeak,
+    revenueConfig,
+    revenueSnapshots,
+    orgPlan,
   };
 }
 
@@ -234,6 +303,7 @@ export default async function DashboardPage() {
   const {
     openAlerts, fixedCount, interceptsThisMonth, visibilityScore, lastAuditAt,
     sovTrend, hallucinationsByModel, competitorComparison,
+    currentLeak, previousLeak, revenueConfig, revenueSnapshots, orgPlan,
   } = await fetchDashboardData(ctx.orgId ?? '');
   const scores = deriveRealityScore(openAlerts.length, visibilityScore);
   const firstName = ctx.fullName?.split(' ')[0] ?? ctx.email.split('@')[0];
@@ -270,6 +340,14 @@ export default async function DashboardPage() {
           </p>
         </div>
       )}
+
+      {/* ── Revenue Leak Scorecard — above Fear First layout ─────── */}
+      <RevenueLeakCard
+        leak={currentLeak}
+        previousLeak={previousLeak}
+        config={revenueConfig}
+        plan={orgPlan}
+      />
 
       {/*
         ── Fear First layout (Doc 06 §1 Design Principle #1) ────────────────
@@ -312,6 +390,14 @@ export default async function DashboardPage() {
           trend={sovSparkline.length > 1 ? sovSparkline : undefined}
         />
       </div>
+
+      {/* ── Revenue Leak Charts ──────────────────────────────────── */}
+      {currentLeak && orgPlan !== 'trial' && orgPlan !== 'starter' && (
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+          <LeakBreakdownChart breakdown={currentLeak.breakdown} />
+          <LeakTrendChart snapshots={revenueSnapshots} />
+        </div>
+      )}
 
       {/* ── Surgery 4: Data Visualization Row ────────────────────── */}
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">

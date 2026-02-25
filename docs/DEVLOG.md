@@ -4,6 +4,39 @@
 
 ---
 
+## 2026-02-24 — Sprint 43: Revenue Leak Scorecard (Completed)
+
+**Goal:** Convert AI inaccuracies into a dollar-denominated Revenue Leak Scorecard on the dashboard — 3-component model (Hallucination Cost + SOV Gap Cost + Competitor Steal Cost) with configurable business inputs.
+
+**Scope:**
+- `supabase/migrations/20260225000001_revenue_leak.sql` — **NEW.** DB migration: `revenue_config` (per-org business inputs) + `revenue_snapshots` (weekly leak history) tables with RLS policies, triggers, and grants.
+- `supabase/seed.sql` — Added Section 15: revenue_config seed data (Charcoal N Chill: avg_ticket=$47.50, monthly_searches=2400, conversion=3.2%, walk_away=65%) + 3 revenue_snapshots (2-week trend).
+- `lib/services/revenue-leak.service.ts` — **NEW.** Pure function service with zero side effects (AI_RULES §6). Exports `calculateHallucinationCost`, `calculateSOVGapCost`, `calculateCompetitorStealCost`, `calculateRevenueLeak`. Severity multipliers: critical=2.0, high=1.0, medium=0.3, low=0.1.
+- `app/dashboard/_components/RevenueLeakCard.tsx` — **NEW.** Hero card: dollar range in alert-crimson, trend delta, 3 breakdown chips, plan-gating (trial/starter see Lock overlay), Configure Revenue Inputs link.
+- `app/dashboard/_components/LeakBreakdownChart.tsx` — **NEW.** Tremor BarChart: Inaccuracies / SOV Gap / Competitor Steal with Low/High estimates.
+- `app/dashboard/_components/LeakTrendChart.tsx` — **NEW.** Tremor AreaChart: weekly leak trend, green if trending down, pink if trending up.
+- `app/dashboard/page.tsx` — Added revenue data fetching (revenue_config, revenue_snapshots, org plan), live leak computation via `calculateRevenueLeak()`, placed RevenueLeakCard above AlertFeed and charts below Quick Stats.
+- `app/dashboard/settings/revenue/page.tsx` — **NEW.** Revenue Config settings page, fetches existing config from DB.
+- `app/dashboard/settings/revenue/actions.ts` — **NEW.** `saveRevenueConfig()` Server Action with Zod validation, %-to-decimal conversion, upsert on `org_id,location_id`.
+- `app/dashboard/settings/revenue/_components/RevenueConfigForm.tsx` — **NEW.** Client form: avg_ticket, monthly_searches, conversion rate (%), walk-away rate (%).
+
+**Tests added:**
+- `src/__tests__/unit/revenue-leak-service.test.ts` — **17 Vitest tests.** All 4 exported functions: empty arrays, single/mixed severities, open-only filter, low=60%×high, SOV gap thresholds, competitor steal losses, integration sums, golden tenant scenario, low≤high invariant.
+- `src/__tests__/unit/revenue-leak-action.test.ts` — **6 Vitest tests.** `saveRevenueConfig()`: auth gate, avg_ticket validation, conversion rate cap, no-location error, success + revalidatePath, DB error propagation.
+- `tests/e2e/09-revenue-leak.spec.ts` — **5 Playwright tests.** Dashboard card render + dollar range, 3 breakdown chips, Configure link navigation, settings page pre-fill, form submit + persistence.
+
+**Run commands:**
+```bash
+npx vitest run src/__tests__/unit/revenue-leak-service.test.ts   # 17 tests passing
+npx vitest run src/__tests__/unit/revenue-leak-action.test.ts    # 6 tests passing
+npx vitest run                                                     # 510 passing, 7 skipped
+npx next build                                                     # 0 errors
+```
+
+**Verification:** 510 Vitest passing (487 baseline + 23 new), 7 skipped. Build clean. E2E: 41 specs (36 existing + 5 new).
+
+---
+
 ## 2026-02-24 — Copy Tremor Raw Chart Components (Completed)
 
 **Goal:** Copy 5 Tremor Raw chart components from tremor.so for dashboard visualizations. Copy-paste only — NOT the `@tremor/react` npm package.
