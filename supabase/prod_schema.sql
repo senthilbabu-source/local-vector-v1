@@ -1427,6 +1427,9 @@ ALTER TABLE "public"."ai_hallucinations" ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "public"."business_info" ENABLE ROW LEVEL SECURITY;
 
 
+ALTER TABLE "public"."citation_source_intelligence" ENABLE ROW LEVEL SECURITY;
+
+
 ALTER TABLE "public"."competitor_intercepts" ENABLE ROW LEVEL SECURITY;
 
 
@@ -1479,6 +1482,10 @@ CREATE POLICY "org_isolation_delete" ON "public"."competitors" FOR DELETE USING 
 
 
 
+CREATE POLICY "org_isolation_delete" ON "public"."content_drafts" FOR DELETE USING (("org_id" = "public"."current_user_org_id"()));
+
+
+
 CREATE POLICY "org_isolation_delete" ON "public"."listings" FOR DELETE USING (("org_id" = "public"."current_user_org_id"()));
 
 
@@ -1496,6 +1503,10 @@ CREATE POLICY "org_isolation_delete" ON "public"."menu_categories" FOR DELETE US
 
 
 CREATE POLICY "org_isolation_delete" ON "public"."menu_items" FOR DELETE USING (("org_id" = "public"."current_user_org_id"()));
+
+
+
+CREATE POLICY "org_isolation_delete" ON "public"."page_audits" FOR DELETE USING (("org_id" = "public"."current_user_org_id"()));
 
 
 
@@ -1551,6 +1562,10 @@ CREATE POLICY "org_isolation_insert" ON "public"."menu_items" FOR INSERT WITH CH
 
 
 
+CREATE POLICY "org_isolation_insert" ON "public"."page_audits" FOR INSERT WITH CHECK (("org_id" = "public"."current_user_org_id"()));
+
+
+
 CREATE POLICY "org_isolation_insert" ON "public"."sov_evaluations" FOR INSERT WITH CHECK (("org_id" = "public"."current_user_org_id"()));
 
 
@@ -1572,6 +1587,10 @@ CREATE POLICY "org_isolation_select" ON "public"."ai_hallucinations" FOR SELECT 
 
 
 CREATE POLICY "org_isolation_select" ON "public"."business_info" FOR SELECT USING (("org_id" = "public"."current_user_org_id"()));
+
+
+
+CREATE POLICY "authenticated_select" ON "public"."citation_source_intelligence" FOR SELECT TO authenticated USING (true);
 
 
 
@@ -1676,6 +1695,10 @@ CREATE POLICY "org_isolation_update" ON "public"."menu_categories" FOR UPDATE US
 
 
 CREATE POLICY "org_isolation_update" ON "public"."menu_items" FOR UPDATE USING (("org_id" = "public"."current_user_org_id"())) WITH CHECK (("org_id" = "public"."current_user_org_id"()));
+
+
+
+CREATE POLICY "org_isolation_update" ON "public"."page_audits" FOR UPDATE USING (("org_id" = "public"."current_user_org_id"())) WITH CHECK (("org_id" = "public"."current_user_org_id"()));
 
 
 
