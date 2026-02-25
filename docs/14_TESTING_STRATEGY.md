@@ -112,8 +112,8 @@ has not been run with a "Database error creating new user" error — this is a t
 prerequisite, not an application bug. The 7 `skip`s are deliberate skips within this suite for
 tests that require a second tenant to be provisioned.
 
-**After `npx supabase db reset` all 7 previously-skipped tests pass (409 total). In CI without a**
-**running Supabase, 7 tests are skipped and the suite shows 402 passing — this does not block CI.**
+**After `npx supabase db reset` all 7 previously-skipped tests pass (488 total). In CI without a**
+**running Supabase, 7 tests are skipped and the suite shows 481 passing — this does not block CI.**
 
 ---
 
@@ -128,7 +128,7 @@ tests that require a second tenant to be provisioned.
 | Stripe | Empty `STRIPE_SECRET_KEY` → demo branch | Billing tests |
 | Google Places | MSW `rest.get('https://maps.googleapis.com/...')` | Places search tests |
 | Supabase Auth | `vi.mock('@supabase/ssr')` | Auth route tests, server action tests |
-| Vercel KV | `vi.mock('@vercel/kv')` | Rate limit tests |
+| Upstash Redis | `vi.mock('@/lib/redis')` with `mockRedis` shared object | Rate limit tests, free scan, places search |
 
 ### New Mock Patterns (2026-02-24 Surgical Integration)
 
