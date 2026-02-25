@@ -19,6 +19,7 @@ import { describe, it, expect } from 'vitest';
 import { render, screen } from '@testing-library/react';
 
 import SOVScoreRing from '@/app/dashboard/share-of-voice/_components/SOVScoreRing';
+import { nextSundayLabel } from '@/app/dashboard/_components/scan-health-utils';
 
 // ---------------------------------------------------------------------------
 // Tests
@@ -35,7 +36,8 @@ describe('SOVScoreRing', () => {
     );
 
     expect(screen.getByTestId('sov-score-ring')).toBeDefined();
-    expect(screen.getByText(/first AI visibility scan runs Sunday/i)).toBeDefined();
+    const sundayDate = nextSundayLabel();
+    expect(screen.getByText(new RegExp(`First AI visibility scan runs Sunday, ${sundayDate}`))).toBeDefined();
     // No percentage should be rendered
     expect(screen.queryByTestId('sov-percentage')).toBeNull();
   });

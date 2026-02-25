@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
 import { getSafeAuthContext } from '@/lib/auth';
+import { z } from 'zod';
 import {
   AddQuerySchema,
   RunSovSchema,
@@ -305,6 +306,44 @@ export async function runSovEvaluation(input: RunSovInput): Promise<ActionResult
 
   if (insertError) {
     return { success: false, error: insertError.message };
+  }
+
+  revalidatePath('/dashboard/share-of-voice');
+  return { success: true };
+}
+
+// ---------------------------------------------------------------------------
+// deleteTargetQuery — Server Action
+// ---------------------------------------------------------------------------
+
+const DeleteQuerySchema = z.object({ query_id: z.string().uuid() });
+
+/**
+ * Server Action: delete a target query.
+ *
+ * RLS org_isolation_delete ensures only this org's queries can be removed.
+ */
+export async function deleteTargetQuery(formData: FormData): Promise<ActionResult> {
+  const ctx = await getSafeAuthContext();
+  if (!ctx?.orgId) {
+    return { success: false, error: 'Unauthorized' };
+  }
+
+  const parsed = DeleteQuerySchema.safeParse({ query_id: formData.get('query_id') });
+  if (!parsed.success) {
+    return { success: false, error: 'Invalid query ID' };
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const supabase = (await createClient()) as any;
+
+  const { error } = await supabase
+    .from('target_queries')
+    .delete()
+    .eq('id', parsed.data.query_id);
+
+  if (error) {
+    return { success: false, error: error.message };
   }
 
   revalidatePath('/dashboard/share-of-voice');

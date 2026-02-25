@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation';
 import { getSafeAuthContext } from '@/lib/auth';
 import { createClient } from '@/lib/supabase/server';
+import { nextSundayLabel } from './_components/scan-health-utils';
 import RealityScoreCard from './_components/RealityScoreCard';
 import AlertFeed from './_components/AlertFeed';
 import SOVTrendChart, { type SOVDataPoint } from './_components/SOVTrendChart';
@@ -255,6 +256,20 @@ export default async function DashboardPage() {
             : 'Your AI visibility is clean. Keep your ground truth up to date.'}
         </p>
       </div>
+
+      {/* ── Welcome banner — day-1 tenants only ─────────────────── */}
+      {scores.realityScore === null && openAlerts.length === 0 && (
+        <div className="rounded-xl border border-signal-green/20 bg-signal-green/5 px-5 py-4">
+          <h2 className="text-sm font-semibold text-signal-green">
+            Welcome to LocalVector.ai
+          </h2>
+          <p className="mt-1 text-sm text-slate-400">
+            Your AI visibility dashboard is ready. Your first automated scan runs
+            Sunday, {nextSundayLabel()} — check back Monday for your Reality Score,
+            SOV trend, and hallucination alerts.
+          </p>
+        </div>
+      )}
 
       {/*
         ── Fear First layout (Doc 06 §1 Design Principle #1) ────────────────

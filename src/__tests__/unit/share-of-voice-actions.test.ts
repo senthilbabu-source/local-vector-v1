@@ -24,7 +24,7 @@ vi.mock('next/cache', () => ({ revalidatePath: vi.fn() }));
 
 // ── Import subjects and mocks after declarations ──────────────────────────
 
-import { addTargetQuery, runSovEvaluation } from '@/app/dashboard/share-of-voice/actions';
+import { addTargetQuery, runSovEvaluation, deleteTargetQuery } from '@/app/dashboard/share-of-voice/actions';
 import { createClient } from '@/lib/supabase/server';
 import { getSafeAuthContext } from '@/lib/auth';
 import { revalidatePath } from 'next/cache';
@@ -360,5 +360,63 @@ describe('runSovEvaluation', () => {
     const result = await resultPromise;
 
     expect(result).toEqual({ success: false, error: 'DB insert failed' });
+  });
+});
+
+// ── deleteTargetQuery ────────────────────────────────────────────────────────
+
+function makeDeleteFormData(queryId: string): FormData {
+  const fd = new FormData();
+  fd.set('query_id', queryId);
+  return fd;
+}
+
+describe('deleteTargetQuery', () => {
+  beforeEach(() => {
+    vi.mocked(getSafeAuthContext).mockResolvedValue(MOCK_AUTH as never);
+  });
+
+  afterEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('returns Unauthorized when not authenticated', async () => {
+    vi.mocked(getSafeAuthContext).mockResolvedValueOnce(null);
+
+    const result = await deleteTargetQuery(makeDeleteFormData(QUERY_ID));
+    expect(result).toEqual({ success: false, error: 'Unauthorized' });
+  });
+
+  it('returns error for invalid query_id (not a UUID)', async () => {
+    const result = await deleteTargetQuery(makeDeleteFormData('not-a-uuid'));
+    expect(result).toEqual({ success: false, error: 'Invalid query ID' });
+  });
+
+  it('deletes the target query successfully', async () => {
+    const mockDelete = vi.fn().mockReturnValue({
+      eq: vi.fn().mockResolvedValue({ error: null }),
+    });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    vi.mocked(createClient as any).mockResolvedValue({
+      from: vi.fn(() => ({ delete: mockDelete })),
+    });
+
+    const result = await deleteTargetQuery(makeDeleteFormData(QUERY_ID));
+    expect(result).toEqual({ success: true });
+    expect(mockDelete).toHaveBeenCalledOnce();
+    expect(vi.mocked(revalidatePath)).toHaveBeenCalledWith('/dashboard/share-of-voice');
+  });
+
+  it('returns error on DB failure', async () => {
+    const mockDelete = vi.fn().mockReturnValue({
+      eq: vi.fn().mockResolvedValue({ error: { message: 'Cannot delete' } }),
+    });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    vi.mocked(createClient as any).mockResolvedValue({
+      from: vi.fn(() => ({ delete: mockDelete })),
+    });
+
+    const result = await deleteTargetQuery(makeDeleteFormData(QUERY_ID));
+    expect(result).toEqual({ success: false, error: 'Cannot delete' });
   });
 });

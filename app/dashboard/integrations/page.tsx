@@ -18,6 +18,7 @@ import { getSafeAuthContext } from '@/lib/auth';
 import { createClient } from '@/lib/supabase/server';
 import { BIG_6_PLATFORMS } from '@/lib/schemas/integrations';
 import PlatformRow, { type IntegrationData } from './_components/PlatformRow';
+import { getListingHealth } from './_utils/health';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -101,6 +102,18 @@ export default async function IntegrationsPage() {
   );
   const totalPossible = locations.length * BIG_6_PLATFORMS.length;
 
+  // Health stats: count integrations needing attention (stale or missing_url)
+  let healthyCount = 0;
+  let needsAttentionCount = 0;
+  for (const loc of locations) {
+    for (const platform of BIG_6_PLATFORMS) {
+      const row = loc.location_integrations.find((i) => i.platform === platform) ?? null;
+      const health = getListingHealth(row);
+      if (health === 'healthy') healthyCount++;
+      else if (health === 'stale' || health === 'missing_url') needsAttentionCount++;
+    }
+  }
+
   return (
     <div className="space-y-6">
 
@@ -136,6 +149,22 @@ export default async function IntegrationsPage() {
               {totalPossible - totalConnected}
             </p>
           </div>
+          {healthyCount > 0 && (
+            <div className="rounded-xl bg-surface-dark px-4 py-3 ring-1 ring-white/5">
+              <p className="text-xs text-slate-500">Healthy</p>
+              <p className="mt-0.5 text-2xl font-bold tabular-nums text-emerald-400">
+                {healthyCount}
+              </p>
+            </div>
+          )}
+          {needsAttentionCount > 0 && (
+            <div className="rounded-xl bg-surface-dark px-4 py-3 ring-1 ring-white/5">
+              <p className="text-xs text-slate-500">Needs attention</p>
+              <p className="mt-0.5 text-2xl font-bold tabular-nums text-amber-400">
+                {needsAttentionCount}
+              </p>
+            </div>
+          )}
         </div>
       )}
 

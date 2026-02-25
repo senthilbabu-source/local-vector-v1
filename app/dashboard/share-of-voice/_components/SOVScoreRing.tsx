@@ -9,6 +9,8 @@
 // Ring pattern adapted from RealityScoreCard's ScoreGauge.
 // ---------------------------------------------------------------------------
 
+import { nextSundayLabel } from '@/app/dashboard/_components/scan-health-utils';
+
 interface SOVScoreRingProps {
   shareOfVoice: number | null;   // null = first scan hasn't run yet
   citationRate: number | null;
@@ -64,7 +66,7 @@ export default function SOVScoreRing({
           </div>
           <div className="min-w-0">
             <p className="text-sm text-slate-400">
-              Your first AI visibility scan runs Sunday. Check back Monday.
+              First AI visibility scan runs Sunday, {nextSundayLabel()}. Check back then.
             </p>
           </div>
         </div>

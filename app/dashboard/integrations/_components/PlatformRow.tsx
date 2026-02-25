@@ -14,6 +14,7 @@
 
 import { useState, useTransition, useRef } from 'react';
 import { toggleIntegration, mockSyncIntegration, savePlatformUrl } from '../actions';
+import { getListingHealth, healthBadge } from '../_utils/health';
 import type { Big6Platform } from '@/lib/schemas/integrations';
 
 // ---------------------------------------------------------------------------
@@ -132,6 +133,8 @@ export default function PlatformRow({ locationId, platform, integration }: Props
   const isConnected = integration?.status === 'connected';
   const statusKey = integration?.status ?? 'disconnected';
   const statusCfg = STATUS_CONFIG[statusKey] ?? STATUS_CONFIG.disconnected;
+  const health = getListingHealth(integration);
+  const healthCfg = healthBadge(health);
 
   // ── Toggle connect / disconnect ──────────────────────────────────────────
   function handleToggle() {
@@ -222,6 +225,19 @@ export default function PlatformRow({ locationId, platform, integration }: Props
         >
           {statusCfg.label}
         </span>
+
+        {/* Health badge (only show when connected — disconnected is already shown by status chip) */}
+        {health !== 'disconnected' && health !== 'healthy' && (
+          <span
+            className={[
+              'hidden shrink-0 items-center rounded-full px-2 py-0.5 text-xs font-medium ring-1 ring-inset sm:inline-flex',
+              healthCfg.classes,
+            ].join(' ')}
+            data-testid="health-badge"
+          >
+            {healthCfg.label}
+          </span>
+        )}
 
         {/* Sync Now button — only when connected (and toggle supports platform) */}
         {isConnected && (platform === 'google' || platform === 'apple' || platform === 'bing') && (

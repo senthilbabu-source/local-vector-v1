@@ -1,6 +1,72 @@
 # LocalVector.ai — Development Log
 
 ---
+## 2026-02-24 — Sprint 42: Dashboard Polish & Content Drafts UI
+
+**Goal:** Close 5 remaining gaps across the dashboard: null states, content drafts UI, SOV query editor, listings health, and E2E test coverage. Fine-tuning sprint — no schema migrations.
+
+### Step 1: Dashboard Null States & UX Clarity
+- **SOVScoreRing** (`SOVScoreRing.tsx`): Replaced hardcoded "Check back Monday" with dynamic `nextSundayLabel()` from `scan-health-utils.ts` for consistent null-state copy across all pages.
+- **SOV page** (`share-of-voice/page.tsx`): "Last Scan" null state now shows "Runs Sunday, {date}" instead of "No scans yet".
+- **Main dashboard** (`dashboard/page.tsx`): Added welcome banner for day-1 tenants (realityScore null + 0 alerts) with dynamic Sunday date.
+- **Tests:** 5 new tests (`dashboard-null-states.test.tsx`) — SOV copy, welcome banner visibility/hiding.
+
+### Step 2: Content Drafts UI (New Feature)
+- **Sidebar** (`Sidebar.tsx`): Added "Content" nav item with FileText icon between Share of Voice and Compete.
+- **Server Actions** (`content-drafts/actions.ts`): `approveDraft`, `rejectDraft`, `createManualDraft` — auth + Zod validation + RLS + plan gating via `canRunAutopilot()`.
+- **Page** (`content-drafts/page.tsx`): Server Component with summary strip (pending/approved/total), filter tabs, draft cards, UpgradeGate for trial/starter.
+- **ContentDraftCard** (`_components/ContentDraftCard.tsx`): Client Component with trigger badges (first_mover=amber, competitor_gap=crimson, occasion=blue, manual=slate), AEO score, status badges, approve/reject buttons with `useTransition()`.
+- **DraftFilterTabs** (`_components/DraftFilterTabs.tsx`): Client Component using URL search params for status filtering.
+- **Tests:** 15 component tests + 13 action tests covering all badge colors, AEO thresholds, plan gating, Zod validation.
+
+### Step 3: SOV Query Editor Enhancements
+- **Delete action** (`share-of-voice/actions.ts`): Added `deleteTargetQuery()` with Zod UUID validation and RLS-scoped delete.
+- **SovCard** (`SovCard.tsx`): Added trash icon delete button with `window.confirm()`, `useTransition()` pending state. Added plan prop to gate "Run" button — disabled for trial/starter with tooltip "Upgrade to Growth".
+- **SOV page** (`share-of-voice/page.tsx`): Fetches org plan from `organizations` table and passes to SovCard.
+- **Tests:** 4 new deleteTargetQuery tests added to existing `share-of-voice-actions.test.ts`.
+
+### Step 4: Listings Health Indicators
+- **Health utilities** (`integrations/_utils/health.ts`): `getListingHealth()` returns disconnected/missing_url/stale/healthy. `healthBadge()` returns literal Tailwind classes.
+- **PlatformRow** (`PlatformRow.tsx`): Added health badge (shown only for stale/missing_url states — healthy and disconnected are already communicated by the status chip).
+- **Integrations page** (`integrations/page.tsx`): Added health summary cards (Healthy count, Needs Attention count) to the summary strip.
+- **Tests:** 12 tests covering all health states, edge cases (7-day boundary), badge classes.
+
+### Step 5: E2E Test Coverage
+- **`06-share-of-voice.spec.ts`**: 4 tests — page structure, SOV ring, Quick Stats, sidebar nav.
+- **`07-listings.spec.ts`**: 4 tests — header, summary strip, platform rows (all 6), sidebar nav.
+- **`08-content-drafts.spec.ts`**: 3 tests — UpgradeGate for trial, sidebar nav, billing link.
+
+### Files Modified
+
+| # | File | Change |
+|---|------|--------|
+| 1 | `app/dashboard/page.tsx` | Welcome banner for day-1 tenants |
+| 2 | `app/dashboard/share-of-voice/_components/SOVScoreRing.tsx` | Dynamic `nextSundayLabel()` null copy |
+| 3 | `app/dashboard/share-of-voice/page.tsx` | Plan fetch, "Last Scan" copy fix |
+| 4 | `app/dashboard/share-of-voice/actions.ts` | `deleteTargetQuery` action |
+| 5 | `app/dashboard/share-of-voice/_components/SovCard.tsx` | Delete button, plan-gated run |
+| 6 | `components/layout/Sidebar.tsx` | "Content" nav item |
+| 7 | `app/dashboard/content-drafts/page.tsx` | NEW: Content Drafts page |
+| 8 | `app/dashboard/content-drafts/actions.ts` | NEW: Server Actions |
+| 9 | `app/dashboard/content-drafts/_components/ContentDraftCard.tsx` | NEW: Draft card |
+| 10 | `app/dashboard/content-drafts/_components/DraftFilterTabs.tsx` | NEW: Filter tabs |
+| 11 | `app/dashboard/integrations/_utils/health.ts` | NEW: Health utils |
+| 12 | `app/dashboard/integrations/_components/PlatformRow.tsx` | Health badge |
+| 13 | `app/dashboard/integrations/page.tsx` | Health summary stats |
+| 14 | `src/__tests__/unit/components/dashboard-null-states.test.tsx` | NEW: 5 tests |
+| 15 | `src/__tests__/unit/components/sov/SOVScoreRing.test.tsx` | Updated null copy assertion |
+| 16 | `src/__tests__/unit/components/content-drafts/ContentDraftCard.test.tsx` | NEW: 15 tests |
+| 17 | `src/__tests__/unit/content-drafts-actions.test.ts` | NEW: 13 tests |
+| 18 | `src/__tests__/unit/share-of-voice-actions.test.ts` | +4 delete tests |
+| 19 | `src/__tests__/unit/integrations-health.test.ts` | NEW: 12 tests |
+| 20 | `tests/e2e/06-share-of-voice.spec.ts` | NEW: 4 E2E tests |
+| 21 | `tests/e2e/07-listings.spec.ts` | NEW: 4 E2E tests |
+| 22 | `tests/e2e/08-content-drafts.spec.ts` | NEW: 3 E2E tests |
+
+**Build:** Clean (`next build`, 0 type errors)
+**Tests:** 473 passing (+49 from Sprint 41 baseline 424), 1 pre-existing failure (rls-isolation, requires live Supabase)
+
+---
 ## 2026-02-24 — Sprint 41: SOV Visibility Page Enhancement + Seeding
 
 **Goal:** Enhance the Share of Voice page to match Doc 06 §8 spec, wire SOV query seeding into onboarding, and fix a silent cron failure. Design + data wiring sprint — no schema migrations.

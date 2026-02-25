@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation';
 import { getSafeAuthContext } from '@/lib/auth';
 import { createClient } from '@/lib/supabase/server';
+import { nextSundayLabel } from '@/app/dashboard/_components/scan-health-utils';
 import SovCard, { type QueryWithEvals } from './_components/SovCard';
 import SOVScoreRing from './_components/SOVScoreRing';
 import SOVTrendChart, { type SOVDataPoint } from '@/app/dashboard/_components/SOVTrendChart';
@@ -52,7 +53,7 @@ async function fetchPageData(orgId: string) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const supabase = (await createClient()) as any;
 
-  const [locResult, queryResult, evalResult, visResult, firstMoverResult] =
+  const [locResult, queryResult, evalResult, visResult, firstMoverResult, orgResult] =
     await Promise.all([
       supabase
         .from('locations')
@@ -88,6 +89,13 @@ async function fetchPageData(orgId: string) {
         .eq('org_id', orgId)
         .order('created_at', { ascending: false })
         .limit(5),
+
+      // Org plan for feature gating
+      supabase
+        .from('organizations')
+        .select('plan')
+        .eq('id', orgId)
+        .single(),
     ]);
 
   return {
@@ -96,6 +104,7 @@ async function fetchPageData(orgId: string) {
     evaluations: (evalResult.data as SovEvalRow[]) ?? [],
     visibilitySnapshots: (visResult.data as VisibilityRow[]) ?? [],
     firstMoverOpps: (firstMoverResult.data as FirstMoverRow[]) ?? [],
+    plan: (orgResult.data?.plan as string) ?? 'trial',
   };
 }
 
@@ -109,7 +118,7 @@ export default async function ShareOfVoicePage() {
     redirect('/login');
   }
 
-  const { locations, queries, evaluations, visibilitySnapshots, firstMoverOpps } =
+  const { locations, queries, evaluations, visibilitySnapshots, firstMoverOpps, plan } =
     await fetchPageData(ctx.orgId);
 
   // ── Derive SOV metrics from visibility_analytics ─────────────────────────
@@ -177,7 +186,7 @@ export default async function ShareOfVoicePage() {
                       day: 'numeric',
                       year: 'numeric',
                     })
-                  : 'No scans yet'}
+                  : `Runs Sunday, ${nextSundayLabel()}`}
               </span>
             </div>
             <div className="flex items-center justify-between">
@@ -273,6 +282,7 @@ export default async function ShareOfVoicePage() {
                   locationId={location.id}
                   locationLabel={locationLabel}
                   queries={queriesWithEvals}
+                  plan={plan}
                 />
               );
             })}
