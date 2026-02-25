@@ -1,39 +1,13 @@
 // ---------------------------------------------------------------------------
 // AI Audit Service — Phase 20: Automated Web Audit Engine
 //
-// Surgery 1 Rewrite: Now uses Vercel AI SDK with Zod-validated structured
-// output instead of raw fetch() + manual JSON.parse().
-//
-// Accepts a location's ground-truth data, constructs a structured prompt,
-// and asks OpenAI GPT-4o to identify discrepancies between the ground truth
-// and what the model "knows" about the restaurant.
-//
-// Returns an array of DetectedHallucination objects ready for insertion
-// into the ai_hallucinations table. Enum values match prod_schema.sql
-// exactly (all lowercase).
-//
-// Demo mode: when OPENAI_API_KEY is absent (local dev, CI), returns one
-// placeholder hallucination so the route's insert pipeline can be exercised
-// end-to-end without a real API key.
-//
-// WHAT CHANGED (Surgery 1):
-//   • raw fetch('https://api.openai.com/...') → AI SDK generateText()
-//   • manual JSON.parse(content) as AuditResult → Output.object({ schema })
-//   • OpenAIResponse / AuditResult internal types → Zod schema in lib/ai/schemas
-//
-// WHAT DIDN'T CHANGE:
-//   • All exported types (ModelProvider, HallucinationSeverity, etc.)
-//   • auditLocation() function signature and return type
-//   • Demo mode fallback behavior
-//   • SYSTEM_PROMPT and buildAuditPrompt() — identical prompt text
+// Surgery 1: Replaced raw fetch() with Vercel AI SDK generateText().
 // ---------------------------------------------------------------------------
 
-import { generateText, Output } from 'ai';
+import { generateText } from 'ai';
 import { getModel, hasApiKey } from '@/lib/ai/providers';
-import { AuditResultSchema } from '@/lib/ai/schemas';
 
 // ── Types (mirror prod_schema.sql enums exactly) ───────────────────────────
-// UNCHANGED — all consumers import these from here.
 
 export type ModelProvider =
   | 'openai-gpt4o'
@@ -72,7 +46,6 @@ export interface DetectedHallucination {
 }
 
 // ── Demo result ────────────────────────────────────────────────────────────
-// UNCHANGED — returned in local dev / CI when OPENAI_API_KEY is absent.
 
 const DEMO_HALLUCINATION: DetectedHallucination = {
   model_provider: 'openai-gpt4o',
@@ -84,7 +57,6 @@ const DEMO_HALLUCINATION: DetectedHallucination = {
 };
 
 // ── Prompt construction ────────────────────────────────────────────────────
-// UNCHANGED — identical prompt text.
 
 const SYSTEM_PROMPT = `You are an AI hallucination auditor specialising in local restaurants.
 Given ground-truth data about a restaurant, identify any facts that the
@@ -141,14 +113,6 @@ function buildAuditPrompt(location: LocationAuditInput): string {
 
 // ── Main export ────────────────────────────────────────────────────────────
 
-/**
- * Audits a single location for AI hallucinations.
- *
- * Calls OpenAI GPT-4o via Vercel AI SDK with Zod-validated structured output.
- * Falls back to a single demo hallucination when OPENAI_API_KEY is absent.
- *
- * Throws on network or API errors — the cron route catches these per-org.
- */
 export async function auditLocation(
   location: LocationAuditInput
 ): Promise<DetectedHallucination[]> {
@@ -160,18 +124,16 @@ export async function auditLocation(
     return [DEMO_HALLUCINATION];
   }
 
-  // ── AI SDK call with Zod-validated structured output ────────────────────
-  // Output.object() ensures the response matches AuditResultSchema.
-  // No manual JSON.parse, no type assertions, no regex extraction needed.
-  const { output } = await generateText({
+  const { text } = await generateText({
     model: getModel('fear-audit'),
-    output: Output.object({ schema: AuditResultSchema }),
     system: SYSTEM_PROMPT,
     prompt: buildAuditPrompt(location),
   });
 
-  // output is null if the model didn't produce valid structured output
-  if (!output) return [];
-
-  return Array.isArray(output.hallucinations) ? output.hallucinations : [];
+  try {
+    const parsed = JSON.parse(text);
+    return Array.isArray(parsed.hallucinations) ? parsed.hallucinations : [];
+  } catch {
+    return [];
+  }
 }

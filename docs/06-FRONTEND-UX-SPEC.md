@@ -1,7 +1,7 @@
 # 06 — Frontend & UX Specification
 
 ## Dashboard Layout, Component Hierarchy, and User Flows
-### Version: 2.4 | Date: February 23, 2026
+### Version: 2.5 | Date: February 24, 2026
 
 ---
 
@@ -28,6 +28,7 @@
 │ 🍽️ Menu    │                                           │
 │ ⚔️ Compete │                                           │
 │ 📍 Listings│                                           │
+│ 🤖 AI Asst │                                           │
 │ ⚙️ Settings│                                           │
 │ 💳 Billing │                                           │
 │            │                                           │
@@ -47,6 +48,7 @@
 | Listings | ✅ | ✅ | ✅ | ✅ |
 | 📡 Visibility (SOV) | ❌ | ✅ (read-only) | ✅ Full | ✅ Full |
 | 📝 Content Drafts | ❌ | ❌ | ✅ | ✅ |
+| 🤖 AI Assistant | ✅ | ✅ | ✅ | ✅ |
 | Settings | ✅ | ✅ | ✅ | ✅ |
 | Billing | ✅ | ✅ | ✅ | ✅ |
 | 🏢 Org Switcher | ❌ | ❌ | ❌ | ✅ (top bar) |
@@ -125,7 +127,7 @@
 **Design Goal:** Review must feel like 5 seconds, not 5 minutes. The owner should approve the entire menu with one click in the happy path, and only intervene on flagged items.
 
 **Confidence-Based Triage:**
-- Items with confidence ≥ 0.85 → shown with ✅ (auto-approved, collapsed by default)
+- Items with confidence >= 0.85 → shown with ✅ (auto-approved, collapsed by default)
 - Items with confidence 0.60–0.84 → shown with ⚠️ (expanded, yellow highlight, editable)
 - Items with confidence < 0.60 → shown with ❌ (expanded, red highlight, MUST edit to proceed)
 
@@ -197,6 +199,7 @@ Manual entry provides a simple category → item → price form that still outpu
 │  [🔄 Re-upload Menu]  [✏️ Edit Items]     │
 └──────────────────────────────────────────┘
 ```
+
 **Interaction: "Copy & Inject Link" Modal**
 When clicked, open a modal with this specific workflow:
 
@@ -374,8 +377,6 @@ Step 5: Dashboard (with first audit results populated)
 
 ---
 
----
-
 ## 8. SOV Dashboard (`/visibility`)
 
 > **API:** Doc 05 §12 — SOV Engine endpoints
@@ -453,10 +454,10 @@ interface SOVScoreRingProps {
 └─────────────────────────────┘
 ```
 
-**🤖 Agent Rule:** When `state === 'calculating'`, render the skeleton state above. Never render `0%` — it implies the business has zero presence, which may be false and will mislead the user before data exists.
+**Agent Rule:** When `state === 'calculating'`, render the skeleton state above. Never render `0%` — it implies the business has zero presence, which may be false and will mislead the user before data exists.
 
 **Rendering rules:**
-- Ring color: ≥40% → `--success` green, 20–39% → amber `#F59E0B`, <20% → `--destructive` red
+- Ring color: >=40% → `--success` green, 20–39% → amber `#F59E0B`, <20% → `--destructive` red
 - Delta arrow: positive → ▲ green, negative → ▼ red, zero → → gray
 - `citationRate` shown as secondary metric below the ring, labeled "Citation Rate"
 
@@ -771,7 +772,7 @@ interface CitationPlatformMapProps {
 
 interface CitationPlatform {
   platform: string;
-  citationFrequency: number;   // 0–1
+  citationFrequency: number;   // 0-1
   orgListed: boolean;
   orgListingUrl: string | null;
   gap: boolean;
@@ -861,6 +862,13 @@ All numerical displays (Reality Score, Menu Prices) MUST use `font-variant-numer
 | `CitationPlatformMap` | Platform coverage heatmap | Card grid |
 | `CitationGapBadge` | Gap indicator on Listings row | Badge |
 | `OccasionAlertFeed` | Seasonal opportunity alert list | ScrollArea |
+| `SOVTrendChart` | 8-week SOV + citation rate line chart | Recharts LineChart |
+| `MetricCard` | Single KPI with trend arrow | Card |
+| `HallucinationsByModel` | Bar chart of hallucinations by AI model | Recharts BarChart |
+| `CompetitorComparison` | Side-by-side gap magnitude chart | Recharts BarChart |
+| `ChatMessage` | Single chat bubble (user or assistant) | Card variant |
+| `ToolResultCard` | Rich UI card for AI tool results | Card |
+| `ChatInput` | Message input bar with send button | Input + Button |
 
 ---
 
@@ -917,11 +925,208 @@ if (!canAccess) return <PlanGate featureId="magic_menu_publish" minPlan="starter
 | **First Mover Alert** | Blue pulsing border on AlertCard with 🚀 icon. Badge count on sidebar Visibility item. |
 | **Draft Pending Approval** | Amber badge on "Content Drafts" sidebar item. Draft card shows amber "Review" CTA. |
 | **Draft Published** | Green checkmark on draft card. `published_url` shown as clickable link. |
+| **AI Assistant Loading** | Pulsing dots animation in chat area while tool executes. |
+| **AI Tool Result** | Rich card (ScoreCard, TrendList, AlertList, CompetitorList) rendered inline in chat. |
+
+---
+
+## 15. Dashboard Charts (`/dashboard`)
+
+> **Implementation:** `app/dashboard/_components/` — 4 recharts-based components
+> **Dependency:** `recharts@^2.15.3`
+> **Spec:** `.cursorrules` §23
+
+### 15.1 Chart Components
+
+Four chart components are rendered on the Dashboard home page below the Quick Stats row. All use `recharts` and follow the design tokens in §12.
+
+**`SOVTrendChart`** — 8-week line chart showing SOV % and citation rate over time.
+
+```typescript
+interface SOVTrendChartProps {
+  data: { date: string; sov: number; citationRate: number }[];
+}
+```
+
+- Primary line: `share_of_voice` in Electric Indigo (`#6366F1`)
+- Secondary line: `citation_rate` in Truth Emerald (`#10B981`)
+- X-axis: week labels (e.g., "Feb 9", "Feb 16")
+- Y-axis: percentage (0–100%)
+- Empty state: gray dashed placeholder with "No data yet — first scan runs Sunday"
+- Data source: `GET /sov/report` → `trend` array
+
+**`MetricCard`** — Single KPI display with value, label, and trend arrow.
+
+```typescript
+interface MetricCardProps {
+  label: string;
+  value: number | string;
+  trend?: number;          // positive = up, negative = down
+  format?: 'percent' | 'number' | 'score';
+}
+```
+
+- Trend arrow: ▲ green for positive, ▼ red for negative, omitted if undefined
+- Uses `tabular-nums` for value display (§12.3)
+- Rendered in a 2x2 grid: Reality Score, SOV %, Open Hallucinations, Citation Rate
+
+**`HallucinationsByModel`** — Horizontal bar chart of hallucination counts grouped by AI model.
+
+```typescript
+interface HallucinationsByModelProps {
+  data: { model: string; count: number; severity: string }[];
+}
+```
+
+- Bars colored by severity: critical → Alert Crimson, high → amber, medium → gray
+- Grouped by model (Perplexity, ChatGPT, Gemini)
+- Empty state: "No hallucinations detected" with checkmark
+- Data source: `GET /hallucinations` → grouped client-side
+
+**`CompetitorComparison`** — Grouped bar chart comparing your SOV vs competitors per query.
+
+```typescript
+interface CompetitorComparisonProps {
+  data: { query: string; you: number; competitor: number; competitorName: string }[];
+}
+```
+
+- Your bar: Electric Indigo; Competitor bar: slate-400
+- Shows top 5 queries sorted by gap magnitude
+- Empty state: "Add competitors to see comparison" with link to `/compete`
+- Data source: `GET /competitors/intercepts` → transformed client-side
+
+### 15.2 Chart Layout on Dashboard
+
+Charts render in a responsive grid below the existing Quick Stats row (§3):
+
+```
+├──────────────────────────────────────────┤
+│  Quick Stats Row                         │
+│  [ Hallucinations Fixed: 5 ] [ ... ]    │
+├──────────────────────────────────────────┤
+│  ┌──────────────────┬──────────────────┐ │
+│  │  MetricCard Grid │  MetricCard Grid │ │
+│  │  (2x2)           │                  │ │
+│  ├──────────────────┴──────────────────┤ │
+│  │  SOVTrendChart (full width)         │ │
+│  ├──────────────────┬──────────────────┤ │
+│  │  Hallucinations  │  Competitor      │ │
+│  │  ByModel         │  Comparison      │ │
+│  └──────────────────┴──────────────────┘ │
+├──────────────────────────────────────────┤
+│  📈 Score History (existing — 30 days)    │
+└──────────────────────────────────────────┘
+```
+
+### 15.3 Recharts Note
+
+recharts logs a `defaultProps` deprecation warning with React 19. This is cosmetic, non-blocking, and will resolve in a future recharts release. Do not attempt to suppress or patch it.
+
+---
+
+## 16. AI Assistant Page (`/dashboard/ai-assistant`)
+
+> **API:** Doc 05 §16.4 — AI Chat endpoint
+> **Implementation:** `app/dashboard/ai-assistant/page.tsx`, `app/dashboard/ai-assistant/_components/Chat.tsx`
+> **Spec:** `.cursorrules` §25
+> **Sidebar item:** 🤖 AI Asst (all plans)
+
+### 16.1 Page Structure
+
+The AI Assistant is a full-page chat interface within the dashboard shell. It uses the `useChat()` hook from `@ai-sdk/react` connected to `POST /api/chat`.
+
+```
+┌──────────────────────────────────────────────────────┐
+│  🤖 AI Assistant                                       │
+│  Your AI visibility expert                            │
+│                                                      │
+├──────────────────────────────────────────────────────┤
+│                                                      │
+│  [Chat message area — scrollable]                    │
+│                                                      │
+│  ┌──────────────────────────────────────────────┐    │
+│  │ 🤖 Welcome! I'm your AI visibility assistant. │    │
+│  │    I can check your scores, find              │    │
+│  │    hallucinations, and analyze competitors.   │    │
+│  │                                              │    │
+│  │    Try asking:                               │    │
+│  │    • "What's my visibility score?"           │    │
+│  │    • "Show me open hallucinations"           │    │
+│  │    • "How am I doing vs competitors?"        │    │
+│  │    • "Show my SOV trend"                     │    │
+│  └──────────────────────────────────────────────┘    │
+│                                                      │
+├──────────────────────────────────────────────────────┤
+│  [Type your message...                     ] [Send]  │
+└──────────────────────────────────────────────────────┘
+```
+
+### 16.2 Empty State (First Visit)
+
+On first visit, the chat area shows the welcome message with 4 clickable starter prompts. Clicking a prompt inserts it into the input and auto-sends.
+
+**Starter prompts:**
+1. "What's my visibility score?" → triggers `getVisibilityScore` tool
+2. "Show me open hallucinations" → triggers `getHallucinations` tool
+3. "How am I doing vs competitors?" → triggers `getCompetitorComparison` tool
+4. "Show my SOV trend" → triggers `getSOVTrend` tool
+
+### 16.3 Message Rendering
+
+Messages render as chat bubbles with role-based alignment:
+- **User messages:** Right-aligned, Electric Indigo background (`#6366F1`), white text
+- **Assistant text:** Left-aligned, Midnight Slate background (`#1E293B`), white text
+- **Tool results:** Left-aligned, rendered as rich UI cards (not plain text)
+
+The `Chat.tsx` component iterates `message.parts` and renders based on part type:
+- `type: 'text'` → standard chat bubble
+- `type: 'tool-invocation'` with `result` → `<ToolResultCard>` selected by `result.type`
+
+### 16.4 Tool Result Card Types
+
+Each tool returns a `type` field used to select the renderer:
+
+| `result.type` | Component | Visual |
+|---------------|-----------|--------|
+| `visibility_score` | `ScoreCard` | Reality Score ring + SOV + Accuracy + open hallucination count |
+| `sov_trend` | `TrendList` | Compact 8-week sparkline with current SOV highlighted |
+| `hallucinations` | `AlertList` | Scrollable list of hallucination cards (severity badge + model + claim) |
+| `competitor_comparison` | `CompetitorList` | Competitor cards with gap analysis and recommendation |
+
+All tool result cards follow the design tokens in §12 (Midnight Slate cards, Electric Indigo accents, rounded-xl corners).
+
+### 16.5 Loading State
+
+While a tool is executing (between sending the request and receiving the result):
+- Show pulsing dots animation (`...`) in a gray chat bubble
+- Text: "Checking your data..."
+- Duration is typically 1-3 seconds (Supabase queries, not LLM calls for tool execution)
+
+### 16.6 Input Bar
+
+- Full-width text input with placeholder: "Ask about your AI visibility..."
+- Send button (arrow icon) enabled only when input is non-empty
+- `Enter` key sends; `Shift+Enter` for newline
+- Input clears after send
+- Disabled while assistant is responding (streaming state)
+
+### 16.7 Design Tokens (Chat-Specific)
+
+| Element | Style |
+|---------|-------|
+| User bubble | `bg-indigo-500 text-white rounded-2xl rounded-br-md px-4 py-2` |
+| Assistant bubble | `bg-slate-800 text-slate-100 rounded-2xl rounded-bl-md px-4 py-2` |
+| Tool result card | `bg-slate-800/50 border border-slate-700 rounded-xl p-4` |
+| Input bar | `bg-slate-900 border border-slate-700 rounded-xl` |
+| Send button | `bg-indigo-500 hover:bg-indigo-600 rounded-lg p-2` |
+
 ---
 
 ## Version History
 
 | Version | Date | Changes |
 |---------|------|---------|
+| 2.5 | 2026-02-24 | Added §15 (Dashboard Charts — 4 recharts components with layout spec). Added §16 (AI Assistant page — chat interface, tool result cards, empty state, design tokens). Updated sidebar to include AI Assistant item. Updated component library table with 7 new components (SOVTrendChart, MetricCard, HallucinationsByModel, CompetitorComparison, ChatMessage, ToolResultCard, ChatInput). Updated Key UI States with AI Assistant states. |
 | 2.4 | 2026-02-23 | Added §8 (SOV Dashboard `/visibility`), §9 (Content Draft Review UI `/content-drafts`), §10 (Occasion Alert Feed), §11 (Citation Gap Finder — Listings page enhancement). Renumbered former §8–10 to §12–14. Updated sidebar table, component library, PlanGate `featureId` list, and Key UI States. |
 | 2.3 | 2026-02-16 | Initial version. Design principles, shell, dashboard, magic menu, competitor intercept, listings, onboarding, visual identity, component library, key UI states. |

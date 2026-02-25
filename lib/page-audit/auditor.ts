@@ -81,14 +81,14 @@ async function scoreAnswerFirst(
   const targetQuery = `best ${category} in ${city} ${state}`.trim();
 
   try {
-    const { output } = await generateText({
-      model: getModel('greed-intercept'), // gpt-4o-mini — cost efficient
-      output: Output.object({ schema: AnswerFirstScoreSchema }),
+    const { text } = await generateText({
+      model: getModel('greed-intercept'),
       prompt: `On a scale of 0–100, how directly does this opening text answer the query "${targetQuery}"?\n\nOpening text: "${openingText.slice(0, 500)}"\n\nReturn JSON: { "score": <number> }`,
       temperature: 0,
     });
 
-    return output?.score ?? heuristicAnswerFirst(openingText, location);
+    const parsed = JSON.parse(text);
+    return typeof parsed.score === 'number' ? parsed.score : heuristicAnswerFirst(openingText, location);
   } catch {
     return heuristicAnswerFirst(openingText, location);
   }

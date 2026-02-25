@@ -541,6 +541,7 @@ CREATE TABLE IF NOT EXISTS "public"."location_integrations" (
     "status" character varying(20) DEFAULT 'disconnected'::character varying NOT NULL,
     "last_sync_at" timestamp with time zone,
     "external_id" character varying(255),
+    "listing_url" "text",
     "created_at" timestamp with time zone DEFAULT "now"() NOT NULL
 );
 

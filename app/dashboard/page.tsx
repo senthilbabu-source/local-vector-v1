@@ -3,6 +3,10 @@ import { getSafeAuthContext } from '@/lib/auth';
 import { createClient } from '@/lib/supabase/server';
 import RealityScoreCard from './_components/RealityScoreCard';
 import AlertFeed from './_components/AlertFeed';
+import SOVTrendChart, { type SOVDataPoint } from './_components/SOVTrendChart';
+import HallucinationsByModel, { type ModelHallucinationData } from './_components/HallucinationsByModel';
+import CompetitorComparison, { type CompetitorComparisonData } from './_components/CompetitorComparison';
+import MetricCard from './_components/MetricCard';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -19,11 +23,11 @@ export type HallucinationRow = {
   severity: 'critical' | 'high' | 'medium' | 'low';
   category: string | null;
   model_provider:
-    | 'openai-gpt4o'
-    | 'perplexity-sonar'
-    | 'google-gemini'
-    | 'anthropic-claude'
-    | 'microsoft-copilot';
+  | 'openai-gpt4o'
+  | 'perplexity-sonar'
+  | 'google-gemini'
+  | 'anthropic-claude'
+  | 'microsoft-copilot';
   claim_text: string;
   expected_truth: string | null;
   correction_status: 'open' | 'verifying' | 'fixed' | 'dismissed' | 'recurring';
@@ -98,6 +102,30 @@ async function fetchDashboardData(orgId: string) {
       .maybeSingle() as Promise<{ data: { audit_date: string } | null; error: unknown }>,
   ]);
 
+  // ── Surgery 4: Fetch chart data in parallel ─────────────────────────────
+  const [sovTrendResult, modelCountResult, interceptCompResult] = await Promise.all([
+    // SOV trend: last 12 snapshots for the trend chart
+    supabase
+      .from('visibility_analytics')
+      .select('snapshot_date, share_of_voice')
+      .eq('org_id', orgId)
+      .order('snapshot_date', { ascending: true })
+      .limit(12) as Promise<{ data: { snapshot_date: string; share_of_voice: number }[] | null; error: unknown }>,
+
+    // Hallucinations grouped by model (all time)
+    supabase
+      .from('ai_hallucinations')
+      .select('model_provider')
+      .eq('correction_status', 'open') as Promise<{ data: { model_provider: string }[] | null; error: unknown }>,
+
+    // Competitor intercepts for comparison chart (this month)
+    supabase
+      .from('competitor_intercepts')
+      .select('competitor_name, gap_analysis')
+      .gte('created_at', monthStart)
+      .limit(50) as Promise<{ data: { competitor_name: string; gap_analysis: { competitor_mentions: number; your_mentions: number } }[] | null; error: unknown }>,
+  ]);
+
   const rawOpen = openResult.data ?? [];
 
   // Sort open alerts by severity priority (critical first).
@@ -120,11 +148,47 @@ async function fetchDashboardData(orgId: string) {
 
   return {
     openAlerts,
-    fixedCount:           fixedResult.count ?? 0,
-    interceptsThisMonth:  interceptResult.count ?? 0,
+    fixedCount: fixedResult.count ?? 0,
+    interceptsThisMonth: interceptResult.count ?? 0,
     visibilityScore,
     lastAuditAt,
+    // Surgery 4: Chart data
+    sovTrend: (sovTrendResult.data ?? []).map((row) => ({
+      date: row.snapshot_date,
+      sov: Math.round((row.share_of_voice ?? 0) * 100),
+    })) as SOVDataPoint[],
+    hallucinationsByModel: aggregateByModel(modelCountResult.data ?? []),
+    competitorComparison: aggregateCompetitors(interceptCompResult.data ?? []),
   };
+}
+
+// ---------------------------------------------------------------------------
+// Surgery 4: Aggregation helpers for chart data
+// ---------------------------------------------------------------------------
+
+function aggregateByModel(rows: { model_provider: string }[]): ModelHallucinationData[] {
+  const counts: Record<string, number> = {};
+  for (const row of rows) {
+    counts[row.model_provider] = (counts[row.model_provider] ?? 0) + 1;
+  }
+  return Object.entries(counts).map(([model, count]) => ({ model, count }));
+}
+
+function aggregateCompetitors(
+  rows: { competitor_name: string; gap_analysis: { competitor_mentions: number; your_mentions: number } }[],
+): CompetitorComparisonData[] {
+  const agg: Record<string, { theirMentions: number; yourMentions: number }> = {};
+  for (const row of rows) {
+    if (!agg[row.competitor_name]) {
+      agg[row.competitor_name] = { theirMentions: 0, yourMentions: 0 };
+    }
+    agg[row.competitor_name].theirMentions += row.gap_analysis?.competitor_mentions ?? 0;
+    agg[row.competitor_name].yourMentions += row.gap_analysis?.your_mentions ?? 0;
+  }
+  return Object.entries(agg).map(([competitor, data]) => ({
+    competitor,
+    ...data,
+  }));
 }
 
 // ---------------------------------------------------------------------------
@@ -143,7 +207,7 @@ export function deriveRealityScore(
   openAlertCount: number,
   visibilityScore: number | null,
 ) {
-  const accuracy   = openAlertCount === 0 ? 100 : Math.max(40, 100 - openAlertCount * 15);
+  const accuracy = openAlertCount === 0 ? 100 : Math.max(40, 100 - openAlertCount * 15);
   const dataHealth = 100;
 
   if (visibilityScore === null) {
@@ -166,10 +230,16 @@ export default async function DashboardPage() {
     redirect('/login');
   }
 
-  const { openAlerts, fixedCount, interceptsThisMonth, visibilityScore, lastAuditAt } = await fetchDashboardData(ctx.orgId ?? '');
+  const {
+    openAlerts, fixedCount, interceptsThisMonth, visibilityScore, lastAuditAt,
+    sovTrend, hallucinationsByModel, competitorComparison,
+  } = await fetchDashboardData(ctx.orgId ?? '');
   const scores = deriveRealityScore(openAlerts.length, visibilityScore);
   const firstName = ctx.fullName?.split(' ')[0] ?? ctx.email.split('@')[0];
   const hasOpenAlerts = openAlerts.length > 0;
+
+  // Build sparkline data from SOV trend (last 7 points)
+  const sovSparkline = sovTrend.slice(-7).map((d) => d.sov);
 
   return (
     <div className="space-y-5">
@@ -203,29 +273,41 @@ export default async function DashboardPage() {
         </>
       )}
 
-      {/* ── Quick Stats Row (Doc 06 §3) ───────────────────────────── */}
+      {/* ── Quick Stats Row — Surgery 4: Enhanced MetricCard with sparklines ── */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <QuickStat
+        <MetricCard
           label="Hallucinations fixed"
           value={fixedCount}
-          color="text-signal-green"
+          color="green"
         />
-        <QuickStat
+        <MetricCard
           label="Open alerts"
           value={openAlerts.length}
-          color={hasOpenAlerts ? 'text-alert-crimson' : 'text-signal-green'}
+          color={hasOpenAlerts ? 'red' : 'green'}
         />
-        <QuickStat
+        <MetricCard
           label="Intercept analyses"
           value={interceptsThisMonth}
-          color="text-signal-green"
+          color="green"
         />
-        <QuickStat
-          label="AI Visibility Score"
-          value={scores.visibility != null ? `${scores.visibility}/100` : '—'}
-          color="text-signal-green"
+        <MetricCard
+          label="AI Visibility"
+          value={scores.visibility != null ? `${scores.visibility}%` : '—'}
+          color="green"
+          trend={sovSparkline.length > 1 ? sovSparkline : undefined}
         />
       </div>
+
+      {/* ── Surgery 4: Data Visualization Row ────────────────────── */}
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <SOVTrendChart data={sovTrend} />
+        <HallucinationsByModel data={hallucinationsByModel} />
+      </div>
+
+      {/* ── Surgery 4: Competitor Comparison ──────────────────────── */}
+      {competitorComparison.length > 0 && (
+        <CompetitorComparison data={competitorComparison} />
+      )}
 
     </div>
   );

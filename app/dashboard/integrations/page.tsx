@@ -49,10 +49,15 @@ async function fetchPageData(): Promise<LocationWithIntegrations[]> {
 
   // Fetch all org locations joined with their integration rows (including listing_url).
   // RLS org_isolation_select on both tables ensures only this org's data is returned.
+  //
+  // FK hint required: locations ↔ location_integrations has two FKs
+  // (location_integrations.location_id → locations.id AND locations.gbp_integration_id
+  // → location_integrations.id). PostgREST can't resolve the ambiguity without the
+  // !location_integrations_location_id_fkey hint.
   const { data, error } = (await supabase
     .from('locations')
     .select(
-      'id, business_name, city, state, location_integrations(id, platform, status, last_sync_at, listing_url)'
+      'id, business_name, city, state, location_integrations!location_integrations_location_id_fkey(id, platform, status, last_sync_at, listing_url)'
     )
     .order('created_at', { ascending: true })) as {
     data: LocationWithIntegrations[] | null;

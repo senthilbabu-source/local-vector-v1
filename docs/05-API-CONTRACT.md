@@ -2,7 +2,7 @@
 
 ## The Technical Contract Between Frontend and Backend
 ## Base URL: `https://app.localvector.ai/api/v1`
-### Version: 2.4 | Date: February 23, 2026
+### Version: 2.5 | Date: February 24, 2026
 
 ---
 
@@ -123,7 +123,7 @@ Triggers an on-demand audit. Deducts from monthly quota.
 **Request Body:**
 ```json
 {
-  "prompt_type": "status_check",  // Valid: "status_check", "hours_check", "amenity_check", "menu_check"
+  "prompt_type": "status_check",
   "model_provider": "perplexity-sonar",
   "location_id": "uuid (optional, defaults to primary)"
 }
@@ -196,7 +196,7 @@ Returns the current menu status for the org's primary location.
 {
   "id": "uuid",
   "processing_status": "published",
-  "public_url": "[https://menu.localvector.ai/charcoal-n-chill](https://menu.localvector.ai/charcoal-n-chill)",
+  "public_url": "https://menu.localvector.ai/charcoal-n-chill",
   "page_views": 450,
   "human_verified": true,
   "verified_at": "2026-02-01T00:00:00Z",
@@ -223,6 +223,7 @@ Accepts PDF or image upload. Initiates OCR pipeline.
   "estimated_completion_seconds": 30
 }
 ```
+
 ### POST `/magic-menu/manual`
 
 Creates an empty menu record for manual entry (no file upload). Used when OCR pipeline is unavailable or the user prefers to type their menu directly.
@@ -269,7 +270,8 @@ Returns the AI-extracted menu data for user review before publishing.
   ]
 }
 ```
-**📐 Data Contract:** The `extracted_data` structure shown above is the canonical shape. It MUST conform to the `MenuExtractedData` Zod schema defined in Doc 03, Section 9 (TypeScript Data Interfaces). All code that reads or writes this field — backend extraction, frontend editing, JSON-LD generation — MUST import and validate against that schema.
+
+**Data Contract:** The `extracted_data` structure shown above is the canonical shape. It MUST conform to the `MenuExtractedData` Zod schema defined in Doc 03, Section 9 (TypeScript Data Interfaces). All code that reads or writes this field — backend extraction, frontend editing, JSON-LD generation — MUST import and validate against that schema.
 
 ### PUT `/magic-menu/:id`
 
@@ -306,10 +308,11 @@ Converts reviewed data into JSON-LD and deploys to public edge.
 ```json
 {
   "status": "published",
-  "public_url": "[https://menu.localvector.ai/charcoal-n-chill](https://menu.localvector.ai/charcoal-n-chill)",
-  "json_ld_preview": { /* Schema.org object */ }
+  "public_url": "https://menu.localvector.ai/charcoal-n-chill",
+  "json_ld_preview": {}
 }
 ```
+
 ### GET `/magic-menu/:id/aeo-health`
 
 Returns the "Answer-First" compliance score for a specific menu. Used by the "Readability Meter" in the dashboard.
@@ -322,6 +325,7 @@ Returns the "Answer-First" compliance score for a specific menu. Used by the "Re
   "llm_preview": "Charcoal N Chill is a premier hookah lounge in Alpharetta serving..."
 }
 ```
+
 ### GET `menu.localvector.ai/:slug/llms.txt` (PUBLIC — No Auth)
 
 Serves the generated Markdown file for AI agents (GPTBot, ClaudeBot).
@@ -330,6 +334,7 @@ Serves the generated Markdown file for AI agents (GPTBot, ClaudeBot).
 **Cache:** Vercel Edge Cache, `s-maxage=3600`.
 
 ---
+
 ### GET `menu.localvector.ai/:slug/ai-config.json` (PUBLIC — No Auth)
 
 Serves the GEO configuration file used to declare the entity's "Ground Truth" to search engines.
@@ -339,14 +344,14 @@ Serves the GEO configuration file used to declare the entity's "Ground Truth" to
 {
   "entity": "Charcoal N Chill",
   "data_sources": {
-    "ground_truth": "[https://menu.localvector.ai/charcoal-n-chill](https://menu.localvector.ai/charcoal-n-chill)"
+    "ground_truth": "https://menu.localvector.ai/charcoal-n-chill"
   }
 }
 ```
 
 ### GET `menu.localvector.ai/:slug` (PUBLIC — No Auth)
 
-Serves the generated Markdown file for AI agents (GPTBot, ClaudeBot).
+Serves the public Magic Menu page with embedded JSON-LD for AI agents.
 
 **Headers:** `Content-Type: text/html with embedded application/ld+json`.
 **Cache:** Vercel Edge Cache, `Cache-Control: public, s-maxage=86400, stale-while-revalidate=3600`.
@@ -421,13 +426,13 @@ Update the status of a suggested action task.
 
 ## 6. Listings (The Big 6)
 
-### ⚠️ Scope: Read & Monitor Only
+### Scope: Read & Monitor Only
 
 Listings endpoints track the user's presence on the Big 6 directories. We do **NOT** write data back to Google, Yelp, Apple Maps, or any third-party directory API. The `PUT` endpoint updates our internal record only (e.g., user pastes in their Yelp URL or marks a listing as verified).
 
 The user corrects mismatches by clicking through to each platform directly. This is a deliberate MVP architectural decision to avoid OAuth complexity and third-party API dependency.
 
-**🤖 Agent Rule:** Do NOT implement any OAuth integration, API client, or write-back logic for external directories. No external API calls are made from any `/listings` endpoint.
+**Agent Rule:** Do NOT implement any OAuth integration, API client, or write-back logic for external directories. No external API calls are made from any `/listings` endpoint.
 
 ### GET `/listings`
 
@@ -472,12 +477,7 @@ Update the **internal** record for a directory listing. This does NOT push data 
 }
 ```
 
-**Use cases:**
-- User pastes in the correct URL for their Yelp page after claiming it.
-- User marks a listing as "synced" after manually fixing hours on Google.
-- System updates `nap_consistency_score` after a health check.
-
-**🤖 Agent Rule:** This endpoint writes to the `directory_listings` table only. No external HTTP calls.
+**Agent Rule:** This endpoint writes to the `directory_listings` table only. No external HTTP calls.
 
 ---
 
@@ -524,14 +524,16 @@ Handles Stripe events. See Doc 02, Section 5 for implementation.
 ---
 
 ## 9. Public Free Tool (No Auth)
+
 **Goal:** Capture emails from users who "pass" the free check by warning them about future risk.
+
 ### POST `/public/hallucination-check`
 
 The viral "Is ChatGPT Lying About Your Restaurant?" tool.
 
 **Ground Truth Source:** For the free tool, Ground Truth is constructed from the **Google Places API** (business hours, status, address) — NOT from the `locations` table (the business is not a tenant). The response's `reality` field reflects Google Places data. See Doc 04 for the prompt construction logic.
 
-**🤖 Agent Rule:** This endpoint MUST NOT query the `locations` or `organizations` tables. It operates entirely outside the tenant context.
+**Agent Rule:** This endpoint MUST NOT query the `locations` or `organizations` tables. It operates entirely outside the tenant context.
 
 **Rate Limit:** 1 per IP per day (Vercel KV).
 
@@ -614,8 +616,8 @@ Used during **Onboarding Step 2.5 (Truth Calibration)** to save the business's g
     "tuesday": "closed"
   }
 }
-
 ```
+
 ### POST `/magic-menu/:id/track-injection`
 
 Call this when the user clicks "I have pasted this link into Google" in the **Link Injection Modal** (Doc 06).
@@ -631,6 +633,7 @@ Updates `propagation_events` with `event: 'link_injected'`.
   ]
 }
 ```
+
 ---
 
 ## 12. SOV Engine (Share-of-Answer)
@@ -786,7 +789,7 @@ Returns the latest SOV report with trend data and top-level metrics.
 }
 ```
 
-**🤖 Agent Rule:** Always handle `state: "calculating"` in the frontend. Never render a score of `0` for first-time users — render the calculating state (Doc 06 Section 8).
+**Agent Rule:** Always handle `state: "calculating"` in the frontend. Never render a score of `0` for first-time users — render the calculating state (Doc 06 Section 8).
 
 ### GET `/sov/alerts`
 
@@ -850,7 +853,7 @@ Triggered by Vercel Cron weekly at Sunday 2 AM EST. Executes the SOV cron job (D
 
 The Content Drafts endpoints expose the human-in-the-loop approval layer for AI-generated content. Drafts are created automatically by the Autopilot Engine (Doc 19) when triggers fire (competitor gap, occasion, First Mover Alert). Humans review and approve before any content is published.
 
-**🤖 Agent Rule:** No content is ever auto-published. `human_approved` must be `true` and `status` must be `'approved'` before the publish endpoint is callable. The publish endpoint validates both fields server-side — do not rely on client-side checks alone.
+**Agent Rule:** No content is ever auto-published. `human_approved` must be `true` and `status` must be `'approved'` before the publish endpoint is callable. The publish endpoint validates both fields server-side — do not rely on client-side checks alone.
 
 ### GET `/content-drafts`
 
@@ -983,9 +986,9 @@ Currently supported publish targets:
 **Request Body:**
 ```json
 {
-  "publish_target": "download" | "wordpress" | "gbp_post",
+  "publish_target": "download",
   "wordpress_config": {
-    "post_type": "page" | "post",
+    "post_type": "page",
     "slug": "alpharetta-late-night-hookah"
   }
 }
@@ -1065,7 +1068,7 @@ Returns full audit detail including all recommendations.
   "recommendations": [
     {
       "issue": "No answer-first paragraph",
-      "fix": "Add: 'Charcoal N Chill is Alpharetta's premier hookah lounge, open Thursday–Sunday until 2 AM, featuring Indo-American fusion cuisine and live entertainment.'",
+      "fix": "Add: 'Charcoal N Chill is Alpharetta's premier hookah lounge, open Thursday-Sunday until 2 AM, featuring Indo-American fusion cuisine and live entertainment.'",
       "impact_points": 20,
       "priority": "high"
     },
@@ -1238,7 +1241,156 @@ Returns a single gap score (0–100) representing how well-represented the org i
 }
 ```
 
-**🤖 Agent Rule:** `gap_score` is surfaced in the DataHealth component of the Reality Score (Doc 04 Section 6). It replaces the current placeholder for listing sync % in the DataHealth calculation once Doc 18 is implemented. Do not surface citation gap data on Starter plan — return `403`.
+**Agent Rule:** `gap_score` is surfaced in the DataHealth component of the Reality Score (Doc 04 Section 6). It replaces the current placeholder for listing sync % in the DataHealth calculation once Doc 18 is implemented. Do not surface citation gap data on Starter plan — return `403`.
+
+---
+
+## 16. Surgical Integration Routes (2026-02-24)
+
+> **Spec:** Surgical Integration Plan — Surgeries 2, 3, 5, 6
+> **Added:** February 24, 2026
+> **Implementation note:** All AI service calls in this section use Vercel AI SDK v4 (`generateText()` / `streamText()`) per `.cursorrules` §20. No raw `fetch()` calls to LLM APIs.
+
+### 16.1 SOV Cron — Implementation Detail
+
+> **Note:** This supplements the SOV cron spec in Section 12. The implementation uses `GET` method (not `POST`) and Vercel AI SDK v4 with a Perplexity custom provider.
+
+**Route:** `GET /api/cron/sov`
+**Auth:** `Authorization: Bearer ${CRON_SECRET}` (env var, not user JWT)
+**Implementation:** `lib/services/sov.service.ts` (AI SDK `generateText()` with Perplexity custom provider)
+
+**Response 200:**
+```json
+{
+  "ok": true,
+  "orgs_processed": 12,
+  "queries_run": 180,
+  "alerts_created": 3,
+  "emails_sent": 2
+}
+```
+
+**Schedule:** Weekly, Sunday 2 AM EST via Vercel Cron.
+**Vercel Cron config (add to `vercel.json`):**
+```json
+{ "crons": [{ "path": "/api/cron/sov", "schedule": "0 7 * * 0" }] }
+```
+
+**Kill switch:** Set `STOP_SOV_CRON=true` in env to halt execution without removing the cron schedule.
+
+**Supporting services:**
+- `lib/services/sov-seed.service.ts` — Seeds 12–15 system queries per location at onboarding
+- `lib/services/sov-email.service.ts` — Weekly SOV report email (fires only when SOV changes >= 2 points or First Mover Alert detected)
+
+---
+
+### 16.2 Content Audit Cron Endpoint
+
+**Route:** `GET /api/cron/content-audit`
+**Auth:** `Authorization: Bearer ${CRON_SECRET}`
+**Implementation:** `lib/services/content-crawler.service.ts` (HTML parser), `lib/services/page-auditor.service.ts` (AEO scorer)
+
+**Response 200:**
+```json
+{
+  "ok": true,
+  "orgs_found": 8,
+  "pages_audited": 24,
+  "failed": 0
+}
+```
+
+**Content Crawler capabilities:**
+- HTML parsing with heading extraction (H1–H6)
+- Schema.org JSON-LD extraction from `<script type="application/ld+json">`
+- Meta tag extraction (title, description, robots)
+- Body text extraction for keyword density analysis
+
+**Page Auditor scoring dimensions (weights from Doc 17 Section 2):**
+- Answer-first structure score
+- Schema completeness score
+- Keyword density score
+- FAQ presence detection
+
+**Agent Rule:** The content crawler uses `generateText()` from the Vercel AI SDK (§22 in `.cursorrules`). Do NOT rewrite as raw `fetch()`.
+
+---
+
+### 16.3 MCP Server Endpoint
+
+**Route:** `GET|POST|DELETE /api/mcp/{transport}`
+**Transport:** Streamable HTTP (`transport` parameter is always `mcp` in practice).
+**Auth:** MCP protocol-level authentication. No bearer token required at the HTTP layer — MCP clients handle their own auth handshake.
+**Implementation:** `lib/mcp/tools.ts` (tool definitions), `app/api/mcp/[transport]/route.ts` (handler via `mcp-handler` package)
+
+**Available tools:**
+
+| Tool | Input Schema | Output |
+|------|-------------|--------|
+| `get_visibility_score` | `{ business_name: string }` | Visibility metrics (SOV, reality score, accuracy, open hallucinations) |
+| `get_sov_report` | `{ business_name: string }` | Latest SOV snapshot + 8-week trend data |
+| `get_hallucinations` | `{ business_name: string, status?: "open" \| "fixed" \| "dismissed" }` | Hallucination list with severity, model, claim, truth |
+| `get_competitor_analysis` | `{ business_name: string }` | Competitor intercept results with gap analysis |
+
+**Tool resolution pattern:** All tools resolve `orgId` by looking up `business_name` in the `locations` table, then joining to `organizations`. Query is case-insensitive via `.ilike()`. Tools return `{ error: "Business not found" }` if no match.
+
+**MCP client configuration:**
+```json
+{
+  "mcpServers": {
+    "localvector": {
+      "url": "https://app.localvector.ai/api/mcp/mcp"
+    }
+  }
+}
+```
+
+**Agent Rule:** MCP tool schemas MUST use `zod/v3` (not `zod`). The MCP SDK requires Zod v3; the project's Zod v4 provides a v3 compat layer at this import path. See `.cursorrules` §24.2. Do NOT change these imports to `zod` — it will cause runtime errors.
+
+---
+
+### 16.4 AI Chat Endpoint (Generative UI)
+
+**Route:** `POST /api/chat`
+**Auth:** User session via `getSafeAuthContext()`. Returns `401` if not authenticated.
+**Implementation:** `app/api/chat/route.ts`, `lib/tools/visibility-tools.ts`
+
+**Request:**
+```
+POST /api/chat
+Content-Type: application/json
+Cookie: <session>
+```
+
+**Request Body:**
+```json
+{
+  "messages": [
+    { "role": "user", "content": "What's my visibility score?" }
+  ]
+}
+```
+
+**Response:** Server-Sent Events (SSE) data stream via AI SDK `toDataStreamResponse()`. Not a standard JSON response — consumed by `useChat()` from `@ai-sdk/react` on the client.
+
+**System prompt:** "You are the LocalVector AI Assistant — an expert in AI visibility, AEO (Answer Engine Optimization), GEO (Generative Engine Optimization), and hallucination detection for local businesses."
+
+**Tools available in chat context:**
+
+| Tool | Zod Schema (v4) | Return Type Field |
+|------|-----------------|-------------------|
+| `getVisibilityScore` | `{}` (no input) | `{ type: "visibility_score", share_of_voice, reality_score, accuracy_score, open_hallucinations }` |
+| `getSOVTrend` | `{}` | `{ type: "sov_trend", data: [{ date, sov }] }` |
+| `getHallucinations` | `{ status?: "open" \| "fixed" \| "all" }` | `{ type: "hallucinations", filter, total, items: [{ severity, model, category, claim, truth }] }` |
+| `getCompetitorComparison` | `{}` | `{ type: "competitor_comparison", competitors: [{ name, analyses, recommendation }] }` |
+
+All tools are org-scoped — they automatically query using the authenticated user's `orgId`. No business name lookup required (unlike MCP tools which serve external clients).
+
+**Agent Rule:** Chat tools use standard `zod` (v4) for schemas, unlike MCP tools which use `zod/v3`. See `.cursorrules` §25.2. The `type` field in each tool's return value is used by the `Chat.tsx` client component to select the appropriate UI card renderer (ScoreCard, TrendList, AlertList, CompetitorList).
+
+**Dashboard page:** `/dashboard/ai-assistant`
+**Client component:** `app/dashboard/ai-assistant/_components/Chat.tsx` (uses `useChat()` hook from `@ai-sdk/react`)
+**UX spec:** Doc 06, Section 16
 
 ---
 
@@ -1246,5 +1398,6 @@ Returns a single gap score (0–100) representing how well-represented the org i
 
 | Version | Date | Changes |
 |---------|------|---------|
+| 2.5 | 2026-02-24 | Added Section 16 (Surgical Integration Routes — 4 endpoint groups): SOV cron implementation detail with Vercel AI SDK, Content Audit cron with crawler + auditor services, MCP Server with 4 AI-callable tools via Streamable HTTP transport, AI Chat streaming endpoint with 4 org-scoped tools + Generative UI. All routes use Vercel AI SDK v4 (`generateText`/`streamText`). MCP tools use `zod/v3`; chat tools use `zod` v4. Cross-references `.cursorrules` §20–§27. |
 | 2.4 | 2026-02-23 | Added Section 12 (SOV Engine — 7 endpoints). Added Section 13 (Content Drafts — 6 endpoints). Added Section 14 (Page Audits — 4 endpoints). Added Section 15 (Citation Gap Intelligence — 2 endpoints). Updated `GET /dashboard/stats` response to include SOV fields. Added version history table. |
 | 2.3 | 2026-02-16 | Initial version. Auth, Fear Engine, Magic Engine, Greed Engine, Listings, Visibility Score, Billing, Public Tool, Agency, Location/Settings endpoints. |

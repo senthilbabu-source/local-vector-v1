@@ -1,18 +1,11 @@
 // ---------------------------------------------------------------------------
 // AI Audit Service — Phase 20: Automated Web Audit Engine
 //
-// Accepts a location's ground-truth data, constructs a structured prompt,
-// and asks OpenAI GPT-4o to identify discrepancies between the ground truth
-// and what the model "knows" about the restaurant.
-//
-// Returns an array of DetectedHallucination objects ready for insertion
-// into the ai_hallucinations table. Enum values match prod_schema.sql
-// exactly (all lowercase).
-//
-// Demo mode: when OPENAI_API_KEY is absent (local dev, CI), returns one
-// placeholder hallucination so the route's insert pipeline can be exercised
-// end-to-end without a real API key.
+// Surgery 1: Replaced raw fetch() with Vercel AI SDK generateText().
 // ---------------------------------------------------------------------------
+
+import { generateText } from 'ai';
+import { getModel, hasApiKey } from '@/lib/ai/providers';
 
 // ── Types (mirror prod_schema.sql enums exactly) ───────────────────────────
 
@@ -52,21 +45,7 @@ export interface DetectedHallucination {
   expected_truth: string;
 }
 
-// ── OpenAI response shape ──────────────────────────────────────────────────
-
-interface OpenAIResponse {
-  choices: Array<{
-    message: { content: string };
-  }>;
-}
-
-interface AuditResult {
-  hallucinations: DetectedHallucination[];
-}
-
 // ── Demo result ────────────────────────────────────────────────────────────
-// Returned in local dev / CI when OPENAI_API_KEY is absent. Allows the
-// cron route's database insert pipeline to be exercised without a real key.
 
 const DEMO_HALLUCINATION: DetectedHallucination = {
   model_provider: 'openai-gpt4o',
@@ -134,19 +113,10 @@ function buildAuditPrompt(location: LocationAuditInput): string {
 
 // ── Main export ────────────────────────────────────────────────────────────
 
-/**
- * Audits a single location for AI hallucinations.
- *
- * Calls OpenAI GPT-4o with a structured ground-truth prompt and parses the
- * JSON response into DetectedHallucination objects. Falls back to a single
- * demo hallucination when OPENAI_API_KEY is absent.
- *
- * Throws on network or API errors — the cron route catches these per-org.
- */
 export async function auditLocation(
   location: LocationAuditInput
 ): Promise<DetectedHallucination[]> {
-  if (!process.env.OPENAI_API_KEY) {
+  if (!hasApiKey('openai')) {
     console.log(
       '[ai-audit] OPENAI_API_KEY absent — returning demo result for:',
       location.business_name
@@ -154,32 +124,16 @@ export async function auditLocation(
     return [DEMO_HALLUCINATION];
   }
 
-  const response = await fetch('https://api.openai.com/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
-    },
-    body: JSON.stringify({
-      model: 'gpt-4o',
-      response_format: { type: 'json_object' },
-      messages: [
-        { role: 'system', content: SYSTEM_PROMPT },
-        { role: 'user', content: buildAuditPrompt(location) },
-      ],
-    }),
+  const { text } = await generateText({
+    model: getModel('fear-audit'),
+    system: SYSTEM_PROMPT,
+    prompt: buildAuditPrompt(location),
   });
 
-  if (!response.ok) {
-    throw new Error(
-      `OpenAI API error: ${response.status} ${response.statusText}`
-    );
+  try {
+    const parsed = JSON.parse(text);
+    return Array.isArray(parsed.hallucinations) ? parsed.hallucinations : [];
+  } catch {
+    return [];
   }
-
-  const data = (await response.json()) as OpenAIResponse;
-  const content = data.choices?.[0]?.message?.content;
-  if (!content) return [];
-
-  const parsed = JSON.parse(content) as AuditResult;
-  return Array.isArray(parsed.hallucinations) ? parsed.hallucinations : [];
 }

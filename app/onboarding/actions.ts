@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/server';
 import { getSafeAuthContext } from '@/lib/auth';
 import { z } from 'zod';
 import type { HoursData, Amenities } from '@/lib/types/ground-truth';
+import { seedSOVQueries } from '@/lib/services/sov-seed';
 
 // ---------------------------------------------------------------------------
 // Schemas
@@ -103,6 +104,29 @@ export async function saveGroundTruth(
 
   if (error) {
     return { success: false, error: error.message };
+  }
+
+  // ── Seed SOV queries (best-effort) ────────────────────────────────────
+  // Fetch full location data for seeding (need city, state, categories).
+  // This runs after ground truth is saved — the location is now complete.
+  try {
+    const { data: fullLocation } = await supabase
+      .from('locations')
+      .select('id, business_name, city, state, categories')
+      .eq('id', location_id)
+      .eq('org_id', ctx.orgId)
+      .single();
+
+    if (fullLocation) {
+      await seedSOVQueries(
+        { ...fullLocation, org_id: ctx.orgId },
+        [],  // No competitors on day 1
+        supabase,
+      );
+    }
+  } catch (seedErr) {
+    // Log but don't fail onboarding — seeding is non-critical
+    console.warn('[onboarding] SOV seed failed:', seedErr);
   }
 
   revalidatePath('/dashboard');

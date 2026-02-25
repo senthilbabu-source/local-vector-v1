@@ -33,7 +33,7 @@
 # -------------------------------------------------------------------------
 # 4. TECH STACK & ARCHITECTURE
 # -------------------------------------------------------------------------
-# - Framework: Next.js 15 (App Router). Use Server Components by default.
+# - Framework: Next.js 16 (App Router). Use Server Components by default.
 # - Auth: Supabase Auth (SSR package). Use `auth_provider_id` (UUID) to link users.
 # - UI: Tailwind CSS + shadcn/ui.
 # - Routing:
@@ -59,3 +59,141 @@
 # -------------------------------------------------------------------------
 # - No API Calls on Load: NEVER trigger LLM APIs (OpenAI/Perplexity) from a page load.
 # - All AI operations must be Scheduled (Cron), User-Initiated, or Cached.
+
+# =========================================================================
+# SURGICAL INTEGRATIONS (2026-02-24)
+# 6 modules added: AI SDK swap, SOV cron, content crawler, dashboard charts,
+# MCP server, AI assistant. Rules §20–§27 below.
+# =========================================================================
+
+# -------------------------------------------------------------------------
+# §20. Vercel AI SDK (Surgery 1)
+# -------------------------------------------------------------------------
+# 20.1 All LLM calls MUST use `generateText()` from the `ai` package
+#      (Vercel AI SDK v4), not raw `fetch()`. Provider instantiation uses
+#      `@ai-sdk/openai`.
+#
+# 20.2 Perplexity calls use a custom OpenAI-compatible provider:
+#        import { createOpenAI } from '@ai-sdk/openai';
+#        const perplexity = createOpenAI({
+#          baseURL: 'https://api.perplexity.ai',
+#          apiKey: process.env.PERPLEXITY_API_KEY,
+#        });
+#
+# 20.3 Mock fallback pattern: When OPENAI_API_KEY is absent, services return
+#      demo data after a 3s delay. This pattern MUST be preserved in all AI
+#      service files.
+#
+# 20.4 Streaming responses use `streamText()` and `toDataStreamResponse()`.
+#      The chat endpoint at `app/api/chat/route.ts` is the canonical example.
+
+# -------------------------------------------------------------------------
+# §21. SOV Engine (Surgery 2)
+# -------------------------------------------------------------------------
+# 21.1 The SOV cron lives at `app/api/cron/sov/route.ts`. It requires
+#      `Authorization: Bearer <CRON_SECRET>`.
+#
+# 21.2 SOV service at `lib/services/sov.service.ts` writes to
+#      `visibility_analytics` table. Uses Perplexity custom provider (§20.2).
+#
+# 21.3 Query seeding at `lib/services/sov-seed.service.ts` generates 12–15
+#      system queries per location from templates. Custom queries are
+#      plan-gated (see Doc 04c §3.2).
+#
+# 21.4 The SOV email report at `lib/services/sov-email.service.ts` fires
+#      only when SOV changes >= 2 points or a First Mover Alert is detected.
+#
+# 21.5 Doc 04c is authoritative for all SOV implementation details. When
+#      Doc 04 and Doc 04c conflict -> Doc 04c wins.
+
+# -------------------------------------------------------------------------
+# §22. Content Crawler & Page Auditor (Surgery 3)
+# -------------------------------------------------------------------------
+# 22.1 Content crawler at `lib/services/content-crawler.service.ts` parses
+#      HTML and extracts headings, Schema.org JSON-LD, meta tags, and text.
+#
+# 22.2 Page auditor at `lib/services/page-auditor.service.ts` scores pages
+#      on: answer-first structure, schema completeness, keyword density, FAQ
+#      presence. Scoring weights are defined in Doc 17 §2.
+#
+# 22.3 Content audit cron at `app/api/cron/content-audit/route.ts` requires
+#      CRON_SECRET auth.
+
+# -------------------------------------------------------------------------
+# §23. Dashboard Charts (Surgery 4)
+# -------------------------------------------------------------------------
+# 23.1 Charts use `recharts@^2.15.3`. Components live at
+#      `app/dashboard/_components/`.
+#
+# 23.2 Four chart components: SOVTrendChart, MetricCard,
+#      HallucinationsByModel, CompetitorComparison. All accept typed props
+#      and handle empty/loading states.
+#
+# 23.3 recharts logs a `defaultProps` deprecation warning with React 19.
+#      This is non-blocking and will resolve in a future recharts release.
+
+# -------------------------------------------------------------------------
+# §24. MCP Server (Surgery 5)
+# -------------------------------------------------------------------------
+# 24.1 MCP endpoint at `app/api/mcp/[transport]/route.ts` uses Streamable
+#      HTTP transport via `mcp-handler`.
+#
+# 24.2 MCP tool definitions live at `lib/mcp/tools.ts`. They MUST import
+#      Zod from `zod/v3` (NOT `zod`) because the MCP SDK requires Zod v3.
+#      The project's Zod v4 exports a v3 compat layer at this path.
+#      DO NOT change these imports — it will cause runtime errors.
+#
+# 24.3 All MCP tools resolve orgId by business name lookup, then query
+#      org-scoped data using a service role client. Tools:
+#      get_visibility_score, get_sov_report, get_hallucinations,
+#      get_competitor_analysis.
+#
+# 24.4 MCP client configuration:
+#        { "mcpServers": { "localvector": {
+#            "url": "https://app.localvector.ai/api/mcp/mcp" } } }
+
+# -------------------------------------------------------------------------
+# §25. Generative UI / AI Assistant (Surgery 6)
+# -------------------------------------------------------------------------
+# 25.1 Chat endpoint at `app/api/chat/route.ts` authenticates via
+#      `getSafeAuthContext()`, builds org-scoped tools from
+#      `lib/tools/visibility-tools.ts`, streams via `streamText()`.
+#
+# 25.2 AI SDK tool definitions for chat live at
+#      `lib/tools/visibility-tools.ts`. `makeVisibilityTools(orgId)` returns
+#      4 tools. These use standard `zod` (v4), unlike MCP tools (zod/v3).
+#
+# 25.3 Chat UI at `app/dashboard/ai-assistant/_components/Chat.tsx` uses
+#      `useChat()` from `@ai-sdk/react`. Tool results render as typed UI
+#      cards: ScoreCard, TrendList, AlertList, CompetitorList.
+#
+# 25.4 AI SDK v4 type workaround: ToolInvocationUIPart does not expose
+#      `toolName` directly. Use `const toolPart = part as any;` then access
+#      `toolPart.toolName` and `toolPart.result`. Monitor AI SDK updates
+#      for proper type support.
+#
+# 25.5 System prompt defines the assistant as "LocalVector AI Assistant"
+#      expert in AI visibility, AEO, GEO, and hallucination detection.
+
+# -------------------------------------------------------------------------
+# §26. New Dependencies (2026-02-24)
+# -------------------------------------------------------------------------
+# Package              | Version  | Purpose                | Used By
+# ---------------------|----------|------------------------|------------------
+# ai                   | ^4.3     | Vercel AI SDK core     | All AI services
+# @ai-sdk/openai       | ^1.3     | OpenAI provider        | AI services
+# @ai-sdk/react        | (bundled)| React hooks (useChat)  | Chat UI
+# recharts             | ^2.15.3  | Chart library          | Dashboard charts
+# mcp-handler          | ^1.0.7   | MCP server handler     | MCP endpoint
+# @modelcontextprotocol/sdk | ^1.25.2 | MCP protocol types | MCP tools
+
+# -------------------------------------------------------------------------
+# §27. New Route Map (2026-02-24)
+# -------------------------------------------------------------------------
+# Method         | Route                      | Auth         | Purpose
+# ---------------|----------------------------|--------------|--------------------
+# GET            | /api/cron/sov              | CRON_SECRET  | Weekly SOV scan
+# GET            | /api/cron/content-audit    | CRON_SECRET  | Content audit scan
+# GET,POST,DELETE| /api/mcp/[transport]       | None (MCP)   | MCP server
+# POST           | /api/chat                  | User session | AI assistant stream
+# —              | /dashboard/ai-assistant    | User session | Chat UI page

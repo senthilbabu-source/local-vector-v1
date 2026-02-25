@@ -15,9 +15,6 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 // ── Mock the AI SDK ──────────────────────────────────────────────────────
 vi.mock('ai', () => ({
   generateText: vi.fn(),
-  Output: {
-    object: vi.fn(({ schema }: { schema: unknown }) => ({ schema })),
-  },
 }));
 
 // ── Mock the providers ──────────────────────────────────────────────────
@@ -96,27 +93,26 @@ describe('runSOVQuery', () => {
   it('detects business citation via fuzzy match (case-insensitive)', async () => {
     vi.mocked(hasApiKey).mockReturnValue(true);
     vi.mocked(generateText).mockResolvedValue({
-      output: {
+      text: JSON.stringify({
         businesses: ['charcoal n chill', 'Cloud 9 Lounge', 'Sahara Hookah'],
         cited_url: 'https://yelp.com/charcoal-n-chill',
-      },
+      }),
     } as never);
 
     const result = await runSOVQuery(MOCK_QUERY);
 
     expect(result.ourBusinessCited).toBe(true);
     expect(result.citationUrl).toBe('https://yelp.com/charcoal-n-chill');
-    // Competitors list should exclude our business
     expect(result.businessesFound).toEqual(['Cloud 9 Lounge', 'Sahara Hookah']);
   });
 
   it('returns ourBusinessCited=false when not mentioned', async () => {
     vi.mocked(hasApiKey).mockReturnValue(true);
     vi.mocked(generateText).mockResolvedValue({
-      output: {
+      text: JSON.stringify({
         businesses: ['Cloud 9 Lounge', 'Sahara Hookah'],
         cited_url: null,
-      },
+      }),
     } as never);
 
     const result = await runSOVQuery(MOCK_QUERY);
@@ -125,10 +121,10 @@ describe('runSOVQuery', () => {
     expect(result.businessesFound).toEqual(['Cloud 9 Lounge', 'Sahara Hookah']);
   });
 
-  it('handles null output from generateText gracefully', async () => {
+  it('handles unparseable text from generateText gracefully', async () => {
     vi.mocked(hasApiKey).mockReturnValue(true);
     vi.mocked(generateText).mockResolvedValue({
-      output: null,
+      text: 'not valid json',
     } as never);
 
     const result = await runSOVQuery(MOCK_QUERY);
@@ -140,10 +136,10 @@ describe('runSOVQuery', () => {
   it('detects partial name matches (substring)', async () => {
     vi.mocked(hasApiKey).mockReturnValue(true);
     vi.mocked(generateText).mockResolvedValue({
-      output: {
+      text: JSON.stringify({
         businesses: ['Charcoal N Chill Hookah Lounge & Restaurant'],
         cited_url: null,
-      },
+      }),
     } as never);
 
     const result = await runSOVQuery(MOCK_QUERY);
@@ -174,7 +170,6 @@ describe('writeSOVResults', () => {
 
     const metrics = await writeSOVResults('org-001', results, supabase);
 
-    // 2 out of 3 cited = 66.7%
     expect(metrics.shareOfVoice).toBe(66.7);
   });
 
@@ -188,7 +183,6 @@ describe('writeSOVResults', () => {
 
     const metrics = await writeSOVResults('org-001', results, supabase);
 
-    // Only occasion and near_me qualify for first mover (not comparison)
     expect(metrics.firstMoverCount).toBe(2);
   });
 
@@ -200,7 +194,6 @@ describe('writeSOVResults', () => {
 
     await writeSOVResults('org-001', results, supabase);
 
-    // Should have called from('visibility_analytics') with upsert
     expect(supabase.from).toHaveBeenCalledWith('visibility_analytics');
   });
 });

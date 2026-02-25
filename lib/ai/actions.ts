@@ -83,42 +83,48 @@ function mockSovResult(engine: SovEngine): SovResult {
 }
 
 // ---------------------------------------------------------------------------
-// AI SDK calls — Surgery 1: Replaces raw fetch() with Vercel AI SDK
+// AI SDK calls — Surgery 1: Replaces raw fetch() with Vercel AI SDK - FIXED
 // ---------------------------------------------------------------------------
 
 async function callOpenAI(prompt: string): Promise<SovResult> {
-  const { output } = await generateText({
+  const { text } = await generateText({
     model: getModel('sov-query-openai'),
-    output: Output.object({ schema: SovQueryResultSchema }),
     prompt,
     temperature: 0.3,
   });
 
-  if (!output) return { rank_position: null, mentioned_competitors: [], raw_response: '' };
-
-  return {
-    rank_position: output.rank_position !== null ? Math.max(1, output.rank_position) : null,
-    mentioned_competitors: output.mentioned_competitors,
-    raw_response: output.raw_response,
-  };
+  try {
+    const parsed = JSON.parse(text);
+    const output = SovQueryResultSchema.parse(parsed);
+    return {
+      rank_position: output.rank_position !== null ? Math.max(1, output.rank_position) : null,
+      mentioned_competitors: output.mentioned_competitors,
+      raw_response: output.raw_response,
+    };
+  } catch {
+    return { rank_position: null, mentioned_competitors: [], raw_response: text };
+  }
 }
 
 async function callPerplexity(prompt: string): Promise<SovResult> {
-  const { output } = await generateText({
+  const { text } = await generateText({
     model: getModel('sov-query'),
-    output: Output.object({ schema: SovQueryResultSchema }),
     system: 'You are a Share of Voice analyst. Always respond with valid JSON only.',
     prompt,
     temperature: 0.3,
   });
 
-  if (!output) return { rank_position: null, mentioned_competitors: [], raw_response: '' };
-
-  return {
-    rank_position: output.rank_position !== null ? Math.max(1, output.rank_position) : null,
-    mentioned_competitors: output.mentioned_competitors,
-    raw_response: output.raw_response,
-  };
+  try {
+    const parsed = JSON.parse(text);
+    const output = SovQueryResultSchema.parse(parsed);
+    return {
+      rank_position: output.rank_position !== null ? Math.max(1, output.rank_position) : null,
+      mentioned_competitors: output.mentioned_competitors,
+      raw_response: output.raw_response,
+    };
+  } catch {
+    return { rank_position: null, mentioned_competitors: [], raw_response: text };
+  }
 }
 
 // ---------------------------------------------------------------------------

@@ -1,6 +1,217 @@
 # LocalVector.ai — Development Log
 
 ---
+## 2026-02-24 — Sprint 41: SOV Visibility Page Enhancement + Seeding
+
+**Goal:** Enhance the Share of Voice page to match Doc 06 §8 spec, wire SOV query seeding into onboarding, and fix a silent cron failure. Design + data wiring sprint — no schema migrations.
+
+### Bug Fix: SOV Cron Silent Failure
+**File:** `lib/services/sov-engine.service.ts`
+**Bug:** `writeSOVResults()` tried to `.update({ updated_at })` on `target_queries`, but the table has no `updated_at` column — silently failing every cron run.
+**Fix:** Removed the dead write entirely. `sov_evaluations.created_at` already timestamps each run.
+
+### Wire seedSOVQueries into Onboarding
+**File:** `app/onboarding/actions.ts`
+**What changed:** After `saveGroundTruth()` successfully updates a location, we now call `seedSOVQueries()` to generate 12-15 system-default SOV queries (Doc 04c §3.1). Previously `seedSOVQueries` was defined but never called — new tenants got zero queries seeded.
+**Pattern:** Best-effort try/catch — seeding failure doesn't break onboarding. Full location fetch (city, state, categories) → `seedSOVQueries(location, [], supabase)`.
+
+### New Components
+1. **`SOVScoreRing`** (`app/dashboard/share-of-voice/_components/SOVScoreRing.tsx`)
+   - Server Component showing aggregate SOV percentage as a circular ring
+   - Color thresholds: green >= 40%, amber 20-39%, crimson < 20%
+   - Citation rate metric + week-over-week delta arrow
+   - Null state: "Your first AI visibility scan runs Sunday. Check back Monday."
+   - Ring pattern adapted from `RealityScoreCard`'s `ScoreGauge`
+
+2. **`FirstMoverCard`** (`app/dashboard/share-of-voice/_components/FirstMoverCard.tsx`)
+   - Client Component for First Mover opportunity alerts
+   - Data source: `content_drafts` with `trigger_type = 'first_mover'`
+   - Rocket icon, quoted query text, date, Create Content + Dismiss buttons
+
+### Enhanced Share of Voice Page
+**File:** `app/dashboard/share-of-voice/page.tsx`
+**Layout (4 sections):**
+1. SOVScoreRing + Quick Stats (queries tracked, locations, last scan, first mover count)
+2. SOVTrendChart (reused from dashboard, last 12 weeks)
+3. First Mover Opportunities (from `content_drafts`)
+4. Query Library (existing per-location SovCards)
+
+**Data sources added:** `visibility_analytics` (org-scoped, last 12 snapshots), `content_drafts` (trigger_type = 'first_mover', status = 'draft').
+**SOV math:** `share_of_voice` stored as 0.0-1.0 float; page multiplies by 100 for display.
+
+### Bug Fix: Integrations Page PostgREST Ambiguous Join
+**File:** `app/dashboard/integrations/page.tsx`
+**Bug:** `[integrations] fetch error: {}` — the embedded resource query `location_integrations(...)` failed silently because PostgREST found two FKs between `locations` and `location_integrations`:
+1. `location_integrations.location_id → locations.id` (the one we want)
+2. `locations.gbp_integration_id → location_integrations.id` (reverse direction)
+
+**Fix:** Added explicit FK hint `!location_integrations_location_id_fkey` to the `.select()` string, telling PostgREST which FK to use for the join.
+
+### Schema Sync: prod_schema.sql
+**File:** `supabase/prod_schema.sql`
+**What:** Added `listing_url TEXT` column to `location_integrations` CREATE TABLE. The column was already added via migration `20260224000003_listing_url_column.sql` but the schema dump was stale and missing it.
+
+### Files Modified
+
+| # | File | Change |
+|---|------|--------|
+| 1 | `lib/services/sov-engine.service.ts` | Bug fix: remove dead `updated_at` write |
+| 2 | `app/onboarding/actions.ts` | Wire `seedSOVQueries()` after ground truth save |
+| 3 | `app/dashboard/share-of-voice/_components/SOVScoreRing.tsx` | NEW: Aggregate score ring |
+| 4 | `app/dashboard/share-of-voice/_components/FirstMoverCard.tsx` | NEW: First Mover card |
+| 5 | `app/dashboard/share-of-voice/page.tsx` | Enhanced: 4-section layout |
+| 6 | `src/__tests__/unit/components/sov/SOVScoreRing.test.tsx` | NEW: 10 tests |
+| 7 | `src/__tests__/unit/components/sov/FirstMoverCard.test.tsx` | NEW: 8 tests |
+| 8 | `src/__tests__/integration/onboarding-actions.test.ts` | Enhanced: +4 seeding tests |
+| 9 | `app/dashboard/integrations/page.tsx` | Bug fix: FK hint for ambiguous PostgREST join |
+| 10 | `supabase/prod_schema.sql` | Schema sync: add `listing_url` to `location_integrations` |
+
+**Build:** Clean (`next build`, 0 type errors)
+**Tests:** 424 passing (+22 from baseline 402), 1 pre-existing failure (rls-isolation, requires live Supabase)
+
+---
+## 2026-02-24 — Surgical Integration: 6 Vercel/Next.js Template Upgrades
+
+**Context:** Research identified 6 high-value Vercel template patterns missing from the LocalVector codebase. Rather than rebuilding, we surgically integrated each into the existing Next.js 16 + Supabase architecture. All 6 completed in a single session. Build clean, 402 tests passing, zero regressions.
+
+---
+
+### Surgery 1: AI SDK Swap (Vercel AI SDK v4)
+**Template source:** `ai-chatbot` / `ai-sdk-preview-tool-use`
+**What changed:** Replaced raw `fetch()` calls to OpenAI/Perplexity with Vercel AI SDK `generateText()` wrapper.
+**Files modified (6):**
+- `lib/services/ai-audit.service.ts` — `generateText()` with openai provider
+- `lib/services/competitor-intercept.service.ts` — `generateText()` with openai provider
+- `lib/services/sov.service.ts` — `generateText()` with Perplexity custom provider
+- `lib/services/content-audit.service.ts` — `generateText()` with openai provider
+- `lib/services/page-auditor.service.ts` — `generateText()` with openai provider
+- `app/api/cron/audit/route.ts` — minor import adjustment
+
+**Dependencies added:** `ai@^4.3`, `@ai-sdk/openai@^1.3`
+**Tests:** 355 passing (6 modified, 0 new)
+**Why:** Unified LLM interface, streaming support, structured output parsing, provider abstraction. Eliminates 4 separate `fetch()` → JSON.parse() patterns.
+
+---
+
+### Surgery 2: SOV Engine Cron
+**Template source:** `cron-job` pattern
+**What changed:** Built the weekly Share-of-Voice cron job that populates `visibility_analytics` with real data, replacing the hardcoded `visibility = 98`.
+**Files created (6):**
+- `lib/services/sov.service.ts` (~200 lines) — SOV query runner + result writer
+- `app/api/cron/sov/route.ts` (~80 lines) — Cron endpoint with CRON_SECRET auth
+- `lib/services/sov-seed.service.ts` (~120 lines) — Seed SOV queries per location
+- `lib/services/sov-email.service.ts` (~100 lines) — Weekly SOV report email
+- `src/__tests__/unit/sov-service.test.ts` — 12 tests
+- `src/__tests__/unit/sov-cron.test.ts` — 8 tests
+
+**Route:** `GET /api/cron/sov` (Vercel Cron, Sunday 2AM EST)
+**Tests:** 374 passing (+19 new, +1 pre-existing RLS test failure)
+**Spec ref:** Doc 04c (SOV Engine Specification)
+
+---
+
+### Surgery 3: Content Crawler + Page Auditor
+**Template source:** Content analysis patterns
+**What changed:** Built HTML content parser and page AEO auditor for scoring tenant websites.
+**Files created (6):**
+- `lib/services/content-crawler.service.ts` (~180 lines) — HTML parser, heading/schema extraction
+- `lib/services/page-auditor.service.ts` (~200 lines) — AEO scoring (answer-first, schema, keyword density)
+- `app/api/cron/content-audit/route.ts` (~80 lines) — Content audit cron endpoint
+- `src/__tests__/unit/content-crawler.test.ts` — 8 tests
+- `src/__tests__/unit/page-auditor.test.ts` — 7 tests
+
+**Route:** `GET /api/cron/content-audit`
+**Tests:** 389 passing (+15 new)
+**Spec ref:** Doc 17 (Content Grader)
+
+---
+
+### Surgery 4: Dashboard Charts (recharts)
+**Template source:** `admin-dashboard` chart patterns
+**What changed:** Added 4 data visualization components to the main dashboard.
+**Files created (5):**
+- `app/dashboard/_components/SOVTrendChart.tsx` — Line chart (SOV % over time)
+- `app/dashboard/_components/MetricCard.tsx` — Stat card with delta indicator
+- `app/dashboard/_components/HallucinationsByModel.tsx` — Bar chart (hallucinations by AI model)
+- `app/dashboard/_components/CompetitorComparison.tsx` — Bar chart (our SOV vs competitors)
+- `app/dashboard/page.tsx` — Enhanced with chart grid layout
+
+**Dependencies added:** `recharts@^2.15.3`
+**React 19 note:** recharts defaultProps warning logged but non-breaking. React 19 compatible.
+**Tests:** 389 passing (no new tests — UI components)
+
+---
+
+### Surgery 5: MCP Server (Model Context Protocol)
+**Template source:** `mcp-server` Vercel template
+**What changed:** Exposed LocalVector data as AI-callable tools via MCP protocol.
+**Files created (3):**
+- `lib/mcp/tools.ts` (~268 lines) — 4 MCP tools: `get_visibility_score`, `get_sov_report`, `get_hallucinations`, `get_competitor_analysis`. Uses Zod v3 compat layer (`zod/v3`) because MCP SDK requires Zod v3 while project uses Zod v4.
+- `app/api/mcp/[transport]/route.ts` (~42 lines) — Streamable HTTP transport endpoint
+- `src/__tests__/unit/mcp-tools.test.ts` (~134 lines) — 9 tests
+
+**Dependencies added:** `mcp-handler@^1.0.7`, `@modelcontextprotocol/sdk@^1.25.2`
+**Route:** `/api/mcp/[transport]` (GET, POST, DELETE)
+**MCP client config:**
+```json
+{ "mcpServers": { "localvector": { "url": "https://app.localvector.ai/api/mcp/mcp" } } }
+```
+**Tests:** 397 passing (+8 new)
+**Zod compatibility note:** MCP SDK requires Zod v3. Project uses Zod v4 which exports a v3 compat layer at `zod/v3`. All MCP tool schemas import from `zod/v3`; all other code continues using `zod` (v4).
+
+---
+
+### Surgery 6: Generative UI Chat Assistant
+**Template source:** `ai-chatbot` + Generative UI patterns
+**What changed:** Built AI assistant dashboard page with streaming chat and rich tool-result UI cards.
+**Files created (5):**
+- `lib/tools/visibility-tools.ts` (~186 lines) — AI SDK tool definitions for chat context. `makeVisibilityTools(orgId)` returns 4 tools with Zod schemas.
+- `app/api/chat/route.ts` (~58 lines) — Streaming chat endpoint. Auth guard → org-scoped tools → `streamText()` with GPT-4o.
+- `app/dashboard/ai-assistant/_components/Chat.tsx` (~318 lines) — Client component with `useChat()`. Tool result cards: ScoreCard, TrendList, AlertList, CompetitorList. Dark theme, starter prompts, auto-scroll.
+- `app/dashboard/ai-assistant/page.tsx` (~26 lines) — Server component page wrapper with auth guard.
+- `src/__tests__/unit/visibility-tools.test.ts` (~120 lines) — 5 tests
+
+**Routes:** `POST /api/chat`, `/dashboard/ai-assistant`
+**AI SDK v4 type note:** `ToolInvocationUIPart` changed in AI SDK v4 — `part.state` no longer exists. Use `'result' in part` for runtime check. Cast to `any` for `toolName` access.
+**Tests:** 402 passing (+5 new)
+
+---
+
+### Summary
+
+| Surgery | What | Files | Lines | Tests |
+|---------|------|-------|-------|-------|
+| 1 | AI SDK Swap | 6 modified | ~150 | 355 |
+| 2 | SOV Engine Cron | 6 new | ~880 | 374 |
+| 3 | Content Crawler | 6 new | ~780 | 389 |
+| 4 | Dashboard Charts | 5 new | ~500 | 389 |
+| 5 | MCP Server | 3 new | ~444 | 397 |
+| 6 | Generative UI | 5 new | ~708 | 402 |
+| **Total** | | **5 modified + 31 new** | **~3,462** | **402** |
+
+**New dependencies:** `ai`, `@ai-sdk/openai`, `@ai-sdk/react`, `recharts`, `mcp-handler`, `@modelcontextprotocol/sdk`
+
+**New routes:**
+- `GET /api/cron/sov` — Weekly SOV scan
+- `GET /api/cron/content-audit` — Content audit scan
+- `GET|POST|DELETE /api/mcp/[transport]` — MCP server
+- `POST /api/chat` — AI assistant streaming
+- `/dashboard/ai-assistant` — Chat UI page
+
+**Build status:** Clean (Next.js 16.1.6 Turbopack). TypeScript strict mode passing.
+**Test status:** 402 passing, 1 pre-existing failure (`rls-isolation.test.ts` — requires live Supabase).
+
+---
+
+### Known Issues / Follow-ups
+1. **recharts React 19 warning:** `defaultProps` deprecation warning at runtime. Non-blocking. Will resolve when recharts ships React 19 native support.
+2. **MCP Zod v3/v4 split:** If upgrading Zod in the future, verify `zod/v3` compat layer still works for MCP SDK.
+3. **AI SDK v4 types:** `ToolInvocationUIPart` type is narrower than expected. Chat.tsx uses `as any` cast. Monitor for SDK updates that expose `toolName` properly.
+4. **SOV cron needs Vercel Cron config:** Add to `vercel.json`:
+   ```json
+   { "crons": [{ "path": "/api/cron/sov", "schedule": "0 7 * * 0" }] }
+   ```
+5. **Content audit cron needs Vercel Cron config:** Similar to above.
 
 ## 2026-02-24 — Sprint 40: Design System Skinning — All Pages
 

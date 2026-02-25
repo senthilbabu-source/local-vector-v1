@@ -23,11 +23,13 @@ import type { HoursData, Amenities } from '@/lib/types/ground-truth';
 vi.mock('next/cache', () => ({ revalidatePath: vi.fn() }));
 vi.mock('@/lib/auth',            () => ({ getSafeAuthContext: vi.fn() }));
 vi.mock('@/lib/supabase/server', () => ({ createClient: vi.fn() }));
+vi.mock('@/lib/services/sov-seed', () => ({ seedSOVQueries: vi.fn().mockResolvedValue({ seeded: 12 }) }));
 
 // Import mocked modules so we can call vi.mocked() on them in tests
 import { getSafeAuthContext } from '@/lib/auth';
 import { createClient }       from '@/lib/supabase/server';
 import { revalidatePath }     from 'next/cache';
+import { seedSOVQueries }    from '@/lib/services/sov-seed';
 
 // Import the action AFTER mocks are wired up.
 // 'use server' is a string expression that Vitest ignores; the exports are callable.
@@ -69,6 +71,14 @@ const VALID_AMENITIES: Amenities = {
   has_live_music:      true,
 };
 
+const MOCK_FULL_LOCATION = {
+  id:            LOCATION_ID,
+  business_name: 'Charcoal N Chill',
+  city:          'Alpharetta',
+  state:         'GA',
+  categories:    ['Hookah Bar', 'Indian Restaurant'],
+};
+
 // ---------------------------------------------------------------------------
 // Supabase mock factory
 //
@@ -78,18 +88,29 @@ const VALID_AMENITIES: Amenities = {
 // The inner .eq().eq() chain terminates in a Promise.
 // ---------------------------------------------------------------------------
 
-function makeSupabaseMock(dbError: { message: string } | null = null) {
-  // Chain depth (deepest is a Promise):
-  //   from(table)         → { update }
-  //   .update(payload)    → { eq: firstEq }
-  //   .eq('id', ...)      → { eq: secondEq }
-  //   .eq('org_id', ...)  → Promise<{ error }>
-  const secondEq = vi.fn().mockResolvedValue({ error: dbError });
+function makeSupabaseMock(opts: {
+  updateError?: { message: string } | null;
+  selectData?: Record<string, unknown> | null;
+} = {}) {
+  const updateError = opts.updateError ?? null;
+  const selectData  = opts.selectData ?? null;
+
+  // Update chain:
+  //   from('locations').update({}).eq('id', ...).eq('org_id', ...) → { error }
+  const secondEq = vi.fn().mockResolvedValue({ error: updateError });
   const firstEq  = vi.fn().mockReturnValue({ eq: secondEq });
   const update   = vi.fn().mockReturnValue({ eq: firstEq });
-  const from     = vi.fn().mockReturnValue({ update });
 
-  return { from, update, firstEq, secondEq };
+  // Select chain (for SOV seed fetch):
+  //   from('locations').select('...').eq('id', ...).eq('org_id', ...).single() → { data }
+  const single         = vi.fn().mockResolvedValue({ data: selectData });
+  const selectSecondEq = vi.fn().mockReturnValue({ single });
+  const selectFirstEq  = vi.fn().mockReturnValue({ eq: selectSecondEq });
+  const select         = vi.fn().mockReturnValue({ eq: selectFirstEq });
+
+  const from = vi.fn().mockReturnValue({ update, select });
+
+  return { from, update, firstEq, secondEq, select, selectFirstEq, selectSecondEq, single };
 }
 
 // ---------------------------------------------------------------------------
@@ -335,7 +356,7 @@ describe('saveGroundTruth — Supabase error handling', () => {
   });
 
   it('returns { success: false, error } when Supabase returns an error', async () => {
-    const { from } = makeSupabaseMock({ message: 'DB write failed' });
+    const { from } = makeSupabaseMock({ updateError: { message: 'DB write failed' } });
     vi.mocked(createClient).mockResolvedValue({ from } as never);
 
     const result = await saveGroundTruth({
@@ -349,7 +370,7 @@ describe('saveGroundTruth — Supabase error handling', () => {
   });
 
   it('does NOT call revalidatePath when the DB update fails', async () => {
-    const { from } = makeSupabaseMock({ message: 'connection refused' });
+    const { from } = makeSupabaseMock({ updateError: { message: 'connection refused' } });
     vi.mocked(createClient).mockResolvedValue({ from } as never);
 
     await saveGroundTruth({
@@ -360,5 +381,81 @@ describe('saveGroundTruth — Supabase error handling', () => {
     });
 
     expect(revalidatePath).not.toHaveBeenCalled();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// SOV Query Seeding — Sprint 41 (Doc 04c §3)
+// ---------------------------------------------------------------------------
+
+describe('saveGroundTruth — SOV query seeding after successful save', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.mocked(getSafeAuthContext).mockResolvedValue(MOCK_AUTH_CTX as never);
+  });
+
+  it('calls seedSOVQueries with full location data after successful ground truth save', async () => {
+    const { from } = makeSupabaseMock({ selectData: MOCK_FULL_LOCATION });
+    vi.mocked(createClient).mockResolvedValue({ from } as never);
+
+    const result = await saveGroundTruth({
+      location_id:   LOCATION_ID,
+      business_name: 'Charcoal N Chill',
+      amenities:     VALID_AMENITIES,
+      hours_data:    VALID_HOURS,
+    });
+
+    expect(result).toEqual({ success: true });
+    expect(seedSOVQueries).toHaveBeenCalledWith(
+      { ...MOCK_FULL_LOCATION, org_id: ORG_ID },
+      [],            // No competitors on day 1
+      expect.anything(),  // Supabase client
+    );
+  });
+
+  it('does NOT call seedSOVQueries when location fetch returns null', async () => {
+    const { from } = makeSupabaseMock({ selectData: null });
+    vi.mocked(createClient).mockResolvedValue({ from } as never);
+
+    const result = await saveGroundTruth({
+      location_id:   LOCATION_ID,
+      business_name: 'Charcoal N Chill',
+      amenities:     VALID_AMENITIES,
+      hours_data:    VALID_HOURS,
+    });
+
+    expect(result).toEqual({ success: true });
+    expect(seedSOVQueries).not.toHaveBeenCalled();
+  });
+
+  it('still returns success when seedSOVQueries throws (best-effort)', async () => {
+    const { from } = makeSupabaseMock({ selectData: MOCK_FULL_LOCATION });
+    vi.mocked(createClient).mockResolvedValue({ from } as never);
+    vi.mocked(seedSOVQueries).mockRejectedValueOnce(new Error('seed boom'));
+
+    const result = await saveGroundTruth({
+      location_id:   LOCATION_ID,
+      business_name: 'Charcoal N Chill',
+      amenities:     VALID_AMENITIES,
+      hours_data:    VALID_HOURS,
+    });
+
+    // Seeding failure is non-critical — onboarding still succeeds
+    expect(result).toEqual({ success: true });
+    expect(revalidatePath).toHaveBeenCalledWith('/dashboard');
+  });
+
+  it('does NOT attempt seeding when the DB update fails', async () => {
+    const { from } = makeSupabaseMock({ updateError: { message: 'DB error' } });
+    vi.mocked(createClient).mockResolvedValue({ from } as never);
+
+    await saveGroundTruth({
+      location_id:   LOCATION_ID,
+      business_name: 'Charcoal N Chill',
+      amenities:     VALID_AMENITIES,
+      hours_data:    VALID_HOURS,
+    });
+
+    expect(seedSOVQueries).not.toHaveBeenCalled();
   });
 });

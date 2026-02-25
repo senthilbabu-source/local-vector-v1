@@ -16,7 +16,7 @@
 // Spec: docs/04c-SOV-ENGINE.md §4
 // ---------------------------------------------------------------------------
 
-import { generateText, Output } from 'ai';
+import { generateText } from 'ai';
 import { getModel, hasApiKey } from '@/lib/ai/providers';
 import { SovCronResultSchema, type SovCronResultOutput } from '@/lib/ai/schemas';
 
@@ -99,17 +99,22 @@ export async function runSOVQuery(query: SOVQueryInput): Promise<SOVQueryResult>
     return mockSOVResult(query);
   }
 
-  const { output } = await generateText({
+  const { text } = await generateText({
     model: getModel('sov-query'),
-    output: Output.object({ schema: SovCronResultSchema }),
     system: 'You are a local business search assistant. Always respond with valid JSON only.',
     prompt: buildSOVCronPrompt(query.query_text),
     temperature: 0.3,
   });
 
-  const businesses = output?.businesses ?? [];
-  const citationUrl = output?.cited_url ?? null;
-
+  let businesses: string[] = [];
+  let citationUrl: string | null = null;
+  try {
+    const parsed = SovCronResultSchema.parse(JSON.parse(text));
+    businesses = parsed.businesses ?? [];
+    citationUrl = parsed.cited_url ?? null;
+  } catch {
+    // unparseable response — treat as no results
+  }
   // Fuzzy match: case-insensitive substring check.
   // "Charcoal N Chill" matches "charcoal n chill", "Charcoal n Chill Hookah Lounge", etc.
   const businessName = query.locations.business_name.toLowerCase();
@@ -154,16 +159,11 @@ export async function writeSOVResults(
 
   const today = new Date().toISOString().split('T')[0];
 
-  // ── 1. Update per-query last_run state ──────────────────────────────────
+  // ── 1. Insert per-query evaluation history ─────────────────────────────
+  // Each run is recorded in sov_evaluations with a created_at timestamp.
+  // (target_queries has no updated_at/last_run_at column — we rely on
+  //  sov_evaluations.created_at for "last run" semantics.)
   for (const result of results) {
-    await supabase
-      .from('target_queries')
-      .update({
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', result.queryId);
-
-    // Also insert into sov_evaluations for history
     await supabase.from('sov_evaluations').insert({
       org_id: orgId,
       location_id: result.locationId,
