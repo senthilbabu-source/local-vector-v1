@@ -42,7 +42,8 @@
 * **Mocking:** NEVER hit real external APIs (Perplexity, OpenAI, Stripe) in tests. Use MSW (Mock Service Worker) handlers.
 * **Server Action mock patterns — use the right technique:**
   * **Supabase client:** `vi.mock('@/lib/supabase/server', () => ({ createClient: vi.fn() }))` then `vi.mocked(createClient as any).mockResolvedValue({ from: vi.fn(...) })`.
-  * **Direct `fetch` calls** (Server Actions that call `fetch` themselves, not via a module): use `vi.stubGlobal('fetch', vi.fn())` — `vi.mock` cannot intercept global fetch.
+  * **AI SDK calls** (`generateText`, `generateObject`): `vi.mock('ai', () => ({ generateText: vi.fn(), generateObject: vi.fn() }))` + `vi.mock('@/lib/ai/providers', () => ({ getModel: vi.fn().mockReturnValue('mock-model'), hasApiKey: vi.fn().mockReturnValue(true) }))`. Mock return shapes: `{ text: '...' }` for `generateText`, `{ object: {...} }` for `generateObject`. Control fallback paths with `vi.mocked(hasApiKey).mockReturnValue(false)`.
+  * **Direct `fetch` calls** (non-AI HTTP calls where no SDK wrapper exists): use `vi.stubGlobal('fetch', vi.fn())` — `vi.mock` cannot intercept global fetch. **Note:** All AI API calls (Perplexity, OpenAI) now use the Vercel AI SDK — never raw `fetch`.
   * **`setTimeout` mock delays** (SOV/evaluation actions with no API key): use `vi.useFakeTimers()` in `beforeEach` and `await vi.runAllTimersAsync()` before awaiting the result. Without this, tests wait 3 real seconds.
   * **`vi.mock()` declarations must be hoisted** before any `import` statements. File must be read with the `Read` tool before any `Edit` to a test file.
 
@@ -314,36 +315,37 @@ Before marking any phase "Completed", verify all of the following are true:
   ```
 * Limits by tier: `trial`=0, `starter`=0, `growth`=3, `agency`=10.
 
-### 19.3 — MSW handler model discrimination
+### 19.3 — AI SDK model keys and MSW handler discrimination
+
+**All AI API calls use the Vercel AI SDK** (`generateText` / `generateObject`) via model keys in `lib/ai/providers.ts`. Never use raw `fetch()` to call Perplexity or OpenAI.
+
+**Model key registry** (defined in `lib/ai/providers.ts`):
+| Key | Provider | SDK Function | Purpose |
+|-----|----------|-------------|---------|
+| `greed-headtohead` | Perplexity Sonar | `generateText` | Head-to-head comparison (Stage 1). Uses `generateText` because Perplexity's `compatibility: 'compatible'` mode does not support `response_format: json_schema`. |
+| `greed-intercept` | OpenAI gpt-4o-mini | `generateObject` | Intercept analysis (Stage 2). Structured output enforced server-side via Zod schema. |
+| `magic-menu` | OpenAI gpt-4o | `generateObject` | Magic Menu OCR extraction. |
+| `content-grader` | OpenAI gpt-4o-mini | `generateObject` | Content Grader AEO scoring. |
+| `autopilot-brief` | OpenAI gpt-4o-mini | `generateText` | Autopilot draft brief generation. |
+
+**Zod schemas** live in `lib/ai/schemas.ts` — imported by both services and tests. Never define AI output types inline.
+
+**MSW handler discrimination** (for E2E tests only):
 * The OpenAI MSW handler in `src/mocks/handlers.ts` discriminates by the `model` field in the request body:
-  - `gpt-4o` → Magic Menu OCR extraction (Phase 18) — returns `MenuExtractedData` JSON
-  - `gpt-4o-mini` → Competitor Intercept Analysis (Phase 3) — returns intercept analysis JSON
+  - `gpt-4o` → Magic Menu OCR extraction — returns `MenuExtractedData` JSON
+  - `gpt-4o-mini` → discriminate by system message tag (see below)
 * **Never** add a second `http.post('https://api.openai.com/...')` handler. MSW only fires the first matching handler.
-  Route new OpenAI model variants inside the **existing** handler using `if (body.model === '...')`.
 
-**When multiple features share the same model (e.g., two Phase 2 features both use `gpt-4o-mini`):**
-
-* Primary discriminator (`body.model`) is no longer sufficient on its own.
+**When multiple features share the same model (e.g., two features both use `gpt-4o-mini`):**
 * Use a **secondary discriminator**: each feature's first system message MUST begin with a unique `[FEATURE_TAG]` marker.
-* When adding a new `gpt-4o-mini` caller, you MUST:
-  1. Prefix the new feature's system message with a unique tag (e.g., `[CONTENT_GRADER]`).
-  2. Retrofit the existing intercept service (`lib/services/competitor-intercept.service.ts`) to prefix its system message with `[INTERCEPT_ANALYSIS]`.
-  3. Update the MSW handler to nest the `gpt-4o-mini` branch on the system message tag:
-  ```typescript
-  const openAiHandler = http.post('https://api.openai.com/v1/chat/completions', async ({ request }) => {
-    const body = await request.json() as { model?: string; messages?: Array<{ role: string; content: string }> };
-    if (body.model === 'gpt-4o-mini') {
-      const systemMsg = body.messages?.[0]?.content ?? '';
-      if (systemMsg.startsWith('[CONTENT_GRADER]')) { /* content grader response */ }
-      /* default gpt-4o-mini branch: intercept analysis */
-      return HttpResponse.json({ /* MOCK_INTERCEPT_ANALYSIS */ });
-    }
-    /* default: gpt-4o menu OCR */
-  });
-  ```
 * **Current system message inventory** (update this list when adding new callers):
-  - `gpt-4o-mini` / Intercept: `'You are an AI search analyst for local businesses.'` — no tag yet; add `[INTERCEPT_ANALYSIS]` tag when Content Grader is built.
-  - `gpt-4o` / Magic Menu: no system message tag needed (only one `gpt-4o` caller).
+  - `gpt-4o-mini` / Intercept: `'You are an AI search analyst for local businesses.'`
+  - `gpt-4o-mini` / Content Grader: `'[CONTENT_GRADER] ...'`
+  - `gpt-4o` / Magic Menu: no tag needed (only one `gpt-4o` caller).
+
+**Unit test mocking** (preferred over MSW for unit tests):
+* Mock the AI SDK directly with `vi.mock('ai')` + `vi.mock('@/lib/ai/providers')` — see §4 for the pattern.
+* This avoids MSW handler routing entirely and is faster + more deterministic.
 
 ### 19.4 — Fixture canonical data
 * All Competitor Intercept unit and integration tests MUST use `MOCK_COMPETITOR` and `MOCK_INTERCEPT`

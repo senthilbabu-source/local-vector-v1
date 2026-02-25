@@ -366,8 +366,12 @@ async function triggerContentDraftIfNeeded(
 }
 
 async function generateDraftBrief(intercept: CompetitorIntercept) {
-  const prompt = `You are an AEO content strategist for local businesses.
-A competitor "${intercept.winner}" is beating "${intercept.my_business_name}"
+  // Uses Vercel AI SDK generateText + getModel('autopilot-brief')
+  // See lib/autopilot/generate-brief.ts for actual implementation
+  const { text } = await generateText({
+    model: getModel('autopilot-brief'),
+    system: 'You are an AEO content strategist for local businesses.',
+    prompt: `A competitor "${intercept.winner}" is beating "${intercept.my_business_name}"
 for the query: "${intercept.query_text}"
 Winning factor: ${intercept.winning_factor}
 Suggested action: ${intercept.suggested_action}
@@ -379,10 +383,10 @@ Return ONLY valid JSON:
   "content": "200-word draft in Answer-First format targeting this query",
   "estimated_aeo_score": number 0-100,
   "target_keywords": ["keyword1", "keyword2"]
-}`;
+}`,
+  });
 
-  const response = await callGPT4oMini(prompt);
-  return JSON.parse(response.replace(/\`\`\`json\n?|\`\`\`/g, ''));
+  return AutopilotDraftSchema.parse(JSON.parse(text));
 }
 ```
 

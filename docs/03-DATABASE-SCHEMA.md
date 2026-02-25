@@ -558,6 +558,12 @@ CREATE POLICY "org_isolation_delete" ON competitors
 
 CREATE POLICY "org_isolation_select" ON competitor_intercepts
   FOR SELECT USING (org_id = public.current_user_org_id());
+CREATE POLICY "org_isolation_insert" ON competitor_intercepts
+  FOR INSERT WITH CHECK (org_id = public.current_user_org_id());
+CREATE POLICY "org_isolation_update" ON competitor_intercepts
+  FOR UPDATE USING (org_id = public.current_user_org_id());
+CREATE POLICY "org_isolation_delete" ON competitor_intercepts
+  FOR DELETE USING (org_id = public.current_user_org_id());
 
 CREATE POLICY "org_isolation_select" ON magic_menus
   FOR SELECT USING (org_id = public.current_user_org_id());

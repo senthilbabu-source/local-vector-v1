@@ -69,7 +69,7 @@ npx vitest run src/__tests__/unit/inngest-audit-cron.test.ts          # 9 tests 
 npx vitest run src/__tests__/unit/inngest-content-audit-cron.test.ts  # 6 tests passing
 npx vitest run src/__tests__/unit/cron-sov.test.ts                    # 23 tests passing
 npx vitest run src/__tests__/unit/cron-audit.test.ts                  # 15 tests passing
-npx vitest run                                                         # 749 tests passing, 7 skipped
+npx vitest run                                                         # 742 tests passing, 7 skipped
 ```
 
 ---
@@ -709,11 +709,11 @@ npx next build                                                     # 0 errors
 
 ---
 
-## Current Test Counts (2026-02-25)
+## Current Test Counts (2026-02-25, Sprint 50)
 
 | Suite | Count | Command |
 |-------|-------|---------|
-| Vitest unit/integration | 711 passing, 7 skipped | `npx vitest run` |
+| Vitest unit/integration | 742 passing, 7 skipped | `npx vitest run` |
 | Playwright E2E | 47 passing (14 spec files) | `npx playwright test --project=chromium` |
 
 ### E2E Spec Inventory
