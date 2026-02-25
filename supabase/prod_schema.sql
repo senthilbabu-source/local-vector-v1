@@ -1471,6 +1471,10 @@ CREATE POLICY "org_isolation_delete" ON "public"."ai_hallucinations" FOR DELETE 
 
 
 
+CREATE POLICY "org_isolation_delete" ON "public"."competitor_intercepts" FOR DELETE USING (("org_id" = "public"."current_user_org_id"()));
+
+
+
 CREATE POLICY "org_isolation_delete" ON "public"."competitors" FOR DELETE USING (("org_id" = "public"."current_user_org_id"()));
 
 
@@ -1508,6 +1512,10 @@ CREATE POLICY "org_isolation_insert" ON "public"."ai_evaluations" FOR INSERT WIT
 
 
 CREATE POLICY "org_isolation_insert" ON "public"."ai_hallucinations" FOR INSERT WITH CHECK (("org_id" = "public"."current_user_org_id"()));
+
+
+
+CREATE POLICY "org_isolation_insert" ON "public"."competitor_intercepts" FOR INSERT WITH CHECK (("org_id" = "public"."current_user_org_id"()));
 
 
 
@@ -1636,6 +1644,10 @@ CREATE POLICY "org_isolation_update" ON "public"."ai_evaluations" FOR UPDATE USI
 
 
 CREATE POLICY "org_isolation_update" ON "public"."ai_hallucinations" FOR UPDATE USING (("org_id" = "public"."current_user_org_id"()));
+
+
+
+CREATE POLICY "org_isolation_update" ON "public"."competitor_intercepts" FOR UPDATE USING (("org_id" = "public"."current_user_org_id"())) WITH CHECK (("org_id" = "public"."current_user_org_id"()));
 
 
 
