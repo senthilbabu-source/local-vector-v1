@@ -90,3 +90,14 @@ export const OccasionDraftSchema = z.object({
 });
 
 export type OccasionDraftOutput = z.infer<typeof OccasionDraftSchema>;
+
+// ── Citation Intelligence — Citation cron response (Doc 18 §2.1) ────────────
+
+export const CitationCronResultSchema = z.object({
+  recommendations: z.array(z.object({
+    business: z.string(),
+    source_url: z.string().nullable(),
+  })),
+});
+
+export type CitationCronResultOutput = z.infer<typeof CitationCronResultSchema>;

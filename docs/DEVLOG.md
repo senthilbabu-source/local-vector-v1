@@ -4,6 +4,39 @@
 
 ---
 
+## 2026-02-25 — Sprint 46: Citation Intelligence Cron (Completed)
+
+**Goal:** Build the Citation Intelligence cron — a monthly infrastructure-level pipeline that measures which platforms AI actually cites when answering discovery queries for a business category+city. Shared aggregate data, not tenant-specific. Cost: ~900 Perplexity Sonar queries/month = ~$4.50 fixed.
+
+**Spec:** `docs/18-CITATION-INTELLIGENCE.md`
+
+**Scope:**
+- `lib/types/citations.ts` — **NEW.** TypeScript interfaces: `CitationSourceIntelligence`, `PlatformCitationCounts`, `CitationQueryResult`, `CitationGapSummary`, `TenantListing`, `CitationCronSummary`.
+- `lib/services/citation-engine.service.ts` — **NEW.** Pure service (~290 lines). Exports: `TRACKED_CATEGORIES` (9), `TRACKED_METROS` (20), `extractPlatform()` (15 known platforms + hostname fallback), `buildCitationPrompt()`, `generateSampleQueries()` (5 per category+metro), `runCitationQuery()` (Perplexity Sonar via `getModel('sov-query')`), `runCitationSample()` (orchestrates 5 queries + platform counting + 500ms rate limit), `writeCitationResults()` (upsert into `citation_source_intelligence` using UNIQUE constraint), `calculateCitationGapScore()` (pure function: cross-references citation data vs tenant listings, 30% relevance threshold, returns 0–100 gap score + top uncovered gap).
+- `lib/ai/schemas.ts` — Added `CitationCronResultSchema` (Zod: recommendations array with business + source_url).
+- `app/api/cron/citation/route.ts` — **NEW.** Monthly cron route (`GET /api/cron/citation`). CRON_SECRET auth guard, `STOP_CITATION_CRON` kill switch, service-role client, per-category+metro try/catch resilience. Processes 9×20=180 combinations, returns summary JSON.
+
+**Key design decisions:**
+- Reuses `'sov-query'` model key (Perplexity Sonar) — no new provider entry.
+- Separate cron from SOV (Doc 18 §8): monthly schedule vs SOV's weekly.
+- No RLS on `citation_source_intelligence` — aggregate market data, service-role only.
+- No plan gating — infrastructure-level, all tenants benefit.
+- `extractPlatform()` handles `google.com/maps` and `maps.google.com` path-based matching before hostname fallback.
+- `calculateCitationGapScore()` excludes `not_linked` sync_status (matching actual DB enum; spec's `not_found`/`not_claimed` don't exist in the `sync_status` enum).
+
+**Tests added:**
+- `src/__tests__/unit/citation-engine-service.test.ts` — **42 Vitest tests** (new). extractPlatform (14: null, empty, malformed, 10 known platforms, unknown domain, www stripping), generateSampleQueries (2: count, content), buildCitationPrompt (2: query text, JSON format), runCitationQuery (3: no API key, valid response, unparseable), runCitationSample (3: platform counting, no API key, per-query resilience), writeCitationResults (4: zero queries, frequency calculation, platform count, upsert errors), calculateCitationGapScore (8: no data, full coverage, no coverage, partial, threshold filtering, not_linked exclusion, case-insensitive matching, mismatch included, topGap action text), constants (3: category count, metro count, metro format).
+- `src/__tests__/unit/cron-citation.test.ts` — **13 Vitest tests** (new). Auth guard (2: missing header, wrong secret), kill switch, createServiceRoleClient call, all combinations processed (180), writeCitationResults call count, summary counts (categories/metros/queries/platforms), per-combination error resilience, argument passthrough, supabase client passthrough, zero-queries skip.
+
+**Run commands:**
+```bash
+npx vitest run src/__tests__/unit/citation-engine-service.test.ts  # 42 tests passing
+npx vitest run src/__tests__/unit/cron-citation.test.ts            # 13 tests passing
+npx vitest run                                                      # 618 tests passing, 7 skipped
+```
+
+---
+
 ## 2026-02-25 — Sprint 45: Occasion Engine (Completed)
 
 **Goal:** Build the Occasion Engine — a temporal layer that detects upcoming seasonal events (Valentine's Day, NYE, Mother's Day, etc.) and proactively creates content drafts so businesses can be AI-visible before peak dates. Runs as a sub-step inside the existing weekly SOV cron.

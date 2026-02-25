@@ -1,7 +1,7 @@
 # LocalVector.ai — Testing Strategy
 
 > **Source:** This document is derived from `DEVLOG.md`, the `src/__tests__/` directory,
-> and the `tests/e2e/` directory. Last updated: Post-Sprint 44 AI Truth Audit (2026-02-25).
+> and the `tests/e2e/` directory. Last updated: Post-Sprint 46 Citation Intelligence (2026-02-25).
 > All test counts are from the live `vitest run` and `playwright test` outputs.
 
 ---
@@ -12,7 +12,7 @@ LocalVector.ai uses a two-layer test stack:
 
 | Layer | Runner | Command | Result (current) |
 |-------|--------|---------|------------------|
-| Unit + Integration | Vitest | `npx vitest run` | **563 passing**, 0 skipped (after `supabase db reset`) |
+| Unit + Integration | Vitest | `npx vitest run` | **618 passing**, 7 skipped (after `supabase db reset`) |
 | E2E Functional | Playwright | `npx playwright test` | 47 passing, 0 failing |
 
 Tests MUST NOT call live external APIs (AI_RULES §4):
@@ -79,11 +79,13 @@ Tests MUST NOT call live external APIs (AI_RULES §4):
 | `src/__tests__/unit/revenue-leak-action.test.ts` | saveRevenueConfig | 6 | 0 | Sprint 43: Revenue Config Server Action — auth gate, Zod validation, no-location error, upsert success, DB error |
 | `src/__tests__/unit/truth-audit-service.test.ts` | ENGINE_WEIGHTS, calculateWeightedScore, hasConsensus, calculateTruthScore, buildTruthAuditResult | 23 | 0 | Sprint 44: Truth Audit pure function service — weighted average (4 engines), consensus detection (≥80), bonus/penalty, clamping, golden tenant (score=84), partial data re-normalization |
 | `src/__tests__/unit/multi-engine-action.test.ts` | runMultiEngineEvaluation | 6 | 0 | Sprint 44: Multi-engine Server Action — auth gate, Zod UUID, location not found, 4-engine parallel insert, all-fail error, partial-success |
+| `src/__tests__/unit/citation-engine-service.test.ts` | extractPlatform, runCitationQuery, runCitationSample, writeCitationResults, calculateCitationGapScore, constants | 42 | 0 | Sprint 46: Citation Intelligence service — platform extraction (14 domains), citation query (mock/real/unparseable), sample orchestration (counting/no-key/resilience), DB upsert (frequency calc/errors), gap score (8 coverage scenarios), constants validation |
+| `src/__tests__/unit/cron-citation.test.ts` | GET /api/cron/citation | 13 | 0 | Sprint 46: Citation cron route — CRON_SECRET auth guard (401), kill switch, service-role client, 180-combination processing, writeCitationResults count, summary accumulation (categories/metros/queries/platforms), per-combination error resilience, argument passthrough, zero-queries skip |
 | `src/__tests__/integration/rls-isolation.test.ts` | RLS cross-tenant isolation | 7 | 0 | RLS isolation — requires live DB (`supabase db reset`); all 7 pass after reset |
 
-**Total (active suites):** **563 passing** across 45 suites (includes 7 rls-isolation tests now passing after `supabase db reset`)
+**Total (active suites):** **618 passing** across 47 suites (includes 7 rls-isolation tests now passing after `supabase db reset`)
 
-*(Sprint 45: `occasion-engine-service.test.ts` +19 (new), `cron-sov.test.ts` 11→13 (+2). Sprint 45 total: +21 tests from 1 new suite + 2 added to existing suite. Bug Fix (query_category): `sov-engine-service.test.ts` 9→11 (+2), `cron-sov.test.ts` 10→11 (+1). Net: +3 tests. Sprint 44: `truth-audit-service.test.ts` +23 (new), `multi-engine-action.test.ts` +6 (new), `rls-isolation.test.ts` 0→7 (previously skipped, now passing). Sprint 44 total: +36 tests from 2 new suites + 7 unblocked. Sprint 43: `revenue-leak-service.test.ts` +17 (new), `revenue-leak-action.test.ts` +6 (new). Sprint 43 total: +23 tests from 2 new suites. AI SDK provider install: `ai-providers.test.ts` +5. Package install: `schema-types.test.ts` +1, `zip-bundle.test.ts` +2. Sprint 42: `dashboard-null-states.test.tsx` +4, `ContentDraftCard.test.tsx` +10, `content-drafts-actions.test.ts` +10, `SovCard-plan-gate.test.tsx` +6, `integrations-health.test.ts` +8, `share-of-voice-actions.test.ts` +4 (deleteTargetQuery). Sprint 42 total: +46 tests from 5 new suites + 4 added to existing suite. Package+SDK installs: +8 from 3 new suites.)*
+*(Sprint 46: `citation-engine-service.test.ts` +42 (new), `cron-citation.test.ts` +13 (new). Sprint 46 total: +55 tests from 2 new suites. Sprint 45: `occasion-engine-service.test.ts` +19 (new), `cron-sov.test.ts` 11→13 (+2). Sprint 45 total: +21 tests from 1 new suite + 2 added to existing suite. Bug Fix (query_category): `sov-engine-service.test.ts` 9→11 (+2), `cron-sov.test.ts` 10→11 (+1). Net: +3 tests. Sprint 44: `truth-audit-service.test.ts` +23 (new), `multi-engine-action.test.ts` +6 (new), `rls-isolation.test.ts` 0→7 (previously skipped, now passing). Sprint 44 total: +36 tests from 2 new suites + 7 unblocked. Sprint 43: `revenue-leak-service.test.ts` +17 (new), `revenue-leak-action.test.ts` +6 (new). Sprint 43 total: +23 tests from 2 new suites. AI SDK provider install: `ai-providers.test.ts` +5. Package install: `schema-types.test.ts` +1, `zip-bundle.test.ts` +2. Sprint 42: `dashboard-null-states.test.tsx` +4, `ContentDraftCard.test.tsx` +10, `content-drafts-actions.test.ts` +10, `SovCard-plan-gate.test.tsx` +6, `integrations-health.test.ts` +8, `share-of-voice-actions.test.ts` +4 (deleteTargetQuery). Sprint 42 total: +46 tests from 5 new suites + 4 added to existing suite. Package+SDK installs: +8 from 3 new suites.)*
 
 *(Sprint 35: `free-scan-pass.test.ts` 15→17 (+2: `accuracy_issue_categories` propagation + Zod default), `scan-params.test.ts` 11→14 (+3: `issue_cats` decode, missing → `[]`, encode). Sprint 34: `free-scan-pass.test.ts` 11→15 (+4 real-field propagation tests), `scan-params.test.ts` 10→11 (−4 deriveKpiScores, +5 real-field tests). Sprint 33: `scan-params.test.ts` +10 (new). Sprint 31: `free-scan-pass.test.ts` 10→11. Sprint 30: `scan-health-utils.test.ts` +7 (new). Sprint 29: `public-places-search.test.ts` +8 (new); `free-scan-pass.test.ts` 7→10. Sprint 28B: `free-scan-pass.test.ts` +7. Sprint 24A: `reality-score.test.ts` 8→10. Sprint 24B: `settings-actions.test.ts` +10. Sprint 27A: `listings-actions.test.ts` +6. Phase 22 correction: `generateMenuJsonLd.test.ts` 21→30, `parseCsvMenu.test.ts` 17→20. Pre-Phase 3: `plan-enforcer.test.ts` 12→16. Phase 3: `competitor-actions.test.ts` +22. Phase 3.1: `cron-audit.test.ts` 9→12; `places-search.test.ts` +6; `competitor-intercept-service.test.ts` +8. Group F: `plan-enforcer.test.ts` 16→32.)*
 
