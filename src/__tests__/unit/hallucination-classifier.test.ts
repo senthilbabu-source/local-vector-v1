@@ -2,13 +2,12 @@
 // hallucination-classifier.test.ts — Unit tests for auditLocation()
 //
 // Tests lib/services/ai-audit.service.ts: auditLocation()
-// Tests lib/ai/ai-audit.service.ts: auditLocation()
 //
 // Strategy:
-//   • generateText is mocked at the 'ai' module level — no real API calls.
+//   • generateObject is mocked at the 'ai' module level — no real API calls.
 //   • hasApiKey is mocked to control mock/real code paths.
 //   • The demo fallback path (no API key) is tested in isolation.
-//   • The real-API path mocks generateText to return deterministic responses.
+//   • The real-API path mocks generateObject to return deterministic responses.
 //
 // Run:
 //   npx vitest run src/__tests__/unit/hallucination-classifier.test.ts
@@ -18,7 +17,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 // ── Mock the AI SDK ──────────────────────────────────────────────────────
 vi.mock('ai', () => ({
-  generateText: vi.fn(),
+  generateObject: vi.fn(),
 }));
 
 // ── Mock the providers ──────────────────────────────────────────────────
@@ -27,11 +26,17 @@ vi.mock('@/lib/ai/providers', () => ({
   hasApiKey: vi.fn().mockReturnValue(false),
 }));
 
+// ── Mock the schemas (pass-through real values) ─────────────────────────
+vi.mock('@/lib/ai/schemas', async () => {
+  const actual = await vi.importActual<typeof import('@/lib/ai/schemas')>('@/lib/ai/schemas');
+  return actual;
+});
+
 import {
   auditLocation,
   type LocationAuditInput,
 } from '@/lib/services/ai-audit.service';
-import { generateText } from 'ai';
+import { generateObject } from 'ai';
 import { hasApiKey } from '@/lib/ai/providers';
 
 // ── Fixture ────────────────────────────────────────────────────────────────
@@ -84,14 +89,20 @@ describe('auditLocation — with API key present', () => {
     vi.restoreAllMocks();
   });
 
-  it('calls generateText with the fear-audit model', async () => {
-    vi.mocked(generateText).mockResolvedValue({
-      text: JSON.stringify({ hallucinations: [] }),
+  it('calls generateObject with the fear-audit model and AuditResultSchema', async () => {
+    vi.mocked(generateObject).mockResolvedValue({
+      object: { hallucinations: [] },
     } as never);
 
     await auditLocation(LOCATION);
 
-    expect(vi.mocked(generateText)).toHaveBeenCalledOnce();
+    expect(vi.mocked(generateObject)).toHaveBeenCalledOnce();
+    expect(vi.mocked(generateObject)).toHaveBeenCalledWith(
+      expect.objectContaining({
+        model: 'mock-model',
+        schema: expect.any(Object),
+      })
+    );
   });
 
   it('parses a single hallucination from the AI response', async () => {
@@ -102,8 +113,8 @@ describe('auditLocation — with API key present', () => {
       claim_text: 'This restaurant is permanently closed.',
       expected_truth: 'Restaurant is open Tuesday–Sunday 11 AM–10 PM.',
     };
-    vi.mocked(generateText).mockResolvedValue({
-      text: JSON.stringify({ hallucinations: [fakeHallucination] }),
+    vi.mocked(generateObject).mockResolvedValue({
+      object: { hallucinations: [fakeHallucination] },
     } as never);
 
     const results = await auditLocation(LOCATION);
@@ -116,8 +127,8 @@ describe('auditLocation — with API key present', () => {
   });
 
   it('returns empty array when hallucinations:[] in response', async () => {
-    vi.mocked(generateText).mockResolvedValue({
-      text: JSON.stringify({ hallucinations: [] }),
+    vi.mocked(generateObject).mockResolvedValue({
+      object: { hallucinations: [] },
     } as never);
 
     const results = await auditLocation(LOCATION);
@@ -143,8 +154,8 @@ describe('auditLocation — with API key present', () => {
         expected_truth: 'Serves alcohol.',
       },
     ];
-    vi.mocked(generateText).mockResolvedValue({
-      text: JSON.stringify({ hallucinations: fakeHallucinations }),
+    vi.mocked(generateObject).mockResolvedValue({
+      object: { hallucinations: fakeHallucinations },
     } as never);
 
     const results = await auditLocation(LOCATION);
@@ -154,24 +165,9 @@ describe('auditLocation — with API key present', () => {
     expect(results[1].severity).toBe('high');
   });
 
-  it('returns empty array when generateText throws', async () => {
-    vi.mocked(generateText).mockRejectedValue(new Error('API rate limit'));
+  it('propagates error when generateObject throws', async () => {
+    vi.mocked(generateObject).mockRejectedValue(new Error('API rate limit'));
 
-    try {
-      const results = await auditLocation(LOCATION);
-      expect(Array.isArray(results)).toBe(true);
-    } catch (err) {
-      expect(err).toBeDefined();
-    }
-  });
-
-  it('returns empty array when API returns unparseable text', async () => {
-    vi.mocked(generateText).mockResolvedValue({
-      text: 'not valid json at all',
-    } as never);
-
-    const results = await auditLocation(LOCATION);
-    expect(Array.isArray(results)).toBe(true);
-    expect(results).toHaveLength(0);
+    await expect(auditLocation(LOCATION)).rejects.toThrow('API rate limit');
   });
 });

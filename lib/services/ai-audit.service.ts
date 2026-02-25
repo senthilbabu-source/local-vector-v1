@@ -2,10 +2,13 @@
 // AI Audit Service — Phase 20: Automated Web Audit Engine
 //
 // Surgery 1: Replaced raw fetch() with Vercel AI SDK generateText().
+// Surgery 2: Replaced generateText() + JSON.parse() with generateObject()
+//            for Zod-validated structured output (Sprint 54).
 // ---------------------------------------------------------------------------
 
-import { generateText } from 'ai';
+import { generateObject } from 'ai';
 import { getModel, hasApiKey } from '@/lib/ai/providers';
+import { AuditResultSchema } from '@/lib/ai/schemas';
 
 // ── Types (mirror prod_schema.sql enums exactly) ───────────────────────────
 
@@ -63,26 +66,7 @@ Given ground-truth data about a restaurant, identify any facts that the
 OpenAI GPT-4o model commonly gets wrong about this business based on its
 training data.
 
-Return ONLY valid JSON in this exact format:
-{
-  "hallucinations": [
-    {
-      "model_provider": "openai-gpt4o",
-      "severity": "high",
-      "category": "status",
-      "claim_text": "The incorrect claim the model makes",
-      "expected_truth": "The correct information from ground truth"
-    }
-  ]
-}
-
-If no discrepancies exist, return { "hallucinations": [] }.
-
-Valid model_provider values: openai-gpt4o, perplexity-sonar, google-gemini,
-  anthropic-claude, microsoft-copilot
-Valid severity values (all lowercase): critical, high, medium, low
-Valid category values (all lowercase): status, hours, amenity, menu, address, phone
-
+If no discrepancies exist, return an empty hallucinations array.
 Only report genuine discrepancies backed by the ground truth provided.`;
 
 function buildAuditPrompt(location: LocationAuditInput): string {
@@ -106,8 +90,6 @@ function buildAuditPrompt(location: LocationAuditInput): string {
   return [
     'Check the following ground truth against what GPT-4o would claim about this restaurant:',
     ...lines,
-    '',
-    'Return JSON: { "hallucinations": [...] }',
   ].join('\n');
 }
 
@@ -124,16 +106,12 @@ export async function auditLocation(
     return [DEMO_HALLUCINATION];
   }
 
-  const { text } = await generateText({
+  const { object } = await generateObject({
     model: getModel('fear-audit'),
+    schema: AuditResultSchema,
     system: SYSTEM_PROMPT,
     prompt: buildAuditPrompt(location),
   });
 
-  try {
-    const parsed = JSON.parse(text);
-    return Array.isArray(parsed.hallucinations) ? parsed.hallucinations : [];
-  } catch {
-    return [];
-  }
+  return (object as { hallucinations: DetectedHallucination[] }).hallucinations;
 }
