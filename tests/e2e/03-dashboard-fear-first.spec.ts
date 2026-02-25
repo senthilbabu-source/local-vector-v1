@@ -67,8 +67,9 @@ test.describe('03 — Dashboard: Fear-First layout with open alerts', () => {
     const scoreCard = page.getByRole('region', { name: 'Reality Score Card' });
     await expect(scoreCard).toBeVisible();
 
-    // The composite score is 87 (2 open alerts → Accuracy=70 → Score=87).
-    await expect(scoreCard.getByText('87')).toBeVisible();
+    // Score shows em-dash when no visibility scan has run yet (Accuracy=70
+    // from 2 open alerts, but composite score requires a completed scan).
+    await expect(scoreCard.getByText('—')).toBeVisible();
 
     // "Reality Score" heading inside the card.
     await expect(scoreCard.getByRole('heading', { name: 'Reality Score' })).toBeVisible();
