@@ -12,7 +12,7 @@
 //   • OpenTelemetry-ready for Sentry integration
 //
 // Usage:
-//   import { openai, perplexity, getModel } from '@/lib/ai/providers';
+//   import { openai, perplexity, anthropic, google, getModel } from '@/lib/ai/providers';
 //   const { output } = await generateText({
 //     model: getModel('openai'),
 //     output: Output.object({ schema: MyZodSchema }),
@@ -21,6 +21,8 @@
 // ---------------------------------------------------------------------------
 
 import { createOpenAI } from '@ai-sdk/openai';
+import { createAnthropic } from '@ai-sdk/anthropic';
+import { createGoogleGenerativeAI } from '@ai-sdk/google';
 
 // ── Provider instances ──────────────────────────────────────────────────────
 
@@ -45,6 +47,22 @@ export const perplexity = createOpenAI({
   name: 'perplexity',
 });
 
+/**
+ * Anthropic provider — used for multi-engine Truth Audit (Claude Sonnet).
+ * API key sourced from ANTHROPIC_API_KEY env var.
+ */
+export const anthropic = createAnthropic({
+  apiKey: process.env.ANTHROPIC_API_KEY,
+});
+
+/**
+ * Google Generative AI provider — used for multi-engine Truth Audit (Gemini).
+ * API key sourced from GOOGLE_GENERATIVE_AI_API_KEY env var.
+ */
+export const google = createGoogleGenerativeAI({
+  apiKey: process.env.GOOGLE_GENERATIVE_AI_API_KEY,
+});
+
 // ── Model registry ──────────────────────────────────────────────────────────
 
 /**
@@ -66,6 +84,18 @@ export const MODELS = {
 
   /** SOV Engine — OpenAI alternative for multi-model SOV */
   'sov-query-openai': openai('gpt-4o'),
+
+  /** Truth Audit — Anthropic engine (multi-engine comparison) */
+  'truth-audit-anthropic': anthropic('claude-sonnet-4-20250514'),
+
+  /** Truth Audit — Google engine (multi-engine comparison) */
+  'truth-audit-gemini': google('gemini-2.0-flash'),
+
+  /** Truth Audit — OpenAI engine (multi-engine comparison) */
+  'truth-audit-openai': openai('gpt-4o-mini'),
+
+  /** Truth Audit — Perplexity engine (multi-engine comparison, live web) */
+  'truth-audit-perplexity': perplexity('sonar'),
 } as const;
 
 export type ModelKey = keyof typeof MODELS;
@@ -88,8 +118,10 @@ export function getModel(key: ModelKey) {
  * Check if the required API key for a provider is configured.
  * Used by services to determine whether to run in demo/mock mode.
  */
-export function hasApiKey(provider: 'openai' | 'perplexity'): boolean {
+export function hasApiKey(provider: 'openai' | 'perplexity' | 'anthropic' | 'google'): boolean {
   if (provider === 'openai') return !!process.env.OPENAI_API_KEY;
   if (provider === 'perplexity') return !!process.env.PERPLEXITY_API_KEY;
+  if (provider === 'anthropic') return !!process.env.ANTHROPIC_API_KEY;
+  if (provider === 'google') return !!process.env.GOOGLE_GENERATIVE_AI_API_KEY;
   return false;
 }
