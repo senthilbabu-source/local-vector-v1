@@ -4,6 +4,32 @@
 
 ---
 
+## 2026-02-25 — Bug Fix: query_category Column Missing from target_queries (Completed)
+
+**Goal:** Fix critical silent bug where `query_category` column was missing from `target_queries` table, causing First Mover Alerts to never fire (the SOV engine's `writeSOVResults()` filters on `['discovery', 'occasion', 'near_me']` but `queryCategory` was always `undefined`).
+
+**Root cause:** The spec migration (`docs/20260223000001_sov_engine.sql`) defining an enriched `sov_target_queries` table was never applied. The live `target_queries` (migration `20260221000004`) only had `id, org_id, location_id, query_text, created_at`.
+
+**Scope:**
+- `supabase/migrations/20260226000001_add_query_category.sql` — **NEW.** Adds `query_category VARCHAR(50) NOT NULL DEFAULT 'discovery'`, `occasion_tag VARCHAR(50) NULL`, `intent_modifier VARCHAR(50) NULL`. CHECK constraint: `IN ('discovery', 'comparison', 'occasion', 'near_me', 'custom')`. Index on `query_category`. Backfills existing rows with `'discovery'`.
+- `app/api/cron/sov/route.ts` — Added `query_category` to the SELECT statement so it flows through to `runSOVQuery()`.
+- `lib/services/sov-seed.ts` — Rewrote query generation to track `query_category` per tier: discovery, near_me, occasion (with `occasion_tag`), comparison. Insert rows now include `query_category`.
+- `app/dashboard/share-of-voice/actions.ts` — `addTargetQuery()` now sets `query_category: 'custom'` for user-created queries.
+- `supabase/prod_schema.sql` — Updated `target_queries` CREATE TABLE with new columns, CHECK constraint, and index.
+- `supabase/seed.sql` — Added `query_category: 'discovery'` to golden tenant target_query INSERT.
+
+**Tests added/updated:**
+- `src/__tests__/unit/cron-sov.test.ts` — **11 Vitest tests** (was 10). Added `query_category` to `MOCK_QUERY`. New test: verifies `query_category` passes through to `runSOVQuery`.
+- `src/__tests__/unit/sov-engine-service.test.ts` — **11 Vitest tests** (was 9). Two new tests: `custom`/`comparison` categories excluded from first mover; competitors found prevents first mover flag.
+
+**Run commands:**
+```bash
+npx vitest run src/__tests__/unit/cron-sov.test.ts              # 11 tests passing
+npx vitest run src/__tests__/unit/sov-engine-service.test.ts     # 11 tests passing
+```
+
+---
+
 ## 2026-02-25 — Sprint 44: AI Truth Audit — Multi-Engine (Completed)
 
 **Goal:** Transform the single-engine hallucination monitor into a multi-engine truth verification system with 4 AI engines (OpenAI, Perplexity, Anthropic, Gemini). Composite Truth Score (0–100) with consensus detection.

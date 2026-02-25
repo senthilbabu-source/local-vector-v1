@@ -197,6 +197,7 @@ export async function addTargetQuery(input: AddQueryInput): Promise<ActionResult
     org_id: ctx.orgId,
     location_id,
     query_text: query_text.trim(),
+    query_category: 'custom',
   });
 
   if (error) {

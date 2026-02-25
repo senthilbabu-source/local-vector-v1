@@ -361,12 +361,13 @@ ON CONFLICT (id) DO NOTHING;
 --
 -- location_id retrieved via subquery (same pattern as sections 4 and 7–8).
 
-INSERT INTO public.target_queries (id, org_id, location_id, query_text)
+INSERT INTO public.target_queries (id, org_id, location_id, query_text, query_category)
 SELECT
   'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
   'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
   l.id,
-  'Best BBQ restaurant in Alpharetta GA'
+  'Best BBQ restaurant in Alpharetta GA',
+  'discovery'
 FROM public.locations l
 WHERE l.org_id = 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11'
   AND l.slug   = 'alpharetta'

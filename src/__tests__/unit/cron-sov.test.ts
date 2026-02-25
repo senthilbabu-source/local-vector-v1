@@ -56,6 +56,7 @@ const CRON_SECRET = 'test-cron-secret-sov';
 const MOCK_QUERY = {
   id: 'q-uuid-001',
   query_text: 'best hookah bar in Alpharetta GA',
+  query_category: 'discovery',
   location_id: 'loc-uuid-001',
   org_id: 'org-uuid-001',
   locations: { business_name: 'Charcoal N Chill', city: 'Alpharetta', state: 'GA' },
@@ -264,5 +265,17 @@ describe('GET /api/cron/sov', () => {
     const body = await res.json();
 
     expect(body.queries_cited).toBe(1);
+  });
+
+  it('passes query_category to runSOVQuery', async () => {
+    const query = { ...MOCK_QUERY, query_category: 'occasion' };
+    const mock = makeMockSupabase([query]);
+    vi.mocked(createServiceRoleClient).mockReturnValue(mock as never);
+
+    await GET(makeRequest(CRON_SECRET));
+
+    expect(vi.mocked(runSOVQuery)).toHaveBeenCalledWith(
+      expect.objectContaining({ query_category: 'occasion' }),
+    );
   });
 });

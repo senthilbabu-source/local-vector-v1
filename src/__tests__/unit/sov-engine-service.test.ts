@@ -196,4 +196,30 @@ describe('writeSOVResults', () => {
 
     expect(supabase.from).toHaveBeenCalledWith('visibility_analytics');
   });
+
+  it('excludes custom and comparison categories from first mover', async () => {
+    const supabase = makeMockSupabase();
+    const results = [
+      { queryId: 'q1', queryText: 'custom query', queryCategory: 'custom', locationId: 'loc1', ourBusinessCited: false, businessesFound: [], citationUrl: null },
+      { queryId: 'q2', queryText: 'vs Cloud 9', queryCategory: 'comparison', locationId: 'loc1', ourBusinessCited: false, businessesFound: [], citationUrl: null },
+      { queryId: 'q3', queryText: 'best BBQ in Alpharetta', queryCategory: 'discovery', locationId: 'loc1', ourBusinessCited: false, businessesFound: [], citationUrl: null },
+    ];
+
+    const metrics = await writeSOVResults('org-001', results, supabase);
+
+    // Only discovery (q3) qualifies — custom and comparison are excluded
+    expect(metrics.firstMoverCount).toBe(1);
+  });
+
+  it('does not flag first mover when competitors are found', async () => {
+    const supabase = makeMockSupabase();
+    const results = [
+      { queryId: 'q1', queryText: 'best hookah', queryCategory: 'discovery', locationId: 'loc1', ourBusinessCited: false, businessesFound: ['Cloud 9 Lounge'], citationUrl: null },
+    ];
+
+    const metrics = await writeSOVResults('org-001', results, supabase);
+
+    // Competitors found — not a first mover opportunity
+    expect(metrics.firstMoverCount).toBe(0);
+  });
 });

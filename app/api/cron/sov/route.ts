@@ -97,7 +97,7 @@ export async function GET(request: NextRequest) {
   const { data: queries, error: queryError } = await supabase
     .from('target_queries')
     .select(`
-      id, query_text, location_id, org_id,
+      id, query_text, query_category, location_id, org_id,
       locations ( business_name, city, state ),
       organizations ( plan_status, plan )
     `)

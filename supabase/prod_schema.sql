@@ -734,7 +734,11 @@ CREATE TABLE IF NOT EXISTS "public"."target_queries" (
     "org_id" "uuid" NOT NULL,
     "location_id" "uuid" NOT NULL,
     "query_text" character varying(500) NOT NULL,
-    "created_at" timestamp with time zone DEFAULT "now"() NOT NULL
+    "query_category" character varying(50) DEFAULT 'discovery'::character varying NOT NULL,
+    "occasion_tag" character varying(50),
+    "intent_modifier" character varying(50),
+    "created_at" timestamp with time zone DEFAULT "now"() NOT NULL,
+    CONSTRAINT "target_queries_category_check" CHECK (((query_category)::text = ANY ((ARRAY['discovery'::character varying, 'comparison'::character varying, 'occasion'::character varying, 'near_me'::character varying, 'custom'::character varying])::text[])))
 );
 
 
@@ -1120,6 +1124,8 @@ CREATE INDEX "idx_target_queries_location" ON "public"."target_queries" USING "b
 
 
 CREATE INDEX "idx_target_queries_org" ON "public"."target_queries" USING "btree" ("org_id");
+
+CREATE INDEX "idx_target_queries_category" ON "public"."target_queries" USING "btree" ("query_category");
 
 
 

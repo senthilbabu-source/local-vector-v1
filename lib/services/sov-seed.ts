@@ -107,34 +107,51 @@ export async function seedSOVQueries(
   const categories = location.categories ?? ['restaurant'];
   const primaryCategory = categories[0] ?? 'restaurant';
 
-  const queries: string[] = [];
+  // Each entry tracks query text + its category for proper First Mover filtering
+  const tagged: { text: string; category: string; occasion_tag?: string }[] = [];
 
   // Tier 1 — Discovery (always)
-  queries.push(...discoveryQueries(primaryCategory, city, state));
+  for (const q of discoveryQueries(primaryCategory, city, state)) {
+    tagged.push({ text: q, category: 'discovery' });
+  }
 
   // Tier 2 — Near Me (always)
-  queries.push(...nearMeQueries(primaryCategory, city));
+  for (const q of nearMeQueries(primaryCategory, city)) {
+    tagged.push({ text: q, category: 'near_me' });
+  }
 
   // Tier 3 — Occasion (hospitality categories only)
   if (isHospitalityCategory(categories)) {
-    queries.push(...occasionQueries(city));
+    const occasionTags = ['date_night', 'birthday', 'bachelorette', 'girls_night', 'romantic'];
+    const occasionTexts = occasionQueries(city);
+    for (let i = 0; i < occasionTexts.length; i++) {
+      tagged.push({ text: occasionTexts[i], category: 'occasion', occasion_tag: occasionTags[i] });
+    }
   }
 
   // Tier 4 — Comparison (max 3 competitors)
   if (competitors.length > 0) {
-    queries.push(
-      ...comparisonQueries(primaryCategory, city, location.business_name, competitors),
-    );
+    for (const q of comparisonQueries(primaryCategory, city, location.business_name, competitors)) {
+      tagged.push({ text: q, category: 'comparison' });
+    }
   }
 
-  // Dedupe
-  const unique = [...new Set(queries.map((q) => q.trim()))];
+  // Dedupe by text (keep first occurrence — preserves category assignment)
+  const seen = new Set<string>();
+  const unique = tagged.filter((t) => {
+    const key = t.text.trim();
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
 
   // Insert all queries (idempotent via unique constraint on location_id + query_text)
-  const rows = unique.map((queryText) => ({
+  const rows = unique.map((entry) => ({
     org_id: location.org_id,
     location_id: location.id,
-    query_text: queryText,
+    query_text: entry.text.trim(),
+    query_category: entry.category,
+    ...(entry.occasion_tag ? { occasion_tag: entry.occasion_tag } : {}),
   }));
 
   if (rows.length === 0) return { seeded: 0 };

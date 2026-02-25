@@ -1107,14 +1107,32 @@ interface AiHallucination {
 
 **Rule:** When inserting rows via seed.sql or Server Actions, all enum values **must** be lowercase strings. Uppercase variants (e.g. `'CRITICAL'`) will fail the PostgreSQL CHECK constraint.
 
-### 15.12 `sov_target_queries` — TypeScript interface
+### 15.12 `target_queries` — Applied Schema & TypeScript interface
 
-> **Source file:** `src/lib/types/sov.ts`
-> **Migration:** `supabase/migrations/20260223000001_sov_engine.sql`
+> **Live table:** `public.target_queries`
+> **Created by:** `supabase/migrations/20260221000004_create_sov_tracking.sql`
+> **Enriched by:** `supabase/migrations/20260226000001_add_query_category.sql`
 > **Spec:** Doc 04c Section 2
+>
+> **Note:** The planned `sov_target_queries` table in `docs/20260223000001_sov_engine.sql` was never promoted. The live table is `target_queries` with the columns below.
+
+```sql
+-- Actual applied schema (prod_schema.sql)
+CREATE TABLE public.target_queries (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  org_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+  location_id UUID NOT NULL REFERENCES locations(id) ON DELETE CASCADE,
+  query_text VARCHAR(500) NOT NULL,
+  query_category VARCHAR(50) NOT NULL DEFAULT 'discovery'
+    CHECK (query_category IN ('discovery', 'comparison', 'occasion', 'near_me', 'custom')),
+  occasion_tag VARCHAR(50) NULL,
+  intent_modifier VARCHAR(50) NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
+);
+```
 
 ```typescript
-// src/lib/types/sov.ts
+// TypeScript reference (matches SOVQueryInput in lib/services/sov-engine.service.ts)
 
 export type QueryCategory = 'discovery' | 'comparison' | 'occasion' | 'near_me' | 'custom';
 
@@ -1123,17 +1141,10 @@ export interface SOVTargetQuery {
   orgId: string;
   locationId: string;
   queryText: string;
-  queryCategory: QueryCategory;
+  queryCategory: QueryCategory;  // Critical: writeSOVResults() filters first-mover on this
   occasionTag: string | null;
   intentModifier: string | null;
-  isSystemGenerated: boolean;
-  isActive: boolean;
-  lastRunAt: string | null;
-  lastSovResult: number | null;   // 0–100, most recent query-level SOV %
-  lastCited: boolean | null;      // was our business mentioned in last run?
-  runCount: number;
   createdAt: string;
-  updatedAt: string;
 }
 
 export interface SOVReport {
