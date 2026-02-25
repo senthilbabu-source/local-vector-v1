@@ -1,7 +1,11 @@
 import { redirect } from 'next/navigation';
 import { getSafeAuthContext } from '@/lib/auth';
 import { createClient } from '@/lib/supabase/server';
+import { buildTruthAuditResult, type EngineScore } from '@/lib/services/truth-audit.service';
+import type { EvaluationEngine } from '@/lib/schemas/evaluations';
 import EvaluationCard, { type EngineEval } from './_components/EvaluationCard';
+import TruthScoreCard from './_components/TruthScoreCard';
+import EngineComparisonGrid from './_components/EngineComparisonGrid';
 import StatusDropdown from './_components/StatusDropdown';
 import type { CorrectionStatus } from '../actions';
 
@@ -118,16 +122,44 @@ export default async function HallucinationsPage() {
 
   const { locations, evaluations, hallucinations } = await fetchPageData();
 
+  // ── Compute Truth Score from latest evaluations ───────────────────────
+  const hasClosedHallucinations = hallucinations.some(
+    (h) => h.correction_status === 'fixed',
+  );
+
+  // Collect latest score per engine across all locations
+  const latestByEngine = new Map<EvaluationEngine, number>();
+  for (const e of evaluations) {
+    const engine = e.engine as EvaluationEngine;
+    if (e.accuracy_score !== null && !latestByEngine.has(engine)) {
+      latestByEngine.set(engine, e.accuracy_score);
+    }
+  }
+  const engineScoreArray: EngineScore[] = Array.from(latestByEngine.entries()).map(
+    ([engine, accuracy_score]) => ({ engine, accuracy_score }),
+  );
+  const truthResult = buildTruthAuditResult(engineScoreArray, hasClosedHallucinations);
+
   return (
     <div className="space-y-8">
 
       {/* ── Page header ─────────────────────────────────────────────────── */}
       <div>
-        <h1 className="text-xl font-semibold text-white">AI Hallucination Monitor</h1>
+        <h1 className="text-xl font-semibold text-white">AI Truth Audit</h1>
         <p className="mt-0.5 text-sm text-[#94A3B8]">
-          Run on-demand audits to check how accurately AI engines describe your
-          business. Results are stored and color-coded by accuracy score.
+          Multi-engine truth verification — see how accurately AI engines describe your
+          business across OpenAI, Perplexity, Anthropic, and Gemini.
         </p>
+      </div>
+
+      {/* ── Truth Score + Engine Comparison ───────────────────────────────── */}
+      <div className="grid gap-4 sm:grid-cols-2">
+        <TruthScoreCard
+          score={truthResult.engines_reporting > 0 ? truthResult.truth_score : null}
+          consensus={truthResult.consensus}
+          enginesReporting={truthResult.engines_reporting}
+        />
+        <EngineComparisonGrid engineScores={truthResult.engine_scores} />
       </div>
 
       {/* ── AI Evaluation Audit Cards ────────────────────────────────────── */}
@@ -177,6 +209,16 @@ export default async function HallucinationsPage() {
                   (e) => e.location_id === location.id && e.engine === 'perplexity'
                 ) as EngineEval) ?? null;
 
+              const anthropicEval: EngineEval =
+                (evaluations.find(
+                  (e) => e.location_id === location.id && e.engine === 'anthropic'
+                ) as EngineEval) ?? null;
+
+              const geminiEval: EngineEval =
+                (evaluations.find(
+                  (e) => e.location_id === location.id && e.engine === 'gemini'
+                ) as EngineEval) ?? null;
+
               return (
                 <EvaluationCard
                   key={location.id}
@@ -184,6 +226,8 @@ export default async function HallucinationsPage() {
                   locationLabel={locationLabel}
                   openaiEval={openaiEval}
                   perplexityEval={perplexityEval}
+                  anthropicEval={anthropicEval}
+                  geminiEval={geminiEval}
                 />
               );
             })}

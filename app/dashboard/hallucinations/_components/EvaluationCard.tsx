@@ -21,6 +21,8 @@ interface Props {
   locationLabel: string;
   openaiEval: EngineEval;
   perplexityEval: EngineEval;
+  anthropicEval: EngineEval;
+  geminiEval: EngineEval;
 }
 
 // ---------------------------------------------------------------------------
@@ -37,6 +39,16 @@ const ENGINE_CONFIG: Record<EvaluationEngine, { label: string; badge: string; ba
     label: 'Perplexity Sonar',
     badge: 'PX',
     badgeClass: 'bg-electric-indigo/15 text-electric-indigo',
+  },
+  anthropic: {
+    label: 'Anthropic Claude',
+    badge: 'AN',
+    badgeClass: 'bg-amber-400/15 text-amber-400',
+  },
+  gemini: {
+    label: 'Google Gemini',
+    badge: 'GE',
+    badgeClass: 'bg-sky-400/15 text-sky-400',
   },
 };
 
@@ -235,6 +247,8 @@ export default function EvaluationCard({
   locationLabel,
   openaiEval,
   perplexityEval,
+  anthropicEval,
+  geminiEval,
 }: Props) {
   const [isPending, startTransition] = useTransition();
   const [pendingEngine, setPendingEngine] = useState<EvaluationEngine | null>(null);
@@ -274,6 +288,20 @@ export default function EvaluationCard({
         <EngineRow
           engine="perplexity"
           evalData={perplexityEval}
+          isPending={isPending}
+          pendingEngine={pendingEngine}
+          onRun={handleRun}
+        />
+        <EngineRow
+          engine="anthropic"
+          evalData={anthropicEval}
+          isPending={isPending}
+          pendingEngine={pendingEngine}
+          onRun={handleRun}
+        />
+        <EngineRow
+          engine="gemini"
+          evalData={geminiEval}
           isPending={isPending}
           pendingEngine={pendingEngine}
           onRun={handleRun}

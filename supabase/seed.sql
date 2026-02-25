@@ -244,14 +244,18 @@ WHERE l.org_id = 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11'
 LIMIT 1
 ON CONFLICT (location_id, platform) DO NOTHING;
 
--- ── 8. AI EVALUATIONS (Phase 9) ───────────────────────────────────────────────
--- Two dummy evaluation rows for the Hallucination Monitor dashboard:
---   • OpenAI   — high accuracy score (95), no hallucinations
---   • Perplexity — lower score (65), two realistic mock hallucinations
+-- ── 8. AI EVALUATIONS (Phase 9 + Truth Audit) ─────────────────────────────────
+-- Four evaluation rows for the AI Truth Audit dashboard:
+--   • OpenAI     — high accuracy (95), no hallucinations
+--   • Perplexity — lower score  (65), two mock hallucinations
+--   • Anthropic  — good score   (90), one minor hallucination
+--   • Gemini     — good score   (88), one minor hallucination
 --
 -- Fixed UUIDs:
 --   OpenAI eval    : f0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11
 --   Perplexity eval: f1eebc99-9c0b-4ef8-bb6d-6bb9bd380a11
+--   Anthropic eval : f2eebc99-9c0b-4ef8-bb6d-6bb9bd380a11
+--   Gemini eval    : f3eebc99-9c0b-4ef8-bb6d-6bb9bd380a11
 --
 -- location_id retrieved via subquery (location has no fixed UUID).
 
@@ -293,6 +297,53 @@ SELECT
   65,
   '["Claims the restaurant is open on Monday evenings, but it is closed on Mondays", "States an incorrect phone number: (470) 123-4567 instead of (470) 546-4866"]'::jsonb,
   NOW() - INTERVAL '1 hour'
+FROM public.locations l
+WHERE l.org_id = 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11'
+  AND l.slug   = 'alpharetta'
+LIMIT 1
+ON CONFLICT (id) DO NOTHING;
+
+-- Anthropic eval: f2eebc99-9c0b-4ef8-bb6d-6bb9bd380a11
+-- Gemini eval:    f3eebc99-9c0b-4ef8-bb6d-6bb9bd380a11
+
+INSERT INTO public.ai_evaluations (
+  id, org_id, location_id, engine,
+  prompt_used, response_text,
+  accuracy_score, hallucinations_detected,
+  created_at
+)
+SELECT
+  'f2eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+  'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+  l.id,
+  'anthropic',
+  'Tell me about Charcoal N Chill restaurant in Alpharetta, GA. Include the address, phone number, hours, and menu highlights.',
+  'Charcoal N Chill is an Indian-fusion restaurant and hookah lounge at 11950 Jones Bridge Road, Suite 103, Alpharetta, GA 30005. Phone: (470) 546-4866. Open daily from 5 PM with weekend extended hours. They serve a fusion menu with BBQ, hookahs, and have live entertainment on weekends.',
+  90,
+  '["Describes the cuisine as strictly Indian-fusion but the restaurant also features American BBQ"]'::jsonb,
+  NOW() - INTERVAL '2 hours'
+FROM public.locations l
+WHERE l.org_id = 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11'
+  AND l.slug   = 'alpharetta'
+LIMIT 1
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO public.ai_evaluations (
+  id, org_id, location_id, engine,
+  prompt_used, response_text,
+  accuracy_score, hallucinations_detected,
+  created_at
+)
+SELECT
+  'f3eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+  'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+  l.id,
+  'gemini',
+  'Tell me about Charcoal N Chill restaurant in Alpharetta, GA. Include the address, phone number, hours, and menu highlights.',
+  'Charcoal N Chill is a restaurant and hookah bar located at 11950 Jones Bridge Road, Suite 103, Alpharetta, GA 30005. Contact: (470) 546-4866. Open Monday-Sunday starting at 5 PM with later closing on Friday and Saturday. Known for BBQ plates, hookah, and live music events.',
+  88,
+  '["States Monday opening but restaurant is actually open Monday-Sunday from 5 PM which is correct"]'::jsonb,
+  NOW() - INTERVAL '90 minutes'
 FROM public.locations l
 WHERE l.org_id = 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11'
   AND l.slug   = 'alpharetta'

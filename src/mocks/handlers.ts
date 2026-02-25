@@ -238,7 +238,93 @@ const publicPlacesSearchHandler = http.get(
 );
 
 // ---------------------------------------------------------------------------
+// Anthropic handler — Truth Audit (multi-engine)
+// ---------------------------------------------------------------------------
+
+/**
+ * Intercepts POST https://api.anthropic.com/v1/messages
+ *
+ * Returns a mock truth-audit evaluation response for Claude Sonnet.
+ * The response follows Anthropic's Messages API shape.
+ */
+const anthropicHandler = http.post(
+  'https://api.anthropic.com/v1/messages',
+  () => {
+    return HttpResponse.json({
+      id: 'msg-mock-anthropic-0001',
+      type: 'message',
+      role: 'assistant',
+      content: [
+        {
+          type: 'text',
+          text: JSON.stringify({
+            accuracy_score: 90,
+            hallucinations_detected: [
+              'Describes the cuisine as strictly Indian-fusion but the restaurant also features American BBQ',
+            ],
+            response_text:
+              'Charcoal N Chill is an Indian-fusion restaurant and hookah lounge at 11950 Jones Bridge Road, Suite 103, Alpharetta, GA 30005. Phone: (470) 546-4866. Open daily from 5 PM with weekend extended hours.',
+          }),
+        },
+      ],
+      model: 'claude-sonnet-4-20250514',
+      stop_reason: 'end_turn',
+      usage: { input_tokens: 256, output_tokens: 128 },
+    });
+  },
+);
+
+// ---------------------------------------------------------------------------
+// Google Gemini handler — Truth Audit (multi-engine)
+// ---------------------------------------------------------------------------
+
+/**
+ * Intercepts POST to Google Generative AI generateContent endpoint.
+ *
+ * Returns a mock truth-audit evaluation response for Gemini 2.0 Flash.
+ * The response follows Google's generateContent API shape.
+ */
+const googleGeminiHandler = http.post(
+  'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent',
+  () => {
+    return HttpResponse.json({
+      candidates: [
+        {
+          content: {
+            parts: [
+              {
+                text: JSON.stringify({
+                  accuracy_score: 88,
+                  hallucinations_detected: [
+                    'States Monday opening but restaurant is actually open Monday-Sunday from 5 PM which is correct',
+                  ],
+                  response_text:
+                    'Charcoal N Chill is a restaurant and hookah bar located at 11950 Jones Bridge Road, Suite 103, Alpharetta, GA 30005. Contact: (470) 546-4866. Open Monday-Sunday starting at 5 PM.',
+                }),
+              },
+            ],
+            role: 'model',
+          },
+          finishReason: 'STOP',
+        },
+      ],
+      usageMetadata: {
+        promptTokenCount: 256,
+        candidatesTokenCount: 128,
+        totalTokenCount: 384,
+      },
+    });
+  },
+);
+
+// ---------------------------------------------------------------------------
 // Export
 // ---------------------------------------------------------------------------
 
-export const handlers = [openAiHandler, perplexityHandler, publicPlacesSearchHandler];
+export const handlers = [
+  openAiHandler,
+  perplexityHandler,
+  anthropicHandler,
+  googleGeminiHandler,
+  publicPlacesSearchHandler,
+];

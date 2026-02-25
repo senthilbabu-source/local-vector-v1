@@ -1,11 +1,11 @@
 import { z } from 'zod';
 
 /**
- * The two LLM engines supported by the AI Hallucination Monitor.
+ * The four LLM engines supported by the AI Truth Audit.
  * Exported as a const tuple so both Zod schemas and UI components
  * derive typed arrays from a single source of truth.
  */
-export const EVALUATION_ENGINES = ['openai', 'perplexity'] as const;
+export const EVALUATION_ENGINES = ['openai', 'perplexity', 'anthropic', 'gemini'] as const;
 export type EvaluationEngine = (typeof EVALUATION_ENGINES)[number];
 
 /**
@@ -18,7 +18,7 @@ export type EvaluationEngine = (typeof EVALUATION_ENGINES)[number];
 export const RunEvaluationSchema = z.object({
   location_id: z.string().uuid('A valid location ID is required'),
   engine: z.enum(EVALUATION_ENGINES, {
-    message: 'Engine must be openai or perplexity',
+    message: 'Engine must be openai, perplexity, anthropic, or gemini',
   }),
 });
 
@@ -35,3 +35,13 @@ export const VerifyHallucinationSchema = z.object({
 });
 
 export type VerifyHallucinationInput = z.infer<typeof VerifyHallucinationSchema>;
+
+/**
+ * Schema for triggering a multi-engine Truth Audit.
+ * Runs all four engines in parallel for the given location.
+ */
+export const RunMultiAuditSchema = z.object({
+  location_id: z.string().uuid('A valid location ID is required'),
+});
+
+export type RunMultiAuditInput = z.infer<typeof RunMultiAuditSchema>;

@@ -3,10 +3,15 @@
 import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
 import { getSafeAuthContext } from '@/lib/auth';
+import { generateText } from 'ai';
+import { getModel, hasApiKey } from '@/lib/ai/providers';
 import {
+  EVALUATION_ENGINES,
   RunEvaluationSchema,
+  RunMultiAuditSchema,
   VerifyHallucinationSchema,
   type RunEvaluationInput,
+  type RunMultiAuditInput,
   type VerifyHallucinationInput,
   type EvaluationEngine,
 } from '@/lib/schemas/evaluations';
@@ -78,16 +83,31 @@ Return only valid JSON. No markdown, no explanation outside the JSON object.`;
 // Mock fallback — used when API key is absent or the API call fails
 // ---------------------------------------------------------------------------
 
+const ENGINE_KEY_NAMES: Record<EvaluationEngine, string> = {
+  openai: 'OPENAI_API_KEY',
+  perplexity: 'PERPLEXITY_API_KEY',
+  anthropic: 'ANTHROPIC_API_KEY',
+  gemini: 'GOOGLE_GENERATIVE_AI_API_KEY',
+};
+
 function mockResult(engine: EvaluationEngine): EvaluationResult {
   return {
     accuracy_score: 80,
     hallucinations_detected: [
-      `Mock evaluation — no ${engine === 'openai' ? 'OPENAI_API_KEY' : 'PERPLEXITY_API_KEY'} is configured in .env.local.`,
+      `Mock evaluation — no ${ENGINE_KEY_NAMES[engine]} is configured in .env.local.`,
       'Set the API key and re-run the audit to get real results.',
     ],
     response_text: `[MOCK] Simulated ${engine} response. Configure the API key to run a real audit.`,
   };
 }
+
+// Engine → hasApiKey provider mapping
+const ENGINE_PROVIDER: Record<EvaluationEngine, 'openai' | 'perplexity' | 'anthropic' | 'google'> = {
+  openai: 'openai',
+  perplexity: 'perplexity',
+  anthropic: 'anthropic',
+  gemini: 'google',
+};
 
 // ---------------------------------------------------------------------------
 // OpenAI API call
@@ -176,7 +196,50 @@ async function callPerplexity(
 }
 
 // ---------------------------------------------------------------------------
-// runAIEvaluation — Server Action
+// callEngine — Unified Vercel AI SDK helper for all 4 engines
+// ---------------------------------------------------------------------------
+
+/**
+ * Calls a single AI engine via Vercel AI SDK generateText().
+ * Falls back to mockResult() if the API key is missing or the call fails.
+ */
+async function callEngine(
+  engine: EvaluationEngine,
+  prompt: string,
+): Promise<EvaluationResult> {
+  const provider = ENGINE_PROVIDER[engine];
+
+  if (!hasApiKey(provider)) {
+    await new Promise((r) => setTimeout(r, 3000));
+    return mockResult(engine);
+  }
+
+  try {
+    const modelKey = `truth-audit-${engine}` as const;
+    const { text } = await generateText({
+      model: getModel(modelKey),
+      prompt,
+    });
+
+    // Extract JSON from potential markdown fences
+    const jsonMatch = text.match(/\{[\s\S]*\}/);
+    const parsed = jsonMatch ? JSON.parse(jsonMatch[0]) : {};
+
+    return {
+      accuracy_score: Math.min(100, Math.max(0, Number(parsed.accuracy_score ?? 0))),
+      hallucinations_detected: Array.isArray(parsed.hallucinations_detected)
+        ? (parsed.hallucinations_detected as string[])
+        : [],
+      response_text: String(parsed.response_text ?? text),
+    };
+  } catch {
+    await new Promise((r) => setTimeout(r, 3000));
+    return mockResult(engine);
+  }
+}
+
+// ---------------------------------------------------------------------------
+// runAIEvaluation — Server Action (single engine, backwards compatible)
 // ---------------------------------------------------------------------------
 
 /**
@@ -407,4 +470,87 @@ export async function verifyHallucinationFix(
 
   revalidatePath('/dashboard');
   return { success: true, newStatus };
+}
+
+// ---------------------------------------------------------------------------
+// runMultiEngineEvaluation — Server Action (all 4 engines in parallel)
+// ---------------------------------------------------------------------------
+
+/**
+ * Server Action: trigger a multi-engine Truth Audit for a location.
+ *
+ * Runs all 4 engines (openai, perplexity, anthropic, gemini) in parallel
+ * using Promise.allSettled so one failure doesn't block the others.
+ * Each engine result is persisted as a separate ai_evaluations row.
+ */
+export async function runMultiEngineEvaluation(
+  input: RunMultiAuditInput,
+): Promise<ActionResult> {
+  // ── Auth ──────────────────────────────────────────────────────────────────
+  const ctx = await getSafeAuthContext();
+  if (!ctx?.orgId) {
+    return { success: false, error: 'Unauthorized' };
+  }
+
+  // ── Input validation ──────────────────────────────────────────────────────
+  const parsed = RunMultiAuditSchema.safeParse(input);
+  if (!parsed.success) {
+    return {
+      success: false,
+      error: parsed.error.issues[0]?.message ?? 'Invalid input',
+    };
+  }
+
+  const { location_id } = parsed.data;
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const supabase = (await createClient()) as any;
+
+  // ── Fetch ground-truth location data (RLS-scoped) ─────────────────────────
+  const { data: location, error: locError } = (await supabase
+    .from('locations')
+    .select('id, business_name, address_line1, city, state, zip, phone, website_url')
+    .eq('id', location_id)
+    .single()) as { data: LocationData | null; error: unknown };
+
+  if (locError || !location) {
+    return { success: false, error: 'Location not found or access denied' };
+  }
+
+  // ── Run all 4 engines in parallel ─────────────────────────────────────────
+  const promptText = buildPrompt(location);
+
+  const results = await Promise.allSettled(
+    EVALUATION_ENGINES.map(async (engine) => {
+      const result = await callEngine(engine, promptText);
+      return { engine, result };
+    }),
+  );
+
+  // ── Persist results ───────────────────────────────────────────────────────
+  let insertedCount = 0;
+
+  for (const settled of results) {
+    if (settled.status !== 'fulfilled') continue;
+
+    const { engine, result } = settled.value;
+    const { error: insertError } = await supabase.from('ai_evaluations').insert({
+      org_id: ctx.orgId,
+      location_id,
+      engine,
+      prompt_used: promptText,
+      response_text: result.response_text,
+      accuracy_score: result.accuracy_score,
+      hallucinations_detected: result.hallucinations_detected,
+    });
+
+    if (!insertError) insertedCount++;
+  }
+
+  if (insertedCount === 0) {
+    return { success: false, error: 'All engine evaluations failed' };
+  }
+
+  revalidatePath('/dashboard/hallucinations');
+  return { success: true };
 }

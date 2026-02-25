@@ -4,6 +4,39 @@
 
 ---
 
+## 2026-02-25 — Sprint 44: AI Truth Audit — Multi-Engine (Completed)
+
+**Goal:** Transform the single-engine hallucination monitor into a multi-engine truth verification system with 4 AI engines (OpenAI, Perplexity, Anthropic, Gemini). Composite Truth Score (0–100) with consensus detection.
+
+**Scope:**
+- `lib/schemas/evaluations.ts` — Extended `EVALUATION_ENGINES` from `['openai', 'perplexity']` to `['openai', 'perplexity', 'anthropic', 'gemini']`. Added `RunMultiAuditSchema` (location_id only).
+- `lib/services/truth-audit.service.ts` — **NEW.** Pure function service (AI_RULES §6). Exports `ENGINE_WEIGHTS` (openai=0.30, perplexity=0.30, gemini=0.20, anthropic=0.20), `calculateWeightedScore`, `hasConsensus`, `calculateTruthScore`, `buildTruthAuditResult`. Formula: weighted average + consensus bonus (+5 if all ≥80) − closed-hallucination penalty (−15). Clamped [0,100].
+- `app/dashboard/hallucinations/actions.ts` — Added `callEngine()` unified Vercel AI SDK helper using `getModel('truth-audit-{engine}')`. Added `runMultiEngineEvaluation()` Server Action running all 4 engines via `Promise.allSettled`. Extended `mockResult()` for all 4 engines. Kept existing `callOpenAI()`/`callPerplexity()` for backwards compatibility.
+- `app/dashboard/hallucinations/_components/TruthScoreCard.tsx` — **NEW.** SVG semicircle gauge (0–100), consensus badge, engine count. Color-coded: ≥90 green, ≥70 amber, ≥50 orange, <50 crimson.
+- `app/dashboard/hallucinations/_components/EngineComparisonGrid.tsx` — **NEW.** 4-column grid: engine badge, score, weight percentage per engine.
+- `app/dashboard/hallucinations/_components/EvaluationCard.tsx` — Extended `ENGINE_CONFIG` and Props to support 4 engines (anthropic=amber, gemini=sky). Added 2 new `EngineRow` renders.
+- `app/dashboard/hallucinations/page.tsx` — Renamed heading to "AI Truth Audit". Added Truth Score computation from latest evaluations + `buildTruthAuditResult()`. Placed `TruthScoreCard` + `EngineComparisonGrid` above audit cards.
+- `supabase/seed.sql` — 2 new eval rows: anthropic (f2eebc99, score=90), gemini (f3eebc99, score=88). Golden tenant Truth Score = 84 (no consensus since perplexity=65 < 80).
+- `src/mocks/handlers.ts` — **NEW handlers:** `anthropicHandler` (POST `api.anthropic.com/v1/messages`), `googleGeminiHandler` (POST `generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent`).
+
+**Tests added:**
+- `src/__tests__/unit/truth-audit-service.test.ts` — **23 Vitest tests.** ENGINE_WEIGHTS sum, calculateWeightedScore (empty, golden, 2-engine, 1-engine, consensus), hasConsensus (empty, single, golden, all≥80, boundary), calculateTruthScore (golden=84, consensus=95, penalty=69, consensus+penalty=80, clamp-0, clamp-100, empty), buildTruthAuditResult (golden, partial, penalty, empty).
+- `src/__tests__/unit/multi-engine-action.test.ts` — **6 Vitest tests.** `runMultiEngineEvaluation()`: auth gate, invalid UUID, location not found, success + 4 inserts + revalidatePath, all-fail error, partial-success.
+- `tests/e2e/10-truth-audit.spec.ts` — **6 Playwright tests.** Page title, TruthScoreCard render + 4 engines, EngineComparisonGrid 4 labels, EvaluationCard 4 engine rows, seed scores (95/65/90/88), Run Audit buttons ≥4.
+
+**Run commands:**
+```bash
+npx vitest run src/__tests__/unit/truth-audit-service.test.ts    # 23 tests passing
+npx vitest run src/__tests__/unit/multi-engine-action.test.ts    # 6 tests passing
+npx vitest run                                                     # 546 passing
+npx next build                                                     # 0 errors
+npx playwright test --project=chromium                             # 47 passing
+```
+
+**Verification:** 546 Vitest passing (510 baseline + 29 new), 0 skipped. Build clean. E2E: 47 specs (41 existing + 6 new).
+
+---
+
 ## 2026-02-24 — Sprint 43: Revenue Leak Scorecard (Completed)
 
 **Goal:** Convert AI inaccuracies into a dollar-denominated Revenue Leak Scorecard on the dashboard — 3-component model (Hallucination Cost + SOV Gap Cost + Competitor Steal Cost) with configurable business inputs.

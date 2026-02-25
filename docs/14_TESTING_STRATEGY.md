@@ -1,7 +1,7 @@
 # LocalVector.ai — Testing Strategy
 
 > **Source:** This document is derived from `DEVLOG.md`, the `src/__tests__/` directory,
-> and the `tests/e2e/` directory. Last updated: Post-Sprint 43 Revenue Leak Scorecard (2026-02-24).
+> and the `tests/e2e/` directory. Last updated: Post-Sprint 44 AI Truth Audit (2026-02-25).
 > All test counts are from the live `vitest run` and `playwright test` outputs.
 
 ---
@@ -12,8 +12,8 @@ LocalVector.ai uses a two-layer test stack:
 
 | Layer | Runner | Command | Result (current) |
 |-------|--------|---------|------------------|
-| Unit + Integration | Vitest | `npx vitest run` | **510 passing**, 7 skipped / **517 passing** when Supabase running with full migrations |
-| E2E Functional | Playwright | `npx playwright test` | 41 passing, 0 failing |
+| Unit + Integration | Vitest | `npx vitest run` | **546 passing**, 0 skipped (after `supabase db reset`) |
+| E2E Functional | Playwright | `npx playwright test` | 47 passing, 0 failing |
 
 Tests MUST NOT call live external APIs (AI_RULES §4):
 - All AI calls are intercepted by MSW (`src/mocks/handlers.ts`) — activated via `instrumentation.ts`
@@ -76,11 +76,13 @@ Tests MUST NOT call live external APIs (AI_RULES §4):
 | `src/__tests__/unit/tremor-charts.test.ts` | Module export verification: AreaChart, BarChart, DonutChart, CategoryBar, BarList + barrel | 6 | 0 | Tremor Raw chart components copy-paste |
 | `src/__tests__/unit/revenue-leak-service.test.ts` | calculateHallucinationCost, calculateSOVGapCost, calculateCompetitorStealCost, calculateRevenueLeak | 17 | 0 | Sprint 43: Revenue Leak pure function service — severity multipliers, open-only filter, SOV gap thresholds, competitor steal, integration sums, golden tenant scenario |
 | `src/__tests__/unit/revenue-leak-action.test.ts` | saveRevenueConfig | 6 | 0 | Sprint 43: Revenue Config Server Action — auth gate, Zod validation, no-location error, upsert success, DB error |
-| `src/__tests__/integration/rls-isolation.test.ts` | *(pre-existing failure)* | — | 7 | RLS cross-tenant isolation — requires live DB; fails in CI without `supabase db reset` |
+| `src/__tests__/unit/truth-audit-service.test.ts` | ENGINE_WEIGHTS, calculateWeightedScore, hasConsensus, calculateTruthScore, buildTruthAuditResult | 23 | 0 | Sprint 44: Truth Audit pure function service — weighted average (4 engines), consensus detection (≥80), bonus/penalty, clamping, golden tenant (score=84), partial data re-normalization |
+| `src/__tests__/unit/multi-engine-action.test.ts` | runMultiEngineEvaluation | 6 | 0 | Sprint 44: Multi-engine Server Action — auth gate, Zod UUID, location not found, 4-engine parallel insert, all-fail error, partial-success |
+| `src/__tests__/integration/rls-isolation.test.ts` | RLS cross-tenant isolation | 7 | 0 | RLS isolation — requires live DB (`supabase db reset`); all 7 pass after reset |
 
-**Total (active suites):** 15+22+16+32+15+12+30+20+10+8+32+16+8+6+22+6+8+10+6+17+8+7+14+12+8+8+7+9+5+4+10+10+6+8+1+2+5+6+17+6 = **510 passing** across 40 suites (plus 7 in rls-isolation = **517 passing** when Supabase running with full migrations)
+**Total (active suites):** 15+22+16+32+15+12+30+20+10+8+32+16+8+6+22+6+8+10+6+17+8+7+14+12+8+8+7+9+5+4+10+10+6+8+1+2+5+6+17+6+23+6+7 = **546 passing** across 43 suites (includes 7 rls-isolation tests now passing after `supabase db reset`)
 
-*(Sprint 43: `revenue-leak-service.test.ts` +17 (new), `revenue-leak-action.test.ts` +6 (new). Sprint 43 total: +23 tests from 2 new suites. AI SDK provider install: `ai-providers.test.ts` +5. Package install: `schema-types.test.ts` +1, `zip-bundle.test.ts` +2. Sprint 42: `dashboard-null-states.test.tsx` +4, `ContentDraftCard.test.tsx` +10, `content-drafts-actions.test.ts` +10, `SovCard-plan-gate.test.tsx` +6, `integrations-health.test.ts` +8, `share-of-voice-actions.test.ts` +4 (deleteTargetQuery). Sprint 42 total: +46 tests from 5 new suites + 4 added to existing suite. Package+SDK installs: +8 from 3 new suites.)*
+*(Sprint 44: `truth-audit-service.test.ts` +23 (new), `multi-engine-action.test.ts` +6 (new), `rls-isolation.test.ts` 0→7 (previously skipped, now passing). Sprint 44 total: +36 tests from 2 new suites + 7 unblocked. Sprint 43: `revenue-leak-service.test.ts` +17 (new), `revenue-leak-action.test.ts` +6 (new). Sprint 43 total: +23 tests from 2 new suites. AI SDK provider install: `ai-providers.test.ts` +5. Package install: `schema-types.test.ts` +1, `zip-bundle.test.ts` +2. Sprint 42: `dashboard-null-states.test.tsx` +4, `ContentDraftCard.test.tsx` +10, `content-drafts-actions.test.ts` +10, `SovCard-plan-gate.test.tsx` +6, `integrations-health.test.ts` +8, `share-of-voice-actions.test.ts` +4 (deleteTargetQuery). Sprint 42 total: +46 tests from 5 new suites + 4 added to existing suite. Package+SDK installs: +8 from 3 new suites.)*
 
 *(Sprint 35: `free-scan-pass.test.ts` 15→17 (+2: `accuracy_issue_categories` propagation + Zod default), `scan-params.test.ts` 11→14 (+3: `issue_cats` decode, missing → `[]`, encode). Sprint 34: `free-scan-pass.test.ts` 11→15 (+4 real-field propagation tests), `scan-params.test.ts` 10→11 (−4 deriveKpiScores, +5 real-field tests). Sprint 33: `scan-params.test.ts` +10 (new). Sprint 31: `free-scan-pass.test.ts` 10→11. Sprint 30: `scan-health-utils.test.ts` +7 (new). Sprint 29: `public-places-search.test.ts` +8 (new); `free-scan-pass.test.ts` 7→10. Sprint 28B: `free-scan-pass.test.ts` +7. Sprint 24A: `reality-score.test.ts` 8→10. Sprint 24B: `settings-actions.test.ts` +10. Sprint 27A: `listings-actions.test.ts` +6. Phase 22 correction: `generateMenuJsonLd.test.ts` 21→30, `parseCsvMenu.test.ts` 17→20. Pre-Phase 3: `plan-enforcer.test.ts` 12→16. Phase 3: `competitor-actions.test.ts` +22. Phase 3.1: `cron-audit.test.ts` 9→12; `places-search.test.ts` +6; `competitor-intercept-service.test.ts` +8. Group F: `plan-enforcer.test.ts` 16→32.)*
 
@@ -137,7 +139,9 @@ tests that require a second tenant to be provisioned.
 
 | Mock Target | Pattern | Used By |
 |-------------|---------|---------|
-| Vercel AI SDK `generateText()` | `vi.mock('ai', ...)` returning `{ text: '...' }` | SOV service, content crawler, page auditor tests |
+| Vercel AI SDK `generateText()` | `vi.mock('ai', ...)` returning `{ text: '...' }` | SOV service, content crawler, page auditor, multi-engine action tests |
+| Anthropic Messages API | MSW `http.post('https://api.anthropic.com/v1/messages')` | Truth Audit multi-engine tests |
+| Google Gemini generateContent | MSW `http.post('https://generativelanguage.googleapis.com/...')` | Truth Audit multi-engine tests |
 | Vercel AI SDK `tool()` | `vi.mock('ai', ...)` returning tool descriptor | Visibility tools tests |
 | Supabase query chain `.select().eq().order().limit()` | `mockReturnThis()` chain + final `.eq()` resolving Promise | MCP tools, visibility tools tests |
 | Perplexity custom provider | `vi.mock('@ai-sdk/openai', ...)` mocking `createOpenAI()` | SOV service tests |
@@ -185,10 +189,11 @@ tests that require a second tenant to be provisioned.
 | `tests/e2e/hybrid-upload.spec.ts` | 2 | `upload@` | Upload tabs visible, CSV upload → ReviewState |
 | `tests/e2e/auth.spec.ts` | 3 | None (public) | Login layout, error on invalid creds, signup form fields |
 | `tests/e2e/09-revenue-leak.spec.ts` | 5 | `dev@` | RevenueLeakCard render + dollar range, breakdown chips, Configure link nav, settings pre-fill, form submit |
+| `tests/e2e/10-truth-audit.spec.ts` | 6 | `dev@` | Page title "AI Truth Audit", TruthScoreCard render + 4 engines, EngineComparisonGrid 4 labels, EvaluationCard 4 engine rows, seed scores (95/65/90/88), Run Audit buttons ≥4 |
 | `tests/e2e/billing.spec.ts` | 2 | `dev@` | Three tiers with Growth highlighted (signal-green), upgrade demo mode |
 | `tests/e2e/onboarding.spec.ts` | 1 | `incomplete@` | Redirect to /onboarding + 3-step wizard completion |
 
-**Total: 41 tests, 41 passing, 0 failing** (Sprint 43, 2026-02-24)
+**Total: 47 tests, 47 passing, 0 failing** (Sprint 44, 2026-02-25)
 
 ### Key engineering decisions
 
@@ -276,4 +281,4 @@ npx playwright test --ui
 
 ---
 
-> **Last updated:** Post-Sprint 42 (2026-02-24) — 36/36 E2E + 481 unit/integration passing (488 with DB running). AI SDK provider install: +5 tests (ai-providers.test.ts). Package install: +3 tests (schema-types +1, zip-bundle +2). Sprint 42: +46 tests across 5 new suites + 4 added to share-of-voice-actions. E2E fixes: 26→36 (Sprint 42 added 06-sov +4, 07-listings +4, 08-content-drafts +3; earlier E2E repair brought total to 36). Sprint 36: +49 tests across 6 new suites from Surgical Integration day.
+> **Last updated:** Post-Sprint 44 (2026-02-25) — 47/47 E2E + 546 unit/integration passing. Sprint 44: `truth-audit-service.test.ts` +23, `multi-engine-action.test.ts` +6, `10-truth-audit.spec.ts` +6 E2E. Sprint 43: `revenue-leak-service.test.ts` +17, `revenue-leak-action.test.ts` +6, `09-revenue-leak.spec.ts` +5 E2E. Sprint 42: +46 unit tests, +10 E2E. Sprint 36: +49 tests from Surgical Integration day.
