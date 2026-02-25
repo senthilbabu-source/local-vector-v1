@@ -4,6 +4,23 @@
 
 ---
 
+## 2026-02-24 — AI SDK Provider Install: @ai-sdk/anthropic + @ai-sdk/google (Completed)
+
+**Goal:** Install Anthropic and Google AI SDK providers for multi-engine Truth Audit (Feature #2). No changes to existing AI service logic.
+
+**Scope:**
+- `package.json` — Added `@ai-sdk/anthropic@^1.2.12` and `@ai-sdk/google@^1.2.22` (v1.x for LanguageModelV1 compatibility with `ai@4.3.x`).
+- `lib/ai/providers.ts` — Added `createAnthropic` and `createGoogleGenerativeAI` imports. New `anthropic` and `google` provider instances. 4 new model registry entries (`truth-audit-anthropic`, `truth-audit-gemini`, `truth-audit-openai`, `truth-audit-perplexity`). Expanded `hasApiKey()` to support `'anthropic'` and `'google'` providers.
+
+**Key decision:** `@ai-sdk/anthropic@3.x` and `@ai-sdk/google@3.x` use `@ai-sdk/provider@3.x` (LanguageModelV3), which is incompatible with existing `ai@4.3.x` (expects LanguageModelV1). Downgraded to v1.x releases which use `@ai-sdk/provider@1.x`.
+
+**Tests added:**
+- `src/__tests__/unit/ai-providers.test.ts` — **5 Vitest tests.** Provider exports, truth-audit model keys, getModel resolution, unknown key throw, hasApiKey boolean returns.
+
+**Verification:** 481 Vitest passing (476 + 5 new), 36 Playwright E2E passing. `npx next build` clean.
+
+---
+
 ## 2026-02-24 — Package Install: schema-dts, jszip, @react-email/components (Completed)
 
 **Goal:** Install three zero-risk packages for upcoming killer features. No changes to existing code.
@@ -300,7 +317,7 @@
 
 | Suite | Count | Command |
 |-------|-------|---------|
-| Vitest unit/integration | 476 passing, 7 skipped | `npx vitest run` |
+| Vitest unit/integration | 481 passing, 7 skipped | `npx vitest run` |
 | Playwright E2E | 36 passing (12 spec files) | `npx playwright test --project=chromium` |
 
 ### E2E Spec Inventory

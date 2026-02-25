@@ -59,7 +59,7 @@
 11. ✅ Pricing page (Starter/$29 Growth/$59 Agency/Custom)
 12. ✅ Stripe checkout + webhooks
 13. ✅ Sentry monitoring
-14. ✅ 476 passing Vitest tests, 36 passing Playwright E2E tests
+14. ✅ 481 passing Vitest tests, 36 passing Playwright E2E tests
 15. ✅ Deep Night visual identity + Sprint 40 dark dashboard design system
 16. ✅ Surgery 1: Vercel AI SDK (replaced raw fetch)
 17. ✅ Surgery 2: SOV Engine cron (weekly query execution)
