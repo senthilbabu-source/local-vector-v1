@@ -3,240 +3,27 @@
 import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
 import { getSafeAuthContext } from '@/lib/auth';
-import { generateText } from 'ai';
-import { getModel, hasApiKey } from '@/lib/ai/providers';
 import {
-  EVALUATION_ENGINES,
   RunEvaluationSchema,
   RunMultiAuditSchema,
   VerifyHallucinationSchema,
   type RunEvaluationInput,
   type RunMultiAuditInput,
   type VerifyHallucinationInput,
-  type EvaluationEngine,
 } from '@/lib/schemas/evaluations';
 import { auditLocation } from '@/lib/services/ai-audit.service';
+import {
+  callEngine,
+  runAllEngines,
+  buildEvalPrompt,
+  type MultiEngineEvalInput,
+} from '@/lib/services/multi-engine-eval.service';
 
 // ---------------------------------------------------------------------------
 // Shared result type
 // ---------------------------------------------------------------------------
 
 export type ActionResult = { success: true } | { success: false; error: string };
-
-// ---------------------------------------------------------------------------
-// Internal types
-// ---------------------------------------------------------------------------
-
-type LocationData = {
-  id: string;
-  business_name: string;
-  address_line1: string | null;
-  city: string | null;
-  state: string | null;
-  zip: string | null;
-  phone: string | null;
-  website_url: string | null;
-};
-
-type EvaluationResult = {
-  accuracy_score: number;
-  hallucinations_detected: string[];
-  response_text: string;
-};
-
-// ---------------------------------------------------------------------------
-// Prompt builder
-// ---------------------------------------------------------------------------
-
-function buildPrompt(location: LocationData): string {
-  const address = [
-    location.address_line1,
-    location.city,
-    location.state,
-    location.zip,
-  ]
-    .filter(Boolean)
-    .join(', ');
-
-  return `You are an AI accuracy auditor for restaurant and business data.
-
-GROUND TRUTH (from our verified database):
-- Business name: ${location.business_name}
-- Address: ${address || 'not listed'}
-- Phone: ${location.phone ?? 'not listed'}
-- Website: ${location.website_url ?? 'not listed'}
-
-TASK:
-1. Think about what an AI assistant would say if asked about "${location.business_name}" in "${location.city ?? ''}, ${location.state ?? ''}".
-2. Compare that knowledge against the GROUND TRUTH above.
-3. Identify any specific inaccuracies an AI might state.
-
-Return a JSON object with exactly these three fields:
-- "accuracy_score": integer 0-100 (100 = AI knowledge perfectly matches ground truth, 0 = entirely wrong)
-- "hallucinations_detected": array of strings, each describing one specific inaccuracy (empty array if none)
-- "response_text": a realistic AI response a user might receive when asking about this business
-
-Return only valid JSON. No markdown, no explanation outside the JSON object.`;
-}
-
-// ---------------------------------------------------------------------------
-// Mock fallback — used when API key is absent or the API call fails
-// ---------------------------------------------------------------------------
-
-const ENGINE_KEY_NAMES: Record<EvaluationEngine, string> = {
-  openai: 'OPENAI_API_KEY',
-  perplexity: 'PERPLEXITY_API_KEY',
-  anthropic: 'ANTHROPIC_API_KEY',
-  gemini: 'GOOGLE_GENERATIVE_AI_API_KEY',
-};
-
-function mockResult(engine: EvaluationEngine): EvaluationResult {
-  return {
-    accuracy_score: 80,
-    hallucinations_detected: [
-      `Mock evaluation — no ${ENGINE_KEY_NAMES[engine]} is configured in .env.local.`,
-      'Set the API key and re-run the audit to get real results.',
-    ],
-    response_text: `[MOCK] Simulated ${engine} response. Configure the API key to run a real audit.`,
-  };
-}
-
-// Engine → hasApiKey provider mapping
-const ENGINE_PROVIDER: Record<EvaluationEngine, 'openai' | 'perplexity' | 'anthropic' | 'google'> = {
-  openai: 'openai',
-  perplexity: 'perplexity',
-  anthropic: 'anthropic',
-  gemini: 'google',
-};
-
-// ---------------------------------------------------------------------------
-// OpenAI API call
-// ---------------------------------------------------------------------------
-
-async function callOpenAI(
-  prompt: string,
-  apiKey: string
-): Promise<EvaluationResult> {
-  const res = await fetch('https://api.openai.com/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      model: 'gpt-4o',
-      messages: [{ role: 'user', content: prompt }],
-      response_format: { type: 'json_object' },
-      temperature: 0.2,
-    }),
-  });
-
-  if (!res.ok) {
-    throw new Error(`OpenAI API error: ${res.status} ${res.statusText}`);
-  }
-
-  const json = await res.json();
-  const content: string = json.choices?.[0]?.message?.content ?? '{}';
-  const parsed = JSON.parse(content);
-
-  return {
-    accuracy_score: Math.min(100, Math.max(0, Number(parsed.accuracy_score ?? 0))),
-    hallucinations_detected: Array.isArray(parsed.hallucinations_detected)
-      ? (parsed.hallucinations_detected as string[])
-      : [],
-    response_text: String(parsed.response_text ?? content),
-  };
-}
-
-// ---------------------------------------------------------------------------
-// Perplexity API call
-// ---------------------------------------------------------------------------
-
-async function callPerplexity(
-  prompt: string,
-  apiKey: string
-): Promise<EvaluationResult> {
-  const res = await fetch('https://api.perplexity.ai/chat/completions', {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      model: 'sonar',
-      messages: [
-        {
-          role: 'system',
-          content: 'You are an AI accuracy auditor. Always respond with valid JSON only.',
-        },
-        { role: 'user', content: prompt },
-      ],
-      temperature: 0.2,
-    }),
-  });
-
-  if (!res.ok) {
-    throw new Error(`Perplexity API error: ${res.status} ${res.statusText}`);
-  }
-
-  const json = await res.json();
-  const content: string = json.choices?.[0]?.message?.content ?? '{}';
-
-  // Perplexity may wrap JSON in markdown fences — extract the raw object
-  const jsonMatch = content.match(/\{[\s\S]*\}/);
-  const parsed = jsonMatch ? JSON.parse(jsonMatch[0]) : {};
-
-  return {
-    accuracy_score: Math.min(100, Math.max(0, Number(parsed.accuracy_score ?? 0))),
-    hallucinations_detected: Array.isArray(parsed.hallucinations_detected)
-      ? (parsed.hallucinations_detected as string[])
-      : [],
-    response_text: String(parsed.response_text ?? content),
-  };
-}
-
-// ---------------------------------------------------------------------------
-// callEngine — Unified Vercel AI SDK helper for all 4 engines
-// ---------------------------------------------------------------------------
-
-/**
- * Calls a single AI engine via Vercel AI SDK generateText().
- * Falls back to mockResult() if the API key is missing or the call fails.
- */
-async function callEngine(
-  engine: EvaluationEngine,
-  prompt: string,
-): Promise<EvaluationResult> {
-  const provider = ENGINE_PROVIDER[engine];
-
-  if (!hasApiKey(provider)) {
-    await new Promise((r) => setTimeout(r, 3000));
-    return mockResult(engine);
-  }
-
-  try {
-    const modelKey = `truth-audit-${engine}` as const;
-    const { text } = await generateText({
-      model: getModel(modelKey),
-      prompt,
-    });
-
-    // Extract JSON from potential markdown fences
-    const jsonMatch = text.match(/\{[\s\S]*\}/);
-    const parsed = jsonMatch ? JSON.parse(jsonMatch[0]) : {};
-
-    return {
-      accuracy_score: Math.min(100, Math.max(0, Number(parsed.accuracy_score ?? 0))),
-      hallucinations_detected: Array.isArray(parsed.hallucinations_detected)
-        ? (parsed.hallucinations_detected as string[])
-        : [],
-      response_text: String(parsed.response_text ?? text),
-    };
-  } catch {
-    await new Promise((r) => setTimeout(r, 3000));
-    return mockResult(engine);
-  }
-}
 
 // ---------------------------------------------------------------------------
 // runAIEvaluation — Server Action (single engine, backwards compatible)
@@ -249,9 +36,7 @@ async function callEngine(
  *  1. Authenticate and derive org_id server-side (never from the client).
  *  2. Validate input via Zod.
  *  3. Fetch the location's ground-truth data from the DB (RLS-scoped).
- *  4. Check for the relevant API key in process.env.
- *     • Key missing or API call fails → 3-second mock delay + mock result.
- *     • Key present → real OpenAI / Perplexity API call.
+ *  4. Delegate to callEngine() from multi-engine-eval.service (AI SDK).
  *  5. Insert the result into ai_evaluations.
  *  6. revalidatePath('/dashboard/hallucinations') to refresh the Server Component.
  *
@@ -287,38 +72,15 @@ export async function runAIEvaluation(
     .from('locations')
     .select('id, business_name, address_line1, city, state, zip, phone, website_url')
     .eq('id', location_id)
-    .single()) as { data: LocationData | null; error: unknown };
+    .single()) as { data: MultiEngineEvalInput | null; error: unknown };
 
   if (locError || !location) {
     return { success: false, error: 'Location not found or access denied' };
   }
 
-  // ── Run evaluation (real or mock) ─────────────────────────────────────────
-  const promptText = buildPrompt(location);
-  const apiKey =
-    engine === 'openai'
-      ? process.env.OPENAI_API_KEY
-      : process.env.PERPLEXITY_API_KEY;
-
-  let result: EvaluationResult;
-
-  if (!apiKey) {
-    // Graceful fallback: simulate the LLM delay so the UI loading state is
-    // visible and testable without any API keys configured.
-    await new Promise((r) => setTimeout(r, 3000));
-    result = mockResult(engine);
-  } else {
-    try {
-      result =
-        engine === 'openai'
-          ? await callOpenAI(promptText, apiKey)
-          : await callPerplexity(promptText, apiKey);
-    } catch {
-      // Real API call failed — degrade gracefully rather than crashing the UI.
-      await new Promise((r) => setTimeout(r, 3000));
-      result = mockResult(engine);
-    }
-  }
+  // ── Run evaluation via service (real or mock) ─────────────────────────────
+  const promptText = buildEvalPrompt(location);
+  const result = await callEngine(engine, promptText);
 
   // ── Persist result ────────────────────────────────────────────────────────
   // org_id is always server-derived — never from the client.
@@ -511,29 +273,24 @@ export async function runMultiEngineEvaluation(
     .from('locations')
     .select('id, business_name, address_line1, city, state, zip, phone, website_url')
     .eq('id', location_id)
-    .single()) as { data: LocationData | null; error: unknown };
+    .single()) as { data: MultiEngineEvalInput | null; error: unknown };
 
   if (locError || !location) {
     return { success: false, error: 'Location not found or access denied' };
   }
 
-  // ── Run all 4 engines in parallel ─────────────────────────────────────────
-  const promptText = buildPrompt(location);
+  // ── Run all 4 engines in parallel via service ──────────────────────────────
+  const evaluations = await runAllEngines(location);
 
-  const results = await Promise.allSettled(
-    EVALUATION_ENGINES.map(async (engine) => {
-      const result = await callEngine(engine, promptText);
-      return { engine, result };
-    }),
-  );
+  if (evaluations.length === 0) {
+    return { success: false, error: 'All engine evaluations failed' };
+  }
 
   // ── Persist results ───────────────────────────────────────────────────────
+  const promptText = buildEvalPrompt(location);
   let insertedCount = 0;
 
-  for (const settled of results) {
-    if (settled.status !== 'fulfilled') continue;
-
-    const { engine, result } = settled.value;
+  for (const { engine, result } of evaluations) {
     const { error: insertError } = await supabase.from('ai_evaluations').insert({
       org_id: ctx.orgId,
       location_id,

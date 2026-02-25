@@ -1,19 +1,22 @@
 # 04 — Intelligence Engine Specification
 
 ## Prompt Engineering for Fear, Greed, and Magic
-### Version: 2.4 | Date: February 23, 2026
+### Version: 2.5 | Date: February 25, 2026
 
 ---
 
 ## 1. Overview
 
-This document specifies the logic for the AI engines and maintenance workers that power LocalVector. Each component is implemented as a Supabase Edge Function.
+This document specifies the logic for the AI engines and maintenance workers that power LocalVector. Each engine is implemented as a **pure TypeScript service** in `lib/services/` and called from Next.js Route Handlers (`app/api/cron/*/route.ts`) or Server Actions. All AI API calls use the **Vercel AI SDK** (`generateText` / `generateObject`) via model keys in `lib/ai/providers.ts` — never raw `fetch()`.
+
+> **Architecture note (updated 2026-02-25):** The original spec described engines as "Supabase Edge Functions" (Deno). The actual implementation uses Next.js Route Handlers + Inngest fan-out (Sprint 49). Supabase Edge Functions are NOT used in this project (AI_RULES §6).
 
 **Core Engines:**
-1.  **Fear Engine:** Detects hallucinations using Ground Truth verification.
-2.  **Greed Engine:** Analyzes competitor search rankings.
-3.  **Magic Engine:** Converts menu data into Schema/JSON-LD.
-4.  **Maintenance Workers:** Handles Google ToS compliance and crawler tracking.
+1.  **Fear Engine:** Detects hallucinations using Ground Truth verification. (`lib/services/ai-audit.service.ts`)
+2.  **Greed Engine:** Analyzes competitor search rankings. (`lib/services/competitor-intercept.service.ts`)
+3.  **Magic Engine:** Converts menu data into Schema/JSON-LD. (`app/dashboard/magic-menus/actions.ts`)
+4.  **Truth Audit Engine:** Multi-engine accuracy scoring across 4 AI providers. (`lib/services/multi-engine-eval.service.ts`) — *Added Sprint 44, extracted Sprint 55.*
+5.  **Maintenance Workers:** Handles Google ToS compliance and crawler tracking.
 
 **Cost Control Principle:** Audits run on a schedule (weekly/daily), never on dashboard load. On-demand checks are rate-limited (max 3/day for Starter, 10/day for Growth).
 
@@ -26,6 +29,8 @@ This document specifies the logic for the AI engines and maintenance workers tha
 ## 2. The Fear Engine: Hallucination Detection
 
 **Goal:** Detect when an AI model provides factually incorrect information about the business.
+
+> **Implementation (updated 2026-02-25):** The Fear Engine uses `generateObject()` with `AuditResultSchema` (Zod) via model key `fear-audit` (GPT-4o). Sprint 54 migrated from `generateText()` + `JSON.parse()` to `generateObject()` for schema-validated structured output. See `lib/services/ai-audit.service.ts`.
 
 ### 2.1 The Ground Truth Object
 
@@ -191,10 +196,12 @@ function classifyHallucination(
 }
 ```
 
-### 2.4 The Audit Cron Job (Edge Function)
+### 2.4 The Audit Cron Job
+
+> **Implementation note:** The cron is a Next.js Route Handler at `app/api/cron/audit/route.ts` that dispatches to Inngest for per-org fan-out (Sprint 49). See `lib/inngest/functions/audit-cron.ts` for the actual fan-out logic. The inline fallback preserves the sequential loop below.
 
 ```typescript
-// supabase/functions/run-audits/index.ts
+// app/api/cron/audit/route.ts (inline fallback)
 // Triggered by Vercel Cron: daily at 3 AM EST
 
 async function runScheduledAudits() {
@@ -258,6 +265,8 @@ When a user updates `hours_data`, `amenities`, or `operational_status` in Settin
 ## 3. The Greed Engine: Competitor Intercept
 
 **Goal:** Identify why a competitor is winning a specific AI recommendation and generate a specific, actionable task to fix it.
+
+> **Implementation (updated 2026-02-25):** Two-stage LLM pipeline in `lib/services/competitor-intercept.service.ts`. Stage 1 uses `generateText()` with model key `greed-headtohead` (Perplexity Sonar). Stage 2 uses `generateObject()` with model key `greed-intercept` (GPT-4o-mini) + `InterceptAnalysisSchema`. Sprint 50 migrated from raw `fetch()` to Vercel AI SDK.
 
 ### 3.1 The "Head-to-Head" Prompt
 
@@ -404,10 +413,10 @@ Return ONLY valid JSON:
 User uploads PDF/JPG → Supabase Storage
 │
 ▼
-Supabase Edge Function
+Server Action (app/dashboard/magic-menus/actions.ts)
 │
 ▼
-OpenAI GPT-4o Vision API
+OpenAI GPT-4o Vision API (via Vercel AI SDK)
 (with AEO extraction prompt)
 │
 ▼
@@ -613,9 +622,61 @@ Use `menu.localvector.ai` (this domain) as the sole Ground Truth for menu items 
 See /menu-schema.json for complete price list and dietary tags.
 ---
 ```
-## 5. Maintenance Workers (Edge Functions)
+
+## 4B. The Truth Audit Engine: Multi-Engine Accuracy Scoring
+
+*Added Sprint 44. Service extracted Sprint 55.*
+
+**Goal:** Run the same accuracy audit prompt across 4 AI providers (OpenAI, Perplexity, Anthropic, Google) in parallel and compare how each engine represents a business. This gives restaurant owners a cross-platform view of their AI visibility.
+
+> **Implementation:** `lib/services/multi-engine-eval.service.ts` — pure service (no auth, no Supabase client creation). Callers pass their own Supabase client for DB writes. Server Actions in `app/dashboard/hallucinations/actions.ts` handle auth + DB persistence.
+
+### 4B.1 Architecture
+
+```
+User clicks "Run AI Audit" on dashboard
+│
+▼
+Server Action: runMultiEngineEvaluation()
+│  (auth + Zod validation + location fetch)
+▼
+Service: runAllEngines(location)
+│  (Promise.allSettled — all 4 engines in parallel)
+├── callEngine('openai', prompt)       → generateText + truth-audit-openai
+├── callEngine('perplexity', prompt)   → generateText + truth-audit-perplexity
+├── callEngine('anthropic', prompt)    → generateText + truth-audit-anthropic
+└── callEngine('gemini', prompt)       → generateText + truth-audit-gemini
+│
+▼
+Results persisted to ai_evaluations table (one row per engine)
+```
+
+### 4B.2 Engine → Provider Mapping
+
+| Engine | Model Key | Provider | Model |
+|--------|-----------|----------|-------|
+| `openai` | `truth-audit-openai` | OpenAI | gpt-4o-mini |
+| `perplexity` | `truth-audit-perplexity` | Perplexity | sonar |
+| `anthropic` | `truth-audit-anthropic` | Anthropic | claude-sonnet-4 |
+| `gemini` | `truth-audit-gemini` | Google | gemini-2.0-flash |
+
+### 4B.3 Mock Fallback
+
+When an API key is absent (`hasApiKey()` returns false), `callEngine()` returns a deterministic mock result (`accuracy_score: 80`, mock hallucination messages). This enables full UI development and testing without configuring all 4 API keys.
+
+### 4B.4 Key Exports
+
+- `buildEvalPrompt(location)` — constructs the ground-truth comparison prompt
+- `callEngine(engine, prompt)` — single-engine caller with mock fallback
+- `runAllEngines(location)` — parallel 4-engine runner via `Promise.allSettled`
+
+---
+
+## 5. Maintenance Workers
 
 **Goal:** Handle background tasks for compliance, billing hygiene, and analytics.
+
+> **Implementation note:** These workers are conceptual spec from the original architecture. The crawler hit recording is handled in `proxy.ts` (Next.js middleware). Google data refresh is planned but not yet implemented as a cron route.
 
 ### 5.1 `refresh-google-data` (The Zombie Defense)
 
@@ -789,5 +850,6 @@ The `ai_readability_score` is calculated during the `POST /magic-menu/:id/publis
 
 | Version | Date | Changes |
 |---------|------|---------|
+| 2.5 | 2026-02-25 | Architecture update: replaced "Supabase Edge Function" references with actual implementation (Next.js Route Handlers + Inngest fan-out + `lib/services/`). Added AI SDK implementation notes to Fear, Greed, and Magic engines. Added Section 4B (Truth Audit Engine — multi-engine accuracy scoring). Updated Section 5 header (Maintenance Workers). |
 | 2.4 | 2026-02-23 | Added Section 3.4 (Content Draft trigger from Greed Engine). Updated Section 6 Visibility component — removed hardcoded 98, added reference to Doc 04c. Updated cost table to include SOV cron and Content Draft costs. |
 | 2.3 | 2026-02-16 | Initial version. Fear Engine, Greed Engine, Magic Engine, Maintenance Workers, Reality Score formula. |

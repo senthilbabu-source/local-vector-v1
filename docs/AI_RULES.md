@@ -20,8 +20,8 @@
 
 ## 2. 📐 Data Structures & Types
 * **JSONB Columns:** The database uses `JSONB` for flexible data (e.g., `hours_data`, `amenities`, `extracted_data`).
-* **The Authority:** You MUST use the **TypeScript interfaces defined in `03-DATABASE-SCHEMA.md` (Section 15)** as the strict schema for these columns.
-    * *Example:* Do not invent a shape for `hours_data`. Use the `DayHours` interface defined in Doc 03.
+* **The Authority:** You MUST use the **TypeScript interfaces defined in `lib/types/ground-truth.ts`** as the strict schema for these columns. `03-DATABASE-SCHEMA.md` (Section 15) is a conceptual reference only — the live code in `ground-truth.ts` is the canonical source.
+    * *Example:* Do not invent a shape for `hours_data`. Use the `DayHours` interface from `lib/types/ground-truth.ts`.
 * **Enums:** Always check `prod_schema.sql` for valid Enum values (e.g., `plan_tier`, `hallucination_severity`, `audit_prompt_type`).
 
 ## 3. 🔐 Security & Multi-Tenancy
@@ -322,11 +322,16 @@ Before marking any phase "Completed", verify all of the following are true:
 **Model key registry** (defined in `lib/ai/providers.ts`):
 | Key | Provider | SDK Function | Purpose |
 |-----|----------|-------------|---------|
-| `greed-headtohead` | Perplexity Sonar | `generateText` | Head-to-head comparison (Stage 1). Uses `generateText` because Perplexity's `compatibility: 'compatible'` mode does not support `response_format: json_schema`. |
-| `greed-intercept` | OpenAI gpt-4o-mini | `generateObject` | Intercept analysis (Stage 2). Structured output enforced server-side via Zod schema. |
-| `magic-menu` | OpenAI gpt-4o | `generateObject` | Magic Menu OCR extraction. |
-| `content-grader` | OpenAI gpt-4o-mini | `generateObject` | Content Grader AEO scoring. |
-| `autopilot-brief` | OpenAI gpt-4o-mini | `generateText` | Autopilot draft brief generation. |
+| `fear-audit` | OpenAI gpt-4o | `generateObject` | Fear Engine — hallucination detection (high reasoning). Uses `AuditResultSchema`. |
+| `greed-headtohead` | Perplexity Sonar | `generateText` | Greed Engine Stage 1 — head-to-head comparison (live web). Uses `generateText` because Perplexity's `compatibility: 'compatible'` mode does not support `response_format: json_schema`. |
+| `greed-intercept` | OpenAI gpt-4o-mini | `generateObject` | Greed Engine Stage 2 — intercept analysis. Structured output via Zod schema. |
+| `sov-query` | Perplexity Sonar | `generateText` | SOV Engine — share-of-voice queries (live web results). |
+| `sov-query-openai` | OpenAI gpt-4o | `generateText` | SOV Engine — OpenAI alternative for multi-model SOV. |
+| `truth-audit-openai` | OpenAI gpt-4o-mini | `generateText` | Truth Audit — OpenAI engine (multi-engine accuracy scoring). |
+| `truth-audit-perplexity` | Perplexity Sonar | `generateText` | Truth Audit — Perplexity engine (live web, multi-engine). |
+| `truth-audit-anthropic` | Anthropic Claude Sonnet | `generateText` | Truth Audit — Anthropic engine (multi-engine comparison). |
+| `truth-audit-gemini` | Google Gemini 2.0 Flash | `generateText` | Truth Audit — Google engine (multi-engine comparison). |
+| `chat-assistant` | OpenAI gpt-4o | `generateText` | AI Chat Assistant — streaming conversational agent. |
 
 **Zod schemas** live in `lib/ai/schemas.ts` — imported by both services and tests. Never define AI output types inline.
 

@@ -4,6 +4,112 @@
 
 ---
 
+## 2026-02-25 — Sprint 55: Multi-Engine Eval Service Extraction (Completed)
+
+**Goal:** Extract the multi-engine AI evaluation logic from `hallucinations/actions.ts` into a pure service at `lib/services/multi-engine-eval.service.ts`. This enables the cron pipeline and Inngest functions to run multi-engine evaluations without going through a Server Action. Eliminates ~130 lines of duplicated code (raw `fetch()` callers, inline prompt builder, mock helpers).
+
+**Scope:**
+
+*New files:*
+- `lib/services/multi-engine-eval.service.ts` — **NEW.** Pure service (no auth, no Supabase client creation — AI_RULES §6). Exports `buildEvalPrompt()`, `callEngine()`, `runAllEngines()`. Uses Vercel AI SDK `generateText()` for all 4 engines. Mock fallback when API key is absent. Engine→provider mapping for openai, perplexity, anthropic, gemini.
+- `src/__tests__/unit/multi-engine-eval-service.test.ts` — **NEW.** 18 Vitest tests. `buildEvalPrompt` (4): field inclusion, null handling, JSON instructions. `callEngine` mock path (5): per-engine mock results, no generateText call. `callEngine` real path (5): model key, JSON parsing, markdown fence extraction, score clamping, error fallback. `runAllEngines` (4): all-mock, all-real, partial failure resilience, result shape.
+
+*Modified files:*
+- `app/dashboard/hallucinations/actions.ts` — **REWRITTEN.** Removed ~130 lines of duplicated code: `buildPrompt()`, `callOpenAI()`, `callPerplexity()`, `callEngine()`, `mockResult()`, `ENGINE_KEY_NAMES`, `ENGINE_PROVIDER`, `LocationData`, `EvaluationResult` types. `runAIEvaluation()` now delegates to `callEngine()` from service. `runMultiEngineEvaluation()` now delegates to `runAllEngines()` from service. Legacy raw `fetch()` callers fully removed. `verifyHallucinationFix()` unchanged (uses `ai-audit.service`).
+
+**Deleted code:**
+- `callOpenAI()` — raw `fetch('https://api.openai.com/...')`, replaced by AI SDK `callEngine()`
+- `callPerplexity()` — raw `fetch('https://api.perplexity.ai/...')`, replaced by AI SDK `callEngine()`
+- `buildPrompt()` — duplicated in service as `buildEvalPrompt()`
+- `mockResult()`, `ENGINE_KEY_NAMES`, `ENGINE_PROVIDER` — moved to service
+- `LocationData`, `EvaluationResult` types — replaced by service's `MultiEngineEvalInput`, `EvaluationResult`
+
+**Tests:** 18 new tests (multi-engine-eval-service). 763 total passing, 7 skipped.
+
+**Run commands:**
+```bash
+npx vitest run src/__tests__/unit/multi-engine-eval-service.test.ts  # 18 tests passing
+npx vitest run src/__tests__/unit/hallucination-classifier.test.ts   # 7 tests passing
+npx vitest run                                                        # 763 tests passing, 7 skipped
+npx next build                                                        # 0 errors
+```
+
+---
+
+## 2026-02-25 — Sprint 54: Fear Engine generateObject Migration (Completed)
+
+**Goal:** Migrate the Fear Engine (`ai-audit.service.ts`) from `generateText()` + manual `JSON.parse()` to Vercel AI SDK's `generateObject()` with Zod schema validation (`AuditResultSchema`). Eliminates JSON parsing boilerplate and improves error handling.
+
+**Scope:**
+
+*Modified files:*
+- `lib/services/ai-audit.service.ts` — Replaced `generateText()` + `JSON.parse()` with `generateObject({ schema: AuditResultSchema })`. Removed try/catch around manual JSON parsing. System prompt simplified (JSON format instructions no longer needed — SDK enforces schema server-side).
+- `src/__tests__/unit/hallucination-classifier.test.ts` — Updated test mocks from `vi.mocked(generateText)` to `vi.mocked(generateObject)`. Mock return shape changed from `{ text: '...' }` to `{ object: { hallucinations: [...] } }`. Removed stale "unparseable JSON" fallback test (SDK validates at call time).
+
+**Tests:** 7 tests, all passing (rewritten, not added/removed).
+
+**Run commands:**
+```bash
+npx vitest run src/__tests__/unit/hallucination-classifier.test.ts  # 7 tests passing
+```
+
+---
+
+## 2026-02-25 — Sprint 53: RLS Audit Fixes (3 Tables) (Completed)
+
+**Goal:** Defense-in-depth RLS hardening on 3 tables flagged in the V1 implementation audit. Prevents cross-org data leaks even if future code paths use user-scoped Supabase clients.
+
+**Scope:**
+
+*New files:*
+- `supabase/migrations/20260226000004_rls_audit_fixes.sql` — **NEW.** Three-table RLS hardening:
+  1. `citation_source_intelligence`: RLS was NOT enabled. Added `ALTER TABLE ... ENABLE ROW LEVEL SECURITY` + `authenticated_select` policy (shared market data, no org isolation needed). Service-role writes (cron) bypass RLS.
+  2. `page_audits`: Had SELECT only. Added `org_isolation_insert`, `org_isolation_update`, `org_isolation_delete` policies.
+  3. `content_drafts`: Had SELECT/INSERT/UPDATE. Added `org_isolation_delete` policy.
+
+*Modified files:*
+- `supabase/prod_schema.sql` — Applied all policy definitions to authoritative schema.
+
+**Tests:** No new tests (migration-only). Verified via `supabase db reset`.
+
+---
+
+## 2026-02-25 — Sprint 52: Bearer Token Auth Guard for MCP Endpoint (Completed)
+
+**Goal:** Secure the MCP endpoint (`/api/mcp/[transport]`) with bearer token authentication. Previously completely unauthenticated — exposed all tenant SOV, hallucination, and competitor data to any caller.
+
+**Scope:**
+
+*New files:*
+- `.env.local.example` — **NEW.** Environment variable reference (55 lines). Documents all env vars including `MCP_API_KEY` with fail-closed behavior.
+- `src/__tests__/unit/mcp-auth.test.ts` — **NEW.** 4 Vitest tests. Bearer token validation: missing header (401), wrong token (401), missing env var / fail-closed (401), correct token (passes through).
+
+*Modified files:*
+- `app/api/mcp/[transport]/route.ts` — Added `withMcpAuth()` wrapper. Validates `Authorization: Bearer <MCP_API_KEY>` header. Returns 401 when absent, wrong, or env var unset. Fails closed when `MCP_API_KEY` is not configured (rejects all requests).
+
+**Tests:** 4 new Vitest tests, all passing.
+
+**Run commands:**
+```bash
+npx vitest run src/__tests__/unit/mcp-auth.test.ts  # 4 tests passing
+```
+
+---
+
+## 2026-02-25 — Bug Fix: Chat-Assistant Model Key Separation (Completed)
+
+**Goal:** Decouple the AI Chat endpoint from the Fear Audit model key, enabling independent model upgrades.
+
+**Scope:**
+
+*Modified files:*
+- `app/api/chat/route.ts` — Changed `getModel('fear-audit')` to `getModel('chat-assistant')`.
+- `lib/ai/providers.ts` — Added `'chat-assistant': openai('gpt-4o')` to model registry.
+
+**Rationale:** The chat endpoint was borrowing the `fear-audit` model key, coupling chat upgrades to audit upgrades.
+
+---
+
 ## 2026-02-25 — Sprint 50: AI SDK Migration — Competitor Intercept Service (Completed)
 
 **Goal:** Migrate the last remaining raw `fetch()` calls (Perplexity + OpenAI) in the Competitor Intercept Service to the Vercel AI SDK (`generateText` / `generateObject`), completing the Surgery 2 wave. Eliminates manual HTTP construction and `JSON.parse` in the Greed Engine pipeline.
