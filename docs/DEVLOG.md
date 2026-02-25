@@ -4,6 +4,33 @@
 
 ---
 
+## 2026-02-25 — Sprint 47: Prompt Intelligence Service (Completed)
+
+**Goal:** Build the Prompt Intelligence Service — a strategic layer on top of the SOV Engine that detects 3 types of gaps in a tenant's query library (untracked, competitor-discovered, zero-citation clusters) and surfaces actionable gaps via API and cron-driven content drafts.
+
+**Spec:** `docs/15-LOCAL-PROMPT-INTELLIGENCE.md`
+
+**Scope:**
+- `lib/types/prompt-intelligence.ts` — **NEW.** TypeScript interfaces: `QueryGap`, `ReferenceQuery`, `CategoryBreakdown`, `PromptGapReport`, enums `GapType`, `GapImpact`, `QueryCategory`.
+- `lib/services/prompt-intelligence.service.ts` — **NEW.** Pure service. Exports: `buildReferenceLibrary()`, `detectQueryGaps()` (3 algorithms), `computeCategoryBreakdown()`.
+- `app/api/v1/sov/gaps/route.ts` — **NEW.** `GET /api/v1/sov/gaps?location_id=uuid` — auth-gated gap report endpoint.
+- `app/api/cron/sov/route.ts` — Added Prompt Intelligence sub-step (§9) after Occasion Engine. Auto-creates `prompt_missing` content drafts for zero-citation clusters (Growth+ only). Added `gaps_detected` to summary.
+- `lib/services/sov-seed.ts` — Exported template functions for reuse by reference library builder.
+- `docs/05-API-CONTRACT.md` — Added `GET /sov/gaps` endpoint. Version bumped to 2.6.
+
+**Tests added:**
+- `src/__tests__/unit/prompt-intelligence-service.test.ts` — **16 Vitest tests** (new).
+- `src/__tests__/unit/cron-sov.test.ts` — **16 Vitest tests** (was 13, +3 new).
+
+**Run commands:**
+```bash
+npx vitest run src/__tests__/unit/prompt-intelligence-service.test.ts  # 16 tests passing
+npx vitest run src/__tests__/unit/cron-sov.test.ts                     # 16 tests passing
+npx vitest run                                                          # 637 tests passing, 7 skipped
+```
+
+---
+
 ## 2026-02-25 — Sprint 46: Citation Intelligence Cron (Completed)
 
 **Goal:** Build the Citation Intelligence cron — a monthly infrastructure-level pipeline that measures which platforms AI actually cites when answering discovery queries for a business category+city. Shared aggregate data, not tenant-specific. Cost: ~900 Perplexity Sonar queries/month = ~$4.50 fixed.

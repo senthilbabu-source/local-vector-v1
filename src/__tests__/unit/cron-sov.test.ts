@@ -55,12 +55,24 @@ vi.mock('@/lib/services/occasion-engine.service', () => ({
   }),
 }));
 
+// ── Mock the Prompt Intelligence Engine ──────────────────────────────────
+vi.mock('@/lib/services/prompt-intelligence.service', () => ({
+  detectQueryGaps: vi.fn().mockResolvedValue([]),
+}));
+
+// ── Mock the Plan Enforcer ───────────────────────────────────────────────
+vi.mock('@/lib/plan-enforcer', () => ({
+  canRunAutopilot: vi.fn().mockReturnValue(true),
+}));
+
 // ── Import handler and mocks after vi.mock declarations ──────────────────
 import { GET } from '@/app/api/cron/sov/route';
 import { createServiceRoleClient } from '@/lib/supabase/server';
 import { runSOVQuery, writeSOVResults } from '@/lib/services/sov-engine.service';
 import { sendSOVReport } from '@/lib/email';
 import { runOccasionScheduler } from '@/lib/services/occasion-engine.service';
+import { detectQueryGaps } from '@/lib/services/prompt-intelligence.service';
+import { canRunAutopilot } from '@/lib/plan-enforcer';
 
 // ── Constants ────────────────────────────────────────────────────────────
 
@@ -323,6 +335,54 @@ describe('GET /api/cron/sov', () => {
     const body = await res.json();
 
     // Cron should still succeed — occasion engine is non-critical
+    expect(res.status).toBe(200);
+    expect(body.orgs_processed).toBe(1);
+    expect(body.orgs_failed).toBe(0);
+  });
+
+  it('calls detectQueryGaps after writeSOVResults', async () => {
+    const mock = makeMockSupabase([MOCK_QUERY]);
+    vi.mocked(createServiceRoleClient).mockReturnValue(mock as never);
+
+    await GET(makeRequest(CRON_SECRET));
+
+    expect(vi.mocked(detectQueryGaps)).toHaveBeenCalledWith(
+      'org-uuid-001',
+      'loc-uuid-001',
+      expect.anything(),
+    );
+  });
+
+  it('includes gaps_detected in summary response', async () => {
+    const mock = makeMockSupabase([MOCK_QUERY]);
+    vi.mocked(createServiceRoleClient).mockReturnValue(mock as never);
+    vi.mocked(detectQueryGaps).mockResolvedValueOnce([
+      {
+        gapType: 'untracked',
+        queryText: 'test query',
+        queryCategory: 'discovery',
+        estimatedImpact: 'high',
+        suggestedAction: 'Add this query.',
+      },
+    ]);
+
+    const res = await GET(makeRequest(CRON_SECRET));
+    const body = await res.json();
+
+    expect(body.gaps_detected).toBe(1);
+  });
+
+  it('does not crash when prompt intelligence throws', async () => {
+    const mock = makeMockSupabase([MOCK_QUERY]);
+    vi.mocked(createServiceRoleClient).mockReturnValue(mock as never);
+    vi.mocked(detectQueryGaps).mockRejectedValueOnce(
+      new Error('Gap detection failed'),
+    );
+
+    const res = await GET(makeRequest(CRON_SECRET));
+    const body = await res.json();
+
+    // Cron should still succeed — gap detection is non-critical
     expect(res.status).toBe(200);
     expect(body.orgs_processed).toBe(1);
     expect(body.orgs_failed).toBe(0);

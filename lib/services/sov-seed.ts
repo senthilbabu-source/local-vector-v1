@@ -20,7 +20,7 @@ interface LocationForSeed {
   categories: string[] | null;
 }
 
-interface CompetitorForSeed {
+export interface CompetitorForSeed {
   competitor_name: string;
 }
 
@@ -28,7 +28,7 @@ interface CompetitorForSeed {
 // Template definitions — Doc 04c §3.1
 // ---------------------------------------------------------------------------
 
-function discoveryQueries(category: string, city: string, state: string): string[] {
+export function discoveryQueries(category: string, city: string, state: string): string[] {
   return [
     `best ${category} in ${city} ${state}`,
     `top ${category} near ${city}`,
@@ -37,7 +37,7 @@ function discoveryQueries(category: string, city: string, state: string): string
   ];
 }
 
-function nearMeQueries(category: string, city: string): string[] {
+export function nearMeQueries(category: string, city: string): string[] {
   return [
     `${category} near me ${city}`,
     `best ${category} near me`,
@@ -45,20 +45,20 @@ function nearMeQueries(category: string, city: string): string[] {
   ];
 }
 
-const HOSPITALITY_CATEGORIES = [
+export const HOSPITALITY_CATEGORIES = [
   'restaurant', 'bar', 'lounge', 'hookah', 'cafe', 'bistro',
   'pub', 'grill', 'diner', 'eatery', 'steakhouse', 'pizzeria',
   'sushi', 'thai', 'indian', 'mexican', 'italian', 'bbq',
   'seafood', 'brunch', 'bakery', 'food', 'dining',
 ];
 
-function isHospitalityCategory(categories: string[]): boolean {
+export function isHospitalityCategory(categories: string[]): boolean {
   return categories.some((cat) =>
     HOSPITALITY_CATEGORIES.some((h) => cat.toLowerCase().includes(h))
   );
 }
 
-function occasionQueries(city: string): string[] {
+export function occasionQueries(city: string): string[] {
   return [
     `best place for date night ${city}`,
     `birthday dinner ${city}`,
@@ -68,7 +68,7 @@ function occasionQueries(city: string): string[] {
   ];
 }
 
-function comparisonQueries(
+export function comparisonQueries(
   category: string,
   city: string,
   myBusiness: string,

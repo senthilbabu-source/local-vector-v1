@@ -828,6 +828,55 @@ Mark an alert as actioned (user clicked "Create Content") or dismissed.
 { "id": "uuid", "status": "actioned", "actioned_at": "2026-02-23T14:00:00Z" }
 ```
 
+### GET `/sov/gaps`
+
+Returns the Prompt Intelligence gap analysis for a location — untracked queries, competitor-discovered gaps, and zero-citation clusters. Computed on-demand from the reference library and current query library.
+
+**Spec:** Doc 15 — Local Prompt Intelligence, Section 8.3
+
+**Query Params:** `?location_id=uuid` (required)
+
+**Response:**
+```json
+{
+  "gaps": [
+    {
+      "gapType": "untracked",
+      "queryText": "hookah bar open late Alpharetta GA",
+      "queryCategory": "near_me",
+      "estimatedImpact": "high",
+      "suggestedAction": "Add \"hookah bar open late Alpharetta GA\" to your tracking library."
+    },
+    {
+      "gapType": "competitor_discovered",
+      "queryText": "best late night hookah Alpharetta",
+      "queryCategory": "comparison",
+      "estimatedImpact": "high",
+      "suggestedAction": "Cloud 9 Lounge is winning this query. Track it to measure your progress."
+    },
+    {
+      "gapType": "zero_citation_cluster",
+      "queryText": "hookah near me, hookah open now, best hookah near me",
+      "queryCategory": "near_me",
+      "estimatedImpact": "high",
+      "suggestedAction": "Multiple tracked queries are returning zero citations. This suggests a content gap, not a tracking gap — consider creating a page that directly answers these queries."
+    }
+  ],
+  "totalGaps": 3,
+  "lastAnalyzedAt": "2026-02-25T02:30:00Z"
+}
+```
+
+**Error (missing location_id):** `400 Bad Request`
+```json
+{ "error": "location_id query parameter is required" }
+```
+
+**Error (location not found):** `404 Not Found`
+```json
+{ "error": "Location not found or access denied" }
+```
+
 ### POST `/cron/sov` (Internal — Service Role Only)
 
 Triggered by Vercel Cron weekly at Sunday 2 AM EST. Executes the SOV cron job (Doc 04c Section 4). Not callable by authenticated browser clients.
@@ -1398,6 +1447,7 @@ All tools are org-scoped — they automatically query using the authenticated us
 
 | Version | Date | Changes |
 |---------|------|---------|
+| 2.6 | 2026-02-25 | Added `GET /sov/gaps` endpoint (Doc 15 §8.3) — Prompt Intelligence gap report. Updated SOV cron summary to include `gaps_detected` field. |
 | 2.5 | 2026-02-24 | Added Section 16 (Surgical Integration Routes — 4 endpoint groups): SOV cron implementation detail with Vercel AI SDK, Content Audit cron with crawler + auditor services, MCP Server with 4 AI-callable tools via Streamable HTTP transport, AI Chat streaming endpoint with 4 org-scoped tools + Generative UI. All routes use Vercel AI SDK v4 (`generateText`/`streamText`). MCP tools use `zod/v3`; chat tools use `zod` v4. Cross-references `.cursorrules` §20–§27. |
 | 2.4 | 2026-02-23 | Added Section 12 (SOV Engine — 7 endpoints). Added Section 13 (Content Drafts — 6 endpoints). Added Section 14 (Page Audits — 4 endpoints). Added Section 15 (Citation Gap Intelligence — 2 endpoints). Updated `GET /dashboard/stats` response to include SOV fields. Added version history table. |
 | 2.3 | 2026-02-16 | Initial version. Auth, Fear Engine, Magic Engine, Greed Engine, Listings, Visibility Score, Billing, Public Tool, Agency, Location/Settings endpoints. |

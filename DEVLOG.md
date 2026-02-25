@@ -1,6 +1,40 @@
 # LocalVector.ai — Development Log
 
 ---
+## 2026-02-25 — Sprint 47: Prompt Intelligence Service (Completed)
+
+**Goal:** Build the Prompt Intelligence Service — a strategic layer on top of the SOV Engine that detects 3 types of gaps in a tenant's query library (untracked, competitor-discovered, zero-citation clusters) and surfaces actionable gaps in the dashboard and email reports.
+
+**Spec:** `docs/15-LOCAL-PROMPT-INTELLIGENCE.md`
+
+**Scope:**
+- `lib/types/prompt-intelligence.ts` — **NEW.** TypeScript interfaces: `QueryGap`, `ReferenceQuery`, `CategoryBreakdown`, `PromptGapReport`, enums `GapType`, `GapImpact`, `QueryCategory`.
+- `lib/services/prompt-intelligence.service.ts` — **NEW.** Pure service (~200 lines). Exports: `buildReferenceLibrary()` (generates reference query set from `sov-seed.ts` templates for location's category+city+state+competitors), `detectQueryGaps()` (3 gap detection algorithms: untracked reference queries, competitor-discovered queries from `competitor_intercepts`, zero-citation clusters from `sov_evaluations`), `computeCategoryBreakdown()` (pure function: groups queries by category, computes citation rate per category from latest evaluations).
+- `app/api/v1/sov/gaps/route.ts` — **NEW.** `GET /api/v1/sov/gaps?location_id=uuid`. Auth-gated via `getSafeAuthContext()`, org isolation verified. Returns gap list with `gapType`, `queryText`, `queryCategory`, `estimatedImpact`, `suggestedAction`.
+- `app/api/cron/sov/route.ts` — Added Prompt Intelligence sub-step (§9) after Occasion Engine. Calls `detectQueryGaps()` per-org, auto-creates `prompt_missing` content drafts for `zero_citation_cluster` gaps (Growth+ only via `canRunAutopilot`). Added `gaps_detected` to cron summary JSON. Non-critical: failures never abort the SOV cron.
+- `lib/services/sov-seed.ts` — Exported template functions (`discoveryQueries`, `nearMeQueries`, `occasionQueries`, `comparisonQueries`, `isHospitalityCategory`, `HOSPITALITY_CATEGORIES`, `CompetitorForSeed`) for reuse by the reference library builder. No logic changes.
+- `docs/05-API-CONTRACT.md` — Added `GET /sov/gaps` endpoint (§12). Version bumped to 2.6.
+
+**Key design decisions:**
+- Pure service pattern — `prompt-intelligence.service.ts` never creates its own Supabase client (caller passes one).
+- No AI calls — gap detection is pure data comparison (reference library vs active queries vs intercept data vs evaluation results).
+- Reuses `sov-seed.ts` template functions (exported, not duplicated) for reference library generation.
+- Gap cap: max 10 per run to prevent alert fatigue (Doc 15 §3.1).
+- Zero-citation cluster threshold: 3+ queries with 2+ evaluations each, all null `rank_position`.
+- `canRunAutopilot(plan)` gates auto-creation of `prompt_missing` content drafts (Growth+ only).
+
+**Tests added:**
+- `src/__tests__/unit/prompt-intelligence-service.test.ts` — **16 Vitest tests** (new). buildReferenceLibrary (4: hospitality full tiers, non-hospitality skips occasion, not-found empty, max 3 competitors). detectQueryGaps (8: untracked gaps, high-impact scoring, competitor-discovered, already-tracked filter, zero-citation cluster, fewer-than-3 no cluster, under-2-evals excluded, gap cap at 10, competitor dedup). computeCategoryBreakdown (3: citation rate per category, latest evaluation used, empty inputs).
+- `src/__tests__/unit/cron-sov.test.ts` — **16 Vitest tests** (was 13). Three new: `detectQueryGaps` called after `writeSOVResults`, `gaps_detected` in summary response, prompt intelligence failure doesn't crash cron.
+
+**Run commands:**
+```bash
+npx vitest run src/__tests__/unit/prompt-intelligence-service.test.ts  # 16 tests passing
+npx vitest run src/__tests__/unit/cron-sov.test.ts                     # 16 tests passing
+npx vitest run                                                          # 637 tests passing, 7 skipped
+```
+
+---
 ## 2026-02-24 — Sprint 42: Dashboard Polish & Content Drafts UI
 
 **Goal:** Close 5 remaining gaps across the dashboard: null states, content drafts UI, SOV query editor, listings health, and E2E test coverage. Fine-tuning sprint — no schema migrations.

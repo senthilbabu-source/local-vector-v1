@@ -36,6 +36,8 @@ import {
 } from '@/lib/services/sov-engine.service';
 import { sendSOVReport } from '@/lib/email';
 import { runOccasionScheduler } from '@/lib/services/occasion-engine.service';
+import { detectQueryGaps } from '@/lib/services/prompt-intelligence.service';
+import { canRunAutopilot, type PlanTier } from '@/lib/plan-enforcer';
 
 // Force dynamic so Vercel never caches this route between cron invocations.
 export const dynamic = 'force-dynamic';
@@ -124,6 +126,7 @@ export async function GET(request: NextRequest) {
     queries_cited: 0,
     first_mover_alerts: 0,
     occasion_drafts: 0,
+    gaps_detected: 0,
   };
 
   // Filter to valid queries (with locations and active orgs)
@@ -225,6 +228,38 @@ export async function GET(request: NextRequest) {
           const occasionMsg = err instanceof Error ? err.message : String(err);
           console.error(`[cron-sov] Occasion engine failed for org ${orgId}:`, occasionMsg);
           // Non-critical — never abort SOV cron for occasion failures
+        }
+
+        // ── 9. Prompt Intelligence sub-step (Doc 15 §3) ────────────────────
+        try {
+          const locationId = batch[0].location_id;
+          const gaps = await detectQueryGaps(orgId, locationId, supabase);
+          summary.gaps_detected += gaps.length;
+
+          // Auto-create content drafts for zero_citation_cluster gaps (Growth+ only)
+          if (canRunAutopilot(plan as PlanTier)) {
+            for (const gap of gaps.filter((g) => g.gapType === 'zero_citation_cluster')) {
+              await supabase.from('content_drafts').upsert(
+                {
+                  org_id: orgId,
+                  location_id: locationId,
+                  trigger_type: 'prompt_missing',
+                  trigger_id: null,
+                  draft_title: `Content Gap: ${gap.queryText.split(',')[0]}`,
+                  draft_content: gap.suggestedAction,
+                  target_prompt: gap.queryText,
+                  content_type: 'blog_post',
+                  status: 'draft',
+                  human_approved: false,
+                },
+                { onConflict: 'trigger_type,trigger_id', ignoreDuplicates: true },
+              );
+            }
+          }
+        } catch (err) {
+          const gapMsg = err instanceof Error ? err.message : String(err);
+          console.error(`[cron-sov] Prompt intelligence failed for org ${orgId}:`, gapMsg);
+          // Non-critical — never abort SOV cron for gap detection failures
         }
       }
 
