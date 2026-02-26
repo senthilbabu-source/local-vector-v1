@@ -92,6 +92,22 @@ export const MOCK_INTERCEPT = {
 } as const;
 
 /**
+ * Sprint 68 — Canonical ai_audits fixture for Charcoal N Chill.
+ * UUID matches supabase/seed.sql Section 16 (ai_audit_1).
+ * Use in all audit-cron tests that validate ai_audits INSERT behavior.
+ */
+export const MOCK_AI_AUDIT = {
+  id: 'd6eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+  org_id: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+  location_id: 'b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+  model_provider: 'openai-gpt4o' as const,
+  prompt_type: 'status_check' as const,
+  is_hallucination_detected: true,
+  audit_date: new Date().toISOString(),
+  created_at: new Date().toISOString(),
+} as const;
+
+/**
  * Rival Tenant — used exclusively for RLS isolation tests.
  * Verifies that Tenant B cannot read or mutate Tenant A's data.
  */

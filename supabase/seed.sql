@@ -28,6 +28,8 @@ CREATE EXTENSION IF NOT EXISTS pgcrypto;
 --   rev_snapshot_1 : d3eebc99-9c0b-4ef8-bb6d-6bb9bd380a11
 --   rev_snapshot_2 : d4eebc99-9c0b-4ef8-bb6d-6bb9bd380a11
 --   rev_snapshot_3 : d5eebc99-9c0b-4ef8-bb6d-6bb9bd380a11
+--   ai_audit_1     : d6eebc99-9c0b-4ef8-bb6d-6bb9bd380a11
+--   ai_audit_2     : d7eebc99-9c0b-4ef8-bb6d-6bb9bd380a11
 --
 -- Phase 19 Test User (Playwright Onboarding Guard test):
 --   auth user id   : 00000000-0000-0000-0000-000000000010
@@ -1235,3 +1237,56 @@ WHERE l.org_id = 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11'
   AND l.slug   = 'alpharetta'
 LIMIT 1
 ON CONFLICT (org_id, location_id, snapshot_date) DO NOTHING;
+
+-- ── 16. AI AUDITS (Sprint 68 — scan log entries) ─────────────────────────────
+-- Two audit rows for the golden tenant: one recent (yesterday, found hallucinations)
+-- and one older (7 days ago, clean scan). These populate the dashboard "Last Scan"
+-- timestamp via the ai_audits.audit_date query in lib/data/dashboard.ts.
+--
+-- Fixed UUIDs:
+--   ai_audit_1 : d6eebc99-9c0b-4ef8-bb6d-6bb9bd380a11  (yesterday, hallucinations found)
+--   ai_audit_2 : d7eebc99-9c0b-4ef8-bb6d-6bb9bd380a11  (7 days ago, clean scan)
+
+-- Audit #1 — Recent scan that found hallucinations
+INSERT INTO public.ai_audits (
+  id, org_id, location_id,
+  model_provider, prompt_type,
+  is_hallucination_detected, audit_date
+)
+SELECT
+  'd6eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+  'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+  l.id,
+  'openai-gpt4o',
+  'status_check',
+  true,
+  NOW() - INTERVAL '1 day'
+FROM public.locations l
+WHERE l.org_id = 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11'
+LIMIT 1
+ON CONFLICT (id) DO NOTHING;
+
+-- Audit #2 — Older clean scan (no hallucinations)
+INSERT INTO public.ai_audits (
+  id, org_id, location_id,
+  model_provider, prompt_type,
+  is_hallucination_detected, audit_date
+)
+SELECT
+  'd7eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+  'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+  l.id,
+  'openai-gpt4o',
+  'status_check',
+  false,
+  NOW() - INTERVAL '7 days'
+FROM public.locations l
+WHERE l.org_id = 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11'
+LIMIT 1
+ON CONFLICT (id) DO NOTHING;
+
+-- Link existing hallucination seed rows to audit #1 (the recent scan)
+UPDATE public.ai_hallucinations
+SET audit_id = 'd6eebc99-9c0b-4ef8-bb6d-6bb9bd380a11'
+WHERE org_id = 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11'
+  AND audit_id IS NULL;

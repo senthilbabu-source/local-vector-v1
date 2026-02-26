@@ -4,6 +4,34 @@
 
 ---
 
+## 2026-02-27 — Sprint 68: Fix ai_audits Bug + Add AI Assistant to Sidebar (Completed)
+
+**Goal:** Fix two critical bugs: (1) `ai_audits` table never written to, causing "Last Scan: never" for all customers, and (2) AI Assistant page missing from sidebar navigation.
+
+**Scope:**
+- `lib/inngest/functions/audit-cron.ts` — Added `ai_audits` INSERT in `processOrgAudit()` before hallucination writes. Sets `audit_id` FK on child hallucination rows. Graceful degradation: if audit INSERT fails, hallucinations still written with `audit_id=null`. Updated `AuditOrgResult` interface with `auditId: string | null`.
+- `app/api/cron/audit/route.ts` — Applied same `ai_audits` INSERT pattern to inline fallback `_runInlineAuditImpl()`.
+- `components/layout/Sidebar.tsx` — Added AI Assistant entry to `NAV_ITEMS` (MessageSquare icon, between Page Audits and Settings). Exported `NAV_ITEMS` for testability.
+- `supabase/seed.sql` — Added 2 `ai_audits` seed rows (UUIDs: `d6eebc99-...a11`, `d7eebc99-...a11`). Updated hallucination seed rows with `audit_id` FK. Updated UUID reference card.
+- `src/__fixtures__/golden-tenant.ts` — Added `MOCK_AI_AUDIT` fixture.
+
+**Tests added:**
+- `src/__tests__/unit/audit-cron-ai-audits.test.ts` — **11 Vitest tests.** Validates ai_audits INSERT, FK linking, graceful failure, clean scan logging, enum values, return type.
+- `src/__tests__/unit/sidebar-nav-items.test.ts` — **5 Vitest tests.** Validates AI Assistant in NAV_ITEMS with correct href, active state, and position.
+- `src/__tests__/unit/inngest-audit-cron.test.ts` — **UPDATED.** Mock Supabase now handles `.from('ai_audits')`. Assertions updated for `auditId` field.
+- `src/__tests__/unit/cron-audit.test.ts` — **UPDATED.** Both `mockSupabaseNoOrgs` and `mockSupabaseWithOrgAndLocation` now handle `.from('ai_audits')`.
+
+**Run commands:**
+```bash
+npx vitest run src/__tests__/unit/audit-cron-ai-audits.test.ts  # 11 tests passing
+npx vitest run src/__tests__/unit/sidebar-nav-items.test.ts     # 5 tests passing
+npx vitest run                                                    # 818 tests passing (61 files)
+```
+
+**Note:** Pre-existing TSC errors in `prompt-intelligence-service.test.ts` and `onboarding-actions.test.ts` (mock Supabase type mismatches) — not introduced by this sprint. E2E sidebar test (`14-sidebar-nav.spec.ts`) may need updating in a future sprint to account for the new 10th nav item.
+
+---
+
 ## 2026-02-26 — Sprint 67: Unit Tests for Stripe Webhook, Email Service (Completed)
 
 **Goal:** Add unit test coverage for two critical untested code paths: Stripe webhook route handler and email service (Resend).

@@ -35,6 +35,7 @@ import { snapshotRevenueLeak } from '@/lib/services/revenue-leak.service';
 export interface AuditOrgResult {
   success: boolean;
   hallucinationsInserted: number;
+  auditId: string | null;
 }
 
 export async function processOrgAudit(org: { id: string; name: string }): Promise<AuditOrgResult> {
@@ -52,7 +53,7 @@ export async function processOrgAudit(org: { id: string; name: string }): Promis
   if (locError) throw new Error(`Location fetch failed: ${locError.message}`);
   if (!location) {
     console.warn(`[inngest-audit] No primary location for org ${org.id} (${org.name}) — skipping`);
-    return { success: true, hallucinationsInserted: 0 };
+    return { success: true, hallucinationsInserted: 0, auditId: null };
   }
 
   const auditInput: LocationAuditInput = {
@@ -62,10 +63,35 @@ export async function processOrgAudit(org: { id: string; name: string }): Promis
   };
   const hallucinations: DetectedHallucination[] = await auditLocation(auditInput);
 
+  // ── Create parent audit row (scan log) ──────────────────────────────
+  let auditId: string | null = null;
+  try {
+    const { data: auditData, error: auditError } = await supabase
+      .from('ai_audits')
+      .insert({
+        org_id: location.org_id,
+        location_id: location.id,
+        model_provider: 'openai-gpt4o' as Database['public']['Enums']['model_provider'],
+        prompt_type: 'status_check' as Database['public']['Enums']['audit_prompt_type'],
+        is_hallucination_detected: hallucinations.length > 0,
+      })
+      .select('id')
+      .single();
+
+    if (auditError) {
+      console.error(`[inngest-audit] ai_audits insert failed: ${auditError.message}`);
+    } else {
+      auditId = auditData.id;
+    }
+  } catch (err) {
+    console.error('[inngest-audit] ai_audits insert threw:', err);
+  }
+
   if (hallucinations.length > 0) {
     const hallRows = hallucinations.map((h) => ({
       org_id: location.org_id,
       location_id: location.id,
+      audit_id: auditId,
       model_provider: h.model_provider as Database['public']['Enums']['model_provider'],
       severity: h.severity as Database['public']['Enums']['hallucination_severity'],
       category: h.category,
@@ -105,7 +131,7 @@ export async function processOrgAudit(org: { id: string; name: string }): Promis
     }
   }
 
-  return { success: true, hallucinationsInserted: hallucinations.length };
+  return { success: true, hallucinationsInserted: hallucinations.length, auditId };
 }
 
 // ---------------------------------------------------------------------------
@@ -211,7 +237,7 @@ export const auditCronFunction = inngest.createFunction(
           } catch (err) {
             const msg = err instanceof Error ? err.message : String(err);
             console.error(`[inngest-audit] Org ${org.id} (${org.name}) failed:`, msg);
-            return { success: false, hallucinationsInserted: 0 };
+            return { success: false, hallucinationsInserted: 0, auditId: null };
           }
         }),
       ),

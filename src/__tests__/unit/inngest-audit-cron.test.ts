@@ -79,6 +79,18 @@ function mockSupabaseForAudit(opts: {
           }),
         };
       }
+      if (table === 'ai_audits') {
+        return {
+          insert: vi.fn().mockReturnValue({
+            select: vi.fn().mockReturnValue({
+              single: vi.fn().mockResolvedValue({
+                data: { id: 'd6eebc99-9c0b-4ef8-bb6d-6bb9bd380a11' },
+                error: null,
+              }),
+            }),
+          }),
+        };
+      }
       if (table === 'ai_hallucinations') {
         return { insert: mockInsert };
       }
@@ -155,6 +167,7 @@ describe('processOrgAudit', () => {
     const result = await processOrgAudit(TEST_ORG);
     expect(result.success).toBe(true);
     expect(result.hallucinationsInserted).toBe(0);
+    expect(result.auditId).toBeNull();
     expect(vi.mocked(auditLocation)).not.toHaveBeenCalled();
   });
 

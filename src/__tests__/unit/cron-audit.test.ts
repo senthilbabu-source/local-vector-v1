@@ -85,6 +85,18 @@ function mockSupabaseNoOrgs() {
           }),
         };
       }
+      if (table === 'ai_audits') {
+        return {
+          insert: vi.fn().mockReturnValue({
+            select: vi.fn().mockReturnValue({
+              single: vi.fn().mockResolvedValue({
+                data: { id: 'd6eebc99-9c0b-4ef8-bb6d-6bb9bd380a11' },
+                error: null,
+              }),
+            }),
+          }),
+        };
+      }
       const chain = {
         select: vi.fn().mockReturnThis(),
         in: vi.fn().mockReturnThis(),
@@ -149,6 +161,18 @@ function mockSupabaseWithOrgAndLocation(
           select: vi.fn().mockReturnValue({
             eq: vi.fn().mockReturnValue({
               eq: vi.fn().mockReturnValue({ maybeSingle: mockLocationMaybeSingle }),
+            }),
+          }),
+        };
+      }
+      if (table === 'ai_audits') {
+        return {
+          insert: vi.fn().mockReturnValue({
+            select: vi.fn().mockReturnValue({
+              single: vi.fn().mockResolvedValue({
+                data: { id: 'd6eebc99-9c0b-4ef8-bb6d-6bb9bd380a11' },
+                error: null,
+              }),
             }),
           }),
         };

@@ -131,10 +131,35 @@ async function _runInlineAuditImpl(handle: { logId: string | null; startedAt: nu
       const hallucinations: DetectedHallucination[] =
         await auditLocation(auditInput);
 
+      // ── Create parent audit row (scan log) ────────────────────────
+      let auditId: string | null = null;
+      try {
+        const { data: auditData, error: auditError } = await supabase
+          .from('ai_audits')
+          .insert({
+            org_id: location.org_id,
+            location_id: location.id,
+            model_provider: 'openai-gpt4o' as Database['public']['Enums']['model_provider'],
+            prompt_type: 'status_check' as Database['public']['Enums']['audit_prompt_type'],
+            is_hallucination_detected: hallucinations.length > 0,
+          })
+          .select('id')
+          .single();
+
+        if (auditError) {
+          console.error(`[cron-audit] ai_audits insert failed: ${auditError.message}`);
+        } else {
+          auditId = auditData.id;
+        }
+      } catch (err) {
+        console.error('[cron-audit] ai_audits insert threw:', err);
+      }
+
       if (hallucinations.length > 0) {
         const hallRows = hallucinations.map((h) => ({
           org_id: location.org_id,
           location_id: location.id,
+          audit_id: auditId,
           model_provider: h.model_provider as Database['public']['Enums']['model_provider'],
           severity: h.severity as Database['public']['Enums']['hallucination_severity'],
           category: h.category,

@@ -36,7 +36,7 @@ making it clear what hallucinations cost your business. LocalVector also exposes
 | Billing | Stripe (webhooks → `plan_tier` enum) |
 | Email | Resend + React Email |
 | Cache | Upstash Redis (optional, graceful degradation) |
-| Testing | Vitest (57 unit/integration test files), Playwright (18 E2E specs) |
+| Testing | Vitest (61 unit/integration test files), Playwright (18 E2E specs) |
 | Monitoring | Sentry (client, server, edge) |
 | Styling | Tailwind CSS v4, Tremor Raw charts, Recharts |
 

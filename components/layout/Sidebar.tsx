@@ -12,6 +12,7 @@ import {
   MapPin,
   Globe,
   FileSearch,
+  MessageSquare,
   Settings,
   CreditCard,
   X,
@@ -23,7 +24,7 @@ import LocationSwitcher, { type LocationOption } from './LocationSwitcher';
 // Nav items — mapped to Doc 06 §2 Application Shell
 // ---------------------------------------------------------------------------
 
-const NAV_ITEMS = [
+export const NAV_ITEMS = [
   {
     href: '/dashboard',
     label: 'Dashboard',
@@ -84,6 +85,13 @@ const NAV_ITEMS = [
     href: '/dashboard/page-audits',
     label: 'Page Audits',
     icon: FileSearch,
+    exact: false,
+    active: true,
+  },
+  {
+    href: '/dashboard/ai-assistant',
+    label: 'AI Assistant',
+    icon: MessageSquare,
     exact: false,
     active: true,
   },
