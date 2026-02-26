@@ -4,6 +4,358 @@
 
 ---
 
+## 2026-02-25 — Sprint 62: Scale Prep — Cron Logging, Guided Tour, Subdomains, Landing Split, Settings, Multi-Location (Completed)
+
+**Goal:** Six independent V1 polish items for launch readiness: (A) Cron health logging table + service, (B) Post-onboarding guided tour, (C) Subdomain routing for public menus, (D) Landing page performance via code-splitting, (E) Settings completeness (notifications + danger zone), (F) Agency multi-location UI.
+
+**Scope:**
+
+### Sprint 62A — Cron Health Logging
+
+*New files:*
+- `supabase/migrations/20260226000008_cron_run_log.sql` — Creates `cron_run_log` table (id, cron_name, started_at, completed_at, duration_ms, status, summary JSONB, error_message). RLS enabled, no policies (service-role only). Index on `(cron_name, started_at DESC)`.
+- `lib/services/cron-logger.ts` — `logCronStart(cronName)` → inserts row with status='running', returns `{ logId, startedAt }`. `logCronComplete(logId, summary, startedAt)` → computes duration_ms, sets status='success'. `logCronFailed(logId, errorMessage, startedAt)` → sets status='failed'. Uses `createServiceRoleClient()`, fail-safe (catch errors, log, never crash the cron).
+
+*Modified files:*
+- `app/api/cron/sov/route.ts` — Wrapped `runInlineSOV()` with logCronStart/logCronComplete/logCronFailed.
+- `app/api/cron/audit/route.ts` — Same cron-logger pattern for `runInlineAudit()`.
+- `app/api/cron/content-audit/route.ts` — Same pattern for `runInlineContentAudit()`.
+- `app/api/cron/citation/route.ts` — Same pattern for inline citation processing loop.
+
+### Sprint 62B — Post-Onboarding Guided Tour
+
+*New files:*
+- `app/dashboard/_components/GuidedTour.tsx` — Client component, custom tooltip approach (no react-joyride). 5-step tour targeting sidebar nav items via `data-testid`: (1) nav-dashboard → "Your Command Center", (2) nav-alerts → "AI Hallucination Alerts", (3) nav-menu → "Magic Menu", (4) nav-compete → "Competitor Intelligence", (5) nav-content → "AI Content Drafts". localStorage key `lv_tour_completed`, only shows on first visit. Overlay with dark backdrop, positioned tooltips via getBoundingClientRect, ring-2 ring-signal-green highlight. Only renders on lg+ screens. 800ms mount delay. matchMedia guard for jsdom compatibility.
+
+*Modified files:*
+- `components/layout/DashboardShell.tsx` — Renders `<GuidedTour />` after main content area.
+
+### Sprint 62C — Subdomain Routing
+
+*Modified files:*
+- `proxy.ts` — Added hostname check at top of handler before auth logic. `menu.` prefix → `NextResponse.rewrite()` to `/m/` path prefix (public, no auth needed). `app.` prefix or bare domain → falls through to existing auth logic. Documented Vercel DNS config for `*.localvector.ai`.
+
+### Sprint 62D — Landing Page Performance
+
+*New files:*
+- `app/_sections/shared.tsx` — Extracted `SectionLabel`, `MetricCard`, `PricingCard` helper components from the original 1,181-line page.tsx. Server Components, named exports.
+- `app/_sections/HeroSection.tsx` — Sections 1-3 (JSON-LD + Nav + Hero). Statically imported (above fold). Imports ViralScanner, Reveal, ScrollHint, safeJsonLd.
+- `app/_sections/ProblemSection.tsx` — Sections 4-5 (Revenue Leak + AVS Metrics). Dynamically imported.
+- `app/_sections/CompareSection.tsx` — Sections 6-7 (Compare + Table). Dynamically imported.
+- `app/_sections/EnginesSection.tsx` — Sections 8-9 (Three Engines + Case Study). Dynamically imported.
+- `app/_sections/PricingSection.tsx` — Sections 10-13 (Pricing + FAQ + CTA + Footer). Dynamically imported.
+
+*Modified files:*
+- `app/page.tsx` — Rewritten from 1,181 lines to ~33 lines. Static import of HeroSection (above fold), `next/dynamic` imports for ProblemSection, CompareSection, EnginesSection, PricingSection (below fold code-splitting).
+
+### Sprint 62E — Settings Completeness
+
+*New files:*
+- `supabase/migrations/20260226000009_notification_prefs.sql` — Adds `notify_hallucination_alerts`, `notify_weekly_digest`, `notify_sov_alerts` (all BOOLEAN DEFAULT TRUE) to `organizations` table.
+- `app/dashboard/settings/_components/DeleteOrgModal.tsx` — Client component with confirmation modal. User must type org name to confirm. Calls `softDeleteOrganization()` server action. Red alert-crimson danger zone styling.
+
+*Modified files:*
+- `app/dashboard/settings/actions.ts` — Added `updateNotificationPrefs(formData)` (Zod-validated, updates org's 3 notification columns) and `softDeleteOrganization()` (checks role='owner', sets plan_status='canceled', signs out, redirects to /login).
+- `app/dashboard/settings/page.tsx` — Fetches notification preferences from `organizations` table, passes `notifyPrefs` to SettingsForm.
+- `app/dashboard/settings/_components/SettingsForm.tsx` — Added Section 4: Notifications (3 toggle switches: hallucination alerts, weekly digest, SOV alerts) with Save button. Added Section 5: Danger Zone with `<DeleteOrgModal>`. Added "Forgot password?" link to Security section.
+
+### Sprint 62F — Agency Multi-Location UI
+
+*New files:*
+- `components/layout/LocationSwitcher.tsx` — Client component, renders only when `locations.length > 1`. Dropdown showing current location + all locations with MapPin icons. Sets cookie `lv_selected_location` via `document.cookie`, `window.location.reload()` on change. is_primary badge on primary location.
+
+*Modified files:*
+- `components/layout/Sidebar.tsx` — Extended SidebarProps with optional `locations` and `selectedLocationId`. Renders `<LocationSwitcher>` between brand header and `<nav>`.
+- `components/layout/DashboardShell.tsx` — Extended props with optional `locations` and `selectedLocationId`, passes through to Sidebar.
+- `app/dashboard/layout.tsx` — Added `cookies` import from `next/headers`. Fetches all org locations after onboarding guard, reads `lv_selected_location` cookie (defaults to primary), passes to DashboardShell.
+- `app/dashboard/locations/page.tsx` — Plan-gated "Add Location" (shows upgrade message at limit via `maxLocations(plan)`). Replaced table view with responsive card grid (`grid gap-4 sm:grid-cols-2 lg:grid-cols-3`). Each card: business_name, city/state, is_primary badge, status badge, phone, created date.
+
+**Tests:** 763 passing, 7 skipped. Build clean.
+
+**Run commands:**
+```bash
+npx vitest run     # 763 tests passing, 7 skipped
+npx next build     # 0 errors
+```
+
+---
+
+## 2026-02-25 — Sprint 61: Polish — Occasion Calendar, Multi-Model SOV, WordPress Connect (Completed)
+
+**Goal:** Three-part sprint: (A) Occasion Calendar UI on the content-drafts page showing upcoming seasonal events with "Create Draft" actions; (B) Multi-Model SOV queries — Growth/Agency orgs now run Perplexity + OpenAI in parallel for richer visibility data; (C) WordPress credential management — test connection, save, disconnect, and wire into publish flow.
+
+**Scope:**
+
+### Sprint 61A — Occasion Calendar UI
+
+*New files:*
+- `app/dashboard/content-drafts/_components/OccasionTimeline.tsx` — Collapsible "Upcoming Occasions" section with horizontal scrollable card row. Each card shows: occasion name, countdown badge (color-coded: red ≤7d, amber ≤14d, slate otherwise), occasion_type badge, relevant_categories tags, and "Create Draft" or "Draft exists" action. Uses `createManualDraft` with `trigger_type='occasion'` and `trigger_id=occasionId`.
+
+*Modified files:*
+- `app/dashboard/content-drafts/page.tsx` — Added `fetchUpcomingOccasions()` (queries `local_occasions`, computes `getDaysUntilPeak()`, filters to within-window occasions, sorts by soonest), `fetchOccasionDraftMap()` (maps existing occasion drafts by trigger_id). Renders `<OccasionTimeline>` between summary strip and filter tabs. Parallel data fetching with `Promise.all`.
+- `app/dashboard/content-drafts/actions.ts` — `CreateDraftSchema` now accepts optional `trigger_type` and `trigger_id`. `createManualDraft()` passes these through to the insert (defaults to `'manual'`/`null`).
+
+### Sprint 61B — Multi-Model SOV Queries
+
+*Modified files:*
+- `lib/services/sov-engine.service.ts` — Added `engine` field to `SOVQueryResult` interface. `runSOVQuery()` now accepts optional `modelKey` parameter (defaults to `'sov-query'`/Perplexity). New `MODEL_ENGINE_MAP` maps model keys to engine names. New `runMultiModelSOVQuery()` runs Perplexity + OpenAI in parallel via `Promise.allSettled`. `writeSOVResults()` uses `result.engine` (no longer hardcoded `'perplexity'`).
+- `lib/plan-enforcer.ts` — Added `canRunMultiModelSOV(plan)` — returns true for Growth/Agency.
+- `lib/inngest/functions/sov-cron.ts` — `processOrgSOV()` checks `canRunMultiModelSOV(plan)` to decide single vs multi-model per query. Imports `runMultiModelSOVQuery`.
+- `app/api/cron/sov/route.ts` — Same multi-model logic in inline fallback path.
+- `src/__tests__/unit/cron-sov.test.ts` — Updated mocks: added `runMultiModelSOVQuery`, `canRunMultiModelSOV`, `engine` field to mock results.
+- `src/__tests__/unit/inngest-sov-cron.test.ts` — Same mock updates.
+
+### Sprint 61C — WordPress Credential Management
+
+*New files:*
+- `supabase/migrations/20260226000007_wp_credentials.sql` — Adds `wp_username` and `wp_app_password` columns to `location_integrations`.
+- `app/dashboard/integrations/_components/WordPressConnectModal.tsx` — Modal form: Site URL, Username, Application Password. "Test Connection" button calls `testWordPressConnection()` (10s timeout), "Save & Connect" stores credentials via `saveWordPressCredentials()`.
+- `app/dashboard/integrations/_components/WordPressConnectButton.tsx` — Two-state UI: not connected (shows "Connect WordPress" button → opens modal) or connected (green badge + site URL + "Disconnect" button).
+
+*Modified files:*
+- `app/dashboard/integrations/actions.ts` — Added 3 server actions: `testWordPressConnection()` (HEAD request to wp-json with 10s AbortController timeout), `saveWordPressCredentials()` (upserts platform='wordpress' row with credentials), `disconnectWordPress()` (deletes the row).
+- `app/dashboard/integrations/page.tsx` — Added `fetchWordPressStatus()` function, WordPress section below GBP section using same card pattern.
+- `app/dashboard/content-drafts/actions.ts` — `publishDraft()` WordPress branch now fetches `wp_username` and `wp_app_password` from `location_integrations` (previously passed empty strings).
+
+**Tests:** 763 passing, 7 skipped. Build clean.
+
+**Run commands:**
+```bash
+npx vitest run     # 763 tests passing, 7 skipped
+npx next build     # 0 errors
+```
+
+---
+
+## 2026-02-25 — Sprint 60: Reliability — Error Boundaries, Google OAuth, Password Reset, E2E Specs (Completed)
+
+**Goal:** Two-part sprint: (A) Add per-section error boundaries, Google OAuth sign-in, and password reset flow; (B) Add data-testid attributes to sidebar and 4 new E2E spec files for AI Assistant, Citations, Page Audits, and sidebar navigation.
+
+**Scope:**
+
+### Sprint 60B — Error Boundaries + Google OAuth + Password Reset
+
+*New files:*
+- `app/dashboard/error.tsx` — Dashboard-level error boundary with Sentry capture, AlertTriangle icon, "Try again" button.
+- `app/dashboard/hallucinations/error.tsx` — Same pattern for hallucinations section.
+- `app/dashboard/share-of-voice/error.tsx` — Same pattern for SOV section.
+- `app/dashboard/ai-assistant/error.tsx` — Same pattern for AI assistant section.
+- `app/dashboard/content-drafts/error.tsx` — Same pattern for content drafts section.
+- `app/(auth)/forgot-password/page.tsx` — Email input form, calls `supabase.auth.resetPasswordForEmail()`, success/error states, dark theme matching login page.
+- `app/(auth)/reset-password/page.tsx` — New password + confirm password form, calls `supabase.auth.updateUser()`, redirects to `/login` on success.
+
+*Modified files:*
+- `app/(auth)/login/page.tsx` — Added "Forgot password?" link, Google OAuth divider + "Sign in with Google" button using Supabase `signInWithOAuth({ provider: 'google' })`, graceful error handling if provider not configured.
+- `app/(auth)/register/page.tsx` — Added "Sign up with Google" button with same OAuth pattern.
+
+### Sprint 60A — Playwright E2E Specs + data-testid
+
+*Modified files:*
+- `components/layout/Sidebar.tsx` — Added `data-testid` attributes to all 11 nav links (`nav-dashboard`, `nav-alerts`, `nav-menu`, `nav-share-of-voice`, `nav-content`, `nav-compete`, `nav-listings`, `nav-citations`, `nav-page-audits`, `nav-settings`, `nav-billing`).
+
+*New files:*
+- `tests/e2e/11-ai-assistant.spec.ts` — Page heading, chat input, quick-action buttons, message typing, subtitle text.
+- `tests/e2e/12-citations.spec.ts` — Page heading, gap score or empty state, sidebar navigation.
+- `tests/e2e/13-page-audits.spec.ts` — Page heading, audit cards or empty state, sidebar navigation.
+- `tests/e2e/14-sidebar-nav.spec.ts` — Tests 9 sidebar links navigate to correct pages with correct headings.
+
+**Tests:** 763 passing, 7 skipped. Build clean. 1 pre-existing RLS isolation test failure (local Supabase auth issue, not Sprint 60 related).
+
+**Run commands:**
+```bash
+npx vitest run                            # 763 tests passing, 7 skipped
+npx next build                            # 0 errors
+npx playwright test --project=chromium    # E2E specs (requires dev server)
+```
+
+---
+
+## 2026-02-25 — Sprint 59: PDF Menus, Revenue Leak History, Weekly Digest (Completed)
+
+**Goal:** Three-part sprint: (A) Magic Menu PDF Upload via GPT-4o Vision — wire the Tab 1 drop zone to a new `uploadMenuFile()` server action that extracts menu items from PDF/image files; (B) Revenue Leak Historical Trend Persistence — add `snapshotRevenueLeak()` to persist daily leak calculations into the existing `revenue_snapshots` table, wired into both audit cron paths; (C) Weekly Digest Email — enhance the WeeklyDigest React Email template with SOV delta, top competitor, and citation rate, then replace `sendSOVReport()` with `sendWeeklyDigest()` in both SOV cron paths.
+
+**Scope:**
+
+### Sprint 59A — Magic Menu PDF Upload via GPT-4o Vision
+
+*Modified files:*
+- `lib/ai/schemas.ts` — Added `MenuOCRItemSchema` and `MenuOCRSchema` (Zod). Array of items with name, description (optional), price (optional string), category. Exported `MenuOCROutput` type.
+- `lib/ai/providers.ts` — Added `'menu-ocr'` model key mapping to `openai('gpt-4o')` in MODELS registry and ModelKey type.
+- `app/dashboard/magic-menus/actions.ts` — Added `uploadMenuFile()` server action. Accepts FormData with file (PDF/JPG/PNG/WebP, max 10 MB). Calls `generateObject()` with `menu-ocr` model and file content part. Maps OCR items to `MenuExtractedItem[]` (confidence: 0.70). Saves via existing `saveExtractedMenu()`. Guarded by `hasApiKey('openai')`.
+- `app/dashboard/magic-menus/_components/UploadState.tsx` — Wired Tab 1 drop zone to `uploadMenuFile`. Added `aiFileInputRef`, drag-and-drop handlers, file validation, loading state with spinner. Accepts `.pdf,.jpg,.jpeg,.png,.webp`.
+
+### Sprint 59B — Revenue Leak Historical Trend Persistence
+
+*Modified files:*
+- `lib/services/revenue-leak.service.ts` — Added `snapshotRevenueLeak(supabase, orgId, locationId)`. Fetches hallucinations, SOV, competitors, revenue config in parallel. Calls existing `calculateRevenueLeak()`. Upserts to `revenue_snapshots` with `onConflict: 'org_id,location_id,snapshot_date'` for idempotency. No migration needed — `revenue_snapshots` table already exists.
+- `app/api/cron/audit/route.ts` — Wired `snapshotRevenueLeak()` into inline fallback path after competitor intercept loop.
+- `lib/inngest/functions/audit-cron.ts` — Added Step 4 `snapshot-revenue-leak-{orgId}` fan-out. Each step creates own Supabase client, fetches primary location, calls `snapshotRevenueLeak()`.
+
+### Sprint 59C — Weekly Digest Email
+
+*Modified files:*
+- `emails/WeeklyDigest.tsx` — Added 3 optional props: `sovDelta` (number | null), `topCompetitor` (string | null), `citationRate` (number | null). Added SOV delta display with colored arrow, citation rate stat in stats row, competitor mention box with indigo border.
+- `lib/email.ts` — Added `sendWeeklyDigest()` function. Uses Resend `react:` property with WeeklyDigest component. Same no-op pattern when RESEND_API_KEY absent.
+- `app/api/cron/sov/route.ts` — Replaced `sendSOVReport()` with `sendWeeklyDigest()`. Added sovDelta computation (last 2 visibility_analytics rows), topCompetitor extraction (most frequent from sov_evaluations), citationRate calculation.
+- `lib/inngest/functions/sov-cron.ts` — Same replacement in Inngest path. Same delta/competitor/citation logic as inline cron.
+
+*Test fixes:*
+- `src/__tests__/unit/cron-sov.test.ts` — Updated email mock to include `sendWeeklyDigest`. Added `order()` to mock chain. Updated assertions from `sendSOVReport` to `sendWeeklyDigest`.
+- `src/__tests__/unit/inngest-sov-cron.test.ts` — Same mock updates. Added `order()`, `limit()`, `maybeSingle()` to default mock handler.
+
+**Tests:** 763 passing, 7 skipped. Build clean. 1 pre-existing RLS isolation test failure (local Supabase auth issue, not Sprint 59 related).
+
+**Run commands:**
+```bash
+npx vitest run                            # 763 tests passing, 7 skipped
+npx next build                            # 0 errors
+```
+
+---
+
+## 2026-02-25 — Sprint 58: Citation, Page Audit, Prompt Intelligence Dashboards (Completed)
+
+**Goal:** Three-part sprint: (A) Citation Gap Dashboard — shows which platforms AI cites and where the tenant isn't listed; (B) Page Audit Dashboard — displays AEO readiness scores across 5 dimensions with re-audit action; (C) Prompt Intelligence Gap Alerts — surfaces untracked queries, competitor-discovered gaps, and zero-citation clusters on the SOV page with category breakdown chart.
+
+**Scope:**
+
+### Sprint 58A — Citation Gap Dashboard Page
+
+*New files:*
+- `app/dashboard/citations/page.tsx` — **NEW.** Server component. Fetches `citation_source_intelligence` for tenant's primary category+city (aggregate market data, not org-scoped). Joins `listings` with `directories` for `TenantListing[]`. Calls `calculateCitationGapScore()`. Plan gate: Growth/Agency via `canViewCitationGap()`. Empty state for no-location and no-data.
+- `app/dashboard/citations/_components/CitationGapScore.tsx` — **NEW.** Circular SVG score ring (radius 54, color-coded: green 80+, amber 50-79, red <50). Shows "X of Y platforms covered".
+- `app/dashboard/citations/_components/PlatformCitationBar.tsx` — **NEW.** Horizontal bars sorted by citation frequency. "Listed ✓" (signal-green) / "Not listed" (alert-crimson) per platform.
+- `app/dashboard/citations/_components/TopGapCard.tsx` — **NEW.** Highlighted card for #1 uncovered platform gap. "Claim Your Listing" CTA links to platform signup URLs (7 platforms mapped).
+
+### Sprint 58B — Page Audit Dashboard Page
+
+*New files:*
+- `app/dashboard/page-audits/page.tsx` — **NEW.** Server component. Reads `page_audits` table for org. Computes average AEO score. Plan gate: Growth/Agency via `canRunPageAudit()`. Empty state when no audits exist.
+- `app/dashboard/page-audits/_components/AuditScoreOverview.tsx` — **NEW.** Circular SVG score ring for aggregate AEO readiness. Shows total pages audited + last audit date.
+- `app/dashboard/page-audits/_components/PageAuditCard.tsx` — **NEW.** Per-page audit card with 5 dimension bars (Answer-First 35%, Schema 25%, FAQ 20%, Keyword 10%, Entity 10%), top recommendation, re-audit button with `useTransition`.
+- `app/dashboard/page-audits/_components/PageAuditCardWrapper.tsx` — **NEW.** Client wrapper binding `reauditPage` server action to PageAuditCard.
+- `app/dashboard/page-audits/_components/DimensionBar.tsx` — **NEW.** Reusable score bar with label, weight, and color-coded fill.
+- `app/dashboard/page-audits/actions.ts` — **NEW.** `reauditPage()` server action. Rate limited (1 per page per 5 min). Calls `auditPage()` from `lib/page-audit/auditor.ts`, upserts result to `page_audits`.
+
+### Sprint 58C — Prompt Intelligence Gap Alerts on SOV Page
+
+*New files:*
+- `app/dashboard/share-of-voice/_components/GapAlertCard.tsx` — **NEW.** Gap alert card with type badge (untracked/competitor_discovered/zero_citation_cluster), impact level, category, and suggested action.
+- `app/dashboard/share-of-voice/_components/CategoryBreakdownChart.tsx` — **NEW.** Horizontal bar chart showing citation rates per query category (discovery, near_me, comparison, occasion, custom).
+
+*Modified files:*
+- `app/dashboard/share-of-voice/page.tsx` — Added imports for `detectQueryGaps`, `computeCategoryBreakdown`, `GapAlertCard`, `CategoryBreakdownChart`. Added `query_category` to QueryRow type and select. Growth/Agency plan gate for Prompt Intelligence section. Gap detection fetches up to 10 gaps per location. Category breakdown chart + gap alert cards rendered between First Mover and Query Library sections.
+- `components/layout/Sidebar.tsx` — Added "Citations" (Globe icon, after Listings) and "Page Audits" (FileSearch icon, after Citations) to NAV_ITEMS. Added Globe, FileSearch imports from lucide-react.
+- `lib/plan-enforcer.ts` — Added `canViewCitationGap()` — Growth/Agency gate for Citation Gap Dashboard.
+
+**Tests:** 763 passing, 7 skipped. Build clean. 1 pre-existing RLS isolation test failure (local Supabase auth issue, not Sprint 58 related).
+
+**Run commands:**
+```bash
+npx vitest run                            # 763 tests passing, 7 skipped
+npx next build                            # 0 errors
+```
+
+**Docs updated:** AI_RULES.md §5 (plan gating list: nine→ten, added `canViewCitationGap`), new §34 (Citation Gap, Page Audit, Prompt Intelligence Dashboards — 5 subsections). CLAUDE.md: added `app/dashboard/citations/` and `app/dashboard/page-audits/` to Key Directories, added `page_audits` table, noted `citation_source_intelligence` is aggregate (not org-scoped). Root CLAUDE.md rule count 33→34. 09-BUILD-PLAN.md Phase 7: Citation Gap UI items checked off (5/6, blur-teaser deferred), Page Audit items checked off (7/8, Starter-only deferred).
+
+---
+
+## 2026-02-25 — Sprint 57: AI Chat Polish + GBP OAuth Connect (Completed)
+
+**Goal:** Two-part sprint: (A) Polish the AI Chat Assistant UI with error handling, loading skeleton, quick-action fixes, mobile responsiveness, sparkline chart, stop/copy controls; (B) Wire Google Business Profile OAuth connect flow end-to-end.
+
+**Scope:**
+
+### Sprint 57A — AI Chat Assistant UI Polish (7 requirements)
+
+*Modified files:*
+- `app/dashboard/ai-assistant/_components/Chat.tsx` — Full rewrite with:
+  1. **Error handling** — destructured `error` + `reload` from `useChat()`, error banner with retry button, 401 session-expired detection.
+  2. **Loading skeleton** — 3 placeholder bubbles with `animate-pulse`, shown when `messages.length === 0 && isLoading`.
+  3. **Quick-action fix** — replaced hacky `setTimeout + requestSubmit` with `append({ role: 'user', content: q })` from `useChat()`.
+  4. **Mobile responsiveness** — responsive padding (`px-2 sm:px-4`), bubble widths (`max-w-[90%] sm:max-w-[85%]`), input bar stacks vertically on mobile (`flex-col sm:flex-row`).
+  5. **TrendList → sparkline** — replaced flat date/percentage list with recharts `AreaChart` (120px height, signal-green fill with gradient, `XAxis` + `Tooltip`).
+  6. **Stop generating** — destructured `stop` from `useChat()`, red "Stop" button with square icon replaces "Send" while loading.
+  7. **Copy message** — `CopyButton` component with clipboard API, hover-only visibility (`opacity-0 group-hover:opacity-100`), "Copied!" tooltip (2s).
+
+### Sprint 57B — GBP OAuth Connect Flow (6 requirements)
+
+*New files:*
+- `app/api/auth/google/route.ts` — **NEW.** OAuth initiation endpoint. Generates CSRF state token, stores in httpOnly cookie (10min maxAge), redirects to Google consent screen with GBP management + userinfo.email scopes. Uses `access_type: 'offline'` + `prompt: 'consent'` for refresh_token.
+- `app/api/auth/google/callback/route.ts` — **NEW.** OAuth callback handler. Verifies CSRF state cookie, exchanges code for tokens via `fetch()`, fetches GBP account name + email, upserts into `google_oauth_tokens` (service role), redirects to integrations page with success/error query param.
+- `app/dashboard/integrations/_components/GBPConnectButton.tsx` — **NEW.** Client component with 4 states: not-configured, plan-gated (upgrade link), not-connected (OAuth link), connected (email + disconnect button).
+- `supabase/migrations/20260226000006_google_oauth_tokens_rls.sql` — **NEW.** Grants SELECT to `authenticated` role, adds `org_isolation_select` RLS policy on `google_oauth_tokens` (same pattern as other org-scoped tables).
+
+*Modified files:*
+- `app/dashboard/integrations/actions.ts` — Added `disconnectGBP()` server action. Uses `createServiceRoleClient()` to delete the org's `google_oauth_tokens` row. Security: org_id derived server-side.
+- `app/dashboard/integrations/page.tsx` — Added GBP Connect section above location cards. Fetches `google_oauth_tokens` for connected status. Uses `canConnectGBP()` from plan-enforcer for plan gating. Updated footer text (GBP OAuth is now live).
+
+**Tests:** 763 passing, 7 skipped. Build clean. No new test files — Sprint 57A modifies existing Chat.tsx (covered by visual review), Sprint 57B creates new server routes (integration tested via manual OAuth flow).
+
+**Env vars required for Sprint 57B:**
+```bash
+GOOGLE_CLIENT_ID=...
+GOOGLE_CLIENT_SECRET=...
+NEXT_PUBLIC_APP_URL=https://app.localvector.ai
+```
+
+**Run commands:**
+```bash
+npx vitest run                            # 763 tests passing, 7 skipped
+npx next build                            # 0 errors
+```
+
+**Docs updated:** AI_RULES.md §18 (serviceRole permitted uses: OAuth callback + disconnectGBP), new §32 (Google OAuth & GBP Connection — 6 subsections), new §33 (AI Chat Assistant — useChat, tool cards, error handling, sparkline, copy). CLAUDE.md rule count 31→33, added migrations 12-17, added GOOGLE_CLIENT_ID/SECRET to env vars, updated google_oauth_tokens security note. 09-BUILD-PLAN.md Phase 8 checklist updated (GBP OAuth items checked off). 03-DATABASE-SCHEMA.md v2.7 (google_oauth_tokens RLS asymmetric access model).
+
+---
+
+## 2026-02-25 — Sprint 56: Production Hardening + Stripe Portal + Occasions (Completed)
+
+**Goal:** Three-part sprint: (A) Harden Inngest functions for production with health checks, timeouts, and structured logging; (B) Add Stripe Customer Portal for subscription management; (C) Expand occasion seed data from 20 to 32 occasions.
+
+**Scope:**
+
+### Sprint 56A — Inngest Production Verification & Hardening
+
+*New files:*
+- `app/api/inngest/health/route.ts` — **NEW.** GET endpoint returning Inngest client metadata (client ID, registered function IDs, environment, env key status). Protected by CRON_SECRET auth header.
+- `lib/inngest/timeout.ts` — **NEW.** Shared `withTimeout()` helper — wraps async operations with 55-second Promise.race guard (5s buffer under Vercel's 60s limit).
+- `scripts/test-inngest-dispatch.ts` — **NEW.** Manual Inngest event dispatcher with `--dry-run` flag and `--event` filter for production verification.
+
+*Modified files:*
+- `lib/inngest/functions/sov-cron.ts` — retries 3→2, withTimeout on fan-out steps, structured logging (function_id, event_name, started_at, completed_at, duration_ms, metrics).
+- `lib/inngest/functions/audit-cron.ts` — withTimeout on audit+intercept fan-out steps, structured logging.
+- `lib/inngest/functions/content-audit-cron.ts` — withTimeout on location audit fan-out steps, structured logging.
+- `lib/inngest/functions/post-publish-check.ts` — concurrency limit 10 added, retries 2→1, withTimeout on SOV recheck step, structured logging.
+
+### Sprint 56B — Stripe Customer Portal + Subscription Management
+
+*Modified files:*
+- `app/dashboard/billing/actions.ts` — Added `createPortalSession()` (Stripe Customer Portal session via `billingPortal.sessions.create`), `getCurrentPlan()` (fetches plan/plan_status/stripe_customer_id). Demo mode fallback when STRIPE_SECRET_KEY absent.
+- `app/dashboard/billing/page.tsx` — Added: current plan badge at top, "Current Plan" indicator on active tier card, "Manage Subscription" button → Stripe Portal, success/canceled URL param banners (auto-dismiss after 5s).
+- `app/api/webhooks/stripe/route.ts` — Added `customer.subscription.deleted` handler: downgrades org to `plan='trial', plan_status='canceled'`.
+
+### Sprint 56C — Occasion Seed Expansion
+
+*New files:*
+- `supabase/migrations/20260226000005_seed_occasions_phase2.sql` — **NEW.** 12 additional occasions: Easter, Halloween, July 4th, Labor Day Weekend, Reunion Party, Retirement Celebration, Date Night, Business Lunch, Sunday Brunch, Patio Season, Football Season, Prom/Formal Season.
+
+*Modified files:*
+- `supabase/seed.sql` — Section 14a expanded from 20 to 32 occasions (same 12 additions). ON CONFLICT (name) DO NOTHING for idempotent re-seeding.
+
+**Tests:** 763 passing, 7 skipped. Build clean. No new test files added — Sprint 56 modifies existing Inngest configs and billing actions covered by existing unit and E2E tests.
+
+**Docs updated:** AI_RULES.md §30 (Inngest config table, timeout, health check), new §31 (Stripe Billing Patterns), §18 (serviceRole permitted uses). 04-INTELLIGENCE-ENGINE.md v2.6 (Inngest config table, occasion expansion). 09-BUILD-PLAN.md (occasion checklist, billing portal). CLAUDE.md rule count 27→31.
+
+**Run commands:**
+```bash
+npx vitest run                            # 763 tests passing, 7 skipped
+npx next build                            # 0 errors
+npx tsx scripts/test-inngest-dispatch.ts --dry-run  # preview dispatch
+```
+
+---
+
 ## 2026-02-25 — Sprint 55: Multi-Engine Eval Service Extraction (Completed)
 
 **Goal:** Extract the multi-engine AI evaluation logic from `hallucinations/actions.ts` into a pure service at `lib/services/multi-engine-eval.service.ts`. This enables the cron pipeline and Inngest functions to run multi-engine evaluations without going through a Server Action. Eliminates ~130 lines of duplicated code (raw `fetch()` callers, inline prompt builder, mock helpers).

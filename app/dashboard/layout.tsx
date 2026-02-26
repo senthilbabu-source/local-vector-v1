@@ -1,4 +1,5 @@
 import { redirect } from 'next/navigation';
+import { cookies } from 'next/headers';
 import { getSafeAuthContext } from '@/lib/auth';
 import { createClient } from '@/lib/supabase/server';
 import DashboardShell from '@/components/layout/DashboardShell';
@@ -81,6 +82,36 @@ export default async function DashboardLayout({
     }
   }
 
+  // ── Fetch all locations for location switcher (Sprint 62F) ────────────────
+  let locations: { id: string; business_name: string; city: string | null; state: string | null; is_primary: boolean }[] = [];
+  let selectedLocationId: string | null = null;
+
+  if (ctx.orgId) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const locSupa = (await createClient()) as any;
+    const { data: allLocations } = await locSupa
+      .from('locations')
+      .select('id, business_name, city, state, is_primary')
+      .eq('org_id', ctx.orgId)
+      .order('is_primary', { ascending: false });
+
+    locations = (allLocations ?? []).map((l: { id: string; business_name: string; city: string | null; state: string | null; is_primary: boolean }) => ({
+      id: l.id,
+      business_name: l.business_name,
+      city: l.city,
+      state: l.state,
+      is_primary: l.is_primary,
+    }));
+
+    // Read selected location from cookie, default to primary
+    const cookieStore = await cookies();
+    const selectedCookie = cookieStore.get('lv_selected_location')?.value;
+    const primaryId = locations.find((l) => l.is_primary)?.id ?? null;
+    selectedLocationId = selectedCookie && locations.some((l) => l.id === selectedCookie)
+      ? selectedCookie
+      : primaryId;
+  }
+
   // ── Render ────────────────────────────────────────────────────────────────
   const displayName = ctx.fullName ?? ctx.email.split('@')[0];
   const orgName = ctx.orgName ?? 'Your Organization';
@@ -90,6 +121,8 @@ export default async function DashboardLayout({
       displayName={displayName}
       orgName={orgName}
       plan={ctx.plan ?? null}
+      locations={locations}
+      selectedLocationId={selectedLocationId}
     >
       {children}
     </DashboardShell>

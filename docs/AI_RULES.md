@@ -52,14 +52,16 @@
     1.  Scheduled (Cron jobs)
     2.  User-initiated (Button click)
     3.  Cached (Served from Supabase DB).
-* **Plan Gating:** Always check feature availability using the helpers in `lib/plan-enforcer.ts` before enabling premium features. Never inline plan-tier checks — always call these functions. The nine exported functions are:
+* **Plan Gating:** Always check feature availability using the helpers in `lib/plan-enforcer.ts` before enabling premium features. Never inline plan-tier checks — always call these functions. The eleven exported functions are:
   - `canRunDailyAudit` — daily automated AI audit cron (Growth+)
   - `canRunSovEvaluation` — Share of Voice on-demand evaluation (Growth+)
   - `canRunCompetitorIntercept` — Greed Engine competitor analysis (Growth+)
   - `canRunAutopilot` — Autopilot content draft generation + publish pipeline (Growth+)
-  - `canRunPageAudit` — Content Grader / AEO page audit (Growth+)
+  - `canRunPageAudit` — Content Grader / AEO page audit + Page Audit Dashboard (Growth+)
   - `canRunOccasionEngine` — Occasion Module seasonal scheduler (Growth+)
+  - `canViewCitationGap` — Citation Gap Dashboard (Growth+)
   - `canConnectGBP` — Google Business Profile OAuth connection (Starter+)
+  - `canRunMultiModelSOV` — Multi-model SOV queries (Perplexity + OpenAI in parallel) (Growth+)
   - `maxLocations` — max locations per org (returns `number`)
   - `maxCompetitors` — max tracked competitors per org (returns `number`)
 
@@ -274,10 +276,15 @@ Before marking any phase "Completed", verify all of the following are true:
   - Any context where a user session exists
 * **`createServiceRoleClient()`** — bypasses ALL RLS policies. Permitted ONLY in:
   - Cron route handlers (`app/api/cron/*/route.ts`) — no user session in background jobs
+  - Inngest step functions (`lib/inngest/functions/*.ts`) — background fan-out, no user session
+  - Stripe webhook handler (`app/api/webhooks/stripe/route.ts`) — no user session in callbacks
+  - Google OAuth callback (`app/api/auth/google/callback/route.ts`) — `google_oauth_tokens` grants only to `service_role`
+  - Server Actions that mutate service-role-only tables (e.g., `disconnectGBP()`) — when a table has **no authenticated grants**, derive org_id via `getSafeAuthContext()` and use service-role client
   - Admin seed scripts and Supabase migrations
   - Test `beforeAll`/`afterAll` blocks in integration tests
-* **Never** use `createServiceRoleClient()` inside a user-facing Server Action —
-  it bypasses the tenant isolation that RLS enforces.
+* **Never** use `createServiceRoleClient()` inside a user-facing Server Action
+  **unless** the target table has no RLS policies granting to `authenticated` (e.g., `google_oauth_tokens`).
+  In that case, always derive `org_id` server-side — never accept from the client.
 * **Belt-and-suspenders for SELECT queries:** Even with RLS active, OR'd SELECT policies
   (e.g., `org_isolation_select` OR `public_published_location`) can expose cross-tenant rows.
   Always add an explicit `.eq('org_id', orgId)` filter to SELECT queries on tenant tables —
@@ -331,7 +338,8 @@ Before marking any phase "Completed", verify all of the following are true:
 | `truth-audit-perplexity` | Perplexity Sonar | `generateText` | Truth Audit — Perplexity engine (live web, multi-engine). |
 | `truth-audit-anthropic` | Anthropic Claude Sonnet | `generateText` | Truth Audit — Anthropic engine (multi-engine comparison). |
 | `truth-audit-gemini` | Google Gemini 2.0 Flash | `generateText` | Truth Audit — Google engine (multi-engine comparison). |
-| `chat-assistant` | OpenAI gpt-4o | `generateText` | AI Chat Assistant — streaming conversational agent. |
+| `chat-assistant` | OpenAI gpt-4o | `generateText` | AI Chat Assistant — streaming conversational agent with tool calls. |
+| `menu-ocr` | OpenAI gpt-4o | `generateObject` | Menu OCR — GPT-4o Vision for PDF/image menu extraction. Uses `MenuOCRSchema`. |
 
 **Zod schemas** live in `lib/ai/schemas.ts` — imported by both services and tests. Never define AI output types inline.
 
@@ -346,7 +354,9 @@ Before marking any phase "Completed", verify all of the following are true:
 * **Current system message inventory** (update this list when adding new callers):
   - `gpt-4o-mini` / Intercept: `'You are an AI search analyst for local businesses.'`
   - `gpt-4o-mini` / Content Grader: `'[CONTENT_GRADER] ...'`
-  - `gpt-4o` / Magic Menu: no tag needed (only one `gpt-4o` caller).
+  - `gpt-4o` / Magic Menu + Menu OCR Vision: system message `'You are a restaurant menu digitizer.'` — discriminate by request payload (file content part present = OCR Vision, text-only = legacy menu parse)
+  - `gpt-4o` / Chat Assistant: uses streaming via `/api/chat` endpoint, not `/v1/chat/completions`
+  - `gpt-4o` / SOV OpenAI: discriminate by system message (different from menu/chat callers)
 
 **Unit test mocking** (preferred over MSW for unit tests):
 * Mock the AI SDK directly with `vi.mock('ai')` + `vi.mock('@/lib/ai/providers')` — see §4 for the pattern.
@@ -598,7 +608,7 @@ rather than nesting objects. This keeps URL encoding simple and Zod defaults cle
 
 ## 29. 🧪 Playwright E2E Spec Patterns (Sprint 42)
 
-The E2E suite lives in `tests/e2e/` with 14 spec files and 47 tests. Key patterns:
+The E2E suite lives in `tests/e2e/` with 18 spec files. Key patterns:
 
 ### 29.1 — Locator hygiene
 * **Duplicated components:** ViralScanner renders in both hero and CTA sections. All form locators MUST use `.first()`:
@@ -672,10 +682,14 @@ step.run('audit-org', async () => {
 });
 ```
 
-### 30.4 — Concurrency limits (respects API rate limits)
-* SOV: `concurrency: { limit: 3 }` (Perplexity rate limit)
-* Audit: `concurrency: { limit: 5 }` (OpenAI rate limit)
-* Content Audit: `concurrency: { limit: 3 }` (polite crawling)
+### 30.4 — Concurrency and retry limits
+
+| Function ID | concurrency.limit | retries | Reason |
+|---|---|---|---|
+| `sov-weekly-cron` | 3 | 2 | Perplexity rate limit |
+| `audit-daily-cron` | 5 | 3 | OpenAI rate limit |
+| `content-audit-monthly-cron` | 3 | 2 | Polite crawling |
+| `post-publish-sov-check` | 10 | 1 | Best-effort SOV re-check; no retry storm needed |
 
 ### 30.5 — Durable sleep for deferred work
 Use `step.sleep()` instead of Redis TTL scheduling for long-running waits:
@@ -683,8 +697,325 @@ Use `step.sleep()` instead of Redis TTL scheduling for long-running waits:
 await step.sleep('wait-14-days', '14d');  // survives deploys + restarts
 ```
 
-### 30.6 — Testability pattern
-Export the per-org/per-location processor function (e.g., `processOrgSOV`, `processOrgAudit`, `processLocationAudit`) for unit testing. The Inngest function definition wraps these processors in `step.run()` calls.
+### 30.6 — Per-step timeout protection
+Every `step.run()` that calls an external API MUST be wrapped with `withTimeout()` from
+`lib/inngest/timeout.ts`. This enforces a 55-second deadline (Vercel Pro allows 60s per step;
+55s gives a 5s buffer for Inngest overhead):
+```typescript
+// ✅ Correct — withTimeout wraps the work, step rejects after 55s
+step.run('audit-org', () => withTimeout(() => processOrgAudit(org)));
+
+// ❌ Wrong — no timeout, step hangs indefinitely on API failure
+step.run('audit-org', () => processOrgAudit(org));
+```
+
+### 30.7 — Health check endpoint
+`GET /api/inngest/health` returns JSON listing all 4 registered function IDs and whether
+`INNGEST_EVENT_KEY` / `INNGEST_SIGNING_KEY` are set. Protected by `Authorization: Bearer <CRON_SECRET>`.
+Use this to verify Inngest is wired correctly before deploying.
+
+### 30.8 — Testability pattern
+Export the per-org/per-location processor function (e.g., `processOrgSOV`, `processOrgAudit`,
+`processLocationAudit`) for unit testing. The Inngest function definition wraps these processors
+in `step.run()` calls. Exception: `post-publish-sov-check` has no exported processor — its logic
+is a single `step.sleep('14d')` + one `runSOVQuery()` call; tested via SOV query unit tests.
+
+---
+
+## 31. Stripe Webhook & Billing Patterns
+
+### 31.1 — Handled webhook events
+The Stripe webhook at `app/api/webhooks/stripe/route.ts` handles exactly 3 events:
+- `checkout.session.completed` — initial purchase; sets plan + Stripe IDs
+- `customer.subscription.updated` — plan changes, renewals; updates `plan_status`
+- `customer.subscription.deleted` — subscription fully canceled; downgrades to `plan='trial'`, `plan_status='canceled'`
+
+All other event types receive an immediate 200 OK (Stripe retries on non-2xx).
+
+### 31.2 — Raw body requirement
+`request.text()` MUST be called before any JSON parsing. `stripe.webhooks.constructEvent()` requires
+the exact raw bytes to validate the HMAC. Any intermediate `JSON.parse` breaks the signature.
+
+### 31.3 — UI plan name → DB tier mapping
+Stripe metadata `plan` uses UI names. Always map via the `UI_PLAN_TO_DB_TIER` lookup:
+- `pro` → `growth`
+- `enterprise` → `agency`
+- `starter` → `starter` (passthrough)
+- `growth` → `growth` (passthrough)
+
+Never store the UI name directly in the `plan_tier` enum column.
+
+### 31.4 — Customer Portal
+`createPortalSession()` in `app/dashboard/billing/actions.ts` creates a Stripe Billing Portal
+session. Requires `stripe_customer_id` on the org's DB record. Falls back to `{ url: null, demo: true }`
+when `STRIPE_SECRET_KEY` is absent or org has no Stripe customer.
+
+### 31.5 — Demo mode contract
+When `STRIPE_SECRET_KEY` is absent (local dev, CI, preview deploys), all billing actions return
+demo results. Existing Playwright billing tests rely on this — they MUST keep passing unchanged.
+
+---
+
+## 32. Google OAuth & GBP Connection (Sprint 57B)
+
+### 32.1 — OAuth Redirect Flow
+`GET /api/auth/google` generates a random CSRF `state` token, stores it in an httpOnly cookie
+(`google_oauth_state`, 10-min maxAge, path restricted to callback), and stores `org_id` in a
+second httpOnly cookie (`google_oauth_org`). Then redirects to Google's consent screen with
+scopes `business.manage` + `userinfo.email`, `access_type: 'offline'`, `prompt: 'consent'`.
+
+### 32.2 — Callback Handler
+`GET /api/auth/google/callback` does exactly:
+1. Verify `state` query param matches `google_oauth_state` cookie (CSRF protection)
+2. Read `org_id` from `google_oauth_org` cookie
+3. Delete both cookies immediately
+4. Exchange authorization code for tokens via `POST https://oauth2.googleapis.com/token`
+5. Fetch GBP account name via `GET https://mybusinessaccountmanagement.googleapis.com/v1/accounts`
+6. Fetch Google email via `GET https://www.googleapis.com/oauth2/v2/userinfo`
+7. Upsert tokens into `google_oauth_tokens` (service-role client, `ON CONFLICT org_id`)
+8. Redirect to `/dashboard/integrations?gbp_connected=true` or `?gbp_error=<code>`
+
+Error codes: `access_denied`, `missing_params`, `csrf_mismatch`, `no_org`, `not_configured`,
+`token_exchange`, `no_access_token`, `db_error`.
+
+### 32.3 — Token Storage Security
+`google_oauth_tokens` table has:
+- RLS enabled, `org_isolation_select` policy for `authenticated` (read-only)
+- INSERT/UPDATE/DELETE grants only to `service_role` (not `authenticated`)
+- Tokens are NEVER exposed to the client — only `google_email` and `gbp_account_name` are read
+
+### 32.4 — GBPConnectButton UI (4 states)
+The `GBPConnectButton` component in `app/dashboard/integrations/_components/` renders one of:
+1. **Not configured** — `GOOGLE_CLIENT_ID` absent → grey "Not configured" badge
+2. **Plan-gated** — `canConnectGBP(plan)` returns false (trial) → "Upgrade to Connect" link
+3. **Not connected** — no `google_oauth_tokens` row → "Connect Google Business Profile" OAuth link
+4. **Connected** — shows email + account name + "Disconnect" button
+
+### 32.5 — Disconnect Flow
+`disconnectGBP()` in `app/dashboard/integrations/actions.ts` uses `createServiceRoleClient()`
+to delete the org's `google_oauth_tokens` row. Org_id derived server-side via `getSafeAuthContext()`.
+
+### 32.6 — Token Refresh
+Token refresh is handled internally by `lib/autopilot/publish-gbp.ts`. That file must NOT be
+modified for OAuth connect/disconnect. It reads `google_oauth_tokens` via service-role, checks
+`expires_at`, and refreshes via Google's token endpoint when expired.
+
+---
+
+## 33. AI Chat Assistant — useChat, Tool Calls, and Streaming (Sprint 57A)
+
+### 33.1 — Chat API Endpoint
+`POST /api/chat` uses `streamText()` with tool calls. System prompt injects org context.
+Model key: `chat-assistant`. Max steps: 5 (tool call round-trips per message).
+
+### 33.2 — useChat() Hook
+The client component destructures the full API surface:
+```typescript
+const { messages, input, handleInputChange, handleSubmit, isLoading, error, reload, stop, append } = useChat({ api: '/api/chat' });
+```
+- `append({ role: 'user', content })` — for quick-action buttons (never use `requestSubmit` hack)
+- `stop()` — stop token generation mid-stream
+- `error` + `reload` — error detection and retry
+
+### 33.3 — Tool Result Cards
+Tool `result.type` maps to UI components:
+| `result.type` | Component | Data shape |
+|---|---|---|
+| `visibility_score` | ScoreCard | `share_of_voice`, `reality_score`, `accuracy_score`, `open_hallucinations` |
+| `sov_trend` | TrendSparkline | `data: [{ date, sov }]` → recharts AreaChart |
+| `hallucinations` | AlertList | `items: [{ severity, model, category, claim, truth }]` |
+| `competitor_comparison` | CompetitorList | `competitors: [{ name, analyses, recommendation }]` |
+
+### 33.4 — Error Handling
+- `error` from `useChat()` displayed in crimson error banner
+- 401 detection: check `error.message` for '401' or 'Unauthorized' → "Session expired" message
+- Non-401: generic "Something went wrong" with retry button calling `reload()`
+
+### 33.5 — SOV Sparkline
+Uses recharts `AreaChart` (NOT Tremor) — 120px height, signal-green stroke with gradient fill,
+`XAxis` with date labels, `Tooltip` with surface-dark background. Gradient defined as SVG
+`<linearGradient>` from 30% opacity to 0%.
+
+### 33.6 — Copy Message
+`CopyButton` uses `navigator.clipboard.writeText()`. Shows on hover only (`opacity-0 group-hover:opacity-100`).
+"Copied!" text displayed for 2 seconds. Only appears on assistant messages (never user messages).
+
+## 34. Citation Gap, Page Audit, and Prompt Intelligence Dashboards (Sprint 58)
+
+### 34.1 — Citation Gap Dashboard (`/dashboard/citations`)
+Server component. Fetches `citation_source_intelligence` for the tenant's **primary category + city** (aggregate market data, not org-scoped). Joins `listings` with `directories` to produce `TenantListing[]`. Calls `calculateCitationGapScore()` (pure function, no DB calls). Plan gate: `canViewCitationGap()` (Growth+). Components:
+- `CitationGapScore` — SVG circular score ring (green 80+, amber 50-79, red <50)
+- `PlatformCitationBar` — horizontal bars sorted by `citation_frequency` descending, "Listed ✓" / "Not listed" indicator per platform
+- `TopGapCard` — highlighted card for the #1 uncovered platform gap with "Claim Your Listing" CTA (links to platform signup URL)
+
+### 34.2 — Page Audit Dashboard (`/dashboard/page-audits`)
+Server component. Reads `page_audits` table (org-scoped via RLS). Computes average `overall_score` across all audited pages. Plan gate: `canRunPageAudit()` (Growth+). Components:
+- `AuditScoreOverview` — SVG circular score ring for aggregate AEO readiness
+- `PageAuditCard` — per-page card with 5 dimension bars (Answer-First 35%, Schema 25%, FAQ 20%, Keyword 10%, Entity 10%), top recommendation, re-audit button
+- `DimensionBar` — reusable score bar with label, weight text, and color-coded fill
+- `PageAuditCardWrapper` — client wrapper binding `reauditPage` server action
+
+### 34.3 — Re-audit Server Action
+`reauditPage(pageUrl)` in `app/dashboard/page-audits/actions.ts`. Rate limited: 1 re-audit per page per 5 minutes (in-memory `Map`). Fetches existing audit row for `page_type` + `location_id`, calls `auditPage()` from `lib/page-audit/auditor.ts`, upserts result to `page_audits` (conflict on `org_id, page_url`).
+
+### 34.4 — Prompt Intelligence Gap Alerts on SOV Page
+Added to `app/dashboard/share-of-voice/page.tsx` (Growth+ only). Calls `detectQueryGaps(orgId, locationId, supabase)` from `lib/services/prompt-intelligence.service.ts` — returns up to 10 gaps. Calls `computeCategoryBreakdown(queries, evaluations)` — pure function, no DB calls. Shows section between First Mover Opportunities and Query Library with:
+- `CategoryBreakdownChart` — horizontal bar chart of citation rates per query category
+- `GapAlertCard` — per-gap card with type badge (untracked=amber, competitor_discovered=crimson, zero_citation_cluster=indigo), impact level, and suggested action
+
+### 34.5 — Sidebar Navigation
+`Citations` (Globe icon) and `Page Audits` (FileSearch icon) added to `NAV_ITEMS` in `components/layout/Sidebar.tsx`, positioned after "Listings" and before "Settings".
+
+---
+
+## 35. Error Boundaries, Auth OAuth, and Password Reset (Sprint 60)
+
+### 35.1 — Dashboard Error Boundaries
+Every dashboard section has an `error.tsx` file (Next.js App Router error boundary). Pattern:
+```typescript
+'use client';
+import * as Sentry from '@sentry/nextjs';
+import { AlertTriangle } from 'lucide-react';
+import { useEffect } from 'react';
+
+export default function SectionError({ error, reset }: { error: Error & { digest?: string }; reset: () => void }) {
+  useEffect(() => { Sentry.captureException(error); }, [error]);
+  // ... AlertTriangle icon + "Something went wrong" + error.message + "Try again" button
+}
+```
+Current error boundaries: `app/dashboard/error.tsx`, `hallucinations/error.tsx`, `share-of-voice/error.tsx`, `ai-assistant/error.tsx`, `content-drafts/error.tsx`. When adding new dashboard sections, create a matching `error.tsx`.
+
+### 35.2 — Google OAuth Login (Supabase Auth, NOT GBP)
+Login and register pages use Supabase's built-in `signInWithOAuth({ provider: 'google' })` for user authentication. This is **separate** from the GBP OAuth flow in `app/api/auth/google/` (Rule 32), which connects Google Business Profile for data import.
+
+- Uses `createClient()` from `lib/supabase/client.ts` (browser client)
+- `redirectTo: ${window.location.origin}/dashboard`
+- Wraps in try/catch — displays error message if Google provider is not configured in Supabase Dashboard > Auth > Providers
+- Google provider must be enabled in Supabase Dashboard separately (not automatic)
+
+### 35.3 — Password Reset Flow
+- **Forgot password:** `app/(auth)/forgot-password/page.tsx` — calls `supabase.auth.resetPasswordForEmail()` with `redirectTo` to `/reset-password`
+- **Reset password:** `app/(auth)/reset-password/page.tsx` — calls `supabase.auth.updateUser({ password })`, validates min 8 chars + match confirmation
+- Both pages match the dark auth theme (bg-midnight-slate, surface-dark cards, signal-green accents)
+
+### 35.4 — Sidebar `data-testid` Convention
+All sidebar nav links have `data-testid={`nav-${label.toLowerCase().replace(/\s+/g, '-')}`}`:
+`nav-dashboard`, `nav-alerts`, `nav-menu`, `nav-share-of-voice`, `nav-content`, `nav-compete`, `nav-listings`, `nav-citations`, `nav-page-audits`, `nav-settings`, `nav-billing`.
+E2E specs should use `page.getByTestId('nav-xyz')` for sidebar navigation.
+
+### 35.5 — E2E Spec Inventory (updated)
+18 spec files, ~55+ tests total:
+- `01-viral-wedge` through `10-truth-audit` (original suite)
+- `auth.spec.ts`, `billing.spec.ts`, `hybrid-upload.spec.ts`, `onboarding.spec.ts`
+- `11-ai-assistant.spec.ts` — chat UI, quick-action buttons, input
+- `12-citations.spec.ts` — heading, gap score or empty state, sidebar nav
+- `13-page-audits.spec.ts` — heading, audit cards or empty state, sidebar nav
+- `14-sidebar-nav.spec.ts` — 9 sidebar links navigate to correct pages
+
+---
+
+## 36. Occasion Calendar, Multi-Model SOV, WordPress Connect (Sprint 61)
+
+### 36.1 — Occasion Calendar UI (`OccasionTimeline`)
+Client component at `app/dashboard/content-drafts/_components/OccasionTimeline.tsx`. Renders upcoming occasions as horizontal scrollable cards between the summary strip and filter tabs on the Content Drafts page.
+
+- **Data source:** `local_occasions` table filtered to occasions within trigger window (`daysUntilPeak >= 0 && daysUntilPeak <= trigger_days_before`), sorted by soonest first.
+- **Countdown badge colors:** red ≤7 days, amber ≤14 days, slate otherwise.
+- **Create Draft action:** Sets `trigger_type='occasion'` and `trigger_id` on the new draft. The `CreateDraftSchema` in `actions.ts` accepts optional `trigger_type` and `trigger_id` fields.
+- **Collapsible:** Default expanded, toggles with ChevronDown/ChevronUp.
+
+### 36.2 — Multi-Model SOV (Perplexity + OpenAI)
+Growth and Agency orgs run SOV queries against both Perplexity and OpenAI in parallel, doubling AI coverage. Starter/Trial orgs use single-model (Perplexity only).
+
+- **Plan gate:** `canRunMultiModelSOV(plan)` from `lib/plan-enforcer.ts` (Growth+).
+- **Entry point:** `runMultiModelSOVQuery()` in `lib/services/sov-engine.service.ts` — uses `Promise.allSettled` so one provider failing doesn't kill both.
+- **Engine tracking:** `SOVQueryResult.engine` field (`'perplexity'` | `'openai'`). `writeSOVResults()` writes `result.engine` to `sov_evaluations.engine`.
+- **Model keys:** `'sov-query'` (Perplexity) and `'sov-query-openai'` (OpenAI) in `lib/ai/providers.ts`.
+- **Cron integration:** Both `lib/inngest/functions/sov-cron.ts` and `app/api/cron/sov/route.ts` branch on `canRunMultiModelSOV(plan)`.
+
+### 36.3 — WordPress Credential Management
+Integrations page now has a WordPress section (below GBP) for connecting WordPress sites via Application Password auth.
+
+- **Migration:** `20260226000007_wp_credentials.sql` adds `wp_username` and `wp_app_password` columns to `location_integrations`.
+- **Server actions** in `app/dashboard/integrations/actions.ts`:
+  - `testWordPressConnection(siteUrl, username, appPassword)` — HEAD request to `${siteUrl}/wp-json/wp/v2/pages` with 10s timeout
+  - `saveWordPressCredentials(locationId, siteUrl, username, appPassword)` — upserts `platform='wordpress'` row
+  - `disconnectWordPress(locationId)` — deletes the row
+- **UI components:**
+  - `WordPressConnectButton.tsx` — two states: not connected (opens modal) or connected (green badge + disconnect)
+  - `WordPressConnectModal.tsx` — form with "Test Connection" → "Save & Connect" two-step flow
+- **Credential security:** `wp_username` and `wp_app_password` are stored server-side only, never exposed to the client. Used in `publishDraft()` WordPress branch.
+- **Publish flow wired:** `publishDraft()` in `content-drafts/actions.ts` fetches `wp_username`/`wp_app_password` from `location_integrations` when `publish_target='wordpress'`.
+
+## 37. Scale Prep — Cron Logging, Guided Tour, Subdomains, Landing Split, Settings, Multi-Location (Sprint 62)
+
+### 37.1 — Cron Health Logging (`cron_run_log` + `cron-logger.ts`)
+All 4 cron routes (`sov`, `audit`, `content-audit`, `citation`) are now instrumented with `lib/services/cron-logger.ts`.
+
+- **Table:** `cron_run_log` — RLS enabled, no policies (service-role writes only). Columns: `cron_name`, `started_at`, `completed_at`, `duration_ms`, `status` (running/success/failed/timeout), `summary` JSONB, `error_message`.
+- **Service pattern:** `logCronStart(cronName)` → returns `{ logId, startedAt }`. `logCronComplete(logId, summary, startedAt)` → computes `duration_ms` from `startedAt`. `logCronFailed(logId, errorMessage, startedAt)` → sets status='failed'.
+- **Fail-safe:** All logger calls are wrapped in try/catch internally — a logger failure never crashes the cron.
+- **Wiring pattern:**
+  ```typescript
+  const { logId, startedAt } = await logCronStart('sov');
+  try {
+    // ... existing cron logic ...
+    await logCronComplete(logId, summary, startedAt);
+  } catch (err) {
+    await logCronFailed(logId, err instanceof Error ? err.message : String(err), startedAt);
+    // ... error response ...
+  }
+  ```
+
+### 37.2 — Post-Onboarding Guided Tour (`GuidedTour.tsx`)
+Custom tooltip-based tour at `app/dashboard/_components/GuidedTour.tsx`. No external libraries (no react-joyride, no framer-motion).
+
+- **localStorage key:** `lv_tour_completed` — set to `'true'` when user finishes or skips. Tour only shows on first visit.
+- **Target resolution:** Uses `document.querySelector('[data-testid="nav-dashboard"]')` etc. + `getBoundingClientRect()` for tooltip positioning.
+- **Screen guard:** Only renders on `lg+` screens (checks `window.matchMedia('(min-width: 1024px)')`). Has `typeof window.matchMedia !== 'function'` guard for jsdom compatibility.
+- **Mount delay:** 800ms `setTimeout` on mount to ensure sidebar renders first.
+- **Rendered in:** `DashboardShell.tsx` after main content area.
+
+### 37.3 — Subdomain Routing (`proxy.ts`)
+The Next.js middleware (`proxy.ts`, NOT `middleware.ts`) now handles subdomain routing at the top of the handler:
+
+- `menu.*` hostname → `NextResponse.rewrite()` to `/m/` path prefix (public, no auth needed)
+- `app.*` or bare domain → falls through to existing auth logic
+- **DNS:** `*.localvector.ai` CNAME to Vercel deployment
+- **Local test:** `curl -H "Host: menu.localhost:3000" http://localhost:3000/charcoal-n-chill`
+
+### 37.4 — Landing Page Code-Splitting (`app/_sections/`)
+The landing page (`app/page.tsx`) is split from 1,181 lines into 6 section files under `app/_sections/`:
+
+| File | Sections | Import Type |
+|------|----------|-------------|
+| `shared.tsx` | SectionLabel, MetricCard, PricingCard helpers | Named exports |
+| `HeroSection.tsx` | JSON-LD + Nav + Hero | **Static** (above fold) |
+| `ProblemSection.tsx` | Revenue Leak + AVS | Dynamic (`next/dynamic`) |
+| `CompareSection.tsx` | Compare + Table | Dynamic |
+| `EnginesSection.tsx` | Three Engines + Case Study | Dynamic |
+| `PricingSection.tsx` | Pricing + FAQ + CTA + Footer | Dynamic |
+
+- **Pattern:** HeroSection is statically imported (above-fold performance). All below-fold sections use `next/dynamic` for lazy loading.
+- **`safeJsonLd` import:** HeroSection imports from `../m/[slug]/page` (the public menu page already has the utility).
+
+### 37.5 — Settings Notifications & Danger Zone
+Settings page (`app/dashboard/settings/`) now has 5 sections: Account, Security, Organization, Notifications, Danger Zone.
+
+- **Notification prefs columns** on `organizations` table: `notify_hallucination_alerts`, `notify_weekly_digest`, `notify_sov_alerts` (all `BOOLEAN DEFAULT TRUE`). Migration `20260226000009`.
+- **Server action:** `updateNotificationPrefs(formData)` — Zod-validates 3 boolean fields, updates via service-role client.
+- **Soft delete:** `softDeleteOrganization()` — checks `ctx.role === 'owner'`, sets `plan_status='canceled'`, signs out, redirects to `/login`. Does NOT hard-delete — data retained 30 days.
+- **DeleteOrgModal:** Type-to-confirm pattern — user must type exact org name before "Delete Organization" button becomes active.
+- **Toggle component:** Inline `Toggle` in SettingsForm.tsx with `role="switch"` and `aria-checked` for accessibility.
+
+### 37.6 — Agency Multi-Location UI (`LocationSwitcher`)
+Agency-tier orgs with multiple locations can switch between them via a sidebar dropdown.
+
+- **LocationSwitcher** at `components/layout/LocationSwitcher.tsx` — client component, only renders when `locations.length > 1`.
+- **Cookie-based selection:** Sets `lv_selected_location` cookie via `document.cookie` (1-year expiry, SameSite=Lax). `window.location.reload()` after selection (V1 pragmatic approach).
+- **Data flow:** `dashboard/layout.tsx` fetches all org locations → reads cookie → passes `locations` + `selectedLocationId` through `DashboardShell` → `Sidebar` → `LocationSwitcher`.
+- **Locations page:** Card grid layout (`grid gap-4 sm:grid-cols-2 lg:grid-cols-3`). Plan-gated via `maxLocations(plan)` — shows "Upgrade to Agency" when at limit.
+- **Props threading:** `DashboardShell` and `Sidebar` accept optional `locations?: LocationOption[]` and `selectedLocationId?: string | null`.
 
 ---
 > **End of System Instructions**

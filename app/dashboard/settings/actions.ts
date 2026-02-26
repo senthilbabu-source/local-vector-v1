@@ -14,8 +14,9 @@
 // ---------------------------------------------------------------------------
 
 import { revalidatePath } from 'next/cache';
+import { redirect } from 'next/navigation';
 import { z } from 'zod';
-import { createClient } from '@/lib/supabase/server';
+import { createClient, createServiceRoleClient } from '@/lib/supabase/server';
 import { getSafeAuthContext } from '@/lib/auth';
 
 // ---------------------------------------------------------------------------
@@ -123,4 +124,80 @@ export async function changePassword(formData: FormData): Promise<ActionResult> 
   }
 
   return { success: true };
+}
+
+// ---------------------------------------------------------------------------
+// Notification Preferences Schema
+// ---------------------------------------------------------------------------
+
+const NotificationPrefsSchema = z.object({
+  notify_hallucination_alerts: z.boolean(),
+  notify_weekly_digest:        z.boolean(),
+  notify_sov_alerts:           z.boolean(),
+});
+
+// ---------------------------------------------------------------------------
+// updateNotificationPrefs — Server Action (Sprint 62)
+// ---------------------------------------------------------------------------
+
+export async function updateNotificationPrefs(formData: FormData): Promise<ActionResult> {
+  const ctx = await getSafeAuthContext();
+  if (!ctx?.orgId) {
+    return { success: false, error: 'Unauthorized' };
+  }
+
+  const parsed = NotificationPrefsSchema.safeParse({
+    notify_hallucination_alerts: formData.get('notify_hallucination_alerts') === 'true',
+    notify_weekly_digest:        formData.get('notify_weekly_digest') === 'true',
+    notify_sov_alerts:           formData.get('notify_sov_alerts') === 'true',
+  });
+  if (!parsed.success) {
+    return { success: false, error: parsed.error.issues[0]?.message ?? 'Invalid input' };
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const supabase = (await createClient()) as any;
+  const { error } = await supabase
+    .from('organizations')
+    .update(parsed.data)
+    .eq('id', ctx.orgId);
+
+  if (error) {
+    return { success: false, error: error.message };
+  }
+
+  revalidatePath('/dashboard/settings');
+  return { success: true };
+}
+
+// ---------------------------------------------------------------------------
+// softDeleteOrganization — Server Action (Sprint 62)
+// ---------------------------------------------------------------------------
+
+export async function softDeleteOrganization(): Promise<ActionResult> {
+  const ctx = await getSafeAuthContext();
+  if (!ctx?.orgId) {
+    return { success: false, error: 'Unauthorized' };
+  }
+
+  if (ctx.role !== 'owner') {
+    return { success: false, error: 'Only the organization owner can delete the organization' };
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const supabase = createServiceRoleClient() as any;
+  const { error } = await supabase
+    .from('organizations')
+    .update({ plan_status: 'canceled' })
+    .eq('id', ctx.orgId);
+
+  if (error) {
+    return { success: false, error: error.message };
+  }
+
+  // Sign out the user
+  const sessionClient = await createClient();
+  await sessionClient.auth.signOut();
+
+  redirect('/login');
 }

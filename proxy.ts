@@ -9,6 +9,31 @@ export function proxy(request: NextRequest) {
 }
 
 async function handleProxy(request: NextRequest) {
+  // ── Subdomain routing (Sprint 62C) ──────────────────────────────────────
+  //
+  // Vercel DNS configuration:
+  //   menu.localvector.ai  → CNAME to Vercel (rewrite to /m/ path)
+  //   app.localvector.ai   → CNAME to Vercel (normal app routing)
+  //   localvector.ai       → CNAME to Vercel (landing page, default)
+  //
+  // Requires wildcard DNS: *.localvector.ai → Vercel deployment.
+  //
+  // Local dev: curl -H "Host: menu.localhost:3000" http://localhost:3000/charcoal-n-chill
+  // Or add to /etc/hosts: 127.0.0.1 menu.localhost
+  //
+  const hostname = request.headers.get('host') ?? '';
+
+  if (hostname.startsWith('menu.')) {
+    // menu.localvector.ai/<slug> → /m/<slug> (public, no auth needed)
+    const url = request.nextUrl.clone();
+    if (!url.pathname.startsWith('/m/')) {
+      url.pathname = `/m${url.pathname}`;
+      return NextResponse.rewrite(url);
+    }
+    return NextResponse.next();
+  }
+
+  // app. subdomain or bare domain → standard routing with auth
   const { supabase, response } = createMiddlewareClient(request);
 
   // IMPORTANT: Use getUser(), NOT getSession().

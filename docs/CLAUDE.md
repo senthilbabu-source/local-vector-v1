@@ -12,7 +12,7 @@ LocalVector is an AEO/GEO SaaS platform that helps local businesses monitor and 
 - **Billing:** Stripe webhooks → `organizations.plan_tier` enum (`trial | starter | growth | agency`)
 - **Email:** Resend + React Email (`emails/`)
 - **Cache:** Upstash Redis (`lib/redis.ts`) — optional, all callers must degrade gracefully
-- **Testing:** Vitest (unit/integration in `src/__tests__/`), Playwright (E2E in `tests/e2e/`)
+- **Testing:** Vitest (unit/integration in `src/__tests__/`), Playwright (E2E in `tests/e2e/`, 18 specs)
 - **Monitoring:** Sentry (client, server, edge configs)
 
 ## Architecture Rules
@@ -28,7 +28,10 @@ LocalVector is an AEO/GEO SaaS platform that helps local businesses monitor and 
 
 ```
 app/api/cron/          — Automated pipelines (sov, audit, content-audit)
-app/dashboard/         — Authenticated dashboard pages
+app/(auth)/            — Auth pages (login, register, forgot-password, reset-password)
+app/dashboard/         — Authenticated dashboard pages (each has error.tsx boundary)
+app/dashboard/citations/     — Citation Gap Dashboard (Sprint 58A)
+app/dashboard/page-audits/   — Page Audit Dashboard (Sprint 58B)
 lib/ai/                — AI provider config, schemas, actions
 lib/services/          — Pure business logic services
 lib/page-audit/        — HTML parser + AEO auditor
@@ -45,7 +48,7 @@ tests/e2e/             — Playwright E2E tests
 
 | Table | Purpose |
 |-------|---------|
-| `organizations` | Tenant root — has `plan_tier`, `plan_status` |
+| `organizations` | Tenant root — has `plan_tier`, `plan_status`, notification prefs (`notify_hallucination_alerts`, `notify_weekly_digest`, `notify_sov_alerts`) |
 | `locations` | Business locations per org |
 | `target_queries` | SOV query library per location |
 | `sov_evaluations` | Per-query SOV results (engine, rank, competitors) |
@@ -54,7 +57,11 @@ tests/e2e/             — Playwright E2E tests
 | `content_drafts` | AI-generated content awaiting human approval |
 | `competitor_intercepts` | Head-to-head competitor analysis results |
 | `local_occasions` | Seasonal event reference table |
-| `citation_source_intelligence` | Which platforms AI actually cites per category |
+| `citation_source_intelligence` | Which platforms AI actually cites per category (aggregate, not org-scoped) |
+| `page_audits` | AEO page audit results per org (5 dimension scores + recommendations) |
+| `google_oauth_tokens` | GBP OAuth credentials per org (service-role writes, authenticated SELECT) |
+| `location_integrations` | Platform connections per location (Big 6 + listing URLs + WordPress `wp_username`/`wp_app_password`) |
+| `cron_run_log` | Cron execution health log (cron_name, duration_ms, status, summary JSONB) — service-role only, no RLS policies |
 
 ## Current Migrations (Applied)
 
@@ -69,6 +76,15 @@ tests/e2e/             — Playwright E2E tests
 9. `20260224000002_gbp_integration.sql`
 10. `20260224000003_listing_url_column.sql`
 11. `20260225000001_revenue_leak.sql` — `revenue_config`, `revenue_snapshots`
+12. `20260226000001_add_query_category.sql`
+13. `20260226000002_autopilot_trigger_idempotency.sql`
+14. `20260226000003_competitor_intercepts_rls_policies.sql`
+15. `20260226000004_rls_audit_fixes.sql`
+16. `20260226000005_seed_occasions_phase2.sql` — 12 new occasions (32 total)
+17. `20260226000006_google_oauth_tokens_rls.sql` — org_isolation_select for authenticated, service-role-only writes
+18. `20260226000007_wp_credentials.sql` — `wp_username`, `wp_app_password` columns on `location_integrations`
+19. `20260226000008_cron_run_log.sql` — `cron_run_log` table for cron health logging (service-role only)
+20. `20260226000009_notification_prefs.sql` — `notify_hallucination_alerts`, `notify_weekly_digest`, `notify_sov_alerts` columns on `organizations`
 
 ## Testing Commands
 
@@ -86,6 +102,7 @@ npx playwright test         # E2E tests
 NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY
 OPENAI_API_KEY, PERPLEXITY_API_KEY, ANTHROPIC_API_KEY, GOOGLE_GENERATIVE_AI_API_KEY
 CRON_SECRET, STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET, RESEND_API_KEY
+GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET
 UPSTASH_REDIS_REST_URL, UPSTASH_REDIS_REST_TOKEN
 ```
 
@@ -347,7 +364,7 @@ editDraft(formData: { draft_id, draft_title?, draft_content?, target_prompt? }) 
 
 4. **Pending draft cap of 5.** Auto-triggered drafts (competitor_gap, occasion, prompt_missing) are silently suppressed when the org has ≥ 5 unreviewed drafts. Prevents alert fatigue and runaway AI generation.
 
-5. **GBP token security.** `google_oauth_tokens` has NO RLS — accessed via service-role only. Tokens must be encrypted before INSERT (per migration comment). Never expose tokens to client.
+5. **GBP token security.** `google_oauth_tokens` has RLS enabled with `org_isolation_select` for authenticated (read-only). INSERT/UPDATE/DELETE via service-role only. Tokens are never exposed to the client — only `google_email` and `gbp_account_name` are read by the integrations page.
 
 6. **WordPress credentials.** Stored in `location_integrations` — RLS-scoped to org. Never sent to client; used server-side only in the publish action.
 

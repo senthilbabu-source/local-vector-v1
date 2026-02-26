@@ -18,6 +18,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServiceRoleClient } from '@/lib/supabase/server';
 import { auditPage, type PageType } from '@/lib/page-audit/auditor';
 import { inngest } from '@/lib/inngest/client';
+import { logCronStart, logCronComplete, logCronFailed } from '@/lib/services/cron-logger';
 
 // Force dynamic so Vercel never caches this route between cron invocations.
 export const dynamic = 'force-dynamic';
@@ -107,6 +108,18 @@ export async function GET(request: NextRequest) {
 // ---------------------------------------------------------------------------
 
 async function runInlineContentAudit(): Promise<NextResponse> {
+  const handle = await logCronStart('content-audit');
+  try {
+  return await _runInlineContentAuditImpl(handle);
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    await logCronFailed(handle, msg);
+    console.error('[cron-content-audit] Inline run failed:', msg);
+    return NextResponse.json({ error: msg }, { status: 500 });
+  }
+}
+
+async function _runInlineContentAuditImpl(handle: { logId: string | null; startedAt: number }): Promise<NextResponse> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const supabase = createServiceRoleClient() as any;
 
@@ -202,5 +215,6 @@ async function runInlineContentAudit(): Promise<NextResponse> {
     : 0;
 
   console.log('[cron-content-audit] Run complete:', summary);
+  await logCronComplete(handle, summary as unknown as Record<string, unknown>);
   return NextResponse.json(summary);
 }

@@ -3,6 +3,8 @@
 import { useState } from 'react';
 import Sidebar from './Sidebar';
 import TopBar from './TopBar';
+import GuidedTour from '@/app/dashboard/_components/GuidedTour';
+import type { LocationOption } from './LocationSwitcher';
 
 // ---------------------------------------------------------------------------
 // Props
@@ -13,6 +15,8 @@ interface DashboardShellProps {
   displayName: string;
   orgName: string;
   plan: string | null;
+  locations?: LocationOption[];
+  selectedLocationId?: string | null;
 }
 
 // ---------------------------------------------------------------------------
@@ -29,6 +33,8 @@ export default function DashboardShell({
   displayName,
   orgName,
   plan,
+  locations,
+  selectedLocationId,
 }: DashboardShellProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
@@ -53,6 +59,8 @@ export default function DashboardShell({
         displayName={displayName}
         orgName={orgName}
         plan={plan}
+        locations={locations}
+        selectedLocationId={selectedLocationId}
       />
 
       {/* ── Right column: TopBar + page content ──────────────── */}
@@ -69,6 +77,9 @@ export default function DashboardShell({
           {children}
         </main>
       </div>
+
+      {/* Post-onboarding guided tour (Sprint 62B) */}
+      <GuidedTour />
     </div>
   );
 }

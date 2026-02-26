@@ -1,12 +1,14 @@
 'use client';
 
 // ---------------------------------------------------------------------------
-// SettingsForm — three-section client form for Sprint 24B Settings page.
+// SettingsForm — five-section client form for Settings page.
 //
 // Sections:
-//   1. Account   — displayName (editable), email (read-only)
-//   2. Security  — new password + confirm password
-//   3. Organization — org name (read-only), plan chip, billing link
+//   1. Account        — displayName (editable), email (read-only)
+//   2. Security       — new password + confirm password + forgot password link
+//   3. Organization   — org name (read-only), plan chip, billing link
+//   4. Notifications  — 3 toggle switches (Sprint 62)
+//   5. Danger Zone    — delete organization modal (Sprint 62)
 //
 // Uses useTransition for non-blocking server action calls.
 // Password form is reset on success via ref.
@@ -14,17 +16,25 @@
 
 import { useRef, useState, useTransition } from 'react';
 import Link from 'next/link';
-import { updateDisplayName, changePassword } from '../actions';
+import { updateDisplayName, changePassword, updateNotificationPrefs } from '../actions';
+import DeleteOrgModal from './DeleteOrgModal';
 
 // ---------------------------------------------------------------------------
 // Props
 // ---------------------------------------------------------------------------
+
+interface NotifyPrefs {
+  notify_hallucination_alerts: boolean;
+  notify_weekly_digest:        boolean;
+  notify_sov_alerts:           boolean;
+}
 
 interface SettingsFormProps {
   displayName: string;
   email:       string;
   orgName:     string;
   plan:        string | null;
+  notifyPrefs: NotifyPrefs;
 }
 
 // ---------------------------------------------------------------------------
@@ -38,16 +48,63 @@ const PLAN_LABELS: Record<string, string> = {
 };
 
 // ---------------------------------------------------------------------------
+// Toggle component
+// ---------------------------------------------------------------------------
+
+function Toggle({
+  checked,
+  onChange,
+  label,
+  description,
+}: {
+  checked: boolean;
+  onChange: (val: boolean) => void;
+  label: string;
+  description: string;
+}) {
+  return (
+    <div className="flex items-center justify-between py-3">
+      <div>
+        <p className="text-sm font-medium text-white">{label}</p>
+        <p className="text-xs text-slate-500">{description}</p>
+      </div>
+      <button
+        type="button"
+        role="switch"
+        aria-checked={checked}
+        onClick={() => onChange(!checked)}
+        className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors ${
+          checked ? 'bg-signal-green' : 'bg-slate-700'
+        }`}
+      >
+        <span
+          className={`pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow transform transition-transform ${
+            checked ? 'translate-x-5' : 'translate-x-0'
+          }`}
+        />
+      </button>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // SettingsForm
 // ---------------------------------------------------------------------------
 
-export default function SettingsForm({ displayName, email, orgName, plan }: SettingsFormProps) {
+export default function SettingsForm({ displayName, email, orgName, plan, notifyPrefs }: SettingsFormProps) {
   const [nameStatus, setNameStatus] = useState<{ success: boolean; message: string } | null>(null);
   const [pwStatus,   setPwStatus]   = useState<{ success: boolean; message: string } | null>(null);
+  const [notifyStatus, setNotifyStatus] = useState<{ success: boolean; message: string } | null>(null);
   const [nameIsPending, startNameTransition] = useTransition();
   const [pwIsPending,   startPwTransition]   = useTransition();
+  const [notifyIsPending, startNotifyTransition] = useTransition();
 
   const pwFormRef = useRef<HTMLFormElement>(null);
+
+  // Notification toggle state
+  const [hallAlerts, setHallAlerts] = useState(notifyPrefs.notify_hallucination_alerts);
+  const [weeklyDigest, setWeeklyDigest] = useState(notifyPrefs.notify_weekly_digest);
+  const [sovAlerts, setSovAlerts] = useState(notifyPrefs.notify_sov_alerts);
 
   async function handleNameSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -73,6 +130,22 @@ export default function SettingsForm({ displayName, email, orgName, plan }: Sett
       } else {
         setPwStatus({ success: false, message: result.error });
       }
+    });
+  }
+
+  function handleNotifySave() {
+    setNotifyStatus(null);
+    const form = new FormData();
+    form.set('notify_hallucination_alerts', String(hallAlerts));
+    form.set('notify_weekly_digest', String(weeklyDigest));
+    form.set('notify_sov_alerts', String(sovAlerts));
+    startNotifyTransition(async () => {
+      const result = await updateNotificationPrefs(form);
+      setNotifyStatus(
+        result.success
+          ? { success: true,  message: 'Notification preferences saved' }
+          : { success: false, message: result.error }
+      );
     });
   }
 
@@ -158,13 +231,21 @@ export default function SettingsForm({ displayName, email, orgName, plan }: Sett
             </p>
           )}
 
-          <button
-            type="submit"
-            disabled={pwIsPending}
-            className="rounded-xl bg-signal-green px-4 py-2 text-sm font-semibold text-deep-navy hover:bg-signal-green/90 disabled:opacity-60 transition"
-          >
-            {pwIsPending ? 'Updating…' : 'Update password'}
-          </button>
+          <div className="flex items-center gap-4">
+            <button
+              type="submit"
+              disabled={pwIsPending}
+              className="rounded-xl bg-signal-green px-4 py-2 text-sm font-semibold text-deep-navy hover:bg-signal-green/90 disabled:opacity-60 transition"
+            >
+              {pwIsPending ? 'Updating…' : 'Update password'}
+            </button>
+            <Link
+              href="/forgot-password"
+              className="text-xs font-medium text-slate-400 hover:text-signal-green transition"
+            >
+              Forgot password?
+            </Link>
+          </div>
         </form>
       </section>
 
@@ -191,6 +272,56 @@ export default function SettingsForm({ displayName, email, orgName, plan }: Sett
             </Link>
           </div>
         </div>
+      </section>
+
+      {/* ── Section 4: Notifications (Sprint 62) ──────────────────── */}
+      <section className="rounded-2xl bg-surface-dark border border-white/5 p-6">
+        <h2 className="text-sm font-semibold text-white mb-4">Notifications</h2>
+        <div className="divide-y divide-white/5">
+          <Toggle
+            checked={hallAlerts}
+            onChange={setHallAlerts}
+            label="Hallucination alerts"
+            description="Get emailed when AI says something wrong about your business"
+          />
+          <Toggle
+            checked={weeklyDigest}
+            onChange={setWeeklyDigest}
+            label="Weekly digest"
+            description="Weekly summary of your AI visibility performance"
+          />
+          <Toggle
+            checked={sovAlerts}
+            onChange={setSovAlerts}
+            label="Share of Voice alerts"
+            description="Get notified about significant changes in your AI share of voice"
+          />
+        </div>
+
+        {notifyStatus && (
+          <p className={`text-xs mt-3 ${notifyStatus.success ? 'text-signal-green' : 'text-alert-crimson'}`}>
+            {notifyStatus.message}
+          </p>
+        )}
+
+        <button
+          type="button"
+          onClick={handleNotifySave}
+          disabled={notifyIsPending}
+          className="mt-4 rounded-xl bg-signal-green px-4 py-2 text-sm font-semibold text-deep-navy hover:bg-signal-green/90 disabled:opacity-60 transition"
+        >
+          {notifyIsPending ? 'Saving…' : 'Save preferences'}
+        </button>
+      </section>
+
+      {/* ── Section 5: Danger Zone (Sprint 62) ────────────────────── */}
+      <section className="rounded-2xl border border-alert-crimson/20 p-6">
+        <h2 className="text-sm font-semibold text-alert-crimson mb-2">Danger Zone</h2>
+        <p className="text-xs text-slate-400 mb-4">
+          Permanently delete your organization. This cancels your subscription
+          and deactivates all monitoring. Data is retained for 30 days.
+        </p>
+        <DeleteOrgModal orgName={orgName} />
       </section>
 
     </div>

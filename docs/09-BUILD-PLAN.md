@@ -43,7 +43,7 @@
   - [x] Create app shell: sidebar, top bar, layout
 - [x] **Auth Flow**
   - [x] Configure Supabase Auth (Email/Password + Google OAuth)
-  - [x] Build `/signup`, `/login`, `/forgot-password` pages
+  - [x] Build `/signup`, `/login`, `/forgot-password`, `/reset-password` pages *(Sprint 60B: forgot-password + reset-password added)*
   - [x] Verify PostgreSQL trigger creates org + membership on signup
   - [x] Test: New user signs up → org created → membership created → dashboard loads
 - [x] **Stripe Setup**
@@ -279,7 +279,7 @@
   - [x] Account settings: display name edit, password change (Sprint 24B)
   - [x] Organization name edit; plan tier read-only chip + billing link (Sprint 24B)
   - [ ] Business info editor — hours, amenities, categories *(post-launch)*
-  - [x] Billing portal — Stripe Checkout for Starter/Growth; Agency mailto CTA (Sprint 25A)
+  - [x] Billing portal — Stripe Checkout for Starter/Growth; Agency mailto CTA (Sprint 25A). Customer Portal + plan state display + subscription.deleted handler (Sprint 56B)
   - [ ] Location management — add/edit for Agency tier *(post-launch)*
 - [ ] **Reports & Export**
   - [ ] CSV export of hallucination history
@@ -409,7 +409,7 @@
 
 - [ ] **Occasion Alert Feed (Phase 6 lite)**
   - [ ] Build `OccasionAlertCard` component (Doc 06 Section 10.2)
-  - [ ] Seed `local_occasions` reference table (20 highest-value occasions for hospitality)
+  - [x] Seed `local_occasions` reference table (32 occasions — Sprint 56C expansion)
   - [ ] Wire upcoming occasion alerts to Dashboard home (below Active Alerts — Doc 06 Section 10.1)
   - [ ] "Remind Later" snooze via `localStorage` (no server call needed)
   - [ ] Add occasion badge to Visibility sidebar item
@@ -451,20 +451,23 @@
   - [ ] `GET /api/citations/platform-map` (joins `citation_source_intelligence` + tenant `listings`) — Doc 05 Section 15
   - [ ] `GET /api/citations/gap-score` (single 0–100 gap score)
 
-- [ ] **Citation Gap UI**
-  - [ ] Build `CitationPlatformMap` component (Doc 06 Section 11.2) — frequency bar visualization
-  - [ ] Build `CitationGapBadge` component — added to existing `ListingRow` (Doc 06 Section 11.4)
-  - [ ] Add "AI Citation Map" tab to `/listings` page (Doc 06 Section 11.1)
-  - [ ] Starter plan blur-teaser (render real data with `blur-sm` + `<PlanGate>` overlay — Doc 06 Section 11.5)
+- [x] **Citation Gap UI** *(Sprint 58A — standalone dashboard at `/dashboard/citations`)*
+  - [x] Build `CitationGapScore` — SVG circular score ring (Sprint 58A)
+  - [x] Build `PlatformCitationBar` — frequency bar visualization sorted by citation_frequency (Sprint 58A)
+  - [x] Build `TopGapCard` — highlighted #1 gap card with "Claim Your Listing" CTA (Sprint 58A)
+  - [x] Build `/dashboard/citations/page.tsx` — server component with plan gate (`canViewCitationGap`, Growth+) (Sprint 58A)
+  - [x] Add "Citations" nav item to Sidebar (Globe icon) (Sprint 58A)
+  - [ ] Starter plan blur-teaser (render real data with `blur-sm` + `<PlanGate>` overlay — Doc 06 Section 11.5) *(deferred — currently shows upgrade card instead)*
 
-- [ ] **Page Audit (Site-Wide Content Grader)**
-  - [ ] Build `lib/page-audit/scorer.ts` — fetches URL, scores AEO readiness (answer-first, schema completeness, FAQ presence)
-  - [ ] `POST /api/pages/audits/run` — triggers single-page audit, stores in `page_audits` table
-  - [ ] `GET /api/pages/audits` and `GET /api/pages/audits/:id` — Doc 05 Section 14
-  - [ ] Build `PageAuditRow` component — score + expand/collapse recommendations (Doc 06, Section 8)
-  - [ ] Add page audit widget to `/visibility` page
-  - [ ] Starter plan: homepage audit only. Growth+: full site.
-  - [ ] **🤖 Agent Rule:** Page auditor fetches URLs via `fetch()` with a `User-Agent: LocalVector-AuditBot/1.0` header. Never attempt to bypass auth walls. `422` if page returns non-200.
+- [x] **Page Audit (Site-Wide Content Grader)** *(Sprint 58B — standalone dashboard at `/dashboard/page-audits`)*
+  - [x] Build `lib/page-audit/auditor.ts` — fetches URL, scores AEO readiness across 5 dimensions *(already existed pre-Sprint 58)*
+  - [x] Build `AuditScoreOverview` — aggregate AEO score ring (Sprint 58B)
+  - [x] Build `PageAuditCard` + `DimensionBar` — per-page card with 5 dimension bars + re-audit button (Sprint 58B)
+  - [x] Build `reauditPage()` server action — rate-limited re-audit (5 min per page) (Sprint 58B)
+  - [x] Build `/dashboard/page-audits/page.tsx` — server component with plan gate (`canRunPageAudit`, Growth+) (Sprint 58B)
+  - [x] Add "Page Audits" nav item to Sidebar (FileSearch icon) (Sprint 58B)
+  - [ ] Starter plan: homepage audit only. Growth+: full site. *(deferred — currently shows upgrade card for Starter/Trial)*
+  - [x] **🤖 Agent Rule:** Page auditor fetches URLs via `fetch()` with a `User-Agent: LocalVector-AuditBot/1.0` header. Never attempt to bypass auth walls. `422` if page returns non-200.
 
 ### Acceptance Criteria
 - [ ] `citation_source_intelligence` has data for hookah lounge + Alpharetta (Golden Tenant test)
@@ -491,20 +494,23 @@
 
 ### Checklist
 
-- [ ] **Database Migration**
+- [x] **Database Migration**
   - [x] ~~Run `supabase/migrations/20260223000003_gbp_integration.sql`~~ → promoted as `20260224000002_gbp_integration.sql` (Group A, 2026-02-23). `google_oauth_tokens`, `pending_gbp_imports` tables + `locations.google_location_name`, `locations.gbp_integration_id` columns now in schema.
   - [x] Verify `google_oauth_tokens` and `pending_gbp_imports` tables created — confirmed in 27-table schema post-db-reset
   - [x] Verify `locations.google_location_name` and `locations.gbp_integration_id` columns added — confirmed in prod_schema.sql
-  - [ ] **🤖 Agent Rule:** `google_oauth_tokens` has RLS deny-by-default. Access exclusively via `createServiceRoleClient()`. Never read from browser-facing `createClient()`.
+  - [x] **🤖 Agent Rule (updated Sprint 57B):** `google_oauth_tokens` has RLS enabled. `org_isolation_select` grants SELECT to `authenticated`. INSERT/UPDATE/DELETE service-role only. Migration: `20260226000006_google_oauth_tokens_rls.sql`.
 
-- [ ] **GBP OAuth Pipeline**
-  - [ ] Register Google Cloud OAuth 2.0 client — scopes: `https://www.googleapis.com/auth/business.manage`
-  - [ ] Build `app/api/auth/google/authorize/route.ts` — PKCE state cookie, redirect to Google consent
-  - [ ] Build `app/api/auth/google/callback/route.ts` — code exchange, token storage, location list fetch
-  - [ ] Build `app/onboarding/connect/page.tsx` — interstitial with "Connect GBP" + "Do it manually" escape
-  - [ ] Build `app/onboarding/connect/select/page.tsx` — location picker (reads `pending_gbp_imports`)
-  - [ ] Build Server Actions: `importGBPLocation()`, `disconnectGBP()` (`app/onboarding/connect/actions.ts`)
-  - [ ] Update `app/api/auth/register/route.ts` redirect: `/onboarding` → `/onboarding/connect`
+- [x] **GBP OAuth Pipeline** *(Sprint 57B — core connect/disconnect flow)*
+  - [ ] Register Google Cloud OAuth 2.0 client — scopes: `https://www.googleapis.com/auth/business.manage` *(env: GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET)*
+  - [x] Build `app/api/auth/google/route.ts` — CSRF state cookie, redirect to Google consent (Sprint 57B)
+  - [x] Build `app/api/auth/google/callback/route.ts` — code exchange, token storage, GBP account + email fetch (Sprint 57B)
+  - [ ] Build `app/onboarding/connect/page.tsx` — interstitial with "Connect GBP" + "Do it manually" escape *(deferred — not in Sprint 57B scope)*
+  - [ ] Build `app/onboarding/connect/select/page.tsx` — location picker (reads `pending_gbp_imports`) *(deferred)*
+  - [x] Build `disconnectGBP()` server action in `app/dashboard/integrations/actions.ts` (Sprint 57B)
+  - [ ] Build `importGBPLocation()` server action *(deferred)*
+  - [ ] Update `app/api/auth/register/route.ts` redirect: `/onboarding` → `/onboarding/connect` *(deferred)*
+  - [x] Build `GBPConnectButton.tsx` — 4-state UI: not-configured / plan-gated / connect / connected+disconnect (Sprint 57B)
+  - [x] Update `app/dashboard/integrations/page.tsx` — GBP Connect section with plan gating via `canConnectGBP()` (Sprint 57B)
   - [ ] **🤖 Agent Rule:** `pending_gbp_imports` rows expire after 10 minutes (`expires_at`). Location picker page validates expiry before rendering — redirect to `/onboarding/connect` if expired.
 
 - [ ] **GBP Data Mapping**
@@ -532,6 +538,130 @@
 - [ ] `npx playwright test tests/e2e/gbp-onboarding.spec.ts` — **ALL PASS**
 
 ---
+
+## Sprint 59 — Cross-Phase Feature Completion (2026-02-25)
+
+These features span multiple phases but were completed together in Sprint 59.
+
+### 59A — Magic Menu PDF Upload via GPT-4o Vision (Phase 2)
+
+- [x] Add `MenuOCRSchema` to `lib/ai/schemas.ts` — Zod schema for GPT-4o Vision extraction
+- [x] Add `'menu-ocr'` model key to `lib/ai/providers.ts` — maps to `openai('gpt-4o')`
+- [x] Add `uploadMenuFile()` server action to `app/dashboard/magic-menus/actions.ts` — accepts PDF/JPG/PNG/WebP (max 10 MB), calls `generateObject()` with file content part
+- [x] Wire UploadState.tsx Tab 1 drop zone to `uploadMenuFile` — drag-and-drop + file select, loading state, error display
+
+### 59B — Revenue Leak Historical Trend Persistence (new)
+
+- [x] Add `snapshotRevenueLeak()` to `lib/services/revenue-leak.service.ts` — idempotent upsert to `revenue_snapshots` with `onConflict: 'org_id,location_id,snapshot_date'`
+- [x] Wire into `app/api/cron/audit/route.ts` inline fallback path
+- [x] Wire into `lib/inngest/functions/audit-cron.ts` as Step 4 fan-out (`snapshot-revenue-leak-{orgId}`)
+- [x] Tables already existed: `revenue_config`, `revenue_snapshots` (migration `20260225000001_revenue_leak.sql`)
+
+### 59C — Weekly Digest Email (Phase 5 SOV cron)
+
+- [x] Enhance `emails/WeeklyDigest.tsx` — added `sovDelta`, `topCompetitor`, `citationRate` props + sections
+- [x] Add `sendWeeklyDigest()` to `lib/email.ts` — Resend `react:` property with React Email component
+- [x] Replace `sendSOVReport()` with `sendWeeklyDigest()` in `app/api/cron/sov/route.ts`
+- [x] Replace `sendSOVReport()` with `sendWeeklyDigest()` in `lib/inngest/functions/sov-cron.ts`
+
+---
+
+## Sprint 60 — Reliability: Error Boundaries, Auth Gaps, E2E Specs (2026-02-25)
+
+### 60B — Error Boundaries + Google OAuth + Password Reset
+
+- [x] Create `error.tsx` files for 5 dashboard sections (dashboard, hallucinations, share-of-voice, ai-assistant, content-drafts) — Sentry capture + AlertTriangle icon + "Try again" button
+- [x] Add "Sign in with Google" button to `/login` — Supabase `signInWithOAuth({ provider: 'google' })`
+- [x] Add "Sign up with Google" button to `/register` — same OAuth call
+- [x] Add "Forgot password?" link to login page
+- [x] Build `app/(auth)/forgot-password/page.tsx` — `resetPasswordForEmail()` + success/error states
+- [x] Build `app/(auth)/reset-password/page.tsx` — `updateUser({ password })` + redirect to `/login`
+
+### 60A — Playwright E2E Specs + data-testid
+
+- [x] Add `data-testid` attributes to all 11 sidebar nav links in `components/layout/Sidebar.tsx`
+- [x] Create `tests/e2e/11-ai-assistant.spec.ts` — chat UI, quick-action buttons, input
+- [x] Create `tests/e2e/12-citations.spec.ts` — heading, gap score or empty state, sidebar nav
+- [x] Create `tests/e2e/13-page-audits.spec.ts` — heading, audit cards or empty state, sidebar nav
+- [x] Create `tests/e2e/14-sidebar-nav.spec.ts` — 9 sidebar links navigate to correct pages
+
+---
+
+## Sprint 61 — Polish: Occasion Calendar, Multi-Model SOV, WordPress Connect (2026-02-25)
+
+### 61A — Occasion Calendar UI
+
+- [x] Add `fetchUpcomingOccasions()` to `app/dashboard/content-drafts/page.tsx` — queries `local_occasions`, computes `daysUntilPeak`, filters to trigger window, sorts ascending
+- [x] Add `fetchOccasionDraftMap(orgId)` — maps occasion `trigger_id` to existing draft IDs
+- [x] Create `OccasionTimeline.tsx` client component — collapsible horizontal scrollable cards with countdown badges, type pills, "Create Draft" / "Draft exists" actions
+- [x] Update `CreateDraftSchema` in `actions.ts` — accept optional `trigger_type` and `trigger_id` fields
+
+### 61B — Multi-Model SOV Queries (Perplexity + OpenAI)
+
+- [x] Add `engine` field to `SOVQueryResult` interface and `MODEL_ENGINE_MAP` to `lib/services/sov-engine.service.ts`
+- [x] Add `modelKey` parameter to `runSOVQuery()` — defaults to `'sov-query'` (Perplexity)
+- [x] Add `runMultiModelSOVQuery()` — `Promise.allSettled` with both Perplexity and OpenAI
+- [x] Update `writeSOVResults()` — use `result.engine` instead of hardcoded `'perplexity'`
+- [x] Add `canRunMultiModelSOV()` to `lib/plan-enforcer.ts` (Growth+)
+- [x] Update `lib/inngest/functions/sov-cron.ts` — multi-model for Growth/Agency orgs
+- [x] Update `app/api/cron/sov/route.ts` — same multi-model logic in inline fallback
+
+### 61C — WordPress Credential Management
+
+- [x] Create migration `20260226000007_wp_credentials.sql` — add `wp_username`, `wp_app_password` columns to `location_integrations`
+- [x] Add `testWordPressConnection()`, `saveWordPressCredentials()`, `disconnectWordPress()` server actions to `app/dashboard/integrations/actions.ts`
+- [x] Create `WordPressConnectModal.tsx` — form + "Test Connection" → "Save & Connect" flow
+- [x] Create `WordPressConnectButton.tsx` — not-connected / connected states (follows GBP pattern)
+- [x] Add WordPress section to `app/dashboard/integrations/page.tsx`
+- [x] Wire `wp_username`/`wp_app_password` into `publishDraft()` WordPress branch in `content-drafts/actions.ts`
+
+---
+
+## Sprint 62 — Scale Prep: Cron Logging, Guided Tour, Subdomains, Landing Split, Settings, Multi-Location (2026-02-25)
+
+### 62A — Cron Health Logging
+
+- [x] Create migration `20260226000008_cron_run_log.sql` — `cron_run_log` table (UUID PK, cron_name, timestamps, duration_ms, status enum, summary JSONB, error_message), RLS enabled (no policies), index on `(cron_name, started_at DESC)`
+- [x] Create `lib/services/cron-logger.ts` — `logCronStart()`, `logCronComplete()`, `logCronFailed()` with fail-safe error handling
+- [x] Wire cron-logger into `app/api/cron/sov/route.ts`
+- [x] Wire cron-logger into `app/api/cron/audit/route.ts`
+- [x] Wire cron-logger into `app/api/cron/content-audit/route.ts`
+- [x] Wire cron-logger into `app/api/cron/citation/route.ts`
+
+### 62B — Post-Onboarding Guided Tour
+
+- [x] Create `app/dashboard/_components/GuidedTour.tsx` — 5-step custom tooltip tour targeting sidebar `data-testid` attributes, localStorage `lv_tour_completed`, overlay + highlight ring, lg+ only
+- [x] Render `<GuidedTour />` in `components/layout/DashboardShell.tsx`
+
+### 62C — Subdomain Routing
+
+- [x] Add hostname check to `proxy.ts` — `menu.*` rewrites to `/m/` path prefix, other hostnames fall through to existing auth logic
+
+### 62D — Landing Page Performance
+
+- [x] Extract `SectionLabel`, `MetricCard`, `PricingCard` into `app/_sections/shared.tsx`
+- [x] Create `app/_sections/HeroSection.tsx` (static import, above fold)
+- [x] Create `app/_sections/ProblemSection.tsx` (dynamic import)
+- [x] Create `app/_sections/CompareSection.tsx` (dynamic import)
+- [x] Create `app/_sections/EnginesSection.tsx` (dynamic import)
+- [x] Create `app/_sections/PricingSection.tsx` (dynamic import)
+- [x] Rewrite `app/page.tsx` from 1,181 lines to ~33 lines with `next/dynamic` code-splitting
+
+### 62E — Settings Completeness
+
+- [x] Create migration `20260226000009_notification_prefs.sql` — 3 boolean columns on `organizations`
+- [x] Create `DeleteOrgModal.tsx` — type-to-confirm danger zone modal
+- [x] Add `updateNotificationPrefs()` and `softDeleteOrganization()` server actions to `settings/actions.ts`
+- [x] Fetch notification prefs in `settings/page.tsx`, pass to SettingsForm
+- [x] Add Notifications section (3 toggles) and Danger Zone section to `SettingsForm.tsx`
+
+### 62F — Agency Multi-Location UI
+
+- [x] Create `components/layout/LocationSwitcher.tsx` — dropdown with cookie-based selection
+- [x] Extend `Sidebar.tsx` with `locations` and `selectedLocationId` props, render LocationSwitcher
+- [x] Thread locations through `DashboardShell.tsx` to Sidebar
+- [x] Fetch all locations + read cookie in `app/dashboard/layout.tsx`, pass to DashboardShell
+- [x] Rewrite `locations/page.tsx` — responsive card grid with plan-gated "Add Location"
 
 ---
 

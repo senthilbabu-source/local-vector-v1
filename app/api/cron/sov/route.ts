@@ -18,18 +18,20 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServiceRoleClient } from '@/lib/supabase/server';
 import {
   runSOVQuery,
+  runMultiModelSOVQuery,
   writeSOVResults,
   sleep,
   type SOVQueryInput,
   type SOVQueryResult,
 } from '@/lib/services/sov-engine.service';
-import { sendSOVReport } from '@/lib/email';
+import { sendWeeklyDigest } from '@/lib/email';
 import { runOccasionScheduler } from '@/lib/services/occasion-engine.service';
 import { detectQueryGaps } from '@/lib/services/prompt-intelligence.service';
-import { canRunAutopilot, type PlanTier } from '@/lib/plan-enforcer';
+import { canRunAutopilot, canRunMultiModelSOV, type PlanTier } from '@/lib/plan-enforcer';
 import { createDraft, archiveExpiredOccasionDrafts } from '@/lib/autopilot/create-draft';
 import { getPendingRechecks, completeRecheck } from '@/lib/autopilot/post-publish';
 import { inngest } from '@/lib/inngest/client';
+import { logCronStart, logCronComplete, logCronFailed } from '@/lib/services/cron-logger';
 
 // Force dynamic so Vercel never caches this route between cron invocations.
 export const dynamic = 'force-dynamic';
@@ -94,6 +96,18 @@ export async function GET(request: NextRequest) {
 // ---------------------------------------------------------------------------
 
 async function runInlineSOV(): Promise<NextResponse> {
+  const handle = await logCronStart('sov');
+  try {
+  return await _runInlineSOVImpl(handle);
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    await logCronFailed(handle, msg);
+    console.error('[cron-sov] Inline run failed:', msg);
+    return NextResponse.json({ error: msg }, { status: 500 });
+  }
+}
+
+async function _runInlineSOVImpl(handle: { logId: string | null; startedAt: number }): Promise<NextResponse> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const supabase = createServiceRoleClient() as any;
 
@@ -143,13 +157,21 @@ async function runInlineSOV(): Promise<NextResponse> {
       const batch = orgQueries.slice(0, queryCap);
 
       const results: SOVQueryResult[] = [];
+      const useMultiModel = canRunMultiModelSOV(plan as PlanTier);
 
       for (const query of batch) {
         try {
-          const result = await runSOVQuery(query as SOVQueryInput);
-          results.push(result);
-          summary.queries_run++;
-          if (result.ourBusinessCited) summary.queries_cited++;
+          if (useMultiModel) {
+            const multiResults = await runMultiModelSOVQuery(query as SOVQueryInput);
+            results.push(...multiResults);
+            summary.queries_run++;
+            if (multiResults.some((r) => r.ourBusinessCited)) summary.queries_cited++;
+          } else {
+            const result = await runSOVQuery(query as SOVQueryInput);
+            results.push(result);
+            summary.queries_run++;
+            if (result.ourBusinessCited) summary.queries_cited++;
+          }
         } catch (err) {
           const msg = err instanceof Error ? err.message : String(err);
           console.error(`[cron-sov] Query "${(query as SOVQueryInput).query_text}" failed:`, msg);
@@ -181,14 +203,50 @@ async function runInlineSOV(): Promise<NextResponse> {
         const businessName = (batch[0] as any).locations?.business_name ?? 'Your Business';
 
         if (ownerEmail) {
-          await sendSOVReport({
+          // Compute SOV delta from visibility_analytics
+          const { data: prevVis } = await supabase
+            .from('visibility_analytics')
+            .select('share_of_voice')
+            .eq('org_id', orgId)
+            .order('snapshot_date', { ascending: false })
+            .limit(2);
+          const visRows = prevVis ?? [];
+          const sovDelta = visRows.length >= 2
+            ? visRows[0].share_of_voice - visRows[1].share_of_voice
+            : null;
+
+          // Find top competitor from recent evaluations
+          const { data: recentEvals } = await supabase
+            .from('sov_evaluations')
+            .select('mentioned_competitors')
+            .eq('org_id', orgId)
+            .order('created_at', { ascending: false })
+            .limit(50);
+          const competitorCounts: Record<string, number> = {};
+          for (const ev of recentEvals ?? []) {
+            for (const c of ev.mentioned_competitors ?? []) {
+              competitorCounts[c] = (competitorCounts[c] ?? 0) + 1;
+            }
+          }
+          const topCompetitor = Object.entries(competitorCounts)
+            .sort((a, b) => b[1] - a[1])[0]?.[0] ?? null;
+
+          const citedCount = results.filter((r) => r.ourBusinessCited).length;
+          const citationRate = results.length > 0
+            ? Math.round((citedCount / results.length) * 100)
+            : null;
+
+          await sendWeeklyDigest({
             to: ownerEmail,
             businessName,
             shareOfVoice: Math.round(shareOfVoice),
             queriesRun: results.length,
-            queriesCited: results.filter((r) => r.ourBusinessCited).length,
+            queriesCited: citedCount,
             firstMoverCount,
             dashboardUrl: 'https://app.localvector.ai/dashboard/share-of-voice',
+            sovDelta,
+            topCompetitor,
+            citationRate,
           }).catch((err: unknown) =>
             console.error('[cron-sov] Email send failed:', err),
           );
@@ -295,5 +353,6 @@ async function runInlineSOV(): Promise<NextResponse> {
   }
 
   console.log('[cron-sov] Inline run complete:', summary);
+  await logCronComplete(handle, summary as unknown as Record<string, unknown>);
   return NextResponse.json(summary);
 }

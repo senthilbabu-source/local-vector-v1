@@ -36,6 +36,7 @@ import {
   writeCitationResults,
 } from '@/lib/services/citation-engine.service';
 import type { CitationCronSummary } from '@/lib/types/citations';
+import { logCronStart, logCronComplete, logCronFailed } from '@/lib/services/cron-logger';
 
 // Force dynamic so Vercel never caches this route between cron invocations.
 export const dynamic = 'force-dynamic';
@@ -59,11 +60,14 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ ok: true, halted: true });
   }
 
-  // ── 3. Service-role client (bypasses RLS) ──────────────────────────────
+  // ── 3. Cron run logging ────────────────────────────────────────────────
+  const handle = await logCronStart('citation');
+
+  // ── 4. Service-role client (bypasses RLS) ──────────────────────────────
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const supabase = createServiceRoleClient() as any;
 
-  // ── 4. Process each category+metro combination ─────────────────────────
+  // ── 5. Process each category+metro combination ─────────────────────────
   const summary: CitationCronSummary = {
     ok: true,
     categories_processed: 0,
@@ -119,5 +123,6 @@ export async function GET(request: NextRequest) {
   summary.metros_processed = processedMetros.size;
 
   console.log('[cron-citation] Run complete:', summary);
+  await logCronComplete(handle, summary as unknown as Record<string, unknown>);
   return NextResponse.json(summary);
 }

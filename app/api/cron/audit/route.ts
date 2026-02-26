@@ -21,7 +21,9 @@ import {
 } from '@/lib/services/ai-audit.service';
 import { runInterceptForCompetitor } from '@/lib/services/competitor-intercept.service';
 import { sendHallucinationAlert } from '@/lib/email';
+import { snapshotRevenueLeak } from '@/lib/services/revenue-leak.service';
 import { inngest } from '@/lib/inngest/client';
+import { logCronStart, logCronComplete, logCronFailed } from '@/lib/services/cron-logger';
 
 // Force dynamic so Vercel never caches this route between cron invocations.
 export const dynamic = 'force-dynamic';
@@ -63,6 +65,18 @@ export async function GET(request: NextRequest) {
 // ---------------------------------------------------------------------------
 
 async function runInlineAudit(): Promise<NextResponse> {
+  const handle = await logCronStart('audit');
+  try {
+  return await _runInlineAuditImpl(handle);
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    await logCronFailed(handle, msg);
+    console.error('[cron-audit] Inline run failed:', msg);
+    return NextResponse.json({ error: msg }, { status: 500 });
+  }
+}
+
+async function _runInlineAuditImpl(handle: { logId: string | null; startedAt: number }): Promise<NextResponse> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const supabase = createServiceRoleClient() as any;
 
@@ -215,6 +229,26 @@ async function runInlineAudit(): Promise<NextResponse> {
     }
   }
 
+  // ── Revenue leak snapshot loop ───────────────────────────────────────────
+  for (const org of orgs ?? []) {
+    try {
+      const { data: location } = await supabase
+        .from('locations')
+        .select('id')
+        .eq('org_id', org.id)
+        .eq('is_primary', true)
+        .maybeSingle();
+
+      if (!location) continue;
+
+      await snapshotRevenueLeak(supabase, org.id, location.id);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      console.error(`[cron-audit] Revenue snapshot failed for org ${org.id}:`, msg);
+    }
+  }
+
   console.log('[cron-audit] Run complete:', summary);
+  await logCronComplete(handle, summary as unknown as Record<string, unknown>);
   return NextResponse.json(summary);
 }

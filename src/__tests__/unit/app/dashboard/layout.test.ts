@@ -41,6 +41,11 @@ const mockCreateClient       = vi.hoisted(() => vi.fn());
 vi.mock('next/navigation',          () => ({ redirect: mockRedirect }));
 vi.mock('@/lib/auth',               () => ({ getSafeAuthContext: mockGetSafeAuthContext }));
 vi.mock('@/lib/supabase/server',    () => ({ createClient: mockCreateClient }));
+vi.mock('next/headers',             () => ({
+  cookies: vi.fn().mockResolvedValue({
+    get: vi.fn().mockReturnValue(undefined),
+  }),
+}));
 
 // DashboardShell is a client component; mock it so the server component can
 // render in Node without jsdom and so we can inspect the props it receives.
@@ -96,11 +101,23 @@ const BASE_CTX: SafeAuthContext = {
 function setupLocationMock(
   location: { hours_data: unknown; amenities: unknown } | null,
 ) {
+  // Onboarding guard chain: .select('hours_data, amenities').eq().eq().maybeSingle()
   const maybeSingle = vi.fn().mockResolvedValue({ data: location });
   const eq2         = vi.fn().mockReturnValue({ maybeSingle });
-  const eq1         = vi.fn().mockReturnValue({ eq: eq2 });
-  const select      = vi.fn().mockReturnValue({ eq: eq1 });
-  const from        = vi.fn().mockReturnValue({ select });
+  const eq1Guard    = vi.fn().mockReturnValue({ eq: eq2 });
+
+  // Locations fetch chain: .select('id, ...').eq().order()
+  const order       = vi.fn().mockResolvedValue({ data: [] });
+  const eq1Loc      = vi.fn().mockReturnValue({ order });
+
+  // select() returns different chains on first vs second call
+  const select = vi.fn()
+    .mockReturnValueOnce({ eq: eq1Guard })   // 1st: onboarding guard
+    .mockReturnValueOnce({ eq: eq1Loc });    // 2nd: locations fetch
+
+  const from = vi.fn().mockReturnValue({ select });
+
+  // Both createClient calls share the same mock client
   mockCreateClient.mockResolvedValue({ from });
   return { from, maybeSingle };
 }

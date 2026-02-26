@@ -10,11 +10,14 @@ import {
   FileText,
   Swords,
   MapPin,
+  Globe,
+  FileSearch,
   Settings,
   CreditCard,
   X,
 } from 'lucide-react';
 import LogoutButton from '@/app/dashboard/_components/LogoutButton';
+import LocationSwitcher, { type LocationOption } from './LocationSwitcher';
 
 // ---------------------------------------------------------------------------
 // Nav items — mapped to Doc 06 §2 Application Shell
@@ -71,6 +74,20 @@ const NAV_ITEMS = [
     active: true,
   },
   {
+    href: '/dashboard/citations',
+    label: 'Citations',
+    icon: Globe,
+    exact: false,
+    active: true,
+  },
+  {
+    href: '/dashboard/page-audits',
+    label: 'Page Audits',
+    icon: FileSearch,
+    exact: false,
+    active: true,
+  },
+  {
     href: '/dashboard/settings',
     label: 'Settings',
     icon: Settings,
@@ -96,6 +113,8 @@ interface SidebarProps {
   displayName: string;
   orgName: string;
   plan: string | null;
+  locations?: LocationOption[];
+  selectedLocationId?: string | null;
 }
 
 // ---------------------------------------------------------------------------
@@ -111,7 +130,7 @@ function planLabel(plan: string | null): string {
   return plan ? (labels[plan] ?? `${plan} Plan`) : 'Free Plan';
 }
 
-export default function Sidebar({ isOpen, onClose, displayName, orgName, plan }: SidebarProps) {
+export default function Sidebar({ isOpen, onClose, displayName, orgName, plan, locations, selectedLocationId }: SidebarProps) {
   const pathname = usePathname();
 
   function isActive(href: string, exact: boolean): boolean {
@@ -155,6 +174,11 @@ export default function Sidebar({ isOpen, onClose, displayName, orgName, plan }:
           </button>
         </div>
 
+        {/* ── Location Switcher (multi-location orgs) ──────────── */}
+        {locations && locations.length > 1 && (
+          <LocationSwitcher locations={locations} selectedLocationId={selectedLocationId ?? null} />
+        )}
+
         {/* ── Navigation ─────────────────────────────────────────── */}
         <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-0.5">
           {NAV_ITEMS.map((item) => {
@@ -179,6 +203,7 @@ export default function Sidebar({ isOpen, onClose, displayName, orgName, plan }:
                 key={item.label}
                 href={item.href}
                 onClick={onClose}
+                data-testid={`nav-${item.label.toLowerCase().replace(/\s+/g, '-')}`}
                 className={[
                   'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition',
                   active

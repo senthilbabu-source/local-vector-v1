@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation';
 import { getSafeAuthContext } from '@/lib/auth';
 import { createClient } from '@/lib/supabase/server';
+import { maxLocations, type PlanTier } from '@/lib/plan-enforcer';
 import AddLocationModal from './_components/AddLocationModal';
 
 // ---------------------------------------------------------------------------
@@ -31,9 +32,6 @@ async function fetchLocations(orgId: string | null): Promise<Location[]> {
   const supabase = (await createClient()) as any;
 
   // Belt-and-suspenders: filter by org_id explicitly in addition to RLS.
-  // Without this, multiple SELECT policies (org_isolation_select OR
-  // public_published_location) are OR'd by PostgreSQL and can expose
-  // locations from other orgs (e.g. the golden tenant with a published menu).
   let query = supabase
     .from('locations')
     .select(
@@ -93,6 +91,9 @@ export default async function LocationsPage() {
   }
 
   const locations = await fetchLocations(ctx.orgId);
+  const plan = (ctx.plan ?? 'starter') as PlanTier;
+  const limit = maxLocations(plan);
+  const atLimit = locations.length >= limit;
 
   return (
     <div className="space-y-6">
@@ -104,13 +105,21 @@ export default async function LocationsPage() {
             Manage the physical locations you are monitoring for AI accuracy.
           </p>
         </div>
-        <AddLocationModal />
+        <div className="flex items-center gap-3">
+          {atLimit && (
+            <p className="text-xs text-alert-amber">
+              {plan === 'agency'
+                ? `${locations.length}/${limit} locations used`
+                : 'Upgrade to Agency for more locations'}
+            </p>
+          )}
+          <AddLocationModal />
+        </div>
       </div>
 
-      {/* Table card */}
-      <div className="overflow-hidden rounded-xl bg-surface-dark border border-white/5">
-        {locations.length === 0 ? (
-          /* Empty state */
+      {/* Card grid */}
+      {locations.length === 0 ? (
+        <div className="overflow-hidden rounded-xl bg-surface-dark border border-white/5">
           <div className="flex flex-col items-center justify-center px-6 py-16 text-center">
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -136,76 +145,49 @@ export default async function LocationsPage() {
               Click &quot;Add Location&quot; to register your first business location.
             </p>
           </div>
-        ) : (
-          <table className="min-w-full divide-y divide-white/5">
-            <thead className="bg-midnight-slate">
-              <tr>
-                <th className="py-3 pl-6 pr-3 text-left text-xs font-semibold uppercase tracking-wide text-[#94A3B8]">
-                  Location
-                </th>
-                <th className="px-3 py-3 text-left text-xs font-semibold uppercase tracking-wide text-[#94A3B8]">
-                  City / State
-                </th>
-                <th className="px-3 py-3 text-left text-xs font-semibold uppercase tracking-wide text-[#94A3B8]">
-                  Phone
-                </th>
-                <th className="px-3 py-3 text-left text-xs font-semibold uppercase tracking-wide text-[#94A3B8]">
-                  Status
-                </th>
-                <th className="px-3 py-3 text-left text-xs font-semibold uppercase tracking-wide text-[#94A3B8]">
-                  Added
-                </th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-white/5 bg-surface-dark">
-              {locations.map((loc) => (
-                <tr key={loc.id} className="transition hover:bg-white/5">
-                  {/* Name */}
-                  <td className="py-3.5 pl-6 pr-3">
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm font-medium text-white">
-                        {loc.business_name}
-                      </span>
-                      {loc.is_primary && (
-                        <span className="rounded-full bg-electric-indigo/10 px-2 py-0.5 text-xs font-medium text-electric-indigo ring-1 ring-inset ring-electric-indigo/20">
-                          Primary
-                        </span>
-                      )}
-                    </div>
-                    {loc.address_line1 && (
-                      <p className="mt-0.5 text-xs text-slate-400">{loc.address_line1}</p>
-                    )}
-                  </td>
+        </div>
+      ) : (
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {locations.map((loc) => (
+            <div
+              key={loc.id}
+              className="rounded-xl bg-surface-dark border border-white/5 p-5 transition hover:border-white/10"
+            >
+              <div className="flex items-start justify-between mb-3">
+                <h3 className="text-sm font-semibold text-white truncate pr-2">
+                  {loc.business_name}
+                </h3>
+                <div className="flex items-center gap-2 shrink-0">
+                  {loc.is_primary && (
+                    <span className="rounded-full bg-electric-indigo/10 px-2 py-0.5 text-xs font-medium text-electric-indigo ring-1 ring-inset ring-electric-indigo/20">
+                      Primary
+                    </span>
+                  )}
+                  {statusBadge(loc.operational_status)}
+                </div>
+              </div>
 
-                  {/* City / State */}
-                  <td className="whitespace-nowrap px-3 py-3.5 text-sm text-[#94A3B8]">
-                    {formatAddress(loc)}
-                  </td>
+              <p className="text-sm text-[#94A3B8] mb-1">{formatAddress(loc)}</p>
+              {loc.address_line1 && (
+                <p className="text-xs text-slate-500 mb-2">{loc.address_line1}</p>
+              )}
 
-                  {/* Phone */}
-                  <td className="whitespace-nowrap px-3 py-3.5 text-sm text-[#94A3B8]">
-                    {loc.phone ?? '—'}
-                  </td>
-
-                  {/* Status */}
-                  <td className="whitespace-nowrap px-3 py-3.5">
-                    {statusBadge(loc.operational_status)}
-                  </td>
-
-                  {/* Created */}
-                  <td className="whitespace-nowrap px-3 py-3.5 text-sm text-slate-400">
-                    {new Date(loc.created_at).toLocaleDateString('en-US', {
-                      month: 'short',
-                      day: 'numeric',
-                      year: 'numeric',
-                    })}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-      </div>
+              <div className="flex items-center justify-between mt-3 pt-3 border-t border-white/5">
+                <p className="text-xs text-slate-500">
+                  {loc.phone ?? 'No phone'}
+                </p>
+                <p className="text-xs text-slate-500">
+                  {new Date(loc.created_at).toLocaleDateString('en-US', {
+                    month: 'short',
+                    day: 'numeric',
+                    year: 'numeric',
+                  })}
+                </p>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
