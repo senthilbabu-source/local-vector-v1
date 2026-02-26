@@ -1,5 +1,45 @@
 # LocalVector.ai — Development Log
 
+> **Note:** `docs/DEVLOG.md` is the comprehensive log with all sprint entries (43–66).
+> This root file was maintained separately for early sprints (0–42). Both are now kept in sync.
+
+---
+## 2026-02-26 — Sprint 66: README and package.json Identity Fix (Completed)
+
+**Goal:** Replace the default create-next-app README boilerplate with a comprehensive project README, and fix the package.json name from `scaffold-tmp` to `local-vector-v1`.
+
+**Scope:**
+- `README.md` — **REWRITTEN.** Replaced boilerplate with full project documentation covering: product description, tech stack, project structure, getting started, environment variables, scripts, database, architecture notes, and documentation index. ~201 lines.
+- `package.json` — **ONE-LINE FIX.** Changed `"name": "scaffold-tmp"` → `"name": "local-vector-v1"`.
+
+**Key design decisions:**
+- README uses `docs/CLAUDE.md` as the primary source of truth, not duplicating information but pointing developers to the right spec docs.
+- Environment variables section references `.env.local.example` rather than duplicating every var with full descriptions.
+- No badges, emojis, or decorative elements — clean, scannable, professional.
+
+**Tests impacted:** None — no code changes.
+
+**Run commands:**
+```bash
+npx tsc --noEmit   # 0 errors (no code changes)
+```
+
+---
+## 2026-02-26 — Sprint 65: Clarify SOV Precision Formulas (Completed)
+
+**Goal:** Replace the obscure `Math.round(x * 10) / 1000` arithmetic in `writeSOVResults()` with self-documenting equivalents. Zero behavioral change — pure readability refactor.
+
+**Scope:**
+- `lib/services/sov-engine.service.ts` — Replaced 4 arithmetic expressions in `writeSOVResults()`: DB write formulas (share_of_voice, citation_rate) now use `parseFloat((x / 100).toFixed(3))` instead of `Math.round(x * 10) / 1000`; return value formulas now use `parseFloat(x.toFixed(1))` instead of `Math.round(x * 10) / 10`. Both produce bit-identical results. Comments updated to explain the conversion.
+
+**Tests impacted:**
+- `src/__tests__/unit/sov-engine-service.test.ts` — **11 Vitest tests.** Unchanged, all passing (no behavioral change).
+
+**Run commands:**
+```bash
+npx vitest run src/__tests__/unit/sov-engine-service.test.ts  # 11 tests passing
+```
+
 ---
 ## 2026-02-26 — Sprint 64: Extract Dashboard Data Layer (Completed)
 
@@ -25,6 +65,37 @@
 npx tsc --noEmit                                                    # 0 errors in sprint files
 npx vitest run src/__tests__/unit/reality-score.test.ts             # 10 tests passing
 ```
+
+---
+## 2026-02-26 — Sprint 63: Generate Supabase Database Types & Eliminate `as any` Casts (Completed)
+
+**Goal:** Replace the empty `Database = {}` stub in `lib/supabase/database.types.ts` with a comprehensive type definition, then remove all 114 Supabase `as any` casts across 52+ files. Types-only refactor — zero runtime behavior changes.
+
+**Scope:**
+- `lib/supabase/database.types.ts` — **REWRITTEN** (~1600 lines). 28 tables with `Row` / `Insert` / `Update` / `Relationships`, 9 PostgreSQL enums, FK Relationships for auto-typed JOINs.
+- ~52 files modified: removed ~96 `createClient() as any` casts, typed 18 service params as `SupabaseClient<Database>`, removed 13 inline `(supabase as any)` casts, removed ~8 JOIN result `as any` casts.
+- 82 newly surfaced type errors fixed across ~25 non-test files (Json casts, enum narrowing, column name fixes, null safety).
+
+**Remaining `as any` (4 non-Supabase, intentionally kept):** `zodResolver()`, `dietary_tags` x2, AI SDK `toolPart`.
+
+**Verification:** `npx tsc --noEmit` = 0 non-test errors.
+
+---
+## 2026-02-25 — Middleware Re-Export Shim (Post-Sprint 62 Fix)
+
+**Problem:** `proxy.ts` contained fully implemented middleware but Next.js only auto-discovers middleware from `middleware.ts`. The middleware was dead code.
+
+**Fix:** Created `middleware.ts` at project root with a single re-export: `export { proxy as middleware, config } from './proxy'`. No changes to `proxy.ts`.
+
+---
+
+> **Sprints 43–62** are fully documented in `docs/DEVLOG.md`. Key highlights:
+> - Sprint 62: Cron logging, guided tour, subdomains, landing split, settings, multi-location
+> - Sprint 61: Occasion Calendar, multi-model SOV, WordPress connect
+> - Sprint 60: Error boundaries, Google OAuth login, password reset, E2E specs
+> - Sprint 59: PDF menu upload, revenue leak snapshots, weekly digest
+> - Sprint 58: Citation Gap, Page Audit, Prompt Intelligence dashboards
+> - Sprint 48: Autopilot Engine (create-draft, publish pipeline, post-publish measurement)
 
 ---
 ## 2026-02-25 — Sprint 47: Prompt Intelligence Service (Completed)

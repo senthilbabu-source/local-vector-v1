@@ -1,7 +1,7 @@
 # 09 — Phased Build Plan & Execution Roadmap
 
 ## Execution Roadmap
-### Version: 2.4 | Date: February 23, 2026
+### Version: 2.5 | Date: February 26, 2026
 
 > **Phase 22 Reconciliation (2026-02-23):** Phases 0–2 checkboxes audited against DEVLOG
 > entries (Phases 0–21). Items confirmed complete are ticked `[x]`. Genuinely incomplete
@@ -692,6 +692,35 @@ These features span multiple phases but were completed together in Sprint 59.
 - [x] Remove `as Promise<...>` casts from query builders in dashboard/page.tsx
 - [x] Add null safety for `is_primary`, `sync_status`, visibility analytics rows
 - [x] Verify: `npx tsc --noEmit` = 0 non-test errors, only 4 non-Supabase `as any` remain
+
+---
+
+## Sprint 64 — Extract Dashboard Data Layer (2026-02-26)
+
+- [x] Create `lib/data/dashboard.ts` — extract `fetchDashboardData()`, `DashboardData` interface, `HallucinationRow` type (~250 lines)
+- [x] Create `lib/utils/dashboard-aggregators.ts` — extract `aggregateByModel()`, `aggregateCompetitors()` as pure functions
+- [x] Reduce `app/dashboard/page.tsx` from 447 → 118 lines
+- [x] Preserve `deriveRealityScore` in `page.tsx` (test import path dependency)
+- [x] Re-export `HallucinationRow` from `page.tsx` for `AlertFeed.tsx` compatibility
+- [x] Verify: `npx vitest run src/__tests__/unit/reality-score.test.ts` — 10 tests passing
+
+---
+
+## Sprint 65 — Clarify SOV Precision Formulas (2026-02-26)
+
+- [x] Replace `Math.round(x * 10) / 1000` with `parseFloat((x / 100).toFixed(3))` in `writeSOVResults()` DB write formulas
+- [x] Replace `Math.round(x * 10) / 10` with `parseFloat(x.toFixed(1))` in return value formulas
+- [x] Zero behavioral change — bit-identical results, comments updated
+- [x] Verify: `npx vitest run src/__tests__/unit/sov-engine-service.test.ts` — 11 tests passing
+
+---
+
+## Sprint 66 — README and package.json Identity Fix (2026-02-26)
+
+- [x] Change `package.json` name from `scaffold-tmp` to `local-vector-v1`
+- [x] Replace create-next-app README boilerplate with comprehensive project README (~201 lines)
+- [x] README covers: product description, tech stack, project structure, getting started, env vars, scripts, database, architecture notes, documentation index
+- [x] No code changes — docs only
 
 ---
 

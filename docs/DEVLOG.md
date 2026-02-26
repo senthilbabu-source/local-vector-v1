@@ -4,6 +4,28 @@
 
 ---
 
+## 2026-02-26 — Sprint 66: README and package.json Identity Fix (Completed)
+
+**Goal:** Replace the default create-next-app README boilerplate with a comprehensive project README, and fix the package.json name from `scaffold-tmp` to `local-vector-v1`.
+
+**Scope:**
+- `README.md` — **REWRITTEN.** Replaced boilerplate with full project documentation covering: product description, tech stack, project structure, getting started, environment variables, scripts, database, architecture notes, and documentation index. ~201 lines.
+- `package.json` — **ONE-LINE FIX.** Changed `"name": "scaffold-tmp"` → `"name": "local-vector-v1"`.
+
+**Key design decisions:**
+- README uses `docs/CLAUDE.md` as the primary source of truth, not duplicating information but pointing developers to the right spec docs.
+- Environment variables section references `.env.local.example` rather than duplicating every var with full descriptions.
+- No badges, emojis, or decorative elements — clean, scannable, professional.
+
+**Tests impacted:** None — no code changes.
+
+**Run commands:**
+```bash
+npx tsc --noEmit   # 0 errors (no code changes)
+```
+
+---
+
 ## 2026-02-26 — Sprint 65: Clarify SOV Precision Formulas (Completed)
 
 **Goal:** Replace the obscure `Math.round(x * 10) / 1000` arithmetic in `writeSOVResults()` with self-documenting equivalents. Zero behavioral change — pure readability refactor.
