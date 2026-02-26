@@ -22,6 +22,7 @@
 import { useChat } from '@ai-sdk/react';
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { AreaChart, Area, XAxis, Tooltip, ResponsiveContainer } from 'recharts';
+import { createClient } from '@/lib/supabase/client';
 
 // ---------------------------------------------------------------------------
 // Tool Result Card Components
@@ -257,19 +258,24 @@ function LoadingSkeleton() {
 // Error Banner
 // ---------------------------------------------------------------------------
 
-function ErrorBanner({ error, onRetry }: { error: Error; onRetry: () => void }) {
-    const is401 = error.message?.includes('401') || error.message?.includes('Unauthorized');
-
+function ErrorBanner({ error, onRetry, sessionExpired }: { error: Error; onRetry: () => void; sessionExpired: boolean }) {
     return (
         <div className="mx-2 sm:mx-4 mb-3 rounded-xl bg-alert-crimson/10 border border-alert-crimson/20 px-4 py-3 flex items-center justify-between gap-3">
             <div className="flex-1 min-w-0">
                 <p className="text-sm text-alert-crimson font-medium">
-                    {is401
+                    {sessionExpired
                         ? 'Session expired — please sign in again.'
                         : 'Something went wrong. Please try again.'}
                 </p>
             </div>
-            {!is401 && (
+            {sessionExpired ? (
+                <a
+                    href="/login"
+                    className="shrink-0 text-xs font-semibold text-electric-indigo hover:text-white bg-electric-indigo/10 hover:bg-electric-indigo/20 px-3 py-1.5 rounded-lg transition-colors"
+                >
+                    Sign in
+                </a>
+            ) : (
                 <button
                     type="button"
                     onClick={onRetry}
@@ -287,6 +293,9 @@ function ErrorBanner({ error, onRetry }: { error: Error; onRetry: () => void }) 
 // ---------------------------------------------------------------------------
 
 export default function Chat() {
+    const sessionRefreshAttempted = useRef(false);
+    const [sessionExpired, setSessionExpired] = useState(false);
+
     const {
         messages,
         input,
@@ -299,6 +308,30 @@ export default function Chat() {
         append,
     } = useChat({
         api: '/api/chat',
+        onResponse: async (response) => {
+            if (response.status === 401 && !sessionRefreshAttempted.current) {
+                // First 401 — silently refresh the session and auto-retry
+                sessionRefreshAttempted.current = true;
+                const supabase = createClient();
+                const { error: refreshError } = await supabase.auth.refreshSession();
+                if (!refreshError) {
+                    // Session refreshed — useChat will throw an error, which triggers
+                    // the onError callback. We schedule a reload after the error settles.
+                    setTimeout(() => reload(), 100);
+                } else {
+                    // Refresh failed — session is truly expired
+                    setSessionExpired(true);
+                }
+            } else if (response.status === 401) {
+                // Already tried refreshing — session is truly expired
+                setSessionExpired(true);
+            }
+        },
+        onError: () => {
+            // Reset the refresh flag so the next user-initiated retry can attempt refresh again
+            if (!sessionRefreshAttempted.current) return;
+            // Keep the flag set until a successful response resets it
+        },
     });
 
     const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -330,7 +363,7 @@ export default function Chat() {
         <div className="flex flex-col h-[calc(100vh-8rem)]">
             {/* Error Banner */}
             {error && (
-                <ErrorBanner error={error} onRetry={reload} />
+                <ErrorBanner error={error} onRetry={reload} sessionExpired={sessionExpired} />
             )}
 
             {/* Messages */}

@@ -828,7 +828,9 @@ Tool `result.type` maps to UI components:
 
 ### 33.4 — Error Handling
 - `error` from `useChat()` displayed in crimson error banner
-- 401 detection: check `error.message` for '401' or 'Unauthorized' → "Session expired" message
+- 401 detection: `onResponse` callback checks `response.status === 401` (reliable — `error.message` only has body text, not status code)
+- On first 401: silently calls `supabase.auth.refreshSession()` via browser client, then auto-retries via `reload()`. User never sees the error.
+- On persistent 401 (refresh failed): shows "Session expired" banner with "Sign in" link to `/login`
 - Non-401: generic "Something went wrong" with retry button calling `reload()`
 
 ### 33.5 — SOV Sparkline
