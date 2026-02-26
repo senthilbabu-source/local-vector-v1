@@ -4,6 +4,25 @@
 
 ---
 
+## 2026-02-26 — Hotfix: Zod v4 + AI SDK Compatibility
+
+**Problem:** AI Assistant chat returned "AI service temporarily unavailable" on every message. Root cause: `zod-to-json-schema@3.25.1` (bundled with `ai@4.3.19`) cannot convert Zod v4 schemas. All `generateObject()` and `tool()` calls sent invalid JSON schemas (`type: "None"` instead of `type: "object"`) to OpenAI.
+
+**Fix:** Added `zodSchema()` adapter in `lib/ai/schemas.ts` — uses Zod v4's native `.toJSONSchema()` and wraps with the AI SDK's `jsonSchema()` helper, bypassing the broken conversion. Also improved stream error handling in `route.ts` (`getErrorMessage`) and `Chat.tsx` (`ErrorBanner` shows server message + always-visible Retry).
+
+**Files changed:**
+- `lib/ai/schemas.ts` — Added shared `zodSchema()` adapter (exported)
+- `lib/tools/visibility-tools.ts` — `tool({ parameters: zodSchema(...) })`
+- `lib/services/ai-audit.service.ts` — `generateObject({ schema: zodSchema(...) })`
+- `lib/services/competitor-intercept.service.ts` — same pattern
+- `app/dashboard/magic-menus/actions.ts` — same pattern
+- `app/api/chat/route.ts` — `toDataStreamResponse({ getErrorMessage })` for stream errors
+- `app/dashboard/ai-assistant/_components/Chat.tsx` — `ErrorBanner` shows server message, Retry always visible, session refresh on 401
+- 11 test files — added `jsonSchema` to `vi.mock('ai')` mocks
+- `docs/AI_RULES.md` — Updated §4 mock pattern, §19.3 schema docs, §33.4 error handling
+
+---
+
 ## 2026-02-26 — Sprint 69: "AI Says" Response Library (Completed)
 
 **Goal:** Build the "AI Says" dashboard page showing exact AI engine response text for each tracked query — the highest wow-per-effort feature in the roadmap.
