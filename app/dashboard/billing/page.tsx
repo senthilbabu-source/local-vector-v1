@@ -1,7 +1,7 @@
 'use client';
 
 // ---------------------------------------------------------------------------
-// Billing Page — Sprint 25A: Corrected tier names + pricing
+// Billing Page — Sprint 56B: Current plan state + portal + success/cancel
 //
 // Three-tier pricing aligned with plan_tier DB enum (starter|growth|agency)
 // and Doc 08 §6 pricing ($29 Starter / $59 Growth / Custom Agency).
@@ -10,11 +10,22 @@
 // Upgrade button calls createCheckoutSession Server Action. When STRIPE_SECRET_KEY
 // is absent (local dev / preview) it shows a "Demo mode" banner instead of
 // attempting a real checkout.
+//
+// Sprint 56B additions:
+//   • Current plan badge at top of page
+//   • Manage Subscription button → Stripe Customer Portal
+//   • Success/canceled URL params → auto-dismissing banners
 // ---------------------------------------------------------------------------
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { Check } from 'lucide-react';
-import { createCheckoutSession } from './actions';
+import {
+  createCheckoutSession,
+  createPortalSession,
+  getCurrentPlan,
+  type CurrentPlanInfo,
+} from './actions';
 
 // ---------------------------------------------------------------------------
 // Tier definitions
@@ -90,10 +101,115 @@ const TIERS: Tier[] = [
 ];
 
 // ---------------------------------------------------------------------------
+// SuccessBanner / CanceledBanner — auto-dismiss after 5 seconds
+// ---------------------------------------------------------------------------
+
+function SuccessBanner({ onDismiss }: { onDismiss: () => void }) {
+  useEffect(() => {
+    const timer = setTimeout(onDismiss, 5000);
+    return () => clearTimeout(timer);
+  }, [onDismiss]);
+
+  return (
+    <div className="rounded-xl border border-truth-emerald/30 bg-truth-emerald/10 px-4 py-3 text-sm text-truth-emerald">
+      Subscription activated! Your plan has been updated.
+      <button onClick={onDismiss} className="ml-3 text-xs underline opacity-70 hover:opacity-100">
+        Dismiss
+      </button>
+    </div>
+  );
+}
+
+function CanceledBanner({ onDismiss }: { onDismiss: () => void }) {
+  useEffect(() => {
+    const timer = setTimeout(onDismiss, 5000);
+    return () => clearTimeout(timer);
+  }, [onDismiss]);
+
+  return (
+    <div className="rounded-xl border border-alert-amber/30 bg-alert-amber/10 px-4 py-3 text-sm text-alert-amber">
+      Checkout was canceled. No charges were made.
+      <button onClick={onDismiss} className="ml-3 text-xs underline opacity-70 hover:opacity-100">
+        Dismiss
+      </button>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// CurrentPlanBadge — shows the org's current plan and status
+// ---------------------------------------------------------------------------
+
+function CurrentPlanBadge({ planInfo }: { planInfo: CurrentPlanInfo | null }) {
+  if (!planInfo) return null;
+
+  const planLabel = planInfo.plan.charAt(0).toUpperCase() + planInfo.plan.slice(1);
+  const isActive = planInfo.plan_status === 'active';
+
+  return (
+    <div className="flex items-center justify-center gap-3">
+      <span className="text-sm text-slate-400">Current plan:</span>
+      <span className="rounded-full bg-electric-indigo/15 px-3 py-0.5 text-xs font-semibold text-electric-indigo">
+        {planLabel}
+      </span>
+      {isActive && (
+        <span className="rounded-full bg-truth-emerald/15 px-2 py-0.5 text-xs text-truth-emerald">
+          Active
+        </span>
+      )}
+      {planInfo.plan_status === 'canceled' && (
+        <span className="rounded-full bg-alert-crimson/15 px-2 py-0.5 text-xs text-alert-crimson">
+          Canceled
+        </span>
+      )}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// ManageSubscriptionButton
+// ---------------------------------------------------------------------------
+
+function ManageSubscriptionButton({ planInfo }: { planInfo: CurrentPlanInfo | null }) {
+  const [status, setStatus] = useState<'idle' | 'loading' | 'demo'>('idle');
+
+  if (!planInfo?.has_stripe_customer) return null;
+  if (planInfo.plan === 'trial') return null;
+
+  if (status === 'demo') {
+    return (
+      <p className="text-center text-xs text-slate-500 py-2">
+        Demo mode — Stripe not configured.
+      </p>
+    );
+  }
+
+  async function handleClick() {
+    setStatus('loading');
+    const result = await createPortalSession();
+    if (result.demo) {
+      setStatus('demo');
+    } else if (result.url) {
+      window.location.href = result.url;
+    }
+  }
+
+  return (
+    <button
+      onClick={handleClick}
+      disabled={status === 'loading'}
+      className="rounded-xl border border-white/10 px-4 py-2 text-sm text-slate-400 transition hover:border-white/20 hover:text-white disabled:opacity-60 disabled:cursor-not-allowed"
+    >
+      {status === 'loading' ? 'Loading...' : 'Manage Subscription'}
+    </button>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // UpgradeButton
 // ---------------------------------------------------------------------------
 
-function UpgradeButton({ tier }: { tier: Tier }) {
+function UpgradeButton({ tier, currentPlan }: { tier: Tier; currentPlan: string | null }) {
   const [status, setStatus] = useState<'idle' | 'loading' | 'demo'>('idle');
 
   if (tier.plan === null) {
@@ -104,6 +220,15 @@ function UpgradeButton({ tier }: { tier: Tier }) {
       >
         {tier.cta}
       </a>
+    );
+  }
+
+  // Show "Current Plan" badge if this is the user's active plan
+  if (currentPlan === tier.plan) {
+    return (
+      <div className="w-full rounded-xl border border-electric-indigo/30 bg-electric-indigo/10 px-4 py-2.5 text-center text-sm font-semibold text-electric-indigo">
+        Current Plan
+      </div>
     );
   }
 
@@ -138,7 +263,7 @@ function UpgradeButton({ tier }: { tier: Tier }) {
         status === 'loading' ? 'opacity-60 cursor-not-allowed' : '',
       ].join(' ')}
     >
-      {status === 'loading' ? 'Processing…' : tier.cta}
+      {status === 'loading' ? 'Processing...' : tier.cta}
     </button>
   );
 }
@@ -147,7 +272,7 @@ function UpgradeButton({ tier }: { tier: Tier }) {
 // TierCard
 // ---------------------------------------------------------------------------
 
-function TierCard({ tier }: { tier: Tier }) {
+function TierCard({ tier, currentPlan }: { tier: Tier; currentPlan: string | null }) {
   return (
     <div
       className={[
@@ -186,7 +311,7 @@ function TierCard({ tier }: { tier: Tier }) {
       </ul>
 
       {/* CTA */}
-      <UpgradeButton tier={tier} />
+      <UpgradeButton tier={tier} currentPlan={currentPlan} />
     </div>
   );
 }
@@ -196,21 +321,42 @@ function TierCard({ tier }: { tier: Tier }) {
 // ---------------------------------------------------------------------------
 
 export default function BillingPage() {
+  const searchParams = useSearchParams();
+  const [showSuccess, setShowSuccess] = useState(searchParams.get('success') === 'true');
+  const [showCanceled, setShowCanceled] = useState(searchParams.get('canceled') === 'true');
+  const [planInfo, setPlanInfo] = useState<CurrentPlanInfo | null>(null);
+
+  useEffect(() => {
+    getCurrentPlan()
+      .then(setPlanInfo)
+      .catch(() => {/* auth may fail in preview — ignore */});
+  }, []);
+
   return (
     <div className="mx-auto max-w-5xl space-y-8 px-4 py-10">
+      {/* Success / Canceled banners */}
+      {showSuccess && <SuccessBanner onDismiss={() => setShowSuccess(false)} />}
+      {showCanceled && <CanceledBanner onDismiss={() => setShowCanceled(false)} />}
+
       {/* Header */}
-      <div className="text-center">
+      <div className="space-y-3 text-center">
         <h1 className="text-2xl font-bold text-white">Plans &amp; Pricing</h1>
-        <p className="mt-2 text-sm text-slate-400">
+        <p className="text-sm text-slate-400">
           Protect your business from AI hallucinations. No contracts. Cancel anytime.
         </p>
+        <CurrentPlanBadge planInfo={planInfo} />
       </div>
 
       {/* Tier grid */}
       <div className="grid gap-6 sm:grid-cols-3">
         {TIERS.map((tier) => (
-          <TierCard key={tier.id} tier={tier} />
+          <TierCard key={tier.id} tier={tier} currentPlan={planInfo?.plan ?? null} />
         ))}
+      </div>
+
+      {/* Manage Subscription */}
+      <div className="flex justify-center">
+        <ManageSubscriptionButton planInfo={planInfo} />
       </div>
 
       {/* Footer note */}

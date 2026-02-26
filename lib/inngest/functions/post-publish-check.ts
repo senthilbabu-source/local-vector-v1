@@ -13,6 +13,7 @@
 // ---------------------------------------------------------------------------
 
 import { inngest } from '../client';
+import { withTimeout } from '../timeout';
 import { runSOVQuery } from '@/lib/services/sov-engine.service';
 
 // ---------------------------------------------------------------------------
@@ -22,38 +23,49 @@ import { runSOVQuery } from '@/lib/services/sov-engine.service';
 export const postPublishCheckFunction = inngest.createFunction(
   {
     id: 'post-publish-sov-check',
-    retries: 2,
+    concurrency: { limit: 10 },
+    retries: 1,
   },
   { event: 'publish/post-publish-check' },
   async ({ event, step }) => {
+    const startedAt = new Date().toISOString();
+    const t0 = Date.now();
+
     // Wait 14 days (Inngest handles this natively — durable sleep)
     await step.sleep('wait-14-days', '14d');
 
-    // Run the SOV query
-    const result = await step.run('recheck-sov', async () => {
-      const sovResult = await runSOVQuery({
-        id: event.data.draftId,
-        query_text: event.data.targetQuery,
-        query_category: 'discovery',
-        location_id: event.data.locationId,
-        org_id: '',
-        locations: { business_name: '', city: null, state: null },
-      });
+    // Run the SOV query (55s timeout)
+    const result = await step.run('recheck-sov', () =>
+      withTimeout(async () => {
+        const sovResult = await runSOVQuery({
+          id: event.data.draftId,
+          query_text: event.data.targetQuery,
+          query_category: 'discovery',
+          location_id: event.data.locationId,
+          org_id: '',
+          locations: { business_name: '', city: null, state: null },
+        });
 
-      console.log(
-        `[inngest-post-publish] Draft ${event.data.draftId}: ` +
-        `query="${event.data.targetQuery}" cited=${sovResult.ourBusinessCited}`,
-      );
+        return {
+          draftId: event.data.draftId,
+          targetQuery: event.data.targetQuery,
+          cited: sovResult.ourBusinessCited,
+          publishedAt: event.data.publishedAt,
+          checkedAt: new Date().toISOString(),
+        };
+      }),
+    );
 
-      return {
-        draftId: event.data.draftId,
-        targetQuery: event.data.targetQuery,
-        cited: sovResult.ourBusinessCited,
-        publishedAt: event.data.publishedAt,
-        checkedAt: new Date().toISOString(),
-      };
-    });
+    const summary = {
+      function_id: 'post-publish-sov-check',
+      event_name: 'publish/post-publish-check',
+      started_at: startedAt,
+      completed_at: new Date().toISOString(),
+      duration_ms: Date.now() - t0,
+      ...result,
+    };
 
-    return result;
+    console.log('[inngest-post-publish] Run complete:', JSON.stringify(summary));
+    return summary;
   },
 );

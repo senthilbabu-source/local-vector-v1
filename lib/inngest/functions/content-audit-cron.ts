@@ -15,6 +15,7 @@
 // ---------------------------------------------------------------------------
 
 import { inngest } from '../client';
+import { withTimeout } from '../timeout';
 import { createServiceRoleClient } from '@/lib/supabase/server';
 import { auditPage, type PageType } from '@/lib/page-audit/auditor';
 import { sleep } from '@/lib/services/sov-engine.service';
@@ -163,6 +164,9 @@ export const contentAuditCronFunction = inngest.createFunction(
   },
   { event: 'cron/content-audit.monthly' },
   async ({ step }) => {
+    const startedAt = new Date().toISOString();
+    const t0 = Date.now();
+
     // Step 1: Fetch all active locations with website_url
     const locations = await step.run('fetch-audit-locations', async () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -199,15 +203,23 @@ export const contentAuditCronFunction = inngest.createFunction(
     });
 
     if (!locations.length) {
-      return { locations_audited: 0, pages_audited: 0 };
+      return {
+        function_id: 'content-audit-monthly-cron',
+        event_name: 'cron/content-audit.monthly',
+        started_at: startedAt,
+        completed_at: new Date().toISOString(),
+        duration_ms: Date.now() - t0,
+        locations_audited: 0,
+        pages_audited: 0,
+      };
     }
 
-    // Step 2: Fan out — one step per location
+    // Step 2: Fan out — one step per location (55s timeout per step)
     const locationResults = await Promise.all(
       locations.map((loc) =>
         step.run(`audit-location-${loc.id}`, async () => {
           try {
-            return await processLocationAudit(loc);
+            return await withTimeout(() => processLocationAudit(loc));
           } catch (err) {
             const msg = err instanceof Error ? err.message : String(err);
             console.error(`[inngest-content-audit] Location ${loc.id} failed:`, msg);
@@ -219,7 +231,12 @@ export const contentAuditCronFunction = inngest.createFunction(
 
     const allScores = locationResults.flatMap((r) => r.scores);
 
-    return {
+    const summary = {
+      function_id: 'content-audit-monthly-cron',
+      event_name: 'cron/content-audit.monthly',
+      started_at: startedAt,
+      completed_at: new Date().toISOString(),
+      duration_ms: Date.now() - t0,
       locations_audited: locationResults.filter((r) => r.pagesAudited > 0).length,
       pages_audited: locationResults.reduce((sum, r) => sum + r.pagesAudited, 0),
       pages_failed: locationResults.reduce((sum, r) => sum + r.pagesFailed, 0),
@@ -227,5 +244,8 @@ export const contentAuditCronFunction = inngest.createFunction(
         ? Math.round(allScores.reduce((a, b) => a + b, 0) / allScores.length)
         : 0,
     };
+
+    console.log('[inngest-content-audit] Run complete:', JSON.stringify(summary));
+    return summary;
   },
 );

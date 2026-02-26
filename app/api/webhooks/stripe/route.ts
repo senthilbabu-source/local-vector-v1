@@ -20,6 +20,7 @@
 // Handled events:
 //   checkout.session.completed       — initial purchase; sets plan + stripe IDs
 //   customer.subscription.updated    — plan changes, renewals, cancellations
+//   customer.subscription.deleted    — subscription fully canceled; downgrade to trial
 //
 // All other event types receive an immediate 200 OK (Stripe requires this).
 //
@@ -150,6 +151,37 @@ async function handleSubscriptionUpdated(
   );
 }
 
+async function handleSubscriptionDeleted(
+  subscription: Stripe.Subscription,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  supabase: any
+): Promise<void> {
+  const stripeCustomerId =
+    typeof subscription.customer === 'string' ? subscription.customer : null;
+
+  if (!stripeCustomerId) {
+    console.warn('[stripe-webhook] customer.subscription.deleted: no customer ID — skipping');
+    return;
+  }
+
+  // Downgrade to trial + canceled status
+  const { error } = await supabase
+    .from('organizations')
+    .update({ plan: 'trial', plan_status: 'canceled' })
+    .eq('stripe_customer_id', stripeCustomerId);
+
+  if (error) {
+    throw new Error(
+      `[stripe-webhook] DB update failed (customer.subscription.deleted): ${error.message}`
+    );
+  }
+
+  console.log(
+    '[stripe-webhook] customer.subscription.deleted: customer=%s → plan=trial, plan_status=canceled',
+    stripeCustomerId
+  );
+}
+
 // ---------------------------------------------------------------------------
 // Route Handler
 // ---------------------------------------------------------------------------
@@ -198,6 +230,13 @@ export async function POST(request: NextRequest) {
 
       case 'customer.subscription.updated':
         await handleSubscriptionUpdated(
+          event.data.object as Stripe.Subscription,
+          supabase
+        );
+        break;
+
+      case 'customer.subscription.deleted':
+        await handleSubscriptionDeleted(
           event.data.object as Stripe.Subscription,
           supabase
         );
