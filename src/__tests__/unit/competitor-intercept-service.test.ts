@@ -18,6 +18,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 vi.mock('ai', () => ({
   generateText:   vi.fn(),
   generateObject: vi.fn(),
+  jsonSchema: vi.fn((s: unknown) => ({ jsonSchema: s })),
 }));
 
 // ── Mock the providers ──────────────────────────────────────────────────

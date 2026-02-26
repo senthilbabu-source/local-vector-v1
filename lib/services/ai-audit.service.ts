@@ -8,7 +8,7 @@
 
 import { generateObject } from 'ai';
 import { getModel, hasApiKey } from '@/lib/ai/providers';
-import { AuditResultSchema } from '@/lib/ai/schemas';
+import { AuditResultSchema, zodSchema } from '@/lib/ai/schemas';
 
 // ── Types (mirror prod_schema.sql enums exactly) ───────────────────────────
 
@@ -108,7 +108,7 @@ export async function auditLocation(
 
   const { object } = await generateObject({
     model: getModel('fear-audit'),
-    schema: AuditResultSchema,
+    schema: zodSchema(AuditResultSchema),
     system: SYSTEM_PROMPT,
     prompt: buildAuditPrompt(location),
   });

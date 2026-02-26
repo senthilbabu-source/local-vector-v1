@@ -42,7 +42,7 @@
 * **Mocking:** NEVER hit real external APIs (Perplexity, OpenAI, Stripe) in tests. Use MSW (Mock Service Worker) handlers.
 * **Server Action mock patterns — use the right technique:**
   * **Supabase client:** `vi.mock('@/lib/supabase/server', () => ({ createClient: vi.fn() }))` then `vi.mocked(createClient).mockResolvedValue({ from: vi.fn(...) })` (no `as any` — see §38.2).
-  * **AI SDK calls** (`generateText`, `generateObject`): `vi.mock('ai', () => ({ generateText: vi.fn(), generateObject: vi.fn() }))` + `vi.mock('@/lib/ai/providers', () => ({ getModel: vi.fn().mockReturnValue('mock-model'), hasApiKey: vi.fn().mockReturnValue(true) }))`. Mock return shapes: `{ text: '...' }` for `generateText`, `{ object: {...} }` for `generateObject`. Control fallback paths with `vi.mocked(hasApiKey).mockReturnValue(false)`.
+  * **AI SDK calls** (`generateText`, `generateObject`): `vi.mock('ai', () => ({ generateText: vi.fn(), generateObject: vi.fn(), jsonSchema: vi.fn((s: unknown) => ({ jsonSchema: s })) }))` + `vi.mock('@/lib/ai/providers', () => ({ getModel: vi.fn().mockReturnValue('mock-model'), hasApiKey: vi.fn().mockReturnValue(true) }))`. The `jsonSchema` mock is **required** — `lib/ai/schemas.ts` imports it for the Zod v4 adapter. Mock return shapes: `{ text: '...' }` for `generateText`, `{ object: {...} }` for `generateObject`. Control fallback paths with `vi.mocked(hasApiKey).mockReturnValue(false)`.
   * **Direct `fetch` calls** (non-AI HTTP calls where no SDK wrapper exists): use `vi.stubGlobal('fetch', vi.fn())` — `vi.mock` cannot intercept global fetch. **Note:** All AI API calls (Perplexity, OpenAI) now use the Vercel AI SDK — never raw `fetch`.
   * **`setTimeout` mock delays** (SOV/evaluation actions with no API key): use `vi.useFakeTimers()` in `beforeEach` and `await vi.runAllTimersAsync()` before awaiting the result. Without this, tests wait 3 real seconds.
   * **`vi.mock()` declarations must be hoisted** before any `import` statements. File must be read with the `Read` tool before any `Edit` to a test file.
@@ -341,7 +341,7 @@ Before marking any phase "Completed", verify all of the following are true:
 | `chat-assistant` | OpenAI gpt-4o | `generateText` | AI Chat Assistant — streaming conversational agent with tool calls. |
 | `menu-ocr` | OpenAI gpt-4o | `generateObject` | Menu OCR — GPT-4o Vision for PDF/image menu extraction. Uses `MenuOCRSchema`. |
 
-**Zod schemas** live in `lib/ai/schemas.ts` — imported by both services and tests. Never define AI output types inline.
+**Zod schemas** live in `lib/ai/schemas.ts` — imported by both services and tests. Never define AI output types inline. **Important:** `zod-to-json-schema@3` (bundled with `ai@4`) cannot convert Zod v4 schemas. Always wrap Zod schemas with `zodSchema()` (exported from `lib/ai/schemas.ts`) when passing to `generateObject({ schema })` or `tool({ parameters })`.
 
 **MSW handler discrimination** (for E2E tests only):
 * The OpenAI MSW handler in `src/mocks/handlers.ts` discriminates by the `model` field in the request body:

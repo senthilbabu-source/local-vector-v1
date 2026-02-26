@@ -23,6 +23,7 @@ vi.mock('ai', () => ({
       response_text: 'Mock AI response',
     }),
   }),
+  jsonSchema: vi.fn((s: unknown) => ({ jsonSchema: s })),
 }));
 vi.mock('@/lib/ai/providers', () => ({
   getModel: vi.fn().mockReturnValue('mock-model'),

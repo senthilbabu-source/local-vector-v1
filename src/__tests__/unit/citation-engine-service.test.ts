@@ -15,6 +15,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 // ── Mock the AI SDK ──────────────────────────────────────────────────────
 vi.mock('ai', () => ({
   generateText: vi.fn(),
+  jsonSchema: vi.fn((s: unknown) => ({ jsonSchema: s })),
 }));
 
 // ── Mock the providers ──────────────────────────────────────────────────

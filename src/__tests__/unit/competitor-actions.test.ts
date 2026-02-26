@@ -24,7 +24,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 vi.mock('@/lib/supabase/server', () => ({ createClient: vi.fn() }));
 vi.mock('@/lib/auth', () => ({ getSafeAuthContext: vi.fn() }));
 vi.mock('next/cache', () => ({ revalidatePath: vi.fn() }));
-vi.mock('ai', () => ({ generateText: vi.fn(), generateObject: vi.fn() }));
+vi.mock('ai', () => ({ generateText: vi.fn(), generateObject: vi.fn(), jsonSchema: vi.fn((s: unknown) => ({ jsonSchema: s })) }));
 vi.mock('@/lib/ai/providers', () => ({
   getModel:  vi.fn().mockReturnValue('mock-model'),
   hasApiKey: vi.fn().mockReturnValue(true),

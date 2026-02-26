@@ -44,6 +44,7 @@ vi.mock('ai', () => ({
         parameters,
         execute,
     })),
+    jsonSchema: vi.fn((schema) => ({ jsonSchema: schema })),
 }));
 
 import { makeVisibilityTools } from '@/lib/tools/visibility-tools';

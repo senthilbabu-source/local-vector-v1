@@ -18,7 +18,7 @@ import { parseLocalVectorCsv } from '@/lib/utils/parseCsvMenu';
 import { parsePosExportWithGPT4o } from '@/lib/utils/parsePosExport';
 import { generateObject } from 'ai';
 import { getModel, hasApiKey } from '@/lib/ai/providers';
-import { MenuOCRSchema, type MenuOCROutput } from '@/lib/ai/schemas';
+import { MenuOCRSchema, zodSchema, type MenuOCROutput } from '@/lib/ai/schemas';
 import type { Json } from '@/lib/supabase/database.types';
 
 // ---------------------------------------------------------------------------
@@ -664,7 +664,7 @@ export async function uploadMenuFile(
 
     const { object } = await generateObject({
       model: getModel('menu-ocr'),
-      schema: MenuOCRSchema,
+      schema: zodSchema(MenuOCRSchema),
       messages: [
         {
           role: 'system',

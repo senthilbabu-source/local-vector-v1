@@ -14,6 +14,7 @@
 import { tool } from 'ai';
 import { z } from 'zod';
 import { createServiceRoleClient } from '@/lib/supabase/server';
+import { zodSchema } from '@/lib/ai/schemas';
 
 // ---------------------------------------------------------------------------
 // Tool: getVisibilityScore
@@ -23,7 +24,7 @@ export function makeVisibilityTools(orgId: string) {
     return {
         getVisibilityScore: tool({
             description: 'Get the current AI visibility score, share-of-voice, and reality score for this business.',
-            parameters: z.object({}),
+            parameters: zodSchema(z.object({})),
             execute: async () => {
                 const supabase = createServiceRoleClient();
 
@@ -70,9 +71,9 @@ export function makeVisibilityTools(orgId: string) {
 
         getSOVTrend: tool({
             description: 'Get the share-of-voice trend over time showing how AI visibility has changed.',
-            parameters: z.object({
+            parameters: zodSchema(z.object({
                 limit: z.number().min(1).max(52).default(12).describe('Number of data points'),
-            }),
+            })),
             execute: async ({ limit }) => {
                 const supabase = createServiceRoleClient();
 
@@ -100,9 +101,9 @@ export function makeVisibilityTools(orgId: string) {
 
         getHallucinations: tool({
             description: 'Get AI hallucinations (lies) detected about this business. Shows what AI models are getting wrong.',
-            parameters: z.object({
+            parameters: zodSchema(z.object({
                 status: z.enum(['open', 'fixed', 'all']).default('open').describe('Filter: open, fixed, or all'),
-            }),
+            })),
             execute: async ({ status }) => {
                 const supabase = createServiceRoleClient();
 
@@ -142,7 +143,7 @@ export function makeVisibilityTools(orgId: string) {
 
         getCompetitorComparison: tool({
             description: 'Get competitor analysis showing how this business compares to competitors in AI mentions.',
-            parameters: z.object({}),
+            parameters: zodSchema(z.object({})),
             execute: async () => {
                 const supabase = createServiceRoleClient();
 

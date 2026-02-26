@@ -12,6 +12,19 @@
 // ---------------------------------------------------------------------------
 
 import { z } from 'zod';
+import { jsonSchema as aiJsonSchema } from 'ai';
+
+// ---------------------------------------------------------------------------
+// Zod v4 → AI SDK adapter
+// zod-to-json-schema@3 (bundled with ai@4) doesn't understand Zod v4.
+// Use Zod v4's native .toJSONSchema() and wrap with the AI SDK's jsonSchema().
+// All generateObject() and tool() calls must use zodSchema() instead of raw Zod.
+// ---------------------------------------------------------------------------
+export function zodSchema<T extends z.ZodType>(schema: T) {
+    const js = (schema as any).toJSONSchema() as Record<string, unknown>;
+    delete js.$schema;
+    return aiJsonSchema<z.output<T>>(js);
+}
 
 // ── Fear Engine — Hallucination Audit ────────────────────────────────────────
 

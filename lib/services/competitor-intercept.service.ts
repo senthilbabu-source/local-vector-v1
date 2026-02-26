@@ -26,6 +26,7 @@ import { getModel, hasApiKey } from '@/lib/ai/providers';
 import {
   PerplexityHeadToHeadSchema,
   InterceptAnalysisSchema,
+  zodSchema,
   type PerplexityHeadToHeadOutput,
   type InterceptAnalysisOutput,
 } from '@/lib/ai/schemas';
@@ -90,7 +91,7 @@ async function callGptIntercept(
 ): Promise<InterceptAnalysisOutput> {
   const { object } = await generateObject({
     model: getModel('greed-intercept'),
-    schema: InterceptAnalysisSchema,
+    schema: zodSchema(InterceptAnalysisSchema),
     system: 'You are an AI search analyst for local businesses.',
     prompt:
       `User's Business: ${myBusiness}\n` +

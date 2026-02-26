@@ -18,6 +18,7 @@ vi.mock('ai', () => ({
   Output: {
     object: vi.fn(({ schema }: { schema: unknown }) => ({ schema })),
   },
+  jsonSchema: vi.fn((s: unknown) => ({ jsonSchema: s })),
 }));
 
 vi.mock('@/lib/ai/providers', () => ({

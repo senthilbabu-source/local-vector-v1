@@ -19,6 +19,7 @@ vi.mock('ai', () => ({
       target_keywords: ['keyword1', 'keyword2'],
     }),
   })),
+  jsonSchema: vi.fn((s: unknown) => ({ jsonSchema: s })),
 }));
 
 // ---------------------------------------------------------------------------
