@@ -20,7 +20,18 @@ vi.mock('@/lib/services/sov-engine.service', () => ({
     ourBusinessCited: false,
     businessesFound: [],
     citationUrl: null,
+    engine: 'perplexity',
   }),
+  runMultiModelSOVQuery: vi.fn().mockResolvedValue([{
+    queryId: 'q-001',
+    queryText: 'Best pizza in Atlanta',
+    queryCategory: 'discovery',
+    locationId: 'loc-001',
+    ourBusinessCited: false,
+    businessesFound: [],
+    citationUrl: null,
+    engine: 'perplexity',
+  }]),
   writeSOVResults: vi.fn().mockResolvedValue({
     shareOfVoice: 33.3,
     citationRate: 50,
@@ -35,6 +46,7 @@ vi.mock('@/lib/supabase/server', () => ({
 
 vi.mock('@/lib/email', () => ({
   sendSOVReport: vi.fn().mockResolvedValue(undefined),
+  sendWeeklyDigest: vi.fn().mockResolvedValue(undefined),
 }));
 
 vi.mock('@/lib/services/occasion-engine.service', () => ({
@@ -47,6 +59,7 @@ vi.mock('@/lib/services/prompt-intelligence.service', () => ({
 
 vi.mock('@/lib/plan-enforcer', () => ({
   canRunAutopilot: vi.fn().mockReturnValue(false),
+  canRunMultiModelSOV: vi.fn().mockReturnValue(false),
 }));
 
 vi.mock('@/lib/autopilot/create-draft', () => ({
@@ -63,7 +76,7 @@ vi.mock('@/lib/autopilot/post-publish', () => ({
 import { processOrgSOV, type OrgBatch } from '@/lib/inngest/functions/sov-cron';
 import { createServiceRoleClient } from '@/lib/supabase/server';
 import { runSOVQuery, writeSOVResults } from '@/lib/services/sov-engine.service';
-import { sendSOVReport } from '@/lib/email';
+import { sendSOVReport, sendWeeklyDigest } from '@/lib/email';
 import { runOccasionScheduler } from '@/lib/services/occasion-engine.service';
 import { detectQueryGaps } from '@/lib/services/prompt-intelligence.service';
 
@@ -107,7 +120,14 @@ function mockSupabase() {
           }),
         };
       }
-      return { select: vi.fn().mockReturnThis(), eq: vi.fn().mockReturnThis() };
+      const chainable = {
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        order: vi.fn().mockReturnThis(),
+        limit: vi.fn().mockResolvedValue({ data: [], error: null }),
+        maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }),
+      };
+      return chainable;
     }),
   };
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -195,15 +215,15 @@ describe('processOrgSOV', () => {
   it('sends email report with correct payload', async () => {
     await processOrgSOV(makeBatch());
 
-    expect(vi.mocked(sendSOVReport)).toHaveBeenCalledOnce();
-    const payload = vi.mocked(sendSOVReport).mock.calls[0][0];
+    expect(vi.mocked(sendWeeklyDigest)).toHaveBeenCalledOnce();
+    const payload = vi.mocked(sendWeeklyDigest).mock.calls[0][0];
     expect(payload.to).toBe('owner@test.com');
     expect(payload.businessName).toBe('Test Pizza');
     expect(payload.queriesRun).toBe(1);
   });
 
   it('does not fail when email send throws', async () => {
-    vi.mocked(sendSOVReport).mockRejectedValueOnce(new Error('Resend unavailable'));
+    vi.mocked(sendWeeklyDigest).mockRejectedValueOnce(new Error('Resend unavailable'));
 
     const result = await processOrgSOV(makeBatch());
     expect(result.success).toBe(true);

@@ -13,8 +13,11 @@ import { FileText } from 'lucide-react';
 import { getSafeAuthContext } from '@/lib/auth';
 import { createClient } from '@/lib/supabase/server';
 import { canRunAutopilot, type PlanTier } from '@/lib/plan-enforcer';
+import { getDaysUntilPeak } from '@/lib/services/occasion-engine.service';
+import type { LocalOccasionRow } from '@/lib/types/occasions';
 import ContentDraftCard, { type ContentDraftRow } from './_components/ContentDraftCard';
 import DraftFilterTabs from './_components/DraftFilterTabs';
+import OccasionTimeline, { type OccasionWithCountdown } from './_components/OccasionTimeline';
 
 // ---------------------------------------------------------------------------
 // Data fetching
@@ -44,6 +47,49 @@ async function fetchPageData(orgId: string, statusFilter?: string) {
   }
 
   return (data ?? []) as ContentDraftRow[];
+}
+
+async function fetchUpcomingOccasions(): Promise<OccasionWithCountdown[]> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const supabase = (await createClient()) as any;
+  const { data, error } = await supabase
+    .from('local_occasions')
+    .select('*')
+    .eq('is_active', true);
+
+  if (error || !data?.length) return [];
+
+  const today = new Date();
+  return (data as LocalOccasionRow[])
+    .map((occ) => {
+      const daysUntilPeak = getDaysUntilPeak(occ, today);
+      return {
+        id: occ.id,
+        name: occ.name,
+        occasion_type: occ.occasion_type,
+        daysUntilPeak,
+        relevant_categories: occ.relevant_categories,
+      };
+    })
+    .filter((o) => o.daysUntilPeak >= 0 && o.daysUntilPeak <= 60)
+    .sort((a, b) => a.daysUntilPeak - b.daysUntilPeak);
+}
+
+async function fetchOccasionDraftMap(orgId: string): Promise<Record<string, string>> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const supabase = (await createClient()) as any;
+  const { data } = await supabase
+    .from('content_drafts')
+    .select('id, trigger_id')
+    .eq('org_id', orgId)
+    .eq('trigger_type', 'occasion')
+    .in('status', ['draft', 'approved', 'published']);
+
+  const map: Record<string, string> = {};
+  for (const row of data ?? []) {
+    if (row.trigger_id) map[row.trigger_id] = row.id;
+  }
+  return map;
 }
 
 async function fetchPlan(orgId: string): Promise<string> {
@@ -102,7 +148,11 @@ export default async function ContentDraftsPage({
 
   const resolvedParams = await searchParams;
   const statusFilter = resolvedParams.status;
-  const drafts = await fetchPageData(ctx.orgId, statusFilter);
+  const [drafts, occasions, occasionDraftMap] = await Promise.all([
+    fetchPageData(ctx.orgId, statusFilter),
+    fetchUpcomingOccasions(),
+    fetchOccasionDraftMap(ctx.orgId),
+  ]);
 
   // Summary counts (across all drafts, not just filtered)
   const allDrafts = statusFilter ? await fetchPageData(ctx.orgId) : drafts;
@@ -142,6 +192,12 @@ export default async function ContentDraftsPage({
           </p>
         </div>
       </div>
+
+      {/* ── Upcoming Occasions ──────────────────────────────────────── */}
+      <OccasionTimeline
+        occasions={occasions}
+        existingDraftsByOccasionId={occasionDraftMap}
+      />
 
       {/* ── Filter tabs ────────────────────────────────────────────── */}
       <DraftFilterTabs />

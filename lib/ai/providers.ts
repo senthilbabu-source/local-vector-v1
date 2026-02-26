@@ -99,6 +99,9 @@ export const MODELS = {
 
   /** AI Chat Assistant — streaming conversational agent with tool calls */
   'chat-assistant': openai('gpt-4o'),
+
+  /** Menu OCR — GPT-4o Vision for PDF/image menu extraction (Sprint 59A) */
+  'menu-ocr': openai('gpt-4o'),
 } as const;
 
 export type ModelKey = keyof typeof MODELS;

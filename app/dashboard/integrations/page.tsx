@@ -17,7 +17,10 @@ import Link from 'next/link';
 import { getSafeAuthContext } from '@/lib/auth';
 import { createClient } from '@/lib/supabase/server';
 import { BIG_6_PLATFORMS } from '@/lib/schemas/integrations';
+import { canConnectGBP, type PlanTier } from '@/lib/plan-enforcer';
 import PlatformRow, { type IntegrationData } from './_components/PlatformRow';
+import GBPConnectButton from './_components/GBPConnectButton';
+import WordPressConnectButton from './_components/WordPressConnectButton';
 import { getListingHealth } from './_utils/health';
 
 // ---------------------------------------------------------------------------
@@ -86,13 +89,73 @@ function napCoverage(integrations: Integration[]): { connected: number; pct: num
 // Page
 // ---------------------------------------------------------------------------
 
+// ---------------------------------------------------------------------------
+// GBP OAuth status fetch
+// ---------------------------------------------------------------------------
+
+async function fetchGBPStatus(orgId: string): Promise<{
+  connected: boolean;
+  googleEmail: string | null;
+  gbpAccountName: string | null;
+}> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const supabase = (await createClient()) as any;
+
+  // RLS org_isolation_select on google_oauth_tokens ensures only this org's row
+  const { data } = await supabase
+    .from('google_oauth_tokens')
+    .select('google_email, gbp_account_name')
+    .eq('org_id', orgId)
+    .maybeSingle();
+
+  return {
+    connected: !!data,
+    googleEmail: data?.google_email ?? null,
+    gbpAccountName: data?.gbp_account_name ?? null,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// WordPress status fetch
+// ---------------------------------------------------------------------------
+
+async function fetchWordPressStatus(locationId: string): Promise<{
+  connected: boolean;
+  siteUrl: string | null;
+}> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const supabase = (await createClient()) as any;
+
+  const { data } = await supabase
+    .from('location_integrations')
+    .select('listing_url')
+    .eq('location_id', locationId)
+    .eq('platform', 'wordpress')
+    .maybeSingle();
+
+  return {
+    connected: !!data,
+    siteUrl: data?.listing_url ?? null,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Page
+// ---------------------------------------------------------------------------
+
 export default async function IntegrationsPage() {
   const ctx = await getSafeAuthContext();
-  if (!ctx) {
+  if (!ctx || !ctx.orgId) {
     redirect('/login');
   }
 
   const locations = await fetchPageData();
+  const gbp = await fetchGBPStatus(ctx.orgId);
+  // Fetch WordPress status for the first location (single-location MVP)
+  const firstLocationId = locations[0]?.id ?? null;
+  const wp = firstLocationId ? await fetchWordPressStatus(firstLocationId) : { connected: false, siteUrl: null };
+  const gbpConfigured = !!process.env.GOOGLE_CLIENT_ID;
+  const planAllowed = canConnectGBP((ctx.plan ?? 'trial') as PlanTier);
 
   // Overall connected count across all locations × all 6 platforms
   const totalConnected = locations.reduce(
@@ -165,6 +228,48 @@ export default async function IntegrationsPage() {
               </p>
             </div>
           )}
+        </div>
+      )}
+
+      {/* ── GBP Connect section ────────────────────────────────────── */}
+      <div className="overflow-hidden rounded-xl bg-surface-dark ring-1 ring-white/5">
+        <div className="flex items-center justify-between border-b border-white/5 bg-midnight-slate px-5 py-3">
+          <div>
+            <h2 className="text-sm font-semibold text-white">Google Business Profile</h2>
+            <p className="mt-0.5 text-xs text-slate-500">
+              Connect your GBP account to enable auto-publishing and real-time sync.
+            </p>
+          </div>
+        </div>
+        <div className="px-5 py-4">
+          <GBPConnectButton
+            configured={gbpConfigured}
+            planAllowed={planAllowed}
+            connected={gbp.connected}
+            googleEmail={gbp.googleEmail}
+            gbpAccountName={gbp.gbpAccountName}
+          />
+        </div>
+      </div>
+
+      {/* ── WordPress Connect section ──────────────────────────────── */}
+      {firstLocationId && (
+        <div className="overflow-hidden rounded-xl bg-surface-dark ring-1 ring-white/5">
+          <div className="flex items-center justify-between border-b border-white/5 bg-midnight-slate px-5 py-3">
+            <div>
+              <h2 className="text-sm font-semibold text-white">WordPress</h2>
+              <p className="mt-0.5 text-xs text-slate-500">
+                Connect your WordPress site to auto-publish content drafts as pages.
+              </p>
+            </div>
+          </div>
+          <div className="px-5 py-4">
+            <WordPressConnectButton
+              locationId={firstLocationId}
+              connected={wp.connected}
+              siteUrl={wp.siteUrl}
+            />
+          </div>
         </div>
       )}
 
@@ -259,8 +364,8 @@ export default async function IntegrationsPage() {
       {/* ── Informational footer note ───────────────────────────────── */}
       {locations.length > 0 && (
         <p className="text-center text-xs text-slate-600">
-          OAuth connection (real-time sync to Google Business Profile, Yelp, Apple Maps,
-          Facebook, Tripadvisor, Bing Places) will be wired in Phase 8b. Enter your
+          Google Business Profile OAuth is live. Yelp, Apple Maps,
+          Facebook, Tripadvisor, and Bing Places OAuth will be wired in future phases. Enter your
           listing URLs now so AI engines can reference them immediately.
         </p>
       )}

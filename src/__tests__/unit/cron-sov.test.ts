@@ -24,7 +24,18 @@ vi.mock('@/lib/services/sov-engine.service', () => ({
     ourBusinessCited: false,
     businessesFound: [],
     citationUrl: null,
+    engine: 'perplexity',
   }),
+  runMultiModelSOVQuery: vi.fn().mockResolvedValue([{
+    queryId: 'q1',
+    queryText: 'best hookah in Alpharetta GA',
+    queryCategory: 'discovery',
+    locationId: 'loc-uuid-001',
+    ourBusinessCited: false,
+    businessesFound: [],
+    citationUrl: null,
+    engine: 'perplexity',
+  }]),
   writeSOVResults: vi.fn().mockResolvedValue({
     shareOfVoice: 0,
     citationRate: 0,
@@ -41,6 +52,7 @@ vi.mock('@/lib/supabase/server', () => ({
 // ── Mock the email helper ────────────────────────────────────────────────
 vi.mock('@/lib/email', () => ({
   sendSOVReport: vi.fn().mockResolvedValue(undefined),
+  sendWeeklyDigest: vi.fn().mockResolvedValue(undefined),
 }));
 
 // ── Mock the Occasion Engine ─────────────────────────────────────────────
@@ -63,6 +75,7 @@ vi.mock('@/lib/services/prompt-intelligence.service', () => ({
 // ── Mock the Plan Enforcer ───────────────────────────────────────────────
 vi.mock('@/lib/plan-enforcer', () => ({
   canRunAutopilot: vi.fn().mockReturnValue(true),
+  canRunMultiModelSOV: vi.fn().mockReturnValue(false),
 }));
 
 // ── Mock the Autopilot Create Draft ──────────────────────────────────────
@@ -88,7 +101,7 @@ vi.mock('@/lib/inngest/client', () => ({
 import { GET } from '@/app/api/cron/sov/route';
 import { createServiceRoleClient } from '@/lib/supabase/server';
 import { runSOVQuery, writeSOVResults } from '@/lib/services/sov-engine.service';
-import { sendSOVReport } from '@/lib/email';
+import { sendSOVReport, sendWeeklyDigest } from '@/lib/email';
 import { runOccasionScheduler } from '@/lib/services/occasion-engine.service';
 import { detectQueryGaps } from '@/lib/services/prompt-intelligence.service';
 import { canRunAutopilot } from '@/lib/plan-enforcer';
@@ -146,7 +159,8 @@ function makeMockSupabase(queries: unknown[] = []) {
       return {
         select: vi.fn().mockReturnThis(),
         eq: vi.fn().mockReturnThis(),
-        limit: vi.fn().mockReturnThis(),
+        order: vi.fn().mockReturnThis(),
+        limit: vi.fn().mockResolvedValue({ data: [], error: null }),
         maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }),
         insert: vi.fn().mockResolvedValue({ data: null, error: null }),
         upsert: vi.fn().mockResolvedValue({ data: null, error: null }),
@@ -272,8 +286,8 @@ describe('GET /api/cron/sov', () => {
 
     await GET(makeRequest(CRON_SECRET));
 
-    expect(vi.mocked(sendSOVReport)).toHaveBeenCalled();
-    expect(vi.mocked(sendSOVReport)).toHaveBeenLastCalledWith(
+    expect(vi.mocked(sendWeeklyDigest)).toHaveBeenCalled();
+    expect(vi.mocked(sendWeeklyDigest)).toHaveBeenLastCalledWith(
       expect.objectContaining({
         to: 'owner@test.com',
         businessName: 'Charcoal N Chill',

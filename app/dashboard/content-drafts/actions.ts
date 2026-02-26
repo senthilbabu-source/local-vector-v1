@@ -31,6 +31,8 @@ const CreateDraftSchema = z.object({
   draft_title: z.string().min(3, 'Title must be at least 3 characters').max(200),
   draft_content: z.string().min(10, 'Content must be at least 10 characters').max(10000),
   content_type: z.enum(['faq_page', 'occasion_page', 'blog_post', 'landing_page', 'gbp_post']),
+  trigger_type: z.enum(['manual', 'occasion', 'first_mover', 'prompt_missing']).optional(),
+  trigger_id: z.string().uuid().optional(),
 });
 
 const EditDraftSchema = z.object({
@@ -149,6 +151,8 @@ export async function createManualDraft(formData: FormData): Promise<ActionResul
     draft_title: formData.get('draft_title'),
     draft_content: formData.get('draft_content'),
     content_type: formData.get('content_type'),
+    trigger_type: formData.get('trigger_type') || undefined,
+    trigger_id: formData.get('trigger_id') || undefined,
   });
 
   if (!parsed.success) {
@@ -161,7 +165,8 @@ export async function createManualDraft(formData: FormData): Promise<ActionResul
   // ── Insert ─────────────────────────────────────────────────────────────────
   const { error } = await supabase.from('content_drafts').insert({
     org_id: ctx.orgId,
-    trigger_type: 'manual',
+    trigger_type: parsed.data.trigger_type ?? 'manual',
+    trigger_id: parsed.data.trigger_id ?? null,
     draft_title: parsed.data.draft_title,
     draft_content: parsed.data.draft_content,
     content_type: parsed.data.content_type,
@@ -437,12 +442,12 @@ export async function publishDraft(formData: FormData): Promise<PublishActionRes
       // Fetch WordPress config from location_integrations
       const { data: integration } = await supabase
         .from('location_integrations')
-        .select('listing_url, external_id')
+        .select('listing_url, wp_username, wp_app_password')
         .eq('location_id', draft.location_id)
         .eq('platform', 'wordpress')
         .single();
 
-      if (!integration?.listing_url) {
+      if (!integration?.listing_url || !integration?.wp_username || !integration?.wp_app_password) {
         return {
           success: false,
           error: 'WordPress not connected. Go to Settings → Integrations to connect.',
@@ -451,8 +456,8 @@ export async function publishDraft(formData: FormData): Promise<PublishActionRes
 
       const result = await publishToWordPress(draft, {
         siteUrl: integration.listing_url,
-        username: '', // TODO: credentials storage migration
-        appPassword: '',
+        username: integration.wp_username,
+        appPassword: integration.wp_app_password,
       });
 
       await supabase

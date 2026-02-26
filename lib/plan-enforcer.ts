@@ -95,10 +95,26 @@ export function canRunOccasionEngine(plan: PlanTier): boolean {
 }
 
 /**
+ * Citation Gap Dashboard (Doc 18 §3) — view citation intelligence and gap scores.
+ * Growth or Agency plan required.
+ */
+export function canViewCitationGap(plan: PlanTier): boolean {
+  return plan === 'growth' || plan === 'agency';
+}
+
+/**
  * Google Business Profile OAuth connection (Doc GBP Onboarding RFC Rev 2).
  * Allows the org to link its GBP account for profile sync and post publishing.
  * Available on Starter, Growth, and Agency plans (not Trial).
  */
 export function canConnectGBP(plan: PlanTier): boolean {
   return plan === 'starter' || plan === 'growth' || plan === 'agency';
+}
+
+/**
+ * Multi-Model SOV — run queries against both Perplexity + OpenAI (Sprint 61B).
+ * Starter orgs run single-model (Perplexity only); Growth/Agency get both.
+ */
+export function canRunMultiModelSOV(plan: PlanTier): boolean {
+  return plan === 'growth' || plan === 'agency';
 }

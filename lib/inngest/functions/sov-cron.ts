@@ -18,18 +18,20 @@
 // ---------------------------------------------------------------------------
 
 import { inngest } from '../client';
+import { withTimeout } from '../timeout';
 import { createServiceRoleClient } from '@/lib/supabase/server';
 import {
   runSOVQuery,
+  runMultiModelSOVQuery,
   writeSOVResults,
   sleep,
   type SOVQueryInput,
   type SOVQueryResult,
 } from '@/lib/services/sov-engine.service';
-import { sendSOVReport } from '@/lib/email';
+import { sendWeeklyDigest } from '@/lib/email';
 import { runOccasionScheduler } from '@/lib/services/occasion-engine.service';
 import { detectQueryGaps } from '@/lib/services/prompt-intelligence.service';
-import { canRunAutopilot, type PlanTier } from '@/lib/plan-enforcer';
+import { canRunAutopilot, canRunMultiModelSOV, type PlanTier } from '@/lib/plan-enforcer';
 import { createDraft, archiveExpiredOccasionDrafts } from '@/lib/autopilot/create-draft';
 import { getPendingRechecks, completeRecheck } from '@/lib/autopilot/post-publish';
 
@@ -85,12 +87,21 @@ export async function processOrgSOV(batch: OrgBatch): Promise<OrgSOVResult> {
   const results: SOVQueryResult[] = [];
   let queriesCited = 0;
 
-  // Run queries sequentially with rate limiting
+  // Run queries sequentially with rate limiting.
+  // Growth/Agency orgs get multi-model (Perplexity + OpenAI); Starter gets single-model.
+  const useMultiModel = canRunMultiModelSOV(batch.plan as PlanTier);
+
   for (const query of batch.queries) {
     try {
-      const result = await runSOVQuery(query);
-      results.push(result);
-      if (result.ourBusinessCited) queriesCited++;
+      if (useMultiModel) {
+        const multiResults = await runMultiModelSOVQuery(query);
+        results.push(...multiResults);
+        if (multiResults.some((r) => r.ourBusinessCited)) queriesCited++;
+      } else {
+        const result = await runSOVQuery(query);
+        results.push(result);
+        if (result.ourBusinessCited) queriesCited++;
+      }
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       console.error(`[inngest-sov] Query "${query.query_text}" failed:`, msg);
@@ -136,14 +147,50 @@ export async function processOrgSOV(batch: OrgBatch): Promise<OrgSOVResult> {
   const businessName = (batch.queries[0] as any).locations?.business_name ?? 'Your Business';
 
   if (ownerEmail) {
-    await sendSOVReport({
+    // Compute SOV delta from visibility_analytics
+    const { data: prevVis } = await supabase
+      .from('visibility_analytics')
+      .select('share_of_voice')
+      .eq('org_id', batch.orgId)
+      .order('snapshot_date', { ascending: false })
+      .limit(2);
+    const visRows = prevVis ?? [];
+    const sovDelta = visRows.length >= 2
+      ? visRows[0].share_of_voice - visRows[1].share_of_voice
+      : null;
+
+    // Find top competitor from recent evaluations
+    const { data: recentEvals } = await supabase
+      .from('sov_evaluations')
+      .select('mentioned_competitors')
+      .eq('org_id', batch.orgId)
+      .order('created_at', { ascending: false })
+      .limit(50);
+    const competitorCounts: Record<string, number> = {};
+    for (const ev of recentEvals ?? []) {
+      for (const c of ev.mentioned_competitors ?? []) {
+        competitorCounts[c] = (competitorCounts[c] ?? 0) + 1;
+      }
+    }
+    const topCompetitor = Object.entries(competitorCounts)
+      .sort((a, b) => b[1] - a[1])[0]?.[0] ?? null;
+
+    const citedCount = results.filter((r) => r.ourBusinessCited).length;
+    const citationRate = results.length > 0
+      ? Math.round((citedCount / results.length) * 100)
+      : null;
+
+    await sendWeeklyDigest({
       to: ownerEmail,
       businessName,
       shareOfVoice: Math.round(shareOfVoice),
       queriesRun: results.length,
-      queriesCited: results.filter((r) => r.ourBusinessCited).length,
+      queriesCited: citedCount,
       firstMoverCount,
       dashboardUrl: 'https://app.localvector.ai/dashboard/share-of-voice',
+      sovDelta,
+      topCompetitor,
+      citationRate,
     }).catch((err: unknown) =>
       console.error('[inngest-sov] Email send failed:', err),
     );
@@ -220,10 +267,13 @@ export const sovCronFunction = inngest.createFunction(
   {
     id: 'sov-weekly-cron',
     concurrency: { limit: 3 },
-    retries: 3,
+    retries: 2,
   },
   { event: 'cron/sov.weekly' },
   async ({ step }) => {
+    const startedAt = new Date().toISOString();
+    const t0 = Date.now();
+
     // Step 1: Fetch all eligible queries, group by org
     const orgBatches = await step.run('fetch-eligible-queries', async () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -264,14 +314,22 @@ export const sovCronFunction = inngest.createFunction(
     });
 
     if (!orgBatches.length) {
-      return { orgs_processed: 0, queries_run: 0 };
+      return {
+        function_id: 'sov-weekly-cron',
+        event_name: 'cron/sov.weekly',
+        started_at: startedAt,
+        completed_at: new Date().toISOString(),
+        duration_ms: Date.now() - t0,
+        orgs_processed: 0,
+        queries_run: 0,
+      };
     }
 
-    // Step 2: Fan out — one step per org
+    // Step 2: Fan out — one step per org (55s timeout per step)
     const orgResults = await Promise.all(
       orgBatches.map((batch) =>
         step.run(`sov-org-${batch.orgId}`, async () => {
-          return await processOrgSOV(batch);
+          return await withTimeout(() => processOrgSOV(batch));
         }),
       ),
     );
@@ -325,7 +383,12 @@ export const sovCronFunction = inngest.createFunction(
     });
 
     // Aggregate summary
-    return {
+    const summary = {
+      function_id: 'sov-weekly-cron',
+      event_name: 'cron/sov.weekly',
+      started_at: startedAt,
+      completed_at: new Date().toISOString(),
+      duration_ms: Date.now() - t0,
       orgs_processed: orgResults.filter((r) => r.success).length,
       orgs_failed: orgResults.filter((r) => !r.success).length,
       queries_run: orgResults.reduce((sum, r) => sum + r.queriesRun, 0),
@@ -334,5 +397,8 @@ export const sovCronFunction = inngest.createFunction(
       occasion_drafts: orgResults.reduce((sum, r) => sum + r.occasionDrafts, 0),
       gaps_detected: orgResults.reduce((sum, r) => sum + r.gapsDetected, 0),
     };
+
+    console.log('[inngest-sov] Run complete:', JSON.stringify(summary));
+    return summary;
   },
 );

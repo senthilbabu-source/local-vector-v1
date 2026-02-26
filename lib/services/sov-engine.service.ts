@@ -17,7 +17,7 @@
 // ---------------------------------------------------------------------------
 
 import { generateText } from 'ai';
-import { getModel, hasApiKey } from '@/lib/ai/providers';
+import { getModel, hasApiKey, type ModelKey } from '@/lib/ai/providers';
 import { SovCronResultSchema, type SovCronResultOutput } from '@/lib/ai/schemas';
 import { createDraft } from '@/lib/autopilot/create-draft';
 
@@ -46,6 +46,7 @@ export interface SOVQueryResult {
   ourBusinessCited: boolean;
   businessesFound: string[];
   citationUrl: string | null;
+  engine: string;
 }
 
 // ---------------------------------------------------------------------------
@@ -70,7 +71,7 @@ Include every business mentioned. Do not summarize. Be exhaustive.`;
 // Mock result — used when API keys are absent (local dev, CI)
 // ---------------------------------------------------------------------------
 
-function mockSOVResult(query: SOVQueryInput): SOVQueryResult {
+function mockSOVResult(query: SOVQueryInput, engine = 'perplexity'): SOVQueryResult {
   return {
     queryId: query.id,
     queryText: query.query_text,
@@ -79,11 +80,21 @@ function mockSOVResult(query: SOVQueryInput): SOVQueryResult {
     ourBusinessCited: false,
     businessesFound: [],
     citationUrl: null,
+    engine,
   };
 }
 
 // ---------------------------------------------------------------------------
-// runSOVQuery — Executes a single SOV query against Perplexity Sonar
+// Model key → engine name mapping
+// ---------------------------------------------------------------------------
+
+const MODEL_ENGINE_MAP: Record<string, string> = {
+  'sov-query': 'perplexity',
+  'sov-query-openai': 'openai',
+};
+
+// ---------------------------------------------------------------------------
+// runSOVQuery — Executes a single SOV query against a configurable model
 // ---------------------------------------------------------------------------
 
 /**
@@ -92,16 +103,25 @@ function mockSOVResult(query: SOVQueryInput): SOVQueryResult {
  * Uses fuzzy name matching (case-insensitive substring) to detect mentions —
  * AI responses may abbreviate or slightly alter business names.
  *
- * Falls back to mock result when PERPLEXITY_API_KEY is absent.
+ * @param modelKey — defaults to 'sov-query' (Perplexity Sonar). Pass
+ *   'sov-query-openai' for GPT-4o multi-model SOV.
+ *
+ * Falls back to mock result when required API key is absent.
  * Throws on API errors — caller must handle per-query failures.
  */
-export async function runSOVQuery(query: SOVQueryInput): Promise<SOVQueryResult> {
-  if (!hasApiKey('perplexity')) {
-    return mockSOVResult(query);
+export async function runSOVQuery(
+  query: SOVQueryInput,
+  modelKey: ModelKey = 'sov-query',
+): Promise<SOVQueryResult> {
+  const engine = MODEL_ENGINE_MAP[modelKey] ?? 'perplexity';
+  const provider = engine === 'openai' ? 'openai' : 'perplexity';
+
+  if (!hasApiKey(provider)) {
+    return mockSOVResult(query, engine);
   }
 
   const { text } = await generateText({
-    model: getModel('sov-query'),
+    model: getModel(modelKey),
     system: 'You are a local business search assistant. Always respond with valid JSON only.',
     prompt: buildSOVCronPrompt(query.query_text),
     temperature: 0.3,
@@ -133,7 +153,31 @@ export async function runSOVQuery(query: SOVQueryInput): Promise<SOVQueryResult>
       (b) => !b.toLowerCase().includes(businessName) && !businessName.includes(b.toLowerCase())
     ),
     citationUrl,
+    engine,
   };
+}
+
+// ---------------------------------------------------------------------------
+// runMultiModelSOVQuery — Run same query against Perplexity + OpenAI in parallel
+// ---------------------------------------------------------------------------
+
+/**
+ * Run a single SOV query against both Perplexity Sonar and GPT-4o in parallel.
+ * Returns 1-2 results (gracefully handles one provider failing).
+ * Used for Growth/Agency orgs to get multi-model visibility data.
+ */
+export async function runMultiModelSOVQuery(
+  query: SOVQueryInput,
+): Promise<SOVQueryResult[]> {
+  const [perplexityResult, openaiResult] = await Promise.allSettled([
+    runSOVQuery(query, 'sov-query'),
+    runSOVQuery(query, 'sov-query-openai'),
+  ]);
+
+  const results: SOVQueryResult[] = [];
+  if (perplexityResult.status === 'fulfilled') results.push(perplexityResult.value);
+  if (openaiResult.status === 'fulfilled') results.push(openaiResult.value);
+  return results;
 }
 
 // ---------------------------------------------------------------------------
@@ -169,7 +213,7 @@ export async function writeSOVResults(
       org_id: orgId,
       location_id: result.locationId,
       query_id: result.queryId,
-      engine: 'perplexity',
+      engine: result.engine ?? 'perplexity',
       rank_position: result.ourBusinessCited ? 1 : null,
       mentioned_competitors: result.businessesFound,
       raw_response: JSON.stringify({
