@@ -28,10 +28,13 @@ vi.mock('@/lib/autopilot/create-draft', () => ({
   createDraft: vi.fn().mockResolvedValue(null),
 }));
 
+import type { SupabaseClient } from '@supabase/supabase-js';
+import type { Database } from '@/lib/supabase/database.types';
 import {
   runSOVQuery,
   writeSOVResults,
   type SOVQueryInput,
+  type SOVQueryResult,
 } from '@/lib/services/sov-engine.service';
 import { generateText } from 'ai';
 import { hasApiKey } from '@/lib/ai/providers';
@@ -53,6 +56,20 @@ const MOCK_QUERY: SOVQueryInput = {
 
 // ── Helpers ──────────────────────────────────────────────────────────────
 
+/** Build a typed SOVQueryResult with sensible defaults. */
+function makeResult(
+  overrides: Partial<SOVQueryResult> &
+    Pick<SOVQueryResult, 'queryId' | 'queryText' | 'queryCategory' | 'locationId'>,
+): SOVQueryResult {
+  return {
+    ourBusinessCited: false,
+    businessesFound: [],
+    citationUrl: null,
+    engine: 'perplexity',
+    ...overrides,
+  };
+}
+
 function makeMockSupabase() {
   const mockUpsert = vi.fn().mockResolvedValue({ data: null, error: null });
   const mockInsert = vi.fn().mockResolvedValue({ data: null, error: null });
@@ -60,7 +77,7 @@ function makeMockSupabase() {
     eq: vi.fn().mockResolvedValue({ data: null, error: null }),
   });
 
-  return {
+  const client = {
     from: vi.fn(() => ({
       upsert: mockUpsert,
       insert: mockInsert,
@@ -68,6 +85,11 @@ function makeMockSupabase() {
     })),
     _mockUpsert: mockUpsert,
     _mockInsert: mockInsert,
+  };
+
+  return client as unknown as SupabaseClient<Database> & {
+    _mockUpsert: typeof mockUpsert;
+    _mockInsert: typeof mockInsert;
   };
 }
 
@@ -167,10 +189,10 @@ describe('writeSOVResults', () => {
 
   it('calculates share_of_voice as percentage of cited queries', async () => {
     const supabase = makeMockSupabase();
-    const results = [
-      { queryId: 'q1', queryText: 'test', queryCategory: 'discovery', locationId: 'loc1', ourBusinessCited: true, businessesFound: [], citationUrl: null },
-      { queryId: 'q2', queryText: 'test2', queryCategory: 'discovery', locationId: 'loc1', ourBusinessCited: false, businessesFound: ['Competitor'], citationUrl: null },
-      { queryId: 'q3', queryText: 'test3', queryCategory: 'near_me', locationId: 'loc1', ourBusinessCited: true, businessesFound: [], citationUrl: 'https://yelp.com' },
+    const results: SOVQueryResult[] = [
+      makeResult({ queryId: 'q1', queryText: 'test', queryCategory: 'discovery', locationId: 'loc1', ourBusinessCited: true }),
+      makeResult({ queryId: 'q2', queryText: 'test2', queryCategory: 'discovery', locationId: 'loc1', businessesFound: ['Competitor'] }),
+      makeResult({ queryId: 'q3', queryText: 'test3', queryCategory: 'near_me', locationId: 'loc1', ourBusinessCited: true, citationUrl: 'https://yelp.com' }),
     ];
 
     const metrics = await writeSOVResults('org-001', results, supabase);
@@ -180,10 +202,10 @@ describe('writeSOVResults', () => {
 
   it('detects first mover opportunities (no businesses found)', async () => {
     const supabase = makeMockSupabase();
-    const results = [
-      { queryId: 'q1', queryText: 'date night Alpharetta', queryCategory: 'occasion', locationId: 'loc1', ourBusinessCited: false, businessesFound: [], citationUrl: null },
-      { queryId: 'q2', queryText: 'best hookah near me', queryCategory: 'near_me', locationId: 'loc1', ourBusinessCited: false, businessesFound: [], citationUrl: null },
-      { queryId: 'q3', queryText: 'vs competitor', queryCategory: 'comparison', locationId: 'loc1', ourBusinessCited: false, businessesFound: [], citationUrl: null },
+    const results: SOVQueryResult[] = [
+      makeResult({ queryId: 'q1', queryText: 'date night Alpharetta', queryCategory: 'occasion', locationId: 'loc1' }),
+      makeResult({ queryId: 'q2', queryText: 'best hookah near me', queryCategory: 'near_me', locationId: 'loc1' }),
+      makeResult({ queryId: 'q3', queryText: 'vs competitor', queryCategory: 'comparison', locationId: 'loc1' }),
     ];
 
     const metrics = await writeSOVResults('org-001', results, supabase);
@@ -193,8 +215,8 @@ describe('writeSOVResults', () => {
 
   it('writes to visibility_analytics via upsert', async () => {
     const supabase = makeMockSupabase();
-    const results = [
-      { queryId: 'q1', queryText: 'test', queryCategory: 'discovery', locationId: 'loc1', ourBusinessCited: true, businessesFound: [], citationUrl: null },
+    const results: SOVQueryResult[] = [
+      makeResult({ queryId: 'q1', queryText: 'test', queryCategory: 'discovery', locationId: 'loc1', ourBusinessCited: true }),
     ];
 
     await writeSOVResults('org-001', results, supabase);
@@ -204,10 +226,10 @@ describe('writeSOVResults', () => {
 
   it('excludes custom and comparison categories from first mover', async () => {
     const supabase = makeMockSupabase();
-    const results = [
-      { queryId: 'q1', queryText: 'custom query', queryCategory: 'custom', locationId: 'loc1', ourBusinessCited: false, businessesFound: [], citationUrl: null },
-      { queryId: 'q2', queryText: 'vs Cloud 9', queryCategory: 'comparison', locationId: 'loc1', ourBusinessCited: false, businessesFound: [], citationUrl: null },
-      { queryId: 'q3', queryText: 'best BBQ in Alpharetta', queryCategory: 'discovery', locationId: 'loc1', ourBusinessCited: false, businessesFound: [], citationUrl: null },
+    const results: SOVQueryResult[] = [
+      makeResult({ queryId: 'q1', queryText: 'custom query', queryCategory: 'custom', locationId: 'loc1' }),
+      makeResult({ queryId: 'q2', queryText: 'vs Cloud 9', queryCategory: 'comparison', locationId: 'loc1' }),
+      makeResult({ queryId: 'q3', queryText: 'best BBQ in Alpharetta', queryCategory: 'discovery', locationId: 'loc1' }),
     ];
 
     const metrics = await writeSOVResults('org-001', results, supabase);
@@ -218,8 +240,8 @@ describe('writeSOVResults', () => {
 
   it('does not flag first mover when competitors are found', async () => {
     const supabase = makeMockSupabase();
-    const results = [
-      { queryId: 'q1', queryText: 'best hookah', queryCategory: 'discovery', locationId: 'loc1', ourBusinessCited: false, businessesFound: ['Cloud 9 Lounge'], citationUrl: null },
+    const results: SOVQueryResult[] = [
+      makeResult({ queryId: 'q1', queryText: 'best hookah', queryCategory: 'discovery', locationId: 'loc1', businessesFound: ['Cloud 9 Lounge'] }),
     ];
 
     const metrics = await writeSOVResults('org-001', results, supabase);

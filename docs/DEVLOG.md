@@ -4,6 +4,30 @@
 
 ---
 
+## 2026-02-26 — Fix: SOV Engine Test Type Errors (Post-Sprint 66)
+
+**Goal:** Fix pre-existing TSC errors in `sov-engine-service.test.ts` — missing `engine` property on `SOVQueryResult` test fixtures and untyped mock Supabase client.
+
+**Root cause:** The `engine` field was added to `SOVQueryResult` in Sprint 61 (multi-model SOV), but the `writeSOVResults` test fixtures were never updated to include it. The mock Supabase client also lacked a proper type cast to `SupabaseClient<Database>`.
+
+**Scope:**
+- `src/__tests__/unit/sov-engine-service.test.ts` — **FIX.** Added `makeResult()` typed helper that defaults `engine: 'perplexity'` and all required fields. Replaced 9 inline fixture objects across 5 tests with `makeResult()` calls. Cast mock Supabase client through `unknown` to `SupabaseClient<Database>`. Added imports for `SupabaseClient`, `Database`, `SOVQueryResult`.
+
+**Key design decisions:**
+- `makeResult()` is future-proof: if `SOVQueryResult` gains more required fields, only one default location needs updating.
+- Mock Supabase uses `as unknown as SupabaseClient<Database> & { _mockUpsert; _mockInsert }` intersection to preserve test-only accessors while satisfying TSC.
+
+**Tests impacted:**
+- `src/__tests__/unit/sov-engine-service.test.ts` — **11 Vitest tests.** All passing. Zero behavioral change.
+
+**Run commands:**
+```bash
+npx vitest run src/__tests__/unit/sov-engine-service.test.ts  # 11 tests passing
+npx tsc --noEmit  # 0 errors in this file
+```
+
+---
+
 ## 2026-02-26 — Sprint 66: README and package.json Identity Fix (Completed)
 
 **Goal:** Replace the default create-next-app README boilerplate with a comprehensive project README, and fix the package.json name from `scaffold-tmp` to `local-vector-v1`.
