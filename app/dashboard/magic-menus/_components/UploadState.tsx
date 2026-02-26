@@ -14,7 +14,7 @@
 
 import { useRef, useState } from 'react';
 import type { MenuWorkspaceData } from '@/lib/types/menu';
-import { simulateAIParsing, uploadLocalVectorCsv, uploadPosExport } from '../actions';
+import { simulateAIParsing, uploadLocalVectorCsv, uploadPosExport, uploadMenuFile } from '../actions';
 import { getLocalVectorCsvTemplate } from '@/lib/utils/parseCsvMenu';
 
 // ---------------------------------------------------------------------------
@@ -55,11 +55,43 @@ export default function UploadState({
   const [isParsing,  setIsParsing]  = useState(false);
   const [error,      setError]      = useState<string | null>(null);
 
-  // File-input refs — one per CSV tab
+  // File-input refs
+  const aiFileInputRef = useRef<HTMLInputElement>(null);
   const csvInputRef = useRef<HTMLInputElement>(null);
   const posInputRef = useRef<HTMLInputElement>(null);
 
-  // ── Tab 1 — AI simulation (existing, unchanged) ────────────────────────
+  // ── Tab 1 — AI Magic Extract: file upload via GPT-4o Vision ───────────
+  async function handleMenuFileUpload(file: File) {
+    setError(null);
+    setIsParsing(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('locationId', locationId);
+      const result = await uploadMenuFile(formData);
+      if (result.success) {
+        onParseComplete(result.menu);
+      } else {
+        setError(result.error);
+      }
+    } finally {
+      setIsParsing(false);
+    }
+  }
+
+  function handleAiFileDrop(e: React.DragEvent<HTMLDivElement>) {
+    e.preventDefault();
+    setIsDragOver(false);
+    const file = e.dataTransfer.files[0];
+    if (file) handleMenuFileUpload(file);
+  }
+
+  function handleAiFileSelect() {
+    const file = aiFileInputRef.current?.files?.[0];
+    if (file) handleMenuFileUpload(file);
+  }
+
+  // ── Tab 1 — AI simulation (demo fallback) ────────────────────────────
   async function handleSimulate() {
     setError(null);
     setIsParsing(true);
@@ -180,7 +212,7 @@ export default function UploadState({
 
       {/* ── Tab panels ─────────────────────────────────────────────── */}
 
-      {/* TAB 1 — AI Magic Extract (original UX, unchanged) */}
+      {/* TAB 1 — AI Magic Extract */}
       {activeTab === 'ai' && (
         <div className="space-y-4" role="tabpanel" aria-label="AI Magic Extract">
 
@@ -188,29 +220,46 @@ export default function UploadState({
           <div
             onDragOver={(e) => { e.preventDefault(); setIsDragOver(true); }}
             onDragLeave={() => setIsDragOver(false)}
-            onDrop={(e)    => { e.preventDefault(); setIsDragOver(false); }}
+            onDrop={handleAiFileDrop}
+            onClick={() => !isParsing && aiFileInputRef.current?.click()}
             className={[
-              'rounded-2xl border-2 border-dashed p-12 text-center transition',
+              'rounded-2xl border-2 border-dashed p-12 text-center transition cursor-pointer',
               isDragOver
                 ? 'border-electric-indigo bg-electric-indigo/8'
-                : 'border-white/10 bg-surface-dark',
+                : 'border-white/10 bg-surface-dark hover:border-white/20',
+              isParsing ? 'opacity-50 cursor-not-allowed' : '',
             ].join(' ')}
           >
             <UploadCloudIcon isDragOver={isDragOver} />
             <p className="mt-3 text-sm font-medium text-slate-300">
               Drop your menu PDF or image here
             </p>
-            <p className="mt-1 text-xs text-slate-500">PDF, PNG, JPG up to 10 MB</p>
-            <p className="mt-1 text-xs text-slate-600">
-              (File upload coming soon — use the button below for a demo)
+            <p className="mt-1 text-xs text-slate-500">PDF, PNG, JPG, WebP up to 10 MB</p>
+            <p className="mt-1.5 text-xs text-electric-indigo font-medium">
+              or click to browse files
             </p>
+            <input
+              ref={aiFileInputRef}
+              type="file"
+              accept=".pdf,.jpg,.jpeg,.png,.webp,application/pdf,image/jpeg,image/png,image/webp"
+              disabled={isParsing}
+              onChange={handleAiFileSelect}
+              className="hidden"
+            />
           </div>
+
+          {isParsing && (
+            <div className="flex items-center justify-center gap-2 py-2">
+              <SpinnerIcon />
+              <span className="text-sm font-medium text-electric-indigo">Extracting menu with AI…</span>
+            </div>
+          )}
 
           <Divider />
 
           {/* Simulate AI Parsing demo */}
           <div className="rounded-2xl bg-surface-dark border border-white/5 p-6 text-center space-y-3">
-            <p className="text-sm font-medium text-slate-300">Try the AI extraction demo</p>
+            <p className="text-sm font-medium text-slate-300">Or try the AI extraction demo</p>
             <p className="text-xs text-slate-500 max-w-sm mx-auto">
               Generates a realistic menu for {locationName} using mock AI extraction —
               confidence scores, categories, and all.

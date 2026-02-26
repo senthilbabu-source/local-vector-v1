@@ -35,6 +35,9 @@ export interface WeeklyDigestProps {
   queriesCited: number;
   firstMoverCount: number;
   dashboardUrl: string;
+  sovDelta?: number | null;
+  topCompetitor?: string | null;
+  citationRate?: number | null;
 }
 
 // ---------------------------------------------------------------------------
@@ -48,6 +51,9 @@ const defaultProps: WeeklyDigestProps = {
   queriesCited: 4,
   firstMoverCount: 2,
   dashboardUrl: 'https://app.localvector.ai/dashboard',
+  sovDelta: 5,
+  topCompetitor: 'Cloud 9 Lounge',
+  citationRate: 42,
 };
 
 // ---------------------------------------------------------------------------
@@ -61,9 +67,16 @@ export default function WeeklyDigest({
   queriesCited = defaultProps.queriesCited,
   firstMoverCount = defaultProps.firstMoverCount,
   dashboardUrl = defaultProps.dashboardUrl,
+  sovDelta = defaultProps.sovDelta,
+  topCompetitor = defaultProps.topCompetitor,
+  citationRate = defaultProps.citationRate,
 }: WeeklyDigestProps) {
   const sovColor =
     shareOfVoice >= 50 ? '#16a34a' : shareOfVoice >= 20 ? '#f59e0b' : '#dc2626';
+
+  const deltaColor = sovDelta != null && sovDelta > 0 ? '#16a34a' : '#dc2626';
+  const deltaArrow = sovDelta != null && sovDelta > 0 ? '\u2191' : '\u2193';
+  const deltaAbs = sovDelta != null ? Math.abs(Math.round(sovDelta * 100)) : null;
 
   return (
     <Html>
@@ -85,6 +98,11 @@ export default function WeeklyDigest({
               {shareOfVoice}%
             </Text>
             <Text style={scoreLabel}>Share of Voice</Text>
+            {sovDelta != null && deltaAbs != null && (
+              <Text style={{ ...deltaText, color: deltaColor }}>
+                {deltaArrow} {deltaAbs}% vs last week
+              </Text>
+            )}
           </Section>
 
           {/* Stats Row */}
@@ -97,7 +115,22 @@ export default function WeeklyDigest({
               <strong>{queriesCited}</strong>
               {'\n'}Times Cited
             </Text>
+            {citationRate != null && (
+              <Text style={statItem}>
+                <strong>{citationRate}%</strong>
+                {'\n'}Citation Rate
+              </Text>
+            )}
           </Section>
+
+          {/* Top Competitor */}
+          {topCompetitor && (
+            <Section style={competitorBox}>
+              <Text style={competitorText}>
+                Top competitor in AI results: <strong>{topCompetitor}</strong>
+              </Text>
+            </Section>
+          )}
 
           {/* First Mover Alert */}
           {firstMoverCount > 0 && (
@@ -193,6 +226,26 @@ const statItem = {
   fontSize: '14px',
   margin: '0',
   whiteSpace: 'pre-line' as const,
+};
+
+const deltaText = {
+  fontSize: '14px',
+  fontWeight: '600' as const,
+  margin: '8px 0 0',
+};
+
+const competitorBox = {
+  backgroundColor: '#0A1628',
+  borderLeft: '4px solid #6366f1',
+  borderRadius: '4px',
+  padding: '12px 16px',
+  margin: '0 0 16px',
+};
+
+const competitorText = {
+  color: '#94A3B8',
+  fontSize: '13px',
+  margin: '0',
 };
 
 const firstMoverBox = {

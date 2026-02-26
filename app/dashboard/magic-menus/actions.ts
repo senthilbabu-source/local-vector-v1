@@ -16,6 +16,9 @@ import type {
 } from '@/lib/types/menu';
 import { parseLocalVectorCsv } from '@/lib/utils/parseCsvMenu';
 import { parsePosExportWithGPT4o } from '@/lib/utils/parsePosExport';
+import { generateObject } from 'ai';
+import { getModel, hasApiKey } from '@/lib/ai/providers';
+import { MenuOCRSchema, type MenuOCROutput } from '@/lib/ai/schemas';
 
 // ---------------------------------------------------------------------------
 // Phase 18 — OpenAI menu extraction helper
@@ -605,6 +608,118 @@ export async function uploadPosExport(
   }
 
   return saveExtractedMenu(ctx.orgId, locationId, 'csv-pos', menuData);
+}
+
+// ---------------------------------------------------------------------------
+// uploadMenuFile — Path 3: PDF/Image Menu Upload via GPT-4o Vision
+// ---------------------------------------------------------------------------
+
+const ALLOWED_MENU_MIME_TYPES = new Set([
+  'application/pdf',
+  'image/jpeg',
+  'image/png',
+  'image/webp',
+]);
+
+const MAX_MENU_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
+
+/**
+ * Server Action: extract menu items from a PDF or image file using GPT-4o
+ * Vision, then store the resulting MenuExtractedData for Confidence Triage review.
+ *
+ * Expects FormData with a "file" key (PDF/JPG/PNG/WebP) and "locationId".
+ * Uses Vercel AI SDK generateObject() with the MenuOCRSchema.
+ *
+ * SECURITY: org_id is always derived from getSafeAuthContext() — never from client.
+ */
+export async function uploadMenuFile(
+  formData: FormData,
+): Promise<{ success: true; menu: MenuWorkspaceData } | { success: false; error: string }> {
+  const ctx = await getSafeAuthContext();
+  if (!ctx?.orgId) return { success: false, error: 'Unauthorized' };
+
+  const file       = formData.get('file') as File | null;
+  const locationId = formData.get('locationId') as string | null;
+
+  if (!file)       return { success: false, error: 'No file provided.' };
+  if (!locationId) return { success: false, error: 'No location specified.' };
+
+  // Validate file type
+  if (!ALLOWED_MENU_MIME_TYPES.has(file.type)) {
+    return { success: false, error: 'Unsupported file type. Please upload a PDF, JPG, PNG, or WebP file.' };
+  }
+
+  // Validate file size
+  if (file.size > MAX_MENU_FILE_SIZE) {
+    return { success: false, error: 'File is too large. Maximum size is 10 MB.' };
+  }
+
+  if (!hasApiKey('openai')) {
+    return {
+      success: false,
+      error: 'AI menu extraction is not configured. Please use the Gold Standard CSV template instead.',
+    };
+  }
+
+  try {
+    // Read file to base64 for GPT-4o Vision
+    const arrayBuffer = await file.arrayBuffer();
+    const base64 = Buffer.from(arrayBuffer).toString('base64');
+
+    const { object } = await generateObject({
+      model: getModel('menu-ocr'),
+      schema: MenuOCRSchema,
+      messages: [
+        {
+          role: 'system',
+          content: [
+            'You are a restaurant menu digitizer.',
+            'Extract ALL menu items from the provided document into structured JSON.',
+            'For each item provide: name, description (if visible), price (as a string like "$12"), and category (infer from section headers or context).',
+            'If a section header is visible (e.g. "Appetizers", "Mains"), use it as the category.',
+            'Do NOT invent items that are not in the document.',
+          ].join('\n'),
+        },
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'text' as const,
+              text: 'Extract all menu items from this restaurant menu:',
+            },
+            {
+              type: 'file' as const,
+              data: base64,
+              mimeType: file.type as 'application/pdf' | 'image/jpeg' | 'image/png' | 'image/webp',
+            },
+          ],
+        },
+      ],
+    });
+
+    // Map OCR items → MenuExtractedItem[] (add id, confidence, image_url)
+    const ocrResult = object as MenuOCROutput;
+    const menuData: MenuExtractedData = {
+      extracted_at: new Date().toISOString(),
+      items: ocrResult.items.map((item) => ({
+        id: crypto.randomUUID(),
+        name: item.name,
+        description: item.description,
+        price: item.price,
+        category: item.category,
+        confidence: 0.70, // OCR-derived items start at 70% confidence
+      })),
+    };
+
+    return saveExtractedMenu(ctx.orgId, locationId, 'csv-pos', menuData);
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error('[uploadMenuFile] GPT-4o Vision extraction failed:', msg);
+    return {
+      success: false,
+      error: 'AI could not extract menu items from this file. The file may be unreadable, too large, or in an unsupported format. Try the Gold Standard CSV template instead.',
+    };
+  }
 }
 
 // ---------------------------------------------------------------------------

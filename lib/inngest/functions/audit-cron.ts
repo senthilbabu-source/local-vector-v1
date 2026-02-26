@@ -16,6 +16,7 @@
 // ---------------------------------------------------------------------------
 
 import { inngest } from '../client';
+import { withTimeout } from '../timeout';
 import { createServiceRoleClient } from '@/lib/supabase/server';
 import {
   auditLocation,
@@ -23,6 +24,7 @@ import {
 } from '@/lib/services/ai-audit.service';
 import { runInterceptForCompetitor } from '@/lib/services/competitor-intercept.service';
 import { sendHallucinationAlert } from '@/lib/email';
+import { snapshotRevenueLeak } from '@/lib/services/revenue-leak.service';
 
 // ---------------------------------------------------------------------------
 // Per-org audit processor — exported for testability
@@ -167,6 +169,9 @@ export const auditCronFunction = inngest.createFunction(
   },
   { event: 'cron/audit.daily' },
   async ({ step }) => {
+    const startedAt = new Date().toISOString();
+    const t0 = Date.now();
+
     // Step 1: Fetch all active paying orgs
     const orgs = await step.run('fetch-audit-orgs', async () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -182,14 +187,24 @@ export const auditCronFunction = inngest.createFunction(
       return (data ?? []) as Array<{ id: string; name: string }>;
     });
 
-    if (!orgs.length) return { orgs_found: 0, processed: 0 };
+    if (!orgs.length) {
+      return {
+        function_id: 'audit-daily-cron',
+        event_name: 'cron/audit.daily',
+        started_at: startedAt,
+        completed_at: new Date().toISOString(),
+        duration_ms: Date.now() - t0,
+        orgs_found: 0,
+        processed: 0,
+      };
+    }
 
     // Step 2: Fan out hallucination audits (one step per org)
     const auditResults = await Promise.all(
       orgs.map((org) =>
         step.run(`audit-org-${org.id}`, async () => {
           try {
-            return await processOrgAudit(org);
+            return await withTimeout(() => processOrgAudit(org));
           } catch (err) {
             const msg = err instanceof Error ? err.message : String(err);
             console.error(`[inngest-audit] Org ${org.id} (${org.name}) failed:`, msg);
@@ -204,7 +219,7 @@ export const auditCronFunction = inngest.createFunction(
       orgs.map((org) =>
         step.run(`intercept-org-${org.id}`, async () => {
           try {
-            return await processOrgIntercepts(org);
+            return await withTimeout(() => processOrgIntercepts(org));
           } catch (err) {
             const msg = err instanceof Error ? err.message : String(err);
             console.error(`[inngest-audit] Competitor loop failed for org ${org.id}:`, msg);
@@ -214,12 +229,47 @@ export const auditCronFunction = inngest.createFunction(
       ),
     );
 
-    return {
+    // Step 4: Fan out revenue leak snapshots (one step per org)
+    await Promise.all(
+      orgs.map((org) =>
+        step.run(`snapshot-revenue-leak-${org.id}`, async () => {
+          try {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const supabase = createServiceRoleClient() as any;
+            const { data: location } = await supabase
+              .from('locations')
+              .select('id')
+              .eq('org_id', org.id)
+              .eq('is_primary', true)
+              .maybeSingle();
+
+            if (!location) return { snapshotted: false };
+
+            await snapshotRevenueLeak(supabase, org.id, location.id);
+            return { snapshotted: true };
+          } catch (err) {
+            const msg = err instanceof Error ? err.message : String(err);
+            console.error(`[inngest-audit] Revenue snapshot failed for org ${org.id}:`, msg);
+            return { snapshotted: false };
+          }
+        }),
+      ),
+    );
+
+    const summary = {
+      function_id: 'audit-daily-cron',
+      event_name: 'cron/audit.daily',
+      started_at: startedAt,
+      completed_at: new Date().toISOString(),
+      duration_ms: Date.now() - t0,
       orgs_found: orgs.length,
       processed: auditResults.filter((r) => r.success).length,
       failed: auditResults.filter((r) => !r.success).length,
       hallucinations_inserted: auditResults.reduce((sum, r) => sum + r.hallucinationsInserted, 0),
       intercepts_inserted: interceptResults.reduce((sum, r) => sum + r.interceptsInserted, 0),
     };
+
+    console.log('[inngest-audit] Run complete:', JSON.stringify(summary));
+    return summary;
   },
 );

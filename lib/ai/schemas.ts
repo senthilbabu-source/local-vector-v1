@@ -112,3 +112,18 @@ export const CitationCronResultSchema = z.object({
 });
 
 export type CitationCronResultOutput = z.infer<typeof CitationCronResultSchema>;
+
+// ── Menu OCR — GPT-4o Vision PDF/image extraction (Sprint 59A) ──────────────
+
+export const MenuOCRItemSchema = z.object({
+  name: z.string(),
+  description: z.string().optional(),
+  price: z.string().optional(),
+  category: z.string(),
+});
+
+export const MenuOCRSchema = z.object({
+  items: z.array(MenuOCRItemSchema).min(1),
+});
+
+export type MenuOCROutput = z.infer<typeof MenuOCRSchema>;

@@ -200,3 +200,116 @@ export function calculateRevenueLeak(
     },
   };
 }
+
+// ---------------------------------------------------------------------------
+// snapshotRevenueLeak — Persist daily revenue leak snapshot (Sprint 59B)
+// ---------------------------------------------------------------------------
+
+/**
+ * Fetches current hallucination, SOV, and competitor data for an org/location,
+ * runs calculateRevenueLeak(), and upserts the result into revenue_snapshots.
+ *
+ * Called by the daily audit cron. Idempotent per (org_id, location_id, date)
+ * via the UNIQUE constraint on revenue_snapshots.
+ *
+ * NOTE: This is the only non-pure function in this module — it performs DB
+ * reads and writes. The supabase client is injected (AI_RULES §6).
+ */
+export async function snapshotRevenueLeak(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  supabase: any,
+  orgId: string,
+  locationId: string,
+): Promise<void> {
+  // ── 1. Fetch inputs in parallel ────────────────────────────────────────
+  const [halResult, visResult, interceptResult, configResult] = await Promise.all([
+    // Open hallucinations for this org/location
+    supabase
+      .from('ai_hallucinations')
+      .select('severity, correction_status')
+      .eq('org_id', orgId)
+      .eq('location_id', locationId)
+      .eq('correction_status', 'open'),
+
+    // Latest visibility_analytics SOV
+    supabase
+      .from('visibility_analytics')
+      .select('share_of_voice')
+      .eq('org_id', orgId)
+      .order('snapshot_date', { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+
+    // Latest competitor intercepts
+    supabase
+      .from('competitor_intercepts')
+      .select('competitor_name')
+      .eq('org_id', orgId),
+
+    // Revenue config (or null → use defaults)
+    supabase
+      .from('revenue_config')
+      .select('avg_ticket, monthly_searches, local_conversion_rate, walk_away_rate')
+      .eq('org_id', orgId)
+      .eq('location_id', locationId)
+      .maybeSingle(),
+  ]);
+
+  const hallucinations: HallucinationInput[] = (halResult.data ?? []).map(
+    (h: { severity: string; correction_status: string }) => ({
+      severity: h.severity as HallucinationInput['severity'],
+      correction_status: h.correction_status,
+    }),
+  );
+
+  const actualSOV: number = visResult.data?.share_of_voice ?? 0;
+
+  const interceptRows = interceptResult.data ?? [];
+  const competitorInputs: CompetitorInput[] = interceptRows.map(
+    (r: { competitor_name: string }) => ({
+      winner: r.competitor_name,
+      business_name: '',
+    }),
+  );
+
+  const config: RevenueConfig = configResult.data ?? DEFAULT_CONFIG;
+
+  // ── 2. Calculate ───────────────────────────────────────────────────────
+  const leak = calculateRevenueLeak(
+    hallucinations,
+    actualSOV,
+    competitorInputs,
+    interceptRows.length || 1,
+    config,
+  );
+
+  // ── 3. Upsert snapshot ─────────────────────────────────────────────────
+  const today = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
+
+  const { error } = await supabase
+    .from('revenue_snapshots')
+    .upsert(
+      {
+        org_id: orgId,
+        location_id: locationId,
+        leak_low: leak.leak_low,
+        leak_high: leak.leak_high,
+        breakdown: leak.breakdown,
+        inputs_snapshot: {
+          hallucination_count: hallucinations.length,
+          actual_sov: actualSOV,
+          intercept_count: interceptRows.length,
+          config,
+        },
+        snapshot_date: today,
+      },
+      { onConflict: 'org_id,location_id,snapshot_date' },
+    );
+
+  if (error) {
+    console.error(`[revenue-leak] Snapshot upsert failed for org ${orgId}:`, error.message);
+    throw new Error(`Revenue snapshot upsert failed: ${error.message}`);
+  }
+
+  console.log(`[revenue-leak] Snapshot saved for org ${orgId}, location ${locationId}, date ${today}`);
+}

@@ -12,6 +12,7 @@
 // ---------------------------------------------------------------------------
 
 import { Resend } from 'resend';
+import WeeklyDigest, { type WeeklyDigestProps } from '@/emails/WeeklyDigest';
 
 // Lazily initialised — only created when sendHallucinationAlert() is actually
 // called with a valid RESEND_API_KEY. Avoids build-time crash during static
@@ -106,7 +107,12 @@ export interface SOVReportPayload {
 }
 
 /**
- * Sends the weekly SOV report email to the org owner.
+ * @deprecated Use `sendWeeklyDigest()` instead (Sprint 59C).
+ * This function uses raw HTML strings. The new `sendWeeklyDigest()` uses the
+ * React Email template at `emails/WeeklyDigest.tsx` with richer data
+ * (SOV delta, top competitor, citation rate).
+ *
+ * Kept for backwards compatibility with existing test mocks.
  *
  * No-ops silently when RESEND_API_KEY is not configured.
  * Errors are NOT swallowed — callers should wrap with .catch().
@@ -176,4 +182,45 @@ export async function sendSOVReport(
       </div>
     `,
   });
+}
+
+// ---------------------------------------------------------------------------
+// Weekly Digest — React Email template (Sprint 59C)
+// ---------------------------------------------------------------------------
+
+export interface WeeklyDigestPayload extends WeeklyDigestProps {
+  to: string;
+}
+
+/**
+ * Sends the weekly digest email using the React Email template.
+ * Uses Resend's `react:` property for server-side rendering.
+ *
+ * Replaces sendSOVReport() in the SOV cron paths.
+ *
+ * No-ops silently when RESEND_API_KEY is not configured.
+ * Errors are NOT swallowed — callers should wrap with .catch().
+ */
+export async function sendWeeklyDigest(
+  payload: WeeklyDigestPayload
+): Promise<void> {
+  if (!process.env.RESEND_API_KEY) {
+    console.log(
+      `[email] RESEND_API_KEY absent — skipping weekly digest for ${payload.businessName}`
+    );
+    return;
+  }
+
+  const subject = `Your AI Visibility Report — ${payload.businessName}`;
+
+  const { to, ...templateProps } = payload;
+
+  await getResend().emails.send({
+    from: 'LocalVector Reports <reports@localvector.ai>',
+    to,
+    subject,
+    react: WeeklyDigest(templateProps),
+  });
+
+  console.log(`[email] Weekly digest sent to ${to} for ${payload.businessName}`);
 }
