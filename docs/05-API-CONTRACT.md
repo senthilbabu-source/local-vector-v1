@@ -1420,7 +1420,7 @@ Cookie: <session>
 }
 ```
 
-**Response:** Server-Sent Events (SSE) data stream via AI SDK `toDataStreamResponse()`. Not a standard JSON response — consumed by `useChat()` from `@ai-sdk/react` on the client.
+**Response:** Server-Sent Events (SSE) data stream via AI SDK `toDataStreamResponse({ getErrorMessage })`. Not a standard JSON response — consumed by `useChat()` from `@ai-sdk/react` on the client. Stream errors (API key, rate limit, timeout) are mapped to user-friendly messages via `getErrorMessage` before reaching the client.
 
 **System prompt:** "You are the LocalVector AI Assistant — an expert in AI visibility, AEO (Answer Engine Optimization), GEO (Generative Engine Optimization), and hallucination detection for local businesses."
 

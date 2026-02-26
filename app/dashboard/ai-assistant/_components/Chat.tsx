@@ -259,31 +259,39 @@ function LoadingSkeleton() {
 // ---------------------------------------------------------------------------
 
 function ErrorBanner({ error, onRetry, sessionExpired }: { error: Error; onRetry: () => void; sessionExpired: boolean }) {
+    // Use the server-provided message if it's meaningful, otherwise fall back
+    const rawMsg = error.message ?? '';
+    const isGeneric = !rawMsg || rawMsg === 'Failed to fetch the chat response.' || rawMsg === 'Unauthorized';
+    const displayMessage = sessionExpired
+        ? 'Session expired — please sign in again.'
+        : isGeneric
+            ? 'AI service temporarily unavailable. Please try again.'
+            : rawMsg;
+
     return (
         <div className="mx-2 sm:mx-4 mb-3 rounded-xl bg-alert-crimson/10 border border-alert-crimson/20 px-4 py-3 flex items-center justify-between gap-3">
             <div className="flex-1 min-w-0">
                 <p className="text-sm text-alert-crimson font-medium">
-                    {sessionExpired
-                        ? 'Session expired — please sign in again.'
-                        : 'Something went wrong. Please try again.'}
+                    {displayMessage}
                 </p>
             </div>
-            {sessionExpired ? (
-                <a
-                    href="/login"
-                    className="shrink-0 text-xs font-semibold text-electric-indigo hover:text-white bg-electric-indigo/10 hover:bg-electric-indigo/20 px-3 py-1.5 rounded-lg transition-colors"
-                >
-                    Sign in
-                </a>
-            ) : (
+            <div className="flex items-center gap-2 shrink-0">
                 <button
                     type="button"
                     onClick={onRetry}
-                    className="shrink-0 text-xs font-semibold text-alert-crimson hover:text-white bg-alert-crimson/10 hover:bg-alert-crimson/20 px-3 py-1.5 rounded-lg transition-colors"
+                    className="text-xs font-semibold text-alert-crimson hover:text-white bg-alert-crimson/10 hover:bg-alert-crimson/20 px-3 py-1.5 rounded-lg transition-colors"
                 >
                     Retry
                 </button>
-            )}
+                {sessionExpired && (
+                    <a
+                        href="/login"
+                        className="text-xs font-semibold text-electric-indigo hover:text-white bg-electric-indigo/10 hover:bg-electric-indigo/20 px-3 py-1.5 rounded-lg transition-colors"
+                    >
+                        Sign in
+                    </a>
+                )}
+            </div>
         </div>
     );
 }

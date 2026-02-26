@@ -826,12 +826,18 @@ Tool `result.type` maps to UI components:
 | `hallucinations` | AlertList | `items: [{ severity, model, category, claim, truth }]` |
 | `competitor_comparison` | CompetitorList | `competitors: [{ name, analyses, recommendation }]` |
 
-### 33.4 — Error Handling
-- `error` from `useChat()` displayed in crimson error banner
-- 401 detection: `onResponse` callback checks `response.status === 401` (reliable — `error.message` only has body text, not status code)
-- On first 401: silently calls `supabase.auth.refreshSession()` via browser client, then auto-retries via `reload()`. User never sees the error.
+### 33.4 — Error Handling (two layers)
+
+**Layer 1 — Stream errors (route.ts):**
+`toDataStreamResponse({ getErrorMessage })` maps raw OpenAI/provider errors to user-friendly messages before they reach the client. Categories: API key misconfiguration, rate limiting (429), timeouts, and generic fallback. This fires when the provider fails **mid-stream** (HTTP 200 already sent).
+
+**Layer 2 — Client error banner (Chat.tsx):**
+- `ErrorBanner` displays the server-provided error message from the stream (not a generic fallback)
+- If the message is generic/empty (`"Failed to fetch the chat response."`, `"Unauthorized"`), shows "AI service temporarily unavailable"
+- Retry button (`reload()`) always visible on any error
+- 401 detection: `onResponse` callback checks `response.status === 401` (fires before stream errors)
+- On first 401: silently calls `supabase.auth.refreshSession()` via browser client, then auto-retries
 - On persistent 401 (refresh failed): shows "Session expired" banner with "Sign in" link to `/login`
-- Non-401: generic "Something went wrong" with retry button calling `reload()`
 
 ### 33.5 — SOV Sparkline
 Uses recharts `AreaChart` (NOT Tremor) — 120px height, signal-green stroke with gradient fill,

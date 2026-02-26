@@ -54,5 +54,15 @@ export async function POST(req: Request) {
         maxSteps: 5,
     });
 
-    return result.toDataStreamResponse();
+    return result.toDataStreamResponse({
+        getErrorMessage: (error) => {
+            const msg = error instanceof Error ? error.message : String(error);
+            console.error('[api/chat] stream error:', msg);
+
+            if (msg.includes('API key')) return 'AI service configuration error. Please contact support.';
+            if (msg.includes('429') || msg.includes('rate')) return 'AI service is busy. Please try again in a moment.';
+            if (msg.includes('timeout') || msg.includes('ETIMEDOUT')) return 'AI service timed out. Please try again.';
+            return 'AI service temporarily unavailable. Please try again.';
+        },
+    });
 }
