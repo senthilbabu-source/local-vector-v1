@@ -53,7 +53,40 @@ npx vitest run src/__tests__/unit/schema-generator-local-business.test.ts    # 2
 npx vitest run src/__tests__/unit/schema-generator-data.test.ts              # 8 tests
 ```
 
-**Test totals after Sprint 70:** Vitest: 900 tests (63 files), up from 818.
+**Test totals after Sprint 70:** Vitest: 900 tests (67 files), up from 818 (63 files).
+
+---
+
+## 2026-02-26 — Housekeeping: Fix 82 TypeScript Errors Across Test Suite
+
+**Goal:** Bring `npx tsc --noEmit` to zero errors. All 82 errors were in test files — no production code type errors existed.
+
+**Root causes (5 categories):**
+
+1. **Mock Supabase client casts (29 errors, 8 files):** `makeMockSupabase()` returned `{ from: vi.fn() }` without casting to `SupabaseClient<Database>`. Fix: `as unknown as SupabaseClient<Database>` on return.
+2. **HoursData Partial vs Record (18 errors, 1 file):** Zod schema in `app/onboarding/actions.ts` inferred `Record<DayOfWeek, ...>` (all keys required) instead of `Partial<Record<...>>`. Fix: made each day key optional in the Zod object schema to match `HoursData`.
+3. **vi.fn type API change (12 errors, 1 file):** `vi.fn<[], string>()` (old two-param syntax) → `vi.fn<() => string>()` (current single-param syntax).
+4. **React element props unknown (7 errors, 1 file):** `React.ReactElement` has `props: unknown` in newer `@types/react`. Fix: parameterized with `ReactElement<ShellProps>`.
+5. **Sprint 70 readonly fixtures (3 errors, 3 files):** `as const` on fixtures made `categories` a readonly tuple. Fix: explicit `SchemaLocationInput` type annotation instead of `as const`.
+
+**Additional fixes:** Missing `engine` field on SOVQueryResult mocks (5 errors, 3 files), schema-dts `WithContext<LocalBusiness>` property access (7 errors, 1 file), tuple annotation in filter callback (1 error, 1 file).
+
+**Files changed:**
+- `src/__fixtures__/golden-tenant.ts` — Explicit type annotations on Sprint 70 fixtures
+- `src/__tests__/unit/prompt-intelligence-service.test.ts` — Supabase mock cast + imports
+- `src/__tests__/unit/occasion-engine-service.test.ts` — Supabase mock cast + SOVQueryResult `engine` field
+- `src/__tests__/unit/competitor-intercept-service.test.ts` — Supabase mock cast with intersection type
+- `src/__tests__/unit/cron-sov.test.ts` — Supabase mock cast + SOVQueryResult `engine` field
+- `src/__tests__/unit/inngest-sov-cron.test.ts` — Supabase mock cast + SOVQueryResult `engine` field
+- `src/__tests__/unit/autopilot-create-draft.test.ts` — Supabase mock cast
+- `src/__tests__/unit/autopilot-publish.test.ts` — `Record<string, unknown>` cast for schema-dts assertions
+- `src/__tests__/unit/citation-engine-service.test.ts` — Supabase mock cast with intersection type
+- `src/__tests__/unit/multi-engine-action.test.ts` — Removed explicit tuple annotation
+- `src/__tests__/unit/components/layout/DashboardShell.test.tsx` — `vi.fn<() => string>()` syntax
+- `src/__tests__/unit/app/dashboard/layout.test.ts` — `ReactElement<ShellProps>` casts
+- `app/onboarding/actions.ts` — Optional day keys in HoursData Zod schema
+
+**Result:** `npx tsc --noEmit` → 0 errors. `npx vitest run` → 900 tests passing, 67 files (1 RLS isolation test skipped — requires running Supabase).
 
 ---
 

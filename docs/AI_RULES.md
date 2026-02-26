@@ -1033,6 +1033,11 @@ Agency-tier orgs with multiple locations can switch between them via a sidebar d
 ### 38.2 — No `as any` on Supabase Clients
 The clients in `lib/supabase/server.ts` are generic-typed with `<Database>`. **Never** cast `createClient()` or `createServiceRoleClient()` to `any`. The typed client provides autocomplete on `.from()` table names, `.select()` column inference, and return type safety.
 
+**Test mocks:** In unit tests, mock Supabase with `as unknown as SupabaseClient<Database>` (not bare objects or `as any`). If the test needs access to mock internals (e.g., `_mockUpsert`), use an intersection type:
+```typescript
+return client as unknown as SupabaseClient<Database> & { _mockUpsert: typeof mockUpsert };
+```
+
 ### 38.3 — Service Function Parameter Type
 Functions that accept an injected Supabase client must use the typed parameter:
 ```typescript

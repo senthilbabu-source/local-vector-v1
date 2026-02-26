@@ -36,11 +36,20 @@ const AmenitiesSchema = z.object({
   has_live_music:      z.boolean(),
 });
 
+// Build an optional-key object so z.infer produces Partial<Record<DayOfWeek, …>>
+// (matching the canonical HoursData type from ground-truth.ts).
+// z.record(z.enum(…)) infers a full Record (all keys required), which mismatches.
+const HoursDataSchema = z.object(
+  Object.fromEntries(DAYS.map((d) => [d, DayHoursSchema.optional()])) as {
+    [K in (typeof DAYS)[number]]: z.ZodOptional<typeof DayHoursSchema>;
+  },
+);
+
 const SaveGroundTruthSchema = z.object({
   location_id:  z.string().uuid('Invalid location ID'),
   business_name: z.string().min(1, 'Business name is required').max(255),
   amenities:    AmenitiesSchema,
-  hours_data:   z.record(z.enum(DAYS), DayHoursSchema),
+  hours_data:   HoursDataSchema,
 });
 
 export type SaveGroundTruthInput = z.infer<typeof SaveGroundTruthSchema>;

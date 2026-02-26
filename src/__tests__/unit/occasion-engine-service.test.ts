@@ -50,6 +50,8 @@ import {
 import { generateText } from 'ai';
 import { hasApiKey } from '@/lib/ai/providers';
 import { getRedis } from '@/lib/redis';
+import type { SupabaseClient } from '@supabase/supabase-js';
+import type { Database } from '@/lib/supabase/database.types';
 import type { LocalOccasionRow } from '@/lib/types/occasions';
 import type { SOVQueryResult } from '@/lib/services/sov-engine.service';
 
@@ -104,6 +106,7 @@ const MOCK_SOV_RESULTS: SOVQueryResult[] = [
     ourBusinessCited: false,
     businessesFound: [],
     citationUrl: null,
+    engine: 'perplexity',
   },
 ];
 
@@ -140,7 +143,7 @@ function makeMockSupabase(occasions: LocalOccasionRow[] = [], existingDrafts: un
         insert: vi.fn().mockResolvedValue({ data: null, error: null }),
       };
     }),
-  };
+  } as unknown as SupabaseClient<Database>;
 }
 
 // ── Setup / Teardown ─────────────────────────────────────────────────────
@@ -279,6 +282,7 @@ describe('checkOccasionAlerts', () => {
         ourBusinessCited: true,
         businessesFound: [],
         citationUrl: 'https://yelp.com/test',
+        engine: 'perplexity',
       },
     ];
 

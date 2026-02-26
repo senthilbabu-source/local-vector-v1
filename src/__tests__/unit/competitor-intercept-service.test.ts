@@ -28,6 +28,8 @@ vi.mock('@/lib/ai/providers', () => ({
 }));
 
 // ── Imports after mock declarations ──────────────────────────────────────
+import type { SupabaseClient } from '@supabase/supabase-js';
+import type { Database } from '@/lib/supabase/database.types';
 import {
   runInterceptForCompetitor,
   type InterceptParams,
@@ -60,7 +62,7 @@ function makeMockSupabase(insertError: { message: string } | null = null) {
   return {
     from: vi.fn(() => ({ insert: mockInsert })),
     _mockInsert: mockInsert,
-  };
+  } as unknown as SupabaseClient<Database> & { _mockInsert: ReturnType<typeof vi.fn> };
 }
 
 /** Mock generateText return value for Stage 1 (Perplexity). */

@@ -144,8 +144,11 @@ export const MOCK_SOV_RESPONSE = {
  * Sprint 70 — Schema Fix Generator input fixture.
  * Mirrors GOLDEN_TENANT.location but typed as SchemaLocationInput for
  * use in schema generator unit tests.
+ *
+ * Explicitly typed (not `as const`) to avoid readonly inference on
+ * `categories: string[]` which is incompatible with mutable `Categories`.
  */
-export const MOCK_SCHEMA_LOCATION = {
+export const MOCK_SCHEMA_LOCATION: import('@/lib/schema-generator/types').SchemaLocationInput = {
   business_name: 'Charcoal N Chill',
   address_line1: '11950 Jones Bridge Road Ste 103',
   city: 'Alpharetta',
@@ -175,25 +178,25 @@ export const MOCK_SCHEMA_LOCATION = {
   },
   categories: ['Hookah Bar', 'Indian Restaurant', 'Fusion Restaurant', 'Lounge', 'Nightlife'],
   google_place_id: 'ChIJi8-1ywdO9YgR9s5j-y0_1lI',
-} as const;
+};
 
 /**
  * Sprint 70 — Mock integrations for LocalBusiness schema tests.
  */
-export const MOCK_SCHEMA_INTEGRATIONS = [
+export const MOCK_SCHEMA_INTEGRATIONS: import('@/lib/schema-generator/types').SchemaIntegrationInput[] = [
   { platform: 'google', listing_url: 'https://g.page/charcoal-n-chill-alpharetta' },
   { platform: 'yelp', listing_url: 'https://www.yelp.com/biz/charcoal-n-chill-alpharetta' },
-] as const;
+];
 
 /**
  * Sprint 70 — Mock target queries for FAQ schema tests.
  */
-export const MOCK_SCHEMA_QUERIES = [
+export const MOCK_SCHEMA_QUERIES: import('@/lib/schema-generator/types').SchemaQueryInput[] = [
   { query_text: 'Best BBQ restaurant in Alpharetta GA', query_category: 'discovery' },
   { query_text: 'Best hookah bar near Alpharetta', query_category: 'near_me' },
   { query_text: 'Charcoal N Chill vs Cloud 9 Lounge Alpharetta', query_category: 'comparison' },
   { query_text: 'birthday party venue Alpharetta with hookah and private rooms', query_category: 'occasion' },
-] as const;
+];
 
 export const RIVAL_TENANT = {
   org: {

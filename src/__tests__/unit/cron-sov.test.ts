@@ -13,6 +13,8 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { NextRequest } from 'next/server';
+import type { SupabaseClient } from '@supabase/supabase-js';
+import type { Database } from '@/lib/supabase/database.types';
 
 // ── Mock the SOV engine service ──────────────────────────────────────────
 vi.mock('@/lib/services/sov-engine.service', () => ({
@@ -169,7 +171,7 @@ function makeMockSupabase(queries: unknown[] = []) {
         }),
       };
     }),
-  };
+  } as unknown as SupabaseClient<Database>;
 }
 
 // ── Setup / Teardown ─────────────────────────────────────────────────────
@@ -314,6 +316,7 @@ describe('GET /api/cron/sov', () => {
         ourBusinessCited: true,
         businessesFound: [],
         citationUrl: 'https://yelp.com/test',
+        engine: 'perplexity',
       });
 
     const res = await GET(makeRequest(CRON_SECRET));
@@ -350,6 +353,7 @@ describe('GET /api/cron/sov', () => {
       ourBusinessCited: true,
       businessesFound: ['Cloud 9 Lounge'],
       citationUrl: 'https://yelp.com/charcoal-n-chill',
+      engine: 'perplexity',
     });
 
     const res = await GET(makeRequest(CRON_SECRET));
@@ -505,7 +509,6 @@ describe('GET /api/cron/sov', () => {
           draftId: 'draft-123',
           locationId: 'loc-uuid-001',
           targetQuery: 'best italian austin',
-          publishedAt: new Date().toISOString(),
         },
       },
     ]);

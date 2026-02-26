@@ -41,16 +41,21 @@ import type {
   CitationSourceIntelligence,
   TenantListing,
 } from '@/lib/types/citations';
+import type { SupabaseClient } from '@supabase/supabase-js';
+import type { Database } from '@/lib/supabase/database.types';
 
 // ── Helpers ──────────────────────────────────────────────────────────────
 
 function makeMockSupabase() {
   const mockUpsert = vi.fn().mockResolvedValue({ data: null, error: null });
-  return {
+  const client = {
     from: vi.fn(() => ({
       upsert: mockUpsert,
     })),
     _mockUpsert: mockUpsert,
+  };
+  return client as unknown as SupabaseClient<Database> & {
+    _mockUpsert: typeof mockUpsert;
   };
 }
 

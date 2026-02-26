@@ -75,6 +75,14 @@ vi.mock('@/components/layout/DashboardShell', () => ({
 import DashboardLayout from '@/app/dashboard/layout';
 import type { SafeAuthContext } from '@/lib/auth';
 
+/** Props that DashboardShell receives — used to type-assert returned elements. */
+interface ShellProps {
+  displayName: string;
+  orgName: string;
+  plan: string | null;
+  children: React.ReactNode;
+}
+
 // ---------------------------------------------------------------------------
 // Fixtures — UUIDs use hex chars only (rule 2)
 // ---------------------------------------------------------------------------
@@ -230,7 +238,7 @@ describe('DashboardLayout — Render Props', () => {
 
   it('passes ctx.fullName as displayName to DashboardShell', async () => {
     mockGetSafeAuthContext.mockResolvedValue(BASE_CTX);
-    const el = (await DashboardLayout({ children: null })) as React.ReactElement;
+    const el = (await DashboardLayout({ children: null })) as React.ReactElement<ShellProps>;
     expect(el.props.displayName).toBe('Jane Doe');
   });
 
@@ -240,38 +248,38 @@ describe('DashboardLayout — Render Props', () => {
       fullName: null,
       email:    'jane@example.com',
     });
-    const el = (await DashboardLayout({ children: null })) as React.ReactElement;
+    const el = (await DashboardLayout({ children: null })) as React.ReactElement<ShellProps>;
     expect(el.props.displayName).toBe('jane');
   });
 
   it('passes ctx.orgName as orgName to DashboardShell', async () => {
     mockGetSafeAuthContext.mockResolvedValue(BASE_CTX);
-    const el = (await DashboardLayout({ children: null })) as React.ReactElement;
+    const el = (await DashboardLayout({ children: null })) as React.ReactElement<ShellProps>;
     expect(el.props.orgName).toBe('Charcoal N Chill');
   });
 
   it('falls back to "Your Organization" when ctx.orgName is null', async () => {
     mockGetSafeAuthContext.mockResolvedValue({ ...BASE_CTX, orgName: null });
-    const el = (await DashboardLayout({ children: null })) as React.ReactElement;
+    const el = (await DashboardLayout({ children: null })) as React.ReactElement<ShellProps>;
     expect(el.props.orgName).toBe('Your Organization');
   });
 
   it('passes ctx.plan to DashboardShell', async () => {
     mockGetSafeAuthContext.mockResolvedValue(BASE_CTX);
-    const el = (await DashboardLayout({ children: null })) as React.ReactElement;
+    const el = (await DashboardLayout({ children: null })) as React.ReactElement<ShellProps>;
     expect(el.props.plan).toBe('growth');
   });
 
   it('passes null for plan when ctx.plan is null', async () => {
     mockGetSafeAuthContext.mockResolvedValue({ ...BASE_CTX, plan: null });
-    const el = (await DashboardLayout({ children: null })) as React.ReactElement;
+    const el = (await DashboardLayout({ children: null })) as React.ReactElement<ShellProps>;
     expect(el.props.plan).toBeNull();
   });
 
   it('passes children through to DashboardShell', async () => {
     mockGetSafeAuthContext.mockResolvedValue(BASE_CTX);
     const child = React.createElement('p', { 'data-testid': 'page-content' }, 'Dashboard');
-    const el = (await DashboardLayout({ children: child })) as React.ReactElement;
+    const el = (await DashboardLayout({ children: child })) as React.ReactElement<ShellProps>;
     expect(el.props.children).toBe(child);
   });
 });

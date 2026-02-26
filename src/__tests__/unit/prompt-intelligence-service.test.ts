@@ -8,7 +8,9 @@
 //   npx vitest run src/__tests__/unit/prompt-intelligence-service.test.ts
 // ---------------------------------------------------------------------------
 
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
+import type { SupabaseClient } from '@supabase/supabase-js';
+import type { Database } from '@/lib/supabase/database.types';
 import {
   buildReferenceLibrary,
   detectQueryGaps,
@@ -64,7 +66,7 @@ function makeMockSupabase(config: MockTableConfig = {}) {
 
       return chain;
     }),
-  };
+  } as unknown as SupabaseClient<Database>;
 }
 
 // ---------------------------------------------------------------------------

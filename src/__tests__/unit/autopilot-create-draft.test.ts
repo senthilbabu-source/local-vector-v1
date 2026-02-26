@@ -1,4 +1,6 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
+import type { SupabaseClient } from '@supabase/supabase-js';
+import type { Database } from '@/lib/supabase/database.types';
 import type { AutopilotLocationContext, DraftTrigger } from '@/lib/types/autopilot';
 
 // ---------------------------------------------------------------------------
@@ -330,7 +332,7 @@ describe('archiveExpiredOccasionDrafts', () => {
         }
         return {};
       }),
-    };
+    } as unknown as SupabaseClient<Database>;
     const count = await archiveExpiredOccasionDrafts(supabase);
     expect(count).toBe(0);
   });
@@ -352,7 +354,7 @@ describe('archiveExpiredOccasionDrafts', () => {
         }
         return {};
       }),
-    };
+    } as unknown as SupabaseClient<Database>;
     const count = await archiveExpiredOccasionDrafts(supabase);
     expect(count).toBe(0);
   });

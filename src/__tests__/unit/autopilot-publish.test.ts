@@ -139,7 +139,7 @@ describe('publishAsDownload', () => {
 describe('buildLocalBusinessSchema', () => {
   it('includes name, address, phone from location', () => {
     const location = makeLocation();
-    const schema = buildLocalBusinessSchema(location);
+    const schema = buildLocalBusinessSchema(location) as unknown as Record<string, unknown>;
 
     expect(schema['@type']).toBe('LocalBusiness');
     expect(schema.name).toBe('Bella Napoli');
@@ -158,7 +158,7 @@ describe('buildLocalBusinessSchema', () => {
       address_line1: null,
       google_location_name: null,
     };
-    const schema = buildLocalBusinessSchema(location);
+    const schema = buildLocalBusinessSchema(location) as unknown as Record<string, unknown>;
 
     expect(schema.name).toBe('Test Biz');
     expect(schema.telephone).toBeUndefined();
@@ -169,11 +169,11 @@ describe('buildLocalBusinessSchema', () => {
 describe('buildFaqSchemaFromContent', () => {
   it('extracts Q&A pairs', () => {
     const content = 'Q: What is Bella Napoli?\nA: A great Italian restaurant.\n\nQ: Where is it?\nA: In Austin.';
-    const schema = buildFaqSchemaFromContent(content);
+    const schema = buildFaqSchemaFromContent(content) as unknown as Record<string, unknown>;
 
     expect(schema).not.toBeNull();
-    expect(schema!['@type']).toBe('FAQPage');
-    const entities = schema!.mainEntity as Array<{ name: string }>;
+    expect(schema['@type']).toBe('FAQPage');
+    const entities = schema.mainEntity as Array<{ name: string }>;
     expect(entities).toHaveLength(2);
     expect(entities[0].name).toBe('What is Bella Napoli?');
   });

@@ -9,6 +9,8 @@
 // ---------------------------------------------------------------------------
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import type { SupabaseClient } from '@supabase/supabase-js';
+import type { Database } from '@/lib/supabase/database.types';
 
 // ── Mock services before imports ──────────────────────────────────────────
 vi.mock('@/lib/services/sov-engine.service', () => ({
@@ -129,7 +131,7 @@ function mockSupabase() {
       };
       return chainable;
     }),
-  };
+  } as unknown as SupabaseClient<Database>;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   vi.mocked(createServiceRoleClient as any).mockReturnValue(mock);
   return { mock, mockMaybeSingle };
@@ -164,6 +166,7 @@ describe('processOrgSOV', () => {
       ourBusinessCited: true,
       businessesFound: ['Test Pizza'],
       citationUrl: 'https://yelp.com/test-pizza',
+      engine: 'perplexity',
     });
 
     const result = await processOrgSOV(makeBatch());
@@ -181,6 +184,7 @@ describe('processOrgSOV', () => {
         ourBusinessCited: false,
         businessesFound: [],
         citationUrl: null,
+        engine: 'perplexity',
       });
 
     const batch = makeBatch({

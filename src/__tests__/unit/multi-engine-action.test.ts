@@ -131,7 +131,7 @@ describe('runMultiEngineEvaluation', () => {
     expect(result).toEqual({ success: true });
     // ai_evaluations.insert should be called 4 times (once per engine)
     const evalCalls = mockFrom.mock.calls.filter(
-      ([table]: [string]) => table === 'ai_evaluations',
+      ([table]) => table === 'ai_evaluations',
     );
     expect(evalCalls.length).toBe(4);
     expect(revalidatePath).toHaveBeenCalledWith('/dashboard/hallucinations');

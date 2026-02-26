@@ -22,7 +22,7 @@ import { render, screen, fireEvent } from '@testing-library/react';
 // closures can reference them. vi.hoisted() runs at the same time as vi.mock().
 // ---------------------------------------------------------------------------
 
-const mockUsePathname = vi.hoisted(() => vi.fn<[], string>(() => '/dashboard'));
+const mockUsePathname = vi.hoisted(() => vi.fn<() => string>(() => '/dashboard'));
 
 // ---------------------------------------------------------------------------
 // Module mocks (hoisted automatically by Vitest)
