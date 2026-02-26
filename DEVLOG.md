@@ -4,6 +4,34 @@
 > This root file was maintained separately for early sprints (0–42). Both are now kept in sync.
 
 ---
+## 2026-02-26 — Sprint 67: Unit Tests for Stripe Webhook, Email Service (Completed)
+
+**Goal:** Add unit test coverage for two critical untested code paths: Stripe webhook route handler and email service (Resend).
+
+**Scope:**
+- `src/__tests__/unit/stripe-webhook.test.ts` — **NEW.** 18 Vitest tests covering: signature verification (4 cases), checkout.session.completed (8 cases), subscription.updated (4 cases), subscription.deleted (2 cases). Mocks: Stripe constructor (class mock), createServiceRoleClient. Zero live API calls.
+- `src/__tests__/unit/email-service.test.ts` — **NEW.** 14 Vitest tests covering: sendHallucinationAlert (6 cases), sendSOVReport (5 cases), sendWeeklyDigest (3 cases). Mocks: Resend class (class mock), WeeklyDigest component. Tests both no-op path (missing API key) and send path.
+
+**Key design decisions:**
+- Stripe mock pattern: mock the Stripe class itself using a class mock (`class MockStripe { webhooks = { constructEvent: mockFn } }`) rather than `vi.fn()` with arrow function, which cannot be called with `new`. Controls what `constructEvent()` returns per test.
+- Resend mock pattern: same class mock approach (`class MockResend { emails = { send: mockSend } }`) to support `new Resend()` in the lazy singleton.
+- WeeklyDigest mock: inline arrow function in `vi.mock()` factory to avoid Vitest hoisting TDZ issues with module-level variables.
+- Email tests verify the no-op path (missing RESEND_API_KEY) separately from the send path — this is a critical safety behavior that prevents accidental email sends in CI/dev.
+- All UUIDs in test fixtures use hex-only characters (AI_RULES §7). Golden Tenant org ID `a0eebc99-...` used throughout.
+- Uses Golden Tenant fixture data (AI_RULES §4) for email payloads.
+
+**Tests added:**
+- `src/__tests__/unit/stripe-webhook.test.ts` — **18 Vitest tests.** Stripe webhook route handler.
+- `src/__tests__/unit/email-service.test.ts` — **14 Vitest tests.** Email service (Resend).
+
+**Run commands:**
+```bash
+npx vitest run src/__tests__/unit/stripe-webhook.test.ts   # 18 tests passing
+npx vitest run src/__tests__/unit/email-service.test.ts    # 14 tests passing
+npx vitest run                                              # All tests passing
+```
+
+---
 ## 2026-02-26 — Fix: SOV Engine Test Type Errors (Post-Sprint 66)
 
 **Goal:** Fix pre-existing TSC errors in `sov-engine-service.test.ts` — missing `engine` property on `SOVQueryResult` test fixtures and untyped mock Supabase client.

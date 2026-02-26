@@ -24,7 +24,7 @@ CREATE POLICY "org_isolation_select"
   TO "authenticated"
   USING (
     "org_id" IN (
-      SELECT "org_id" FROM "public"."org_memberships"
+      SELECT "org_id" FROM "public"."memberships"
       WHERE "user_id" = auth.uid()
     )
   );
