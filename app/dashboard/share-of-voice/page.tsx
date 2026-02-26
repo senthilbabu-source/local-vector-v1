@@ -2,10 +2,16 @@ import { redirect } from 'next/navigation';
 import { getSafeAuthContext } from '@/lib/auth';
 import { createClient } from '@/lib/supabase/server';
 import { nextSundayLabel } from '@/app/dashboard/_components/scan-health-utils';
+import { detectQueryGaps } from '@/lib/services/prompt-intelligence.service';
+import { computeCategoryBreakdown } from '@/lib/services/prompt-intelligence.service';
+import { canRunSovEvaluation, type PlanTier } from '@/lib/plan-enforcer';
+import type { QueryGap } from '@/lib/types/prompt-intelligence';
 import SovCard, { type QueryWithEvals } from './_components/SovCard';
 import SOVScoreRing from './_components/SOVScoreRing';
 import SOVTrendChart, { type SOVDataPoint } from '@/app/dashboard/_components/SOVTrendChart';
 import FirstMoverCard from './_components/FirstMoverCard';
+import GapAlertCard from './_components/GapAlertCard';
+import CategoryBreakdownChart from './_components/CategoryBreakdownChart';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -22,6 +28,7 @@ type QueryRow = {
   id: string;
   location_id: string;
   query_text: string;
+  query_category: string;
 };
 
 type SovEvalRow = {
@@ -62,7 +69,7 @@ async function fetchPageData(orgId: string) {
 
       supabase
         .from('target_queries')
-        .select('id, location_id, query_text')
+        .select('id, location_id, query_text, query_category')
         .order('created_at', { ascending: true }),
 
       // Ordered newest-first so the first match per (query, engine) is the latest
@@ -140,6 +147,25 @@ export default async function ShareOfVoicePage() {
       date: s.snapshot_date,
       sov: Math.round(s.share_of_voice * 1000) / 10, // 0.333 → 33.3
     }));
+
+  // ── Prompt Intelligence gap detection (Growth/Agency only) ────────────────
+  let gaps: QueryGap[] = [];
+  const isGrowthPlus = canRunSovEvaluation(plan as PlanTier);
+  if (isGrowthPlus && locations.length > 0) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const gapSupabase = (await createClient()) as any;
+    gaps = await detectQueryGaps(ctx.orgId, locations[0].id, gapSupabase);
+  }
+
+  // ── Category breakdown (pure — no DB calls) ──────────────────────────────
+  const categoryBreakdown = computeCategoryBreakdown(
+    queries.map((q) => ({ id: q.id, query_category: q.query_category })),
+    evaluations.map((e) => ({
+      query_id: e.query_id,
+      rank_position: e.rank_position,
+      created_at: e.created_at,
+    })),
+  );
 
   return (
     <div className="space-y-8">
@@ -220,6 +246,42 @@ export default async function ShareOfVoicePage() {
                 createdAt={opp.created_at}
               />
             ))}
+          </div>
+        </section>
+      )}
+
+      {/* ── Prompt Intelligence: Category Breakdown + Gap Alerts ────────── */}
+      {isGrowthPlus && queries.length > 0 && (
+        <section>
+          <h2 className="text-sm font-semibold text-white tracking-tight mb-3">
+            Prompt Intelligence
+            {gaps.length > 0 && (
+              <span className="ml-2 text-xs font-medium text-alert-crimson">
+                {gaps.length} gap{gaps.length !== 1 ? 's' : ''} detected
+              </span>
+            )}
+          </h2>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+            <CategoryBreakdownChart breakdown={categoryBreakdown} />
+
+            {gaps.length > 0 && (
+              <div className="space-y-3">
+                <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wide">
+                  Query Gaps
+                </h3>
+                {gaps.slice(0, 5).map((gap, i) => (
+                  <GapAlertCard
+                    key={`${gap.gapType}-${i}`}
+                    gapType={gap.gapType}
+                    queryText={gap.queryText}
+                    queryCategory={gap.queryCategory}
+                    estimatedImpact={gap.estimatedImpact}
+                    suggestedAction={gap.suggestedAction}
+                  />
+                ))}
+              </div>
+            )}
           </div>
         </section>
       )}
