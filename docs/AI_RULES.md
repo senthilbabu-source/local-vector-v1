@@ -859,12 +859,23 @@ Server component. Fetches `citation_source_intelligence` for the tenant's **prim
 ### 34.2 — Page Audit Dashboard (`/dashboard/page-audits`)
 Server component. Reads `page_audits` table (org-scoped via RLS). Computes average `overall_score` across all audited pages. Plan gate: `canRunPageAudit()` (Growth+). Components:
 - `AuditScoreOverview` — SVG circular score ring for aggregate AEO readiness
-- `PageAuditCard` — per-page card with 5 dimension bars (Answer-First 35%, Schema 25%, FAQ 20%, Keyword 10%, Entity 10%), top recommendation, re-audit button
-- `DimensionBar` — reusable score bar with label, weight text, and color-coded fill
-- `PageAuditCardWrapper` — client wrapper binding `reauditPage` server action
+- `PageAuditCard` — per-page card with 5 expandable dimension bars (Answer-First 35%, Schema 25%, FAQ 20%, Keyword 10%, Entity 10%), accordion state (one expanded at a time), top recommendation, re-audit button. All dimension scores accept `number | null` — null renders "—" pending state (§20).
+- `DimensionBar` — expandable score bar with label, weight text, color-coded fill (green ≥80, amber ≥50, red <50), and chevron toggle. Expands to show `DimensionDetail`.
+- `DimensionDetail` — per-dimension explanation text + filtered recommendations (by `dimensionKey`). Schema-type recommendations show "Generate {schemaType} →" button linking to Sprint 70 generators.
+- `PageAuditCardWrapper` — client wrapper binding `reauditPage` and `generateSchemaFixes` server actions
+
+### 34.2.1 — PageAuditRecommendation Shape (Sprint 71)
+`PageAuditRecommendation` in `lib/page-audit/auditor.ts` has:
+- `issue: string` — what's wrong
+- `fix: string` — how to fix it
+- `impactPoints: number` — estimated score improvement
+- `dimensionKey?: DimensionKey` — which of the 5 dimensions this recommendation targets (`'answerFirst' | 'schemaCompleteness' | 'faqSchema' | 'keywordDensity' | 'entityClarity'`)
+- `schemaType?: SchemaFixType` — if the fix is "add schema", which type (`'FAQPage' | 'OpeningHoursSpecification' | 'LocalBusiness'`)
+
+Old recommendations without `dimensionKey`/`schemaType` (pre-Sprint 71) render fine — both fields are optional.
 
 ### 34.3 — Re-audit Server Action
-`reauditPage(pageUrl)` in `app/dashboard/page-audits/actions.ts`. Rate limited: 1 re-audit per page per 5 minutes (in-memory `Map`). Fetches existing audit row for `page_type` + `location_id`, calls `auditPage()` from `lib/page-audit/auditor.ts`, upserts result to `page_audits` (conflict on `org_id, page_url`).
+`reauditPage(pageUrl)` in `app/dashboard/page-audits/actions.ts`. Rate limited: 1 re-audit per page per 5 minutes (in-memory `Map`). Fetches existing audit row for `page_type` + `location_id`, calls `auditPage()` from `lib/page-audit/auditor.ts`, upserts all 5 dimension scores (`answer_first_score`, `schema_completeness_score`, `faq_schema_score`, `entity_clarity_score`, `aeo_readability_score`) + `faq_schema_present` + `overall_score` to `page_audits` (conflict on `org_id, page_url`).
 
 ### 34.4 — Prompt Intelligence Gap Alerts on SOV Page
 Added to `app/dashboard/share-of-voice/page.tsx` (Growth+ only). Calls `detectQueryGaps(orgId, locationId, supabase)` from `lib/services/prompt-intelligence.service.ts` — returns up to 10 gaps. Calls `computeCategoryBreakdown(queries, evaluations)` — pure function, no DB calls. Shows section between First Mover Opportunities and Query Library with:

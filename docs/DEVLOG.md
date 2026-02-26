@@ -4,6 +4,63 @@
 
 ---
 
+## 2026-02-27 — Sprint 71: Per-Dimension Page Audit Scores + Actionable Fix Recommendations (Completed)
+
+**Goal:** Fix two hardcoded-zero dimension scores in the Page Audit dashboard, persist all 5 dimension scores to the database, and transform dimension bars into expandable detail sections with per-dimension explanations and actionable recommendations linked to Sprint 70 schema generators.
+
+**Architecture:** Migration adds 2 missing columns (`faq_schema_score`, `entity_clarity_score`), auditor recommendation interface gains `dimensionKey` + `schemaType` fields, DimensionBar becomes an expandable accordion with per-dimension explanation text and filtered recommendations.
+
+**Scope:**
+
+Migration:
+- `supabase/migrations/20260227000001_page_audit_dimensions.sql` — **NEW.** Adds `faq_schema_score INTEGER` and `entity_clarity_score INTEGER` columns to `page_audits`. Backfills `faq_schema_score` from `faq_schema_present` boolean.
+
+Database Types:
+- `lib/supabase/database.types.ts` — **MODIFIED.** Added `faq_schema_score` and `entity_clarity_score` to Row, Insert, and Update types for `page_audits`.
+
+Auditor:
+- `lib/page-audit/auditor.ts` — **MODIFIED.** Added `DimensionKey` and `SchemaFixType` types. Enhanced `PageAuditRecommendation` interface with optional `dimensionKey` and `schemaType` fields. Updated `buildRecommendations()` to tag every recommendation with its dimension and schema fix type.
+
+Server Action:
+- `app/dashboard/page-audits/actions.ts` — **MODIFIED.** `reauditPage()` now writes `faq_schema_score` and `entity_clarity_score` to the upsert.
+
+Cron Write Paths:
+- `lib/inngest/functions/content-audit-cron.ts` — **MODIFIED.** Added `faq_schema_score` and `entity_clarity_score` to the Inngest fan-out upsert.
+- `app/api/cron/content-audit/route.ts` — **MODIFIED.** Added same 2 columns to the inline fallback upsert.
+
+Page (Bug Fix):
+- `app/dashboard/page-audits/page.tsx` — **MODIFIED.** Fixed hardcoded `faqSchemaScore={0}` and `entityClarityScore={0}` — now reads real values from DB. Updated select query to include new columns. All dimension scores pass `null` (not `?? 0`) per AI_RULES §20.
+
+UI Components:
+- `app/dashboard/page-audits/_components/DimensionBar.tsx` — **MODIFIED.** Accepts nullable score (`number | null`), renders "—" for pending state. Now expandable with chevron icon and accordion behavior. Shows DimensionDetail when expanded.
+- `app/dashboard/page-audits/_components/DimensionDetail.tsx` — **NEW.** Per-dimension explanation text + filtered recommendations with impact badges. Schema-type recommendations show "Generate {type} →" button.
+- `app/dashboard/page-audits/_components/PageAuditCard.tsx` — **MODIFIED.** Tracks `expandedDimension` state for accordion behavior (one at a time). Passes full recommendations array and `onGenerateSchema` callback to each DimensionBar. All dimension score props now `number | null`.
+- `app/dashboard/page-audits/_components/PageAuditCardWrapper.tsx` — **MODIFIED.** Updated prop types to accept nullable dimension scores and typed recommendations.
+
+Seed Data:
+- `supabase/seed.sql` — **MODIFIED.** Added `faq_schema_score` (0) and `entity_clarity_score` (62) to page_audits seed. Updated recommendations to include `dimensionKey` and `schemaType` fields. Changed `ON CONFLICT` from `DO NOTHING` to `DO UPDATE` for re-seeding.
+
+Fixtures:
+- `src/__fixtures__/golden-tenant.ts` — **MODIFIED.** Added `MOCK_PAGE_AUDIT` fixture with all 5 dimension scores and typed recommendations.
+
+**Tests added:**
+- `src/__tests__/unit/page-audit-dimensions.test.ts` — **15 tests.** Enhanced `buildRecommendations()` dimensionKey/schemaType tagging, sorting, conditional generation, null handling, and PageAuditResult completeness.
+- `src/__tests__/unit/page-audit-card.test.tsx` — **11 tests.** Component rendering with nullable scores, pending state, color thresholds, expandable accordion, filtered recommendations, and schema generate button.
+- `src/__tests__/unit/reaudit-action.test.ts` — **6 tests.** Server action writes all 5 dimension scores, auth/rate-limit/not-found error paths.
+
+**Total: 32 new test cases across 3 files, all passing.**
+
+**Run commands:**
+```bash
+npx vitest run src/__tests__/unit/page-audit-dimensions.test.ts   # 15 tests
+npx vitest run src/__tests__/unit/page-audit-card.test.tsx         # 11 tests
+npx vitest run src/__tests__/unit/reaudit-action.test.ts           # 6 tests
+```
+
+**Test totals after Sprint 71:** Vitest: 932 tests (70 files), up from 900 (67 files).
+
+---
+
 ## 2026-02-26 — Sprint 70: Schema Fix Generator (Completed)
 
 **Goal:** Build a Schema Fix Generator that auto-generates copy-to-clipboard JSON-LD code blocks for FAQPage, OpeningHoursSpecification, and LocalBusiness schemas — using data already in LocalVector. This is the core differentiation: instead of just telling users "FAQ schema score: 0", we generate 6 FAQ questions from their actual SOV queries with answers from ground truth data.

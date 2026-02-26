@@ -41,7 +41,7 @@ lib/page-audit/        — HTML parser + AEO auditor
 lib/tools/             — AI chat tool definitions
 lib/mcp/               — MCP server tool registrations
 lib/supabase/database.types.ts — Full Database type (28 tables, 9 enums, Relationships)
-supabase/migrations/   — Applied SQL migrations (20, timestamp-ordered)
+supabase/migrations/   — Applied SQL migrations (21, timestamp-ordered)
 supabase/prod_schema.sql — Full production schema dump
 docs/                  — 50 spec documents (authoritative for planned features)
 src/__tests__/         — Unit + integration tests
@@ -62,7 +62,7 @@ tests/e2e/             — Playwright E2E tests (18 specs)
 | `competitor_intercepts` | Head-to-head competitor analysis results |
 | `local_occasions` | Seasonal event reference table |
 | `citation_source_intelligence` | Which platforms AI actually cites per category (aggregate, not org-scoped) |
-| `page_audits` | AEO page audit results per org (5 dimension scores + recommendations) |
+| `page_audits` | AEO page audit results per org (5 dimension scores: answer_first, schema_completeness, faq_schema, keyword_density/aeo_readability, entity_clarity + recommendations with dimensionKey/schemaType) |
 | `google_oauth_tokens` | GBP OAuth credentials per org (service-role writes, authenticated SELECT) |
 | `location_integrations` | Platform connections per location (Big 6 + listing URLs + WordPress `wp_username`/`wp_app_password`) |
 | `cron_run_log` | Cron execution health log (cron_name, duration_ms, status, summary JSONB) — service-role only, no RLS policies |
@@ -89,6 +89,7 @@ tests/e2e/             — Playwright E2E tests (18 specs)
 18. `20260226000007_wp_credentials.sql` — `wp_username`, `wp_app_password` columns on `location_integrations`
 19. `20260226000008_cron_run_log.sql` — `cron_run_log` table for cron health logging (service-role only)
 20. `20260226000009_notification_prefs.sql` — `notify_hallucination_alerts`, `notify_weekly_digest`, `notify_sov_alerts` columns on `organizations`
+21. `20260227000001_page_audit_dimensions.sql` — `faq_schema_score`, `entity_clarity_score` columns on `page_audits`
 
 ## Testing Commands
 
@@ -128,4 +129,4 @@ UPSTASH_REDIS_REST_URL, UPSTASH_REDIS_REST_TOKEN
 
 ## Build History
 
-See `DEVLOG.md` (project root) and `docs/DEVLOG.md` for the complete sprint-by-sprint build log. Current sprint: 70.
+See `DEVLOG.md` (project root) and `docs/DEVLOG.md` for the complete sprint-by-sprint build log. Current sprint: 71.

@@ -1205,6 +1205,7 @@ INSERT INTO public.page_audits (
   id, org_id, location_id,
   page_url, page_type,
   aeo_readability_score, answer_first_score, schema_completeness_score, faq_schema_present,
+  faq_schema_score, entity_clarity_score,
   overall_score,
   recommendations,
   last_audited_at, created_at
@@ -1215,19 +1216,24 @@ SELECT
   l.id,
   'https://charcoalnchill.com',
   'homepage',
-  78,
-  65,
-  55,
-  FALSE,
-  66,
-  '[{"issue":"No FAQ schema markup","fix":"Add FAQPage JSON-LD with top 5 customer questions","impact_points":12},{"issue":"Homepage opening paragraph does not directly answer intent","fix":"Lead with what you are, where you are, and who you serve in the first sentence","impact_points":8}]'::jsonb,
+  78,                          -- aeo_readability_score
+  65,                          -- answer_first_score
+  55,                          -- schema_completeness_score
+  FALSE,                       -- faq_schema_present
+  0,                           -- faq_schema_score (no FAQ schema)
+  62,                          -- entity_clarity_score (has name+address but missing hours in text)
+  66,                          -- overall_score
+  '[{"issue":"Opening text is navigation/hero copy with no substance","fix":"Replace your opening section with: \"Charcoal N Chill is Alpharetta''s premier [value prop]. [Top differentiator]. [CTA].\" Start with the answer.","impactPoints":35,"dimensionKey":"answerFirst"},{"issue":"Missing required JSON-LD schema for homepage page","fix":"Add a <script type=\"application/ld+json\"> block with the correct @type for your homepage page. This is the single highest-impact technical fix for AI visibility.","impactPoints":25,"dimensionKey":"schemaCompleteness","schemaType":"LocalBusiness"},{"issue":"No FAQPage schema found — this is the #1 driver of AI citations","fix":"Add FAQPage schema with at least 5 Q&A pairs about Charcoal N Chill. AI models directly extract and quote FAQ content.","impactPoints":20,"dimensionKey":"faqSchema","schemaType":"FAQPage"}]'::jsonb,
   NOW() - INTERVAL '3 hours',
   NOW() - INTERVAL '3 hours'
 FROM public.locations l
 WHERE l.org_id = 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11'
   AND l.slug   = 'alpharetta'
 LIMIT 1
-ON CONFLICT (id) DO NOTHING;
+ON CONFLICT (id) DO UPDATE SET
+  faq_schema_score = EXCLUDED.faq_schema_score,
+  entity_clarity_score = EXCLUDED.entity_clarity_score,
+  recommendations = EXCLUDED.recommendations;
 
 -- ── 14d. citation_source_intelligence (aggregate market data) ─────────────────
 -- Hookah lounge / Alpharetta market — which platforms AI cites most.

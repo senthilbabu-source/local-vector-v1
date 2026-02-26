@@ -73,6 +73,8 @@ export async function reauditPage(pageUrl: string): Promise<{ success: boolean; 
         answer_first_score: result.answerFirstScore,
         schema_completeness_score: result.schemaCompletenessScore,
         faq_schema_present: result.faqSchemaPresent,
+        faq_schema_score: result.faqSchemaScore,
+        entity_clarity_score: result.entityClarityScore,
         aeo_readability_score: result.keywordDensityScore,
         recommendations: result.recommendations as unknown as Json,
         last_audited_at: new Date().toISOString(),

@@ -35,10 +35,15 @@ export interface LocationContext {
   amenities: Record<string, boolean | undefined> | null;
 }
 
+export type DimensionKey = 'answerFirst' | 'schemaCompleteness' | 'faqSchema' | 'keywordDensity' | 'entityClarity';
+export type SchemaFixType = 'FAQPage' | 'OpeningHoursSpecification' | 'LocalBusiness';
+
 export interface PageAuditRecommendation {
   issue: string;
   fix: string;
   impactPoints: number;
+  dimensionKey?: DimensionKey;
+  schemaType?: SchemaFixType;
 }
 
 export interface PageAuditResult {
@@ -302,18 +307,21 @@ function buildRecommendations(
       issue: 'Opening text is navigation/hero copy with no substance',
       fix: `Replace your opening section with: "${name} is ${city}'s premier [value prop]. [Top differentiator]. [CTA]." Start with the answer.`,
       impactPoints: 35,
+      dimensionKey: 'answerFirst',
     });
   } else if (scores.answerFirst <= 60) {
     recs.push({
       issue: 'Content exists but doesn\'t lead with the key claim',
       fix: 'Move your strongest claim to the first sentence. AI reads top-down and stops early.',
       impactPoints: 20,
+      dimensionKey: 'answerFirst',
     });
   } else if (scores.answerFirst <= 80) {
     recs.push({
       issue: 'Good but not optimized for the most common query',
       fix: `Add: "Serving ${city} since [year], ${name} is known for [top 2 attributes]." to your opening paragraph.`,
       impactPoints: 10,
+      dimensionKey: 'answerFirst',
     });
   }
 
@@ -323,6 +331,8 @@ function buildRecommendations(
       issue: `Missing required JSON-LD schema for ${pageType} page`,
       fix: `Add a <script type="application/ld+json"> block with the correct @type for your ${pageType} page. This is the single highest-impact technical fix for AI visibility.`,
       impactPoints: 25,
+      dimensionKey: 'schemaCompleteness',
+      schemaType: 'LocalBusiness',
     });
   }
 
@@ -332,12 +342,16 @@ function buildRecommendations(
       issue: 'No FAQPage schema found — this is the #1 driver of AI citations',
       fix: `Add FAQPage schema with at least 5 Q&A pairs about ${name}. AI models directly extract and quote FAQ content.`,
       impactPoints: 20,
+      dimensionKey: 'faqSchema',
+      schemaType: 'FAQPage',
     });
   } else if (scores.faqScore < 75) {
     recs.push({
       issue: 'FAQPage schema exists but has fewer than 5 Q&A pairs',
       fix: 'Expand to 5+ Q&A pairs. Include mix of operational (hours, parking) and experiential ("What is the vibe at...") questions.',
       impactPoints: 10,
+      dimensionKey: 'faqSchema',
+      schemaType: 'FAQPage',
     });
   }
 
@@ -347,6 +361,7 @@ function buildRecommendations(
       issue: 'Missing key business terms in page text',
       fix: `Ensure "${name}", "${city}", and your primary category appear naturally in your page copy. AI needs these signals to associate the page with search queries.`,
       impactPoints: 10,
+      dimensionKey: 'keywordDensity',
     });
   }
 
@@ -356,6 +371,7 @@ function buildRecommendations(
       issue: 'Business entity not fully extractable from page text',
       fix: `Add your complete NAP+H (Name, Address, Phone, Hours) in visible text — not just in schema or footer. AI models need this in the main content area.`,
       impactPoints: 10,
+      dimensionKey: 'entityClarity',
     });
   }
 

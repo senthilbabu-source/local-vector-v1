@@ -1,6 +1,8 @@
 // ---------------------------------------------------------------------------
-// PageAuditCard — Sprint 58B + Sprint 70: Individual page audit result card
+// PageAuditCard — Sprint 58B + Sprint 70 + Sprint 71: Individual page audit card
+//
 // Sprint 70: Added "Generate Schema Fix" button + SchemaFixPanel integration
+// Sprint 71: Nullable dimension scores, expandable dimensions with recommendations
 // ---------------------------------------------------------------------------
 
 'use client';
@@ -9,24 +11,19 @@ import { useState, useTransition } from 'react';
 import DimensionBar from './DimensionBar';
 import SchemaFixPanel from './SchemaFixPanel';
 import type { GeneratedSchema } from '@/lib/schema-generator';
-
-interface Recommendation {
-  issue: string;
-  fix: string;
-  impactPoints: number;
-}
+import type { PageAuditRecommendation, DimensionKey } from '@/lib/page-audit/auditor';
 
 interface Props {
   pageUrl: string;
   pageType: string;
   overallScore: number;
-  answerFirstScore: number;
-  schemaCompletenessScore: number;
+  answerFirstScore: number | null;
+  schemaCompletenessScore: number | null;
   faqSchemaPresent: boolean;
-  faqSchemaScore: number;
-  keywordDensityScore: number;
-  entityClarityScore: number;
-  recommendations: Recommendation[];
+  faqSchemaScore: number | null;
+  keywordDensityScore: number | null;
+  entityClarityScore: number | null;
+  recommendations: PageAuditRecommendation[];
   lastAuditedAt: string;
   onReaudit: (pageUrl: string) => Promise<{ success: boolean; error?: string }>;
   onGenerateSchema: () => Promise<{ success: boolean; schemas: GeneratedSchema[]; error?: string }>;
@@ -51,8 +48,9 @@ export default function PageAuditCard({
   const [isGenerating, startGenerating] = useTransition();
   const [schemas, setSchemas] = useState<GeneratedSchema[] | null>(null);
   const [schemaError, setSchemaError] = useState<string | null>(null);
+  const [expandedDimension, setExpandedDimension] = useState<DimensionKey | null>(null);
 
-  const needsSchemaFix = schemaCompletenessScore < 80 || !faqSchemaPresent;
+  const needsSchemaFix = (schemaCompletenessScore ?? 0) < 80 || !faqSchemaPresent;
 
   const scoreColor =
     overallScore >= 80 ? 'text-signal-green' :
@@ -76,6 +74,14 @@ export default function PageAuditCard({
         setSchemaError(result.error ?? 'Failed to generate schemas');
       }
     });
+  }
+
+  function handleToggleDimension(key: DimensionKey) {
+    setExpandedDimension((prev) => (prev === key ? null : key));
+  }
+
+  function handleGenerateSchemaFromDimension(_schemaType: string) {
+    handleGenerateSchema();
   }
 
   return (
@@ -123,13 +129,56 @@ export default function PageAuditCard({
           </div>
         </div>
 
-        {/* Dimension breakdown */}
+        {/* Dimension breakdown — expandable accordion */}
         <div className="space-y-2.5">
-          <DimensionBar label="Answer-First Structure" score={answerFirstScore} weight="35%" />
-          <DimensionBar label="Schema Completeness" score={schemaCompletenessScore} weight="25%" />
-          <DimensionBar label={`FAQ Schema${faqSchemaPresent ? ' \u2713' : ''}`} score={faqSchemaScore} weight="20%" />
-          <DimensionBar label="Keyword Density" score={keywordDensityScore} weight="10%" />
-          <DimensionBar label="Entity Clarity" score={entityClarityScore} weight="10%" />
+          <DimensionBar
+            label="Answer-First Structure"
+            score={answerFirstScore}
+            weight="35%"
+            dimensionKey="answerFirst"
+            recommendations={recommendations}
+            expanded={expandedDimension === 'answerFirst'}
+            onToggle={() => handleToggleDimension('answerFirst')}
+            onGenerateSchema={handleGenerateSchemaFromDimension}
+          />
+          <DimensionBar
+            label="Schema Completeness"
+            score={schemaCompletenessScore}
+            weight="25%"
+            dimensionKey="schemaCompleteness"
+            recommendations={recommendations}
+            expanded={expandedDimension === 'schemaCompleteness'}
+            onToggle={() => handleToggleDimension('schemaCompleteness')}
+            onGenerateSchema={handleGenerateSchemaFromDimension}
+          />
+          <DimensionBar
+            label={`FAQ Schema${faqSchemaPresent ? ' \u2713' : ''}`}
+            score={faqSchemaScore}
+            weight="20%"
+            dimensionKey="faqSchema"
+            recommendations={recommendations}
+            expanded={expandedDimension === 'faqSchema'}
+            onToggle={() => handleToggleDimension('faqSchema')}
+            onGenerateSchema={handleGenerateSchemaFromDimension}
+          />
+          <DimensionBar
+            label="Keyword Density"
+            score={keywordDensityScore}
+            weight="10%"
+            dimensionKey="keywordDensity"
+            recommendations={recommendations}
+            expanded={expandedDimension === 'keywordDensity'}
+            onToggle={() => handleToggleDimension('keywordDensity')}
+          />
+          <DimensionBar
+            label="Entity Clarity"
+            score={entityClarityScore}
+            weight="10%"
+            dimensionKey="entityClarity"
+            recommendations={recommendations}
+            expanded={expandedDimension === 'entityClarity'}
+            onToggle={() => handleToggleDimension('entityClarity')}
+          />
         </div>
 
         {/* Top recommendation */}

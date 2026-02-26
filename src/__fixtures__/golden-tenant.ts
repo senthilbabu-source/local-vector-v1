@@ -198,6 +198,50 @@ export const MOCK_SCHEMA_QUERIES: import('@/lib/schema-generator/types').SchemaQ
   { query_text: 'birthday party venue Alpharetta with hookah and private rooms', query_category: 'occasion' },
 ];
 
+/**
+ * Sprint 71 — Canonical page_audits fixture for Charcoal N Chill.
+ * UUID matches supabase/seed.sql Section 14c (page_audit).
+ * Use in all page audit unit tests.
+ */
+export const MOCK_PAGE_AUDIT = {
+  id: 'b2eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+  org_id: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+  location_id: 'b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+  page_url: 'https://charcoalnchill.com',
+  page_type: 'homepage',
+  overall_score: 66,
+  answer_first_score: 65,
+  schema_completeness_score: 55,
+  faq_schema_present: false,
+  faq_schema_score: 0,
+  entity_clarity_score: 62,
+  aeo_readability_score: 78,
+  recommendations: [
+    {
+      issue: 'Opening text is navigation/hero copy with no substance',
+      fix: 'Replace your opening section with: "Charcoal N Chill is Alpharetta\'s premier [value prop]. [Top differentiator]. [CTA]." Start with the answer.',
+      impactPoints: 35,
+      dimensionKey: 'answerFirst' as const,
+    },
+    {
+      issue: 'Missing required JSON-LD schema for homepage page',
+      fix: 'Add a <script type="application/ld+json"> block with the correct @type for your homepage page. This is the single highest-impact technical fix for AI visibility.',
+      impactPoints: 25,
+      dimensionKey: 'schemaCompleteness' as const,
+      schemaType: 'LocalBusiness' as const,
+    },
+    {
+      issue: 'No FAQPage schema found — this is the #1 driver of AI citations',
+      fix: 'Add FAQPage schema with at least 5 Q&A pairs about Charcoal N Chill. AI models directly extract and quote FAQ content.',
+      impactPoints: 20,
+      dimensionKey: 'faqSchema' as const,
+      schemaType: 'FAQPage' as const,
+    },
+  ],
+  last_audited_at: '2026-02-26T09:00:00.000Z',
+  created_at: '2026-02-26T09:00:00.000Z',
+} as const;
+
 export const RIVAL_TENANT = {
   org: {
     name: 'Cloud 9 Lounge',

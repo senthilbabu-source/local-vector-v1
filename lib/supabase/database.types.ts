@@ -1243,6 +1243,8 @@ export type Database = {
           answer_first_score: number | null;
           schema_completeness_score: number | null;
           faq_schema_present: boolean | null;
+          faq_schema_score: number | null;
+          entity_clarity_score: number | null;
           overall_score: number | null;
           recommendations: Json | null;
           last_audited_at: string;
@@ -1258,6 +1260,8 @@ export type Database = {
           answer_first_score?: number | null;
           schema_completeness_score?: number | null;
           faq_schema_present?: boolean | null;
+          faq_schema_score?: number | null;
+          entity_clarity_score?: number | null;
           overall_score?: number | null;
           recommendations?: Json | null;
           last_audited_at?: string;
@@ -1273,6 +1277,8 @@ export type Database = {
           answer_first_score?: number | null;
           schema_completeness_score?: number | null;
           faq_schema_present?: boolean | null;
+          faq_schema_score?: number | null;
+          entity_clarity_score?: number | null;
           overall_score?: number | null;
           recommendations?: Json | null;
           last_audited_at?: string;

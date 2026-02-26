@@ -1,5 +1,7 @@
 // ---------------------------------------------------------------------------
-// PageAuditCardWrapper — Sprint 58B + Sprint 70: Binds server actions
+// PageAuditCardWrapper — Sprint 58B + Sprint 70 + Sprint 71: Binds server actions
+//
+// Sprint 71: Updated prop types for nullable dimension scores
 // ---------------------------------------------------------------------------
 
 'use client';
@@ -7,18 +9,19 @@
 import PageAuditCard from './PageAuditCard';
 import { reauditPage } from '../actions';
 import { generateSchemaFixes } from '../schema-actions';
+import type { PageAuditRecommendation } from '@/lib/page-audit/auditor';
 
 interface Props {
   pageUrl: string;
   pageType: string;
   overallScore: number;
-  answerFirstScore: number;
-  schemaCompletenessScore: number;
+  answerFirstScore: number | null;
+  schemaCompletenessScore: number | null;
   faqSchemaPresent: boolean;
-  faqSchemaScore: number;
-  keywordDensityScore: number;
-  entityClarityScore: number;
-  recommendations: { issue: string; fix: string; impactPoints: number }[];
+  faqSchemaScore: number | null;
+  keywordDensityScore: number | null;
+  entityClarityScore: number | null;
+  recommendations: PageAuditRecommendation[];
   lastAuditedAt: string;
 }
 

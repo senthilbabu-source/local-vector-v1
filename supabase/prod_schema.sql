@@ -688,6 +688,8 @@ CREATE TABLE IF NOT EXISTS "public"."page_audits" (
     "answer_first_score" integer,
     "schema_completeness_score" integer,
     "faq_schema_present" boolean,
+    "faq_schema_score" integer,
+    "entity_clarity_score" integer,
     "overall_score" integer,
     "recommendations" "jsonb",
     "last_audited_at" timestamp with time zone DEFAULT "now"() NOT NULL,

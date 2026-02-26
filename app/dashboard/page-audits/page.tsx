@@ -12,6 +12,7 @@ import { createClient } from '@/lib/supabase/server';
 import { canRunPageAudit, type PlanTier } from '@/lib/plan-enforcer';
 import AuditScoreOverview from './_components/AuditScoreOverview';
 import PageAuditCardWrapper from './_components/PageAuditCardWrapper';
+import type { PageAuditRecommendation } from '@/lib/page-audit/auditor';
 
 // ---------------------------------------------------------------------------
 // Types (mirrors page_audits table)
@@ -25,8 +26,10 @@ interface PageAuditRow {
   answer_first_score: number | null;
   schema_completeness_score: number | null;
   faq_schema_present: boolean | null;
+  faq_schema_score: number | null;
+  entity_clarity_score: number | null;
   aeo_readability_score: number | null;
-  recommendations: { issue: string; fix: string; impactPoints: number }[] | null;
+  recommendations: PageAuditRecommendation[] | null;
   last_audited_at: string;
 }
 
@@ -41,7 +44,7 @@ async function fetchPageAuditData(orgId: string) {
     supabase
       .from('page_audits')
       .select(
-        'id, page_url, page_type, overall_score, answer_first_score, schema_completeness_score, faq_schema_present, aeo_readability_score, recommendations, last_audited_at',
+        'id, page_url, page_type, overall_score, answer_first_score, schema_completeness_score, faq_schema_present, faq_schema_score, entity_clarity_score, aeo_readability_score, recommendations, last_audited_at',
       )
       .eq('org_id', orgId)
       .order('last_audited_at', { ascending: false })
@@ -167,12 +170,12 @@ export default async function PageAuditsPage() {
               pageUrl={audit.page_url}
               pageType={audit.page_type}
               overallScore={audit.overall_score ?? 0}
-              answerFirstScore={audit.answer_first_score ?? 0}
-              schemaCompletenessScore={audit.schema_completeness_score ?? 0}
+              answerFirstScore={audit.answer_first_score}
+              schemaCompletenessScore={audit.schema_completeness_score}
               faqSchemaPresent={audit.faq_schema_present ?? false}
-              faqSchemaScore={0}
-              keywordDensityScore={audit.aeo_readability_score ?? 0}
-              entityClarityScore={0}
+              faqSchemaScore={audit.faq_schema_score}
+              keywordDensityScore={audit.aeo_readability_score}
+              entityClarityScore={audit.entity_clarity_score}
               recommendations={audit.recommendations ?? []}
               lastAuditedAt={audit.last_audited_at}
             />
