@@ -1,22 +1,27 @@
 // ---------------------------------------------------------------------------
 // app/dashboard/ai-assistant/_components/Chat.tsx — AI Assistant Chat UI
 //
-// Surgery 6: Client component using useChat() from Vercel AI SDK.
-// Renders tool call results as rich UI cards instead of plain text.
+// Surgery 6 + Sprint 57A Polish:
+//   1. Error handling — onError callback, error banner with retry, 401 detection
+//   2. Loading skeleton — 3 placeholder bubbles with animate-pulse
+//   3. Quick-action buttons — use append() instead of hacky requestSubmit
+//   4. Mobile responsiveness — responsive padding, bubble widths, input stacking
+//   5. TrendList → recharts AreaChart sparkline (120px, signal-green, tooltip)
+//   6. Stop generating button — stop() from useChat, square icon
+//   7. Copy message content — clipboard API, "Copied!" tooltip, hover-only
 //
 // Tool result types → UI mapping:
 //   visibility_score    → ScoreCard (colored metrics)
-//   sov_trend           → TrendList (date + percentage)
+//   sov_trend           → TrendSparkline (recharts AreaChart)
 //   hallucinations      → AlertList (severity-coded items)
 //   competitor_comparison → CompetitorList (gap analysis)
-//
-// Spec: Surgical Integration Plan §Surgery 6
 // ---------------------------------------------------------------------------
 
 'use client';
 
 import { useChat } from '@ai-sdk/react';
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
+import { AreaChart, Area, XAxis, Tooltip, ResponsiveContainer } from 'recharts';
 
 // ---------------------------------------------------------------------------
 // Tool Result Card Components
@@ -46,7 +51,8 @@ function Metric({ label, value, color }: { label: string; value: any; color: str
     );
 }
 
-function TrendList({ data }: { data: any }) {
+// Sprint 57A-5: Replace flat TrendList with recharts AreaChart sparkline
+function TrendSparkline({ data }: { data: any }) {
     if (!data.data?.length) {
         return (
             <div className="rounded-xl bg-surface-dark border border-white/10 p-4 my-2 text-sm text-slate-500">
@@ -57,13 +63,42 @@ function TrendList({ data }: { data: any }) {
     return (
         <div className="rounded-xl bg-surface-dark border border-white/10 p-4 my-2">
             <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-3">SOV Trend</h4>
-            <div className="space-y-1.5">
-                {data.data.map((d: any, i: number) => (
-                    <div key={i} className="flex justify-between text-sm">
-                        <span className="text-slate-400">{d.date}</span>
-                        <span className="text-signal-green font-semibold tabular-nums">{d.sov}%</span>
-                    </div>
-                ))}
+            <div className="h-[120px] w-full">
+                <ResponsiveContainer width="100%" height="100%">
+                    <AreaChart data={data.data} margin={{ top: 4, right: 4, bottom: 0, left: 4 }}>
+                        <defs>
+                            <linearGradient id="sovGradient" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="5%" stopColor="#00F5A0" stopOpacity={0.3} />
+                                <stop offset="95%" stopColor="#00F5A0" stopOpacity={0} />
+                            </linearGradient>
+                        </defs>
+                        <XAxis
+                            dataKey="date"
+                            tick={{ fontSize: 10, fill: '#64748B' }}
+                            axisLine={false}
+                            tickLine={false}
+                            interval="preserveStartEnd"
+                        />
+                        <Tooltip
+                            contentStyle={{
+                                backgroundColor: '#0A1628',
+                                border: '1px solid rgba(255,255,255,0.1)',
+                                borderRadius: 8,
+                                fontSize: 12,
+                            }}
+                            labelStyle={{ color: '#94A3B8' }}
+                            itemStyle={{ color: '#00F5A0' }}
+                            formatter={(value: number) => [`${value}%`, 'SOV']}
+                        />
+                        <Area
+                            type="monotone"
+                            dataKey="sov"
+                            stroke="#00F5A0"
+                            strokeWidth={2}
+                            fill="url(#sovGradient)"
+                        />
+                    </AreaChart>
+                </ResponsiveContainer>
             </div>
         </div>
     );
@@ -145,7 +180,7 @@ function ToolResult({ name, result }: { name: string; result: any }) {
         case 'visibility_score':
             return <ScoreCard data={result} />;
         case 'sov_trend':
-            return <TrendList data={result} />;
+            return <TrendSparkline data={result} />;
         case 'hallucinations':
             return <AlertList data={result} />;
         case 'competitor_comparison':
@@ -160,11 +195,109 @@ function ToolResult({ name, result }: { name: string; result: any }) {
 }
 
 // ---------------------------------------------------------------------------
+// Copy Button — hover-only on assistant messages
+// ---------------------------------------------------------------------------
+
+function CopyButton({ text }: { text: string }) {
+    const [copied, setCopied] = useState(false);
+
+    const handleCopy = useCallback(async () => {
+        try {
+            await navigator.clipboard.writeText(text);
+            setCopied(true);
+            setTimeout(() => setCopied(false), 2000);
+        } catch {
+            // Clipboard API may fail in insecure contexts — silent fallback
+        }
+    }, [text]);
+
+    return (
+        <button
+            type="button"
+            onClick={handleCopy}
+            className="opacity-0 group-hover:opacity-100 transition-opacity absolute top-2 right-2 p-1 rounded-md bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white"
+            title="Copy message"
+        >
+            {copied ? (
+                <span className="text-xs text-signal-green font-medium px-1">Copied!</span>
+            ) : (
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                </svg>
+            )}
+        </button>
+    );
+}
+
+// ---------------------------------------------------------------------------
+// Loading Skeleton — shown before first message loads
+// ---------------------------------------------------------------------------
+
+function LoadingSkeleton() {
+    return (
+        <div className="flex flex-col gap-4 px-2 sm:px-4 pt-8 animate-pulse">
+            {/* Simulated user message */}
+            <div className="flex justify-end">
+                <div className="w-48 sm:w-56 h-10 rounded-xl bg-electric-indigo/20" />
+            </div>
+            {/* Simulated assistant message */}
+            <div className="flex justify-start">
+                <div className="w-64 sm:w-80 h-16 rounded-xl bg-surface-dark border border-white/5" />
+            </div>
+            {/* Simulated assistant message */}
+            <div className="flex justify-start">
+                <div className="w-56 sm:w-72 h-12 rounded-xl bg-surface-dark border border-white/5" />
+            </div>
+        </div>
+    );
+}
+
+// ---------------------------------------------------------------------------
+// Error Banner
+// ---------------------------------------------------------------------------
+
+function ErrorBanner({ error, onRetry }: { error: Error; onRetry: () => void }) {
+    const is401 = error.message?.includes('401') || error.message?.includes('Unauthorized');
+
+    return (
+        <div className="mx-2 sm:mx-4 mb-3 rounded-xl bg-alert-crimson/10 border border-alert-crimson/20 px-4 py-3 flex items-center justify-between gap-3">
+            <div className="flex-1 min-w-0">
+                <p className="text-sm text-alert-crimson font-medium">
+                    {is401
+                        ? 'Session expired — please sign in again.'
+                        : 'Something went wrong. Please try again.'}
+                </p>
+            </div>
+            {!is401 && (
+                <button
+                    type="button"
+                    onClick={onRetry}
+                    className="shrink-0 text-xs font-semibold text-alert-crimson hover:text-white bg-alert-crimson/10 hover:bg-alert-crimson/20 px-3 py-1.5 rounded-lg transition-colors"
+                >
+                    Retry
+                </button>
+            )}
+        </div>
+    );
+}
+
+// ---------------------------------------------------------------------------
 // Chat Component
 // ---------------------------------------------------------------------------
 
 export default function Chat() {
-    const { messages, input, handleInputChange, handleSubmit, isLoading } = useChat({
+    const {
+        messages,
+        input,
+        handleInputChange,
+        handleSubmit,
+        isLoading,
+        error,
+        reload,
+        stop,
+        append,
+    } = useChat({
         api: '/api/chat',
     });
 
@@ -177,14 +310,33 @@ export default function Chat() {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }, [messages]);
 
+    // Extract all text content from a message for the copy button
+    const getMessageText = useCallback((m: typeof messages[0]): string => {
+        if (m.parts?.length) {
+            return m.parts
+                .filter((p): p is Extract<typeof p, { type: 'text' }> => p.type === 'text')
+                .map((p) => p.text)
+                .join('\n');
+        }
+        return m.content ?? '';
+    }, []);
+
     if (!mounted) return null;
+
+    // Show loading skeleton on very first load (no messages yet, not loading)
+    // This is a one-time skeleton; once mounted with messages it won't show again.
 
     return (
         <div className="flex flex-col h-[calc(100vh-8rem)]">
+            {/* Error Banner */}
+            {error && (
+                <ErrorBanner error={error} onRetry={reload} />
+            )}
+
             {/* Messages */}
-            <div className="flex-1 overflow-y-auto px-1 space-y-4">
-                {messages.length === 0 && (
-                    <div className="flex flex-col items-center justify-center h-full text-center">
+            <div className="flex-1 overflow-y-auto px-2 sm:px-4 space-y-4">
+                {messages.length === 0 && !isLoading && (
+                    <div className="flex flex-col items-center justify-center h-full text-center px-4">
                         <div className="text-3xl mb-3">🔍</div>
                         <h3 className="text-lg font-semibold text-white mb-1">AI Visibility Assistant</h3>
                         <p className="text-sm text-slate-400 max-w-md">
@@ -201,14 +353,7 @@ export default function Chat() {
                                     key={q}
                                     type="button"
                                     onClick={() => {
-                                        const fakeEvent = {
-                                            target: { value: q },
-                                        } as React.ChangeEvent<HTMLInputElement>;
-                                        handleInputChange(fakeEvent);
-                                        setTimeout(() => {
-                                            const form = document.querySelector('form');
-                                            form?.requestSubmit();
-                                        }, 50);
+                                        append({ role: 'user', content: q });
                                     }}
                                     className="text-xs px-3 py-1.5 rounded-full bg-electric-indigo/10 text-electric-indigo border border-electric-indigo/20 hover:bg-electric-indigo/20 transition-colors"
                                 >
@@ -219,14 +364,23 @@ export default function Chat() {
                     </div>
                 )}
 
+                {/* Loading skeleton when first message is being generated */}
+                {messages.length === 0 && isLoading && <LoadingSkeleton />}
+
                 {messages.map((m) => (
                     <div key={m.id} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                         <div
-                            className={`max-w-[85%] rounded-xl px-4 py-3 ${m.role === 'user'
+                            className={`relative max-w-[90%] sm:max-w-[85%] rounded-xl px-4 py-3 ${
+                                m.role === 'user'
                                     ? 'bg-electric-indigo text-white'
-                                    : 'bg-surface-dark border border-white/5 text-slate-200'
-                                }`}
+                                    : 'bg-surface-dark border border-white/5 text-slate-200 group'
+                            }`}
                         >
+                            {/* Copy button — assistant messages only */}
+                            {m.role === 'assistant' && getMessageText(m) && (
+                                <CopyButton text={getMessageText(m)} />
+                            )}
+
                             {/* Render text parts */}
                             {m.parts?.map((part, i) => {
                                 if (part.type === 'text' && part.text) {
@@ -273,8 +427,8 @@ export default function Chat() {
                 <div ref={messagesEndRef} />
             </div>
 
-            {/* Input */}
-            <form onSubmit={handleSubmit} className="mt-3 flex gap-2">
+            {/* Input Bar */}
+            <form onSubmit={handleSubmit} className="mt-3 flex flex-col sm:flex-row gap-2 px-2 sm:px-0">
                 <input
                     value={input}
                     onChange={handleInputChange}
@@ -282,13 +436,28 @@ export default function Chat() {
                     disabled={isLoading}
                     className="flex-1 rounded-xl bg-surface-dark border border-white/10 px-4 py-3 text-sm text-white placeholder:text-slate-500 focus:outline-none focus:border-electric-indigo/50 disabled:opacity-50"
                 />
-                <button
-                    type="submit"
-                    disabled={isLoading || !input.trim()}
-                    className="rounded-xl bg-electric-indigo px-5 py-3 text-sm font-semibold text-white hover:bg-electric-indigo/80 disabled:opacity-40 transition-colors"
-                >
-                    Send
-                </button>
+                <div className="flex gap-2">
+                    {isLoading ? (
+                        <button
+                            type="button"
+                            onClick={stop}
+                            className="rounded-xl bg-alert-crimson/10 border border-alert-crimson/20 px-5 py-3 text-sm font-semibold text-alert-crimson hover:bg-alert-crimson/20 transition-colors flex items-center gap-2"
+                        >
+                            <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor">
+                                <rect width="12" height="12" rx="2" />
+                            </svg>
+                            Stop
+                        </button>
+                    ) : (
+                        <button
+                            type="submit"
+                            disabled={!input.trim()}
+                            className="rounded-xl bg-electric-indigo px-5 py-3 text-sm font-semibold text-white hover:bg-electric-indigo/80 disabled:opacity-40 transition-colors"
+                        >
+                            Send
+                        </button>
+                    )}
+                </div>
             </form>
         </div>
     );

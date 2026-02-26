@@ -2,7 +2,7 @@
 
 ## Complete SQL DDL for LocalVector.ai
 ## Target: Supabase PostgreSQL
-### Version: 2.6 | Date: February 23, 2026
+### Version: 2.7 | Date: February 25, 2026
 ---
 
 > ⚠️ **CRITICAL: SOURCE OF TRUTH WARNING**
@@ -912,7 +912,9 @@ organizations (1) ──── (N) locations
      │                       │                   └── (N) crawler_hits
      │                       ├── (N) listings ──── (1) directories [global]
      │                       ├── (N) visibility_scores
-     │                       └── (N) visibility_analytics [NEW AEO Data]
+     │                       ├── (N) visibility_analytics [NEW AEO Data]
+     │                       ├── (1) revenue_config
+     │                       └── (N) revenue_snapshots
      │
      ├── (N) memberships ──── (1) users
      └── (N) competitors
@@ -1402,6 +1404,46 @@ export interface PendingGBPImport {
 **⚠️ Timezone gap (RFC Rev 2 §4.2):** `GBPHoursPeriod` times have no explicit timezone. When mapping to `HoursData`, the audit prompt must supply timezone context. Use the `locations.city` + `locations.state` from the imported row to infer timezone via a lookup (e.g., `Intl.DateTimeFormat` IANA timezone database).
 
 
+### 15.18 Revenue Leak JSONB interfaces (Sprint 59B)
+
+> **Source file:** `lib/services/revenue-leak.service.ts`
+> **Migration:** `supabase/migrations/20260225000001_revenue_leak.sql`
+> **Written by:** `snapshotRevenueLeak()` in audit cron (daily, idempotent upsert)
+
+#### `revenue_snapshots.breakdown` (JSONB)
+
+```typescript
+// lib/services/revenue-leak.service.ts
+export interface LeakBreakdown {
+  hallucination_cost: { low: number; high: number };
+  sov_gap_cost: { low: number; high: number };
+  competitor_steal_cost: { low: number; high: number };
+}
+```
+
+#### `revenue_snapshots.inputs_snapshot` (JSONB)
+
+Frozen copy of inputs at calculation time — enables historical audit without re-querying source tables.
+
+```typescript
+{
+  config: RevenueConfig;           // avg_ticket, monthly_searches, conversion/walk-away rates
+  hallucination_count: number;     // open hallucinations at snapshot time
+  share_of_voice: number | null;   // latest SOV % from visibility_analytics
+  competitor_count: number;        // active competitors at snapshot time
+}
+```
+
+#### `revenue_config` — Column-level (not JSONB)
+
+No JSONB columns. All fields are typed SQL columns:
+- `business_type` varchar(50) default `'restaurant'`
+- `avg_ticket` numeric(10,2) default `45.00`
+- `monthly_searches` integer default `2000`
+- `local_conversion_rate` numeric(5,4) default `0.0300`
+- `walk_away_rate` numeric(5,4) default `0.6500`
+- UNIQUE constraint on `(org_id, location_id)`
+
 ---
 
 **Phase 5** - The Database Fix
@@ -1442,3 +1484,9 @@ export interface PendingGBPImport {
 ### Row Level Security (RLS)
 * **Strategy:** "Membership-Based Access"
 * **Rule:** A user can `SELECT` or `INSERT` rows only if their `auth.uid()` exists in the `memberships` table for the related `org_id`.
+
+#### Special RLS: `google_oauth_tokens`
+This table has an **asymmetric access model** (Sprint 57B, migration `20260226000006`):
+* **SELECT** → `authenticated` via `org_isolation_select` (org-membership check)
+* **INSERT/UPDATE/DELETE** → `service_role` only (no grants to `authenticated`)
+* Rationale: The integrations page reads `google_email` + `gbp_account_name` (needs SELECT). Token writes happen exclusively in the OAuth callback handler and token refresh code, which run as service-role.

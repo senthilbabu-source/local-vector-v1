@@ -198,7 +198,16 @@ function classifyHallucination(
 
 ### 2.4 The Audit Cron Job
 
-> **Implementation note:** The cron is a Next.js Route Handler at `app/api/cron/audit/route.ts` that dispatches to Inngest for per-org fan-out (Sprint 49). See `lib/inngest/functions/audit-cron.ts` for the actual fan-out logic. The inline fallback preserves the sequential loop below.
+> **Implementation note:** The cron is a Next.js Route Handler at `app/api/cron/audit/route.ts` that dispatches to Inngest for per-org fan-out (Sprint 49). See `lib/inngest/functions/audit-cron.ts` for the actual fan-out logic. The inline fallback preserves the sequential loop below. All fan-out steps use `withTimeout()` (55s guard) and structured logging (Sprint 56A).
+>
+> **Inngest function config (Sprint 56A):**
+>
+> | Function ID | concurrency | retries | Schedule |
+> |---|---|---|---|
+> | `audit-daily-cron` | 5 | 3 | Daily 3 AM EST |
+> | `sov-weekly-cron` | 3 | 2 | Weekly Monday 2 AM EST |
+> | `content-audit-monthly-cron` | 3 | 2 | Monthly 1st at 4 AM EST |
+> | `post-publish-sov-check` | 10 | 1 | Event-driven (14d durable sleep) |
 
 ```typescript
 // app/api/cron/audit/route.ts (inline fallback)
@@ -232,9 +241,25 @@ async function runScheduledAudits() {
       // Increment usage
       await supabase.rpc('increment_audit_usage', { org_id: org.id });
     }
+
+    // Step D: Revenue Leak Snapshot (Sprint 59B)
+    // Persists daily leak calculation into `revenue_snapshots` for historical trend display.
+    // Calls calculateRevenueLeak() (pure function) then upserts with
+    // onConflict: 'org_id,location_id,snapshot_date' for idempotency.
+    await snapshotRevenueLeak(supabase, org.id, org.locations[0].id);
   }
 }
 ```
+
+> **SOV Cron post-processing sub-steps (Sprint 59C):**
+>
+> After running SOV queries and writing results via `writeSOVResults()`, the SOV cron performs:
+> 1. **Weekly Digest Email** — `sendWeeklyDigest()` sends a React Email template (`emails/WeeklyDigest.tsx`) via Resend. Computes SOV delta (last 2 `visibility_analytics` rows), top competitor (most-mentioned from last 50 `sov_evaluations`), and citation rate.
+> 2. **Occasion Scheduler** — `runOccasionScheduler()` creates occasion-based content drafts.
+> 3. **Prompt Intelligence** — `detectQueryGaps()` + `createDraft()` for zero-citation clusters.
+> 4. **Archive Expired Drafts** — `archiveExpiredOccasionDrafts()` post-processing step.
+> 5. **Post-Publish Re-checks** — `getPendingRechecks()` + `completeRecheck()` for durable 14-day rechecks.
+
 ### 2.5 Drift Detection
 
 "Drift" occurs when a previously-fixed hallucination recurs, or when AI models revert to stale data. LocalVector detects drift via two mechanisms:
@@ -821,6 +846,7 @@ Runs weekly (all plans). Writes to `visibility_scores` table for historical trac
 | Magic (OCR) | 1–3/month | GPT-4o Vision | $0.50–$1.50 |
 | SOV cron (15 queries/week) | 60/month | Perplexity Sonar | $0.30–$0.60 |
 | Content Draft brief gen | 0–8/month | GPT-4o-mini | $0.00–$0.04 |
+| Weekly Digest email | 4/month | Resend | ~$0.00 (free tier) |
 | **Total (Starter)** | | | **~$1.40/month** |
 | **Total (Growth)** | | | **~$3.69/month** |
 
@@ -850,6 +876,8 @@ The `ai_readability_score` is calculated during the `POST /magic-menu/:id/publis
 
 | Version | Date | Changes |
 |---------|------|---------|
+| 2.7 | 2026-02-25 | Sprint 59: Added revenue leak snapshot step to audit cron pipeline (59B). Documented SOV cron post-processing sub-steps including `sendWeeklyDigest()` replacing `sendSOVReport()` (59C). Added weekly digest email to cost table. Added `menu-ocr` GPT-4o Vision model key (59A). |
+| 2.6 | 2026-02-25 | Sprint 56: Inngest hardening — added `withTimeout()` (55s) to all fan-out steps, structured logging (`function_id`, `duration_ms`, metrics), health check endpoint (`GET /api/inngest/health`). SOV retries 3→2, post-publish added concurrency 10 + retries 1. Occasion seed expansion 20→32. |
 | 2.5 | 2026-02-25 | Architecture update: replaced "Supabase Edge Function" references with actual implementation (Next.js Route Handlers + Inngest fan-out + `lib/services/`). Added AI SDK implementation notes to Fear, Greed, and Magic engines. Added Section 4B (Truth Audit Engine — multi-engine accuracy scoring). Updated Section 5 header (Maintenance Workers). |
 | 2.4 | 2026-02-23 | Added Section 3.4 (Content Draft trigger from Greed Engine). Updated Section 6 Visibility component — removed hardcoded 98, added reference to Doc 04c. Updated cost table to include SOV cron and Content Draft costs. |
 | 2.3 | 2026-02-16 | Initial version. Fear Engine, Greed Engine, Magic Engine, Maintenance Workers, Reality Score formula. |
