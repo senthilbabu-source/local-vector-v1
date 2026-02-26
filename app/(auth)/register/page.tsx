@@ -6,6 +6,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { RegisterSchema, type RegisterInput } from '@/lib/schemas/auth';
+import { createClient } from '@/lib/supabase/client';
 
 type FieldName = keyof RegisterInput;
 
@@ -49,6 +50,29 @@ const fields: {
 export default function RegisterPage() {
   const router = useRouter();
   const [globalError, setGlobalError] = useState<string | null>(null);
+  const [oauthLoading, setOauthLoading] = useState(false);
+
+  async function handleGoogleSignUp() {
+    setGlobalError(null);
+    setOauthLoading(true);
+    try {
+      const supabase = createClient();
+      // Google OAuth provider must be enabled in Supabase Dashboard > Auth > Providers
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: `${window.location.origin}/dashboard`,
+        },
+      });
+      if (error) {
+        setGlobalError(error.message);
+        setOauthLoading(false);
+      }
+    } catch {
+      setGlobalError('Google sign-up is not available. Please use email and password.');
+      setOauthLoading(false);
+    }
+  }
 
   const {
     register,
@@ -167,6 +191,29 @@ export default function RegisterPage() {
             {isSubmitting ? 'Creating account…' : 'Create account'}
           </button>
         </form>
+
+        {/* Divider */}
+        <div className="my-6 flex items-center gap-3">
+          <div className="h-px flex-1 bg-white/10" />
+          <span className="text-xs text-slate-500">or</span>
+          <div className="h-px flex-1 bg-white/10" />
+        </div>
+
+        {/* Google OAuth — requires Google provider enabled in Supabase Dashboard > Auth > Providers */}
+        <button
+          type="button"
+          onClick={handleGoogleSignUp}
+          disabled={oauthLoading}
+          className="flex w-full items-center justify-center gap-3 rounded-lg border border-white/10 bg-white px-4 py-2.5 text-sm font-medium text-gray-800 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden>
+            <path d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844a4.14 4.14 0 01-1.796 2.716v2.259h2.908c1.702-1.567 2.684-3.875 2.684-6.615z" fill="#4285F4"/>
+            <path d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 009 18z" fill="#34A853"/>
+            <path d="M3.964 10.71A5.41 5.41 0 013.682 9c0-.593.102-1.17.282-1.71V4.958H.957A8.996 8.996 0 000 9c0 1.452.348 2.827.957 4.042l3.007-2.332z" fill="#FBBC05"/>
+            <path d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 00.957 4.958L3.964 7.29C4.672 5.163 6.656 3.58 9 3.58z" fill="#EA4335"/>
+          </svg>
+          {oauthLoading ? 'Redirecting…' : 'Sign up with Google'}
+        </button>
 
         {/* Footer link */}
         <p style={{ marginTop: 24, textAlign: 'center', fontSize: 14, color: '#94A3B8' }}>
