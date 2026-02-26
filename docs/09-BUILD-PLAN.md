@@ -579,11 +579,12 @@ These features span multiple phases but were completed together in Sprint 59.
 
 ### 60A — Playwright E2E Specs + data-testid
 
-- [x] Add `data-testid` attributes to all 11 sidebar nav links in `components/layout/Sidebar.tsx`
+- [x] Add `data-testid` attributes to all 13 sidebar nav links in `components/layout/Sidebar.tsx` (count updated: +AI Assistant Sprint 68, +AI Says Sprint 69)
 - [x] Create `tests/e2e/11-ai-assistant.spec.ts` — chat UI, quick-action buttons, input
 - [x] Create `tests/e2e/12-citations.spec.ts` — heading, gap score or empty state, sidebar nav
 - [x] Create `tests/e2e/13-page-audits.spec.ts` — heading, audit cards or empty state, sidebar nav
-- [x] Create `tests/e2e/14-sidebar-nav.spec.ts` — 9 sidebar links navigate to correct pages
+- [x] Create `tests/e2e/14-sidebar-nav.spec.ts` — 11 sidebar links navigate to correct pages (count updated Sprint 69)
+- [x] Sprint 69: Add "AI Says" nav item (Quote icon), create `app/dashboard/ai-responses/` page + error boundary + components + data layer
 
 ---
 

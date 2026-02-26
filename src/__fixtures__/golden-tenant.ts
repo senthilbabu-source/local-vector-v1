@@ -111,6 +111,35 @@ export const MOCK_AI_AUDIT = {
  * Rival Tenant — used exclusively for RLS isolation tests.
  * Verifies that Tenant B cannot read or mutate Tenant A's data.
  */
+/**
+ * Sprint 69 — Canonical SOV response fixture for "AI Says" page tests.
+ * UUIDs match supabase/seed.sql Section 9 (target_query + sov_evaluations).
+ */
+export const MOCK_SOV_RESPONSE = {
+  queryId: 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+  queryText: 'Best BBQ restaurant in Alpharetta GA',
+  queryCategory: 'discovery',
+  engines: [
+    {
+      engine: 'openai',
+      rankPosition: 2,
+      rawResponse:
+        'Here are some of the best BBQ restaurants in Alpharetta, GA: 1. Dreamland BBQ — a beloved regional chain. 2. Charcoal N Chill — popular for smoked brisket. 3. Pappadeaux Seafood Kitchen — BBQ offerings worth a visit.',
+      mentionedCompetitors: ['Dreamland BBQ', 'Pappadeaux Seafood Kitchen'],
+      createdAt: '2026-02-26T12:00:00.000Z',
+    },
+    {
+      engine: 'perplexity',
+      rankPosition: 1,
+      rawResponse:
+        'Based on recent reviews, Charcoal N Chill stands out as a top dining destination in Alpharetta, GA. Dreamland BBQ is another popular option.',
+      mentionedCompetitors: ['Dreamland BBQ'],
+      createdAt: '2026-02-26T12:05:00.000Z',
+    },
+  ],
+  latestDate: '2026-02-26T12:05:00.000Z',
+} as const;
+
 export const RIVAL_TENANT = {
   org: {
     name: 'Cloud 9 Lounge',

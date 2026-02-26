@@ -864,7 +864,7 @@ Added to `app/dashboard/share-of-voice/page.tsx` (Growth+ only). Calls `detectQu
 - `GapAlertCard` — per-gap card with type badge (untracked=amber, competitor_discovered=crimson, zero_citation_cluster=indigo), impact level, and suggested action
 
 ### 34.5 — Sidebar Navigation
-`Citations` (Globe icon) and `Page Audits` (FileSearch icon) added to `NAV_ITEMS` in `components/layout/Sidebar.tsx`, positioned after "Listings" and before "Settings".
+`Citations` (Globe icon) and `Page Audits` (FileSearch icon) added to `NAV_ITEMS` in `components/layout/Sidebar.tsx`, positioned after "Listings" and before "Settings". `AI Assistant` (MessageSquare icon) added Sprint 68 after Page Audits. `AI Says` (Quote icon, `href: /dashboard/ai-responses`) added Sprint 69 after AI Assistant. `data-testid="nav-ai-says"`.
 
 ---
 
@@ -883,7 +883,7 @@ export default function SectionError({ error, reset }: { error: Error & { digest
   // ... AlertTriangle icon + "Something went wrong" + error.message + "Try again" button
 }
 ```
-Current error boundaries: `app/dashboard/error.tsx`, `hallucinations/error.tsx`, `share-of-voice/error.tsx`, `ai-assistant/error.tsx`, `content-drafts/error.tsx`. When adding new dashboard sections, create a matching `error.tsx`.
+Current error boundaries: `app/dashboard/error.tsx`, `hallucinations/error.tsx`, `share-of-voice/error.tsx`, `ai-assistant/error.tsx`, `content-drafts/error.tsx`, `ai-responses/error.tsx`. When adding new dashboard sections, create a matching `error.tsx`.
 
 ### 35.2 — Google OAuth Login (Supabase Auth, NOT GBP)
 Login and register pages use Supabase's built-in `signInWithOAuth({ provider: 'google' })` for user authentication. This is **separate** from the GBP OAuth flow in `app/api/auth/google/` (Rule 32), which connects Google Business Profile for data import.
@@ -900,7 +900,7 @@ Login and register pages use Supabase's built-in `signInWithOAuth({ provider: 'g
 
 ### 35.4 — Sidebar `data-testid` Convention
 All sidebar nav links have `data-testid={`nav-${label.toLowerCase().replace(/\s+/g, '-')}`}`:
-`nav-dashboard`, `nav-alerts`, `nav-menu`, `nav-share-of-voice`, `nav-content`, `nav-compete`, `nav-listings`, `nav-citations`, `nav-page-audits`, `nav-settings`, `nav-billing`.
+`nav-dashboard`, `nav-alerts`, `nav-menu`, `nav-share-of-voice`, `nav-content`, `nav-compete`, `nav-listings`, `nav-citations`, `nav-page-audits`, `nav-ai-assistant`, `nav-ai-says`, `nav-settings`, `nav-billing`.
 E2E specs should use `page.getByTestId('nav-xyz')` for sidebar navigation.
 
 ### 35.5 — E2E Spec Inventory (updated)

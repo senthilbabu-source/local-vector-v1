@@ -4,6 +4,36 @@
 
 ---
 
+## 2026-02-26 — Sprint 69: "AI Says" Response Library (Completed)
+
+**Goal:** Build the "AI Says" dashboard page showing exact AI engine response text for each tracked query — the highest wow-per-effort feature in the roadmap.
+
+**Scope:**
+- `lib/data/ai-responses.ts` — **NEW.** Server-side data fetcher. Joins `target_queries` + `sov_evaluations` (including `raw_response`), groups by query, deduplicates to latest eval per engine. Exports `parseDisplayText()` for raw_response dual-format handling.
+- `app/dashboard/ai-responses/page.tsx` — **NEW.** Server Component page. Plan-gated (Growth+). Empty state links to SOV page.
+- `app/dashboard/ai-responses/error.tsx` — **NEW.** Error boundary (AI_RULES §35.1).
+- `app/dashboard/ai-responses/_components/ResponseLibrary.tsx` — **NEW.** Client Component with category filter tabs (All, Discovery, Comparison, Near Me, Occasion, Custom), filtered count badge.
+- `app/dashboard/ai-responses/_components/ResponseCard.tsx` — **NEW.** Single query card with side-by-side engine responses, category badge, last-checked date.
+- `app/dashboard/ai-responses/_components/EngineResponseBlock.tsx` — **NEW.** Individual engine response display with expand/collapse (200 char truncation), raw_response parsing, competitor crimson pills, rank badge (reuses SovCard rankBg logic).
+- `components/layout/Sidebar.tsx` — Added "AI Says" nav entry (Quote icon, `data-testid="nav-ai-says"`).
+- `supabase/seed.sql` — Added 4 new seed rows: 1 Perplexity eval for BBQ query, 1 hookah target_query, 2 evals (OpenAI + Perplexity) for hookah query. UUIDs c4–c7 registered in reference card.
+- `src/__fixtures__/golden-tenant.ts` — Added `MOCK_SOV_RESPONSE` fixture with 2 engines, realistic response text.
+
+**Design note — raw_response dual format:** The live `writeSOVResults()` stores raw_response as `JSON.stringify({ businesses, cited_url })` — structured data, not human-readable text. Seed data stores it as plain text. The `parseDisplayText()` utility handles both. **Sprint 70+ TODO:** Modify `writeSOVResults()` to also store the full AI text.
+
+**Tests added:**
+- `src/__tests__/unit/ai-responses-data.test.ts` — **15 Vitest tests.** Data layer: grouping, dedup, null handling, empty states, parseDisplayText.
+- `src/__tests__/unit/components/ai-responses/ai-responses-components.test.tsx` — **11 Vitest tests.** Component rendering: text display, truncation, competitor pills, expand/collapse, category badges.
+
+**Run commands:**
+```bash
+npx vitest run src/__tests__/unit/ai-responses-data.test.ts                                      # 15 tests passing
+npx vitest run src/__tests__/unit/components/ai-responses/ai-responses-components.test.tsx        # 11 tests passing
+npx vitest run                                                                                     # 844 tests (837 passed, 7 skipped, 63 files)
+```
+
+---
+
 ## 2026-02-27 — Sprint 68: Fix ai_audits Bug + Add AI Assistant to Sidebar (Completed)
 
 **Goal:** Fix two critical bugs: (1) `ai_audits` table never written to, causing "Last Scan: never" for all customers, and (2) AI Assistant page missing from sidebar navigation.

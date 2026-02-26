@@ -29,6 +29,7 @@
 │ ⚔️ Compete │                                           │
 │ 📍 Listings│                                           │
 │ 🤖 AI Asst │                                           │
+│ 💬 AI Says │                                           │
 │ ⚙️ Settings│                                           │
 │ 💳 Billing │                                           │
 │            │                                           │
@@ -49,6 +50,7 @@
 | 📡 Visibility (SOV) | ❌ | ✅ (read-only) | ✅ Full | ✅ Full |
 | 📝 Content Drafts | ❌ | ❌ | ✅ | ✅ |
 | 🤖 AI Assistant | ✅ | ✅ | ✅ | ✅ |
+| 💬 AI Says | ❌ | ❌ | ✅ | ✅ |
 | Settings | ✅ | ✅ | ✅ | ✅ |
 | Billing | ✅ | ✅ | ✅ | ✅ |
 | 🏢 Org Switcher | ❌ | ❌ | ❌ | ✅ (top bar) |

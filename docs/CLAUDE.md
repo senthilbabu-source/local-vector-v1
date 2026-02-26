@@ -32,6 +32,7 @@ app/(auth)/            — Auth pages (login, register, forgot-password, reset-p
 app/dashboard/         — Authenticated dashboard pages (each has error.tsx boundary)
 app/dashboard/citations/     — Citation Gap Dashboard (Sprint 58A)
 app/dashboard/page-audits/   — Page Audit Dashboard (Sprint 58B)
+app/dashboard/ai-responses/  — AI Says Response Library (Sprint 69)
 lib/ai/                — AI provider config, schemas, actions
 lib/services/          — Pure business logic services
 lib/autopilot/         — Content draft generation and publish pipeline

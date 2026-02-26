@@ -30,6 +30,12 @@ CREATE EXTENSION IF NOT EXISTS pgcrypto;
 --   rev_snapshot_3 : d5eebc99-9c0b-4ef8-bb6d-6bb9bd380a11
 --   ai_audit_1     : d6eebc99-9c0b-4ef8-bb6d-6bb9bd380a11
 --   ai_audit_2     : d7eebc99-9c0b-4ef8-bb6d-6bb9bd380a11
+--   target_query BBQ: c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11  (shared UUID, different table)
+--   sov_eval openai : c1eebc99-9c0b-4ef8-bb6d-6bb9bd380a11  (shared UUID, different table)
+--   target_query hookah: c4eebc99-9c0b-4ef8-bb6d-6bb9bd380a11  (Sprint 69)
+--   sov_eval px BBQ : c5eebc99-9c0b-4ef8-bb6d-6bb9bd380a11  (Sprint 69)
+--   sov_eval ai hookah: c6eebc99-9c0b-4ef8-bb6d-6bb9bd380a11  (Sprint 69)
+--   sov_eval px hookah: c7eebc99-9c0b-4ef8-bb6d-6bb9bd380a11  (Sprint 69)
 --
 -- Phase 19 Test User (Playwright Onboarding Guard test):
 --   auth user id   : 00000000-0000-0000-0000-000000000010
@@ -391,6 +397,89 @@ SELECT
   '["Dreamland BBQ", "Pappadeaux Seafood Kitchen"]'::jsonb,
   'Here are some of the best BBQ restaurants in Alpharetta, GA: 1. Dreamland BBQ — a beloved regional chain known for its slow-smoked ribs. 2. Charcoal N Chill — a popular spot for smoked brisket and a vibrant atmosphere. 3. Pappadeaux Seafood Kitchen — though primarily seafood, their BBQ offerings are worth a visit.',
   NOW() - INTERVAL '30 minutes'
+FROM public.locations l
+WHERE l.org_id = 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11'
+  AND l.slug   = 'alpharetta'
+LIMIT 1
+ON CONFLICT (id) DO NOTHING;
+
+-- ── 9b. SPRINT 69 — Additional SOV seeds for "AI Says" page ────────────────
+-- Adds: Perplexity eval for BBQ query, new hookah query + evals (both engines).
+
+-- Perplexity eval for existing BBQ query
+INSERT INTO public.sov_evaluations (
+  id, org_id, location_id, query_id,
+  engine, rank_position, mentioned_competitors, raw_response,
+  created_at
+)
+SELECT
+  'c5eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+  'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+  l.id,
+  'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+  'perplexity',
+  1,
+  '["Dreamland BBQ"]'::jsonb,
+  'Based on recent reviews and local recommendations, Charcoal N Chill stands out as a top BBQ destination in Alpharetta, GA. Known for their premium smoked brisket and vibrant atmosphere, they have earned a loyal following. Dreamland BBQ is another popular option for those seeking traditional slow-smoked ribs. Sources: Yelp, Google Reviews.',
+  NOW() - INTERVAL '25 minutes'
+FROM public.locations l
+WHERE l.org_id = 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11'
+  AND l.slug   = 'alpharetta'
+LIMIT 1
+ON CONFLICT (id) DO NOTHING;
+
+-- New target query: hookah bar
+INSERT INTO public.target_queries (id, org_id, location_id, query_text, query_category)
+SELECT
+  'c4eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+  'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+  l.id,
+  'Best hookah bar near Alpharetta',
+  'near_me'
+FROM public.locations l
+WHERE l.org_id = 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11'
+  AND l.slug   = 'alpharetta'
+LIMIT 1
+ON CONFLICT (id) DO NOTHING;
+
+-- OpenAI eval for hookah query
+INSERT INTO public.sov_evaluations (
+  id, org_id, location_id, query_id,
+  engine, rank_position, mentioned_competitors, raw_response,
+  created_at
+)
+SELECT
+  'c6eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+  'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+  l.id,
+  'c4eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+  'openai',
+  2,
+  '["Cloud 9 Lounge"]'::jsonb,
+  'Here are some of the best hookah bars near Alpharetta: 1. Cloud 9 Lounge — known for its premium hookah selection and late-night vibes. 2. Charcoal N Chill — a popular spot for Indo-American fusion cuisine with an excellent hookah menu. 3. Sahara Hookah Lounge — a cozy spot with a wide variety of flavors.',
+  NOW() - INTERVAL '20 minutes'
+FROM public.locations l
+WHERE l.org_id = 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11'
+  AND l.slug   = 'alpharetta'
+LIMIT 1
+ON CONFLICT (id) DO NOTHING;
+
+-- Perplexity eval for hookah query
+INSERT INTO public.sov_evaluations (
+  id, org_id, location_id, query_id,
+  engine, rank_position, mentioned_competitors, raw_response,
+  created_at
+)
+SELECT
+  'c7eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+  'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+  l.id,
+  'c4eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+  'perplexity',
+  1,
+  '["Cloud 9 Lounge", "Sahara Hookah Lounge"]'::jsonb,
+  'Charcoal N Chill is widely regarded as the best hookah bar near Alpharetta. Their premium hookah service, combined with Indo-American fusion cuisine, creates a unique experience. Cloud 9 Lounge and Sahara Hookah Lounge are also popular alternatives in the area. Sources: Google Reviews, TripAdvisor.',
+  NOW() - INTERVAL '15 minutes'
 FROM public.locations l
 WHERE l.org_id = 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11'
   AND l.slug   = 'alpharetta'
