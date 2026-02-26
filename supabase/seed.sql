@@ -36,6 +36,8 @@ CREATE EXTENSION IF NOT EXISTS pgcrypto;
 --   sov_eval px BBQ : c5eebc99-9c0b-4ef8-bb6d-6bb9bd380a11  (Sprint 69)
 --   sov_eval ai hookah: c6eebc99-9c0b-4ef8-bb6d-6bb9bd380a11  (Sprint 69)
 --   sov_eval px hookah: c7eebc99-9c0b-4ef8-bb6d-6bb9bd380a11  (Sprint 69)
+--   target_query comp: c8eebc99-9c0b-4ef8-bb6d-6bb9bd380a11  (Sprint 70)
+--   target_query occ : c9eebc99-9c0b-4ef8-bb6d-6bb9bd380a11  (Sprint 70)
 --
 -- Phase 19 Test User (Playwright Onboarding Guard test):
 --   auth user id   : 00000000-0000-0000-0000-000000000010
@@ -1379,3 +1381,52 @@ UPDATE public.ai_hallucinations
 SET audit_id = 'd6eebc99-9c0b-4ef8-bb6d-6bb9bd380a11'
 WHERE org_id = 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11'
   AND audit_id IS NULL;
+
+-- ── 17. ADDITIONAL TARGET QUERIES (Sprint 70 — Schema Fix Generator) ────────
+-- The FAQ schema generator needs varied query categories for rich Q&A pairs.
+
+-- Comparison query
+INSERT INTO public.target_queries (id, org_id, location_id, query_text, query_category)
+SELECT
+  'c8eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+  'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+  l.id,
+  'Charcoal N Chill vs Cloud 9 Lounge Alpharetta',
+  'comparison'
+FROM public.locations l
+WHERE l.org_id = 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11'
+  AND l.slug   = 'alpharetta'
+LIMIT 1
+ON CONFLICT (id) DO NOTHING;
+
+-- Occasion query
+INSERT INTO public.target_queries (id, org_id, location_id, query_text, query_category)
+SELECT
+  'c9eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+  'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+  l.id,
+  'birthday party venue Alpharetta with hookah and private rooms',
+  'occasion'
+FROM public.locations l
+WHERE l.org_id = 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11'
+  AND l.slug   = 'alpharetta'
+LIMIT 1
+ON CONFLICT (id) DO NOTHING;
+
+-- ── 18. YELP INTEGRATION (Sprint 70 — Schema Fix Generator) ─────────────────
+-- Adds a Yelp integration with listing_url so the LocalBusiness schema has
+-- sameAs links.
+
+INSERT INTO public.location_integrations (org_id, location_id, platform, status, last_sync_at, listing_url)
+SELECT
+  'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+  l.id,
+  'yelp',
+  'connected',
+  NOW() - INTERVAL '5 hours',
+  'https://www.yelp.com/biz/charcoal-n-chill-alpharetta'
+FROM public.locations l
+WHERE l.org_id = 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11'
+  AND l.slug   = 'alpharetta'
+LIMIT 1
+ON CONFLICT (location_id, platform) DO NOTHING;

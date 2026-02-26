@@ -1064,5 +1064,16 @@ Only 4 non-Supabase `as any` casts are permitted in the codebase:
 
 Any new `as any` on Supabase clients, queries, or service params will be flagged as a rule violation.
 
+## 39. Schema Generator — Pure Functions Only (Sprint 70)
+
+All functions in `lib/schema-generator/` are **pure** — they take typed inputs and return JSON-LD objects. They MUST NOT import Supabase clients, call `fetch()`, or perform any I/O.
+
+- **Generators:** `faq-schema.ts`, `hours-schema.ts`, `local-business-schema.ts` — pure functions, no side effects.
+- **Data layer:** `lib/data/schema-generator.ts` — the ONLY file that touches Supabase. Casts JSONB columns to ground-truth types (§2, §9, §38.4).
+- **Server action:** `app/dashboard/page-audits/schema-actions.ts` — orchestrates data fetch → generate → return. Uses `getSafeAuthContext()` (§3).
+- **FAQ answers are ground truth only.** `generateFAQPageSchema()` builds answers from `SchemaLocationInput` fields (address, hours, amenities, categories). No AI-generated text, no marketing language, no fabricated claims.
+- **Hours edge cases (§10 applies):** `"closed"` literal → omit from OpeningHoursSpecification. Missing day key → omit. Cross-midnight closes → valid as-is.
+- **Schema generation is on-demand** — triggered by user click ("Generate Schema Fix"), not on page load (§5).
+
 ---
 > **End of System Instructions**

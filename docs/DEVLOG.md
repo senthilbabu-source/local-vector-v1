@@ -4,6 +4,59 @@
 
 ---
 
+## 2026-02-26 — Sprint 70: Schema Fix Generator (Completed)
+
+**Goal:** Build a Schema Fix Generator that auto-generates copy-to-clipboard JSON-LD code blocks for FAQPage, OpeningHoursSpecification, and LocalBusiness schemas — using data already in LocalVector. This is the core differentiation: instead of just telling users "FAQ schema score: 0", we generate 6 FAQ questions from their actual SOV queries with answers from ground truth data.
+
+**Architecture:** Three-layer design — pure function generators (no DB, no side effects), data layer (Supabase fetches with ground-truth type casts), and server action (orchestrates on user click, not page load).
+
+**Scope:**
+
+Service Layer (pure functions — `lib/schema-generator/`):
+- `types.ts` — **NEW.** SchemaLocationInput, SchemaQueryInput, SchemaIntegrationInput, GeneratedSchema, SchemaType.
+- `faq-schema.ts` — **NEW.** `generateFAQPageSchema()` — transforms SOV queries into FAQ questions, generates answers from ground truth only. `transformToQuestion()` exported for testing. Max 8 Q&A pairs, min 2 required.
+- `hours-schema.ts` — **NEW.** `generateOpeningHoursSchema()` — handles `"closed"` literals, missing days, cross-midnight times (AI_RULES §10).
+- `local-business-schema.ts` — **NEW.** `generateLocalBusinessSchema()` + `inferSchemaOrgType()` — sameAs links from `location_integrations.listing_url`, category→Schema.org type mapping (BarOrPub, Restaurant, NightClub, LocalBusiness).
+- `index.ts` — **NEW.** Re-exports all generators and types.
+
+Data Layer:
+- `lib/data/schema-generator.ts` — **NEW.** `fetchSchemaGeneratorData()` — parallel fetches locations, target_queries, location_integrations. JSONB cast to HoursData/Amenities/Categories (AI_RULES §2, §9, §38.4).
+
+Server Action:
+- `app/dashboard/page-audits/schema-actions.ts` — **NEW.** `generateSchemaFixes()` — uses `getSafeAuthContext()`, returns all three schema types.
+
+UI Components:
+- `app/dashboard/page-audits/_components/SchemaCodeBlock.tsx` — **NEW.** JSON-LD display with copy-to-clipboard (navigator.clipboard pattern from LinkInjectionModal).
+- `app/dashboard/page-audits/_components/SchemaFixPanel.tsx` — **NEW.** Tabbed panel (FAQ / Opening Hours / Local Business) with impact badges and "How to add" instructions.
+- `app/dashboard/page-audits/_components/PageAuditCard.tsx` — **MODIFIED.** Added "Generate Schema Fix" button (conditional on `schemaCompletenessScore < 80 || !faqSchemaPresent`), integrated SchemaFixPanel.
+- `app/dashboard/page-audits/_components/PageAuditCardWrapper.tsx` — **MODIFIED.** Passes `generateSchemaFixes` server action.
+
+Seed Data:
+- `supabase/seed.sql` — Added 2 target_queries (comparison + occasion categories, UUIDs c8–c9) and 1 Yelp integration with listing_url. Updated UUID reference card.
+
+Fixtures:
+- `src/__fixtures__/golden-tenant.ts` — Added `MOCK_SCHEMA_LOCATION`, `MOCK_SCHEMA_INTEGRATIONS`, `MOCK_SCHEMA_QUERIES`.
+
+**Tests added:**
+- `src/__tests__/unit/schema-generator-faq.test.ts` — **19 tests.** FAQ generation, Q&A pairs, max 8 limit, min 2 threshold, transformToQuestion, ground-truth-only answers.
+- `src/__tests__/unit/schema-generator-hours.test.ts` — **12 tests.** OpeningHoursSpecification, closed days, missing days, cross-midnight, null/empty hours.
+- `src/__tests__/unit/schema-generator-local-business.test.ts` — **24 tests.** LocalBusiness + sameAs, category inference, PostalAddress, Google Maps link, acceptsReservations.
+- `src/__tests__/unit/schema-generator-data.test.ts` — **8 tests.** Data layer: JSONB casts, null location, country default, empty arrays.
+
+**Total: 63 new test cases across 4 files, all passing.**
+
+**Run commands:**
+```bash
+npx vitest run src/__tests__/unit/schema-generator-faq.test.ts               # 19 tests
+npx vitest run src/__tests__/unit/schema-generator-hours.test.ts             # 12 tests
+npx vitest run src/__tests__/unit/schema-generator-local-business.test.ts    # 24 tests
+npx vitest run src/__tests__/unit/schema-generator-data.test.ts              # 8 tests
+```
+
+**Test totals after Sprint 70:** Vitest: 900 tests (63 files), up from 818.
+
+---
+
 ## 2026-02-26 — Hotfix: Zod v4 + AI SDK Compatibility
 
 **Problem:** AI Assistant chat returned "AI service temporarily unavailable" on every message. Root cause: `zod-to-json-schema@3.25.1` (bundled with `ai@4.3.19`) cannot convert Zod v4 schemas. All `generateObject()` and `tool()` calls sent invalid JSON schemas (`type: "None"` instead of `type: "object"`) to OpenAI.

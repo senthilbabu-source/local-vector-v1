@@ -33,6 +33,7 @@ app/dashboard/         — Authenticated dashboard pages (each has error.tsx bou
 app/dashboard/citations/     — Citation Gap Dashboard (Sprint 58A)
 app/dashboard/page-audits/   — Page Audit Dashboard (Sprint 58B)
 app/dashboard/ai-responses/  — AI Says Response Library (Sprint 69)
+lib/schema-generator/        — Pure JSON-LD generators: FAQ, Hours, LocalBusiness (Sprint 70)
 lib/ai/                — AI provider config, schemas, actions
 lib/services/          — Pure business logic services
 lib/autopilot/         — Content draft generation and publish pipeline
@@ -123,7 +124,8 @@ UPSTASH_REDIS_REST_URL, UPSTASH_REDIS_REST_TOKEN
 | Prompt Intelligence | `docs/15-LOCAL-PROMPT-INTELLIGENCE.md` | Query gap detection (untracked, competitor-discovered, zero-citation) |
 | Citation Intelligence | `docs/05-API-CONTRACT.md §14-15` | Platform citation tracking |
 | Content Grader | `docs/17-CONTENT-GRADER.md` | AEO page audit (5 scoring dimensions) |
+| Schema Fix Generator | `lib/schema-generator/` | Generate JSON-LD (FAQ, Hours, LocalBusiness) from ground truth |
 
 ## Build History
 
-See `DEVLOG.md` (project root) and `docs/DEVLOG.md` for the complete sprint-by-sprint build log. Current sprint: 68.
+See `DEVLOG.md` (project root) and `docs/DEVLOG.md` for the complete sprint-by-sprint build log. Current sprint: 70.

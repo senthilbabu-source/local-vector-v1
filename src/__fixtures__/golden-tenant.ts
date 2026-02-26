@@ -140,6 +140,61 @@ export const MOCK_SOV_RESPONSE = {
   latestDate: '2026-02-26T12:05:00.000Z',
 } as const;
 
+/**
+ * Sprint 70 — Schema Fix Generator input fixture.
+ * Mirrors GOLDEN_TENANT.location but typed as SchemaLocationInput for
+ * use in schema generator unit tests.
+ */
+export const MOCK_SCHEMA_LOCATION = {
+  business_name: 'Charcoal N Chill',
+  address_line1: '11950 Jones Bridge Road Ste 103',
+  city: 'Alpharetta',
+  state: 'GA',
+  zip: '30005',
+  country: 'US',
+  phone: '(470) 546-4866',
+  website_url: 'https://charcoalnchill.com',
+  hours_data: {
+    monday: { open: '17:00', close: '23:00' },
+    tuesday: { open: '17:00', close: '23:00' },
+    wednesday: { open: '17:00', close: '23:00' },
+    thursday: { open: '17:00', close: '00:00' },
+    friday: { open: '17:00', close: '01:00' },
+    saturday: { open: '17:00', close: '01:00' },
+    sunday: { open: '17:00', close: '23:00' },
+  },
+  amenities: {
+    has_outdoor_seating: true,
+    serves_alcohol: true,
+    has_hookah: true,
+    is_kid_friendly: false,
+    takes_reservations: true,
+    has_live_music: true,
+    has_dj: true,
+    has_private_rooms: true,
+  },
+  categories: ['Hookah Bar', 'Indian Restaurant', 'Fusion Restaurant', 'Lounge', 'Nightlife'],
+  google_place_id: 'ChIJi8-1ywdO9YgR9s5j-y0_1lI',
+} as const;
+
+/**
+ * Sprint 70 — Mock integrations for LocalBusiness schema tests.
+ */
+export const MOCK_SCHEMA_INTEGRATIONS = [
+  { platform: 'google', listing_url: 'https://g.page/charcoal-n-chill-alpharetta' },
+  { platform: 'yelp', listing_url: 'https://www.yelp.com/biz/charcoal-n-chill-alpharetta' },
+] as const;
+
+/**
+ * Sprint 70 — Mock target queries for FAQ schema tests.
+ */
+export const MOCK_SCHEMA_QUERIES = [
+  { query_text: 'Best BBQ restaurant in Alpharetta GA', query_category: 'discovery' },
+  { query_text: 'Best hookah bar near Alpharetta', query_category: 'near_me' },
+  { query_text: 'Charcoal N Chill vs Cloud 9 Lounge Alpharetta', query_category: 'comparison' },
+  { query_text: 'birthday party venue Alpharetta with hookah and private rooms', query_category: 'occasion' },
+] as const;
+
 export const RIVAL_TENANT = {
   org: {
     name: 'Cloud 9 Lounge',

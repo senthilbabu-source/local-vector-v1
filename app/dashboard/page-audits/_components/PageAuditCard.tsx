@@ -1,11 +1,14 @@
 // ---------------------------------------------------------------------------
-// PageAuditCard — Sprint 58B: Individual page audit result card
+// PageAuditCard — Sprint 58B + Sprint 70: Individual page audit result card
+// Sprint 70: Added "Generate Schema Fix" button + SchemaFixPanel integration
 // ---------------------------------------------------------------------------
 
 'use client';
 
-import { useTransition } from 'react';
+import { useState, useTransition } from 'react';
 import DimensionBar from './DimensionBar';
+import SchemaFixPanel from './SchemaFixPanel';
+import type { GeneratedSchema } from '@/lib/schema-generator';
 
 interface Recommendation {
   issue: string;
@@ -26,6 +29,7 @@ interface Props {
   recommendations: Recommendation[];
   lastAuditedAt: string;
   onReaudit: (pageUrl: string) => Promise<{ success: boolean; error?: string }>;
+  onGenerateSchema: () => Promise<{ success: boolean; schemas: GeneratedSchema[]; error?: string }>;
 }
 
 export default function PageAuditCard({
@@ -41,8 +45,14 @@ export default function PageAuditCard({
   recommendations,
   lastAuditedAt,
   onReaudit,
+  onGenerateSchema,
 }: Props) {
   const [isPending, startTransition] = useTransition();
+  const [isGenerating, startGenerating] = useTransition();
+  const [schemas, setSchemas] = useState<GeneratedSchema[] | null>(null);
+  const [schemaError, setSchemaError] = useState<string | null>(null);
+
+  const needsSchemaFix = schemaCompletenessScore < 80 || !faqSchemaPresent;
 
   const scoreColor =
     overallScore >= 80 ? 'text-signal-green' :
@@ -56,57 +66,92 @@ export default function PageAuditCard({
 
   const displayUrl = pageUrl.replace(/^https?:\/\//, '').replace(/\/$/, '');
 
+  function handleGenerateSchema() {
+    setSchemaError(null);
+    startGenerating(async () => {
+      const result = await onGenerateSchema();
+      if (result.success) {
+        setSchemas(result.schemas);
+      } else {
+        setSchemaError(result.error ?? 'Failed to generate schemas');
+      }
+    });
+  }
+
   return (
-    <div className="rounded-2xl bg-surface-dark border border-white/5 p-5">
-      {/* Header */}
-      <div className="flex items-start justify-between gap-3 mb-4">
-        <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-2">
-            <span className="inline-flex items-center rounded-md bg-white/5 px-2 py-0.5 text-[10px] font-medium text-slate-400 uppercase">
-              {pageType}
-            </span>
-            <span className={`inline-flex items-center rounded-md ${scoreBg} px-2 py-0.5 text-[10px] font-bold ${scoreColor}`}>
-              {overallScore}/100
-            </span>
+    <div>
+      <div className="rounded-2xl bg-surface-dark border border-white/5 p-5">
+        {/* Header */}
+        <div className="flex items-start justify-between gap-3 mb-4">
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-2">
+              <span className="inline-flex items-center rounded-md bg-white/5 px-2 py-0.5 text-[10px] font-medium text-slate-400 uppercase">
+                {pageType}
+              </span>
+              <span className={`inline-flex items-center rounded-md ${scoreBg} px-2 py-0.5 text-[10px] font-bold ${scoreColor}`}>
+                {overallScore}/100
+              </span>
+            </div>
+            <p className="mt-1.5 text-sm font-medium text-white truncate" title={pageUrl}>
+              {displayUrl}
+            </p>
+            <p className="mt-0.5 text-[10px] text-slate-500">
+              Audited {new Date(lastAuditedAt).toLocaleDateString('en-US', {
+                month: 'short', day: 'numeric', year: 'numeric',
+              })}
+            </p>
           </div>
-          <p className="mt-1.5 text-sm font-medium text-white truncate" title={pageUrl}>
-            {displayUrl}
-          </p>
-          <p className="mt-0.5 text-[10px] text-slate-500">
-            Audited {new Date(lastAuditedAt).toLocaleDateString('en-US', {
-              month: 'short', day: 'numeric', year: 'numeric',
-            })}
-          </p>
+
+          {/* Action buttons */}
+          <div className="flex items-center gap-2 shrink-0">
+            {needsSchemaFix && (
+              <button
+                onClick={handleGenerateSchema}
+                disabled={isGenerating}
+                className="rounded-lg bg-electric-indigo/10 px-3 py-1.5 text-xs font-medium text-electric-indigo ring-1 ring-inset ring-electric-indigo/20 transition hover:bg-electric-indigo/20 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isGenerating ? 'Generating...' : 'Generate Schema Fix'}
+              </button>
+            )}
+            <button
+              onClick={() => startTransition(async () => { await onReaudit(pageUrl); })}
+              disabled={isPending}
+              className="rounded-lg bg-white/5 px-3 py-1.5 text-xs font-medium text-slate-300 transition hover:bg-white/10 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isPending ? 'Auditing...' : 'Re-audit'}
+            </button>
+          </div>
         </div>
 
-        {/* Re-audit button */}
-        <button
-          onClick={() => startTransition(async () => { await onReaudit(pageUrl); })}
-          disabled={isPending}
-          className="shrink-0 rounded-lg bg-white/5 px-3 py-1.5 text-xs font-medium text-slate-300 transition hover:bg-white/10 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          {isPending ? 'Auditing…' : 'Re-audit'}
-        </button>
-      </div>
-
-      {/* Dimension breakdown */}
-      <div className="space-y-2.5">
-        <DimensionBar label="Answer-First Structure" score={answerFirstScore} weight="35%" />
-        <DimensionBar label="Schema Completeness" score={schemaCompletenessScore} weight="25%" />
-        <DimensionBar label={`FAQ Schema${faqSchemaPresent ? ' ✓' : ''}`} score={faqSchemaScore} weight="20%" />
-        <DimensionBar label="Keyword Density" score={keywordDensityScore} weight="10%" />
-        <DimensionBar label="Entity Clarity" score={entityClarityScore} weight="10%" />
-      </div>
-
-      {/* Top recommendation */}
-      {recommendations.length > 0 && (
-        <div className="mt-4 rounded-xl bg-white/[0.02] border border-white/5 p-3">
-          <p className="text-[10px] font-semibold text-alert-amber uppercase tracking-wide mb-1">
-            Top Fix (+{recommendations[0].impactPoints} pts)
-          </p>
-          <p className="text-xs text-slate-300">{recommendations[0].issue}</p>
-          <p className="mt-1 text-xs text-slate-500">{recommendations[0].fix}</p>
+        {/* Dimension breakdown */}
+        <div className="space-y-2.5">
+          <DimensionBar label="Answer-First Structure" score={answerFirstScore} weight="35%" />
+          <DimensionBar label="Schema Completeness" score={schemaCompletenessScore} weight="25%" />
+          <DimensionBar label={`FAQ Schema${faqSchemaPresent ? ' \u2713' : ''}`} score={faqSchemaScore} weight="20%" />
+          <DimensionBar label="Keyword Density" score={keywordDensityScore} weight="10%" />
+          <DimensionBar label="Entity Clarity" score={entityClarityScore} weight="10%" />
         </div>
+
+        {/* Top recommendation */}
+        {recommendations.length > 0 && (
+          <div className="mt-4 rounded-xl bg-white/[0.02] border border-white/5 p-3">
+            <p className="text-[10px] font-semibold text-alert-amber uppercase tracking-wide mb-1">
+              Top Fix (+{recommendations[0].impactPoints} pts)
+            </p>
+            <p className="text-xs text-slate-300">{recommendations[0].issue}</p>
+            <p className="mt-1 text-xs text-slate-500">{recommendations[0].fix}</p>
+          </div>
+        )}
+
+        {/* Schema generation error */}
+        {schemaError && (
+          <p className="mt-3 text-xs text-alert-crimson">{schemaError}</p>
+        )}
+      </div>
+
+      {/* Schema Fix Panel */}
+      {schemas && schemas.length > 0 && (
+        <SchemaFixPanel schemas={schemas} onClose={() => setSchemas(null)} />
       )}
     </div>
   );

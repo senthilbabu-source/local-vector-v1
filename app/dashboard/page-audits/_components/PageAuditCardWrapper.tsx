@@ -1,11 +1,12 @@
 // ---------------------------------------------------------------------------
-// PageAuditCardWrapper — Sprint 58B: Binds server action to PageAuditCard
+// PageAuditCardWrapper — Sprint 58B + Sprint 70: Binds server actions
 // ---------------------------------------------------------------------------
 
 'use client';
 
 import PageAuditCard from './PageAuditCard';
 import { reauditPage } from '../actions';
+import { generateSchemaFixes } from '../schema-actions';
 
 interface Props {
   pageUrl: string;
@@ -26,6 +27,7 @@ export default function PageAuditCardWrapper(props: Props) {
     <PageAuditCard
       {...props}
       onReaudit={reauditPage}
+      onGenerateSchema={generateSchemaFixes}
     />
   );
 }
