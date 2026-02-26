@@ -19,6 +19,7 @@ import { parsePosExportWithGPT4o } from '@/lib/utils/parsePosExport';
 import { generateObject } from 'ai';
 import { getModel, hasApiKey } from '@/lib/ai/providers';
 import { MenuOCRSchema, type MenuOCROutput } from '@/lib/ai/schemas';
+import type { Json } from '@/lib/supabase/database.types';
 
 // ---------------------------------------------------------------------------
 // Phase 18 — OpenAI menu extraction helper
@@ -179,8 +180,7 @@ export async function createMagicMenu(
   const publicSlug = toUniqueSlug(name);
 
   // Step 4 — insert with org_id derived from server-side session
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const supabase = (await createClient()) as any;
+  const supabase = await createClient();
 
   const { error } = await supabase.from('magic_menus').insert({
     org_id: ctx.orgId,        // ALWAYS server-derived — never from client
@@ -222,8 +222,7 @@ export async function toggleMenuStatus(menuId: string): Promise<ActionResult> {
     return { success: false, error: 'Unauthorized' };
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const supabase = (await createClient()) as any;
+  const supabase = await createClient();
 
   // Read the authoritative current state from the DB.
   // Also fetch public_slug so we can revalidate the public Honeypot page.
@@ -291,8 +290,7 @@ export async function simulateAIParsing(
   const ctx = await getSafeAuthContext();
   if (!ctx?.orgId) return { success: false, error: 'Unauthorized' };
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const supabase = (await createClient()) as any;
+  const supabase = await createClient();
 
   // ── Look for an existing menu for this location ────────────────────────────
   const { data: existing } = (await supabase
@@ -359,7 +357,7 @@ export async function simulateAIParsing(
     .from('magic_menus')
     .update({
       processing_status:    'review_ready',
-      extracted_data:       mockData,
+      extracted_data:       mockData as unknown as Json,
       extraction_confidence: extractionConfidence,
     })
     .eq('id', menuId)
@@ -396,8 +394,7 @@ export async function approveAndPublish(
   const ctx = await getSafeAuthContext();
   if (!ctx?.orgId) return { success: false, error: 'Unauthorized' };
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const supabase = (await createClient()) as any;
+  const supabase = await createClient();
 
   // Read current state to get public_slug and existing propagation_events
   const { data: current, error: fetchError } = (await supabase
@@ -424,7 +421,7 @@ export async function approveAndPublish(
       is_published: true,
       processing_status: 'published',
       human_verified: true,
-      propagation_events: events,
+      propagation_events: events as unknown as Json,
     })
     .eq('id', menuId);
 
@@ -456,8 +453,7 @@ async function saveExtractedMenu(
   sourceType: 'csv-localvector' | 'csv-pos',
   menuData:   MenuExtractedData,
 ): Promise<{ success: true; menu: MenuWorkspaceData } | { success: false; error: string }> {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const supabase = (await createClient()) as any;
+  const supabase = await createClient();
 
   // ── Find or create the magic_menus row ──────────────────────────────────
   const { data: existing } = (await supabase
@@ -509,7 +505,7 @@ async function saveExtractedMenu(
     .update({
       source_type:           sourceType,
       processing_status:     'review_ready',
-      extracted_data:        menuData,
+      extracted_data:        menuData as unknown as Json,
       extraction_confidence: extractionConfidence,
     })
     .eq('id', menuId)
@@ -739,8 +735,7 @@ export async function trackLinkInjection(menuId: string): Promise<ActionResult> 
   const ctx = await getSafeAuthContext();
   if (!ctx?.orgId) return { success: false, error: 'Unauthorized' };
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const supabase = (await createClient()) as any;
+  const supabase = await createClient();
 
   const { data: current, error: fetchError } = (await supabase
     .from('magic_menus')
@@ -759,7 +754,7 @@ export async function trackLinkInjection(menuId: string): Promise<ActionResult> 
 
   const { error: updateError } = await supabase
     .from('magic_menus')
-    .update({ propagation_events: events })
+    .update({ propagation_events: events as unknown as Json })
     .eq('id', menuId);
 
   if (updateError) {

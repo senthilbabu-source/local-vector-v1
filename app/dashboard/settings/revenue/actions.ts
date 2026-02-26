@@ -56,8 +56,7 @@ export async function saveRevenueConfig(formData: FormData): Promise<ActionResul
   }
 
   // ── Fetch first location for this org ─────────────────────────────────────
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const supabase = (await createClient()) as any;
+  const supabase = await createClient();
   const { data: location, error: locError } = await supabase
     .from('locations')
     .select('id')

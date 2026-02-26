@@ -37,6 +37,7 @@ lib/services/          — Pure business logic services
 lib/page-audit/        — HTML parser + AEO auditor
 lib/tools/             — AI chat tool definitions
 lib/mcp/               — MCP server tool registrations
+lib/supabase/database.types.ts — Full Database type (28 tables, 9 enums, Relationships)
 supabase/migrations/   — Applied SQL migrations (timestamp-ordered)
 supabase/prod_schema.sql — Full production schema dump
 docs/                  — Spec documents (authoritative for planned features)

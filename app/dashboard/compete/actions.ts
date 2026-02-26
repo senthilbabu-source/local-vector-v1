@@ -19,7 +19,7 @@ import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { createClient } from '@/lib/supabase/server';
 import { getSafeAuthContext } from '@/lib/auth';
-import { canRunCompetitorIntercept, maxCompetitors } from '@/lib/plan-enforcer';
+import { canRunCompetitorIntercept, maxCompetitors, type PlanTier } from '@/lib/plan-enforcer';
 import { runInterceptForCompetitor } from '@/lib/services/competitor-intercept.service';
 
 // ---------------------------------------------------------------------------
@@ -70,8 +70,7 @@ export async function addCompetitor(input: AddCompetitorInput): Promise<ActionRe
     return { success: false, error: parsed.error.issues[0]?.message ?? 'Invalid input' };
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const supabase = (await createClient()) as any;
+  const supabase = await createClient();
 
   // ── Plan gate ─────────────────────────────────────────────────────────────
   const { data: org } = await supabase
@@ -90,10 +89,11 @@ export async function addCompetitor(input: AddCompetitorInput): Promise<ActionRe
     .select('id', { count: 'exact', head: true })
     .eq('org_id', ctx.orgId) as { count: number | null };
 
-  if ((count ?? 0) >= maxCompetitors(org.plan)) {
+  const orgPlan = (org?.plan ?? 'trial') as PlanTier;
+  if ((count ?? 0) >= maxCompetitors(orgPlan)) {
     return {
       success: false,
-      error: `Competitor limit reached (${maxCompetitors(org.plan)} max for ${org.plan} plan)`,
+      error: `Competitor limit reached (${maxCompetitors(orgPlan)} max for ${orgPlan} plan)`,
     };
   }
 
@@ -138,8 +138,7 @@ export async function deleteCompetitor(competitorId: string): Promise<ActionResu
     return { success: false, error: 'Unauthorized' };
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const supabase = (await createClient()) as any;
+  const supabase = await createClient();
 
   const { error } = await supabase
     .from('competitors')
@@ -182,8 +181,7 @@ export async function runCompetitorIntercept(competitorId: string): Promise<Acti
     return { success: false, error: 'Unauthorized' };
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const supabase = (await createClient()) as any;
+  const supabase = await createClient();
 
   // ── Plan gate ─────────────────────────────────────────────────────────────
   const { data: org } = await supabase
@@ -227,7 +225,7 @@ export async function runCompetitorIntercept(competitorId: string): Promise<Acti
         orgId:        ctx.orgId,
         locationId:   location.id,
         businessName: location.business_name,
-        categories:   Array.isArray(location.categories) ? location.categories : [],
+        categories:   Array.isArray(location.categories) ? location.categories as string[] : [],
         city:         location.city,
         state:        location.state,
         competitor,
@@ -269,8 +267,7 @@ export async function markInterceptActionComplete(
     return { success: false, error: parsed.error.issues[0]?.message ?? 'Invalid status' };
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const supabase = (await createClient()) as any;
+  const supabase = await createClient();
 
   const { error } = await supabase
     .from('competitor_intercepts')

@@ -6,6 +6,7 @@ import { getSafeAuthContext } from '@/lib/auth';
 import { z } from 'zod';
 import type { HoursData, Amenities } from '@/lib/types/ground-truth';
 import { seedSOVQueries } from '@/lib/services/sov-seed';
+import type { Json } from '@/lib/supabase/database.types';
 
 // ---------------------------------------------------------------------------
 // Schemas
@@ -85,8 +86,7 @@ export async function saveGroundTruth(
   const hoursPayload = hours_data as HoursData;
   const amenitiesPayload = amenities as Amenities;
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const supabase = (await createClient()) as any;
+  const supabase = await createClient();
 
   // ── Persist ───────────────────────────────────────────────────────────────
   // org_id filter is belt-and-suspenders: RLS org_isolation_update already
@@ -96,8 +96,8 @@ export async function saveGroundTruth(
     .from('locations')
     .update({
       business_name,
-      hours_data:   hoursPayload,
-      amenities:    amenitiesPayload,
+      hours_data:   hoursPayload as unknown as Json,
+      amenities:    amenitiesPayload as unknown as Json,
     })
     .eq('id', location_id)
     .eq('org_id', ctx.orgId);
@@ -119,7 +119,11 @@ export async function saveGroundTruth(
 
     if (fullLocation) {
       await seedSOVQueries(
-        { ...fullLocation, org_id: ctx.orgId },
+        {
+          ...fullLocation,
+          org_id: ctx.orgId,
+          categories: fullLocation.categories as string[] | null,
+        },
         [],  // No competitors on day 1
         supabase,
       );

@@ -48,8 +48,7 @@ async function fetchPageData(): Promise<{
   evaluations: EvaluationRow[];
   hallucinations: Hallucination[];
 }> {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const supabase = (await createClient()) as any;
+  const supabase = await createClient();
 
   const [locResult, evalResult, halluResult] = await Promise.all([
     supabase

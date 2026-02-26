@@ -240,8 +240,7 @@ export async function GET(
 ) {
   const { slug } = await params;
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const supabase = (await createClient()) as any;
+  const supabase = await createClient();
 
   // Fetch published menu + full location data.
   const { data: menu } = (await supabase

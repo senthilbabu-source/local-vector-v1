@@ -665,6 +665,36 @@ These features span multiple phases but were completed together in Sprint 59.
 
 ---
 
+## Sprint 63 — Generate Supabase Database Types & Eliminate `as any` Casts (2026-02-26)
+
+### 63A — Generate `database.types.ts`
+
+- [x] Replace empty `Database = {}` stub with full type definition (~1600 lines)
+- [x] Cover all 28 tables with `Row` / `Insert` / `Update` / `Relationships`
+- [x] Define 9 PostgreSQL enums
+- [x] Include FK `Relationships` metadata for auto-typed JOINs (supabase-js v2.97.0)
+- [x] Add 3 migration-only tables: `revenue_config`, `revenue_snapshots`, `cron_run_log`
+- [x] Include migration-added columns on `organizations` and `location_integrations`
+
+### 63B — Remove `as any` Casts
+
+- [x] Remove ~96 `createClient() as any` / `createServiceRoleClient() as any` assignment casts
+- [x] Type 18 service function `supabase: any` params as `SupabaseClient<Database>`
+- [x] Remove 13 inline `(supabase as any)` usage casts in mcp/tools.ts and visibility-tools.ts
+- [x] Remove ~8 JOIN result `as any` casts (auto-typed via Relationships)
+- [x] Clean up all corresponding `eslint-disable-next-line` comments
+
+### 63C — Fix Surfaced Type Errors
+
+- [x] Fix `Json` ↔ specific type mismatches for JSONB columns across ~25 files
+- [x] Fix enum narrowing for `plan_tier` / `plan_status` in Stripe webhook + compete actions
+- [x] Fix column name `recommendation` → `suggested_action` in mcp/tools.ts + visibility-tools.ts
+- [x] Remove `as Promise<...>` casts from query builders in dashboard/page.tsx
+- [x] Add null safety for `is_primary`, `sync_status`, visibility analytics rows
+- [x] Verify: `npx tsc --noEmit` = 0 non-test errors, only 4 non-Supabase `as any` remain
+
+---
+
 ## Technical Dependencies by Phase
 
 | Phase | Core Dependency | Est. Cost (Dev Mode) | Risk |

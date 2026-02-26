@@ -19,6 +19,7 @@ import { withTimeout } from '../timeout';
 import { createServiceRoleClient } from '@/lib/supabase/server';
 import { auditPage, type PageType } from '@/lib/page-audit/auditor';
 import { sleep } from '@/lib/services/sov-engine.service';
+import type { Json } from '@/lib/supabase/database.types';
 
 // ---------------------------------------------------------------------------
 // Plan-based page audit caps (Doc 17 §3.2)
@@ -101,8 +102,7 @@ export interface LocationAuditResult {
 export async function processLocationAudit(
   loc: LocationAuditInput,
 ): Promise<LocationAuditResult> {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const supabase = createServiceRoleClient() as any;
+  const supabase = createServiceRoleClient();
 
   const cap = getAuditCap(loc.plan);
   const pages = generateAuditUrls(loc.website_url, cap);
@@ -131,7 +131,7 @@ export async function processLocationAudit(
           schema_completeness_score: result.schemaCompletenessScore,
           faq_schema_present: result.faqSchemaPresent,
           aeo_readability_score: result.keywordDensityScore,
-          recommendations: result.recommendations,
+          recommendations: result.recommendations as unknown as Json,
           last_audited_at: new Date().toISOString(),
         },
         { onConflict: 'org_id,page_url' },
@@ -169,8 +169,7 @@ export const contentAuditCronFunction = inngest.createFunction(
 
     // Step 1: Fetch all active locations with website_url
     const locations = await step.run('fetch-audit-locations', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const supabase = createServiceRoleClient() as any;
+      const supabase = createServiceRoleClient();
 
       const { data, error } = await supabase
         .from('locations')
@@ -185,19 +184,17 @@ export const contentAuditCronFunction = inngest.createFunction(
       if (!data?.length) return [];
 
       // Filter to active orgs and map to typed inputs
-      return (data as Array<Record<string, unknown>>)
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        .filter((loc: any) => loc.organizations?.plan_status === 'active' && loc.website_url)
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        .map((loc: any) => ({
-          id: loc.id as string,
-          org_id: loc.org_id as string,
-          business_name: loc.business_name as string,
-          city: loc.city as string | null,
-          state: loc.state as string | null,
+      return data
+        .filter((loc) => loc.organizations?.plan_status === 'active' && loc.website_url)
+        .map((loc) => ({
+          id: loc.id,
+          org_id: loc.org_id,
+          business_name: loc.business_name,
+          city: loc.city,
+          state: loc.state,
           categories: loc.categories as string[] | null,
           amenities: loc.amenities as Record<string, boolean | undefined> | null,
-          website_url: loc.website_url as string,
+          website_url: loc.website_url!,
           plan: (loc.organizations?.plan ?? 'starter') as string,
         })) as LocationAuditInput[];
     });

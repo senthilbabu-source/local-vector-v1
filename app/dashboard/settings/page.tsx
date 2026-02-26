@@ -19,13 +19,14 @@ export default async function SettingsPage() {
   const displayName = ctx.fullName ?? ctx.email.split('@')[0];
 
   // Fetch notification preferences
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const supabase = (await createClient()) as any;
-  const { data: org } = await supabase
-    .from('organizations')
-    .select('notify_hallucination_alerts, notify_weekly_digest, notify_sov_alerts')
-    .eq('id', ctx.orgId)
-    .maybeSingle();
+  const supabase = await createClient();
+  const { data: org } = ctx.orgId
+    ? await supabase
+        .from('organizations')
+        .select('notify_hallucination_alerts, notify_weekly_digest, notify_sov_alerts')
+        .eq('id', ctx.orgId)
+        .maybeSingle()
+    : { data: null };
 
   const notifyPrefs = {
     notify_hallucination_alerts: org?.notify_hallucination_alerts ?? true,

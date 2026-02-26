@@ -4,8 +4,7 @@ import { createClient } from '@/lib/supabase/server';
 import RevenueConfigForm from './_components/RevenueConfigForm';
 
 async function fetchRevenueConfig(orgId: string) {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const supabase = (await createClient()) as any;
+  const supabase = await createClient();
 
   const { data } = await supabase
     .from('revenue_config')

@@ -66,8 +66,7 @@ export async function approveDraft(formData: FormData): Promise<ActionResult> {
     return { success: false, error: 'Invalid draft ID' };
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const supabase = (await createClient()) as any;
+  const supabase = await createClient();
 
   // RLS org_isolation ensures only this org's drafts are updatable
   const { error } = await supabase
@@ -103,8 +102,7 @@ export async function rejectDraft(formData: FormData): Promise<ActionResult> {
     return { success: false, error: 'Invalid draft ID' };
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const supabase = (await createClient()) as any;
+  const supabase = await createClient();
 
   // Doc 19 §4.2: rejection returns draft to editable state (not terminal)
   const { error } = await supabase
@@ -132,8 +130,7 @@ export async function createManualDraft(formData: FormData): Promise<ActionResul
   }
 
   // ── Plan gating ────────────────────────────────────────────────────────────
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const supabase = (await createClient()) as any;
+  const supabase = await createClient();
 
   const { data: org } = await supabase
     .from('organizations')
@@ -196,8 +193,7 @@ export async function archiveDraft(formData: FormData): Promise<ActionResult> {
     return { success: false, error: 'Invalid draft ID' };
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const supabase = (await createClient()) as any;
+  const supabase = await createClient();
 
   const { error } = await supabase
     .from('content_drafts')
@@ -233,8 +229,7 @@ export async function editDraft(formData: FormData): Promise<ActionResult> {
     return { success: false, error: parsed.error.issues[0]?.message ?? 'Invalid input' };
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const supabase = (await createClient()) as any;
+  const supabase = await createClient();
 
   // Fetch current draft to verify status
   const { data: draft } = await supabase
@@ -279,7 +274,7 @@ export async function editDraft(formData: FormData): Promise<ActionResult> {
         scoreCtx = {
           businessName: loc.business_name ?? 'Business',
           city: loc.city ?? null,
-          categories: loc.categories ?? null,
+          categories: (loc.categories as string[] | null) ?? null,
         };
       }
     }
@@ -326,8 +321,7 @@ export async function publishDraft(formData: FormData): Promise<PublishActionRes
     return { success: false, error: parsed.error.issues[0]?.message ?? 'Invalid input' };
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const supabase = (await createClient()) as any;
+  const supabase = await createClient();
 
   // ── Plan gating ──────────────────────────────────────────────────────────
   const { data: org } = await supabase
@@ -383,8 +377,8 @@ export async function publishDraft(formData: FormData): Promise<PublishActionRes
         business_name: loc.business_name ?? 'Local Business',
         city: loc.city ?? null,
         state: loc.state ?? null,
-        categories: loc.categories ?? null,
-        amenities: loc.amenities ?? null,
+        categories: (loc.categories as string[] | null) ?? null,
+        amenities: (loc.amenities as Record<string, boolean | undefined> | null) ?? null,
         phone: loc.phone ?? null,
         website_url: loc.website_url ?? null,
         address_line1: loc.address_line1 ?? null,
@@ -408,7 +402,7 @@ export async function publishDraft(formData: FormData): Promise<PublishActionRes
         .eq('org_id', ctx.orgId);
 
       // Schedule post-publish re-check
-      if (draft.target_prompt) {
+      if (draft.target_prompt && draft.location_id) {
         await schedulePostPublishRecheck(draft.id, draft.location_id, draft.target_prompt);
       }
 
@@ -430,7 +424,7 @@ export async function publishDraft(formData: FormData): Promise<PublishActionRes
         .eq('id', draft.id)
         .eq('org_id', ctx.orgId);
 
-      if (draft.target_prompt) {
+      if (draft.target_prompt && draft.location_id) {
         await schedulePostPublishRecheck(draft.id, draft.location_id, draft.target_prompt);
       }
 
@@ -440,6 +434,9 @@ export async function publishDraft(formData: FormData): Promise<PublishActionRes
 
     if (publish_target === 'wordpress') {
       // Fetch WordPress config from location_integrations
+      if (!draft.location_id) {
+        return { success: false, error: 'Draft has no associated location.' };
+      }
       const { data: integration } = await supabase
         .from('location_integrations')
         .select('listing_url, wp_username, wp_app_password')
@@ -470,7 +467,7 @@ export async function publishDraft(formData: FormData): Promise<PublishActionRes
         .eq('id', draft.id)
         .eq('org_id', ctx.orgId);
 
-      if (draft.target_prompt) {
+      if (draft.target_prompt && draft.location_id) {
         await schedulePostPublishRecheck(draft.id, draft.location_id, draft.target_prompt);
       }
 

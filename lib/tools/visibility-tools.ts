@@ -27,7 +27,7 @@ export function makeVisibilityTools(orgId: string) {
             execute: async () => {
                 const supabase = createServiceRoleClient();
 
-                const { data: vis } = await (supabase as any)
+                const { data: vis } = await supabase
                     .from('visibility_analytics')
                     .select('share_of_voice, citation_rate, snapshot_date')
                     .eq('org_id', orgId)
@@ -35,13 +35,13 @@ export function makeVisibilityTools(orgId: string) {
                     .limit(1)
                     .maybeSingle();
 
-                const { count: openCount } = await (supabase as any)
+                const { count: openCount } = await supabase
                     .from('ai_hallucinations')
                     .select('*', { count: 'exact', head: true })
                     .eq('org_id', orgId)
                     .eq('correction_status', 'open');
 
-                const { count: fixedCount } = await (supabase as any)
+                const { count: fixedCount } = await supabase
                     .from('ai_hallucinations')
                     .select('*', { count: 'exact', head: true })
                     .eq('org_id', orgId)
@@ -76,7 +76,7 @@ export function makeVisibilityTools(orgId: string) {
             execute: async ({ limit }) => {
                 const supabase = createServiceRoleClient();
 
-                const { data: snapshots } = await (supabase as any)
+                const { data: snapshots } = await supabase
                     .from('visibility_analytics')
                     .select('share_of_voice, citation_rate, snapshot_date')
                     .eq('org_id', orgId)
@@ -106,7 +106,7 @@ export function makeVisibilityTools(orgId: string) {
             execute: async ({ status }) => {
                 const supabase = createServiceRoleClient();
 
-                let query = (supabase as any)
+                let query = supabase
                     .from('ai_hallucinations')
                     .select('model_provider, severity, category, claim_text, expected_truth, correction_status, occurrence_count')
                     .eq('org_id', orgId)
@@ -146,9 +146,9 @@ export function makeVisibilityTools(orgId: string) {
             execute: async () => {
                 const supabase = createServiceRoleClient();
 
-                const { data: intercepts } = await (supabase as any)
+                const { data: intercepts } = await supabase
                     .from('competitor_intercepts')
-                    .select('competitor_name, gap_analysis, recommendation')
+                    .select('competitor_name, gap_analysis, suggested_action')
                     .eq('org_id', orgId)
                     .order('created_at', { ascending: false })
                     .limit(20);
@@ -156,7 +156,7 @@ export function makeVisibilityTools(orgId: string) {
                 const byCompetitor: Record<string, { count: number; gap: any; rec: string }> = {};
                 for (const i of intercepts ?? []) {
                     if (!byCompetitor[i.competitor_name]) {
-                        byCompetitor[i.competitor_name] = { count: 0, gap: i.gap_analysis, rec: i.recommendation ?? '' };
+                        byCompetitor[i.competitor_name] = { count: 0, gap: i.gap_analysis, rec: i.suggested_action ?? '' };
                     }
                     byCompetitor[i.competitor_name].count += 1;
                 }

@@ -11,6 +11,9 @@
 // Types
 // ---------------------------------------------------------------------------
 
+import type { SupabaseClient } from '@supabase/supabase-js';
+import type { Database } from '@/lib/supabase/database.types';
+
 interface LocationForSeed {
   id: string;
   org_id: string;
@@ -99,8 +102,7 @@ export function comparisonQueries(
 export async function seedSOVQueries(
   location: LocationForSeed,
   competitors: CompetitorForSeed[],
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  supabase: any,
+  supabase: SupabaseClient<Database>,
 ): Promise<{ seeded: number }> {
   const city = location.city ?? 'local area';
   const state = location.state ?? '';

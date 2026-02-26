@@ -27,8 +27,7 @@ async function fetchWorkspaceData(orgId: string): Promise<{
   location: PrimaryLocation | null;
   menu: MenuWorkspaceData | null;
 }> {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const supabase = (await createClient()) as any;
+  const supabase = await createClient();
 
   // Belt-and-suspenders: filter by org_id explicitly in addition to RLS.
   // The "public_published_location" RLS policy (migration 20260221000001)

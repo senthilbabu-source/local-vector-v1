@@ -4,6 +4,101 @@
 
 ---
 
+## 2026-02-26 — Sprint 65: Clarify SOV Precision Formulas (Completed)
+
+**Goal:** Replace the obscure `Math.round(x * 10) / 1000` arithmetic in `writeSOVResults()` with self-documenting equivalents. Zero behavioral change — pure readability refactor.
+
+**Scope:**
+- `lib/services/sov-engine.service.ts` — Replaced 4 arithmetic expressions in `writeSOVResults()`: DB write formulas (share_of_voice, citation_rate) now use `parseFloat((x / 100).toFixed(3))` instead of `Math.round(x * 10) / 1000`; return value formulas now use `parseFloat(x.toFixed(1))` instead of `Math.round(x * 10) / 10`. Both produce bit-identical results. Comments updated to explain the conversion.
+
+**Tests impacted:**
+- `src/__tests__/unit/sov-engine-service.test.ts` — **11 Vitest tests.** Unchanged, all passing (no behavioral change).
+
+**Run commands:**
+```bash
+npx vitest run src/__tests__/unit/sov-engine-service.test.ts  # 11 tests passing
+```
+
+---
+
+## 2026-02-26 — Sprint 64: Extract Dashboard Data Layer (Completed)
+
+**Goal:** Decompose the 447-line monolithic `app/dashboard/page.tsx` into three single-responsibility files: data fetching, aggregation utilities, and JSX rendering.
+
+**Spec:** Review issue #2 from repo audit — "Dashboard page.tsx is a monolith"
+
+**Scope:**
+- `lib/data/dashboard.ts` — **NEW.** Exported: `fetchDashboardData()`, `DashboardData` interface, `HallucinationRow` type. Contains all 11 parallel Supabase queries, severity sorting, SOV/revenue-leak transformation, and plan resolution. ~250 lines.
+- `lib/utils/dashboard-aggregators.ts` — **NEW.** Exported: `aggregateByModel()`, `aggregateCompetitors()`. Pure functions with zero side effects.
+- `app/dashboard/page.tsx` — **REDUCED from 447 → 118 lines.** Removed `fetchDashboardData`, `aggregateByModel`, `aggregateCompetitors`, `SEVERITY_ORDER`, `QuickStat` (dead code). Retained `deriveRealityScore` (test import path dependency). Added re-export of `HallucinationRow` from `@/lib/data/dashboard`.
+
+**Key design decisions:**
+- `deriveRealityScore` stays in `page.tsx` because `src/__tests__/unit/reality-score.test.ts` imports from `@/app/dashboard/page`. Moving it would break the test without modifying test files.
+- `HallucinationRow` is re-exported from `page.tsx` so `AlertFeed.tsx`'s relative import `'../page'` continues to resolve.
+- Zero runtime behavior changes — pure code organization refactor.
+
+**Tests impacted:**
+- `src/__tests__/unit/reality-score.test.ts` — **10 Vitest tests.** Unchanged, still passing (import path preserved via re-export).
+
+**Run commands:**
+```bash
+npx tsc --noEmit                                                    # 0 errors in sprint files
+npx vitest run src/__tests__/unit/reality-score.test.ts             # 10 tests passing
+```
+
+---
+
+## 2026-02-26 — Sprint 63: Generate Supabase Database Types & Eliminate `as any` Casts (Completed)
+
+**Goal:** Replace the empty `Database = {}` stub in `lib/supabase/database.types.ts` with a comprehensive type definition, then remove all 114 Supabase `as any` casts across 52+ files. Types-only refactor — zero runtime behavior changes.
+
+**Scope:**
+
+### Phase 1 — Generate `database.types.ts`
+
+*Rewritten file:* `lib/supabase/database.types.ts` (~1600 lines)
+- 28 tables with `Row` / `Insert` / `Update` / `Relationships` for each
+- 9 PostgreSQL enums (`plan_tier`, `plan_status`, `model_provider`, `hallucination_severity`, `correction_status`, `membership_role`, `menu_processing_status`, `sync_status`, `audit_prompt_type`)
+- FK `Relationships` metadata enables supabase-js v2.97.0 auto-typed JOINs
+- Standard convenience helpers: `Tables<>`, `TablesInsert<>`, `TablesUpdate<>`, `Enums<>`
+- Covers 3 migration-only tables not in prod_schema.sql: `revenue_config`, `revenue_snapshots`, `cron_run_log`
+- Covers migration-added columns: `organizations.notify_*`, `location_integrations.wp_*`, `location_integrations.listing_url`
+
+### Phase 2 — Remove `as any` Casts
+
+*Modified files (~52):*
+- ~96 `(await createClient()) as any` / `createServiceRoleClient() as any` → removed
+- 18 service function `supabase: any` params → `supabase: SupabaseClient<Database>`
+- 13 inline `(supabase as any)` usage casts → removed (mcp/tools.ts, visibility-tools.ts)
+- ~8 JOIN result `as any` casts → removed (auto-typed via Relationships)
+- All corresponding `eslint-disable-next-line @typescript-eslint/no-explicit-any` comments removed
+
+### Phase 3 — Fix Surfaced Type Errors
+
+82 newly surfaced type errors fixed across ~25 non-test files:
+- `Json` ↔ specific type casts for JSONB columns (categories, amenities, hours_data, etc.)
+- Enum type narrowing for `plan_tier` / `plan_status` in Stripe webhook + compete actions
+- Column name fix: `recommendation` → `suggested_action` in mcp/tools.ts and visibility-tools.ts
+- `as Promise<...>` casts removed from query builders in dashboard/page.tsx
+- Null safety additions (`is_primary ?? false`, `sync_status ?? 'not_linked'`, etc.)
+
+**Remaining `as any` (4 non-Supabase, intentionally kept):** `zodResolver()` in AddItemModal, `dietary_tags` x2, AI SDK `toolPart` in Chat.tsx.
+
+**Verification:** `npx tsc --noEmit` = 0 non-test errors. `grep "as any"` = 4 non-Supabase only.
+
+---
+
+## 2026-02-25 — Middleware Re-Export Shim (Post-Sprint 62 Fix)
+
+**Problem:** `proxy.ts` contained fully implemented middleware (auth guards, subdomain routing, session refresh) but Next.js only auto-discovers middleware from a file named `middleware.ts`. The middleware was dead code — auth protection fell through to the dashboard layout's `getSafeAuthContext()` server component check.
+
+**Fix:** Created `middleware.ts` at project root with a single re-export: `export { proxy as middleware, config } from './proxy'`. No changes to `proxy.ts`.
+
+*New files:* `middleware.ts`
+*Modified docs:* `AI_RULES.md` (§6 middleware filename, §37.3 subdomain routing)
+
+---
+
 ## 2026-02-25 — Sprint 62: Scale Prep — Cron Logging, Guided Tour, Subdomains, Landing Split, Settings, Multi-Location (Completed)
 
 **Goal:** Six independent V1 polish items for launch readiness: (A) Cron health logging table + service, (B) Post-onboarding guided tour, (C) Subdomain routing for public menus, (D) Landing page performance via code-splitting, (E) Settings completeness (notifications + danger zone), (F) Agency multi-location UI.

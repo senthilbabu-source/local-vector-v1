@@ -116,8 +116,7 @@ function aeoColor(score: number): string {
 // ---------------------------------------------------------------------------
 
 async function fetchDraft(draftId: string, orgId: string): Promise<DraftDetail | null> {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const supabase = (await createClient()) as any;
+  const supabase = await createClient();
 
   const { data, error } = await supabase
     .from('content_drafts')
@@ -131,8 +130,7 @@ async function fetchDraft(draftId: string, orgId: string): Promise<DraftDetail |
 }
 
 async function fetchLocation(locationId: string): Promise<LocationInfo | null> {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const supabase = (await createClient()) as any;
+  const supabase = await createClient();
 
   const { data } = await supabase
     .from('locations')

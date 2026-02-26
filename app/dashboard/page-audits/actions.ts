@@ -7,7 +7,8 @@
 import { revalidatePath } from 'next/cache';
 import { getSafeAuthContext } from '@/lib/auth';
 import { createClient } from '@/lib/supabase/server';
-import { auditPage, type LocationContext } from '@/lib/page-audit/auditor';
+import { auditPage, type LocationContext, type PageType } from '@/lib/page-audit/auditor';
+import type { Json } from '@/lib/supabase/database.types';
 
 // Rate limit: 1 re-audit per page per 5 minutes (server-side in-memory)
 const reauditTimestamps = new Map<string, number>();
@@ -24,8 +25,7 @@ export async function reauditPage(pageUrl: string): Promise<{ success: boolean; 
     return { success: false, error: 'Please wait 5 minutes between re-audits of the same page.' };
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const supabase = (await createClient()) as any;
+  const supabase = await createClient();
 
   // Fetch the existing audit row to get page_type + location context
   const { data: existingAudit } = await supabase
@@ -39,6 +39,10 @@ export async function reauditPage(pageUrl: string): Promise<{ success: boolean; 
     return { success: false, error: 'Audit record not found.' };
   }
 
+  if (!existingAudit.location_id) {
+    return { success: false, error: 'Audit has no associated location.' };
+  }
+
   // Fetch location context for the auditor
   const { data: location } = await supabase
     .from('locations')
@@ -50,14 +54,14 @@ export async function reauditPage(pageUrl: string): Promise<{ success: boolean; 
     business_name: location?.business_name ?? '',
     city: location?.city ?? null,
     state: location?.state ?? null,
-    categories: location?.categories ?? null,
-    amenities: location?.amenities ?? null,
+    categories: (location?.categories as string[] | null) ?? null,
+    amenities: (location?.amenities as Record<string, boolean | undefined> | null) ?? null,
   };
 
   try {
     reauditTimestamps.set(key, Date.now());
 
-    const result = await auditPage(pageUrl, existingAudit.page_type, locationCtx);
+    const result = await auditPage(pageUrl, existingAudit.page_type as PageType, locationCtx);
 
     const { error } = await supabase.from('page_audits').upsert(
       {
@@ -70,7 +74,7 @@ export async function reauditPage(pageUrl: string): Promise<{ success: boolean; 
         schema_completeness_score: result.schemaCompletenessScore,
         faq_schema_present: result.faqSchemaPresent,
         aeo_readability_score: result.keywordDensityScore,
-        recommendations: result.recommendations,
+        recommendations: result.recommendations as unknown as Json,
         last_audited_at: new Date().toISOString(),
       },
       { onConflict: 'org_id,page_url' },

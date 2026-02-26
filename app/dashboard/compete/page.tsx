@@ -63,8 +63,7 @@ async function fetchPageData(orgId: string): Promise<{
   intercepts:   InterceptRow[];
   businessName: string;
 }> {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const supabase = (await createClient()) as any;
+  const supabase = await createClient();
 
   const [compResult, interceptResult, locResult] = await Promise.all([
     supabase
@@ -107,8 +106,7 @@ export default async function CompetePage() {
     redirect('/login');
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const supabase = (await createClient()) as any;
+  const supabase = await createClient();
   const { data: org } = await supabase
     .from('organizations')
     .select('plan')

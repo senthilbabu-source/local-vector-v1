@@ -24,8 +24,7 @@ import OccasionTimeline, { type OccasionWithCountdown } from './_components/Occa
 // ---------------------------------------------------------------------------
 
 async function fetchPageData(orgId: string, statusFilter?: string) {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const supabase = (await createClient()) as any;
+  const supabase = await createClient();
 
   let query = supabase
     .from('content_drafts')
@@ -50,8 +49,7 @@ async function fetchPageData(orgId: string, statusFilter?: string) {
 }
 
 async function fetchUpcomingOccasions(): Promise<OccasionWithCountdown[]> {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const supabase = (await createClient()) as any;
+  const supabase = await createClient();
   const { data, error } = await supabase
     .from('local_occasions')
     .select('*')
@@ -60,7 +58,7 @@ async function fetchUpcomingOccasions(): Promise<OccasionWithCountdown[]> {
   if (error || !data?.length) return [];
 
   const today = new Date();
-  return (data as LocalOccasionRow[])
+  return (data as unknown as LocalOccasionRow[])
     .map((occ) => {
       const daysUntilPeak = getDaysUntilPeak(occ, today);
       return {
@@ -76,8 +74,7 @@ async function fetchUpcomingOccasions(): Promise<OccasionWithCountdown[]> {
 }
 
 async function fetchOccasionDraftMap(orgId: string): Promise<Record<string, string>> {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const supabase = (await createClient()) as any;
+  const supabase = await createClient();
   const { data } = await supabase
     .from('content_drafts')
     .select('id, trigger_id')
@@ -93,8 +90,7 @@ async function fetchOccasionDraftMap(orgId: string): Promise<Record<string, stri
 }
 
 async function fetchPlan(orgId: string): Promise<string> {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const supabase = (await createClient()) as any;
+  const supabase = await createClient();
   const { data } = await supabase
     .from('organizations')
     .select('plan')

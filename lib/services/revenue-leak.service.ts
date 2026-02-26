@@ -10,6 +10,9 @@
 //   3. Competitor Steal   — Competitors mentioned instead of you
 // ---------------------------------------------------------------------------
 
+import type { SupabaseClient } from '@supabase/supabase-js';
+import type { Database, Json } from '@/lib/supabase/database.types';
+
 export interface RevenueConfig {
   avg_ticket: number;
   monthly_searches: number;
@@ -216,8 +219,7 @@ export function calculateRevenueLeak(
  * reads and writes. The supabase client is injected (AI_RULES §6).
  */
 export async function snapshotRevenueLeak(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  supabase: any,
+  supabase: SupabaseClient<Database>,
   orgId: string,
   locationId: string,
 ): Promise<void> {
@@ -256,9 +258,9 @@ export async function snapshotRevenueLeak(
   ]);
 
   const hallucinations: HallucinationInput[] = (halResult.data ?? []).map(
-    (h: { severity: string; correction_status: string }) => ({
-      severity: h.severity as HallucinationInput['severity'],
-      correction_status: h.correction_status,
+    (h) => ({
+      severity: (h.severity ?? 'low') as HallucinationInput['severity'],
+      correction_status: h.correction_status ?? 'open',
     }),
   );
 
@@ -294,13 +296,13 @@ export async function snapshotRevenueLeak(
         location_id: locationId,
         leak_low: leak.leak_low,
         leak_high: leak.leak_high,
-        breakdown: leak.breakdown,
+        breakdown: leak.breakdown as unknown as Json,
         inputs_snapshot: {
           hallucination_count: hallucinations.length,
           actual_sov: actualSOV,
           intercept_count: interceptRows.length,
           config,
-        },
+        } as unknown as Json,
         snapshot_date: today,
       },
       { onConflict: 'org_id,location_id,snapshot_date' },

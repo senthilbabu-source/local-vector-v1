@@ -73,8 +73,7 @@ export async function updateDisplayName(formData: FormData): Promise<ActionResul
   }
 
   // ── Update ─────────────────────────────────────────────────────────────────
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const supabase = (await createClient()) as any;
+  const supabase = await createClient();
   const { error } = await supabase
     .from('users')
     .update({ full_name: parsed.data.displayName })
@@ -155,8 +154,7 @@ export async function updateNotificationPrefs(formData: FormData): Promise<Actio
     return { success: false, error: parsed.error.issues[0]?.message ?? 'Invalid input' };
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const supabase = (await createClient()) as any;
+  const supabase = await createClient();
   const { error } = await supabase
     .from('organizations')
     .update(parsed.data)
@@ -184,8 +182,7 @@ export async function softDeleteOrganization(): Promise<ActionResult> {
     return { success: false, error: 'Only the organization owner can delete the organization' };
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const supabase = createServiceRoleClient() as any;
+  const supabase = createServiceRoleClient();
   const { error } = await supabase
     .from('organizations')
     .update({ plan_status: 'canceled' })

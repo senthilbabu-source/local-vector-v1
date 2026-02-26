@@ -1,6 +1,32 @@
 # LocalVector.ai — Development Log
 
 ---
+## 2026-02-26 — Sprint 64: Extract Dashboard Data Layer (Completed)
+
+**Goal:** Decompose the 447-line monolithic `app/dashboard/page.tsx` into three single-responsibility files: data fetching, aggregation utilities, and JSX rendering.
+
+**Spec:** Review issue #2 from repo audit — "Dashboard page.tsx is a monolith"
+
+**Scope:**
+- `lib/data/dashboard.ts` — **NEW.** Exported: `fetchDashboardData()`, `DashboardData` interface, `HallucinationRow` type. Contains all 11 parallel Supabase queries, severity sorting, SOV/revenue-leak transformation, and plan resolution. ~250 lines.
+- `lib/utils/dashboard-aggregators.ts` — **NEW.** Exported: `aggregateByModel()`, `aggregateCompetitors()`. Pure functions with zero side effects.
+- `app/dashboard/page.tsx` — **REDUCED from 447 → 118 lines.** Removed `fetchDashboardData`, `aggregateByModel`, `aggregateCompetitors`, `SEVERITY_ORDER`, `QuickStat` (dead code). Retained `deriveRealityScore` (test import path dependency). Added re-export of `HallucinationRow` from `@/lib/data/dashboard`.
+
+**Key design decisions:**
+- `deriveRealityScore` stays in `page.tsx` because `src/__tests__/unit/reality-score.test.ts` imports from `@/app/dashboard/page`. Moving it would break the test without modifying test files.
+- `HallucinationRow` is re-exported from `page.tsx` so `AlertFeed.tsx`'s relative import `'../page'` continues to resolve.
+- Zero runtime behavior changes — pure code organization refactor.
+
+**Tests impacted:**
+- `src/__tests__/unit/reality-score.test.ts` — **10 Vitest tests.** Unchanged, still passing (import path preserved via re-export).
+
+**Run commands:**
+```bash
+npx tsc --noEmit                                                    # 0 errors in sprint files
+npx vitest run src/__tests__/unit/reality-score.test.ts             # 10 tests passing
+```
+
+---
 ## 2026-02-25 — Sprint 47: Prompt Intelligence Service (Completed)
 
 **Goal:** Build the Prompt Intelligence Service — a strategic layer on top of the SOV Engine that detects 3 types of gaps in a tenant's query library (untracked, competitor-discovered, zero-citation clusters) and surfaces actionable gaps in the dashboard and email reports.

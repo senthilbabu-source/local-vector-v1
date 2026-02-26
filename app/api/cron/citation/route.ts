@@ -64,8 +64,7 @@ export async function GET(request: NextRequest) {
   const handle = await logCronStart('citation');
 
   // ── 4. Service-role client (bypasses RLS) ──────────────────────────────
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const supabase = createServiceRoleClient() as any;
+  const supabase = createServiceRoleClient();
 
   // ── 5. Process each category+metro combination ─────────────────────────
   const summary: CitationCronSummary = {

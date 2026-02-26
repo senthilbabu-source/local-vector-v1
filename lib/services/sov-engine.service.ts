@@ -16,6 +16,8 @@
 // Spec: docs/04c-SOV-ENGINE.md §4
 // ---------------------------------------------------------------------------
 
+import type { SupabaseClient } from '@supabase/supabase-js';
+import type { Database } from '@/lib/supabase/database.types';
 import { generateText } from 'ai';
 import { getModel, hasApiKey, type ModelKey } from '@/lib/ai/providers';
 import { SovCronResultSchema, type SovCronResultOutput } from '@/lib/ai/schemas';
@@ -195,8 +197,7 @@ export async function runMultiModelSOVQuery(
 export async function writeSOVResults(
   orgId: string,
   results: SOVQueryResult[],
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  supabase: any,
+  supabase: SupabaseClient<Database>,
 ): Promise<{ shareOfVoice: number; citationRate: number; firstMoverCount: number }> {
   if (results.length === 0) {
     return { shareOfVoice: 0, citationRate: 0, firstMoverCount: 0 };
@@ -241,8 +242,8 @@ export async function writeSOVResults(
     {
       org_id: orgId,
       location_id: results[0].locationId,
-      share_of_voice: Math.round(shareOfVoice * 10) / 1000, // e.g. 33.3% → 0.333
-      citation_rate: Math.round(citationRate * 10) / 1000,
+      share_of_voice: parseFloat((shareOfVoice / 100).toFixed(3)), // percentage → 0.0–1.0 float (3 decimal places)
+      citation_rate: parseFloat((citationRate / 100).toFixed(3)),
       snapshot_date: today,
     },
     { onConflict: 'org_id,location_id,snapshot_date' },
@@ -270,8 +271,8 @@ export async function writeSOVResults(
   }
 
   return {
-    shareOfVoice: Math.round(shareOfVoice * 10) / 10,
-    citationRate: Math.round(citationRate * 10) / 10,
+    shareOfVoice: parseFloat(shareOfVoice.toFixed(1)), // percentage rounded to 1 decimal place
+    citationRate: parseFloat(citationRate.toFixed(1)),
     firstMoverCount: firstMoverOpps.length,
   };
 }

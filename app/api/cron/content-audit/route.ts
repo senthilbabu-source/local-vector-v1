@@ -19,6 +19,7 @@ import { createServiceRoleClient } from '@/lib/supabase/server';
 import { auditPage, type PageType } from '@/lib/page-audit/auditor';
 import { inngest } from '@/lib/inngest/client';
 import { logCronStart, logCronComplete, logCronFailed } from '@/lib/services/cron-logger';
+import type { Json } from '@/lib/supabase/database.types';
 
 // Force dynamic so Vercel never caches this route between cron invocations.
 export const dynamic = 'force-dynamic';
@@ -120,8 +121,7 @@ async function runInlineContentAudit(): Promise<NextResponse> {
 }
 
 async function _runInlineContentAuditImpl(handle: { logId: string | null; startedAt: number }): Promise<NextResponse> {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const supabase = createServiceRoleClient() as any;
+  const supabase = createServiceRoleClient();
 
   const { data: locations, error: locError } = await supabase
     .from('locations')
@@ -142,8 +142,7 @@ async function _runInlineContentAuditImpl(handle: { logId: string | null; starte
     return NextResponse.json({ ok: true, locations_audited: 0, pages_audited: 0 });
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const activeLocations = locations.filter((loc: any) =>
+  const activeLocations = locations.filter((loc) =>
     loc.organizations?.plan_status === 'active' && loc.website_url,
   );
 
@@ -157,12 +156,11 @@ async function _runInlineContentAuditImpl(handle: { logId: string | null; starte
 
   const allScores: number[] = [];
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  for (const loc of activeLocations as any[]) {
+  for (const loc of activeLocations) {
     try {
       const plan = loc.organizations?.plan ?? 'starter';
       const cap = getAuditCap(plan);
-      const pages = generateAuditUrls(loc.website_url, cap);
+      const pages = generateAuditUrls(loc.website_url!, cap);
 
       for (const page of pages) {
         try {
@@ -170,8 +168,8 @@ async function _runInlineContentAuditImpl(handle: { logId: string | null; starte
             business_name: loc.business_name,
             city: loc.city,
             state: loc.state,
-            categories: loc.categories,
-            amenities: loc.amenities,
+            categories: loc.categories as string[] | null,
+            amenities: loc.amenities as Record<string, boolean | undefined> | null,
           });
 
           await supabase.from('page_audits').upsert(
@@ -185,7 +183,7 @@ async function _runInlineContentAuditImpl(handle: { logId: string | null; starte
               schema_completeness_score: result.schemaCompletenessScore,
               faq_schema_present: result.faqSchemaPresent,
               aeo_readability_score: result.keywordDensityScore,
-              recommendations: result.recommendations,
+              recommendations: result.recommendations as unknown as Json,
               last_audited_at: new Date().toISOString(),
             },
             { onConflict: 'org_id,page_url' },

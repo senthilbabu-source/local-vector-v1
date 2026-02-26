@@ -48,8 +48,7 @@ type LocationWithIntegrations = {
 // ---------------------------------------------------------------------------
 
 async function fetchPageData(): Promise<LocationWithIntegrations[]> {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const supabase = (await createClient()) as any;
+  const supabase = await createClient();
 
   // Fetch all org locations joined with their integration rows (including listing_url).
   // RLS org_isolation_select on both tables ensures only this org's data is returned.
@@ -98,8 +97,7 @@ async function fetchGBPStatus(orgId: string): Promise<{
   googleEmail: string | null;
   gbpAccountName: string | null;
 }> {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const supabase = (await createClient()) as any;
+  const supabase = await createClient();
 
   // RLS org_isolation_select on google_oauth_tokens ensures only this org's row
   const { data } = await supabase
@@ -123,8 +121,7 @@ async function fetchWordPressStatus(locationId: string): Promise<{
   connected: boolean;
   siteUrl: string | null;
 }> {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const supabase = (await createClient()) as any;
+  const supabase = await createClient();
 
   const { data } = await supabase
     .from('location_integrations')

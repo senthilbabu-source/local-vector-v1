@@ -11,7 +11,7 @@ import {
   type RunMultiAuditInput,
   type VerifyHallucinationInput,
 } from '@/lib/schemas/evaluations';
-import { auditLocation } from '@/lib/services/ai-audit.service';
+import { auditLocation, type LocationAuditInput } from '@/lib/services/ai-audit.service';
 import {
   callEngine,
   runAllEngines,
@@ -64,8 +64,7 @@ export async function runAIEvaluation(
 
   const { location_id, engine } = parsed.data;
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const supabase = (await createClient()) as any;
+  const supabase = await createClient();
 
   // ── Fetch ground-truth location data (RLS-scoped) ─────────────────────────
   const { data: location, error: locError } = (await supabase
@@ -153,8 +152,7 @@ export async function verifyHallucinationFix(
 
   const { hallucination_id } = parsed.data;
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const supabase = (await createClient()) as any;
+  const supabase = await createClient();
 
   // ── Fetch hallucination (RLS-scoped) ──────────────────────────────────────
   const { data: hallucination, error: fetchError } = await supabase
@@ -188,6 +186,15 @@ export async function verifyHallucinationFix(
     .eq('id', hallucination_id);
 
   // ── Fetch linked location ─────────────────────────────────────────────────
+  if (!hallucination.location_id) {
+    await supabase
+      .from('ai_hallucinations')
+      .update({ correction_status: 'fixed', resolved_at: new Date().toISOString() })
+      .eq('id', hallucination_id);
+    revalidatePath('/dashboard');
+    return { success: true, newStatus: 'fixed' };
+  }
+
   const { data: location, error: locError } = await supabase
     .from('locations')
     .select('id, org_id, business_name, city, state, address_line1, hours_data, amenities')
@@ -205,7 +212,7 @@ export async function verifyHallucinationFix(
   }
 
   // ── Re-run audit ──────────────────────────────────────────────────────────
-  const freshHallucinations = await auditLocation(location);
+  const freshHallucinations = await auditLocation(location as LocationAuditInput);
 
   // ── Determine new status ──────────────────────────────────────────────────
   // If any returned hallucination's claim_text loosely matches the original,
@@ -265,8 +272,7 @@ export async function runMultiEngineEvaluation(
 
   const { location_id } = parsed.data;
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const supabase = (await createClient()) as any;
+  const supabase = await createClient();
 
   // ── Fetch ground-truth location data (RLS-scoped) ─────────────────────────
   const { data: location, error: locError } = (await supabase

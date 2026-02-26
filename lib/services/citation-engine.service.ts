@@ -13,6 +13,8 @@
 // Spec: docs/18-CITATION-INTELLIGENCE.md §2
 // ---------------------------------------------------------------------------
 
+import type { SupabaseClient } from '@supabase/supabase-js';
+import type { Database } from '@/lib/supabase/database.types';
 import { generateText } from 'ai';
 import { getModel, hasApiKey } from '@/lib/ai/providers';
 import { CitationCronResultSchema } from '@/lib/ai/schemas';
@@ -251,8 +253,7 @@ export async function writeCitationResults(
   platformCounts: PlatformCitationCounts,
   successfulQueries: number,
   sampleQuery: string | null,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  supabase: any,
+  supabase: SupabaseClient<Database>,
 ): Promise<number> {
   if (successfulQueries === 0) return 0;
 

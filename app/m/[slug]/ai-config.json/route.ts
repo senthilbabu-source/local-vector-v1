@@ -69,8 +69,7 @@ export async function GET(
 ) {
   const { slug } = await params;
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const supabase = (await createClient()) as any;
+  const supabase = await createClient();
 
   const { data: menu } = (await supabase
     .from('magic_menus')

@@ -28,8 +28,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     );
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const supabase = (await createClient()) as any;
+  const supabase = await createClient();
 
   // Verify the location belongs to this org (RLS provides secondary enforcement)
   const { data: location, error: locError } = await supabase

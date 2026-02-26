@@ -35,8 +35,7 @@ interface PageAuditRow {
 // ---------------------------------------------------------------------------
 
 async function fetchPageAuditData(orgId: string) {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const supabase = (await createClient()) as any;
+  const supabase = await createClient();
 
   const [auditResult, orgResult] = await Promise.all([
     supabase

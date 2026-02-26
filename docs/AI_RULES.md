@@ -41,7 +41,7 @@
 * **Golden Tenant:** All tests must use the **Charcoal N Chill** fixture data defined in `src/__fixtures__/golden-tenant.ts`.
 * **Mocking:** NEVER hit real external APIs (Perplexity, OpenAI, Stripe) in tests. Use MSW (Mock Service Worker) handlers.
 * **Server Action mock patterns — use the right technique:**
-  * **Supabase client:** `vi.mock('@/lib/supabase/server', () => ({ createClient: vi.fn() }))` then `vi.mocked(createClient as any).mockResolvedValue({ from: vi.fn(...) })`.
+  * **Supabase client:** `vi.mock('@/lib/supabase/server', () => ({ createClient: vi.fn() }))` then `vi.mocked(createClient).mockResolvedValue({ from: vi.fn(...) })` (no `as any` — see §38.2).
   * **AI SDK calls** (`generateText`, `generateObject`): `vi.mock('ai', () => ({ generateText: vi.fn(), generateObject: vi.fn() }))` + `vi.mock('@/lib/ai/providers', () => ({ getModel: vi.fn().mockReturnValue('mock-model'), hasApiKey: vi.fn().mockReturnValue(true) }))`. Mock return shapes: `{ text: '...' }` for `generateText`, `{ object: {...} }` for `generateObject`. Control fallback paths with `vi.mocked(hasApiKey).mockReturnValue(false)`.
   * **Direct `fetch` calls** (non-AI HTTP calls where no SDK wrapper exists): use `vi.stubGlobal('fetch', vi.fn())` — `vi.mock` cannot intercept global fetch. **Note:** All AI API calls (Perplexity, OpenAI) now use the Vercel AI SDK — never raw `fetch`.
   * **`setTimeout` mock delays** (SOV/evaluation actions with no API key): use `vi.useFakeTimers()` in `beforeEach` and `await vi.runAllTimersAsync()` before awaiting the result. Without this, tests wait 3 real seconds.
@@ -79,7 +79,7 @@
     * `app.localvector.ai` → Dashboard (Authenticated)
     * `menu.localvector.ai` → Public Magic Menus (Edge Cached, No Auth).
 * **Cron Jobs:** All scheduled operations run as **Next.js Route Handlers** at `app/api/cron/*/route.ts`. Every cron endpoint is a standard `GET` handler secured by the `CRON_SECRET` header check. Cron routes are thin dispatchers: they validate auth, check kill switches, then dispatch to Inngest (primary) with an inline fallback (AI_RULES §17, §30). **Do NOT create files under `supabase/functions/`** — Supabase Edge Functions (Deno) are not used in this project.
-* **Middleware filename:** The Next.js middleware file is **`proxy.ts`** (at the project root), not `middleware.ts`. This rename follows the Next.js 16 convention adopted on 2026-02-23 (see DEVLOG). Do not create a new `middleware.ts` — it will be ignored by the framework.
+* **Middleware filename:** All middleware logic lives in **`proxy.ts`** (at the project root). A thin `middleware.ts` re-export shim (`export { proxy as middleware, config } from './proxy'`) exists so Next.js auto-discovers the middleware. **Always edit `proxy.ts`** — never add logic to `middleware.ts`.
 
 ## 7. 🔑 PostgreSQL UUID Hex Constraint (Phase 10)
 * UUIDs are strictly hexadecimal: only characters `0-9` and `a-f` are valid.
@@ -977,7 +977,7 @@ Custom tooltip-based tour at `app/dashboard/_components/GuidedTour.tsx`. No exte
 - **Rendered in:** `DashboardShell.tsx` after main content area.
 
 ### 37.3 — Subdomain Routing (`proxy.ts`)
-The Next.js middleware (`proxy.ts`, NOT `middleware.ts`) now handles subdomain routing at the top of the handler:
+The Next.js middleware (logic in `proxy.ts`, re-exported via `middleware.ts`) handles subdomain routing at the top of the handler:
 
 - `menu.*` hostname → `NextResponse.rewrite()` to `/m/` path prefix (public, no auth needed)
 - `app.*` or bare domain → falls through to existing auth logic
@@ -1016,6 +1016,45 @@ Agency-tier orgs with multiple locations can switch between them via a sidebar d
 - **Data flow:** `dashboard/layout.tsx` fetches all org locations → reads cookie → passes `locations` + `selectedLocationId` through `DashboardShell` → `Sidebar` → `LocationSwitcher`.
 - **Locations page:** Card grid layout (`grid gap-4 sm:grid-cols-2 lg:grid-cols-3`). Plan-gated via `maxLocations(plan)` — shows "Upgrade to Agency" when at limit.
 - **Props threading:** `DashboardShell` and `Sidebar` accept optional `locations?: LocationOption[]` and `selectedLocationId?: string | null`.
+
+## 38. 🗂️ Supabase Database Types & Type Safety (Sprint 63)
+
+### 38.1 — `database.types.ts` Is the Type Authority
+`lib/supabase/database.types.ts` contains the full `Database` type definition covering all 28 tables, 9 enums, and FK `Relationships`. It was manually generated from `supabase/prod_schema.sql` + migration files. When the schema changes (new tables, columns, or enums), this file **must be updated** to match.
+
+### 38.2 — No `as any` on Supabase Clients
+The clients in `lib/supabase/server.ts` are generic-typed with `<Database>`. **Never** cast `createClient()` or `createServiceRoleClient()` to `any`. The typed client provides autocomplete on `.from()` table names, `.select()` column inference, and return type safety.
+
+### 38.3 — Service Function Parameter Type
+Functions that accept an injected Supabase client must use the typed parameter:
+```typescript
+import type { SupabaseClient } from '@supabase/supabase-js';
+import type { Database } from '@/lib/supabase/database.types';
+
+export async function myService(supabase: SupabaseClient<Database>) { ... }
+```
+**Never** use `supabase: any` as a parameter type.
+
+### 38.4 — JSONB Column Casting Convention
+Database JSONB columns are typed as `Json` (a union of primitives, arrays, and objects). When reading JSONB values that the application expects as a specific type, cast explicitly:
+```typescript
+const categories = location.categories as string[] | null;
+const amenities = location.amenities as Record<string, boolean | undefined> | null;
+```
+When writing typed objects into JSONB columns, cast via `unknown`:
+```typescript
+import type { Json } from '@/lib/supabase/database.types';
+await supabase.from('magic_menus').update({ extracted_data: menuData as unknown as Json });
+```
+
+### 38.5 — Remaining Permitted `as any` Casts
+Only 4 non-Supabase `as any` casts are permitted in the codebase:
+- `zodResolver(CreateMenuItemSchema) as any` — react-hook-form resolver type mismatch
+- `(item as any).dietary_tags` — JSONB field access in `generateMenuJsonLd.ts`
+- `row['dietary_tags'] as any` — CSV parse in `parseCsvMenu.ts`
+- `part as any` — AI SDK UIMessage discriminated union in `Chat.tsx`
+
+Any new `as any` on Supabase clients, queries, or service params will be flagged as a rule violation.
 
 ---
 > **End of System Instructions**

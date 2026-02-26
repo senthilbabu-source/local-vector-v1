@@ -1,4 +1,6 @@
 import { createClient } from '@/lib/supabase/server';
+import type { SupabaseClient } from '@supabase/supabase-js';
+import type { Database } from '@/lib/supabase/database.types';
 
 // ---------------------------------------------------------------------------
 // Shared types
@@ -60,8 +62,7 @@ export interface SafeAuthContext {
  * `auth_provider_id`.
  */
 async function resolvePublicUser(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  supabase: any,
+  supabase: SupabaseClient<Database>,
   authUid: string
 ): Promise<{ id: string; full_name: string | null } | null> {
   const { data } = await supabase
@@ -106,15 +107,13 @@ export async function getAuthContext(): Promise<AuthContext> {
   }
 
   // Step 1: map auth.uid() → public.users.id
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const publicUser = await resolvePublicUser(supabase as any, user.id);
+  const publicUser = await resolvePublicUser(supabase, user.id);
   if (!publicUser) {
     throw new Error('No organization found');
   }
 
   // Step 2: resolve membership + org using public.users.id (not auth.uid())
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data: membership, error: membershipError } = await (supabase as any)
+  const { data: membership, error: membershipError } = await supabase
     .from('memberships')
     .select(
       `org_id,
@@ -174,8 +173,7 @@ export async function getSafeAuthContext(): Promise<SafeAuthContext | null> {
   }
 
   // Step 1: map auth.uid() → public.users.id + full_name
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const publicUser = await resolvePublicUser(supabase as any, user.id);
+  const publicUser = await resolvePublicUser(supabase, user.id);
 
   if (!publicUser) {
     // Auth user exists but the public profile trigger hasn't fired yet.
@@ -198,8 +196,7 @@ export async function getSafeAuthContext(): Promise<SafeAuthContext | null> {
   };
 
   // Step 2: resolve membership + org using public.users.id (not auth.uid())
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data: membership } = await (supabase as any)
+  const { data: membership } = await supabase
     .from('memberships')
     .select(
       `org_id,

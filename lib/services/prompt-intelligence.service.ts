@@ -13,6 +13,8 @@
 // Spec: docs/15-LOCAL-PROMPT-INTELLIGENCE.md §3
 // ---------------------------------------------------------------------------
 
+import type { SupabaseClient } from '@supabase/supabase-js';
+import type { Database } from '@/lib/supabase/database.types';
 import {
   discoveryQueries,
   nearMeQueries,
@@ -51,8 +53,7 @@ const MIN_CLUSTER_SIZE = 3;
  */
 export async function buildReferenceLibrary(
   locationId: string,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  supabase: any,
+  supabase: SupabaseClient<Database>,
 ): Promise<ReferenceQuery[]> {
   // Fetch location data
   const { data: location } = await supabase
@@ -65,7 +66,7 @@ export async function buildReferenceLibrary(
 
   const city = location.city ?? 'local area';
   const state = location.state ?? '';
-  const categories: string[] = location.categories ?? ['restaurant'];
+  const categories: string[] = (location.categories as string[] | null) ?? ['restaurant'];
   const primaryCategory = categories[0] ?? 'restaurant';
 
   // Fetch competitors for this org
@@ -123,8 +124,7 @@ export async function buildReferenceLibrary(
 export async function detectQueryGaps(
   orgId: string,
   locationId: string,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  supabase: any,
+  supabase: SupabaseClient<Database>,
 ): Promise<QueryGap[]> {
   // Fetch data in parallel
   const [referenceQueries, activeQueryResult, interceptResult, evalResult] =
@@ -148,7 +148,7 @@ export async function detectQueryGaps(
 
   const activeQueries: { id: string; query_text: string; query_category: string }[] =
     activeQueryResult.data ?? [];
-  const intercepts: { query_asked: string; competitor_name: string; winner: string }[] =
+  const intercepts: { query_asked: string | null; competitor_name: string; winner: string | null }[] =
     interceptResult.data ?? [];
   const evaluations: { query_id: string; rank_position: number | null }[] =
     evalResult.data ?? [];
@@ -181,7 +181,7 @@ export async function detectQueryGaps(
       seenCompetitorQueries.add(queryLower);
       gaps.push({
         gapType: 'competitor_discovered',
-        queryText: intercept.query_asked,
+        queryText: intercept.query_asked!,
         queryCategory: 'comparison',
         estimatedImpact: 'high',
         suggestedAction: `${intercept.competitor_name} is winning this query. Track it to measure your progress.`,

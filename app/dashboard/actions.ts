@@ -63,8 +63,7 @@ export async function createLocation(
   const slug = toUniqueSlug(business_name);
 
   // Step 4 — insert (RLS will reject if org_id doesn't match the session's org)
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const supabase = (await createClient()) as any;
+  const supabase = await createClient();
 
   // Step 4a — determine whether this will be the primary location.
   // The first location added for an org automatically becomes primary so that
@@ -126,8 +125,7 @@ export async function updateHallucinationStatus(
     return { success: false, error: 'Unauthorized' };
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const supabase = (await createClient()) as any;
+  const supabase = await createClient();
 
   const resolvedAt =
     status === 'fixed' || status === 'dismissed'

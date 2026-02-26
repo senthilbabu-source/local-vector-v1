@@ -3,6 +3,8 @@
 import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
 import { getSafeAuthContext } from '@/lib/auth';
+import type { SupabaseClient } from '@supabase/supabase-js';
+import type { Database } from '@/lib/supabase/database.types';
 import {
   CreateCategorySchema,
   CreateMenuItemSchema,
@@ -29,8 +31,7 @@ export type ActionResult = { success: true } | { success: false; error: string }
  * have no live public page to invalidate.
  */
 async function revalidatePublicPage(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  supabase: any,
+  supabase: SupabaseClient<Database>,
   menuId: string
 ): Promise<void> {
   const { data } = (await supabase
@@ -82,8 +83,7 @@ export async function createMenuCategory(
 
   const { name, menu_id } = parsed.data;
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const supabase = (await createClient()) as any;
+  const supabase = await createClient();
 
   const { error } = await supabase.from('menu_categories').insert({
     org_id: ctx.orgId, // ALWAYS server-derived — never from client
@@ -132,8 +132,7 @@ export async function createMenuItem(
 
   const { name, description, price, category_id, menu_id } = parsed.data;
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const supabase = (await createClient()) as any;
+  const supabase = await createClient();
 
   const { error } = await supabase.from('menu_items').insert({
     org_id: ctx.orgId, // ALWAYS server-derived — never from client

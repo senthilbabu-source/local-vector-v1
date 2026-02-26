@@ -155,8 +155,7 @@ export async function addTargetQuery(input: AddQueryInput): Promise<ActionResult
 
   const { location_id, query_text } = parsed.data;
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const supabase = (await createClient()) as any;
+  const supabase = await createClient();
 
   const { error } = await supabase.from('target_queries').insert({
     org_id: ctx.orgId,
@@ -209,8 +208,7 @@ export async function runSovEvaluation(input: RunSovInput): Promise<ActionResult
 
   const { query_id, engine } = parsed.data;
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const supabase = (await createClient()) as any;
+  const supabase = await createClient();
 
   // ── Fetch query + location data (RLS-scoped) ──────────────────────────────
   const { data: queryRow, error: queryError } = await supabase

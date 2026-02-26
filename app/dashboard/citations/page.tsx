@@ -22,8 +22,7 @@ import TopGapCard from './_components/TopGapCard';
 // ---------------------------------------------------------------------------
 
 async function fetchCitationData(orgId: string) {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const supabase = (await createClient()) as any;
+  const supabase = await createClient();
 
   // Get primary location
   const { data: locations } = await supabase
@@ -37,7 +36,8 @@ async function fetchCitationData(orgId: string) {
     return { location: null, platforms: [], listings: [], plan: 'trial' as string };
   }
 
-  const primaryCategory = (location.categories?.[0] ?? 'restaurant') as string;
+  const categories = location.categories as string[] | null;
+  const primaryCategory = categories?.[0] ?? 'restaurant';
   const city = (location.city ?? '') as string;
   const state = (location.state ?? '') as string;
 
@@ -66,10 +66,9 @@ async function fetchCitationData(orgId: string) {
   const platforms: CitationSourceIntelligence[] = citationResult.data ?? [];
 
   // Map listings to TenantListing shape
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const listings: TenantListing[] = (listingResult.data ?? []).map((row: any) => ({
+  const listings: TenantListing[] = (listingResult.data ?? []).map((row) => ({
     directory: row.directories?.name ?? '',
-    sync_status: row.sync_status,
+    sync_status: row.sync_status ?? 'not_linked',
   }));
 
   return {

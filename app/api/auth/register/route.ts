@@ -62,8 +62,7 @@ export async function POST(request: Request): Promise<NextResponse> {
 
   const authUserId = authData.user.id;
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const db = service as any;
+  const db = service;
 
   /**
    * Atomicity guard: if any step after Auth user creation fails, delete the

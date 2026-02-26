@@ -147,8 +147,7 @@ export async function GET(request: NextRequest) {
   // ── Upsert tokens into DB ────────────────────────────────────────────
   // google_oauth_tokens has UNIQUE(org_id), so upsert replaces any existing token.
   // Service role client — this table only grants to service_role.
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const supabase = createServiceRoleClient() as any;
+  const supabase = createServiceRoleClient();
 
   const expiresAt = new Date(Date.now() + tokenData.expires_in * 1000).toISOString();
 

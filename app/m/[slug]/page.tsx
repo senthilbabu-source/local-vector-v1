@@ -237,8 +237,7 @@ function buildMenuSchema(
 
 const fetchPublicMenuPage = cache(
   async (slug: string): Promise<{ menu: PublicMenuData | null; categories: CategoryData[] }> => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const supabase = (await createClient()) as any;
+    const supabase = await createClient();
 
     // Fetch menu header + full location data (incl. hours_data and amenities).
     // Double-gated: anon RLS policy + application-level .eq('is_published', true).

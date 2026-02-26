@@ -10,6 +10,8 @@
 // Spec: docs/19-AUTOPILOT-ENGINE.md §5.3
 // ---------------------------------------------------------------------------
 
+import type { SupabaseClient } from '@supabase/supabase-js';
+import type { Database } from '@/lib/supabase/database.types';
 import type { ContentDraftRow, PublishResult } from '@/lib/types/autopilot';
 
 /** GBP post body maximum length. */
@@ -56,8 +58,7 @@ export function truncateAtSentence(text: string, maxChars: number): string {
 async function refreshGBPToken(
   orgId: string,
   refreshToken: string,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  supabase: any,
+  supabase: SupabaseClient<Database>,
 ): Promise<string> {
   const response = await fetch('https://oauth2.googleapis.com/token', {
     method: 'POST',
@@ -100,8 +101,7 @@ async function refreshGBPToken(
 export async function publishToGBP(
   draft: ContentDraftRow,
   orgId: string,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  supabase: any,
+  supabase: SupabaseClient<Database>,
 ): Promise<PublishResult> {
   // Fetch OAuth token (service-role, no RLS on google_oauth_tokens)
   const { data: tokenRow, error: tokenError } = await supabase

@@ -108,8 +108,7 @@ async function runInlineSOV(): Promise<NextResponse> {
 }
 
 async function _runInlineSOVImpl(handle: { logId: string | null; startedAt: number }): Promise<NextResponse> {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const supabase = createServiceRoleClient() as any;
+  const supabase = createServiceRoleClient();
 
   const { data: queries, error: queryError } = await supabase
     .from('target_queries')
@@ -143,16 +142,14 @@ async function _runInlineSOVImpl(handle: { logId: string | null; startedAt: numb
   };
 
   const validQueries = queries.filter(
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (q: any) => q.locations && q.organizations?.plan_status === 'active',
+    (q) => q.locations && q.organizations?.plan_status === 'active',
   );
 
   const byOrg = groupBy(validQueries, (q: SOVQueryInput) => q.org_id);
 
   for (const [orgId, orgQueries] of Object.entries(byOrg)) {
     try {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const plan = (orgQueries[0] as any).organizations?.plan ?? 'starter';
+      const plan = orgQueries[0].organizations?.plan ?? 'starter';
       const queryCap = getQueryCap(plan);
       const batch = orgQueries.slice(0, queryCap);
 
@@ -199,8 +196,7 @@ async function _runInlineSOVImpl(handle: { logId: string | null; startedAt: numb
           membershipRow?.users as { email: string } | null
         )?.email;
 
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const businessName = (batch[0] as any).locations?.business_name ?? 'Your Business';
+        const businessName = batch[0].locations?.business_name ?? 'Your Business';
 
         if (ownerEmail) {
           // Compute SOV delta from visibility_analytics
@@ -211,8 +207,8 @@ async function _runInlineSOVImpl(handle: { logId: string | null; startedAt: numb
             .order('snapshot_date', { ascending: false })
             .limit(2);
           const visRows = prevVis ?? [];
-          const sovDelta = visRows.length >= 2
-            ? visRows[0].share_of_voice - visRows[1].share_of_voice
+          const sovDelta = visRows.length >= 2 && visRows[0] && visRows[1]
+            ? (visRows[0].share_of_voice ?? 0) - (visRows[1].share_of_voice ?? 0)
             : null;
 
           // Find top competitor from recent evaluations
@@ -224,7 +220,7 @@ async function _runInlineSOVImpl(handle: { logId: string | null; startedAt: numb
             .limit(50);
           const competitorCounts: Record<string, number> = {};
           for (const ev of recentEvals ?? []) {
-            for (const c of ev.mentioned_competitors ?? []) {
+            for (const c of (ev.mentioned_competitors as string[] | null) ?? []) {
               competitorCounts[c] = (competitorCounts[c] ?? 0) + 1;
             }
           }
@@ -255,8 +251,7 @@ async function _runInlineSOVImpl(handle: { logId: string | null; startedAt: numb
         // Occasion Engine sub-step (non-critical)
         try {
           const locationId = batch[0].location_id;
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const loc = (batch[0] as any).locations;
+          const loc = batch[0].locations as { business_name: string; city: string | null; state: string | null; categories?: string[] } | undefined;
           const locationCategories: string[] = loc?.categories ?? ['restaurant'];
           const city = loc?.city ?? '';
           const state = loc?.state ?? '';

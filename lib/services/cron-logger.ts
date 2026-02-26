@@ -9,6 +9,7 @@
 // ---------------------------------------------------------------------------
 
 import { createServiceRoleClient } from '@/lib/supabase/server';
+import type { Json } from '@/lib/supabase/database.types';
 
 export interface CronLogHandle {
   logId: string | null;
@@ -23,8 +24,7 @@ export interface CronLogHandle {
 export async function logCronStart(cronName: string): Promise<CronLogHandle> {
   const startedAt = Date.now();
   try {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const supabase = createServiceRoleClient() as any;
+    const supabase = createServiceRoleClient();
     const { data, error } = await supabase
       .from('cron_run_log')
       .insert({ cron_name: cronName, status: 'running' })
@@ -52,8 +52,7 @@ export async function logCronComplete(
 ): Promise<void> {
   if (!handle.logId) return;
   try {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const supabase = createServiceRoleClient() as any;
+    const supabase = createServiceRoleClient();
     const durationMs = Date.now() - handle.startedAt;
     await supabase
       .from('cron_run_log')
@@ -61,7 +60,7 @@ export async function logCronComplete(
         status: 'success',
         completed_at: new Date().toISOString(),
         duration_ms: durationMs,
-        summary,
+        summary: summary as unknown as Json,
       })
       .eq('id', handle.logId);
   } catch (err) {
@@ -79,8 +78,7 @@ export async function logCronFailed(
 ): Promise<void> {
   if (!handle.logId) return;
   try {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const supabase = createServiceRoleClient() as any;
+    const supabase = createServiceRoleClient();
     const durationMs = Date.now() - handle.startedAt;
     await supabase
       .from('cron_run_log')

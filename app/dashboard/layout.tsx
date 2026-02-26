@@ -50,8 +50,7 @@ export default async function DashboardLayout({
   // trigger hasn't fired yet (edge case right after signup) we skip the guard
   // and let the dashboard show an empty state.
   if (ctx.orgId) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const supabase = (await createClient()) as any;
+    const supabase = await createClient();
 
     // Scope by org_id explicitly (belt-and-suspenders alongside RLS) so the
     // query is unambiguous when multiple orgs share the same DB instance.
@@ -87,20 +86,19 @@ export default async function DashboardLayout({
   let selectedLocationId: string | null = null;
 
   if (ctx.orgId) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const locSupa = (await createClient()) as any;
+    const locSupa = await createClient();
     const { data: allLocations } = await locSupa
       .from('locations')
       .select('id, business_name, city, state, is_primary')
       .eq('org_id', ctx.orgId)
       .order('is_primary', { ascending: false });
 
-    locations = (allLocations ?? []).map((l: { id: string; business_name: string; city: string | null; state: string | null; is_primary: boolean }) => ({
+    locations = (allLocations ?? []).map((l) => ({
       id: l.id,
       business_name: l.business_name,
       city: l.city,
       state: l.state,
-      is_primary: l.is_primary,
+      is_primary: l.is_primary ?? false,
     }));
 
     // Read selected location from cookie, default to primary

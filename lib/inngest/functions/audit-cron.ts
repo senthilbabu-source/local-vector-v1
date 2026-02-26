@@ -18,9 +18,11 @@
 import { inngest } from '../client';
 import { withTimeout } from '../timeout';
 import { createServiceRoleClient } from '@/lib/supabase/server';
+import type { Database } from '@/lib/supabase/database.types';
 import {
   auditLocation,
   type DetectedHallucination,
+  type LocationAuditInput,
 } from '@/lib/services/ai-audit.service';
 import { runInterceptForCompetitor } from '@/lib/services/competitor-intercept.service';
 import { sendHallucinationAlert } from '@/lib/email';
@@ -36,8 +38,7 @@ export interface AuditOrgResult {
 }
 
 export async function processOrgAudit(org: { id: string; name: string }): Promise<AuditOrgResult> {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const supabase = createServiceRoleClient() as any;
+  const supabase = createServiceRoleClient();
 
   const { data: location, error: locError } = await supabase
     .from('locations')
@@ -54,23 +55,27 @@ export async function processOrgAudit(org: { id: string; name: string }): Promis
     return { success: true, hallucinationsInserted: 0 };
   }
 
-  const hallucinations: DetectedHallucination[] = await auditLocation(location);
+  const auditInput: LocationAuditInput = {
+    ...location,
+    hours_data: location.hours_data as Record<string, unknown> | null,
+    amenities: location.amenities as Record<string, unknown> | null,
+  };
+  const hallucinations: DetectedHallucination[] = await auditLocation(auditInput);
 
   if (hallucinations.length > 0) {
+    const hallRows = hallucinations.map((h) => ({
+      org_id: location.org_id,
+      location_id: location.id,
+      model_provider: h.model_provider as Database['public']['Enums']['model_provider'],
+      severity: h.severity as Database['public']['Enums']['hallucination_severity'],
+      category: h.category,
+      claim_text: h.claim_text,
+      expected_truth: h.expected_truth,
+      correction_status: 'open' as Database['public']['Enums']['correction_status'],
+    }));
     const { error: insertError } = await supabase
       .from('ai_hallucinations')
-      .insert(
-        hallucinations.map((h) => ({
-          org_id: location.org_id,
-          location_id: location.id,
-          model_provider: h.model_provider,
-          severity: h.severity,
-          category: h.category,
-          claim_text: h.claim_text,
-          expected_truth: h.expected_truth,
-          correction_status: 'open',
-        })),
-      );
+      .insert(hallRows);
 
     if (insertError) throw new Error(`Insert failed: ${insertError.message}`);
 
@@ -112,8 +117,7 @@ export interface InterceptOrgResult {
 }
 
 export async function processOrgIntercepts(org: { id: string; name: string }): Promise<InterceptOrgResult> {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const supabase = createServiceRoleClient() as any;
+  const supabase = createServiceRoleClient();
   let interceptsInserted = 0;
 
   const { data: location } = await supabase
@@ -137,7 +141,7 @@ export async function processOrgIntercepts(org: { id: string; name: string }): P
           orgId: org.id,
           locationId: location.id,
           businessName: location.business_name,
-          categories: Array.isArray(location.categories) ? location.categories : [],
+          categories: Array.isArray(location.categories) ? location.categories as string[] : [],
           city: location.city,
           state: location.state,
           competitor,
@@ -174,8 +178,7 @@ export const auditCronFunction = inngest.createFunction(
 
     // Step 1: Fetch all active paying orgs
     const orgs = await step.run('fetch-audit-orgs', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const supabase = createServiceRoleClient() as any;
+      const supabase = createServiceRoleClient();
 
       const { data, error } = await supabase
         .from('organizations')
@@ -234,8 +237,7 @@ export const auditCronFunction = inngest.createFunction(
       orgs.map((org) =>
         step.run(`snapshot-revenue-leak-${org.id}`, async () => {
           try {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const supabase = createServiceRoleClient() as any;
+            const supabase = createServiceRoleClient();
             const { data: location } = await supabase
               .from('locations')
               .select('id')

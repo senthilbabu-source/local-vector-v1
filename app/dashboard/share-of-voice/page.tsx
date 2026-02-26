@@ -57,8 +57,7 @@ type FirstMoverRow = {
 // ---------------------------------------------------------------------------
 
 async function fetchPageData(orgId: string) {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const supabase = (await createClient()) as any;
+  const supabase = await createClient();
 
   const [locResult, queryResult, evalResult, visResult, firstMoverResult, orgResult] =
     await Promise.all([
@@ -152,8 +151,7 @@ export default async function ShareOfVoicePage() {
   let gaps: QueryGap[] = [];
   const isGrowthPlus = canRunSovEvaluation(plan as PlanTier);
   if (isGrowthPlus && locations.length > 0) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const gapSupabase = (await createClient()) as any;
+    const gapSupabase = await createClient();
     gaps = await detectQueryGaps(ctx.orgId, locations[0].id, gapSupabase);
   }
 

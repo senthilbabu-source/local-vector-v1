@@ -250,8 +250,8 @@ async function writeSOVResults(
     .upsert({
       org_id: orgId,
       location_id: results[0]?.locationId,
-      share_of_voice: Math.round(shareOfVoice * 10) / 10,
-      citation_rate: Math.round(citationRate * 10) / 10,
+      share_of_voice: parseFloat((shareOfVoice / 100).toFixed(3)), // percentage → 0.0–1.0 float (3 decimal places)
+      citation_rate: parseFloat((citationRate / 100).toFixed(3)),
       snapshot_date: today,
     }, { onConflict: 'org_id,location_id,snapshot_date' });
 

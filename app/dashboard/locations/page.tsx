@@ -28,8 +28,7 @@ type Location = {
 // ---------------------------------------------------------------------------
 
 async function fetchLocations(orgId: string | null): Promise<Location[]> {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const supabase = (await createClient()) as any;
+  const supabase = await createClient();
 
   // Belt-and-suspenders: filter by org_id explicitly in addition to RLS.
   let query = supabase

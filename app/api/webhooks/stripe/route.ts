@@ -33,6 +33,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import { createServiceRoleClient } from '@/lib/supabase/server';
+import type { SupabaseClient } from '@supabase/supabase-js';
+import type { Database } from '@/lib/supabase/database.types';
 
 // ── Force dynamic so Next.js never caches this route ──────────────────────
 export const dynamic = 'force-dynamic';
@@ -70,8 +72,7 @@ const STRIPE_STATUS_TO_DB: Record<string, string> = {
 
 async function handleCheckoutCompleted(
   session: Stripe.Checkout.Session,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  supabase: any
+  supabase: SupabaseClient<Database>
 ): Promise<void> {
   // Prefer client_reference_id (most reliable); fall back to metadata.org_id.
   const orgId = session.client_reference_id ?? session.metadata?.org_id;
@@ -97,7 +98,7 @@ async function handleCheckoutCompleted(
   const { error } = await supabase
     .from('organizations')
     .update({
-      plan: tier,
+      plan: tier as Database['public']['Enums']['plan_tier'],
       plan_status: 'active',
       ...(stripeCustomerId && { stripe_customer_id: stripeCustomerId }),
       ...(stripeSubscriptionId && { stripe_subscription_id: stripeSubscriptionId }),
@@ -118,8 +119,7 @@ async function handleCheckoutCompleted(
 
 async function handleSubscriptionUpdated(
   subscription: Stripe.Subscription,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  supabase: any
+  supabase: SupabaseClient<Database>
 ): Promise<void> {
   // The subscription's customer field is always a string ID when not expanded.
   const stripeCustomerId =
@@ -134,7 +134,7 @@ async function handleSubscriptionUpdated(
 
   const { error } = await supabase
     .from('organizations')
-    .update({ plan_status: planStatus })
+    .update({ plan_status: planStatus as Database['public']['Enums']['plan_status'] })
     .eq('stripe_customer_id', stripeCustomerId);
 
   if (error) {
@@ -153,8 +153,7 @@ async function handleSubscriptionUpdated(
 
 async function handleSubscriptionDeleted(
   subscription: Stripe.Subscription,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  supabase: any
+  supabase: SupabaseClient<Database>
 ): Promise<void> {
   const stripeCustomerId =
     typeof subscription.customer === 'string' ? subscription.customer : null;
@@ -216,8 +215,7 @@ export async function POST(request: NextRequest) {
   }
 
   // ── Dispatch ──────────────────────────────────────────────────────────────
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const supabase = createServiceRoleClient() as any;
+  const supabase = createServiceRoleClient();
 
   try {
     switch (event.type) {

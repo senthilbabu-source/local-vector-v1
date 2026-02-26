@@ -10,6 +10,8 @@
 // Spec: docs/16-OCCASION-ENGINE.md §3–§4
 // ---------------------------------------------------------------------------
 
+import type { SupabaseClient } from '@supabase/supabase-js';
+import type { Database } from '@/lib/supabase/database.types';
 import { generateText } from 'ai';
 import { getModel, hasApiKey } from '@/lib/ai/providers';
 import { OccasionDraftSchema } from '@/lib/ai/schemas';
@@ -87,8 +89,7 @@ export async function checkOccasionAlerts(
   locationId: string,
   locationCategories: string[],
   sovResults: SOVQueryResult[],
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  supabase: any,
+  supabase: SupabaseClient<Database>,
 ): Promise<{ alerts: OccasionAlert[]; skipped: number }> {
   const today = new Date();
   const weekNumber = getISOWeekNumber(today);
@@ -106,7 +107,7 @@ export async function checkOccasionAlerts(
   const alerts: OccasionAlert[] = [];
   let skipped = 0;
 
-  for (const occ of occasions as LocalOccasionRow[]) {
+  for (const occ of occasions as unknown as LocalOccasionRow[]) {
     const daysUntilPeak = getDaysUntilPeak(occ, today);
 
     // Only fire if within the trigger window and not past peak
@@ -210,8 +211,7 @@ export async function generateOccasionDraft(
   city: string,
   state: string,
   category: string,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  supabase: any,
+  supabase: SupabaseClient<Database>,
 ): Promise<{ triggered: boolean; draftId: string | null }> {
   // Condition 1: within 3-week window
   if (alert.daysUntilPeak > 21) {
@@ -324,8 +324,7 @@ export async function runOccasionScheduler(
   city: string,
   state: string,
   category: string,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  supabase: any,
+  supabase: SupabaseClient<Database>,
 ): Promise<OccasionSchedulerResult> {
   const { alerts, skipped } = await checkOccasionAlerts(
     orgId,

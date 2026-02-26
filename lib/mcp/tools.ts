@@ -25,7 +25,7 @@ import { createServiceRoleClient } from '@/lib/supabase/server';
 async function resolveOrgId(businessName: string): Promise<string | null> {
     const supabase = createServiceRoleClient();
 
-    const { data } = await (supabase as any)
+    const { data } = await supabase
         .from('locations')
         .select('org_id')
         .ilike('business_name', `%${businessName}%`)
@@ -57,7 +57,7 @@ export function registerLocalVectorTools(server: McpServer) {
 
             const supabase = createServiceRoleClient();
 
-            const { data: vis } = await (supabase as any)
+            const { data: vis } = await supabase
                 .from('visibility_analytics')
                 .select('share_of_voice, citation_rate, snapshot_date')
                 .eq('org_id', orgId)
@@ -65,7 +65,7 @@ export function registerLocalVectorTools(server: McpServer) {
                 .limit(1)
                 .maybeSingle();
 
-            const { count: openCount } = await (supabase as any)
+            const { count: openCount } = await supabase
                 .from('ai_hallucinations')
                 .select('*', { count: 'exact', head: true })
                 .eq('org_id', orgId)
@@ -109,14 +109,14 @@ export function registerLocalVectorTools(server: McpServer) {
 
             const supabase = createServiceRoleClient();
 
-            const { data: snapshots } = await (supabase as any)
+            const { data: snapshots } = await supabase
                 .from('visibility_analytics')
                 .select('share_of_voice, citation_rate, snapshot_date')
                 .eq('org_id', orgId)
                 .order('snapshot_date', { ascending: false })
                 .limit(limit);
 
-            const { data: evals } = await (supabase as any)
+            const { data: evals } = await supabase
                 .from('sov_evaluations')
                 .select('engine, rank_position, mentioned_competitors, created_at, target_queries(query_text)')
                 .eq('org_id', orgId)
@@ -163,7 +163,7 @@ export function registerLocalVectorTools(server: McpServer) {
 
             const supabase = createServiceRoleClient();
 
-            let query = (supabase as any)
+            let query = supabase
                 .from('ai_hallucinations')
                 .select('model_provider, severity, category, claim_text, expected_truth, correction_status, first_detected_at, last_seen_at, occurrence_count')
                 .eq('org_id', orgId)
@@ -222,9 +222,9 @@ export function registerLocalVectorTools(server: McpServer) {
 
             const supabase = createServiceRoleClient();
 
-            const { data: intercepts } = await (supabase as any)
+            const { data: intercepts } = await supabase
                 .from('competitor_intercepts')
-                .select('competitor_name, gap_analysis, recommendation, created_at')
+                .select('competitor_name, gap_analysis, suggested_action, created_at')
                 .eq('org_id', orgId)
                 .order('created_at', { ascending: false })
                 .limit(20);
@@ -235,7 +235,7 @@ export function registerLocalVectorTools(server: McpServer) {
                     byCompetitor[i.competitor_name] = {
                         analyses: 0,
                         latestGap: i.gap_analysis,
-                        recommendation: i.recommendation ?? '',
+                        recommendation: i.suggested_action ?? '',
                     };
                 }
                 byCompetitor[i.competitor_name].analyses += 1;

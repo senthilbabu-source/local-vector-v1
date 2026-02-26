@@ -127,8 +127,7 @@ export async function createPortalSession(): Promise<PortalResult> {
   const orgId = auth.orgId;
 
   // ── Fetch stripe_customer_id from DB ──────────────────────────────────────
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const supabase = (await createClient()) as any;
+  const supabase = await createClient();
   const { data: org } = await supabase
     .from('organizations')
     .select('stripe_customer_id')
@@ -169,8 +168,7 @@ export async function getCurrentPlan(): Promise<CurrentPlanInfo> {
   const auth = await getAuthContext();
   const orgId = auth.orgId;
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const supabase = (await createClient()) as any;
+  const supabase = await createClient();
   const { data: org } = await supabase
     .from('organizations')
     .select('plan, plan_status, stripe_customer_id')

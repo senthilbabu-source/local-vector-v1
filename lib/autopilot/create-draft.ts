@@ -17,6 +17,8 @@
 // Spec: docs/19-AUTOPILOT-ENGINE.md §3.1, §8.1, §8.2
 // ---------------------------------------------------------------------------
 
+import type { SupabaseClient } from '@supabase/supabase-js';
+import type { Database } from '@/lib/supabase/database.types';
 import type {
   DraftTrigger,
   DraftContentType,
@@ -63,8 +65,7 @@ export function determineContentType(trigger: DraftTrigger): DraftContentType {
  */
 export async function createDraft(
   trigger: DraftTrigger,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  supabase: any,
+  supabase: SupabaseClient<Database>,
 ): Promise<ContentDraftRow | null> {
   // ── 1. Idempotency check ─────────────────────────────────────────────────
   if (trigger.triggerId) {
@@ -108,8 +109,8 @@ export async function createDraft(
     business_name: loc?.business_name ?? 'Local Business',
     city: loc?.city ?? null,
     state: loc?.state ?? null,
-    categories: loc?.categories ?? null,
-    amenities: loc?.amenities ?? null,
+    categories: (loc?.categories as string[] | null) ?? null,
+    amenities: (loc?.amenities as Record<string, boolean | undefined> | null) ?? null,
     phone: loc?.phone ?? null,
     website_url: loc?.website_url ?? null,
     address_line1: loc?.address_line1 ?? null,
@@ -184,8 +185,7 @@ export async function createDraft(
  * Returns the count of archived drafts.
  */
 export async function archiveExpiredOccasionDrafts(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  supabase: any,
+  supabase: SupabaseClient<Database>,
 ): Promise<number> {
   // Fetch occasion drafts that are still active (draft or approved)
   const { data: candidateDrafts } = await supabase
@@ -199,7 +199,7 @@ export async function archiveExpiredOccasionDrafts(
   // Get trigger_ids to look up occasion dates
   const triggerIds = candidateDrafts
     .map((d: { trigger_id: string | null }) => d.trigger_id)
-    .filter(Boolean);
+    .filter((id): id is string => Boolean(id));
 
   if (triggerIds.length === 0) return 0;
 

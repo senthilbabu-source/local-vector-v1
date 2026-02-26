@@ -48,8 +48,7 @@ async function fetchMenuAndCategories(menuId: string): Promise<{
   menu: MagicMenuDetail | null;
   categories: MenuCategory[];
 }> {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const supabase = (await createClient()) as any;
+  const supabase = await createClient();
 
   const [menuResult, categoriesResult] = await Promise.all([
     // Fetch the menu header (RLS ensures it belongs to this org)
@@ -57,7 +56,7 @@ async function fetchMenuAndCategories(menuId: string): Promise<{
       .from('magic_menus')
       .select('id, public_slug, processing_status, is_published, locations(name, business_name, city, state)')
       .eq('id', menuId)
-      .single() as Promise<{ data: MagicMenuDetail | null; error: unknown }>,
+      .single() as unknown as Promise<{ data: MagicMenuDetail | null; error: unknown }>,
 
     // Fetch all categories for this menu, nested with their items
     supabase
@@ -66,7 +65,7 @@ async function fetchMenuAndCategories(menuId: string): Promise<{
         'id, name, sort_order, menu_items(id, name, description, price, currency, is_available, sort_order)'
       )
       .eq('menu_id', menuId)
-      .order('sort_order', { ascending: true }) as Promise<{
+      .order('sort_order', { ascending: true }) as unknown as Promise<{
         data: MenuCategory[] | null;
         error: unknown;
       }>,

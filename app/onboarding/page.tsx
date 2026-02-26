@@ -37,8 +37,7 @@ export default async function OnboardingPage() {
     redirect('/login');
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const supabase = (await createClient()) as any;
+  const supabase = await createClient();
 
   // ── Fetch primary location ─────────────────────────────────────────────────
   // Scope by org_id explicitly (belt-and-suspenders alongside RLS) so the

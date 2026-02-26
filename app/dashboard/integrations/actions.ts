@@ -52,8 +52,7 @@ export async function toggleIntegration(
 
   const { location_id, platform, connect } = parsed.data;
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const supabase = (await createClient()) as any;
+  const supabase = await createClient();
 
   if (connect) {
     // Upsert: insert if no row exists for this (location_id, platform) pair,
@@ -131,8 +130,7 @@ export async function mockSyncIntegration(
 
   const { location_id, platform } = parsed.data;
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const supabase = (await createClient()) as any;
+  const supabase = await createClient();
 
   // ── Step 1: Mark as syncing ──────────────────────────────────────────────
   // This intermediate state is visible to anyone who refreshes the page
@@ -204,8 +202,7 @@ export async function savePlatformUrl(
     };
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const supabase = (await createClient()) as any;
+  const supabase = await createClient();
 
   const { error } = await supabase.from('location_integrations').upsert(
     {
@@ -245,8 +242,7 @@ export async function disconnectGBP(): Promise<ActionResult> {
   }
 
   const { createServiceRoleClient } = await import('@/lib/supabase/server');
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const supabase = createServiceRoleClient() as any;
+  const supabase = createServiceRoleClient();
 
   const { error } = await supabase
     .from('google_oauth_tokens')
@@ -338,8 +334,7 @@ export async function saveWordPressCredentials(
     return { success: false, error: parsed.error.issues[0]?.message ?? 'Invalid input' };
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const supabase = (await createClient()) as any;
+  const supabase = await createClient();
 
   const { error } = await supabase.from('location_integrations').upsert(
     {
@@ -372,8 +367,7 @@ export async function disconnectWordPress(locationId: string): Promise<ActionRes
     return { success: false, error: 'Unauthorized' };
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const supabase = (await createClient()) as any;
+  const supabase = await createClient();
 
   const { error } = await supabase
     .from('location_integrations')

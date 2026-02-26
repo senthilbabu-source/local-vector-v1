@@ -19,6 +19,8 @@
 // AI_RULES §4:    Mock fallback (3s delay) when API keys are absent.
 // ---------------------------------------------------------------------------
 
+import type { SupabaseClient } from '@supabase/supabase-js';
+import type { Database } from '@/lib/supabase/database.types';
 import { generateText, generateObject } from 'ai';
 import { getModel, hasApiKey } from '@/lib/ai/providers';
 import {
@@ -28,6 +30,7 @@ import {
   type InterceptAnalysisOutput,
 } from '@/lib/ai/schemas';
 import type { GapAnalysis } from '@/lib/types/ground-truth';
+import type { Json } from '@/lib/supabase/database.types';
 
 // ---------------------------------------------------------------------------
 // Public params interface
@@ -140,8 +143,7 @@ function mockInterceptAnalysis(competitorName: string): InterceptAnalysisOutput 
  */
 export async function runInterceptForCompetitor(
   params:  InterceptParams,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  supabase: any,
+  supabase: SupabaseClient<Database>,
 ): Promise<void> {
   const { orgId, locationId, businessName, categories, city, state, competitor } = params;
 
@@ -200,7 +202,7 @@ export async function runInterceptForCompetitor(
     winner:           interceptAnalysis.winner,
     winner_reason:    perplexityResult.reasoning,
     winning_factor:   interceptAnalysis.winning_factor,
-    gap_analysis:     gapAnalysis,
+    gap_analysis:     gapAnalysis as unknown as Json,
     gap_magnitude:    interceptAnalysis.gap_magnitude,
     suggested_action: interceptAnalysis.suggested_action,
     action_status:    'pending',

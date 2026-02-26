@@ -82,8 +82,7 @@ export interface OrgSOVResult {
 }
 
 export async function processOrgSOV(batch: OrgBatch): Promise<OrgSOVResult> {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const supabase = createServiceRoleClient() as any;
+  const supabase = createServiceRoleClient();
   const results: SOVQueryResult[] = [];
   let queriesCited = 0;
 
@@ -143,8 +142,7 @@ export async function processOrgSOV(batch: OrgBatch): Promise<OrgSOVResult> {
     membershipRow?.users as { email: string } | null
   )?.email;
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const businessName = (batch.queries[0] as any).locations?.business_name ?? 'Your Business';
+  const businessName = batch.queries[0].locations?.business_name ?? 'Your Business';
 
   if (ownerEmail) {
     // Compute SOV delta from visibility_analytics
@@ -155,8 +153,8 @@ export async function processOrgSOV(batch: OrgBatch): Promise<OrgSOVResult> {
       .order('snapshot_date', { ascending: false })
       .limit(2);
     const visRows = prevVis ?? [];
-    const sovDelta = visRows.length >= 2
-      ? visRows[0].share_of_voice - visRows[1].share_of_voice
+    const sovDelta = visRows.length >= 2 && visRows[0] && visRows[1]
+      ? (visRows[0].share_of_voice ?? 0) - (visRows[1].share_of_voice ?? 0)
       : null;
 
     // Find top competitor from recent evaluations
@@ -168,7 +166,7 @@ export async function processOrgSOV(batch: OrgBatch): Promise<OrgSOVResult> {
       .limit(50);
     const competitorCounts: Record<string, number> = {};
     for (const ev of recentEvals ?? []) {
-      for (const c of ev.mentioned_competitors ?? []) {
+      for (const c of (ev.mentioned_competitors as string[] | null) ?? []) {
         competitorCounts[c] = (competitorCounts[c] ?? 0) + 1;
       }
     }
@@ -199,8 +197,7 @@ export async function processOrgSOV(batch: OrgBatch): Promise<OrgSOVResult> {
   // Occasion Engine sub-step (non-critical)
   try {
     const locationId = batch.queries[0].location_id;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const loc = (batch.queries[0] as any).locations;
+    const loc = batch.queries[0].locations as { business_name: string; city: string | null; state: string | null; categories?: string[] } | undefined;
     const locationCategories: string[] = loc?.categories ?? ['restaurant'];
     const city = loc?.city ?? '';
     const state = loc?.state ?? '';
@@ -276,8 +273,7 @@ export const sovCronFunction = inngest.createFunction(
 
     // Step 1: Fetch all eligible queries, group by org
     const orgBatches = await step.run('fetch-eligible-queries', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const supabase = createServiceRoleClient() as any;
+      const supabase = createServiceRoleClient();
 
       const { data: queries, error } = await supabase
         .from('target_queries')
@@ -293,17 +289,14 @@ export const sovCronFunction = inngest.createFunction(
       if (!queries?.length) return [];
 
       // Filter to valid queries
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const validQueries = queries.filter(
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (q: any) => q.locations && q.organizations?.plan_status === 'active',
+        (q) => q.locations && q.organizations?.plan_status === 'active',
       );
 
       const byOrg = groupBy(validQueries, (q: SOVQueryInput) => q.org_id);
 
       return Object.entries(byOrg).map(([orgId, orgQueries]) => {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const plan = (orgQueries[0] as any).organizations?.plan ?? 'starter';
+        const plan = orgQueries[0].organizations?.plan ?? 'starter';
         const queryCap = getQueryCap(plan);
         return {
           orgId,
@@ -337,8 +330,7 @@ export const sovCronFunction = inngest.createFunction(
     // Step 3: Archive expired occasion drafts (non-critical)
     await step.run('archive-expired-drafts', async () => {
       try {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const supabase = createServiceRoleClient() as any;
+        const supabase = createServiceRoleClient();
         const archivedCount = await archiveExpiredOccasionDrafts(supabase);
         if (archivedCount > 0) {
           console.log(`[inngest-sov] Archived ${archivedCount} expired occasion drafts`);
