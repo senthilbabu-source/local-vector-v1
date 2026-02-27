@@ -4,6 +4,7 @@ import { useState, useTransition } from 'react';
 import { addTargetQuery, runSovEvaluation, deleteTargetQuery } from '../actions';
 import { canRunSovEvaluation } from '@/lib/plan-enforcer';
 import type { SovEngine } from '@/lib/schemas/sov';
+import GenerateBriefButton from './GenerateBriefButton';
 
 // ---------------------------------------------------------------------------
 // Types (exported so the page Server Component can construct them)
@@ -29,6 +30,8 @@ interface Props {
   locationLabel: string;
   queries: QueryWithEvals[];
   plan: string;
+  /** Sprint 86: Query IDs that already have a content brief draft */
+  briefDraftQueryIds?: string[];
 }
 
 // ---------------------------------------------------------------------------
@@ -191,6 +194,7 @@ function QueryRow({
   canRun,
   onDelete,
   isDeletePending,
+  hasBriefDraft,
 }: {
   query: QueryWithEvals;
   isRunPending: boolean;
@@ -199,6 +203,7 @@ function QueryRow({
   canRun: boolean;
   onDelete: (queryId: string) => void;
   isDeletePending: boolean;
+  hasBriefDraft: boolean;
 }) {
   // Aggregate competitors across both engines (deduplicated)
   const allCompetitors = Array.from(
@@ -206,6 +211,13 @@ function QueryRow({
       ...(query.openaiEval?.mentioned_competitors ?? []),
       ...(query.perplexityEval?.mentioned_competitors ?? []),
     ])
+  );
+
+  // Sprint 86: Show brief button when at least one engine returned null rank
+  const hasEvals = query.openaiEval || query.perplexityEval;
+  const isGap = hasEvals && (
+    query.openaiEval?.rank_position === null ||
+    query.perplexityEval?.rank_position === null
   );
 
   return (
@@ -251,6 +263,17 @@ function QueryRow({
         />
       </div>
 
+      {/* Sprint 86: Generate Brief button for gap queries */}
+      {isGap && (
+        <div className="mt-2.5 pl-1">
+          <GenerateBriefButton
+            queryId={query.id}
+            queryText={query.query_text}
+            hasDraft={hasBriefDraft}
+          />
+        </div>
+      )}
+
       {/* Competitor mentions */}
       {allCompetitors.length > 0 && (
         <div className="mt-2.5 pl-1">
@@ -282,7 +305,8 @@ function QueryRow({
 // SovCard
 // ---------------------------------------------------------------------------
 
-export default function SovCard({ locationId, locationLabel, queries, plan }: Props) {
+export default function SovCard({ locationId, locationLabel, queries, plan, briefDraftQueryIds = [] }: Props) {
+  const briefDraftSet = new Set(briefDraftQueryIds);
   const canRun = canRunSovEvaluation(plan as 'trial' | 'starter' | 'growth' | 'agency');
 
   // ── Run evaluation state ──────────────────────────────────────────────────
@@ -362,6 +386,7 @@ export default function SovCard({ locationId, locationLabel, queries, plan }: Pr
               canRun={canRun}
               onDelete={handleDelete}
               isDeletePending={isDeletePending}
+              hasBriefDraft={briefDraftSet.has(query.id)}
             />
           ))}
         </div>

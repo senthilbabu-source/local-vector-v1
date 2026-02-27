@@ -813,3 +813,63 @@ export const MOCK_AGENT_READINESS_INPUT: import('@/lib/services/agent-readiness.
   hasOrderingUrl: false,
   detectedSchemaTypes: ['OpeningHoursSpecification', 'LocalBusiness'],
 };
+
+/**
+ * Sprint 86 — Canonical BriefStructureInput for "private event venue Alpharetta".
+ */
+export const MOCK_BRIEF_STRUCTURE_INPUT: import('@/lib/services/content-brief-builder.service').BriefStructureInput = {
+  queryText: 'private event venue Alpharetta',
+  queryCategory: 'discovery',
+  businessName: 'Charcoal N Chill',
+  city: 'Alpharetta',
+  state: 'GA',
+};
+
+/**
+ * Sprint 86 — Mock AI-generated ContentBrief for testing.
+ */
+export const MOCK_CONTENT_BRIEF: import('@/lib/ai/schemas').ContentBrief = {
+  answerCapsule: 'Charcoal N Chill in Alpharetta, GA offers private event hosting with premium hookah service, Indo-American fusion dining, and Versace lounge seating for groups of up to 80 guests in an upscale atmosphere.',
+  outlineSections: [
+    {
+      heading: 'Private Event Packages',
+      bullets: [
+        'Full venue rental for exclusive events',
+        'Customizable hookah and dining packages',
+        'Capacity for groups from 20 to 80 guests',
+        'AV equipment and music coordination available',
+      ],
+    },
+    {
+      heading: 'Why Choose Charcoal N Chill',
+      bullets: [
+        'Unique Indo-American fusion menu not available elsewhere in Alpharetta',
+        'Premium Versace lounge seating creates memorable photo opportunities',
+        'Experienced event coordination team',
+      ],
+    },
+    {
+      heading: 'Book Your Event',
+      bullets: [
+        'Contact us to discuss your event needs',
+        'Flexible scheduling for weekday and weekend events',
+        'Custom menu planning available',
+      ],
+    },
+  ],
+  faqQuestions: [
+    {
+      question: 'How many guests can Charcoal N Chill accommodate for private events?',
+      answerHint: 'Charcoal N Chill can host private events for groups of 20 to 80 guests in Alpharetta, GA.',
+    },
+    {
+      question: 'Does Charcoal N Chill offer hookah for private events?',
+      answerHint: 'Yes, Charcoal N Chill offers premium hookah service as part of private event packages.',
+    },
+    {
+      question: 'What type of food is available for private events?',
+      answerHint: 'Charcoal N Chill serves Indo-American fusion cuisine for private events.',
+    },
+  ],
+  metaDescription: 'Book a private event at Charcoal N Chill in Alpharetta, GA. Premium hookah, Indo-American fusion dining, and Versace lounge seating for 20-80 guests.',
+};

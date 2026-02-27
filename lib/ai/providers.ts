@@ -114,6 +114,9 @@ export const MODELS = {
 
   /** Sprint 82 — Source mention extraction (cheap, structured output) */
   'source-extract': openai('gpt-4o-mini'),
+
+  /** Sprint 86 — Content brief generation (cheap, structured output) */
+  'content-brief': openai('gpt-4o-mini'),
 } as const;
 
 export type ModelKey = keyof typeof MODELS;

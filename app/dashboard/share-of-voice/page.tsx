@@ -59,7 +59,7 @@ type FirstMoverRow = {
 async function fetchPageData(orgId: string) {
   const supabase = await createClient();
 
-  const [locResult, queryResult, evalResult, visResult, firstMoverResult, orgResult] =
+  const [locResult, queryResult, evalResult, visResult, firstMoverResult, orgResult, briefDraftResult] =
     await Promise.all([
       supabase
         .from('locations')
@@ -102,7 +102,22 @@ async function fetchPageData(orgId: string) {
         .select('plan')
         .eq('id', orgId)
         .single(),
+
+      // Sprint 86: Existing brief drafts (trigger_type=prompt_missing) for button state
+      supabase
+        .from('content_drafts')
+        .select('trigger_id')
+        .eq('trigger_type', 'prompt_missing')
+        .eq('org_id', orgId)
+        .in('status', ['draft', 'approved']),
     ]);
+
+  // Collect trigger_ids that already have briefs
+  const briefDraftTriggerIds = new Set(
+    (briefDraftResult.data ?? [])
+      .map((d: { trigger_id: string | null }) => d.trigger_id)
+      .filter(Boolean) as string[],
+  );
 
   return {
     locations: (locResult.data as LocationRow[]) ?? [],
@@ -111,6 +126,7 @@ async function fetchPageData(orgId: string) {
     visibilitySnapshots: (visResult.data as VisibilityRow[]) ?? [],
     firstMoverOpps: (firstMoverResult.data as FirstMoverRow[]) ?? [],
     plan: (orgResult.data?.plan as string) ?? 'trial',
+    briefDraftTriggerIds,
   };
 }
 
@@ -124,7 +140,7 @@ export default async function ShareOfVoicePage() {
     redirect('/login');
   }
 
-  const { locations, queries, evaluations, visibilitySnapshots, firstMoverOpps, plan } =
+  const { locations, queries, evaluations, visibilitySnapshots, firstMoverOpps, plan, briefDraftTriggerIds } =
     await fetchPageData(ctx.orgId);
 
   // ── Derive SOV metrics from visibility_analytics ─────────────────────────
@@ -343,6 +359,7 @@ export default async function ShareOfVoicePage() {
                   locationLabel={locationLabel}
                   queries={queriesWithEvals}
                   plan={plan}
+                  briefDraftQueryIds={[...briefDraftTriggerIds]}
                 />
               );
             })}

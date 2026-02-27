@@ -189,6 +189,35 @@ export const SourceMentionExtractionSchema = z.object({
 
 export type SourceMentionExtraction = z.infer<typeof SourceMentionExtractionSchema>;
 
+// ── Content Brief — SOV Gap content brief generation (Sprint 86) ────────────
+
+/**
+ * Sprint 86 — Structured output for SOV Gap Content Brief.
+ * Used with generateObject + gpt-4o-mini to produce AEO-optimized content briefs.
+ */
+export const ContentBriefSchema = z.object({
+  answerCapsule: z.string().describe(
+    'A 40-60 word direct answer to the target query, written in third person about the business. Must include the business name, location, and key differentiators. This becomes the first paragraph of the page — designed for AI engines to extract as a citation.'
+  ),
+  outlineSections: z.array(z.object({
+    heading: z.string().describe('Section H2 heading'),
+    bullets: z.array(z.string()).describe('3-5 content points to cover in this section'),
+  })).min(3).max(6).describe(
+    'Page content sections after the answer capsule. Should include: details/features, why choose this business, and a booking/action section.'
+  ),
+  faqQuestions: z.array(z.object({
+    question: z.string().describe('A question a potential customer would ask about this topic'),
+    answerHint: z.string().describe('1-2 sentence answer hint using the business ground truth data provided'),
+  })).min(3).max(5).describe(
+    'FAQ questions real customers would ask. Answers should use ONLY the business facts provided — never fabricate details.'
+  ),
+  metaDescription: z.string().max(160).describe(
+    'SEO meta description under 160 characters including target query and business name'
+  ),
+});
+
+export type ContentBrief = z.infer<typeof ContentBriefSchema>;
+
 // ── Menu OCR — GPT-4o Vision PDF/image extraction (Sprint 59A) ──────────────
 
 export const MenuOCRItemSchema = z.object({

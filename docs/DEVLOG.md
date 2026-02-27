@@ -4,6 +4,40 @@
 
 ---
 
+## 2026-02-28 — Sprint 86: SOV Gap → Content Brief Generator (Completed)
+
+**Goal:** Build a Content Brief Generator that turns SOV gap queries (0% visibility) into AEO-optimized content briefs. Two-layer design: pure brief structure (URL, title, H1, schema recommendations, llms.txt) + AI-powered content (answer capsule, outline sections, FAQ questions via gpt-4o-mini generateObject). Saves to content_drafts with trigger_type='prompt_missing'. Closes the growth loop: DETECT gap → GENERATE fix.
+
+**Scope:**
+- `lib/ai/schemas.ts` — **MODIFIED.** Added `ContentBriefSchema` (Zod): answerCapsule (string 40-60 words), outlineSections (3-6 with heading + bullets), faqQuestions (3-5 with question + answerHint), metaDescription (≤160 chars).
+- `lib/ai/providers.ts` — **MODIFIED.** Added `content-brief` model key → gpt-4o-mini.
+- `lib/services/content-brief-builder.service.ts` — **NEW.** ~110 lines, all pure. `buildBriefStructure()`: `slugify()` (lowercase, hyphenate, 80-char max), `buildTitleTag()` (capitalized query + business name), `buildH1()` (query + "at" + business), `inferContentType()` (category → content_type mapping), `recommendSchemas()` (always FAQPage, + Event for occasion, + LocalBusiness for discovery/near_me), `buildLlmsTxtEntry()`.
+- `lib/services/content-brief-generator.service.ts` — **NEW.** ~80 lines. `generateBriefContent()` — `generateObject` with `gpt-4o-mini`, `ContentBriefSchema`. System prompt includes business ground truth (name, city, state, cuisine, amenities, categories, hours, phone, website) + competitive context. Returns null when no API key.
+- `app/dashboard/share-of-voice/brief-actions.ts` — **NEW.** `generateContentBrief(queryId)` server action + `assembleDraftContent()`. Parallel fetch (target_query + location), duplicate check (existing draft with same trigger), SOV eval fetch for gap/competitor data, calls builder + generator, produces markdown, inserts to `content_drafts`. Graceful fallback: structure-only brief when AI unavailable.
+- `app/dashboard/share-of-voice/_components/GenerateBriefButton.tsx` — **NEW.** Client component. Shows "Generate Brief →" or "View Draft →" based on `hasDraft`. Loading state during generation. Navigates to content-drafts on success.
+- `app/dashboard/share-of-voice/page.tsx` — **MODIFIED.** Added briefDraftResult query to fetch existing prompt_missing drafts. Passes briefDraftQueryIds array to SovCard.
+- `app/dashboard/share-of-voice/_components/SovCard.tsx` — **MODIFIED.** Added briefDraftQueryIds prop, hasBriefDraft per query, GenerateBriefButton on gap queries (null rank).
+- `src/__fixtures__/golden-tenant.ts` — **MODIFIED.** Added `MOCK_BRIEF_STRUCTURE_INPUT` + `MOCK_CONTENT_BRIEF`.
+
+**Tests added:**
+- `src/__tests__/unit/content-brief-builder.test.ts` — **17 tests.** Slug, title, H1, schemas, content type, llms.txt, MOCK integration.
+- `src/__tests__/unit/content-brief-generator.test.ts` — **9 tests.** API key check, model call, system prompt contents.
+- `src/__tests__/unit/brief-actions.test.ts` — **16 tests.** Auth, parallel fetch, duplicate check, insert, fallback.
+- `src/__tests__/unit/content-brief-assembly.test.ts` — **11 tests.** Markdown assembly with/without AI content.
+- `src/__tests__/unit/generate-brief-button.test.tsx` — **4 tests.** Render states, loading, test-id.
+
+**Run commands:**
+```bash
+npx vitest run src/__tests__/unit/content-brief-builder.test.ts       # 17 tests passing
+npx vitest run src/__tests__/unit/content-brief-generator.test.ts     # 9 tests passing
+npx vitest run src/__tests__/unit/brief-actions.test.ts               # 16 tests passing
+npx vitest run src/__tests__/unit/content-brief-assembly.test.ts      # 11 tests passing
+npx vitest run src/__tests__/unit/generate-brief-button.test.tsx      # 4 tests passing
+npx vitest run                                                         # All tests passing
+```
+
+---
+
 ## 2026-02-28 — Sprint 85: Revenue Impact Calculator (Completed)
 
 **Goal:** Build a Revenue Impact Calculator that converts abstract visibility scores into estimated dollar amounts. Three revenue categories: SOV gaps (missed AI-assisted visits), hallucination deterrence (customers lost to inaccurate info), and competitor advantage (diverted covers). The PROVE-stage feature that drives subscription renewals.

@@ -1327,5 +1327,20 @@ Converts visibility gaps into estimated dollar amounts. Three revenue streams:
 * **Sidebar:** "Revenue Impact" nav item with `DollarSign` icon, path `/dashboard/revenue-impact`.
 * **Fixtures:** `MOCK_REVENUE_IMPACT_INPUT` in `src/__fixtures__/golden-tenant.ts` — 3 SOV gaps, 2 hallucinations, competitor advantage.
 
+## 49. SOV Gap → Content Brief Generator (Sprint 86)
+
+Generates AEO-optimized content briefs for SOV gap queries.
+
+* **Two-layer design:**
+  - **Layer 1 (pure):** `buildBriefStructure()` — slug, title tag, H1, schema recommendations, llms.txt entry. No AI, no I/O.
+  - **Layer 2 (AI):** `generateBriefContent()` — `generateObject` with `gpt-4o-mini` + `ContentBriefSchema`. Produces answer capsule, outline sections, FAQ questions. System prompt includes business ground truth from `locations` table.
+* **Model key:** `content-brief` → gpt-4o-mini (§19.3).
+* **Schema:** `ContentBriefSchema` in `lib/ai/schemas.ts`. Required fields: answerCapsule, outlineSections (3-6), faqQuestions (3-5), metaDescription.
+* **Server action:** `generateContentBrief(queryId)` — user-initiated (§5). Checks for duplicate drafts. Saves to `content_drafts` with `trigger_type='prompt_missing'`, `trigger_id=query.id`.
+* **Fallback:** When no API key, generates structure-only brief with placeholder content. Draft still saved.
+* **Ground truth only:** AI prompt includes ONLY facts from `locations` record. Never fabricates prices, menu items, hours.
+* **Content Calendar integration:** Sprint 83 SOV gap recommendations already link to this generator.
+* **Fixtures:** `MOCK_BRIEF_STRUCTURE_INPUT` + `MOCK_CONTENT_BRIEF` in `src/__fixtures__/golden-tenant.ts`.
+
 ---
 > **End of System Instructions**
