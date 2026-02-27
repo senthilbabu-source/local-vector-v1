@@ -1091,5 +1091,28 @@ All functions in `lib/schema-generator/` are **pure** — they take typed inputs
 - **Hours edge cases (§10 applies):** `"closed"` literal → omit from OpeningHoursSpecification. Missing day key → omit. Cross-midnight closes → valid as-is.
 - **Schema generation is on-demand** — triggered by user click ("Generate Schema Fix"), not on page load (§5).
 
+## 40. AI Health Score (Sprint 72) — Pure Composite Metric
+
+The AI Health Score is a **computed metric** — no new database tables. It composites data from 4 existing engines into a single 0–100 score with a letter grade (A/B/C/D/F).
+
+**Architecture (3-layer, same as Schema Generator §39):**
+- **Pure service:** `lib/services/ai-health-score.service.ts` — `computeHealthScore(input)` takes pre-fetched data, returns `HealthScoreResult`. No I/O, no Supabase. Exports `scoreToGrade()`, `gradeDescription()`.
+- **Data layer:** `lib/data/ai-health-score.ts` — `fetchHealthScore(supabase, orgId, locationId)` runs 4 parallel queries (visibility_analytics, page_audits, ai_hallucinations count, ai_audits count), assembles `HealthScoreInput`, calls `computeHealthScore`.
+- **Server action:** `app/dashboard/actions/health-score.ts` — `getHealthScore()` with `getSafeAuthContext()` (§3).
+
+**Scoring formula:**
+- Visibility (30%): `sovScore × 100`
+- Accuracy (25%): `100 - (openHallucinations / totalAudits × 100)`, clamped 0–100
+- Structure (25%): `page_audits.overall_score`
+- Freshness (20%): 50% schema presence (FAQ 25pts + LocalBiz 25pts) + 50% avg(faq_schema_score, entity_clarity_score)
+
+Null components are excluded and remaining weights re-normalized proportionally. ALL null → score null → null state UI.
+
+**Top Recommendation:** Ranked by `estimatedImpact` descending. Sources: page audit recs, missing schema injections, high hallucination count, low SOV. Max 5 returned.
+
+**Dashboard integration:** `AIHealthScoreCard` is a Server Component in `app/dashboard/_components/`. Added to `DashboardData` interface in `lib/data/dashboard.ts`. No plan gating — available to all tiers.
+
+**Fixture:** `MOCK_HEALTH_SCORE_INPUT` in `src/__fixtures__/golden-tenant.ts`.
+
 ---
 > **End of System Instructions**

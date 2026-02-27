@@ -4,6 +4,36 @@
 
 ---
 
+## 2026-02-27 — Sprint 72: AI Health Score Composite + Top Recommendation (Completed)
+
+**Goal:** Build a single 0–100 AI Health Score compositing SOV, page audit, hallucination, and schema data, with a prioritized top recommendation surfacing the highest-impact action.
+
+**Scope:**
+- `lib/services/ai-health-score.service.ts` — **NEW.** Pure scoring service. Exports: `computeHealthScore()` (weighted composite of 4 components with proportional re-weighting for null components), `scoreToGrade()`, `gradeDescription()`. Top Recommendation ranking from page audit recommendations + injected schema/hallucination/SOV recommendations. No I/O.
+- `lib/data/ai-health-score.ts` — **NEW.** Data fetcher. 4 parallel Supabase queries (visibility_analytics, page_audits, ai_hallucinations count, ai_audits count). Assembles HealthScoreInput, calls computeHealthScore.
+- `app/dashboard/actions/health-score.ts` — **NEW.** Server Action with getSafeAuthContext(), primary location lookup, delegates to fetchHealthScore.
+- `app/dashboard/_components/AIHealthScoreCard.tsx` — **NEW.** Server Component. Score ring (SVG pattern from SOVScoreRing), 4 component bars with literal Tailwind width classes, letter grade, top recommendation with action link. Null state with nextSundayLabel().
+- `app/dashboard/page.tsx` — **MODIFIED.** Added AIHealthScoreCard above existing Revenue Leak card.
+- `lib/data/dashboard.ts` — **MODIFIED.** Added healthScore to DashboardData interface + fetchHealthScore call with primary location lookup.
+- `src/__fixtures__/golden-tenant.ts` — **MODIFIED.** Added MOCK_HEALTH_SCORE_INPUT fixture (sovScore: 0.42, overall_score: 66, 2 open hallucinations, 5 total audits, no FAQ/LocalBusiness schema).
+- `supabase/seed.sql` — **MODIFIED.** Added Section 19: visibility_analytics row (UUID: e0eebc99..., share_of_voice: 0.42) for golden tenant.
+
+**Tests added:**
+- `src/__tests__/unit/ai-health-score-service.test.ts` — **26 Vitest tests.** computeHealthScore weighted scoring, grade mapping (A/B/C/D/F), null re-weighting, accuracy clamping, recommendation ranking (page audit, injected schema/hallucination/SOV recs), boundary cases, golden tenant fixture validation.
+- `src/__tests__/unit/ai-health-score-data.test.ts` — **9 Vitest tests.** Data layer queries (4 parallel fetches), null propagation, org_id belt-and-suspenders, JSONB recommendation casting, computeHealthScore delegation.
+- `src/__tests__/unit/health-score-action.test.ts` — **4 Vitest tests.** Auth guard (unauthorized), no-location error, happy path, org_id+location_id passthrough.
+
+**Run commands:**
+```bash
+npx vitest run src/__tests__/unit/ai-health-score-service.test.ts  # 26 tests passing
+npx vitest run src/__tests__/unit/ai-health-score-data.test.ts     # 9 tests passing
+npx vitest run src/__tests__/unit/health-score-action.test.ts      # 4 tests passing
+npx vitest run                                                      # 971 tests passing (39 new)
+npx tsc --noEmit                                                    # 0 errors
+```
+
+---
+
 ## 2026-02-27 — Golden Tenant Fixture Sync (charcoalnchill.com live data)
 
 **Goal:** Sync golden tenant fixtures to match live site `company.ts` data from charcoalnchill.com.

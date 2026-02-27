@@ -11,11 +11,13 @@
 import { createClient } from '@/lib/supabase/server';
 import { calculateRevenueLeak, DEFAULT_CONFIG, type RevenueConfig, type RevenueLeak } from '@/lib/services/revenue-leak.service';
 import type { PlanTier } from '@/lib/plan-enforcer';
+import type { HealthScoreResult } from '@/lib/services/ai-health-score.service';
 import type { SOVDataPoint } from '@/app/dashboard/_components/SOVTrendChart';
 import type { ModelHallucinationData } from '@/app/dashboard/_components/HallucinationsByModel';
 import type { CompetitorComparisonData } from '@/app/dashboard/_components/CompetitorComparison';
 import type { LeakSnapshotPoint } from '@/app/dashboard/_components/LeakTrendChart';
 import { aggregateByModel, aggregateCompetitors } from '@/lib/utils/dashboard-aggregators';
+import { fetchHealthScore } from '@/lib/data/ai-health-score';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -59,6 +61,7 @@ export interface DashboardData {
   revenueConfig: RevenueConfig | null;
   revenueSnapshots: LeakSnapshotPoint[];
   orgPlan: PlanTier;
+  healthScore: HealthScoreResult | null;
 }
 
 // ---------------------------------------------------------------------------
@@ -229,6 +232,25 @@ export async function fetchDashboardData(orgId: string): Promise<DashboardData> 
   // Org plan
   const orgPlan = (orgPlanResult.data?.plan ?? 'trial') as PlanTier;
 
+  // ── Sprint 72: AI Health Score ──────────────────────────────────────────
+  // Fetch primary location for health score computation.
+  // Non-blocking — if location lookup fails, healthScore is null.
+  let healthScore: HealthScoreResult | null = null;
+  try {
+    const { data: primaryLocation } = await supabase
+      .from('locations')
+      .select('id')
+      .eq('org_id', orgId)
+      .eq('is_primary', true)
+      .maybeSingle();
+
+    if (primaryLocation) {
+      healthScore = await fetchHealthScore(supabase, orgId, primaryLocation.id);
+    }
+  } catch {
+    // Health score is non-critical — dashboard renders without it.
+  }
+
   return {
     openAlerts,
     fixedCount: fixedResult.count ?? 0,
@@ -248,5 +270,6 @@ export async function fetchDashboardData(orgId: string): Promise<DashboardData> 
     revenueConfig,
     revenueSnapshots,
     orgPlan,
+    healthScore,
   };
 }

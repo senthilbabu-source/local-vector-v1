@@ -1436,3 +1436,24 @@ WHERE l.org_id = 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11'
   AND l.slug   = 'alpharetta'
 LIMIT 1
 ON CONFLICT (location_id, platform) DO NOTHING;
+
+-- ── 19. VISIBILITY ANALYTICS (Sprint 72 — AI Health Score) ──────────────────
+-- Adds a visibility_analytics snapshot so the AI Health Score has SOV data.
+-- share_of_voice is a float 0.0–1.0 representing the aggregate SOV percentage.
+--
+-- Fixed UUID:
+--   vis_analytics_1 : e0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11
+
+INSERT INTO public.visibility_analytics (id, org_id, location_id, share_of_voice, citation_rate, snapshot_date)
+SELECT
+  'e0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+  'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+  l.id,
+  0.42,
+  0.35,
+  (CURRENT_DATE - INTERVAL '1 day')::date
+FROM public.locations l
+WHERE l.org_id = 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11'
+  AND l.slug   = 'alpharetta'
+LIMIT 1
+ON CONFLICT (id) DO NOTHING;

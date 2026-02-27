@@ -247,6 +247,49 @@ export const MOCK_PAGE_AUDIT = {
   created_at: '2026-02-26T09:00:00.000Z',
 } as const;
 
+/**
+ * Sprint 72 — Canonical HealthScoreInput fixture for Charcoal N Chill.
+ * Use in all AI Health Score unit tests.
+ */
+export const MOCK_HEALTH_SCORE_INPUT: import('@/lib/services/ai-health-score.service').HealthScoreInput = {
+  sovScore: 0.42,
+  pageAudit: {
+    overall_score: 66,
+    answer_first_score: 65,
+    schema_completeness_score: 55,
+    faq_schema_score: 0,
+    entity_clarity_score: 62,
+    aeo_readability_score: 78,
+    faq_schema_present: false,
+    recommendations: [
+      {
+        issue: 'Opening text is navigation/hero copy with no substance',
+        fix: 'Replace your opening section with an answer-first format.',
+        impactPoints: 35,
+        dimensionKey: 'answerFirst',
+      },
+      {
+        issue: 'Missing required JSON-LD schema for homepage page',
+        fix: 'Add LocalBusiness JSON-LD schema.',
+        impactPoints: 25,
+        dimensionKey: 'schemaCompleteness',
+        schemaType: 'LocalBusiness',
+      },
+      {
+        issue: 'No FAQPage schema found',
+        fix: 'Add FAQPage schema with at least 5 Q&A pairs.',
+        impactPoints: 20,
+        dimensionKey: 'faqSchema',
+        schemaType: 'FAQPage',
+      },
+    ],
+  },
+  openHallucinationCount: 2,
+  totalAuditCount: 5,
+  hasFaqSchema: false,
+  hasLocalBusinessSchema: false,
+};
+
 export const RIVAL_TENANT = {
   org: {
     name: 'Cloud 9 Lounge',

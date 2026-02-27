@@ -8,6 +8,7 @@ import SOVTrendChart from './_components/SOVTrendChart';
 import HallucinationsByModel from './_components/HallucinationsByModel';
 import CompetitorComparison from './_components/CompetitorComparison';
 import MetricCard from './_components/MetricCard';
+import AIHealthScoreCard from './_components/AIHealthScoreCard';
 import RevenueLeakCard from './_components/RevenueLeakCard';
 import LeakBreakdownChart from './_components/LeakBreakdownChart';
 import LeakTrendChart from './_components/LeakTrendChart';
@@ -41,6 +42,7 @@ export default async function DashboardPage() {
     openAlerts, fixedCount, interceptsThisMonth, visibilityScore, lastAuditAt,
     sovTrend, hallucinationsByModel, competitorComparison,
     currentLeak, previousLeak, revenueConfig, revenueSnapshots, orgPlan,
+    healthScore,
   } = await fetchDashboardData(ctx.orgId ?? '');
   const scores = deriveRealityScore(openAlerts.length, visibilityScore);
   const firstName = ctx.fullName?.split(' ')[0] ?? ctx.email.split('@')[0];
@@ -71,6 +73,8 @@ export default async function DashboardPage() {
           </p>
         </div>
       )}
+      {/* Sprint 72: AI Health Score — top of page, above existing content */}
+      {healthScore && <AIHealthScoreCard healthScore={healthScore} />}
       {/* Revenue Leak Scorecard — above Fear First layout */}
       <RevenueLeakCard leak={currentLeak} previousLeak={previousLeak} config={revenueConfig} plan={orgPlan} />
       {/* Fear First layout (Doc 06 §1 Design Principle #1) */}
