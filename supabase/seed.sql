@@ -50,6 +50,7 @@ CREATE EXTENSION IF NOT EXISTS pgcrypto;
 --   vis_analytics_5  : h1eebc99-9c0b-4ef8-bb6d-6bb9bd380a11      (Sprint 77 timeline)
 --   vis_analytics_6  : h2eebc99-9c0b-4ef8-bb6d-6bb9bd380a11      (Sprint 77 timeline)
 --   vis_analytics_7  : h3eebc99-9c0b-4ef8-bb6d-6bb9bd380a11      (Sprint 77 timeline)
+--   entity_check     : i0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11      (Sprint 80 entity health)
 --
 -- Phase 19 Test User (Playwright Onboarding Guard test):
 --   auth user id   : 00000000-0000-0000-0000-000000000010
@@ -1791,3 +1792,30 @@ WHERE l.org_id = 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11'
   AND l.slug   = 'alpharetta'
 LIMIT 1
 ON CONFLICT (org_id, location_id, snapshot_date) DO NOTHING;
+
+-- ── 25. ENTITY CHECKS SEED DATA (Sprint 80) ────────────────────────────────
+-- Entity Knowledge Graph Health Monitor — Charcoal N Chill has 3/6 core
+-- platforms confirmed (Google KP, GBP, Yelp). TripAdvisor and Apple Maps
+-- missing. Bing Places incomplete. Wikidata unchecked.
+--
+-- Fixed UUIDs:
+--   entity_check : i0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11
+
+INSERT INTO public.entity_checks
+  (id, org_id, location_id,
+   google_knowledge_panel, google_business_profile, yelp,
+   tripadvisor, apple_maps, bing_places, wikidata,
+   entity_score, platform_metadata)
+SELECT
+  'i0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+  'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+  l.id,
+  'confirmed', 'confirmed', 'confirmed',
+  'missing', 'missing', 'incomplete', 'unchecked',
+  50,
+  '{"google_knowledge_panel": {"place_id": "ChIJtest123"}, "bing_places": {"note": "Missing hours"}}'::jsonb
+FROM public.locations l
+WHERE l.org_id = 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11'
+  AND l.slug   = 'alpharetta'
+LIMIT 1
+ON CONFLICT (org_id, location_id) DO NOTHING;

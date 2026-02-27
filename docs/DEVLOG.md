@@ -4,6 +4,36 @@
 
 ---
 
+## 2026-02-28 — Sprint 80: Entity Knowledge Graph Health Monitor (Completed)
+
+**Goal:** Build a dashboard showing entity presence across 7 knowledge graph platforms AI models use (Google KP, GBP, Yelp, TripAdvisor, Apple Maps, Bing Places, Wikidata). Auto-detects from existing data, user self-assesses the rest. Entities get cited, non-entities get hallucinated about.
+
+**Scope:**
+- `supabase/migrations/20260228000001_entity_checks.sql` — **NEW.** `entity_checks` table: 7 platform status columns (varchar CHECK: confirmed/missing/unchecked/incomplete), `platform_metadata` JSONB, `entity_score` integer, org_id + location_id unique constraint. Full RLS with org isolation policies (select/insert/update/delete). Updated_at trigger.
+- `lib/services/entity-health.service.ts` — **NEW.** Pure service (~250 lines). `ENTITY_PLATFORM_REGISTRY` (7 platforms with labels, AI impact descriptions, claim guides, external URLs, priorities). `computeEntityHealth()` — computes score (N/6 core, excludes Wikidata), rating (strong/at_risk/critical/unknown), sorted recommendations with claim URLs.
+- `lib/services/entity-auto-detect.ts` — **NEW.** `autoDetectEntityPresence()` — checks `google_place_id`, `gbp_integration_id`, and `location_integrations` to auto-set Google KP, GBP, and Yelp statuses.
+- `lib/data/entity-health.ts` — **NEW.** `fetchEntityHealth()` — lazy-initializes entity_checks row on first access, runs auto-detection, persists, and computes health.
+- `app/dashboard/actions/entity-health.ts` — **NEW.** Two Server Actions: `getEntityHealth()` and `updateEntityStatus(formData)` with Zod validation. Recalculates entity_score on each update.
+- `app/dashboard/entity-health/page.tsx` — **NEW.** Server Component. Score bar, 7-platform checklist with status dropdowns (auto-detected platforms locked), expandable claim guides, recommendation list.
+- `app/dashboard/entity-health/_components/EntityStatusDropdown.tsx` — **NEW.** Client Component. Status dropdown per platform with useTransition for non-blocking updates.
+- `app/dashboard/entity-health/error.tsx` — **NEW.** Error boundary with Sentry.
+- `app/dashboard/_components/EntityHealthCard.tsx` — **NEW.** Summary card for main dashboard: score, rating, platform count, high-priority fix count.
+- `components/layout/Sidebar.tsx` — **MODIFIED.** Added Entity Health nav item (HeartPulse icon) after Proof Timeline.
+- `app/dashboard/page.tsx` — **MODIFIED.** Added EntityHealthCard with non-blocking fetch.
+- `supabase/prod_schema.sql` — **MODIFIED.** Added entity_checks table, RLS, indexes, FKs, triggers, grants.
+- `lib/supabase/database.types.ts` — **MODIFIED.** Added entity_checks Row/Insert/Update/Relationships.
+- `supabase/seed.sql` — **MODIFIED.** Added entity_checks seed row (UUID i0eebc99...) for Charcoal N Chill: 3/6 confirmed, score 50.
+- `src/__fixtures__/golden-tenant.ts` — **MODIFIED.** Added `MOCK_ENTITY_CHECK` fixture.
+
+**Tests added:**
+- `src/__tests__/unit/entity-health-service.test.ts` — **27 tests.** Score computation, rating thresholds, platform registry, recommendations, edge cases with MOCK_ENTITY_CHECK.
+- `src/__tests__/unit/entity-auto-detect.test.ts` — **8 tests.** Auto-detection from place_id, gbp_integration_id, integrations array, empty data.
+- `src/__tests__/unit/entity-health-data.test.ts` — **6 tests.** Lazy init, auto-detect, org_id scoping, fallback.
+- `src/__tests__/unit/entity-health-action.test.ts` — **10 tests.** Auth guards, Zod validation, upsert, score recalculation.
+- `src/__tests__/unit/sidebar-entity.test.ts` — **3 tests.** NAV_ITEMS entry, href, position after Proof Timeline.
+
+---
+
 ## 2026-02-28 — Sprint 79: Copilot/Bing Monitoring (Completed)
 
 **Goal:** Add Microsoft Copilot as the fourth SOV query engine, covering the Bing data ecosystem (Bing Places, Yelp, TripAdvisor) — a fundamentally different citation source set than Google/ChatGPT/Perplexity. +14% AI market coverage.

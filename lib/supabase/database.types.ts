@@ -620,6 +620,75 @@ export type Database = {
         };
         Relationships: [];
       };
+      entity_checks: {
+        Row: {
+          id: string;
+          org_id: string;
+          location_id: string;
+          google_knowledge_panel: string;
+          google_business_profile: string;
+          yelp: string;
+          tripadvisor: string;
+          apple_maps: string;
+          bing_places: string;
+          wikidata: string;
+          platform_metadata: Json;
+          entity_score: number;
+          last_checked_at: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          org_id: string;
+          location_id: string;
+          google_knowledge_panel?: string;
+          google_business_profile?: string;
+          yelp?: string;
+          tripadvisor?: string;
+          apple_maps?: string;
+          bing_places?: string;
+          wikidata?: string;
+          platform_metadata?: Json;
+          entity_score?: number;
+          last_checked_at?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          org_id?: string;
+          location_id?: string;
+          google_knowledge_panel?: string;
+          google_business_profile?: string;
+          yelp?: string;
+          tripadvisor?: string;
+          apple_maps?: string;
+          bing_places?: string;
+          wikidata?: string;
+          platform_metadata?: Json;
+          entity_score?: number;
+          last_checked_at?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "entity_checks_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "entity_checks_location_id_fkey";
+            columns: ["location_id"];
+            isOneToOne: false;
+            referencedRelation: "locations";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       google_oauth_tokens: {
         Row: {
           id: string;

@@ -1214,5 +1214,23 @@ The weekly digest email runs as a cron → Inngest fan-out → per-org Resend se
 * **Email sender:** `lib/email/send-digest.ts` — `sendDigestEmail()`. Resend wrapper with API key guard.
 * **Fixtures:** `MOCK_DIGEST_INPUT` in `src/__fixtures__/golden-tenant.ts`.
 
+## 47. Entity Knowledge Graph — Semi-Manual + Auto-Detect Pattern (Sprint 80)
+
+The Entity Knowledge Graph Health Monitor tracks business presence across 7 AI knowledge graph platforms.
+
+* **Table:** `entity_checks` — one row per org+location, 7 platform columns (confirmed/missing/unchecked/incomplete), `platform_metadata` JSONB, `entity_score` integer.
+* **Auto-detection:** Google KP (from `google_place_id`), GBP (from `location_integrations`), Yelp (from integrations). All others are user self-assessed via the checklist UI.
+* **Score:** N/6 core platforms confirmed (Wikidata excluded — it's advanced/optional).
+* **Rating thresholds:** >=5 = strong, 3-4 = at_risk, 0-2 = critical, all unchecked = unknown.
+* **Registry:** `ENTITY_PLATFORM_REGISTRY` in `lib/services/entity-health.service.ts` is the canonical list of platforms with claim guides and AI impact descriptions.
+* **Lazy initialization:** `entity_checks` row is created on first page visit via `fetchEntityHealth()`.
+* **Pure service:** `lib/services/entity-health.service.ts` — `computeEntityHealth()`. No I/O.
+* **Auto-detect service:** `lib/services/entity-auto-detect.ts` — `autoDetectEntityPresence()`. No I/O.
+* **Data layer:** `lib/data/entity-health.ts` — `fetchEntityHealth()`. Lazy init + auto-detection.
+* **Server actions:** `app/dashboard/actions/entity-health.ts` — `getEntityHealth()`, `updateEntityStatus()`.
+* **Page:** `app/dashboard/entity-health/page.tsx` — checklist UI with status dropdowns, claim guides, score bar.
+* **Dashboard card:** `app/dashboard/_components/EntityHealthCard.tsx`.
+* **Fixtures:** `MOCK_ENTITY_CHECK` in `src/__fixtures__/golden-tenant.ts`.
+
 ---
 > **End of System Instructions**

@@ -2,8 +2,10 @@ import { redirect } from 'next/navigation';
 import { getSafeAuthContext } from '@/lib/auth';
 import { fetchDashboardData } from '@/lib/data/dashboard';
 import { fetchProofTimeline } from '@/lib/data/proof-timeline';
+import { fetchEntityHealth } from '@/lib/data/entity-health';
 import { createClient } from '@/lib/supabase/server';
 import type { ProofTimeline } from '@/lib/services/proof-timeline.service';
+import type { EntityHealthResult } from '@/lib/services/entity-health.service';
 import { canRunAutopilot, type PlanTier } from '@/lib/plan-enforcer';
 import { nextSundayLabel } from './_components/scan-health-utils';
 import RealityScoreCard from './_components/RealityScoreCard';
@@ -20,6 +22,7 @@ import BotActivityCard from './_components/BotActivityCard';
 import ProofTimelineCard from './_components/ProofTimelineCard';
 import CronHealthCard from './_components/CronHealthCard';
 import ContentFreshnessCard from './_components/ContentFreshnessCard';
+import EntityHealthCard from './_components/EntityHealthCard';
 
 export type { HallucinationRow } from '@/lib/data/dashboard'; // re-export for AlertFeed.tsx
 
@@ -71,6 +74,26 @@ export default async function DashboardPage() {
     }
   } catch {
     // Proof timeline is non-critical — dashboard renders without it.
+  }
+
+  // ── Sprint 80: Entity Health summary card ──────────────────────────────
+  // Non-blocking — if entity health fetch fails, entityHealth is null.
+  let entityHealth: EntityHealthResult | null = null;
+  try {
+    if (ctx.orgId) {
+      const supabase = await createClient();
+      const { data: primaryLoc } = await supabase
+        .from('locations')
+        .select('id')
+        .eq('org_id', ctx.orgId)
+        .eq('is_primary', true)
+        .maybeSingle();
+      if (primaryLoc) {
+        entityHealth = await fetchEntityHealth(supabase, ctx.orgId, primaryLoc.id);
+      }
+    }
+  } catch {
+    // Entity health is non-critical — dashboard renders without it.
   }
   const scores = deriveRealityScore(openAlerts.length, visibilityScore);
   const firstName = ctx.fullName?.split(' ')[0] ?? ctx.email.split('@')[0];
@@ -134,6 +157,8 @@ export default async function DashboardPage() {
       <BotActivityCard crawlerSummary={crawlerSummary} hasPublishedMenu={hasPublishedMenu} />
       {/* Sprint 77: Proof Timeline Card */}
       <ProofTimelineCard timeline={proofTimeline} />
+      {/* Sprint 80: Entity Health Card */}
+      <EntityHealthCard entityHealth={entityHealth} />
       {/* Sprint 76: Content Freshness + Cron Health Cards */}
       <ContentFreshnessCard freshness={freshness} />
       <CronHealthCard cronHealth={cronHealth} />

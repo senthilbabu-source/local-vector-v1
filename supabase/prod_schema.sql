@@ -477,6 +477,35 @@ CREATE TABLE IF NOT EXISTS "public"."directories" (
 ALTER TABLE "public"."directories" OWNER TO "postgres";
 
 
+CREATE TABLE IF NOT EXISTS "public"."entity_checks" (
+    "id" "uuid" DEFAULT "extensions"."uuid_generate_v4"() NOT NULL,
+    "org_id" "uuid" NOT NULL,
+    "location_id" "uuid" NOT NULL,
+    "google_knowledge_panel" character varying(20) DEFAULT 'unchecked'::character varying NOT NULL,
+    "google_business_profile" character varying(20) DEFAULT 'unchecked'::character varying NOT NULL,
+    "yelp" character varying(20) DEFAULT 'unchecked'::character varying NOT NULL,
+    "tripadvisor" character varying(20) DEFAULT 'unchecked'::character varying NOT NULL,
+    "apple_maps" character varying(20) DEFAULT 'unchecked'::character varying NOT NULL,
+    "bing_places" character varying(20) DEFAULT 'unchecked'::character varying NOT NULL,
+    "wikidata" character varying(20) DEFAULT 'unchecked'::character varying NOT NULL,
+    "platform_metadata" "jsonb" DEFAULT '{}'::jsonb NOT NULL,
+    "entity_score" integer DEFAULT 0 NOT NULL,
+    "last_checked_at" timestamp with time zone DEFAULT "now"() NOT NULL,
+    "created_at" timestamp with time zone DEFAULT "now"() NOT NULL,
+    "updated_at" timestamp with time zone DEFAULT "now"() NOT NULL,
+    CONSTRAINT "entity_checks_gkp_status" CHECK ((("google_knowledge_panel")::text = ANY ((ARRAY['confirmed'::character varying, 'missing'::character varying, 'unchecked'::character varying, 'incomplete'::character varying])::text[]))),
+    CONSTRAINT "entity_checks_gbp_status" CHECK ((("google_business_profile")::text = ANY ((ARRAY['confirmed'::character varying, 'missing'::character varying, 'unchecked'::character varying, 'incomplete'::character varying])::text[]))),
+    CONSTRAINT "entity_checks_yelp_status" CHECK ((("yelp")::text = ANY ((ARRAY['confirmed'::character varying, 'missing'::character varying, 'unchecked'::character varying, 'incomplete'::character varying])::text[]))),
+    CONSTRAINT "entity_checks_tripadvisor_status" CHECK ((("tripadvisor")::text = ANY ((ARRAY['confirmed'::character varying, 'missing'::character varying, 'unchecked'::character varying, 'incomplete'::character varying])::text[]))),
+    CONSTRAINT "entity_checks_apple_status" CHECK ((("apple_maps")::text = ANY ((ARRAY['confirmed'::character varying, 'missing'::character varying, 'unchecked'::character varying, 'incomplete'::character varying])::text[]))),
+    CONSTRAINT "entity_checks_bing_status" CHECK ((("bing_places")::text = ANY ((ARRAY['confirmed'::character varying, 'missing'::character varying, 'unchecked'::character varying, 'incomplete'::character varying])::text[]))),
+    CONSTRAINT "entity_checks_wikidata_status" CHECK ((("wikidata")::text = ANY ((ARRAY['confirmed'::character varying, 'missing'::character varying, 'unchecked'::character varying, 'incomplete'::character varying])::text[])))
+);
+
+
+ALTER TABLE "public"."entity_checks" OWNER TO "postgres";
+
+
 CREATE TABLE IF NOT EXISTS "public"."google_oauth_tokens" (
     "id" "uuid" DEFAULT "extensions"."uuid_generate_v4"() NOT NULL,
     "org_id" "uuid" NOT NULL,
@@ -855,6 +884,16 @@ ALTER TABLE ONLY "public"."directories"
 
 
 
+ALTER TABLE ONLY "public"."entity_checks"
+    ADD CONSTRAINT "entity_checks_pkey" PRIMARY KEY ("id");
+
+
+
+ALTER TABLE ONLY "public"."entity_checks"
+    ADD CONSTRAINT "entity_checks_org_location_unique" UNIQUE ("org_id", "location_id");
+
+
+
 ALTER TABLE ONLY "public"."google_oauth_tokens"
     ADD CONSTRAINT "google_oauth_tokens_org_id_key" UNIQUE ("org_id");
 
@@ -1036,6 +1075,9 @@ CREATE INDEX "idx_crawler_hits_menu_bot" ON "public"."crawler_hits" USING "btree
 CREATE INDEX "idx_crawler_hits_org_location" ON "public"."crawler_hits" USING "btree" ("org_id", "location_id", "crawled_at" DESC);
 
 
+CREATE INDEX "idx_entity_checks_org" ON "public"."entity_checks" USING "btree" ("org_id");
+
+
 
 CREATE INDEX "idx_hallucinations_open" ON "public"."ai_hallucinations" USING "btree" ("org_id", "correction_status") WHERE ("correction_status" = 'open'::"public"."correction_status");
 
@@ -1155,6 +1197,10 @@ CREATE OR REPLACE TRIGGER "set_updated_at_content_drafts" BEFORE UPDATE ON "publ
 
 
 
+CREATE OR REPLACE TRIGGER "set_updated_at_entity_checks" BEFORE UPDATE ON "public"."entity_checks" FOR EACH ROW EXECUTE FUNCTION "public"."update_updated_at_column"();
+
+
+
 CREATE OR REPLACE TRIGGER "set_updated_at_google_oauth_tokens" BEFORE UPDATE ON "public"."google_oauth_tokens" FOR EACH ROW EXECUTE FUNCTION "public"."update_updated_at_column"();
 
 
@@ -1265,6 +1311,15 @@ ALTER TABLE ONLY "public"."crawler_hits"
 
 ALTER TABLE ONLY "public"."crawler_hits"
     ADD CONSTRAINT "crawler_hits_location_id_fkey" FOREIGN KEY ("location_id") REFERENCES "public"."locations"("id") ON DELETE CASCADE;
+
+
+
+ALTER TABLE ONLY "public"."entity_checks"
+    ADD CONSTRAINT "entity_checks_org_id_fkey" FOREIGN KEY ("org_id") REFERENCES "public"."organizations"("id") ON DELETE CASCADE;
+
+
+ALTER TABLE ONLY "public"."entity_checks"
+    ADD CONSTRAINT "entity_checks_location_id_fkey" FOREIGN KEY ("location_id") REFERENCES "public"."locations"("id") ON DELETE CASCADE;
 
 
 
@@ -1455,6 +1510,9 @@ ALTER TABLE "public"."crawler_hits" ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "public"."directories" ENABLE ROW LEVEL SECURITY;
 
 
+ALTER TABLE "public"."entity_checks" ENABLE ROW LEVEL SECURITY;
+
+
 ALTER TABLE "public"."google_oauth_tokens" ENABLE ROW LEVEL SECURITY;
 
 
@@ -1617,6 +1675,16 @@ CREATE POLICY "org_isolation_select" ON "public"."content_drafts" FOR SELECT USI
 
 
 CREATE POLICY "org_isolation_select" ON "public"."crawler_hits" FOR SELECT USING (("org_id" = "public"."current_user_org_id"()));
+
+
+
+CREATE POLICY "org_isolation_select" ON "public"."entity_checks" FOR SELECT USING (("org_id" = "public"."current_user_org_id"()));
+
+CREATE POLICY "org_isolation_insert" ON "public"."entity_checks" FOR INSERT WITH CHECK (("org_id" = "public"."current_user_org_id"()));
+
+CREATE POLICY "org_isolation_update" ON "public"."entity_checks" FOR UPDATE USING (("org_id" = "public"."current_user_org_id"())) WITH CHECK (("org_id" = "public"."current_user_org_id"()));
+
+CREATE POLICY "org_isolation_delete" ON "public"."entity_checks" FOR DELETE USING (("org_id" = "public"."current_user_org_id"()));
 
 
 
@@ -2270,6 +2338,12 @@ GRANT ALL ON TABLE "public"."crawler_hits" TO "service_role";
 GRANT ALL ON TABLE "public"."directories" TO "anon";
 GRANT ALL ON TABLE "public"."directories" TO "authenticated";
 GRANT ALL ON TABLE "public"."directories" TO "service_role";
+
+
+
+GRANT ALL ON TABLE "public"."entity_checks" TO "anon";
+GRANT ALL ON TABLE "public"."entity_checks" TO "authenticated";
+GRANT ALL ON TABLE "public"."entity_checks" TO "service_role";
 
 
 

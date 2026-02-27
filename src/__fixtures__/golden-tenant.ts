@@ -549,3 +549,22 @@ export const MOCK_DIGEST_INPUT: import('@/lib/services/weekly-digest.service').D
   botVisitsThisWeek: 12,
   newBlindSpots: 3,
 };
+
+/**
+ * Sprint 80 — Canonical EntityCheckRow fixture for Charcoal N Chill.
+ * 3/6 confirmed: Google KP, GBP, Yelp. TripAdvisor and Apple Maps missing. Bing incomplete.
+ * UUIDs match supabase/seed.sql Section 25.
+ */
+export const MOCK_ENTITY_CHECK: import('@/lib/services/entity-health.service').EntityCheckRow = {
+  google_knowledge_panel: 'confirmed',
+  google_business_profile: 'confirmed',
+  yelp: 'confirmed',
+  tripadvisor: 'missing',
+  apple_maps: 'missing',
+  bing_places: 'incomplete',
+  wikidata: 'unchecked',
+  platform_metadata: {
+    google_knowledge_panel: { place_id: 'ChIJtest123' },
+    bing_places: { note: 'Missing hours' },
+  },
+};
