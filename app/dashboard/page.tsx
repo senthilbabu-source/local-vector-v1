@@ -27,6 +27,9 @@ import ProofTimelineCard from './_components/ProofTimelineCard';
 import CronHealthCard from './_components/CronHealthCard';
 import ContentFreshnessCard from './_components/ContentFreshnessCard';
 import EntityHealthCard from './_components/EntityHealthCard';
+import OccasionAlertFeed from './_components/OccasionAlertFeed';
+import { getOccasionAlerts } from '@/lib/occasions/occasion-feed';
+import type { DashboardOccasionAlert } from '@/lib/occasions/occasion-feed';
 
 export type { HallucinationRow } from '@/lib/data/dashboard'; // re-export for AlertFeed.tsx
 
@@ -89,6 +92,17 @@ export default async function DashboardPage() {
   } catch {
     // Entity health is non-critical — dashboard renders without it.
   }
+  // ── Sprint 101: Occasion Alert Feed ──────────────────────────────────────
+  let occasionAlerts: DashboardOccasionAlert[] = [];
+  try {
+    if (ctx.orgId) {
+      const occasionSupa = await createClient();
+      occasionAlerts = await getOccasionAlerts(occasionSupa, ctx.orgId, ctx.userId, activeLocationId);
+    }
+  } catch {
+    // Occasion alerts are non-critical — dashboard renders without them.
+  }
+
   // ── Sprint 89: GBP Import Card (Growth+ plan gated) ────────────────────
   let gbpSyncedAt: string | null = null;
   let hasGBPConnection = false;
@@ -155,6 +169,10 @@ export default async function DashboardPage() {
       )}
       {/* Sprint 72: AI Health Score — top of page, above existing content */}
       {healthScore && <AIHealthScoreCard healthScore={healthScore} />}
+      {/* Sprint 101: Occasion Alert Feed — surfaces upcoming occasions with CTAs */}
+      {occasionAlerts.length > 0 && (
+        <OccasionAlertFeed alerts={occasionAlerts} canCreateDraft={draftGated} />
+      )}
       {/* Revenue Leak Scorecard — above Fear First layout */}
       <RevenueLeakCard leak={currentLeak} previousLeak={previousLeak} config={revenueConfig} plan={orgPlan} />
       {/* Fear First layout (Doc 06 §1 Design Principle #1) */}

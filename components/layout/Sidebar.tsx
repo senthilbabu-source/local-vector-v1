@@ -211,7 +211,14 @@ interface SidebarProps {
   plan: string | null;
   locations?: LocationOption[];
   selectedLocationId?: string | null;
+  badgeCounts?: Record<string, string | null>;
 }
+
+// Map of nav item hrefs to badge data-testid suffixes
+const BADGE_MAP: Record<string, string> = {
+  '/dashboard/content-drafts': 'content-drafts',
+  '/dashboard/share-of-voice': 'visibility',
+};
 
 // ---------------------------------------------------------------------------
 // Sidebar
@@ -226,7 +233,7 @@ function planLabel(plan: string | null): string {
   return plan ? (labels[plan] ?? `${plan} Plan`) : 'Free Plan';
 }
 
-export default function Sidebar({ isOpen, onClose, displayName, orgName, plan, locations, selectedLocationId }: SidebarProps) {
+export default function Sidebar({ isOpen, onClose, displayName, orgName, plan, locations, selectedLocationId, badgeCounts }: SidebarProps) {
   const pathname = usePathname();
 
   function isActive(href: string, exact: boolean): boolean {
@@ -311,6 +318,17 @@ export default function Sidebar({ isOpen, onClose, displayName, orgName, plan, l
                   className={['h-4 w-4 shrink-0', active ? 'text-signal-green' : ''].join(' ')}
                 />
                 {item.label}
+                {/* Sprint 101: Sidebar badge pill */}
+                {badgeCounts && BADGE_MAP[item.href] && badgeCounts[BADGE_MAP[item.href]!] && (
+                  <span
+                    data-testid={`sidebar-badge-${BADGE_MAP[item.href]}`}
+                    className="ml-auto flex items-center justify-center"
+                  >
+                    <span className="min-w-[1.25rem] h-5 px-1 rounded-full bg-amber-100 text-amber-700 text-xs font-semibold leading-none flex items-center justify-center">
+                      {badgeCounts[BADGE_MAP[item.href]!]}
+                    </span>
+                  </span>
+                )}
               </Link>
             );
           })}

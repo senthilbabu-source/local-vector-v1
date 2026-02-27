@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation';
 import { getSafeAuthContext } from '@/lib/auth';
 import { createClient } from '@/lib/supabase/server';
+import { markSectionSeen } from '@/lib/badges/badge-counts';
 import { nextSundayLabel } from '@/app/dashboard/_components/scan-health-utils';
 import { detectQueryGaps } from '@/lib/services/prompt-intelligence.service';
 import { computeCategoryBreakdown } from '@/lib/services/prompt-intelligence.service';
@@ -149,6 +150,10 @@ export default async function ShareOfVoicePage() {
   if (!ctx?.orgId) {
     redirect('/login');
   }
+
+  // Sprint 101: Mark visibility section as seen (resets sidebar badge)
+  const badgeSupa = await createClient();
+  await markSectionSeen(badgeSupa, ctx.orgId, ctx.userId, 'visibility');
 
   const { locations, queries, evaluations, visibilitySnapshots, firstMoverOpps, plan, briefDraftTriggerIds, pausedCount } =
     await fetchPageData(ctx.orgId);

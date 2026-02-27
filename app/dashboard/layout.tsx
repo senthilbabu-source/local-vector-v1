@@ -3,6 +3,7 @@ import { getSafeAuthContext } from '@/lib/auth';
 import { createClient } from '@/lib/supabase/server';
 import DashboardShell from '@/components/layout/DashboardShell';
 import { resolveActiveLocation } from '@/lib/location/active-location';
+import { getSidebarBadgeCounts, formatBadgeCount } from '@/lib/badges/badge-counts';
 
 // ---------------------------------------------------------------------------
 // Dashboard Layout — Server Component
@@ -90,6 +91,21 @@ export default async function DashboardLayout({
     selectedLocationId = result.location?.id ?? null;
   }
 
+  // ── Sprint 101: Sidebar badge counts ──────────────────────────────────────
+  let badgeCounts: Record<string, string | null> = {};
+  if (ctx.orgId) {
+    try {
+      const badgeSupa = await createClient();
+      const counts = await getSidebarBadgeCounts(badgeSupa, ctx.orgId, ctx.userId, selectedLocationId);
+      badgeCounts = {
+        'content-drafts': formatBadgeCount(counts.contentDrafts),
+        visibility: formatBadgeCount(counts.visibility),
+      };
+    } catch {
+      // Badge fetch failure is non-critical — sidebar renders without badges
+    }
+  }
+
   // ── Render ────────────────────────────────────────────────────────────────
   const displayName = ctx.fullName ?? ctx.email.split('@')[0];
   const orgName = ctx.orgName ?? 'Your Organization';
@@ -101,6 +117,7 @@ export default async function DashboardLayout({
       plan={ctx.plan ?? null}
       locations={locations}
       selectedLocationId={selectedLocationId}
+      badgeCounts={badgeCounts}
     >
       {children}
     </DashboardShell>

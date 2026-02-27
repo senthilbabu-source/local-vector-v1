@@ -4,6 +4,27 @@
 
 ---
 
+## 2026-03-02 — Sprint 101: Occasion Alert Feed + Sidebar Badges (Gaps #58 + #59: 80%/50% → 100%)
+
+**Problem:**
+Gap #58: Content Draft sidebar badge (amber count) never implemented. Users don't know drafts are waiting.
+Gap #59: Occasion alerts exist in the DB (32 seeded occasions) but never surface to dashboard home.
+Content drafts empty state: blank page with no guidance.
+
+**Solution:**
+- `lib/badges/badge-counts.ts` — `getSidebarBadgeCounts()`, `markSectionSeen()`, `formatBadgeCount()`
+- Sidebar: amber badge pills on Content Drafts + Visibility nav items
+- `lib/occasions/occasion-feed.ts` — 14-day window, snooze filter, draft-exists filter, max 3 cards
+- `OccasionAlertCard` + `OccasionAlertFeed` — dismissible, snoozeable, optimistic UI
+- `app/actions/occasions.ts` — snooze, dismiss, createDraftFromOccasion (Growth+, admin+)
+- Content drafts empty state: CTA to `/dashboard/compete`
+- Migration: `occasion_snoozes` + `sidebar_badge_state` tables with RLS
+
+**New tests:** 80 (25 badge-counts + 17 occasion-feed + 21 occasion-actions + 17 occasion-alert-card)
+**Full suite:** 2543 tests, 178 files, 0 regressions
+
+---
+
 ## 2026-03-02 — Sprint 100: Multi-Location Management (Gap #57: 40% → 100%) (Completed)
 
 **Goal:** Complete Agency-tier multi-location management — full CRUD for locations, location-scoped data isolation across all dashboard queries, org-switching UI for multi-org users, and a dedicated location management page.

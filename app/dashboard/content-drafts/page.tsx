@@ -9,12 +9,14 @@
 // ---------------------------------------------------------------------------
 
 import { redirect } from 'next/navigation';
-import { FileText } from 'lucide-react';
+import Link from 'next/link';
+import { FileText, Swords } from 'lucide-react';
 import { getSafeAuthContext } from '@/lib/auth';
 import { createClient } from '@/lib/supabase/server';
 import { getDaysUntilPeak } from '@/lib/services/occasion-engine.service';
 import type { LocalOccasionRow } from '@/lib/types/occasions';
 import { PlanGate } from '@/components/plan-gate/PlanGate';
+import { markSectionSeen } from '@/lib/badges/badge-counts';
 import ContentDraftCard, { type ContentDraftRow } from './_components/ContentDraftCard';
 import DraftFilterTabs from './_components/DraftFilterTabs';
 import OccasionTimeline, { type OccasionWithCountdown } from './_components/OccasionTimeline';
@@ -113,6 +115,10 @@ export default async function ContentDraftsPage({
     redirect('/login');
   }
 
+  // Sprint 101: Mark content_drafts section as seen (resets sidebar badge)
+  const badgeSupa = await createClient();
+  await markSectionSeen(badgeSupa, ctx.orgId, ctx.userId, 'content_drafts');
+
   const resolvedParams = await searchParams;
   const statusFilter = resolvedParams.status;
   const [drafts, occasions, occasionDraftMap, plan] = await Promise.all([
@@ -179,15 +185,39 @@ export default async function ContentDraftsPage({
         {/* ── Draft cards ──────────────────────────────────────────── */}
         <div className="mt-6">
           {drafts.length === 0 ? (
-            <div className="flex flex-col items-center justify-center rounded-xl bg-surface-dark px-6 py-16 text-center ring-1 ring-white/5">
+            <div
+              data-testid="content-drafts-empty-state"
+              className="flex flex-col items-center justify-center rounded-xl bg-surface-dark px-6 py-16 text-center ring-1 ring-white/5"
+            >
               <FileText className="mx-auto h-10 w-10 text-slate-600" />
               <p className="mt-3 text-sm font-medium text-slate-400">
                 {statusFilter ? 'No drafts match this filter' : 'No content drafts yet'}
               </p>
-              <p className="mt-1 text-xs text-slate-500">
-                AI-generated content from First Mover opportunities and competitor
-                gaps will appear here automatically.
-              </p>
+              {statusFilter ? (
+                <p className="mt-1 text-xs text-slate-500">
+                  Try removing the filter to see all drafts.
+                </p>
+              ) : (
+                <>
+                  <p className="mt-2 max-w-sm text-xs text-slate-500 leading-relaxed">
+                    Content drafts are auto-generated when LocalVector detects a competitor
+                    outranking you on an AI query. To generate your first draft:
+                  </p>
+                  <ol className="mt-2 text-left text-xs text-slate-500 space-y-0.5">
+                    <li>1. Add competitors on the Compete page</li>
+                    <li>2. LocalVector detects intercepts overnight</li>
+                    <li>3. AI drafts appear here for your review</li>
+                  </ol>
+                  <Link
+                    href="/dashboard/compete"
+                    data-testid="content-drafts-empty-cta"
+                    className="mt-4 inline-flex items-center gap-1.5 rounded-lg bg-signal-green/15 px-4 py-2 text-xs font-medium text-signal-green hover:bg-signal-green/25 transition"
+                  >
+                    <Swords className="h-3.5 w-3.5" />
+                    Go to Compete
+                  </Link>
+                </>
+              )}
             </div>
           ) : (
             <div className="space-y-4">

@@ -17,6 +17,7 @@ interface DashboardShellProps {
   plan: string | null;
   locations?: LocationOption[];
   selectedLocationId?: string | null;
+  badgeCounts?: Record<string, string | null>;
 }
 
 // ---------------------------------------------------------------------------
@@ -35,6 +36,7 @@ export default function DashboardShell({
   plan,
   locations,
   selectedLocationId,
+  badgeCounts,
 }: DashboardShellProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
@@ -61,6 +63,7 @@ export default function DashboardShell({
         plan={plan}
         locations={locations}
         selectedLocationId={selectedLocationId}
+        badgeCounts={badgeCounts}
       />
 
       {/* ── Right column: TopBar + page content ──────────────── */}

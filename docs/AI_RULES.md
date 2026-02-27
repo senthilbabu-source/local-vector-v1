@@ -1555,4 +1555,33 @@ All plan-gated UI in the dashboard uses `components/plan-gate/PlanGate.tsx`. Nev
 - Location schemas: `AddLocationSchema` (create with display_name/timezone) and `UpdateLocationSchema` (partial) in `lib/schemas/locations.ts`.
 
 ---
+
+## §54. Badges + Occasion Alerts — Architecture Rules (Sprint 101)
+
+### Sidebar badges
+- `lib/badges/badge-counts.ts` is the ONLY place sidebar badge counts are computed.
+  Never inline badge count queries in Sidebar.tsx or layout components.
+- `getSidebarBadgeCounts()` returns 0 on any error — never throws.
+  Sidebar must always render, with or without badges.
+- `markSectionSeen()` is called at the top of the Server Component for each
+  badged section page (content-drafts, share-of-voice). Fire-and-forget safe.
+- Badge counts use `sidebar_badge_state.last_seen_at` as the "seen" watermark.
+  Items older than last_seen_at do not count toward the badge.
+- `formatBadgeCount()` is the ONLY place the "99+" cap logic lives.
+  Never implement the cap inline.
+
+### Occasion alerts
+- `lib/occasions/occasion-feed.ts` is the ONLY place occasion alert queries live.
+  Never query `local_occasions` directly in page components for alerts.
+- `getOccasionAlerts()` returns [] on any error — never throws.
+  Dashboard must always load even if occasion query fails.
+- Snooze uses far-future date (year 9999) for permanent dismiss — not a
+  separate boolean column. Filter is always `snoozed_until > now()`.
+- `occasion_snoozes` is per-user, not per-org. One user snoozed != all users snoozed.
+- Occasion urgency threshold: `daysUntil <= 3` = urgent. Hardcoded in V1.
+- OccasionAlertFeed shows maximum 3 cards. Never more.
+- Optimistic UI on dismiss/snooze: card removes immediately client-side.
+  Server action failure restores the card via router.refresh().
+
+---
 > **End of System Instructions**
