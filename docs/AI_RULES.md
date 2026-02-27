@@ -1269,5 +1269,23 @@ Identifies which web pages and sources AI engines cite when describing the busin
 * **Sidebar:** "AI Sources" nav item with `BookOpen` icon, path `/dashboard/source-intelligence`.
 * **Fixtures:** `MOCK_SOURCE_MENTION_EXTRACTION` and `MOCK_SOURCE_INTELLIGENCE_INPUT` in `src/__fixtures__/golden-tenant.ts`.
 
+## 50. 📅 Proactive Content Calendar (Sprint 83)
+
+The Content Calendar aggregates 5 signal sources into time-bucketed content recommendations.
+
+* **Pure service:** `lib/services/content-calendar.service.ts` — `generateContentCalendar()` takes `CalendarInput`, returns `ContentCalendarResult`.
+* **5 signal sources:** occasions (trigger window), SOV gaps (null rank), page freshness (30+ days), competitor gaps (pending actions), hallucination corrections (open status).
+* **Urgency scoring:** 0-100 per recommendation. Occasions use days-until-peak (closer = higher). SOV uses gap ratio. Freshness uses age. Competitors use gap magnitude. Hallucinations use severity.
+* **Time buckets:** this_week (≤7 days), next_week (8-14), two_weeks (15-21), later (22+).
+* **Deduplication:** By recommendation key. Existing draft trigger_ids filtered out to avoid duplicate suggestions.
+* **No AI calls.** All recommendations are deterministic from existing data.
+* **No new tables.** Calendar is computed at page load from existing signal tables.
+* **No plan gating.** Available to all tiers.
+* **Different from OccasionTimeline (§36.1):** OccasionTimeline is an occasion-only horizontal scroller on the Content Drafts page. Content Calendar is a full-page view aggregating ALL 5 signal types with urgency scoring.
+* **Data layer:** `lib/data/content-calendar.ts` — `fetchContentCalendar()` runs 11 parallel Supabase queries (locations, local_occasions, sov_evaluations, target_queries, page_audits, magic_menus, crawler_hits ×2, competitor_intercepts, ai_hallucinations, content_drafts).
+* **Dashboard:** `app/dashboard/content-calendar/page.tsx` — Server Component with signal summary strip, time-bucketed sections, recommendation cards (action badge, urgency bar, CTAs), empty state.
+* **Sidebar:** "Content Calendar" nav item with `CalendarDays` icon, path `/dashboard/content-calendar`.
+* **Fixtures:** `MOCK_CALENDAR_INPUT` in `src/__fixtures__/golden-tenant.ts` — mixed signals (1 occasion, 2 SOV gaps, 1 stale page, 1 stale menu, 1 competitor gap, 1 hallucination).
+
 ---
 > **End of System Instructions**

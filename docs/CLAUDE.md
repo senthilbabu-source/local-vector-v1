@@ -39,6 +39,7 @@ app/dashboard/proof-timeline/ — Before/After Proof Timeline (Sprint 77)
 app/dashboard/entity-health/ — Entity Knowledge Graph Health Monitor (Sprint 80)
 app/dashboard/sentiment/     — AI Sentiment Tracker (Sprint 81)
 app/dashboard/source-intelligence/ — Citation Source Intelligence (Sprint 82)
+app/dashboard/content-calendar/  — Proactive Content Calendar (Sprint 83)
 lib/schema-generator/        — Pure JSON-LD generators: FAQ, Hours, LocalBusiness (Sprint 70)
 lib/ai/                — AI provider config, schemas, actions
 lib/services/          — Pure business logic services
@@ -150,7 +151,8 @@ UPSTASH_REDIS_REST_URL, UPSTASH_REDIS_REST_TOKEN
 | Entity Health | `lib/services/entity-health.service.ts` + `lib/services/entity-auto-detect.ts` + `lib/data/entity-health.ts` | Tracks entity presence across 7 AI knowledge graph platforms (Google KP, GBP, Yelp, TripAdvisor, Apple Maps, Bing Places, Wikidata). Auto-detects Google/GBP/Yelp from existing data; user self-assesses the rest via checklist. Score = N/6 core platforms confirmed (Wikidata excluded). Pure service, no AI calls. |
 | Sentiment Tracker | `lib/services/sentiment.service.ts` + `lib/data/sentiment.ts` | Extracts per-evaluation sentiment from SOV raw responses via `generateObject` + `SentimentExtractionSchema`. Scores -1 to 1, label/tone/descriptors/recommendation_strength. Aggregates into dashboard summaries with per-engine breakdown. Integrated into SOV cron pipeline (Inngest + inline). UI at `/dashboard/sentiment`. |
 | Source Intelligence | `lib/services/source-intelligence.service.ts` + `lib/data/source-intelligence.ts` | Identifies which web pages AI engines cite when describing the business. Two data paths: structured `cited_sources` (Google/Perplexity) + AI-extracted `source_mentions` (OpenAI/Copilot via gpt-4o-mini). Pure analysis: categorize, deduplicate, rank, generate alerts (competitor content, low first-party rate, over-reliance). UI at `/dashboard/source-intelligence`. |
+| Content Calendar | `lib/services/content-calendar.service.ts` + `lib/data/content-calendar.ts` | Proactive content publishing calendar. Aggregates 5 signal sources (occasions, SOV gaps, page freshness, competitor gaps, hallucination corrections) into urgency-scored, time-bucketed recommendations. Pure service, no AI calls, no new tables. UI at `/dashboard/content-calendar`. |
 
 ## Build History
 
-See `DEVLOG.md` (project root) and `docs/DEVLOG.md` for the complete sprint-by-sprint build log. Current sprint: 82.
+See `DEVLOG.md` (project root) and `docs/DEVLOG.md` for the complete sprint-by-sprint build log. Current sprint: 83.

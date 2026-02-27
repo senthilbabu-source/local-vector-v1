@@ -667,6 +667,79 @@ export const MOCK_SOURCE_INTELLIGENCE_INPUT: import('@/lib/services/source-intel
   ],
 };
 
+/**
+ * Sprint 83 — Canonical CalendarInput for Charcoal N Chill.
+ * Mixed signals: 1 occasion, 2 SOV gaps, 1 stale page, 1 stale menu,
+ * 1 competitor gap, 1 hallucination.
+ */
+export const MOCK_CALENDAR_INPUT: import('@/lib/services/content-calendar.service').CalendarInput =
+  {
+    businessName: 'Charcoal N Chill',
+    locationId: 'b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+    occasions: [
+      {
+        id: 'occ-valentines',
+        name: "Valentine's Day",
+        occasionType: 'holiday',
+        annualDate: '02-14',
+        triggerDaysBefore: 28,
+        peakQueryPatterns: ['valentines hookah', 'romantic dinner Alpharetta'],
+      },
+    ],
+    sovGaps: [
+      {
+        queryId: 'q-private-events',
+        queryText: 'private event venue Alpharetta',
+        queryCategory: 'discovery',
+        missingEngineCount: 3,
+        totalEngineCount: 3,
+      },
+      {
+        queryId: 'q-late-night',
+        queryText: 'late night hookah near me',
+        queryCategory: 'near_me',
+        missingEngineCount: 2,
+        totalEngineCount: 3,
+      },
+    ],
+    stalePages: [
+      {
+        pageUrl: 'https://charcoalnchill.com/about',
+        pageType: 'about',
+        lastAuditedAt: '2026-01-01T00:00:00Z',
+        overallScore: 62,
+        daysSinceAudit: 56,
+      },
+    ],
+    staleMenu: {
+      menuId: 'menu-001',
+      lastUpdatedAt: '2026-01-10T00:00:00Z',
+      daysSinceUpdate: 47,
+      recentBotVisitCount: 5,
+      previousBotVisitCount: 12,
+    },
+    competitorGaps: [
+      {
+        id: 'ci-001',
+        competitorName: 'Cloud 9 Lounge',
+        queryAsked: 'best hookah lounge Alpharetta',
+        winningFactor: 'wider hookah selection',
+        suggestedAction:
+          'Create content highlighting your unique Indo-American fusion hookah menu',
+        gapMagnitude: 'medium',
+      },
+    ],
+    openHallucinations: [
+      {
+        id: 'hal-001',
+        claimText: 'Charcoal N Chill closes at 10pm',
+        severity: 'high',
+        modelProvider: 'openai-gpt4o',
+      },
+    ],
+    existingDraftTriggerIds: new Set(),
+  };
+
 export const MOCK_ENTITY_CHECK: import('@/lib/services/entity-health.service').EntityCheckRow = {
   google_knowledge_panel: 'confirmed',
   google_business_profile: 'confirmed',

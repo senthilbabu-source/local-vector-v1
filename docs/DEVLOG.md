@@ -4,6 +4,34 @@
 
 ---
 
+## 2026-02-28 — Sprint 83: Proactive Content Calendar (Completed)
+
+**Goal:** Build an AI-driven content publishing calendar that aggregates 5 signal sources (occasions, SOV gaps, page freshness, competitor gaps, hallucination corrections) into time-bucketed, urgency-scored content recommendations. Transforms LocalVector from reactive ("here's what happened") to proactive ("here's what to do next").
+
+**Scope:**
+- `lib/services/content-calendar.service.ts` — **NEW.** ~330 lines, all pure functions. `generateContentCalendar()` main entry point. 5 signal generators: `generateOccasionRecommendations()` (days-until-peak urgency, occasion_page type), `generateSOVGapRecommendations()` (gap ratio urgency, top 5), `generateFreshnessRecommendations()` (age-based urgency, bot decline detection for menu), `generateCompetitorGapRecommendations()` (magnitude-based urgency, top 3), `generateHallucinationFixRecommendations()` (severity-based urgency, top 3). Urgency 0-100 per recommendation. Time buckets: this_week/next_week/two_weeks/later. Deduplication by key (higher urgency wins). Existing draft filtering via trigger_id set. Helpers: `computeDaysUntilDate()`, `assignTimeBucket()`, `formatProvider()`, `truncate()`.
+- `lib/data/content-calendar.ts` — **NEW.** `fetchContentCalendar()` — 11 parallel Supabase queries across `locations`, `local_occasions`, `sov_evaluations`, `target_queries`, `page_audits`, `magic_menus`, `crawler_hits` (2 periods), `competitor_intercepts`, `ai_hallucinations`, `content_drafts`. Assembles `CalendarInput`, computes derived fields (daysSinceAudit, SOV gap ratios, bot visit decline), calls pure `generateContentCalendar()`.
+- `app/dashboard/content-calendar/page.tsx` — **NEW.** Server Component. SignalSummaryStrip (emoji + count per signal type), TimeBucketSection per bucket (hidden when empty), RecommendationCard (action verb badge, title, reason, urgency bar, CTA buttons, deadline countdown). Empty state. Color coding: action verbs (publish=green, update=amber, create=blue), urgency bars (red >=75, amber >=50, green <50).
+- `app/dashboard/content-calendar/error.tsx` — **NEW.** Standard error boundary with Sentry.
+- `components/layout/Sidebar.tsx` — **MODIFIED.** Added "Content Calendar" nav item with CalendarDays icon (test-id: nav-content-calendar) after Content entry.
+- `src/__fixtures__/golden-tenant.ts` — **MODIFIED.** Added `MOCK_CALENDAR_INPUT` with mixed signals (1 occasion, 2 SOV gaps, 1 stale page, 1 stale menu, 1 competitor gap, 1 hallucination).
+
+**Tests added:**
+- `src/__tests__/unit/content-calendar-service.test.ts` — **45 Vitest tests.** All 5 signal generators, urgency scoring, time bucketing, dedup, filtering, helpers, MOCK integration.
+- `src/__tests__/unit/content-calendar-data.test.ts` — **11 Vitest tests.** Parallel queries, org scoping, signal computation, empty data handling.
+- `src/__tests__/unit/content-calendar-page.test.ts` — **10 Vitest tests.** Signal summary, time buckets, recommendation cards, urgency bars, empty state, sidebar.
+
+**Run commands:**
+```bash
+npx vitest run src/__tests__/unit/content-calendar-service.test.ts    # 45 tests passing
+npx vitest run src/__tests__/unit/content-calendar-data.test.ts       # 11 tests passing
+npx vitest run src/__tests__/unit/content-calendar-page.test.ts       # 10 tests passing
+npx vitest run                                                         # All tests passing
+npx tsc --noEmit                                                       # 0 type errors
+```
+
+---
+
 ## 2026-02-26 — Sprint 82: Citation Source Intelligence (Completed)
 
 **Goal:** Identify which specific web pages, review sites, articles, and social posts each AI engine cites when generating answers about the business. Two data paths: structured `cited_sources` from Google/Perplexity (Sprint 74), and AI-extracted `source_mentions` from OpenAI/Copilot raw_response via gpt-4o-mini.
