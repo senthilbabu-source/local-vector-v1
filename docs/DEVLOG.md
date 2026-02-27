@@ -4,6 +4,33 @@
 
 ---
 
+## 2026-02-28 — Sprint 93: Business Info Editor (Post-Onboarding) (Completed)
+
+**Goal:** Allow users to update their ground-truth business data (hours, amenities, basic info) at any time post-onboarding without re-running the wizard. Added Business Info sub-route to Settings. Reused UI patterns from TruthCalibrationForm, triggerGBPImport(), and triggerFirstAudit() from prior sprints.
+
+**Scope:**
+- `app/dashboard/settings/business-info/actions.ts` — **NEW.** `saveBusinessInfo()` server action. Zod-validated, handles ALL location fields (basic info + hours + amenities). Normalizes empty strings to null. Maps `primary_category` → `categories` array. Belt-and-suspenders org_id filter.
+- `app/dashboard/settings/business-info/page.tsx` — **NEW.** Server Component. Fetches primary location + GBP connection status (via `google_oauth_tokens`). Passes data to `BusinessInfoForm`.
+- `app/dashboard/settings/business-info/_components/BusinessInfoForm.tsx` — **NEW.** 'use client' form with 4 sections: GBP Sync Card (conditional), Basic Info (9 fields), Amenities (6 checkboxes), Hours (7-day grid). Includes change detection, audit prompt banner, GBP re-sync with merge, state uppercase on blur, website protocol prefix.
+- `app/dashboard/settings/_components/SettingsForm.tsx` — **MODIFIED.** Added "Edit business information →" link in Organization section.
+- `src/__fixtures__/golden-tenant.ts` — **MODIFIED.** Added `MOCK_BUSINESS_INFO_LOCATION` fixture.
+
+**Tests added:**
+- `save-business-info.test.ts` — **13 Vitest tests.** Auth gating, Zod validation, DB persistence, org_id scoping, revalidation, error propagation, empty-string normalization.
+- `business-info-form.test.tsx` — **17 Vitest tests.** Section rendering, pre-population, GBP card visibility, null handling, state uppercase, website prefix, validation, amenities, hours grid, day labels.
+- `18-business-info.spec.ts` — **10 Playwright tests.** Page heading, pre-population, phone/status, hours/amenities visibility, save button, navigation, validation.
+
+**Run commands:**
+```bash
+npx vitest run src/__tests__/unit/save-business-info.test.ts        # 13 tests
+npx vitest run src/__tests__/unit/business-info-form.test.tsx       # 17 tests
+npx vitest run                                                       # 1959 — no regressions
+npx playwright test tests/e2e/18-business-info.spec.ts --project=chromium  # 10 e2e tests
+npx tsc --noEmit                                                     # 0 type errors
+```
+
+---
+
 ## 2026-02-28 — Sprint 92: Launch Readiness Sweep (Completed)
 
 **Goal:** Harden LocalVector V1 for its first paying customer. Fix all skipped/failing tests, verify CI is green, confirm all test infrastructure is solid. Verification + hardening sprint — no new features.

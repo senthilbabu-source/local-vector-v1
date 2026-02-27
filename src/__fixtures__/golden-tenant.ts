@@ -1083,3 +1083,27 @@ export const MOCK_ONBOARDING_ORG = {
   plan_status: 'trialing' as const,
   onboarding_completed: false,
 };
+
+// ---------------------------------------------------------------------------
+// Sprint 93 — Business Info Editor
+// ---------------------------------------------------------------------------
+
+/** Full location row shape as returned by fetchBusinessInfo for Settings page. */
+export const MOCK_BUSINESS_INFO_LOCATION = {
+  id: 'b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+  org_id: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+  name: GOLDEN_TENANT.location.name,
+  business_name: GOLDEN_TENANT.location.business_name,
+  phone: GOLDEN_TENANT.location.phone,
+  website_url: GOLDEN_TENANT.location.website_url,
+  address_line1: GOLDEN_TENANT.location.address_line1,
+  city: GOLDEN_TENANT.location.city,
+  state: GOLDEN_TENANT.location.state,
+  zip: GOLDEN_TENANT.location.zip,
+  hours_data: GOLDEN_TENANT.location.hours_data,
+  amenities: GOLDEN_TENANT.location.amenities,
+  categories: GOLDEN_TENANT.location.categories,
+  operational_status: GOLDEN_TENANT.location.operational_status,
+  gbp_synced_at: null,
+  is_primary: true,
+} as const;
