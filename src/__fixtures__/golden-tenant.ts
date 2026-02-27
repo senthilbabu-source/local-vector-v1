@@ -406,6 +406,84 @@ export const MOCK_CORRECTION_INPUT: import('@/lib/services/correction-generator.
   },
 };
 
+/**
+ * Sprint 76 — Canonical cron_run_log fixtures for System Health dashboard tests.
+ * UUIDs match supabase/seed.sql Section 21.
+ */
+export const MOCK_CRON_RUN_SUCCESS: import('@/lib/services/cron-health.service').CronRunRow = {
+  id: 'f0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+  cron_name: 'audit',
+  started_at: '2026-02-26T08:00:00.000Z',
+  completed_at: '2026-02-26T08:02:30.000Z',
+  duration_ms: 150000,
+  status: 'success',
+  summary: { orgs_processed: 5, hallucinations_found: 3 },
+  error_message: null,
+  created_at: '2026-02-26T08:00:00.000Z',
+};
+
+export const MOCK_CRON_RUN_FAILED: import('@/lib/services/cron-health.service').CronRunRow = {
+  id: 'f1eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+  cron_name: 'sov',
+  started_at: '2026-02-25T07:00:00.000Z',
+  completed_at: '2026-02-25T07:01:00.000Z',
+  duration_ms: 60000,
+  status: 'failed',
+  summary: null,
+  error_message: 'Perplexity API rate limit exceeded',
+  created_at: '2026-02-25T07:00:00.000Z',
+};
+
+/**
+ * Sprint 76 — Canonical visibility_analytics snapshots for freshness decay tests.
+ * Shows a 28.6% decline in citation_rate from 0.42 to 0.30 (warning-level alert).
+ */
+export const MOCK_FRESHNESS_SNAPSHOTS: import('@/lib/services/freshness-alert.service').VisibilitySnapshot[] = [
+  { snapshot_date: '2026-02-12', citation_rate: 0.45, share_of_voice: 0.50 },
+  { snapshot_date: '2026-02-19', citation_rate: 0.42, share_of_voice: 0.42 },
+  { snapshot_date: '2026-02-26', citation_rate: 0.30, share_of_voice: 0.35 },
+];
+
+/**
+ * Sprint 77 — Canonical TimelineInput fixture for Charcoal N Chill.
+ * 4 weeks of data showing SOV improvement after schema addition.
+ */
+export const MOCK_TIMELINE_INPUT: import('@/lib/services/proof-timeline.service').TimelineInput = {
+  snapshots: [
+    { snapshot_date: '2026-01-29', share_of_voice: 0.12 },
+    { snapshot_date: '2026-02-05', share_of_voice: 0.12 },
+    { snapshot_date: '2026-02-12', share_of_voice: 0.17 },
+    { snapshot_date: '2026-02-19', share_of_voice: 0.19 },
+  ],
+  audits: [
+    { last_audited_at: '2026-01-30T10:00:00.000Z', overall_score: 54, faq_schema_present: false, schema_completeness_score: 20 },
+    { last_audited_at: '2026-02-06T10:00:00.000Z', overall_score: 72, faq_schema_present: true, schema_completeness_score: 85 },
+  ],
+  publishedContent: [
+    {
+      id: 'd0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+      published_at: '2026-02-01T14:00:00.000Z',
+      draft_title: 'FAQ Page: Hookah Menu & Experience',
+      content_type: 'faq_page',
+      trigger_type: 'competitor_gap',
+    },
+  ],
+  firstBotVisits: [
+    { bot_type: 'gptbot', first_crawled_at: '2026-02-07T08:00:00.000Z' },
+    { bot_type: 'perplexitybot', first_crawled_at: '2026-02-14T12:00:00.000Z' },
+  ],
+  hallucinations: [
+    {
+      id: 'b1eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+      claim_text: 'Charcoal N Chill appears to be permanently closed.',
+      severity: 'critical',
+      detected_at: '2026-01-28T09:00:00.000Z',
+      resolved_at: '2026-02-15T11:00:00.000Z',
+      correction_status: 'fixed',
+    },
+  ],
+};
+
 export const RIVAL_TENANT = {
   org: {
     name: 'Cloud 9 Lounge',

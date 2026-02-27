@@ -33,6 +33,9 @@ app/dashboard/         — Authenticated dashboard pages (each has error.tsx bou
 app/dashboard/citations/     — Citation Gap Dashboard (Sprint 58A)
 app/dashboard/page-audits/   — Page Audit Dashboard (Sprint 58B)
 app/dashboard/ai-responses/  — AI Says Response Library (Sprint 69)
+app/dashboard/crawler-analytics/ — Bot Activity Dashboard (Sprint 73)
+app/dashboard/system-health/ — System Health / Cron Dashboard (Sprint 76)
+app/dashboard/proof-timeline/ — Before/After Proof Timeline (Sprint 77)
 lib/schema-generator/        — Pure JSON-LD generators: FAQ, Hours, LocalBusiness (Sprint 70)
 lib/ai/                — AI provider config, schemas, actions
 lib/services/          — Pure business logic services
@@ -133,7 +136,10 @@ UPSTASH_REDIS_REST_URL, UPSTASH_REDIS_REST_TOKEN
 | AI Health Score | `lib/services/ai-health-score.service.ts` | Composite 0–100 score from SOV + page audit + hallucinations + schema. Pure function, no I/O. |
 | Crawler Analytics | `lib/crawler/bot-detector.ts` + `lib/data/crawler-analytics.ts` | AI bot detection registry (10 bots) + visit aggregation + blind spot detection. Wired via `proxy.ts` fire-and-forget → `POST /api/internal/crawler-log`. |
 | Correction Generator | `lib/services/correction-generator.service.ts` | Pure, deterministic correction content from ground truth (no AI calls). Generates GBP post, website snippet, llms.txt entry, social post per hallucination. Uses `trigger_type='hallucination_correction'` in `content_drafts`. |
+| Freshness Alerts | `lib/services/freshness-alert.service.ts` + `lib/data/freshness-alerts.ts` | Detects citation_rate drops across consecutive visibility_analytics snapshots. >20% = warning, >40% = critical. Email via `sendFreshnessAlert()`. Wired into SOV cron (both Inngest + inline). |
+| System Health | `lib/services/cron-health.service.ts` + `lib/data/cron-health.ts` | Dashboard for `cron_run_log` table. Pure service transforms rows → per-job stats + overall status (healthy/degraded/failing). Uses `createServiceRoleClient()` (no user RLS). UI at `/dashboard/system-health`. |
+| Proof Timeline | `lib/services/proof-timeline.service.ts` + `lib/data/proof-timeline.ts` | Before/After timeline correlating user actions with outcomes. 8 event types from 5 existing tables (visibility_analytics, page_audits, content_drafts, crawler_hits, ai_hallucinations). Pure service, 90-day window. UI at `/dashboard/proof-timeline`. |
 
 ## Build History
 
-See `DEVLOG.md` (project root) and `docs/DEVLOG.md` for the complete sprint-by-sprint build log. Current sprint: 75.
+See `DEVLOG.md` (project root) and `docs/DEVLOG.md` for the complete sprint-by-sprint build log. Current sprint: 77.

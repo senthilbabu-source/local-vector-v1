@@ -884,7 +884,7 @@ Added to `app/dashboard/share-of-voice/page.tsx` (Growth+ only). Calls `detectQu
 - `GapAlertCard` — per-gap card with type badge (untracked=amber, competitor_discovered=crimson, zero_citation_cluster=indigo), impact level, and suggested action
 
 ### 34.5 — Sidebar Navigation
-`Citations` (Globe icon) and `Page Audits` (FileSearch icon) added to `NAV_ITEMS` in `components/layout/Sidebar.tsx`, positioned after "Listings" and before "Settings". `AI Assistant` (MessageSquare icon) added Sprint 68 after Page Audits. `AI Says` (Quote icon, `href: /dashboard/ai-responses`) added Sprint 69 after AI Assistant. `data-testid="nav-ai-says"`.
+`Citations` (Globe icon) and `Page Audits` (FileSearch icon) added to `NAV_ITEMS` in `components/layout/Sidebar.tsx`, positioned after "Listings" and before "Settings". `AI Assistant` (MessageSquare icon) added Sprint 68 after Page Audits. `AI Says` (Quote icon, `href: /dashboard/ai-responses`) added Sprint 69 after AI Assistant. `Crawler Analytics` (Bot icon, `href: /dashboard/crawler-analytics`) added Sprint 73. `Proof Timeline` (GitCompareArrows icon, `href: /dashboard/proof-timeline`) added Sprint 77 after Bot Activity. `System Health` (Activity icon, `href: /dashboard/system-health`) added Sprint 76, positioned after AI Says, before Settings. `data-testid="nav-system-health"`. Total: 17 nav items.
 
 ---
 
@@ -903,7 +903,7 @@ export default function SectionError({ error, reset }: { error: Error & { digest
   // ... AlertTriangle icon + "Something went wrong" + error.message + "Try again" button
 }
 ```
-Current error boundaries: `app/dashboard/error.tsx`, `hallucinations/error.tsx`, `share-of-voice/error.tsx`, `ai-assistant/error.tsx`, `content-drafts/error.tsx`, `ai-responses/error.tsx`. When adding new dashboard sections, create a matching `error.tsx`.
+Current error boundaries: `app/dashboard/error.tsx`, `hallucinations/error.tsx`, `share-of-voice/error.tsx`, `ai-assistant/error.tsx`, `content-drafts/error.tsx`, `ai-responses/error.tsx`, `crawler-analytics/error.tsx`, `proof-timeline/error.tsx`. When adding new dashboard sections, create a matching `error.tsx`.
 
 ### 35.2 — Google OAuth Login (Supabase Auth, NOT GBP)
 Login and register pages use Supabase's built-in `signInWithOAuth({ provider: 'google' })` for user authentication. This is **separate** from the GBP OAuth flow in `app/api/auth/google/` (Rule 32), which connects Google Business Profile for data import.
@@ -920,7 +920,7 @@ Login and register pages use Supabase's built-in `signInWithOAuth({ provider: 'g
 
 ### 35.4 — Sidebar `data-testid` Convention
 All sidebar nav links have `data-testid={`nav-${label.toLowerCase().replace(/\s+/g, '-')}`}`:
-`nav-dashboard`, `nav-alerts`, `nav-menu`, `nav-share-of-voice`, `nav-content`, `nav-compete`, `nav-listings`, `nav-citations`, `nav-page-audits`, `nav-ai-assistant`, `nav-ai-says`, `nav-settings`, `nav-billing`.
+`nav-dashboard`, `nav-alerts`, `nav-menu`, `nav-share-of-voice`, `nav-content`, `nav-compete`, `nav-listings`, `nav-citations`, `nav-page-audits`, `nav-ai-assistant`, `nav-ai-says`, `nav-crawler-analytics`, `nav-system-health`, `nav-settings`, `nav-billing`.
 E2E specs should use `page.getByTestId('nav-xyz')` for sidebar navigation.
 
 ### 35.5 — E2E Spec Inventory (updated)
@@ -976,6 +976,7 @@ All 4 cron routes (`sov`, `audit`, `content-audit`, `citation`) are now instrume
 - **Table:** `cron_run_log` — RLS enabled, no policies (service-role writes only). Columns: `cron_name`, `started_at`, `completed_at`, `duration_ms`, `status` (running/success/failed/timeout), `summary` JSONB, `error_message`.
 - **Service pattern:** `logCronStart(cronName)` → returns `{ logId, startedAt }`. `logCronComplete(logId, summary, startedAt)` → computes `duration_ms` from `startedAt`. `logCronFailed(logId, errorMessage, startedAt)` → sets status='failed'.
 - **Fail-safe:** All logger calls are wrapped in try/catch internally — a logger failure never crashes the cron.
+- **Dashboard UI (Sprint 76):** `app/dashboard/system-health/page.tsx` — Server Component that reads `cron_run_log` via `createServiceRoleClient()` (no user RLS). Pure service `lib/services/cron-health.service.ts` transforms rows into `CronHealthSummary` with per-job stats and overall status (healthy/degraded/failing). Dashboard card: `app/dashboard/_components/CronHealthCard.tsx`.
 - **Wiring pattern:**
   ```typescript
   const { logId, startedAt } = await logCronStart('sov');
@@ -1136,7 +1137,7 @@ All AI bot user-agent detection is centralized in `lib/crawler/bot-detector.ts`.
 
 ---
 
-## 41. Correction Content Is Ground-Truth Only — No AI Generation (Sprint 75)
+## 42. Correction Content Is Ground-Truth Only — No AI Generation (Sprint 75)
 
 Correction content for hallucinations is generated deterministically from verified ground truth data. **No AI/LLM calls** are used to generate correction text.
 
@@ -1146,6 +1147,51 @@ Correction content for hallucinations is generated deterministically from verifi
 * **Ground truth imports:** Always use types from `lib/types/ground-truth.ts` (§9) for hours_data, amenities, etc.
 * **Content_drafts trigger_type:** Correction drafts use `trigger_type='hallucination_correction'` with `trigger_id` pointing to the `ai_hallucinations.id`.
 * **Fixtures:** `MOCK_CORRECTION_INPUT` in `src/__fixtures__/golden-tenant.ts`.
+
+---
+
+## 43. Content Freshness Decay Alerts — Citation Rate Drop Detection (Sprint 76)
+
+The freshness alert system detects significant drops in `citation_rate` across consecutive `visibility_analytics` snapshots and optionally emails the org owner.
+
+* **Pure service:** `lib/services/freshness-alert.service.ts` — exports `detectFreshnessDecay(snapshots)` and `formatFreshnessMessage(alert)`. No I/O.
+* **Thresholds:** >20% relative drop in `citation_rate` between consecutive snapshots = `warning`. >40% = `critical`. Formula: `((prev - curr) / prev) * 100`.
+* **Edge cases:** Null `citation_rate` snapshots are skipped. Zero previous rate skips comparison (avoids division by zero). <2 valid snapshots = `insufficient_data`.
+* **Data layer:** `lib/data/freshness-alerts.ts` — `fetchFreshnessAlerts(supabase, orgId)` queries last 5 `visibility_analytics` rows ascending, delegates to `detectFreshnessDecay()`.
+* **Email:** `sendFreshnessAlert()` in `lib/email.ts`. Subject: "Citation rate dropped {X}% for {business}". Graceful no-op when `RESEND_API_KEY` absent.
+* **Cron wiring:** Both `app/api/cron/sov/route.ts` (inline fallback) and `lib/inngest/functions/sov-cron.ts` (Inngest path) check freshness after the weekly SOV run. Sends email only if `organizations.notify_sov_alerts = true`. Wrapped in try/catch — non-critical (§17).
+* **Dashboard:** `app/dashboard/_components/ContentFreshnessCard.tsx` — shows trend badge (declining=amber/crimson, stable/improving=emerald) with current citation rate.
+* **Fixtures:** `MOCK_FRESHNESS_SNAPSHOTS` in `src/__fixtures__/golden-tenant.ts` (3 snapshots: 0.45→0.42→0.30, 28.6% decline). Seed UUIDs: e1–e2.
+
+---
+
+## 44. System Health Dashboard — Cron Run Log UI (Sprint 76)
+
+The System Health page provides visibility into the `cron_run_log` table that all 4 crons write to (§37.1).
+
+* **Pure service:** `lib/services/cron-health.service.ts` — exports `buildCronHealthSummary(rows)`, `CRON_REGISTRY` (4 crons with labels + schedules), `CronHealthSummary`, `CronJobSummary`, `CronRunRow`.
+* **Overall status:** `healthy` (0 recent failures), `degraded` (1 job with failures), `failing` (2+ jobs with failures or 3+ total failures in recent runs).
+* **Data layer:** `lib/data/cron-health.ts` — `fetchCronHealth()` uses `createServiceRoleClient()` internally (cron_run_log has no user RLS policies, same as cron-logger). Queries last 100 rows by `started_at DESC`.
+* **Page:** `app/dashboard/system-health/page.tsx` — Server Component. Auth guard. 4 cron job summary cards + recent runs table (last 20). Status badge colors: success=truth-emerald, running=electric-indigo, failed=alert-crimson, timeout=alert-amber.
+* **Dashboard card:** `app/dashboard/_components/CronHealthCard.tsx` — overall status badge + failure count + link to `/dashboard/system-health`.
+* **Sidebar:** `System Health` nav item with Activity icon, `href: /dashboard/system-health`, positioned after "AI Says", before "Settings".
+* **Fixtures:** `MOCK_CRON_RUN_SUCCESS`, `MOCK_CRON_RUN_FAILED` in `src/__fixtures__/golden-tenant.ts`. Seed UUIDs: f0–f3.
+
+---
+
+## 45. Before/After Proof Timeline — Cause→Effect Correlation (Sprint 77)
+
+The Proof Timeline is a visual timeline correlating user actions with measurable outcomes. It proves ROI by connecting cause → effect across data LocalVector already collects. **No new data collection** — everything is derived from 5 existing tables.
+
+* **Pure service:** `lib/services/proof-timeline.service.ts` — exports `buildProofTimeline(input)`, `formatContentType()`, `formatTriggerType()`, `formatBotLabel()`, `truncate()`. 8 event types: `metric_snapshot`, `content_published`, `bot_crawl`, `audit_completed`, `hallucination_detected`, `hallucination_resolved`, `schema_added`, `sov_milestone`. No I/O.
+* **Data layer:** `lib/data/proof-timeline.ts` — `fetchProofTimeline(supabase, orgId, locationId, windowDays=90)`. 5 parallel queries (visibility_analytics, page_audits, content_drafts, crawler_hits, ai_hallucinations). Aggregates first bot visit per bot_type in TypeScript.
+* **Server Action:** `app/dashboard/actions/proof-timeline.ts` — `getProofTimeline()` with `getSafeAuthContext()` + primary location lookup.
+* **Page:** `app/dashboard/proof-timeline/page.tsx` — Server Component. Summary strip (SOV delta, actions completed, issues fixed, timeline window). Reverse-chronological events grouped by date. Impact coloring: positive=green-400, negative=red-400, milestone=indigo-400, neutral=slate-400 (literal Tailwind classes).
+* **Dashboard card:** `app/dashboard/_components/ProofTimelineCard.tsx` — summary card linking to full timeline.
+* **No plan gating.** Timeline is available to ALL tiers — it's the retention feature.
+* **No stored timeline table.** Timeline is computed on-demand from existing data. No `proof_timeline` table.
+* **Bot label map:** Lightweight `formatBotLabel()` map in the service — does NOT import `detectAIBot` from `lib/crawler/bot-detector.ts` to keep the service pure.
+* **Fixtures:** `MOCK_TIMELINE_INPUT` in `src/__fixtures__/golden-tenant.ts`. Seed UUIDs: h0–h3 (visibility_analytics history).
 
 ---
 > **End of System Instructions**

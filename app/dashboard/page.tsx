@@ -1,6 +1,9 @@
 import { redirect } from 'next/navigation';
 import { getSafeAuthContext } from '@/lib/auth';
 import { fetchDashboardData } from '@/lib/data/dashboard';
+import { fetchProofTimeline } from '@/lib/data/proof-timeline';
+import { createClient } from '@/lib/supabase/server';
+import type { ProofTimeline } from '@/lib/services/proof-timeline.service';
 import { canRunAutopilot, type PlanTier } from '@/lib/plan-enforcer';
 import { nextSundayLabel } from './_components/scan-health-utils';
 import RealityScoreCard from './_components/RealityScoreCard';
@@ -14,6 +17,9 @@ import RevenueLeakCard from './_components/RevenueLeakCard';
 import LeakBreakdownChart from './_components/LeakBreakdownChart';
 import LeakTrendChart from './_components/LeakTrendChart';
 import BotActivityCard from './_components/BotActivityCard';
+import ProofTimelineCard from './_components/ProofTimelineCard';
+import CronHealthCard from './_components/CronHealthCard';
+import ContentFreshnessCard from './_components/ContentFreshnessCard';
 
 export type { HallucinationRow } from '@/lib/data/dashboard'; // re-export for AlertFeed.tsx
 
@@ -44,8 +50,28 @@ export default async function DashboardPage() {
     openAlerts, fixedCount, interceptsThisMonth, visibilityScore, lastAuditAt,
     sovTrend, hallucinationsByModel, competitorComparison,
     currentLeak, previousLeak, revenueConfig, revenueSnapshots, orgPlan,
-    healthScore, crawlerSummary, hasPublishedMenu,
+    healthScore, crawlerSummary, hasPublishedMenu, cronHealth, freshness,
   } = await fetchDashboardData(ctx.orgId ?? '');
+
+  // ── Sprint 77: Proof Timeline summary card ──────────────────────────────
+  // Non-blocking — if timeline fetch fails, proofTimeline is null.
+  let proofTimeline: ProofTimeline | null = null;
+  try {
+    if (ctx.orgId) {
+      const supabase = await createClient();
+      const { data: primaryLoc } = await supabase
+        .from('locations')
+        .select('id')
+        .eq('org_id', ctx.orgId)
+        .eq('is_primary', true)
+        .maybeSingle();
+      if (primaryLoc) {
+        proofTimeline = await fetchProofTimeline(supabase, ctx.orgId, primaryLoc.id);
+      }
+    }
+  } catch {
+    // Proof timeline is non-critical — dashboard renders without it.
+  }
   const scores = deriveRealityScore(openAlerts.length, visibilityScore);
   const firstName = ctx.fullName?.split(' ')[0] ?? ctx.email.split('@')[0];
   const hasOpenAlerts = openAlerts.length > 0;
@@ -106,6 +132,11 @@ export default async function DashboardPage() {
       </div>
       {/* Sprint 73: Bot Activity Card */}
       <BotActivityCard crawlerSummary={crawlerSummary} hasPublishedMenu={hasPublishedMenu} />
+      {/* Sprint 77: Proof Timeline Card */}
+      <ProofTimelineCard timeline={proofTimeline} />
+      {/* Sprint 76: Content Freshness + Cron Health Cards */}
+      <ContentFreshnessCard freshness={freshness} />
+      <CronHealthCard cronHealth={cronHealth} />
       {/* Revenue Leak Charts */}
       {currentLeak && orgPlan !== 'trial' && orgPlan !== 'starter' && (
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">

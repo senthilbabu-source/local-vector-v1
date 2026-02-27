@@ -1,0 +1,32 @@
+'use server';
+
+import { getSafeAuthContext } from '@/lib/auth';
+import { createClient } from '@/lib/supabase/server';
+import { fetchProofTimeline } from '@/lib/data/proof-timeline';
+import type { ProofTimeline } from '@/lib/services/proof-timeline.service';
+
+/**
+ * Server Action: Fetch proof timeline for the user's org + primary location.
+ * Uses getSafeAuthContext() (not getAuthContext) per AI_RULES §3.
+ */
+export async function getProofTimeline(): Promise<
+  { success: true; data: ProofTimeline } | { success: false; error: string }
+> {
+  const ctx = await getSafeAuthContext();
+  if (!ctx?.orgId) return { success: false, error: 'Unauthorized' };
+
+  const supabase = await createClient();
+
+  // Get primary location
+  const { data: location } = await supabase
+    .from('locations')
+    .select('id')
+    .eq('org_id', ctx.orgId)
+    .eq('is_primary', true)
+    .maybeSingle();
+
+  if (!location) return { success: false, error: 'No primary location' };
+
+  const timeline = await fetchProofTimeline(supabase, ctx.orgId, location.id);
+  return { success: true, data: timeline };
+}

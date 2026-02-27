@@ -41,6 +41,13 @@ CREATE EXTENSION IF NOT EXISTS pgcrypto;
 --   sov_eval google BBQ: c3eebc99-9c0b-4ef8-bb6d-6bb9bd380a11  (Sprint 74)
 --   sov_eval google hookah: c3eebc99-9c0b-4ef8-bb6d-6bb9bd380a12  (Sprint 74)
 --   crawler_hit g0-g5: g[0-5]eebc99-9c0b-4ef8-bb6d-6bb9bd380a11  (Sprint 73)
+--   cron_run f0-f3  : f[0-3]eebc99-9c0b-4ef8-bb6d-6bb9bd380a11  (Sprint 76)
+--   vis_analytics_2  : e1eebc99-9c0b-4ef8-bb6d-6bb9bd380a11      (Sprint 76 freshness)
+--   vis_analytics_3  : e2eebc99-9c0b-4ef8-bb6d-6bb9bd380a11      (Sprint 76 freshness)
+--   vis_analytics_4  : h0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11      (Sprint 77 timeline)
+--   vis_analytics_5  : h1eebc99-9c0b-4ef8-bb6d-6bb9bd380a11      (Sprint 77 timeline)
+--   vis_analytics_6  : h2eebc99-9c0b-4ef8-bb6d-6bb9bd380a11      (Sprint 77 timeline)
+--   vis_analytics_7  : h3eebc99-9c0b-4ef8-bb6d-6bb9bd380a11      (Sprint 77 timeline)
 --
 -- Phase 19 Test User (Playwright Onboarding Guard test):
 --   auth user id   : 00000000-0000-0000-0000-000000000010
@@ -1511,6 +1518,43 @@ WHERE l.org_id = 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11'
 LIMIT 1
 ON CONFLICT (id) DO NOTHING;
 
+-- ── 19b. ADDITIONAL VISIBILITY ANALYTICS (Sprint 76 — Freshness Decay) ──────
+-- Two older snapshots to create a 3-point declining citation_rate pattern.
+-- Combined with Section 19's snapshot (1 day ago, citation_rate=0.35),
+-- this gives: 0.45 → 0.42 → 0.35 — a 16.7% drop that demonstrates the trend.
+--
+-- Fixed UUIDs:
+--   vis_analytics_2 : e1eebc99-9c0b-4ef8-bb6d-6bb9bd380a11
+--   vis_analytics_3 : e2eebc99-9c0b-4ef8-bb6d-6bb9bd380a11
+
+INSERT INTO public.visibility_analytics (id, org_id, location_id, share_of_voice, citation_rate, snapshot_date)
+SELECT
+  'e1eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+  'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+  l.id,
+  0.50,
+  0.45,
+  (CURRENT_DATE - INTERVAL '14 days')::date
+FROM public.locations l
+WHERE l.org_id = 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11'
+  AND l.slug   = 'alpharetta'
+LIMIT 1
+ON CONFLICT (org_id, location_id, snapshot_date) DO NOTHING;
+
+INSERT INTO public.visibility_analytics (id, org_id, location_id, share_of_voice, citation_rate, snapshot_date)
+SELECT
+  'e2eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+  'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+  l.id,
+  0.46,
+  0.42,
+  (CURRENT_DATE - INTERVAL '7 days')::date
+FROM public.locations l
+WHERE l.org_id = 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11'
+  AND l.slug   = 'alpharetta'
+LIMIT 1
+ON CONFLICT (org_id, location_id, snapshot_date) DO NOTHING;
+
 -- ── 20. CRAWLER HITS (Sprint 73 — AI Crawler Analytics) ─────────────────────
 -- Seed rows for crawler_hits so the Bot Activity dashboard has data in local dev.
 -- 6 rows: 2x GPTBot, 1x ClaudeBot, 2x Google-Extended, 1x OAI-SearchBot.
@@ -1613,3 +1657,87 @@ WHERE l.org_id = 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11'
   AND l.slug   = 'alpharetta'
 LIMIT 1
 ON CONFLICT (id) DO NOTHING;
+
+-- ── 21. CRON RUN LOG (Sprint 76 — System Health Dashboard) ──────────────────
+-- Seed rows so the System Health page has data in local dev.
+-- 4 runs: audit (success), sov (failed), citation (success), content-audit (success).
+--
+-- Fixed UUIDs:
+--   cron_run f0 : f0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11
+--   cron_run f1 : f1eebc99-9c0b-4ef8-bb6d-6bb9bd380a11
+--   cron_run f2 : f2eebc99-9c0b-4ef8-bb6d-6bb9bd380a11
+--   cron_run f3 : f3eebc99-9c0b-4ef8-bb6d-6bb9bd380a11
+
+INSERT INTO public.cron_run_log (id, cron_name, started_at, completed_at, duration_ms, status, summary, error_message) VALUES
+  ('f0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'audit',         NOW() - INTERVAL '6 hours',  NOW() - INTERVAL '6 hours' + INTERVAL '2 minutes 30 seconds', 150000, 'success', '{"orgs_processed": 5, "hallucinations_found": 3}', NULL),
+  ('f1eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'sov',           NOW() - INTERVAL '2 days',   NOW() - INTERVAL '2 days' + INTERVAL '1 minute',               60000,  'failed',  NULL,                                                'Perplexity API rate limit exceeded'),
+  ('f2eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'citation',      NOW() - INTERVAL '25 days',  NOW() - INTERVAL '25 days' + INTERVAL '3 minutes',              180000, 'success', '{"categories_processed": 3, "citations_found": 12}', NULL),
+  ('f3eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'content-audit', NOW() - INTERVAL '20 days',  NOW() - INTERVAL '20 days' + INTERVAL '2 minutes',              120000, 'success', '{"pages_audited": 5, "avg_score": 72}',              NULL)
+ON CONFLICT (id) DO NOTHING;
+
+-- ── 22. PROOF TIMELINE SEED DATA (Sprint 77 — Before/After Proof Timeline) ──
+-- Additional visibility_analytics rows for timeline history showing SOV progression.
+-- Uses dates at -56, -49, -42, -35 days to avoid conflicts with Sprint 76's
+-- snapshots at -1, -7, -14 days.
+--
+-- Fixed UUIDs:
+--   vis_analytics_4 : h0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11
+--   vis_analytics_5 : h1eebc99-9c0b-4ef8-bb6d-6bb9bd380a11
+--   vis_analytics_6 : h2eebc99-9c0b-4ef8-bb6d-6bb9bd380a11
+--   vis_analytics_7 : h3eebc99-9c0b-4ef8-bb6d-6bb9bd380a11
+
+INSERT INTO public.visibility_analytics (id, org_id, location_id, share_of_voice, citation_rate, snapshot_date)
+SELECT
+  'h0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+  'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+  l.id,
+  0.12,
+  0.30,
+  (CURRENT_DATE - INTERVAL '56 days')::date
+FROM public.locations l
+WHERE l.org_id = 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11'
+  AND l.slug   = 'alpharetta'
+LIMIT 1
+ON CONFLICT (org_id, location_id, snapshot_date) DO NOTHING;
+
+INSERT INTO public.visibility_analytics (id, org_id, location_id, share_of_voice, citation_rate, snapshot_date)
+SELECT
+  'h1eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+  'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+  l.id,
+  0.12,
+  0.32,
+  (CURRENT_DATE - INTERVAL '49 days')::date
+FROM public.locations l
+WHERE l.org_id = 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11'
+  AND l.slug   = 'alpharetta'
+LIMIT 1
+ON CONFLICT (org_id, location_id, snapshot_date) DO NOTHING;
+
+INSERT INTO public.visibility_analytics (id, org_id, location_id, share_of_voice, citation_rate, snapshot_date)
+SELECT
+  'h2eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+  'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+  l.id,
+  0.17,
+  0.38,
+  (CURRENT_DATE - INTERVAL '42 days')::date
+FROM public.locations l
+WHERE l.org_id = 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11'
+  AND l.slug   = 'alpharetta'
+LIMIT 1
+ON CONFLICT (org_id, location_id, snapshot_date) DO NOTHING;
+
+INSERT INTO public.visibility_analytics (id, org_id, location_id, share_of_voice, citation_rate, snapshot_date)
+SELECT
+  'h3eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+  'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+  l.id,
+  0.19,
+  0.40,
+  (CURRENT_DATE - INTERVAL '35 days')::date
+FROM public.locations l
+WHERE l.org_id = 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11'
+  AND l.slug   = 'alpharetta'
+LIMIT 1
+ON CONFLICT (org_id, location_id, snapshot_date) DO NOTHING;

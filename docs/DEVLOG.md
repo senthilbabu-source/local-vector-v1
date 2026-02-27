@@ -4,6 +4,92 @@
 
 ---
 
+## 2026-02-28 — Sprint 77: Before/After Proof Timeline (Completed)
+
+**Goal:** Build a visual timeline correlating user actions with measurable outcomes — "You added FAQ schema → GPTBot re-crawled → SOV increased 58% in 3 weeks" — proving ROI and driving retention.
+
+**Scope:**
+- `lib/services/proof-timeline.service.ts` — **NEW.** Pure timeline builder (~300 lines). Exports: `buildProofTimeline()` (8 event types: metric_snapshot, content_published, bot_crawl, audit_completed, hallucination_detected, hallucination_resolved, schema_added, sov_milestone), `formatContentType()`, `formatTriggerType()`, `formatBotLabel()`, `truncate()`. Chronological sorting, summary stats (sovDelta, actionsCompleted, hallucinationsResolved). No I/O.
+- `lib/data/proof-timeline.ts` — **NEW.** Data fetcher. 5 parallel Supabase queries (visibility_analytics, page_audits, content_drafts, crawler_hits, ai_hallucinations) with 90-day window. Aggregates first bot visit per bot_type. Assembles TimelineInput, delegates to buildProofTimeline.
+- `app/dashboard/actions/proof-timeline.ts` — **NEW.** Server Action: `getProofTimeline()` with `getSafeAuthContext()`, primary location lookup.
+- `app/dashboard/proof-timeline/page.tsx` — **NEW.** Server Component. Summary strip (SOV delta, actions completed, issues fixed, timeline window). Reverse-chronological event list grouped by date. Vertical timeline connector. Impact-colored event cards. Null state for new tenants.
+- `app/dashboard/proof-timeline/error.tsx` — **NEW.** Error boundary.
+- `app/dashboard/_components/ProofTimelineCard.tsx` — **NEW.** Summary card for main dashboard linking to full timeline. Shows SOV delta, action count, highlight event.
+- `app/dashboard/page.tsx` — **MODIFIED.** Added ProofTimelineCard after BotActivityCard. Non-blocking timeline fetch with try/catch null fallback.
+- `components/layout/Sidebar.tsx` — **MODIFIED.** Added "Proof Timeline" (GitCompareArrows icon) after Bot Activity. Total: 17 nav items.
+- `supabase/seed.sql` — **MODIFIED.** Added 4 historical visibility_analytics rows (UUIDs h0–h3) at -56, -49, -42, -35 days showing SOV progression 12% → 12% → 17% → 19%.
+- `src/__fixtures__/golden-tenant.ts` — **MODIFIED.** Added `MOCK_TIMELINE_INPUT` with 4 weeks of multi-source data.
+
+**Tests added:**
+- `src/__tests__/unit/proof-timeline-service.test.ts` — **37 Vitest tests.** Event generation for all 8 types, sorting, summary stats, impact classification, edge cases (empty input, single snapshot, long text truncation), format helpers.
+- `src/__tests__/unit/proof-timeline-data.test.ts` — **7 Vitest tests.** Parallel queries, org scoping, bot visit aggregation, published-only filter.
+- `src/__tests__/unit/proof-timeline-action.test.ts` — **4 Vitest tests.** Auth guard, no-location, happy path, param forwarding.
+- `src/__tests__/unit/sidebar-timeline.test.ts` — **3 Vitest tests.** NAV_ITEMS entry, href, position after Bot Activity.
+
+**Run commands:**
+```bash
+npx vitest run src/__tests__/unit/proof-timeline-service.test.ts   # 37 tests passing
+npx vitest run src/__tests__/unit/proof-timeline-data.test.ts      # 7 tests passing
+npx vitest run src/__tests__/unit/proof-timeline-action.test.ts    # 4 tests passing
+npx vitest run src/__tests__/unit/sidebar-timeline.test.ts         # 3 tests passing
+npx vitest run                                                      # All tests passing
+```
+
+---
+
+## 2026-02-28 — Sprint 76: System Health Dashboard + Content Freshness Alerts + Console Cleanup (Completed)
+
+**Goal:** Close the 3 highest-impact gaps from the Sprint 68 audit: (1) build a System Health dashboard for the `cron_run_log` table that all 4 crons write to but had no UI, (2) detect and alert on content freshness decay when `citation_rate` drops significantly, (3) clean up 39 debug `console.log` statements in production code.
+
+**Scope:**
+
+*Phase 1 — System Health / Cron Dashboard:*
+- `lib/services/cron-health.service.ts` — **NEW.** Pure service (~130 lines). Exports: `CronRunRow`, `CronJobSummary`, `CronHealthSummary`, `CronRegistryEntry`, `CRON_REGISTRY` (4 crons: audit, sov, citation, content-audit), `buildCronHealthSummary()`. Groups rows by cron_name, derives per-job stats (lastRunAt, lastStatus, lastDurationMs, recentFailureCount), overall status (healthy/degraded/failing based on failure thresholds).
+- `lib/data/cron-health.ts` — **NEW.** Data layer. Uses `createServiceRoleClient()` internally (cron_run_log has NO user RLS policies). Queries last 100 rows ordered by started_at DESC, delegates to `buildCronHealthSummary()`.
+- `app/dashboard/system-health/page.tsx` — **NEW.** Server Component (~250 lines). Auth guard via `getSafeAuthContext()`. Summary strip with 4 cron job cards (name, schedule, last run, status badge). Recent runs table (last 20). Failure alert banner. Status colors: success=truth-emerald, running=electric-indigo, failed=alert-crimson, timeout=alert-amber.
+- `app/dashboard/_components/CronHealthCard.tsx` — **NEW.** Dashboard summary card. Overall status badge, failure count, link to `/dashboard/system-health`. Pattern follows BotActivityCard.
+- `components/layout/Sidebar.tsx` — **MODIFIED.** Added `Activity` icon import and "System Health" nav item (href: `/dashboard/system-health`) positioned after "AI Says", before "Settings". Total: 16 nav items.
+- `lib/data/dashboard.ts` — **MODIFIED.** Added `cronHealth: CronHealthSummary | null` to `DashboardData`. Non-blocking fetch with try/catch null fallback.
+- `app/dashboard/page.tsx` — **MODIFIED.** Renders `<CronHealthCard>` after `<BotActivityCard>`.
+
+*Phase 2 — Content Freshness Decay Alerts:*
+- `lib/services/freshness-alert.service.ts` — **NEW.** Pure service (~100 lines). Exports: `VisibilitySnapshot`, `FreshnessAlert`, `FreshnessStatus`, `detectFreshnessDecay()`, `formatFreshnessMessage()`. Compares consecutive visibility_analytics snapshots. >20% relative citation_rate drop = warning, >40% = critical. Handles null rates, zero previous rates, insufficient data.
+- `lib/data/freshness-alerts.ts` — **NEW.** Data layer with injected `SupabaseClient<Database>`. Queries last 5 `visibility_analytics` snapshots by org_id ascending, delegates to `detectFreshnessDecay()`.
+- `app/dashboard/_components/ContentFreshnessCard.tsx` — **NEW.** Dashboard card. Declining: alert-amber/crimson badge with drop %. Stable/improving: truth-emerald badge. Null/insufficient: placeholder message.
+- `lib/email.ts` — **MODIFIED.** Added `FreshnessAlertPayload` interface and `sendFreshnessAlert()`. Graceful skip when `RESEND_API_KEY` absent.
+- `app/api/cron/sov/route.ts` — **MODIFIED.** Wired freshness decay check after weekly digest email send. Checks `notify_sov_alerts` org preference. Try/catch non-critical (§17).
+- `lib/inngest/functions/sov-cron.ts` — **MODIFIED.** Same freshness wiring in `processOrgSOV()` after prompt intelligence step.
+- `lib/data/dashboard.ts` — **MODIFIED.** Added `freshness: FreshnessStatus | null` to `DashboardData`. Non-blocking fetch.
+- `app/dashboard/page.tsx` — **MODIFIED.** Renders `<ContentFreshnessCard>` after `<BotActivityCard>`, before `<CronHealthCard>`.
+
+*Phase 3 — Console.log Cleanup:*
+- Removed 8 debug `console.log` statements: `app/actions/marketing.ts` (best-of-2 scores), `app/dashboard/layout.tsx` (exposes user data), `app/dashboard/share-of-voice/_components/FirstMoverCard.tsx` (2 placeholder handlers), `app/onboarding/page.tsx` (exposes user data), `lib/services/revenue-leak.service.ts` (operational debug), `app/api/cron/sov/route.ts` (recheck debug), `lib/inngest/functions/sov-cron.ts` (recheck debug).
+- Converted 5 `console.warn` → `console.error` in `app/actions/marketing.ts` (HTTP errors, Zod validation failures, JSON parse failures, uncaught errors).
+
+*Seed & Fixtures:*
+- `src/__fixtures__/golden-tenant.ts` — **MODIFIED.** Added `MOCK_CRON_RUN_SUCCESS` (f0eebc99, audit, success), `MOCK_CRON_RUN_FAILED` (f1eebc99, sov, failed), `MOCK_FRESHNESS_SNAPSHOTS` (3 snapshots: 0.45→0.42→0.30, 28.6% decline).
+- `supabase/seed.sql` — **MODIFIED.** Added Section 19b (2 visibility_analytics rows for freshness decay, UUIDs e1–e2). Added Section 21 (4 cron_run_log rows, UUIDs f0–f3). Updated UUID reference card.
+
+**Tests added:**
+- `src/__tests__/unit/cron-health-service.test.ts` — **13 Vitest tests.** buildCronHealthSummary: empty/single/all-crons, overallStatus derivation (healthy/degraded/failing), recentRuns ordering + max-20 limit, null handling, uses MOCK fixtures.
+- `src/__tests__/unit/cron-health-data.test.ts` — **5 Vitest tests.** Mock createServiceRoleClient, query validation (table, order, limit), empty/error handling.
+- `src/__tests__/unit/sidebar-system-health.test.ts` — **4 Vitest tests.** NAV_ITEMS includes System Health, correct href, positioned before Settings, active=true.
+- `src/__tests__/unit/freshness-alert-service.test.ts` — **14 Vitest tests.** Empty/single→insufficient_data, flat→stable, increasing→improving, >20% drop→warning, >40% drop→critical, null rates skipped, consecutive drops, zero previous rate, formatFreshnessMessage validation.
+- `src/__tests__/unit/freshness-alert-data.test.ts` — **5 Vitest tests.** Mock Supabase client, query validation (table, org_id, ascending, limit 5), empty→insufficient_data, data passthrough.
+
+**Run commands:**
+```bash
+npx vitest run src/__tests__/unit/cron-health-service.test.ts      # 13 tests passing
+npx vitest run src/__tests__/unit/cron-health-data.test.ts         # 5 tests passing
+npx vitest run src/__tests__/unit/sidebar-system-health.test.ts    # 4 tests passing
+npx vitest run src/__tests__/unit/freshness-alert-service.test.ts  # 14 tests passing
+npx vitest run src/__tests__/unit/freshness-alert-data.test.ts     # 5 tests passing
+npx vitest run                                                      # all tests passing
+npx tsc --noEmit                                                    # 0 errors
+```
+
+---
+
 ## 2026-02-28 — Sprint 75: Hallucination → Correction Content Generator (Completed)
 
 **Goal:** Close the Fear Engine loop by generating actionable correction content for each detected hallucination — a GBP post draft, website correction snippet, llms.txt correction notice, and social post — all built deterministically from verified ground truth data. No AI calls.
