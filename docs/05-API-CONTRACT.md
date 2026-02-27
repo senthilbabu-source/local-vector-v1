@@ -612,8 +612,8 @@ Used during **Onboarding Step 2.5 (Truth Calibration)** to save the business's g
     "takes_reservations": false
   },
   "hours_data": {
-    "monday": { "open": "17:00", "close": "23:00" },
-    "tuesday": "closed"
+    "monday": "closed",
+    "tuesday": { "open": "17:00", "close": "01:00" }
   }
 }
 ```

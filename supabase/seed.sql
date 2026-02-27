@@ -281,7 +281,7 @@ SELECT
   l.id,
   'openai',
   'Tell me about Charcoal N Chill restaurant in Alpharetta, GA. Include the address, phone number, hours, and menu highlights.',
-  'Charcoal N Chill is a popular Indian-fusion restaurant and hookah lounge located at 11950 Jones Bridge Road, Suite 103, Alpharetta, GA 30005. They can be reached at (470) 546-4866 and their website is charcoalnchill.com. The restaurant is open Monday through Sunday from 5:00 PM, with extended hours on weekends. They are known for their smoked BBQ dishes, hookah, and vibrant nightlife atmosphere.',
+  'Charcoal N Chill is a popular Indian-fusion restaurant and hookah lounge located at 11950 Jones Bridge Road, Suite 103, Alpharetta, GA 30005. They can be reached at (470) 546-4866 and their website is charcoalnchill.com. The restaurant is open Tuesday through Sunday from 5:00 PM, closed on Mondays, with extended hours on weekends until 2 AM. They are known for their smoked BBQ dishes, hookah, and vibrant nightlife atmosphere.',
   95,
   '[]'::jsonb,
   NOW() - INTERVAL '3 hours'
@@ -328,7 +328,7 @@ SELECT
   l.id,
   'anthropic',
   'Tell me about Charcoal N Chill restaurant in Alpharetta, GA. Include the address, phone number, hours, and menu highlights.',
-  'Charcoal N Chill is an Indian-fusion restaurant and hookah lounge at 11950 Jones Bridge Road, Suite 103, Alpharetta, GA 30005. Phone: (470) 546-4866. Open daily from 5 PM with weekend extended hours. They serve a fusion menu with BBQ, hookahs, and have live entertainment on weekends.',
+  'Charcoal N Chill is an Indian-fusion restaurant and hookah lounge at 11950 Jones Bridge Road, Suite 103, Alpharetta, GA 30005. Phone: (470) 546-4866. Open Tuesday through Sunday from 5 PM, closed Mondays, with weekend extended hours until 2 AM. They serve a fusion menu with BBQ, hookahs, and have live entertainment on weekends.',
   90,
   '["Describes the cuisine as strictly Indian-fusion but the restaurant also features American BBQ"]'::jsonb,
   NOW() - INTERVAL '2 hours'
@@ -351,8 +351,8 @@ SELECT
   'gemini',
   'Tell me about Charcoal N Chill restaurant in Alpharetta, GA. Include the address, phone number, hours, and menu highlights.',
   'Charcoal N Chill is a restaurant and hookah bar located at 11950 Jones Bridge Road, Suite 103, Alpharetta, GA 30005. Contact: (470) 546-4866. Open Monday-Sunday starting at 5 PM with later closing on Friday and Saturday. Known for BBQ plates, hookah, and live music events.',
-  88,
-  '["States Monday opening but restaurant is actually open Monday-Sunday from 5 PM which is correct"]'::jsonb,
+  82,
+  '["Claims the restaurant is open Monday-Sunday but it is closed on Mondays"]'::jsonb,
   NOW() - INTERVAL '90 minutes'
 FROM public.locations l
 WHERE l.org_id = 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11'

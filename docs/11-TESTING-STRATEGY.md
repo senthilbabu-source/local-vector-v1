@@ -186,13 +186,13 @@ export const GOLDEN_TENANT = {
     website_url: 'https://charcoalnchill.com',
     operational_status: 'OPERATIONAL',
     hours_data: {
-      monday: { open: '17:00', close: '23:00' },
-      tuesday: { open: '17:00', close: '23:00' },
-      wednesday: { open: '17:00', close: '23:00' },
-      thursday: { open: '17:00', close: '00:00' },
-      friday: { open: '17:00', close: '01:00' },
-      saturday: { open: '17:00', close: '01:00' },
-      sunday: { open: '17:00', close: '23:00' },
+      monday: 'closed',
+      tuesday: { open: '17:00', close: '01:00' },
+      wednesday: { open: '17:00', close: '01:00' },
+      thursday: { open: '17:00', close: '01:00' },
+      friday: { open: '17:00', close: '02:00' },
+      saturday: { open: '17:00', close: '02:00' },
+      sunday: { open: '17:00', close: '01:00' },
     },
     amenities: {
       has_outdoor_seating: true,
@@ -246,7 +246,7 @@ export const PERPLEXITY_RESPONSES = {
   status_correct: {
     choices: [{
       message: {
-        content: "Charcoal N Chill in Alpharetta, GA is currently open and operating. They are open Monday through Sunday starting at 5 PM.",
+        content: "Charcoal N Chill in Alpharetta, GA is currently open and operating. They are open Tuesday through Sunday starting at 5 PM, closed Mondays.",
       },
     }],
   },
@@ -369,37 +369,37 @@ describe('Hallucination Classifier', () => {
 
   describe('Hours Checks', () => {
     it('should flag CRITICAL when AI says closed on a day venue is open', () => {
-      // Ground Truth: Monday is Open 17:00-23:00
+      // Ground Truth: Tuesday is Open 17:00-01:00
       const result = classifyHallucination(
         groundTruth,
-        'Charcoal N Chill is currently closed on Mondays.',
+        'Charcoal N Chill is currently closed on Tuesdays.',
         'hours_check'
       );
       expect(result).not.toBeNull();
       expect(result!.severity).toBe('critical');
       expect(result!.category).toBe('hours');
-      expect(result!.claimText).toContain('closed on Mondays');
+      expect(result!.claimText).toContain('closed on Tuesdays');
     });
 
     it('should flag HIGH when hours mismatch > 1 hour', () => {
-      // Ground Truth: Monday close is 23:00 (11 PM)
-      // AI Claim: Closes at 9 PM (2 hour diff)
+      // Ground Truth: Tuesday close is 01:00 (1 AM next day)
+      // AI Claim: Closes at 9 PM (4 hour diff)
       const result = classifyHallucination(
         groundTruth,
-        'On Mondays, the restaurant is open from 5 PM to 9 PM.',
+        'On Tuesdays, the restaurant is open from 5 PM to 9 PM.',
         'hours_check'
       );
       expect(result).not.toBeNull();
       expect(result!.severity).toBe('high');
       expect(result!.category).toBe('hours');
-      expect(result!.expectedTruth).toContain('23:00');
+      expect(result!.expectedTruth).toContain('01:00');
     });
 
     it('should allow minor discrepancies (< 30 mins) without flagging', () => {
-      // Ground Truth: Monday close is 23:00
+      // Ground Truth: Tuesday close is 01:00
       const result = classifyHallucination(
         groundTruth,
-        'They are open until 11:15 PM on Mondays.',
+        'They are open until 12:45 AM on Tuesdays.',
         'hours_check'
       );
       expect(result).toBeNull();

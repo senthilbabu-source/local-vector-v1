@@ -86,8 +86,8 @@ Prompt to Perplexity Sonar:
 
 Return ONLY a valid JSON object using 24-hour format (HH:MM).
 {
-  "monday": { "open": "17:00", "close": "23:00" },
-  "tuesday": "closed",
+  "monday": "closed",
+  "tuesday": { "open": "17:00", "close": "01:00" },
   ... (for all 7 days)
 }"
 

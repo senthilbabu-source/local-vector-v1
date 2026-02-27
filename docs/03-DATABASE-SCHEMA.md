@@ -189,7 +189,7 @@ CREATE TABLE IF NOT EXISTS locations (
   place_details_refreshed_at TIMESTAMPTZ DEFAULT NOW(),  -- Google ToS: refresh Place details every 30 days (see Doc 10, Section 4)
 
   -- Structured Data (JSONB for flexibility)
-  hours_data JSONB,                              -- { "monday": {"open": "17:00", "close": "23:00"}, ... }
+  hours_data JSONB,                              -- { "monday": "closed", "tuesday": {"open": "17:00", "close": "01:00"}, ... }
   amenities JSONB,                               -- { "has_outdoor_seating": true, "serves_alcohol": true, ... }
   categories JSONB,                              -- ["Hookah Bar", "Indian Restaurant", "Lounge"]
   attributes JSONB,                              -- { "price_range": "$$", "vibe": "upscale casual", "music": "DJ" }
@@ -858,15 +858,15 @@ VALUES (
   '(470) 546-4866', 
   'https://charcoalnchill.com', 
   'OPERATIONAL',
-  -- Hours: Open Mon-Sun 5PM-11PM/1AM
+  -- Hours: Closed Mon, Tue-Thu 5PM-1AM, Fri-Sat 5PM-2AM, Sun 5PM-1AM
   '{
-    "monday": {"open": "17:00", "close": "23:00"},
-    "tuesday": {"open": "17:00", "close": "23:00"},
-    "wednesday": {"open": "17:00", "close": "23:00"},
-    "thursday": {"open": "17:00", "close": "00:00"},
-    "friday": {"open": "17:00", "close": "01:00"},
-    "saturday": {"open": "17:00", "close": "01:00"},
-    "sunday": {"open": "17:00", "close": "23:00"}
+    "monday": "closed",
+    "tuesday": {"open": "17:00", "close": "01:00"},
+    "wednesday": {"open": "17:00", "close": "01:00"},
+    "thursday": {"open": "17:00", "close": "01:00"},
+    "friday": {"open": "17:00", "close": "02:00"},
+    "saturday": {"open": "17:00", "close": "02:00"},
+    "sunday": {"open": "17:00", "close": "01:00"}
   }'::jsonb,
   -- Amenities: Core set matching Doc 11 Fixtures
   '{
@@ -945,9 +945,9 @@ type HoursData = Record<DayOfWeek, DayHours | 'closed'>;
 **Example (from Golden Tenant seed):**
 ```json
 {
-  "monday": { "open": "17:00", "close": "23:00" },
-  "tuesday": { "open": "17:00", "close": "23:00" },
-  "sunday": { "open": "17:00", "close": "23:00" }
+  "monday": "closed",
+  "tuesday": { "open": "17:00", "close": "01:00" },
+  "sunday": { "open": "17:00", "close": "01:00" }
 }
 ```
 

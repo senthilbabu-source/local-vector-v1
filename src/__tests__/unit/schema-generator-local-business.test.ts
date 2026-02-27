@@ -168,8 +168,8 @@ describe('generateLocalBusinessSchema', () => {
 
   it('returns description with sameAs count', () => {
     const result = generateLocalBusinessSchema(location, integrations);
-    // website_url + 2 integrations = 3 sameAs links
-    expect(result.description).toContain('3 sameAs');
+    // website_url + 7 integrations = 8 sameAs links
+    expect(result.description).toContain('8 sameAs');
   });
 
   it('handles empty integrations and no website_url', () => {

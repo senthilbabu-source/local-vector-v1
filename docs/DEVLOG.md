@@ -4,6 +4,30 @@
 
 ---
 
+## 2026-02-27 — Golden Tenant Fixture Sync (charcoalnchill.com live data)
+
+**Goal:** Sync golden tenant fixtures to match live site `company.ts` data from charcoalnchill.com.
+
+**Hours data corrected (Monday closed, extended late-night hours):**
+- Monday: was `17:00–23:00` → now `"closed"`
+- Tu–Th: close was `23:00`/`00:00` → now `01:00`
+- Fri–Sat: close was `01:00` → now `02:00`
+- Sunday: close was `23:00` → now `01:00`
+
+**Social integrations enriched:** `MOCK_SCHEMA_INTEGRATIONS` expanded from 2 → 7 entries (added Facebook, Instagram, LinkedIn, YouTube, TikTok).
+
+**Files modified:**
+- `src/__fixtures__/golden-tenant.ts` — GOLDEN_TENANT + MOCK_SCHEMA_LOCATION hours, MOCK_SCHEMA_INTEGRATIONS
+- `src/__tests__/unit/schema-generator-hours.test.ts` — 6 open days, Monday excluded, Tuesday assertions
+- `src/__tests__/unit/schema-generator-local-business.test.ts` — sameAs count 3 → 8
+- `supabase/seed.sql` — AI eval responses updated (OpenAI, Anthropic, Gemini hours text)
+- `docs/03-DATABASE-SCHEMA.md` — hours examples + inline comment
+- `docs/04-INTELLIGENCE-ENGINE.md` — prompt template example
+- `docs/05-API-CONTRACT.md` — hours_data example
+- `docs/11-TESTING-STRATEGY.md` — golden tenant hours + hallucination test examples
+
+---
+
 ## 2026-02-27 — Sprint 71: Per-Dimension Page Audit Scores + Actionable Fix Recommendations (Completed)
 
 **Goal:** Fix two hardcoded-zero dimension scores in the Page Audit dashboard, persist all 5 dimension scores to the database, and transform dimension bars into expandable detail sections with per-dimension explanations and actionable recommendations linked to Sprint 70 schema generators.

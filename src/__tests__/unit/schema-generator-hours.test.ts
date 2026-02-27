@@ -30,7 +30,7 @@ describe('generateOpeningHoursSchema', () => {
 
     expect(result).not.toBeNull();
     const jsonLd = result!.jsonLd as { openingHoursSpecification: { '@type': string }[] };
-    expect(jsonLd.openingHoursSpecification).toHaveLength(7); // All 7 days open
+    expect(jsonLd.openingHoursSpecification).toHaveLength(6); // 6 open days (Monday closed)
     for (const spec of jsonLd.openingHoursSpecification) {
       expect(spec['@type']).toBe('OpeningHoursSpecification');
     }
@@ -43,7 +43,7 @@ describe('generateOpeningHoursSchema', () => {
     };
 
     const days = jsonLd.openingHoursSpecification.map((s) => s.dayOfWeek);
-    expect(days).toContain('https://schema.org/Monday');
+    expect(days).not.toContain('https://schema.org/Monday'); // Monday closed
     expect(days).toContain('https://schema.org/Friday');
     expect(days).toContain('https://schema.org/Sunday');
   });
@@ -54,12 +54,12 @@ describe('generateOpeningHoursSchema', () => {
       openingHoursSpecification: { dayOfWeek: string; opens: string; closes: string }[];
     };
 
-    const monday = jsonLd.openingHoursSpecification.find(
-      (s) => s.dayOfWeek === 'https://schema.org/Monday',
+    const tuesday = jsonLd.openingHoursSpecification.find(
+      (s) => s.dayOfWeek === 'https://schema.org/Tuesday',
     );
-    expect(monday).toBeDefined();
-    expect(monday!.opens).toBe('17:00');
-    expect(monday!.closes).toBe('23:00');
+    expect(tuesday).toBeDefined();
+    expect(tuesday!.opens).toBe('17:00');
+    expect(tuesday!.closes).toBe('01:00');
   });
 
   it('omits days marked as "closed" (string literal)', () => {
@@ -136,7 +136,7 @@ describe('generateOpeningHoursSchema', () => {
 
   it('returns description with day count', () => {
     const result = generateOpeningHoursSchema(location);
-    expect(result!.description).toContain('7 days');
+    expect(result!.description).toContain('6 days');
   });
 
   it('returns null when all days are "closed"', () => {

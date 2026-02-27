@@ -31,13 +31,13 @@ export const GOLDEN_TENANT = {
     website_url: 'https://charcoalnchill.com',
     operational_status: 'OPERATIONAL',
     hours_data: {
-      monday: { open: '17:00', close: '23:00' },
-      tuesday: { open: '17:00', close: '23:00' },
-      wednesday: { open: '17:00', close: '23:00' },
-      thursday: { open: '17:00', close: '00:00' },
-      friday: { open: '17:00', close: '01:00' },
-      saturday: { open: '17:00', close: '01:00' },
-      sunday: { open: '17:00', close: '23:00' },
+      monday: 'closed',
+      tuesday: { open: '17:00', close: '01:00' },
+      wednesday: { open: '17:00', close: '01:00' },
+      thursday: { open: '17:00', close: '01:00' },
+      friday: { open: '17:00', close: '02:00' },
+      saturday: { open: '17:00', close: '02:00' },
+      sunday: { open: '17:00', close: '01:00' },
     },
     amenities: {
       has_outdoor_seating: true,
@@ -158,13 +158,13 @@ export const MOCK_SCHEMA_LOCATION: import('@/lib/schema-generator/types').Schema
   phone: '(470) 546-4866',
   website_url: 'https://charcoalnchill.com',
   hours_data: {
-    monday: { open: '17:00', close: '23:00' },
-    tuesday: { open: '17:00', close: '23:00' },
-    wednesday: { open: '17:00', close: '23:00' },
-    thursday: { open: '17:00', close: '00:00' },
-    friday: { open: '17:00', close: '01:00' },
-    saturday: { open: '17:00', close: '01:00' },
-    sunday: { open: '17:00', close: '23:00' },
+    monday: 'closed',
+    tuesday: { open: '17:00', close: '01:00' },
+    wednesday: { open: '17:00', close: '01:00' },
+    thursday: { open: '17:00', close: '01:00' },
+    friday: { open: '17:00', close: '02:00' },
+    saturday: { open: '17:00', close: '02:00' },
+    sunday: { open: '17:00', close: '01:00' },
   },
   amenities: {
     has_outdoor_seating: true,
@@ -186,6 +186,11 @@ export const MOCK_SCHEMA_LOCATION: import('@/lib/schema-generator/types').Schema
 export const MOCK_SCHEMA_INTEGRATIONS: import('@/lib/schema-generator/types').SchemaIntegrationInput[] = [
   { platform: 'google', listing_url: 'https://g.page/charcoal-n-chill-alpharetta' },
   { platform: 'yelp', listing_url: 'https://www.yelp.com/biz/charcoal-n-chill-alpharetta' },
+  { platform: 'facebook', listing_url: 'https://www.facebook.com/profile.php?id=61571869656813' },
+  { platform: 'instagram', listing_url: 'https://www.instagram.com/charcoal_n_chill/' },
+  { platform: 'linkedin', listing_url: 'https://www.linkedin.com/in/charcoal-n-chill-7837323ab/' },
+  { platform: 'youtube', listing_url: 'https://www.youtube.com/@CharcoalNChill' },
+  { platform: 'tiktok', listing_url: 'https://www.tiktok.com/@charcoalnchill' },
 ];
 
 /**
