@@ -46,7 +46,7 @@ lib/page-audit/        — HTML parser + AEO auditor
 lib/tools/             — AI chat tool definitions
 lib/mcp/               — MCP server tool registrations
 lib/supabase/database.types.ts — Full Database type (29 tables, 9 enums, Relationships)
-supabase/migrations/   — Applied SQL migrations (25, timestamp-ordered)
+supabase/migrations/   — Applied SQL migrations (26, timestamp-ordered)
 supabase/prod_schema.sql — Full production schema dump
 docs/                  — 50 spec documents (authoritative for planned features)
 src/__tests__/         — Unit + integration tests

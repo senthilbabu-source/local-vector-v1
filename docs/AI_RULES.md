@@ -887,7 +887,7 @@ Added to `app/dashboard/share-of-voice/page.tsx` (Growth+ only). Calls `detectQu
 - `GapAlertCard` — per-gap card with type badge (untracked=amber, competitor_discovered=crimson, zero_citation_cluster=indigo), impact level, and suggested action
 
 ### 34.5 — Sidebar Navigation
-`Citations` (Globe icon) and `Page Audits` (FileSearch icon) added to `NAV_ITEMS` in `components/layout/Sidebar.tsx`, positioned after "Listings" and before "Settings". `AI Assistant` (MessageSquare icon) added Sprint 68 after Page Audits. `AI Says` (Quote icon, `href: /dashboard/ai-responses`) added Sprint 69 after AI Assistant. `Crawler Analytics` (Bot icon, `href: /dashboard/crawler-analytics`) added Sprint 73. `Proof Timeline` (GitCompareArrows icon, `href: /dashboard/proof-timeline`) added Sprint 77 after Bot Activity. `System Health` (Activity icon, `href: /dashboard/system-health`) added Sprint 76, positioned after AI Says, before Settings. `data-testid="nav-system-health"`. Total: 17 nav items.
+`Citations` (Globe icon) and `Page Audits` (FileSearch icon) added to `NAV_ITEMS` in `components/layout/Sidebar.tsx`, positioned after "Listings" and before "Settings". `AI Assistant` (MessageSquare icon) added Sprint 68 after Page Audits. `AI Says` (Quote icon, `href: /dashboard/ai-responses`) added Sprint 69 after AI Assistant. `Crawler Analytics` (Bot icon, `href: /dashboard/crawler-analytics`) added Sprint 73. `Proof Timeline` (GitCompareArrows icon, `href: /dashboard/proof-timeline`) added Sprint 77 after Bot Activity. `System Health` (Activity icon, `href: /dashboard/system-health`) added Sprint 76, positioned after AI Says, before Settings. `Entity Health` (HeartPulse icon, `href: /dashboard/entity-health`) added Sprint 80 after Proof Timeline. `AI Sentiment` (SmilePlus icon, `href: /dashboard/sentiment`) added Sprint 81 after Entity Health. Total: 19 nav items.
 
 ---
 
@@ -906,7 +906,7 @@ export default function SectionError({ error, reset }: { error: Error & { digest
   // ... AlertTriangle icon + "Something went wrong" + error.message + "Try again" button
 }
 ```
-Current error boundaries: `app/dashboard/error.tsx`, `hallucinations/error.tsx`, `share-of-voice/error.tsx`, `ai-assistant/error.tsx`, `content-drafts/error.tsx`, `ai-responses/error.tsx`, `crawler-analytics/error.tsx`, `proof-timeline/error.tsx`. When adding new dashboard sections, create a matching `error.tsx`.
+Current error boundaries: `app/dashboard/error.tsx`, `hallucinations/error.tsx`, `share-of-voice/error.tsx`, `ai-assistant/error.tsx`, `content-drafts/error.tsx`, `ai-responses/error.tsx`, `crawler-analytics/error.tsx`, `proof-timeline/error.tsx`, `entity-health/error.tsx`, `sentiment/error.tsx`. When adding new dashboard sections, create a matching `error.tsx`.
 
 ### 35.2 — Google OAuth Login (Supabase Auth, NOT GBP)
 Login and register pages use Supabase's built-in `signInWithOAuth({ provider: 'google' })` for user authentication. This is **separate** from the GBP OAuth flow in `app/api/auth/google/` (Rule 32), which connects Google Business Profile for data import.
@@ -923,7 +923,7 @@ Login and register pages use Supabase's built-in `signInWithOAuth({ provider: 'g
 
 ### 35.4 — Sidebar `data-testid` Convention
 All sidebar nav links have `data-testid={`nav-${label.toLowerCase().replace(/\s+/g, '-')}`}`:
-`nav-dashboard`, `nav-alerts`, `nav-menu`, `nav-share-of-voice`, `nav-content`, `nav-compete`, `nav-listings`, `nav-citations`, `nav-page-audits`, `nav-ai-assistant`, `nav-ai-says`, `nav-crawler-analytics`, `nav-system-health`, `nav-settings`, `nav-billing`.
+`nav-dashboard`, `nav-alerts`, `nav-menu`, `nav-share-of-voice`, `nav-content`, `nav-compete`, `nav-listings`, `nav-citations`, `nav-page-audits`, `nav-ai-assistant`, `nav-ai-says`, `nav-crawler-analytics`, `nav-proof-timeline`, `nav-system-health`, `nav-entity-health`, `nav-ai-sentiment`, `nav-settings`, `nav-billing`.
 E2E specs should use `page.getByTestId('nav-xyz')` for sidebar navigation.
 
 ### 35.5 — E2E Spec Inventory (updated)
@@ -1045,7 +1045,7 @@ Agency-tier orgs with multiple locations can switch between them via a sidebar d
 ## 38. 🗂️ Supabase Database Types & Type Safety (Sprint 63)
 
 ### 38.1 — `database.types.ts` Is the Type Authority
-`lib/supabase/database.types.ts` contains the full `Database` type definition covering all 28 tables, 9 enums, and FK `Relationships`. It was manually generated from `supabase/prod_schema.sql` + migration files. When the schema changes (new tables, columns, or enums), this file **must be updated** to match.
+`lib/supabase/database.types.ts` contains the full `Database` type definition covering all 29 tables, 9 enums, and FK `Relationships`. It was manually generated from `supabase/prod_schema.sql` + migration files. When the schema changes (new tables, columns, or enums), this file **must be updated** to match.
 
 ### 38.2 — No `as any` on Supabase Clients
 The clients in `lib/supabase/server.ts` are generic-typed with `<Database>`. **Never** cast `createClient()` or `createServiceRoleClient()` to `any`. The typed client provides autocomplete on `.from()` table names, `.select()` column inference, and return type safety.
@@ -1170,12 +1170,12 @@ The freshness alert system detects significant drops in `citation_rate` across c
 
 ## 44. System Health Dashboard — Cron Run Log UI (Sprint 76)
 
-The System Health page provides visibility into the `cron_run_log` table that all 4 crons write to (§37.1).
+The System Health page provides visibility into the `cron_run_log` table that all 5 crons write to (§37.1).
 
-* **Pure service:** `lib/services/cron-health.service.ts` — exports `buildCronHealthSummary(rows)`, `CRON_REGISTRY` (4 crons with labels + schedules), `CronHealthSummary`, `CronJobSummary`, `CronRunRow`.
+* **Pure service:** `lib/services/cron-health.service.ts` — exports `buildCronHealthSummary(rows)`, `CRON_REGISTRY` (5 crons with labels + schedules: audit, sov, citation, content-audit, weekly-digest), `CronHealthSummary`, `CronJobSummary`, `CronRunRow`.
 * **Overall status:** `healthy` (0 recent failures), `degraded` (1 job with failures), `failing` (2+ jobs with failures or 3+ total failures in recent runs).
 * **Data layer:** `lib/data/cron-health.ts` — `fetchCronHealth()` uses `createServiceRoleClient()` internally (cron_run_log has no user RLS policies, same as cron-logger). Queries last 100 rows by `started_at DESC`.
-* **Page:** `app/dashboard/system-health/page.tsx` — Server Component. Auth guard. 4 cron job summary cards + recent runs table (last 20). Status badge colors: success=truth-emerald, running=electric-indigo, failed=alert-crimson, timeout=alert-amber.
+* **Page:** `app/dashboard/system-health/page.tsx` — Server Component. Auth guard. 5 cron job summary cards + recent runs table (last 20). Status badge colors: success=truth-emerald, running=electric-indigo, failed=alert-crimson, timeout=alert-amber.
 * **Dashboard card:** `app/dashboard/_components/CronHealthCard.tsx` — overall status badge + failure count + link to `/dashboard/system-health`.
 * **Sidebar:** `System Health` nav item with Activity icon, `href: /dashboard/system-health`, positioned after "AI Says", before "Settings".
 * **Fixtures:** `MOCK_CRON_RUN_SUCCESS`, `MOCK_CRON_RUN_FAILED` in `src/__fixtures__/golden-tenant.ts`. Seed UUIDs: f0–f3.
