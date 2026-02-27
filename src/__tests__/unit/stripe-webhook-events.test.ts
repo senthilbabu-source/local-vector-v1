@@ -182,10 +182,14 @@ describe('Stripe webhook — all revenue-critical events', () => {
 
     const res = await POST(makeWebhookRequest('{}'));
     expect(res.status).toBe(200);
-    expect(chain.update).toHaveBeenCalledWith({
-      plan: 'trial',
-      plan_status: 'canceled',
-    });
+    expect(chain.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        plan: 'trial',
+        plan_status: 'canceled',
+        seat_limit: 1,
+        seat_overage_count: 0,
+      })
+    );
     expect(chain.eq).toHaveBeenCalledWith('stripe_customer_id', TEST_CUSTOMER_ID);
   });
 

@@ -76,6 +76,7 @@ export default function TeamClient({
           already_member: 'This person is already a team member.',
           already_invited: 'An invitation is already pending for this email.',
           plan_upgrade_required: 'Upgrade to Agency plan to invite team members.',
+          seat_limit_reached: 'All seats are in use. Add more seats in Billing to invite new members.',
           email_delivery_failed: 'Failed to send the invitation email. Please try again.',
         };
         setInviteMessage({ type: 'error', text: messages[result.error ?? ''] ?? result.error ?? 'Failed to send invitation' });

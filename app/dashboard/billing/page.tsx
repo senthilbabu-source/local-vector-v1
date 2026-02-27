@@ -26,6 +26,7 @@ import {
   getCurrentPlan,
   type CurrentPlanInfo,
 } from './actions';
+import SeatManagementCard from './_components/SeatManagementCard';
 
 // ---------------------------------------------------------------------------
 // Tier definitions
@@ -353,6 +354,15 @@ export default function BillingPage() {
           <TierCard key={tier.id} tier={tier} currentPlan={planInfo?.plan ?? null} />
         ))}
       </div>
+
+      {/* Seat Management — Agency plan only (Sprint 99) */}
+      {planInfo?.plan === 'agency' && (
+        <div className="flex justify-center">
+          <div className="w-full max-w-sm">
+            <SeatManagementCard />
+          </div>
+        </div>
+      )}
 
       {/* Manage Subscription */}
       <div className="flex justify-center">

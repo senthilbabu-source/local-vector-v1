@@ -157,3 +157,19 @@ export function canExportData(plan: PlanTier): boolean {
 export function canRegenerateLLMsTxt(plan: PlanTier): boolean {
   return plan === 'growth' || plan === 'agency';
 }
+
+/**
+ * Multi-user team management — invite + manage team members (Sprint 99).
+ * Only Agency tier supports multiple seats. Other tiers are single-user.
+ */
+export function canManageTeamSeats(plan: PlanTier): boolean {
+  return plan === 'agency';
+}
+
+/**
+ * Default seat limit for a given plan tier.
+ * Agency = 5 (upgradeable via Stripe), all others = 1.
+ */
+export function defaultSeatLimit(plan: PlanTier): number {
+  return plan === 'agency' ? 5 : 1;
+}

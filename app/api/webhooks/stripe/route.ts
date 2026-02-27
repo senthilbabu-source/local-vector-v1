@@ -19,8 +19,12 @@
 //
 // Handled events:
 //   checkout.session.completed       — initial purchase; sets plan + stripe IDs
-//   customer.subscription.updated    — plan changes, renewals, cancellations
+//   customer.subscription.updated    — plan changes, renewals, seat quantity sync
 //   customer.subscription.deleted    — subscription fully canceled; downgrade to trial
+//
+// Sprint 99: Added seat_limit sync on subscription.updated and deleted.
+//   When subscription quantity changes (via portal or API), seat_limit is synced.
+//   On deletion, seat_limit is reset to 1 (owner-only).
 //
 // All other event types receive an immediate 200 OK (Stripe requires this).
 //
@@ -132,9 +136,33 @@ async function handleSubscriptionUpdated(
 
   const planStatus = STRIPE_STATUS_TO_DB[subscription.status] ?? 'active';
 
+  // Sprint 99: Extract seat quantity from subscription
+  // subscription.quantity is the top-level quantity (for single-item subscriptions).
+  // For multi-item subscriptions, check items.data[0].quantity.
+  const seatQuantity =
+    (subscription as unknown as Record<string, unknown>).quantity as number | undefined ??
+    ((subscription as unknown as Record<string, { data?: Array<{ quantity?: number }> }>).items
+      ?.data?.[0]?.quantity) ??
+    undefined;
+
+  // Build update payload — always update plan_status, optionally sync seat_limit
+  const updatePayload: Record<string, unknown> = {
+    plan_status: planStatus as Database['public']['Enums']['plan_status'],
+  };
+
+  // Sync seat_limit if we got a quantity and subscription is not canceled/unpaid
+  if (seatQuantity !== undefined && seatQuantity > 0) {
+    if (subscription.status === 'canceled' || subscription.status === 'unpaid') {
+      updatePayload.seat_limit = 1;
+    } else {
+      updatePayload.seat_limit = seatQuantity;
+    }
+    updatePayload.seats_updated_at = new Date().toISOString();
+  }
+
   const { error } = await supabase
     .from('organizations')
-    .update({ plan_status: planStatus as Database['public']['Enums']['plan_status'] })
+    .update(updatePayload)
     .eq('stripe_customer_id', stripeCustomerId);
 
   if (error) {
@@ -144,10 +172,11 @@ async function handleSubscriptionUpdated(
   }
 
   console.log(
-    '[stripe-webhook] customer.subscription.updated: customer=%s status=%s → plan_status=%s',
+    '[stripe-webhook] customer.subscription.updated: customer=%s status=%s → plan_status=%s seat_quantity=%s',
     stripeCustomerId,
     subscription.status,
-    planStatus
+    planStatus,
+    seatQuantity ?? 'unchanged'
   );
 }
 
@@ -163,10 +192,16 @@ async function handleSubscriptionDeleted(
     return;
   }
 
-  // Downgrade to trial + canceled status
+  // Downgrade to trial + canceled status + reset seat_limit (Sprint 99)
   const { error } = await supabase
     .from('organizations')
-    .update({ plan: 'trial', plan_status: 'canceled' })
+    .update({
+      plan: 'trial',
+      plan_status: 'canceled',
+      seat_limit: 1,
+      seat_overage_count: 0,
+      seats_updated_at: new Date().toISOString(),
+    })
     .eq('stripe_customer_id', stripeCustomerId);
 
   if (error) {

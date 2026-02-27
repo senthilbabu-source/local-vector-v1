@@ -15,6 +15,7 @@ import { createClient, createServiceRoleClient } from '@/lib/supabase/server';
 import { roleSatisfies, ROLE_PERMISSIONS } from '@/lib/auth/org-roles';
 import { planSatisfies } from '@/lib/plan-enforcer';
 import { sendInvitationEmail } from '@/lib/email/send-invitation';
+import { checkSeatAvailability } from '@/lib/stripe/seat-manager';
 
 // ---------------------------------------------------------------------------
 // Schemas
@@ -87,6 +88,18 @@ export async function sendInvitation(input: {
 
   if ((memberCount ?? 0) >= 1 && !planSatisfies(ctx.plan, 'agency')) {
     return { success: false, error: 'plan_upgrade_required' };
+  }
+
+  // Sprint 99: Seat limit check — runs BEFORE email sending
+  const seatCheck = await checkSeatAvailability(supabase, ctx.orgId);
+  if (!seatCheck.canAdd) {
+    return {
+      success: false,
+      error: seatCheck.error === 'seat_limit_reached' ? 'seat_limit_reached' : 'seat_limit_reached',
+      seatsRemaining: seatCheck.seatsRemaining,
+      seatLimit: seatCheck.seatLimit,
+      currentMembers: seatCheck.currentMembers,
+    } as { success: false; error: string; seatsRemaining?: number; seatLimit?: number; currentMembers?: number };
   }
 
   // Check if invitee is already a member

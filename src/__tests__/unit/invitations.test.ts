@@ -24,6 +24,15 @@ vi.mock('next/cache', () => ({ revalidatePath: vi.fn() }));
 vi.mock('@/lib/email/send-invitation', () => ({
   sendInvitationEmail: vi.fn().mockResolvedValue({ id: 'resend-id-1' }),
 }));
+// Sprint 99: Mock seat availability check (always passes in existing tests)
+vi.mock('@/lib/stripe/seat-manager', () => ({
+  checkSeatAvailability: vi.fn().mockResolvedValue({
+    canAdd: true,
+    currentMembers: 1,
+    seatLimit: 5,
+    seatsRemaining: 4,
+  }),
+}));
 
 import { sendInvitation, revokeInvitation, removeMember, updateMemberRole } from '@/app/actions/invitations';
 import { createClient } from '@/lib/supabase/server';

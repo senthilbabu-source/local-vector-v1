@@ -4,6 +4,62 @@
 
 ---
 
+## 2026-03-01 — Sprint 99: Seat-Based Billing + Agency Permissions (Gap #75: 60% → 100%) (Completed)
+
+**Goal:** Complete the Agency tier by wiring seat-based billing into Stripe and adding granular per-location permissions. Three deliverables: Stripe seat quantity management, bidirectional seat limit enforcement, and per-location scoped roles.
+
+**Problem:**
+- Sprint 98 delivered multi-user invitations + roles but no billing integration — Agency seats could not be monetized.
+- No mechanism to enforce seat limits: orgs could invite unlimited members.
+- No per-location access control: all members saw all location data, inadequate for agency workflows managing multiple client locations.
+
+**Key Architecture Decision:**
+Sprint spec assumed `orgs` table and `org_members` table with `org_role` enum, but pre-flight investigation confirmed existing `organizations` table, `memberships` table, and `membership_role` enum. Adapted all implementation to use existing schema exactly. Stripe quantity approach uses top-level `subscription.quantity` (single-item subscriptions) rather than multi-item approach.
+
+**Solution:**
+- **Seat Plans Config:** `lib/stripe/seat-plans.ts` — Single source of truth for per-plan seat configuration (Agency = multi-user, all others = 1 seat). `getSeatLimit()`, `isMultiUserPlan()`.
+- **Seat Manager:** `lib/stripe/seat-manager.ts` — All Stripe seat operations: `checkSeatAvailability()` (DB-only, atomic), `updateSeatQuantity()` (Stripe + DB), `syncSeatLimitFromWebhook()` (webhook → DB), `calculateSeatOverage()`.
+- **Webhook Extensions:** `handleSubscriptionUpdated()` now syncs `seat_limit` from subscription quantity. `handleSubscriptionDeleted()` resets `seat_limit=1` + `seat_overage_count=0`.
+- **Invitation Seat Check:** `sendInvitation()` calls `checkSeatAvailability()` BEFORE email sending. Returns `seat_limit_reached` error with seat count details.
+- **Seat Actions:** `app/actions/seat-actions.ts` — `addSeat()`, `removeSeat()`, `getSeatSummary()`. Owner-only, Agency-only. Overage prevention on remove.
+- **Seat UI:** `SeatManagementCard` on billing page — progress bar, add/remove buttons, overage banner, past-due warning.
+- **Location Permissions:** `lib/auth/location-permissions.ts` — `resolveLocationRole()`, `getUserLocationAccess()`, `assertLocationRole()`, `setLocationPermission()`, `revokeLocationPermission()`. Most-restrictive-wins: `min(org_role, location_role)`.
+- **Location Access Helper:** `lib/data/location-access.ts` — `getAccessibleLocationIds()` memoized via `React.cache()` for dashboard query filtering.
+- **Location UI:** `LocationAccessPanel` component in team settings — expandable per-member, multi-location Agency orgs only.
+- **Overage Email:** `emails/SeatOverageEmail.tsx` + `lib/email/send-overage.ts` — sent when Stripe downgrade creates overage.
+- **Migration:** `seat_limit`, `seat_overage_count`, `seat_overage_since`, `seats_updated_at` on organizations. `stripe_webhook_events` table for idempotency. `location_permissions` table with RLS (owner-only write).
+- **Plan Enforcer:** Added `canManageTeamSeats()`, `defaultSeatLimit()`.
+
+**Changes:**
+- `supabase/migrations/20260301000003_seat_billing_location_permissions.sql` — **NEW.** Seat columns + webhook events + location permissions + RLS
+- `lib/stripe/seat-plans.ts` — **NEW.** Seat plan configuration (SEAT_PLANS, getSeatLimit, isMultiUserPlan)
+- `lib/stripe/seat-manager.ts` — **NEW.** Stripe seat operations (check, update, sync, overage)
+- `lib/auth/location-permissions.ts` — **NEW.** Location-level permission resolution
+- `lib/data/location-access.ts` — **NEW.** Memoized location access filter for dashboard queries
+- `app/actions/seat-actions.ts` — **NEW.** addSeat, removeSeat, getSeatSummary server actions
+- `app/dashboard/billing/_components/SeatManagementCard.tsx` — **NEW.** Seat management UI card
+- `app/dashboard/settings/team/_components/LocationAccessPanel.tsx` — **NEW.** Per-member location access panel
+- `emails/SeatOverageEmail.tsx` — **NEW.** Seat overage warning email template
+- `lib/email/send-overage.ts` — **NEW.** Overage email sender (Resend)
+- `app/api/webhooks/stripe/route.ts` — **MODIFIED.** Seat sync in subscription.updated, seat reset in subscription.deleted
+- `app/actions/invitations.ts` — **MODIFIED.** Added seat check before email sending
+- `app/dashboard/billing/page.tsx` — **MODIFIED.** Added SeatManagementCard for Agency plan
+- `app/dashboard/settings/team/_components/TeamClient.tsx` — **MODIFIED.** Added seat_limit_reached error message
+- `lib/plan-enforcer.ts` — **MODIFIED.** Added canManageTeamSeats(), defaultSeatLimit()
+- `src/__tests__/unit/stripe-webhook.test.ts` — **MODIFIED.** Updated deleted event assertion for seat_limit
+- `src/__tests__/unit/stripe-webhook-events.test.ts` — **MODIFIED.** Updated deleted event assertion for seat_limit
+
+**Tests added:** 114 new tests across 5 test files
+- `src/__tests__/unit/seat-manager.test.ts` — 36 tests (availability, update, sync, overage, plan helpers)
+- `src/__tests__/unit/location-permissions.test.ts` — 20 tests (resolve, access, assert, set, revoke)
+- `src/__tests__/unit/stripe-webhook-seats.test.ts` — 11 tests (seat sync, deleted, signature)
+- `src/__tests__/unit/seat-actions.test.ts` — 12 tests (addSeat, removeSeat, getSeatSummary)
+- `src/__tests__/unit/send-invitation-seat-check.test.ts` — 5 tests (seat limit enforcement in invitations)
+
+**Total test count:** ~2336 (2222 prior + 114 new)
+
+---
+
 ## 2026-03-01 — Sprint 98: Multi-User Foundation — Invitations + Roles (Gap #75: 0% → 60%) (Completed)
 
 **Goal:** Build the foundational multi-user system: role enforcement library, token-based invitation flow, team management UI, and invite acceptance page. Enables org owners to invite admin/viewer team members with email-verified acceptance.
