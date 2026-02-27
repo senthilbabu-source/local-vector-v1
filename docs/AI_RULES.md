@@ -1309,5 +1309,23 @@ Statuses: active (full pts), partial (50% pts), missing (0 pts). Levels: agent_r
 * **Sidebar:** "Agent Readiness" nav item with `BotMessageSquare` icon, path `/dashboard/agent-readiness`.
 * **Fixtures:** `MOCK_AGENT_READINESS_INPUT` in `src/__fixtures__/golden-tenant.ts` — hours + menu active, actions missing, score=40, partially_ready.
 
+## 48. Revenue Impact Calculator (Sprint 85)
+
+Converts visibility gaps into estimated dollar amounts. Three revenue streams:
+
+* **SOV Gap Revenue:** `CATEGORY_SEARCH_VOLUME[category] x AI_RECOMMENDATION_CTR x gapRatio x avgCustomerValue`. Categories: discovery=90, comparison=60, occasion=45, near_me=120, custom=30.
+* **Hallucination Revenue:** `SEVERITY_IMPACT[severity] x avgCustomerValue`. Severities: critical=8, high=5, medium=2, low=1.
+* **Competitor Revenue:** `monthlyCovers x competitorAdvantage x AI_INFLUENCE_RATE x avgCustomerValue`. AI_INFLUENCE_RATE=0.05, AI_RECOMMENDATION_CTR=0.08.
+
+* **Migration:** `20260226000012_revenue_config.sql` adds `avg_customer_value` (numeric, default 45.00) and `monthly_covers` (integer, default 800) to `locations`.
+* **Constants are estimates, not guarantees.** UI must use "estimated", "approximately", "projected" language.
+* **Revenue config:** User-customizable via `locations.avg_customer_value` + `locations.monthly_covers`. Falls back to `DEFAULT_REVENUE_CONFIG` when null.
+* **No plan gating.** Dollar amounts drive Trial -> Paid conversion.
+* **Pure service:** `lib/services/revenue-impact.service.ts` — `computeRevenueImpact()` takes `RevenueImpactInput`, returns `RevenueImpactResult`.
+* **Data layer:** `lib/data/revenue-impact.ts` — `fetchRevenueImpact()` runs 5 parallel Supabase queries (locations, target_queries, sov_evaluations x2, ai_hallucinations).
+* **Dashboard:** `app/dashboard/revenue-impact/page.tsx` — Server Component with hero dollar amount, line item cards, config form.
+* **Sidebar:** "Revenue Impact" nav item with `DollarSign` icon, path `/dashboard/revenue-impact`.
+* **Fixtures:** `MOCK_REVENUE_IMPACT_INPUT` in `src/__fixtures__/golden-tenant.ts` — 3 SOV gaps, 2 hallucinations, competitor advantage.
+
 ---
 > **End of System Instructions**

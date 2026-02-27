@@ -759,6 +759,31 @@ export const MOCK_ENTITY_CHECK: import('@/lib/services/entity-health.service').E
  * Mixed status: hours + menu active, actions missing, CTAs partial.
  * Expected score: 15 + 15 + 0 + 0 + 5 + 5 = 40 (Partially Ready)
  */
+/**
+ * Sprint 85 — Canonical RevenueImpactInput for Charcoal N Chill.
+ * $45 avg customer, 800 covers. 3 SOV gaps, 2 hallucinations, competitor advantage.
+ */
+export const MOCK_REVENUE_IMPACT_INPUT: import('@/lib/services/revenue-impact.service').RevenueImpactInput = {
+  config: {
+    avgCustomerValue: 45,
+    monthlyCovers: 800,
+  },
+  sovGaps: [
+    { queryText: 'hookah near me', queryCategory: 'near_me', missingEngineCount: 3, totalEngineCount: 3 },
+    { queryText: 'private event venue Alpharetta', queryCategory: 'discovery', missingEngineCount: 3, totalEngineCount: 3 },
+    { queryText: 'late night lounge Alpharetta', queryCategory: 'discovery', missingEngineCount: 2, totalEngineCount: 3 },
+  ],
+  openHallucinations: [
+    { claimText: 'Charcoal N Chill closes at 10pm', severity: 'high' },
+    { claimText: 'Charcoal N Chill is permanently closed', severity: 'critical' },
+  ],
+  competitorData: {
+    yourSov: 0.19,
+    topCompetitorSov: 0.24,
+    topCompetitorName: 'Cloud 9 Lounge',
+  },
+};
+
 export const MOCK_AGENT_READINESS_INPUT: import('@/lib/services/agent-readiness.service').AgentReadinessInput = {
   location: {
     businessName: 'Charcoal N Chill',

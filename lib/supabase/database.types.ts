@@ -935,6 +935,8 @@ export type Database = {
           updated_at: string | null;
           google_location_name: string | null;
           gbp_integration_id: string | null;
+          avg_customer_value: number | null;
+          monthly_covers: number | null;
         };
         Insert: {
           id?: string;
@@ -962,6 +964,8 @@ export type Database = {
           updated_at?: string | null;
           google_location_name?: string | null;
           gbp_integration_id?: string | null;
+          avg_customer_value?: number | null;
+          monthly_covers?: number | null;
         };
         Update: {
           id?: string;
@@ -989,6 +993,8 @@ export type Database = {
           updated_at?: string | null;
           google_location_name?: string | null;
           gbp_integration_id?: string | null;
+          avg_customer_value?: number | null;
+          monthly_covers?: number | null;
         };
         Relationships: [
           {

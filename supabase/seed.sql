@@ -1833,3 +1833,13 @@ WHERE l.org_id = 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11'
   AND l.slug   = 'alpharetta'
 LIMIT 1
 ON CONFLICT (org_id, location_id) DO NOTHING;
+
+-- ── 26. REVENUE CONFIG SEED DATA (Sprint 85) ───────────────────────────────
+-- Revenue Impact Calculator — Set avg_customer_value and monthly_covers on
+-- the Charcoal N Chill location for deterministic revenue impact tests.
+
+UPDATE public.locations
+SET avg_customer_value = 45.00,
+    monthly_covers = 800
+WHERE org_id = 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11'
+  AND slug = 'alpharetta';

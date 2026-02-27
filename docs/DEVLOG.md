@@ -4,6 +4,40 @@
 
 ---
 
+## 2026-02-28 — Sprint 85: Revenue Impact Calculator (Completed)
+
+**Goal:** Build a Revenue Impact Calculator that converts abstract visibility scores into estimated dollar amounts. Three revenue categories: SOV gaps (missed AI-assisted visits), hallucination deterrence (customers lost to inaccurate info), and competitor advantage (diverted covers). The PROVE-stage feature that drives subscription renewals.
+
+**Scope:**
+- `supabase/migrations/20260226000012_revenue_config.sql` — **NEW.** Adds `avg_customer_value` (numeric, default 45.00) and `monthly_covers` (integer, default 800) to `locations` table.
+- `lib/services/revenue-impact.service.ts` — **NEW.** ~230 lines, all pure functions. `computeRevenueImpact()` entry point. Three revenue streams: SOV gap revenue (category-specific search volumes x CTR x gap ratio x avg customer value), hallucination revenue (severity-based deterrence x avg customer value), competitor revenue (advantage ratio x monthly covers x AI influence rate x avg customer value). Constants: `CATEGORY_SEARCH_VOLUME` (discovery=90, near_me=120, etc.), `AI_RECOMMENDATION_CTR` (8%), `AI_INFLUENCE_RATE` (5%), `SEVERITY_IMPACT` (critical=8, high=5, medium=2, low=1). Exports `DEFAULT_REVENUE_CONFIG`. All constants exported for testing.
+- `lib/data/revenue-impact.ts` — **NEW.** `fetchRevenueImpact()` — 5 parallel queries (location config, target queries, SOV evaluations, hallucinations, competitor evaluations). Computes SOV gaps from null rank_position. Finds top competitor from `mentioned_competitors` JSONB. Falls back to `DEFAULT_REVENUE_CONFIG` when location fields null.
+- `app/dashboard/revenue-impact/page.tsx` — **NEW.** Server Component. Hero dollar card (large green amount + annual projection), RevenueLineItemCard per category (icon, label, dollar amount, description, detail text), RevenueConfigForm (client component, number inputs, server action submit). Empty state + zero-impact positive message.
+- `app/dashboard/revenue-impact/_components/RevenueConfigForm.tsx` — **NEW.** Client Component. Two number inputs (avg customer value, monthly covers). Server action on submit. Shows "using defaults" notice when isDefaultConfig.
+- `app/dashboard/revenue-impact/actions.ts` — **NEW.** `updateRevenueConfig()` server action. Zod v4 validation, org-scoped update, revalidatePath.
+- `app/dashboard/revenue-impact/error.tsx` — **NEW.** Standard error boundary with Sentry.
+- `components/layout/Sidebar.tsx` — **MODIFIED.** Added "Revenue Impact" link (test-id: nav-revenue-impact) with DollarSign icon.
+- `src/__fixtures__/golden-tenant.ts` — **MODIFIED.** Added `MOCK_REVENUE_IMPACT_INPUT` (3 SOV gaps, 2 hallucinations, competitor advantage).
+- `supabase/seed.sql` — **MODIFIED.** Added revenue config to seed location (section 26).
+- `lib/supabase/database.types.ts` — **MODIFIED.** Added `avg_customer_value` and `monthly_covers` to locations Row/Insert/Update.
+
+**Tests added:**
+- `src/__tests__/unit/revenue-impact-service.test.ts` — **35 tests.** SOV gap revenue, hallucination revenue, competitor revenue, config, helpers, MOCK integration.
+- `src/__tests__/unit/revenue-impact-data.test.ts` — **9 tests.** Parallel queries, org scoping, SOV gap computation, competitor detection, empty data handling.
+- `src/__tests__/unit/revenue-impact-page.test.ts` — **10 tests.** Hero number, line items, config form, empty state, sidebar.
+- `src/__tests__/unit/revenue-config-action.test.ts` — **6 tests.** Validation, org scoping, revalidation, error handling.
+
+**Run commands:**
+```bash
+npx vitest run src/__tests__/unit/revenue-impact-service.test.ts      # 35 tests passing
+npx vitest run src/__tests__/unit/revenue-impact-data.test.ts         # 9 tests passing
+npx vitest run src/__tests__/unit/revenue-impact-page.test.ts         # 10 tests passing
+npx vitest run src/__tests__/unit/revenue-config-action.test.ts       # 6 tests passing
+npx vitest run                                                         # All tests passing
+```
+
+---
+
 ## 2026-02-28 — Sprint 84: Agent Readiness Score (AAO) (Completed)
 
 **Goal:** Build an AI Agent Readiness Score (0-100) evaluating whether autonomous AI agents can transact with the business. Evaluates 6 weighted capabilities: structured hours, menu schema, ReserveAction, OrderAction, accessible CTAs, and CAPTCHA-free flows. The Assistive Agent Optimization (AAO) metric no competitor offers for restaurants.
