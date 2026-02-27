@@ -691,6 +691,7 @@ step.run('audit-org', async () => {
 | `audit-daily-cron` | 5 | 3 | OpenAI rate limit |
 | `content-audit-monthly-cron` | 3 | 2 | Polite crawling |
 | `post-publish-sov-check` | 10 | 1 | Best-effort SOV re-check; no retry storm needed |
+| `weekly-digest-cron` | 5 | 1 | Best-effort email; no retry storm for send failures |
 
 ### 30.5 — Durable sleep for deferred work
 Use `step.sleep()` instead of Redis TTL scheduling for long-running waits:
@@ -1192,6 +1193,25 @@ The Proof Timeline is a visual timeline correlating user actions with measurable
 * **No stored timeline table.** Timeline is computed on-demand from existing data. No `proof_timeline` table.
 * **Bot label map:** Lightweight `formatBotLabel()` map in the service — does NOT import `detectAIBot` from `lib/crawler/bot-detector.ts` to keep the service pure.
 * **Fixtures:** `MOCK_TIMELINE_INPUT` in `src/__fixtures__/golden-tenant.ts`. Seed UUIDs: h0–h3 (visibility_analytics history).
+
+---
+
+## 46. Weekly Digest Email — Cron + Inngest + Resend Pattern (Sprint 78)
+
+The weekly digest email runs as a cron → Inngest fan-out → per-org Resend send pipeline.
+
+* **Cron route:** `app/api/cron/weekly-digest/route.ts` — dispatches `cron/digest.weekly` event.
+* **Kill switch:** `STOP_DIGEST_CRON`
+* **Inngest function:** `weekly-digest-cron` (concurrency=5, retries=1)
+* **Opt-out:** Respects `organizations.notify_weekly_digest` (default `true`). Only sends to `plan_status` in `['active', 'trialing']`.
+* **Recipient:** `users.email` resolved via `organizations.owner_user_id`.
+* **Side-effect resilience (§17):** Every `sendDigestEmail()` call is wrapped in `.catch()`. A failed email for one org never aborts the fan-out.
+* **React Email template:** `emails/weekly-digest.tsx` — rendered via Resend's `react:` prop.
+* **No AI calls.** All content is deterministic from existing dashboard data.
+* **Pure service:** `lib/services/weekly-digest.service.ts` — `buildDigestPayload()`. No I/O.
+* **Data layer:** `lib/data/weekly-digest.ts` — `fetchDigestForOrg()`. 7 parallel queries + Health Score fetch.
+* **Email sender:** `lib/email/send-digest.ts` — `sendDigestEmail()`. Resend wrapper with API key guard.
+* **Fixtures:** `MOCK_DIGEST_INPUT` in `src/__fixtures__/golden-tenant.ts`.
 
 ---
 > **End of System Instructions**

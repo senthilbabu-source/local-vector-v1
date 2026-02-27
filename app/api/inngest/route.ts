@@ -13,6 +13,7 @@ import { sovCronFunction } from '@/lib/inngest/functions/sov-cron';
 import { auditCronFunction } from '@/lib/inngest/functions/audit-cron';
 import { contentAuditCronFunction } from '@/lib/inngest/functions/content-audit-cron';
 import { postPublishCheckFunction } from '@/lib/inngest/functions/post-publish-check';
+import { weeklyDigestCron } from '@/lib/inngest/functions/weekly-digest-cron';
 
 export const { GET, POST, PUT } = serve({
   client: inngest,
@@ -21,6 +22,7 @@ export const { GET, POST, PUT } = serve({
     auditCronFunction,
     contentAuditCronFunction,
     postPublishCheckFunction,
+    weeklyDigestCron,
   ],
 });
 

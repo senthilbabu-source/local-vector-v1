@@ -30,4 +30,9 @@ export type Events = {
       publishedAt: string;
     };
   };
+
+  /** Triggered by Vercel Cron → Weekly Digest cron route dispatcher. Fetches own data. */
+  'cron/digest.weekly': {
+    data: Record<string, never>;
+  };
 };

@@ -41,7 +41,7 @@ export interface CronHealthSummary {
 }
 
 // ---------------------------------------------------------------------------
-// Static registry — metadata for the 4 known cron jobs
+// Static registry — metadata for the 5 known cron jobs
 // ---------------------------------------------------------------------------
 
 interface CronRegistryEntry {
@@ -55,6 +55,7 @@ export const CRON_REGISTRY: CronRegistryEntry[] = [
   { cronName: 'sov', label: 'SOV Engine', schedule: 'Weekly Sun 2 AM EST' },
   { cronName: 'citation', label: 'Citation Scan', schedule: '1st Sun Monthly' },
   { cronName: 'content-audit', label: 'Content Audit', schedule: '1st of Month 3 AM EST' },
+  { cronName: 'weekly-digest', label: 'Weekly Digest', schedule: 'Weekly Mon 8 AM EST' },
 ];
 
 // ---------------------------------------------------------------------------

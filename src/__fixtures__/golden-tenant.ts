@@ -497,3 +497,32 @@ export const RIVAL_TENANT = {
     role: 'owner' as const,
   },
 } as const;
+
+/**
+ * Sprint 78 — Canonical DigestDataInput fixture for Charcoal N Chill.
+ * Represents a good week: score up +3, one win, one new issue, one opportunity.
+ */
+export const MOCK_DIGEST_INPUT: import('@/lib/services/weekly-digest.service').DigestDataInput = {
+  org: { id: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', name: "Aruna's Venue" },
+  owner: { email: 'dev@localvector.ai', full_name: 'Aruna Surendera Babu' },
+  location: { business_name: 'Charcoal N Chill', city: 'Alpharetta', state: 'GA' },
+  currentHealthScore: 67,
+  previousHealthScore: 64,
+  currentSov: 0.19,
+  previousSov: 0.17,
+  newHallucinations: [
+    { claim_text: 'Charcoal N Chill closes at 10pm', severity: 'high', model_provider: 'openai-gpt4o' },
+  ],
+  resolvedHallucinations: 1,
+  sovWins: [
+    { query_text: 'hookah near Alpharetta', engine: 'perplexity' },
+  ],
+  topRecommendation: {
+    title: 'Add FAQ Schema',
+    description: 'Add structured FAQ markup for estimated +8 points.',
+    href: '/dashboard/page-audits',
+    estimatedImpact: 8,
+  },
+  botVisitsThisWeek: 12,
+  newBlindSpots: 3,
+};

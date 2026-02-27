@@ -4,6 +4,40 @@
 
 ---
 
+## 2026-02-28 — Sprint 78: Weekly AI Snapshot Email with CTAs (Completed)
+
+**Goal:** Build a weekly digest email sent every Monday via Resend + React Email, showing AI Health Score trend, new issues, wins, opportunities, and bot activity — the retention engine that keeps restaurant owners engaged without logging in.
+
+**Scope:**
+- `lib/services/weekly-digest.service.ts` — **NEW.** Pure payload builder (~230 lines). Exports: `buildDigestPayload()` — assembles subject line (dynamic with score + delta), health score trend (up/down/flat/new), SOV delta, issues from hallucinations (severity-emoji'd), wins (resolved hallucinations, first SOV mentions, score improvements), opportunities (top recommendation, blind spots), bot summary. Helper formatters: `formatProvider()`, `formatEngine()`, `truncate()`. No I/O.
+- `emails/weekly-digest.tsx` — **NEW.** React Email template. Sections: header with business name, AI Health Score with delta, SOV metric, issues with CTA links, wins, opportunities with CTA links, bot summary, primary dashboard CTA, footer with unsubscribe link. Dark theme matching existing `WeeklyDigest.tsx`. Inline styles per React Email convention.
+- `lib/email/send-digest.ts` — **NEW.** Resend wrapper. `sendDigestEmail()` uses Resend's `react:` prop for server-side rendering. Guards against missing `RESEND_API_KEY`. Throws on error (caller `.catch()`es per §17).
+- `lib/data/weekly-digest.ts` — **NEW.** Data fetcher for cron/Inngest context (~170 lines). `fetchDigestForOrg()` — checks `notify_weekly_digest`, fetches owner email, primary location, then 7 parallel queries (current/previous snapshots, new hallucinations, resolved count, SOV wins, bot visits, blind spot data). Resolves SOV win query text. Calls Health Score fetcher for top recommendation. Assembles `DigestDataInput`, calls `buildDigestPayload()`.
+- `lib/inngest/functions/weekly-digest-cron.ts` — **NEW.** Inngest function `weekly-digest-cron` (concurrency=5, retries=1). Step 1: fetch orgs with `notify_weekly_digest=true` + active/trialing status. Step 2: fan-out per org — `fetchDigestForOrg()` + `sendDigestEmail()` with `.catch()` per §17. Returns {sent, skipped, failed}.
+- `lib/inngest/events.ts` — **MODIFIED.** Added `cron/digest.weekly` event type.
+- `app/api/inngest/route.ts` — **MODIFIED.** Registered `weeklyDigestCron` function.
+- `app/api/cron/weekly-digest/route.ts` — **NEW.** Cron route dispatcher (§30.1). CRON_SECRET auth, `STOP_DIGEST_CRON` kill switch, Inngest dispatch primary, inline fallback. Cron-logged via `cron-logger.ts`.
+- `vercel.json` — **NEW.** Added `weekly-digest` cron: `0 13 * * 1` (Monday 1pm UTC / 8am EST).
+- `src/__fixtures__/golden-tenant.ts` — **MODIFIED.** Added `MOCK_DIGEST_INPUT` fixture (good week: score +3, one win, one issue, one opportunity).
+
+**Tests added:**
+- `src/__tests__/unit/weekly-digest-service.test.ts` — **35 Vitest tests.** Subject line generation, health score delta/trend, SOV conversion, issues with severity emojis, wins aggregation, opportunities, edge cases, helper formatters.
+- `src/__tests__/unit/weekly-digest-data.test.ts` — **10 Vitest tests.** Opt-out check, parallel queries, org scoping, SOV win resolution, blind spot calculation.
+- `src/__tests__/unit/weekly-digest-cron-route.test.ts` — **6 Vitest tests.** Auth guard, kill switch, Inngest dispatch, inline fallback, cron logging.
+- `src/__tests__/unit/send-digest-email.test.ts` — **4 Vitest tests.** API key guard, Resend call, React Email rendering, error propagation.
+
+**Run commands:**
+```bash
+npx vitest run src/__tests__/unit/weekly-digest-service.test.ts        # 35 tests passing
+npx vitest run src/__tests__/unit/weekly-digest-data.test.ts           # 10 tests passing
+npx vitest run src/__tests__/unit/weekly-digest-cron-route.test.ts     # 6 tests passing
+npx vitest run src/__tests__/unit/send-digest-email.test.ts            # 4 tests passing
+npx vitest run                                                          # 1232 tests passing (94 files)
+npx tsc --noEmit                                                        # 0 type errors
+```
+
+---
+
 ## 2026-02-28 — Sprint 77: Before/After Proof Timeline (Completed)
 
 **Goal:** Build a visual timeline correlating user actions with measurable outcomes — "You added FAQ schema → GPTBot re-crawled → SOV increased 58% in 3 weeks" — proving ROI and driving retention.
