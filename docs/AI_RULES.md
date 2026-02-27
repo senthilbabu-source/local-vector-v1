@@ -1599,4 +1599,12 @@ After any migration that adds tables or columns, the following three files must 
 **Enforcement:** `src/__tests__/unit/database-types-completeness.test.ts` will fail if `(supabase as any)` casts are reintroduced for Sprint 99-101 tables.
 
 ---
+
+## §56. Security Maintenance Rules (FIX-2)
+
+**npm audit:** Run `npm audit` before every production deployment. Any HIGH or CRITICAL vulnerability blocks deployment.
+**RLS completeness:** Every new table with an `org_id` column MUST have ENABLE ROW LEVEL SECURITY and at minimum a SELECT policy using `current_user_org_id()`. Tables without `org_id` (global lookup tables) document their public-read intent with a comment.
+**MCP security:** The `/api/mcp/[transport]` endpoint serves org-scoped tools. The `@modelcontextprotocol/sdk` package must be at the latest patched version at all times. Cross-client data leaks at the transport layer bypass all org isolation.
+
+---
 > **End of System Instructions**

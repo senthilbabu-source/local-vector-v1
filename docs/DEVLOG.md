@@ -4,6 +4,43 @@
 
 ---
 
+## 2026-02-27 — Sprint FIX-2: Security Hardening — npm Vulnerabilities + memberships RLS (Completed)
+
+**Problem:**
+- 3 HIGH npm vulnerabilities: @modelcontextprotocol/sdk (cross-client data leak at MCP transport), minimatch (ReDoS), rollup (arbitrary file write).
+- memberships table had no ENABLE ROW LEVEL SECURITY — any authenticated user could read all org members.
+
+**Solution:**
+- `npm audit fix` — Updated @modelcontextprotocol/sdk to 1.27.1, minimatch to 9.0.9, rollup to 4.59.0. 0 HIGH vulnerabilities remain.
+- `supabase/migrations/20260303000001_memberships_rls.sql` — ENABLE ROW LEVEL SECURITY + 4 org isolation policies (select/insert/update/delete using current_user_org_id()).
+- `supabase/prod_schema.sql` — Updated with memberships RLS.
+- local_occasions: assessed as global table (no org_id column) — no RLS needed, same pattern as directories.
+
+**Tests added:**
+- `src/__tests__/unit/memberships-rls.test.ts` — **12 Vitest tests.** SELECT/INSERT/UPDATE/DELETE isolation + service role bypass + migration/schema verification.
+- `src/__tests__/unit/npm-audit.test.ts` — **3 Vitest tests.** Version guard against vulnerable packages.
+
+**Files changed:**
+- `package.json` — MODIFIED (auto): npm audit fix updated dependency versions
+- `package-lock.json` — MODIFIED (auto): lockfile updated
+- `supabase/migrations/20260303000001_memberships_rls.sql` — NEW: ENABLE RLS + 4 policies on memberships
+- `supabase/prod_schema.sql` — MODIFIED: memberships RLS/policies added
+- `src/__tests__/unit/memberships-rls.test.ts` — NEW: 12 RLS isolation tests
+- `src/__tests__/unit/npm-audit.test.ts` — NEW: 3 security version guard tests
+- `docs/AI_RULES.md` — MODIFIED: added §56 security maintenance rules
+- `docs/DEVLOG.md` — MODIFIED: this entry
+
+**Result:** 0 HIGH npm vulnerabilities. memberships RLS active. MCP endpoint unchanged and passing.
+
+```bash
+npx vitest run src/__tests__/unit/memberships-rls.test.ts    # 12 tests
+npx vitest run src/__tests__/unit/npm-audit.test.ts          # 3 tests
+npx vitest run                                                # 2570 total — no regressions
+npx tsc --noEmit                                              # 0 type errors
+```
+
+---
+
 ## 2026-02-27 — Sprint FIX-1: Schema Types Regeneration + prod_schema.sql Sync (Completed)
 
 **Problem:**

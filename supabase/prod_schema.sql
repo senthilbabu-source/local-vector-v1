@@ -1763,6 +1763,21 @@ ALTER TABLE "public"."menu_categories" ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "public"."menu_items" ENABLE ROW LEVEL SECURITY;
 
 
+ALTER TABLE "public"."memberships" ENABLE ROW LEVEL SECURITY;
+
+
+CREATE POLICY "memberships_org_isolation_select" ON "public"."memberships" FOR SELECT USING (("org_id" = "public"."current_user_org_id"()));
+
+
+CREATE POLICY "memberships_org_isolation_insert" ON "public"."memberships" FOR INSERT WITH CHECK (("org_id" = "public"."current_user_org_id"()));
+
+
+CREATE POLICY "memberships_org_isolation_update" ON "public"."memberships" FOR UPDATE USING (("org_id" = "public"."current_user_org_id"()));
+
+
+CREATE POLICY "memberships_org_isolation_delete" ON "public"."memberships" FOR DELETE USING (("org_id" = "public"."current_user_org_id"()));
+
+
 CREATE POLICY "org_isolation_delete" ON "public"."ai_evaluations" FOR DELETE USING (("org_id" = "public"."current_user_org_id"()));
 
 
