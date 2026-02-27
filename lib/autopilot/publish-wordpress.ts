@@ -55,33 +55,39 @@ export async function publishToWordPress(
   config: WordPressConfig,
 ): Promise<PublishResult> {
   if (!config.siteUrl || !config.username || !config.appPassword) {
-    throw new Error('WordPress credentials not configured');
+    throw new Error('WordPress credentials not configured. Check your Application Password in Settings → Integrations.');
   }
 
-  // Normalize site URL
-  const siteUrl = config.siteUrl.replace(/\/+$/, '');
-  const apiUrl = `${siteUrl}/wp-json/wp/v2/pages`;
+  // Normalize site URL — handles trailing slashes safely
+  const apiUrl = new URL('/wp-json/wp/v2/pages', config.siteUrl).href;
 
   // Convert content to WP blocks
   const wpContent = contentToWPBlocks(draft.draft_content);
 
   // Basic auth header (Application Password)
+  // Trim external whitespace from password (users may copy-paste with extra spaces)
+  // but preserve internal spaces — WP Application Passwords are space-separated groups
   const authHeader = Buffer.from(
-    `${config.username}:${config.appPassword}`,
+    `${config.username}:${config.appPassword.trim()}`,
   ).toString('base64');
 
-  const response = await fetch(apiUrl, {
-    method: 'POST',
-    headers: {
-      Authorization: `Basic ${authHeader}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      title: draft.draft_title,
-      content: wpContent,
-      status: 'draft', // Second approval layer in WP admin
-    }),
-  });
+  let response: Response;
+  try {
+    response = await fetch(apiUrl, {
+      method: 'POST',
+      headers: {
+        Authorization: `Basic ${authHeader}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        title: draft.draft_title,
+        content: wpContent,
+        status: 'draft', // Second approval layer in WP admin
+      }),
+    });
+  } catch {
+    throw new Error('WordPress site unreachable. Check the site URL in Settings → Integrations.');
+  }
 
   if (response.status === 401) {
     throw new Error(

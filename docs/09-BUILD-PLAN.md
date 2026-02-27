@@ -519,15 +519,20 @@
   - [x] Map GBP attributes → `locations.amenities` set to null (intentional gap per RFC §4.3)
   - [ ] **⚠️ Timezone gap (RFC Rev 2 §4.2):** GBP hours have no explicit timezone. *(deferred to Sprint 90)*
 
-- [ ] **WordPress Publish Integration**
-  - [ ] Build `lib/publish/wordpress.ts` — WordPress REST API client (basic auth or application password)
-  - [ ] Add WordPress connection settings to `/settings` page (site URL + application password)
-  - [ ] Wire `POST /api/content-drafts/:id/publish` with `publish_target: 'wordpress'`
-  - [ ] On publish: create WordPress page/post, set status to `draft` (user approves in WP), store `published_url` in `content_drafts`
+- [x] **WordPress Publish Integration** *(Sprint 94 — verified + fixed)*
+  - [x] Build `lib/autopilot/publish-wordpress.ts` — WordPress REST API client (Basic auth, Application Password)
+  - [x] WordPress connection settings at `/settings` (site URL + application password in `location_integrations`)
+  - [x] Wire `publishDraft()` server action with `publish_target: 'wordpress'`
+  - [x] On publish: create WordPress draft page, store `published_url` in `content_drafts`
+  - [x] Publish confirmation dialog (irreversible external write guard)
+  - [x] 14 unit tests (`publish-wordpress.test.ts`)
 
-- [ ] **GBP Post Publish Integration**
-  - [ ] Build `lib/publish/gbp-post.ts` — posts content as GBP Update using stored OAuth token
-  - [ ] Wire `POST /api/content-drafts/:id/publish` with `publish_target: 'gbp_post'`
+- [x] **GBP Post Publish Integration** *(Sprint 94 — verified + fixed)*
+  - [x] Build `lib/autopilot/publish-gbp.ts` — posts content as GBP Local Post using stored OAuth token
+  - [x] Wire `publishDraft()` server action with `publish_target: 'gbp_post'`
+  - [x] Token refresh via `isTokenExpired()` + `refreshGBPAccessToken()` from Sprint 90
+  - [x] HTML tag stripping + 1500-char sentence-boundary truncation
+  - [x] 20 unit tests (`publish-gbp.test.ts`)
 
 ### Acceptance Criteria
 - [ ] New user signing up via Google can import GBP data and reach dashboard in < 30 seconds

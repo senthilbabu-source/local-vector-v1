@@ -4,6 +4,50 @@
 
 ---
 
+## 2026-02-28 — Sprint 94: Publish Pipeline Verification (WordPress + GBP Post) (Completed)
+
+**Goal:** Verify and fix the WordPress and GBP Post publishers end-to-end. Both files existed at ~70% but had zero test coverage. Close the detect → draft → publish loop.
+
+**Diagnosis findings:**
+- publish-wordpress.ts:
+  - Gap W1 (DB update): Handled by publishDraft() action (correct architecture — publisher returns result, caller updates DB)
+  - Gap W2 (Content-Type): Already correct (application/json header)
+  - Gap W3 (App Password format): Already correct — added external whitespace trimming
+  - Gap W4 (Error codes): Descriptive throw messages (action catch block handles)
+  - Gap W5 (Content format): Already correct — WP block format
+  - Fixed: URL normalization via `new URL()`, network error catch (site unreachable)
+- publish-gbp.ts:
+  - Gap G1 (Token expiry check): Inline check — fixed to use shared `isTokenExpired()` (5-min buffer)
+  - Gap G2 (Token refresh flow): Already implemented (pre-flight + 401 retry)
+  - Gap G3 (Content truncation): Already implemented at sentence boundary, 1500 chars
+  - Gap G4 (Parent path): Already correct — fetches `google_location_name` from locations
+  - Gap G5 (DB update): Handled by action (correct architecture)
+  - Gap G6 (callToAction): Not implemented — intentional omission
+  - Fixed: Added HTML tag stripping before GBP summary (plain text only)
+
+**Changes:**
+- `lib/autopilot/publish-wordpress.ts` — **FIXED.** URL normalization with `new URL()`, Application Password whitespace trim, network error handling (site unreachable).
+- `lib/autopilot/publish-gbp.ts` — **FIXED.** Wired `isTokenExpired()` from Sprint 90 shared service (5-min buffer), added HTML tag stripping for GBP plain-text summary.
+- `app/dashboard/content-drafts/_components/ContentDraftCard.tsx` — **MODIFIED.** Added WordPress/GBP publish buttons (target-aware), publish confirmation dialog, success/error banners, `data-testid` attributes.
+- `supabase/seed.sql` — **MODIFIED.** Added 2 approved content draft rows (f5, f6 UUIDs) for publish pipeline testing.
+- `src/__fixtures__/golden-tenant.ts` — **MODIFIED.** Added MOCK_WP_CREDENTIALS, MOCK_CONTENT_DRAFT_WP, MOCK_CONTENT_DRAFT_GBP.
+
+**Tests added:**
+- `publish-wordpress.test.ts` — **14 Vitest tests.** API call, auth header, error codes, network error, password whitespace, URL normalization.
+- `publish-gbp.test.ts` — **20 Vitest tests.** API call, token refresh, 401 retry, content truncation, HTML stripping, no-connection error.
+- `publish-draft-action.test.ts` — **12 Vitest tests.** WP routing + credential check, GBP routing, auth, HITL validation.
+
+**Run commands:**
+```bash
+npx vitest run src/__tests__/unit/publish-wordpress.test.ts        # 14 tests
+npx vitest run src/__tests__/unit/publish-gbp.test.ts              # 20 tests
+npx vitest run src/__tests__/unit/publish-draft-action.test.ts     # 12 tests
+npx vitest run                                                       # 2005 tests, 0 regressions
+npx tsc --noEmit                                                     # 0 type errors
+```
+
+---
+
 ## 2026-02-28 — Sprint 93: Business Info Editor (Post-Onboarding) (Completed)
 
 **Goal:** Allow users to update their ground-truth business data (hours, amenities, basic info) at any time post-onboarding without re-running the wizard. Added Business Info sub-route to Settings. Reused UI patterns from TruthCalibrationForm, triggerGBPImport(), and triggerFirstAudit() from prior sprints.

@@ -1,8 +1,9 @@
 'use client';
 
-import { useTransition } from 'react';
+import { useState, useTransition } from 'react';
 import Link from 'next/link';
 import { approveDraft, rejectDraft, archiveDraft, publishDraft } from '../actions';
+import type { PublishActionResult } from '../actions';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -25,6 +26,8 @@ interface ContentDraftCardProps {
   draft: ContentDraftRow;
 }
 
+type PublishTarget = 'download' | 'wordpress' | 'gbp_post';
+
 // ---------------------------------------------------------------------------
 // Badge helpers (literal Tailwind classes for JIT safety)
 // ---------------------------------------------------------------------------
@@ -44,12 +47,12 @@ function triggerBadge(type: string): { label: string; classes: string } {
   }
 }
 
-function statusBadge(status: string): { label: string; classes: string } {
+function statusBadge(status: string): { label: string; classes: string; testId?: string } {
   switch (status) {
     case 'approved':
       return { label: 'Approved', classes: 'bg-emerald-400/10 text-emerald-400 ring-emerald-400/20' };
     case 'published':
-      return { label: 'Published', classes: 'bg-blue-400/10 text-blue-400 ring-blue-400/20' };
+      return { label: 'Published', classes: 'bg-blue-400/10 text-blue-400 ring-blue-400/20', testId: 'draft-status-published' };
     case 'rejected':
       return { label: 'Rejected', classes: 'bg-alert-crimson/10 text-alert-crimson ring-alert-crimson/20' };
     case 'archived':
@@ -76,12 +79,26 @@ function aeoColor(score: number): string {
   return 'text-alert-crimson';
 }
 
+function targetLabel(target: PublishTarget): string {
+  switch (target) {
+    case 'wordpress':
+      return 'WordPress';
+    case 'gbp_post':
+      return 'Google Business Profile';
+    case 'download':
+      return 'Download';
+  }
+}
+
 // ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
 
 export default function ContentDraftCard({ draft }: ContentDraftCardProps) {
   const [isPending, startTransition] = useTransition();
+  const [confirmTarget, setConfirmTarget] = useState<PublishTarget | null>(null);
+  const [isPublishing, setIsPublishing] = useState(false);
+  const [publishResult, setPublishResult] = useState<PublishActionResult | null>(null);
 
   const trigger = triggerBadge(draft.trigger_type);
   const status = statusBadge(draft.status);
@@ -134,6 +151,37 @@ export default function ContentDraftCard({ draft }: ContentDraftCardProps) {
     });
   }
 
+  function handlePublishClick(target: PublishTarget) {
+    if (target === 'download') {
+      handlePublishDownload();
+      return;
+    }
+    // External publish targets require confirmation
+    setConfirmTarget(target);
+    setPublishResult(null);
+  }
+
+  function handleConfirmPublish() {
+    if (!confirmTarget || isPublishing) return;
+    setIsPublishing(true);
+    startTransition(async () => {
+      const fd = new FormData();
+      fd.set('draft_id', draft.id);
+      fd.set('publish_target', confirmTarget);
+      const result = await publishDraft(fd);
+      setPublishResult(result);
+      setIsPublishing(false);
+      if (result.success) {
+        setConfirmTarget(null);
+      }
+    });
+  }
+
+  function handleCancelPublish() {
+    setConfirmTarget(null);
+    setPublishResult(null);
+  }
+
   return (
     <div
       className={[
@@ -153,7 +201,7 @@ export default function ContentDraftCard({ draft }: ContentDraftCardProps) {
         <span className="text-xs text-slate-600">{contentTypeLabel(draft.content_type)}</span>
         <span
           className={`ml-auto inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ring-1 ring-inset ${status.classes}`}
-          data-testid="status-badge"
+          data-testid={status.testId ?? 'status-badge'}
         >
           {status.label}
         </span>
@@ -173,6 +221,39 @@ export default function ContentDraftCard({ draft }: ContentDraftCardProps) {
       <p className="text-xs text-slate-400 line-clamp-3 mb-3">
         {draft.draft_content}
       </p>
+
+      {/* ── Success banner ─────────────────────────────────────── */}
+      {publishResult?.success && (
+        <div
+          className="mb-3 rounded-lg bg-signal-green/10 border border-signal-green/20 px-3 py-2 text-xs text-signal-green"
+          data-testid="publish-success-banner"
+        >
+          Published successfully.
+          {publishResult.publishedUrl && (
+            <>
+              {' '}
+              <a
+                href={publishResult.publishedUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="underline font-semibold"
+              >
+                View post
+              </a>
+            </>
+          )}
+        </div>
+      )}
+
+      {/* ── Error banner ───────────────────────────────────────── */}
+      {publishResult && !publishResult.success && (
+        <div
+          className="mb-3 rounded-lg bg-alert-crimson/10 border border-alert-crimson/20 px-3 py-2 text-xs text-alert-crimson"
+          data-testid="publish-error-banner"
+        >
+          {publishResult.error}
+        </div>
+      )}
 
       {/* ── Footer: AEO score + date + actions ─────────────────── */}
       <div className="flex items-center justify-between">
@@ -214,15 +295,42 @@ export default function ContentDraftCard({ draft }: ContentDraftCardProps) {
             </>
           )}
           {isApproved && (
-            <button
-              type="button"
-              onClick={handlePublishDownload}
-              disabled={isPending}
-              className="rounded-md bg-signal-green px-3 py-1 text-xs font-semibold text-deep-navy hover:bg-signal-green/90 transition disabled:opacity-50"
-              data-testid="publish-btn"
-            >
-              {isPending ? 'Publishing...' : 'Publish'}
-            </button>
+            <>
+              {/* WordPress publish — shown for non-GBP content types */}
+              {draft.content_type !== 'gbp_post' && (
+                <button
+                  type="button"
+                  onClick={() => handlePublishClick('wordpress')}
+                  disabled={isPending}
+                  className="rounded-md bg-signal-green px-3 py-1 text-xs font-semibold text-deep-navy hover:bg-signal-green/90 transition disabled:opacity-50"
+                  data-testid="publish-btn-wordpress"
+                >
+                  {isPending ? 'Publishing...' : 'WordPress'}
+                </button>
+              )}
+              {/* GBP Post publish — shown for gbp_post content type */}
+              {draft.content_type === 'gbp_post' && (
+                <button
+                  type="button"
+                  onClick={() => handlePublishClick('gbp_post')}
+                  disabled={isPending}
+                  className="rounded-md bg-signal-green px-3 py-1 text-xs font-semibold text-deep-navy hover:bg-signal-green/90 transition disabled:opacity-50"
+                  data-testid="publish-btn-gbp"
+                >
+                  {isPending ? 'Publishing...' : 'GBP Post'}
+                </button>
+              )}
+              {/* Download — always available */}
+              <button
+                type="button"
+                onClick={handlePublishDownload}
+                disabled={isPending}
+                className="rounded-md bg-white/5 px-3 py-1 text-xs font-semibold text-slate-400 hover:bg-white/10 transition disabled:opacity-50"
+                data-testid="publish-btn"
+              >
+                Download
+              </button>
+            </>
           )}
           {!isPublished && (
             <button
@@ -237,6 +345,57 @@ export default function ContentDraftCard({ draft }: ContentDraftCardProps) {
           )}
         </div>
       </div>
+
+      {/* ── Publish Confirmation Dialog ────────────────────────── */}
+      {confirmTarget && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60"
+          data-testid="publish-confirm-dialog"
+        >
+          <div className="bg-surface-dark border border-white/10 rounded-xl p-6 max-w-md mx-4 shadow-xl">
+            <h3 className="text-sm font-semibold text-white mb-2">
+              Publish to {targetLabel(confirmTarget)}
+            </h3>
+            <p className="text-xs text-slate-400 mb-1">
+              {draft.draft_title}
+            </p>
+            <p className="text-xs text-slate-500 mb-4">
+              This will publish the draft externally. This action cannot be undone.
+            </p>
+
+            {/* Error inside dialog */}
+            {publishResult && !publishResult.success && (
+              <div
+                className="mb-4 rounded-lg bg-alert-crimson/10 border border-alert-crimson/20 px-3 py-2 text-xs text-alert-crimson"
+                data-testid="publish-error-banner"
+              >
+                {publishResult.error}
+              </div>
+            )}
+
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={handleConfirmPublish}
+                disabled={isPublishing}
+                className="rounded-md bg-signal-green px-4 py-1.5 text-xs font-semibold text-deep-navy hover:bg-signal-green/90 transition disabled:opacity-50"
+                data-testid="publish-confirm-btn"
+              >
+                {isPublishing ? 'Publishing...' : 'Confirm Publish'}
+              </button>
+              <button
+                type="button"
+                onClick={handleCancelPublish}
+                disabled={isPublishing}
+                className="rounded-md bg-white/5 px-4 py-1.5 text-xs font-semibold text-slate-400 hover:bg-white/10 transition disabled:opacity-50"
+                data-testid="publish-cancel-btn"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

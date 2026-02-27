@@ -13,7 +13,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Database } from '@/lib/supabase/database.types';
 import type { ContentDraftRow, PublishResult } from '@/lib/types/autopilot';
-import { refreshGBPAccessToken } from '@/lib/services/gbp-token-refresh';
+import { isTokenExpired, refreshGBPAccessToken } from '@/lib/services/gbp-token-refresh';
 
 /** GBP post body maximum length. */
 export const GBP_MAX_CHARS = 1500;
@@ -77,10 +77,9 @@ export async function publishToGBP(
     throw new Error('GBP not connected. Go to Settings → Integrations to connect Google Business Profile.');
   }
 
-  // Check if token needs refresh
+  // Check if token needs refresh (5-min buffer via shared utility from Sprint 90)
   let accessToken = tokenRow.access_token;
-  const expiresAt = new Date(tokenRow.expires_at);
-  if (expiresAt <= new Date()) {
+  if (isTokenExpired(tokenRow.expires_at)) {
     const refreshResult = await refreshGBPAccessToken(orgId, tokenRow.refresh_token, supabase);
     if (!refreshResult.success) throw new Error(refreshResult.error ?? 'Token refresh failed');
     accessToken = refreshResult.newAccessToken!;
@@ -100,8 +99,11 @@ export async function publishToGBP(
     throw new Error('Location not linked to a Google Business Profile. Set the Google location name in location settings.');
   }
 
+  // Strip HTML tags — GBP summary renders as plain text, HTML appears literally
+  const plainContent = draft.draft_content.replace(/<[^>]+>/g, '');
+
   // Truncate content for GBP
-  const truncatedContent = truncateAtSentence(draft.draft_content, GBP_MAX_CHARS);
+  const truncatedContent = truncateAtSentence(plainContent, GBP_MAX_CHARS);
 
   // Post to GBP API
   const postBody = {

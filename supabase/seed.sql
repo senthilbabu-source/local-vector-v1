@@ -20,6 +20,8 @@ CREATE EXTENSION IF NOT EXISTS pgcrypto;
 --   competitor id  : a1eebc99-9c0b-4ef8-bb6d-6bb9bd380a11
 --   intercept id   : a2eebc99-9c0b-4ef8-bb6d-6bb9bd380a11
 --   content_draft  : b1eebc99-9c0b-4ef8-bb6d-6bb9bd380a11
+--   draft_wp (S94) : f5eebc99-9c0b-4ef8-bb6d-6bb9bd380a11
+--   draft_gbp (S94): f6eebc99-9c0b-4ef8-bb6d-6bb9bd380a11
 --   page_audit     : b2eebc99-9c0b-4ef8-bb6d-6bb9bd380a11
 --   occasion Val   : c1eebc99-9c0b-4ef8-bb6d-6bb9bd380a11
 --   occasion NYE   : c2eebc99-9c0b-4ef8-bb6d-6bb9bd380a11
@@ -1321,6 +1323,67 @@ SELECT
   FALSE,
   NOW() - INTERVAL '2 hours',
   NOW() - INTERVAL '2 hours'
+FROM public.locations l
+WHERE l.org_id = 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11'
+  AND l.slug   = 'alpharetta'
+LIMIT 1
+ON CONFLICT (id) DO NOTHING;
+
+-- ── 14b2. Sprint 94 — Approved content drafts for publish pipeline testing ────
+-- WordPress target draft (approved, ready to publish)
+INSERT INTO public.content_drafts (
+  id, org_id, location_id,
+  trigger_type, trigger_id,
+  draft_title, draft_content, target_prompt, content_type,
+  aeo_score, status, human_approved, approved_at,
+  created_at, updated_at
+)
+SELECT
+  'f5eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+  'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+  l.id,
+  'competitor_gap',
+  NULL,
+  'Why Charcoal N Chill is the Best Hookah Lounge in Alpharetta',
+  'Looking for the best hookah experience in Alpharetta? Charcoal N Chill offers premium hookah flavors, live entertainment, and an upscale atmosphere perfect for groups.',
+  'best hookah lounge alpharetta',
+  'blog_post',
+  78,
+  'approved',
+  TRUE,
+  NOW() - INTERVAL '1 hour',
+  NOW() - INTERVAL '2 days',
+  NOW() - INTERVAL '1 hour'
+FROM public.locations l
+WHERE l.org_id = 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11'
+  AND l.slug   = 'alpharetta'
+LIMIT 1
+ON CONFLICT (id) DO NOTHING;
+
+-- GBP Post target draft (approved, ready to publish)
+INSERT INTO public.content_drafts (
+  id, org_id, location_id,
+  trigger_type, trigger_id,
+  draft_title, draft_content, target_prompt, content_type,
+  aeo_score, status, human_approved, approved_at,
+  created_at, updated_at
+)
+SELECT
+  'f6eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+  'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+  l.id,
+  'occasion',
+  NULL,
+  'Friday Night Live: Belly Dancing & Afrobeats',
+  'Join us this Friday for live belly dancing performances and an Afrobeats DJ set. Open until 2 AM. Reservations recommended.',
+  NULL,
+  'gbp_post',
+  65,
+  'approved',
+  TRUE,
+  NOW() - INTERVAL '30 minutes',
+  NOW() - INTERVAL '1 day',
+  NOW() - INTERVAL '30 minutes'
 FROM public.locations l
 WHERE l.org_id = 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11'
   AND l.slug   = 'alpharetta'

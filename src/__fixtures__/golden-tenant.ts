@@ -1107,3 +1107,61 @@ export const MOCK_BUSINESS_INFO_LOCATION = {
   gbp_synced_at: null,
   is_primary: true,
 } as const;
+
+// ---------------------------------------------------------------------------
+// Sprint 94 — Publish Pipeline (WordPress + GBP Post)
+// ---------------------------------------------------------------------------
+
+import type { ContentDraftRow } from '@/lib/types/autopilot';
+import type { WordPressConfig } from '@/lib/autopilot/publish-wordpress';
+
+/** WordPress credentials as stored in location_integrations. */
+export const MOCK_WP_CREDENTIALS: WordPressConfig = {
+  siteUrl: 'https://charcoalnchill.com',
+  username: 'admin',
+  appPassword: 'AbCd EfGh IjKl MnOp QrSt',
+};
+
+/** Approved content draft targeting WordPress publish. */
+export const MOCK_CONTENT_DRAFT_WP: ContentDraftRow = {
+  id: 'f5eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+  org_id: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+  location_id: 'b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+  trigger_type: 'competitor_gap',
+  trigger_id: null,
+  draft_title: 'Why Charcoal N Chill is the Best Hookah Lounge in Alpharetta',
+  draft_content:
+    'Looking for the best hookah experience in Alpharetta? Charcoal N Chill offers premium hookah flavors, live entertainment, and an upscale atmosphere perfect for groups.\n\nOur signature charcoal-managed hookahs feature the finest imported tobaccos.',
+  target_prompt: 'best hookah lounge alpharetta',
+  content_type: 'blog_post',
+  aeo_score: 78,
+  status: 'approved',
+  human_approved: true,
+  published_url: null,
+  published_at: null,
+  approved_at: '2026-02-27T10:00:00Z',
+  created_at: '2026-02-25T08:00:00Z',
+  updated_at: '2026-02-27T10:00:00Z',
+};
+
+/** Approved content draft targeting GBP Post publish. */
+export const MOCK_CONTENT_DRAFT_GBP: ContentDraftRow = {
+  id: 'f6eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+  org_id: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+  location_id: 'b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+  trigger_type: 'occasion',
+  trigger_id: null,
+  draft_title: 'Friday Night Live: Belly Dancing & Afrobeats',
+  draft_content:
+    'Join us this Friday for live belly dancing performances and an Afrobeats DJ set. Open until 2 AM. Reservations recommended.',
+  target_prompt: null,
+  content_type: 'gbp_post',
+  aeo_score: 65,
+  status: 'approved',
+  human_approved: true,
+  published_url: null,
+  published_at: null,
+  approved_at: '2026-02-27T12:00:00Z',
+  created_at: '2026-02-26T09:00:00Z',
+  updated_at: '2026-02-27T12:00:00Z',
+};

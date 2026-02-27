@@ -1397,5 +1397,15 @@ Sentry is integrated via `@sentry/nextjs`. Configuration files: `sentry.client.c
 * **Source maps:** Uploaded to Sentry via `SENTRY_AUTH_TOKEN` during production builds only
 * **next.config.ts:** Wrapped with `withSentryConfig()` — do not remove this wrapper
 
+## 44. Publish Pipeline — External Write Confirmation + Non-Blocking DB (Sprint 94)
+
+All actions that write to external platforms (WordPress, GBP) follow two rules:
+
+* **Confirmation required:** Irreversible external writes (publish, post) must have an explicit UI confirmation step before firing. Disable the confirm button immediately on click.
+* **Non-blocking DB update:** After a successful external publish, the DB update (published_at, published_url, status) is non-blocking. A failed DB update is logged but does NOT cause the action to return `ok:false` — the content IS published externally.
+* **GBP Posts API:** Uses `mybusiness.googleapis.com/v4/` — NOT the same as the Business Information API (`mybusinessbusinessinformation.googleapis.com/v1/`) used for Sprint 89 data import.
+* **GBP content:** Strip HTML tags before sending to GBP summary. Auto-truncate at sentence boundary, 1500 chars max.
+* **WordPress auth:** Basic auth with `base64(username:applicationPassword)`. Trim external whitespace from Application Password.
+
 ---
 > **End of System Instructions**
