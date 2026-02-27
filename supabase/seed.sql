@@ -38,6 +38,7 @@ CREATE EXTENSION IF NOT EXISTS pgcrypto;
 --   sov_eval px hookah: c7eebc99-9c0b-4ef8-bb6d-6bb9bd380a11  (Sprint 69)
 --   target_query comp: c8eebc99-9c0b-4ef8-bb6d-6bb9bd380a11  (Sprint 70)
 --   target_query occ : c9eebc99-9c0b-4ef8-bb6d-6bb9bd380a11  (Sprint 70)
+--   crawler_hit g0-g5: g[0-5]eebc99-9c0b-4ef8-bb6d-6bb9bd380a11  (Sprint 73)
 --
 -- Phase 19 Test User (Playwright Onboarding Guard test):
 --   auth user id   : 00000000-0000-0000-0000-000000000010
@@ -1452,6 +1453,109 @@ SELECT
   0.42,
   0.35,
   (CURRENT_DATE - INTERVAL '1 day')::date
+FROM public.locations l
+WHERE l.org_id = 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11'
+  AND l.slug   = 'alpharetta'
+LIMIT 1
+ON CONFLICT (id) DO NOTHING;
+
+-- ── 20. CRAWLER HITS (Sprint 73 — AI Crawler Analytics) ─────────────────────
+-- Seed rows for crawler_hits so the Bot Activity dashboard has data in local dev.
+-- 6 rows: 2x GPTBot, 1x ClaudeBot, 2x Google-Extended, 1x OAI-SearchBot.
+-- Leaves PerplexityBot, Meta-External, Bytespider, Amazonbot, Applebot as blind spots.
+--
+-- Fixed UUIDs:
+--   crawler_hit g0 : g0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11
+--   crawler_hit g1 : g1eebc99-9c0b-4ef8-bb6d-6bb9bd380a11
+--   crawler_hit g2 : g2eebc99-9c0b-4ef8-bb6d-6bb9bd380a11
+--   crawler_hit g3 : g3eebc99-9c0b-4ef8-bb6d-6bb9bd380a11
+--   crawler_hit g4 : g4eebc99-9c0b-4ef8-bb6d-6bb9bd380a11
+--   crawler_hit g5 : g5eebc99-9c0b-4ef8-bb6d-6bb9bd380a11
+
+INSERT INTO public.crawler_hits (id, org_id, menu_id, location_id, bot_type, user_agent, crawled_at)
+SELECT
+  'g0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+  'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+  'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+  l.id,
+  'gptbot',
+  'Mozilla/5.0 AppleWebKit/537.36 (KHTML, like Gecko; compatible; GPTBot/1.0; +https://openai.com/gptbot)',
+  NOW() - INTERVAL '2 days'
+FROM public.locations l
+WHERE l.org_id = 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11'
+  AND l.slug   = 'alpharetta'
+LIMIT 1
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO public.crawler_hits (id, org_id, menu_id, location_id, bot_type, user_agent, crawled_at)
+SELECT
+  'g1eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+  'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+  'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+  l.id,
+  'gptbot',
+  'Mozilla/5.0 AppleWebKit/537.36 (KHTML, like Gecko; compatible; GPTBot/1.0)',
+  NOW() - INTERVAL '5 days'
+FROM public.locations l
+WHERE l.org_id = 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11'
+  AND l.slug   = 'alpharetta'
+LIMIT 1
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO public.crawler_hits (id, org_id, menu_id, location_id, bot_type, user_agent, crawled_at)
+SELECT
+  'g2eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+  'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+  'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+  l.id,
+  'claudebot',
+  'ClaudeBot/1.0',
+  NOW() - INTERVAL '3 days'
+FROM public.locations l
+WHERE l.org_id = 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11'
+  AND l.slug   = 'alpharetta'
+LIMIT 1
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO public.crawler_hits (id, org_id, menu_id, location_id, bot_type, user_agent, crawled_at)
+SELECT
+  'g3eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+  'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+  'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+  l.id,
+  'google-extended',
+  'Mozilla/5.0 (compatible; Google-Extended)',
+  NOW() - INTERVAL '1 day'
+FROM public.locations l
+WHERE l.org_id = 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11'
+  AND l.slug   = 'alpharetta'
+LIMIT 1
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO public.crawler_hits (id, org_id, menu_id, location_id, bot_type, user_agent, crawled_at)
+SELECT
+  'g4eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+  'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+  'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+  l.id,
+  'google-extended',
+  'Mozilla/5.0 (compatible; Google-Extended)',
+  NOW() - INTERVAL '7 days'
+FROM public.locations l
+WHERE l.org_id = 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11'
+  AND l.slug   = 'alpharetta'
+LIMIT 1
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO public.crawler_hits (id, org_id, menu_id, location_id, bot_type, user_agent, crawled_at)
+SELECT
+  'g5eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+  'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+  'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+  l.id,
+  'oai-searchbot',
+  'OAI-SearchBot/1.0',
+  NOW() - INTERVAL '4 days'
 FROM public.locations l
 WHERE l.org_id = 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11'
   AND l.slug   = 'alpharetta'

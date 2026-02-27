@@ -501,6 +501,7 @@ export type Database = {
           id: string;
           org_id: string;
           menu_id: string;
+          location_id: string | null;
           bot_type: string;
           user_agent: string | null;
           crawled_at: string | null;
@@ -510,6 +511,7 @@ export type Database = {
           id?: string;
           org_id: string;
           menu_id: string;
+          location_id?: string | null;
           bot_type: string;
           user_agent?: string | null;
           crawled_at?: string | null;
@@ -519,6 +521,7 @@ export type Database = {
           id?: string;
           org_id?: string;
           menu_id?: string;
+          location_id?: string | null;
           bot_type?: string;
           user_agent?: string | null;
           crawled_at?: string | null;
@@ -537,6 +540,13 @@ export type Database = {
             columns: ["menu_id"];
             isOneToOne: false;
             referencedRelation: "magic_menus";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "crawler_hits_location_id_fkey";
+            columns: ["location_id"];
+            isOneToOne: false;
+            referencedRelation: "locations";
             referencedColumns: ["id"];
           },
         ];

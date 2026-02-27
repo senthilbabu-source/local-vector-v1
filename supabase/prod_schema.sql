@@ -451,6 +451,7 @@ CREATE TABLE IF NOT EXISTS "public"."crawler_hits" (
     "id" "uuid" DEFAULT "extensions"."uuid_generate_v4"() NOT NULL,
     "org_id" "uuid" NOT NULL,
     "menu_id" "uuid" NOT NULL,
+    "location_id" "uuid",
     "bot_type" character varying(50) NOT NULL,
     "user_agent" "text",
     "crawled_at" timestamp with time zone DEFAULT "now"(),
@@ -1031,6 +1032,8 @@ CREATE INDEX "idx_content_drafts_trigger" ON "public"."content_drafts" USING "bt
 
 CREATE INDEX "idx_crawler_hits_menu_bot" ON "public"."crawler_hits" USING "btree" ("menu_id", "bot_type", "crawled_at" DESC);
 
+CREATE INDEX "idx_crawler_hits_org_location" ON "public"."crawler_hits" USING "btree" ("org_id", "location_id", "crawled_at" DESC);
+
 
 
 CREATE INDEX "idx_hallucinations_open" ON "public"."ai_hallucinations" USING "btree" ("org_id", "correction_status") WHERE ("correction_status" = 'open'::"public"."correction_status");
@@ -1257,6 +1260,10 @@ ALTER TABLE ONLY "public"."crawler_hits"
 
 ALTER TABLE ONLY "public"."crawler_hits"
     ADD CONSTRAINT "crawler_hits_org_id_fkey" FOREIGN KEY ("org_id") REFERENCES "public"."organizations"("id") ON DELETE CASCADE;
+
+
+ALTER TABLE ONLY "public"."crawler_hits"
+    ADD CONSTRAINT "crawler_hits_location_id_fkey" FOREIGN KEY ("location_id") REFERENCES "public"."locations"("id") ON DELETE CASCADE;
 
 
 

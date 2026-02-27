@@ -18,6 +18,7 @@ import type { CompetitorComparisonData } from '@/app/dashboard/_components/Compe
 import type { LeakSnapshotPoint } from '@/app/dashboard/_components/LeakTrendChart';
 import { aggregateByModel, aggregateCompetitors } from '@/lib/utils/dashboard-aggregators';
 import { fetchHealthScore } from '@/lib/data/ai-health-score';
+import { fetchCrawlerAnalytics, type CrawlerSummary } from '@/lib/data/crawler-analytics';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -62,6 +63,8 @@ export interface DashboardData {
   revenueSnapshots: LeakSnapshotPoint[];
   orgPlan: PlanTier;
   healthScore: HealthScoreResult | null;
+  crawlerSummary: CrawlerSummary | null;
+  hasPublishedMenu: boolean;
 }
 
 // ---------------------------------------------------------------------------
@@ -251,6 +254,22 @@ export async function fetchDashboardData(orgId: string): Promise<DashboardData> 
     // Health score is non-critical — dashboard renders without it.
   }
 
+  // ── Sprint 73: Crawler Analytics Summary ──────────────────────────────────
+  // Non-blocking — if crawler data fetch fails, summary is null.
+  let crawlerSummary: CrawlerSummary | null = null;
+  let hasPublishedMenu = false;
+  try {
+    const { count } = await supabase
+      .from('magic_menus')
+      .select('*', { count: 'exact', head: true })
+      .eq('org_id', orgId)
+      .eq('is_published', true);
+    hasPublishedMenu = (count ?? 0) > 0;
+    crawlerSummary = await fetchCrawlerAnalytics(supabase, orgId);
+  } catch {
+    // Crawler analytics is non-critical — dashboard renders without it.
+  }
+
   return {
     openAlerts,
     fixedCount: fixedResult.count ?? 0,
@@ -271,5 +290,7 @@ export async function fetchDashboardData(orgId: string): Promise<DashboardData> 
     revenueSnapshots,
     orgPlan,
     healthScore,
+    crawlerSummary,
+    hasPublishedMenu,
   };
 }

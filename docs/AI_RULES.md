@@ -1114,5 +1114,23 @@ Null components are excluded and remaining weights re-normalized proportionally.
 
 **Fixture:** `MOCK_HEALTH_SCORE_INPUT` in `src/__fixtures__/golden-tenant.ts`.
 
+## 41. AI Bot Detection Registry — Centralized in `lib/crawler/bot-detector.ts` (Sprint 73)
+
+All AI bot user-agent detection is centralized in `lib/crawler/bot-detector.ts`. The `AI_BOT_REGISTRY` array is the single source of truth for known AI crawlers.
+
+* **Rule:** Never hardcode bot UA patterns inline in middleware, routes, or services. Always import from `bot-detector.ts`.
+* **Adding new bots:** Append to `AI_BOT_REGISTRY`. The order matters — first match wins.
+* **Dashboard display:** `getAllTrackedBots()` returns the full registry including bots with 0 visits. New bots added to the registry automatically appear in the dashboard.
+
+**Middleware integration (proxy.ts):**
+- Bot detection runs in the `menu.*` subdomain handler.
+- Logging is fire-and-forget via `fetch()` to `POST /api/internal/crawler-log` — **never awaited** (§17).
+- The internal route uses `createServiceRoleClient()` because `crawler_hits` has `service_role_insert` policy only.
+- Auth: `x-internal-secret` header matching `CRON_SECRET`.
+
+**Data layer:** `lib/data/crawler-analytics.ts` — `fetchCrawlerAnalytics(supabase, orgId)` aggregates last 30 days by bot_type, cross-references with registry for blind spot detection. Status thresholds: ≥5=active, 1-4=low, 0=blind_spot.
+
+**Fixtures:** `MOCK_CRAWLER_HIT`, `MOCK_CRAWLER_SUMMARY` in `src/__fixtures__/golden-tenant.ts`. Seed UUIDs: g0–g5.
+
 ---
 > **End of System Instructions**

@@ -4,6 +4,45 @@
 
 ---
 
+## 2026-02-27 — Sprint 73: AI Crawler Analytics — Wire crawler_hits in Middleware (Completed)
+
+**Goal:** Wire the existing but empty `crawler_hits` table to the proxy middleware so AI bot visits to Magic Menu pages are detected and logged, then build a Bot Activity dashboard with blind spot detection and fix recommendations.
+
+**Scope:**
+- `lib/crawler/bot-detector.ts` — **NEW.** Pure bot detection utility. 10 AI bot user-agents in registry (GPTBot, OAI-SearchBot, ChatGPT-User, ClaudeBot, Google-Extended, PerplexityBot, Meta-External, Bytespider, Amazonbot, Applebot-Extended). Case-insensitive substring matching. Exports: `detectAIBot()`, `getAllTrackedBots()`, `AI_BOT_REGISTRY`.
+- `proxy.ts` — **MODIFIED.** Added bot detection in menu subdomain handler. Fire-and-forget `fetch()` to `/api/internal/crawler-log` with `x-internal-secret` header. Never awaited — bot logging cannot block page delivery. `.catch(() => {})` absorbs errors (§17).
+- `app/api/internal/crawler-log/route.ts` — **NEW.** Internal POST endpoint. Auth via `x-internal-secret` matching `CRON_SECRET`. Looks up magic_menu by `public_slug`, INSERTs into `crawler_hits` via `createServiceRoleClient()`. Returns `{ ok, logged }`.
+- `lib/data/crawler-analytics.ts` — **NEW.** Data fetcher. Aggregates `crawler_hits` last 30 days by bot_type. Cross-references with AI_BOT_REGISTRY for blind spot detection. Status thresholds: ≥5=active, 1-4=low, 0=blind_spot. Fix recommendations per engine.
+- `app/dashboard/crawler-analytics/page.tsx` — **NEW.** Server Component. Summary strip (total visits, active bots, blind spots), per-bot activity list sorted by count, blind spot section with fix recommendations, null state for new tenants.
+- `app/dashboard/crawler-analytics/error.tsx` — **NEW.** Error boundary.
+- `app/dashboard/_components/BotActivityCard.tsx` — **NEW.** Summary card for main dashboard with visit count, active/blind spot counts, link to full page.
+- `app/dashboard/page.tsx` — **MODIFIED.** Added BotActivityCard to Quick Stats section.
+- `components/layout/Sidebar.tsx` — **MODIFIED.** Added "Bot Activity" to NAV_ITEMS with Bot icon, between Page Audits and AI Assistant.
+- `supabase/migrations/20260227000002_crawler_hits_location_id.sql` — **NEW.** Adds `location_id` column to `crawler_hits` with FK to locations, backfill from magic_menus, composite index.
+- `supabase/prod_schema.sql` — **MODIFIED.** Added `location_id` to crawler_hits CREATE TABLE, FK constraint, and index.
+- `lib/supabase/database.types.ts` — **MODIFIED.** Added `location_id` to crawler_hits Row/Insert/Update types + FK relationship.
+- `supabase/seed.sql` — **MODIFIED.** Added 6 crawler_hits seed rows (UUIDs g0–g5). Updated UUID reference card.
+- `src/__fixtures__/golden-tenant.ts` — **MODIFIED.** Added MOCK_CRAWLER_HIT, MOCK_CRAWLER_SUMMARY.
+- `lib/data/dashboard.ts` — **MODIFIED.** Added crawlerSummary and hasPublishedMenu to DashboardData.
+
+**Tests added:**
+- `src/__tests__/unit/bot-detector.test.ts` — **20 Vitest tests.** All 10 bots detected, browser UAs rejected, null/empty/undefined handled, getAllTrackedBots returns full registry.
+- `src/__tests__/unit/crawler-log-route.test.ts` — **8 Vitest tests.** Auth guard, missing fields, no-menu-found, successful INSERT, Supabase error handling.
+- `src/__tests__/unit/crawler-analytics-data.test.ts` — **12 Vitest tests.** Aggregation, blind spot detection, status thresholds, 30-day filtering, fix recommendations.
+- `src/__tests__/unit/sidebar-crawler.test.ts` — **3 Vitest tests.** NAV_ITEMS includes Bot Activity with correct href and position.
+
+**Run commands:**
+```bash
+npx vitest run src/__tests__/unit/bot-detector.test.ts             # 20 tests passing
+npx vitest run src/__tests__/unit/crawler-log-route.test.ts        # 8 tests passing
+npx vitest run src/__tests__/unit/crawler-analytics-data.test.ts   # 12 tests passing
+npx vitest run src/__tests__/unit/sidebar-crawler.test.ts          # 3 tests passing
+npx vitest run                                                      # All tests passing
+npx tsc --noEmit                                                    # 0 type errors
+```
+
+---
+
 ## 2026-02-27 — Sprint 72: AI Health Score Composite + Top Recommendation (Completed)
 
 **Goal:** Build a single 0–100 AI Health Score compositing SOV, page audit, hallucination, and schema data, with a prioritized top recommendation surfacing the highest-impact action.

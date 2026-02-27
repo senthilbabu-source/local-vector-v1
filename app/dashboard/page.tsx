@@ -12,6 +12,7 @@ import AIHealthScoreCard from './_components/AIHealthScoreCard';
 import RevenueLeakCard from './_components/RevenueLeakCard';
 import LeakBreakdownChart from './_components/LeakBreakdownChart';
 import LeakTrendChart from './_components/LeakTrendChart';
+import BotActivityCard from './_components/BotActivityCard';
 
 export type { HallucinationRow } from '@/lib/data/dashboard'; // re-export for AlertFeed.tsx
 
@@ -42,7 +43,7 @@ export default async function DashboardPage() {
     openAlerts, fixedCount, interceptsThisMonth, visibilityScore, lastAuditAt,
     sovTrend, hallucinationsByModel, competitorComparison,
     currentLeak, previousLeak, revenueConfig, revenueSnapshots, orgPlan,
-    healthScore,
+    healthScore, crawlerSummary, hasPublishedMenu,
   } = await fetchDashboardData(ctx.orgId ?? '');
   const scores = deriveRealityScore(openAlerts.length, visibilityScore);
   const firstName = ctx.fullName?.split(' ')[0] ?? ctx.email.split('@')[0];
@@ -101,6 +102,8 @@ export default async function DashboardPage() {
           trend={sovSparkline.length > 1 ? sovSparkline : undefined}
         />
       </div>
+      {/* Sprint 73: Bot Activity Card */}
+      <BotActivityCard crawlerSummary={crawlerSummary} hasPublishedMenu={hasPublishedMenu} />
       {/* Revenue Leak Charts */}
       {currentLeak && orgPlan !== 'trial' && orgPlan !== 'starter' && (
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">

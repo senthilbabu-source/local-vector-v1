@@ -290,6 +290,46 @@ export const MOCK_HEALTH_SCORE_INPUT: import('@/lib/services/ai-health-score.ser
   hasLocalBusinessSchema: false,
 };
 
+/**
+ * Sprint 73 — Canonical crawler_hits fixture for Charcoal N Chill.
+ * UUIDs match supabase/seed.sql Section 20.
+ */
+export const MOCK_CRAWLER_HIT = {
+  id: 'g0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+  org_id: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+  menu_id: 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+  bot_type: 'gptbot',
+  user_agent: 'Mozilla/5.0 AppleWebKit/537.36 (KHTML, like Gecko; compatible; GPTBot/1.0)',
+  crawled_at: '2026-02-25T12:00:00.000Z',
+} as const;
+
+/**
+ * Sprint 73 — Canonical CrawlerSummary fixture for dashboard tests.
+ */
+export const MOCK_CRAWLER_SUMMARY: import('@/lib/data/crawler-analytics').CrawlerSummary = {
+  totalVisits: 6,
+  blindSpotCount: 5,
+  bots: [
+    { botType: 'google-extended', label: 'Google-Extended', engine: 'Gemini', description: 'Gemini AI training', visitCount: 2, lastVisitAt: '2026-02-26T12:00:00.000Z', status: 'low' },
+    { botType: 'gptbot', label: 'GPTBot', engine: 'ChatGPT', description: 'OpenAI training crawler', visitCount: 2, lastVisitAt: '2026-02-25T12:00:00.000Z', status: 'low' },
+    { botType: 'oai-searchbot', label: 'OAI-SearchBot', engine: 'ChatGPT Search', description: 'ChatGPT live search', visitCount: 1, lastVisitAt: '2026-02-23T12:00:00.000Z', status: 'low' },
+    { botType: 'claudebot', label: 'ClaudeBot', engine: 'Claude', description: 'Anthropic training crawler', visitCount: 1, lastVisitAt: '2026-02-24T12:00:00.000Z', status: 'low' },
+    { botType: 'chatgpt-user', label: 'ChatGPT-User', engine: 'ChatGPT', description: 'ChatGPT browsing mode', visitCount: 0, lastVisitAt: null, status: 'blind_spot' },
+    { botType: 'perplexitybot', label: 'PerplexityBot', engine: 'Perplexity', description: 'Perplexity search crawler', visitCount: 0, lastVisitAt: null, status: 'blind_spot' },
+    { botType: 'meta-external', label: 'Meta-External', engine: 'Meta AI', description: 'Meta AI training crawler', visitCount: 0, lastVisitAt: null, status: 'blind_spot' },
+    { botType: 'bytespider', label: 'Bytespider', engine: 'TikTok/ByteDance', description: 'ByteDance AI crawler', visitCount: 0, lastVisitAt: null, status: 'blind_spot' },
+    { botType: 'amazonbot', label: 'Amazonbot', engine: 'Amazon AI', description: 'Amazon AI crawler', visitCount: 0, lastVisitAt: null, status: 'blind_spot' },
+    { botType: 'applebot-extended', label: 'Applebot', engine: 'Apple Intelligence', description: 'Apple Siri/Intelligence', visitCount: 0, lastVisitAt: null, status: 'blind_spot' },
+  ],
+  blindSpots: [
+    { botType: 'chatgpt-user', label: 'ChatGPT-User', engine: 'ChatGPT', fixRecommendation: 'ChatGPT browsing requires GPTBot access. Check robots.txt and ensure your site loads without JavaScript.' },
+    { botType: 'perplexitybot', label: 'PerplexityBot', engine: 'Perplexity', fixRecommendation: 'Allow PerplexityBot in robots.txt. Submit your URL to Perplexity via their web interface.' },
+    { botType: 'meta-external', label: 'Meta-External', engine: 'Meta AI', fixRecommendation: 'Allow meta-externalagent in robots.txt. Ensure your Facebook/Instagram business profiles link to your website.' },
+    { botType: 'bytespider', label: 'Bytespider', engine: 'TikTok/ByteDance', fixRecommendation: 'Bytespider crawls pages linked from TikTok. Ensure your TikTok profile links to your menu page.' },
+    { botType: 'amazonbot', label: 'Amazonbot', engine: 'Amazon AI', fixRecommendation: 'Allow Amazonbot in robots.txt. Ensure your business is listed on Amazon/Alexa.' },
+  ],
+};
+
 export const RIVAL_TENANT = {
   org: {
     name: 'Cloud 9 Lounge',
