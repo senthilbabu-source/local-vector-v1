@@ -4,6 +4,30 @@
 > This root file was maintained separately for early sprints (0–42). Both are now kept in sync.
 
 ---
+## 2026-02-28 — Sprint 89: GBP Data Mapping + Import Flow (Completed)
+
+**Goal:** Transform the GBP "connect" button from a token-only operation into a full data import pipeline. New users who connect GBP now have hours and address auto-populated, skipping the manual wizard.
+
+**Scope:**
+- `lib/types/gbp.ts` — **NEW.** GBPAccount, GBPLocation interfaces per RFC §3.4.
+- `lib/services/gbp-mapper.ts` — **NEW.** mapGBPLocationToRow() and mapGBPHours() — pure functions, no I/O.
+- `app/api/auth/google/callback/route.ts` — **REWRITE.** Now fetches GBP locations, auto-imports single location, writes multi-location to pending_gbp_imports, redirects to picker.
+- `app/api/auth/google/route.ts` — **MODIFIED.** Added gbp_oauth_source cookie.
+- `app/onboarding/connect/page.tsx` — **NEW.** GBP connect interstitial.
+- `app/onboarding/connect/select/page.tsx` — **NEW.** Multi-location picker.
+- `app/onboarding/connect/actions.ts` — **NEW.** importGBPLocation() server action.
+- `app/onboarding/connect/_components/GBPLocationCard.tsx` — **NEW.** Location card.
+- `app/onboarding/connect/_components/ConnectGBPButton.tsx` — **NEW.** Google-branded button.
+- `app/onboarding/page.tsx` — **MODIFIED.** ?source= fallback toast.
+- `app/(auth)/register/page.tsx` — **MODIFIED.** Post-registration redirect to /onboarding/connect.
+
+**Tests added:**
+- `src/__tests__/unit/gbp-mapper.test.ts` — 23 tests.
+- `src/__tests__/unit/gbp-import-action.test.ts` — 9 tests.
+- `src/__tests__/unit/gbp-callback-locations.test.ts` — 7 tests.
+
+---
+
 ## 2026-02-27 — Sprint 68: Fix ai_audits Bug + Add AI Assistant to Sidebar (Completed)
 
 **Goal:** Fix two critical bugs: (1) `ai_audits` table never written to, causing "Last Scan: never" for all customers, and (2) AI Assistant page missing from sidebar navigation.

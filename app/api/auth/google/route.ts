@@ -77,6 +77,16 @@ export async function GET(request: NextRequest) {
     path: '/api/auth/google/callback',
   });
 
+  // Track where the user started the OAuth flow so callback redirects correctly
+  const oauthSource = request.nextUrl.searchParams.get('source') ?? 'integrations';
+  cookieStore.set('gbp_oauth_source', oauthSource, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
+    maxAge: 600,
+    path: '/',
+  });
+
   // ── Build the authorization URL ───────────────────────────────────────
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000';
   const redirectUri = `${appUrl}/api/auth/google/callback`;

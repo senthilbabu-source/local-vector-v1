@@ -44,6 +44,7 @@ app/dashboard/agent-readiness/   — AI Agent Readiness Score (Sprint 84)
 app/dashboard/revenue-impact/    — Revenue Impact Calculator (Sprint 85)
 app/dashboard/share-of-voice/   — SOV page + Content Brief Generator (Sprint 86)
 app/dashboard/cluster-map/     — AI Visibility Cluster Map (Sprint 87)
+app/onboarding/connect/       — GBP OAuth interstitial + location picker (Sprint 89)
 lib/schema-generator/        — Pure JSON-LD generators: FAQ, Hours, LocalBusiness, ReserveAction, OrderAction (Sprint 70/84)
 lib/ai/                — AI provider config, schemas, actions
 lib/services/          — Pure business logic services
@@ -162,7 +163,8 @@ UPSTASH_REDIS_REST_URL, UPSTASH_REDIS_REST_TOKEN
 | Revenue Impact Calculator | `lib/services/revenue-impact.service.ts` + `lib/data/revenue-impact.ts` | Converts visibility gaps into estimated dollar amounts. Three revenue streams: SOV gaps (missed AI-assisted visits via category search volumes x CTR), hallucination deterrence (severity-based customer impact), competitor advantage (diverted covers). User-customizable `avg_customer_value` + `monthly_covers` on `locations`. All deterministic math, no AI calls. No plan gating — dollar amounts drive Trial conversion. UI at `/dashboard/revenue-impact`. |
 | Content Brief Generator | `lib/services/content-brief-builder.service.ts` + `lib/services/content-brief-generator.service.ts` | Two-layer SOV gap → content brief pipeline. Layer 1 (pure): slug, title tag, H1, schema recommendations, llms.txt. Layer 2 (AI): `generateObject` with gpt-4o-mini + `ContentBriefSchema` for answer capsule, outline sections, FAQ questions. Triggered from SOV page via `generateContentBrief()` server action. Saves to `content_drafts` with `trigger_type='prompt_missing'`. Fallback: structure-only brief when no API key. |
 | Cluster Map | `lib/services/cluster-map.service.ts` + `lib/data/cluster-map.ts` | Scatter plot visualization: Brand Authority (X) × Fact Accuracy (Y) × SOV bubble size. Hallucination fog overlay from Fear Engine (severity-scaled red zones). Engine toggle for per-AI-model view (Perplexity/ChatGPT/Gemini/Copilot). Pure service, no AI calls, no new tables — aggregates from sov_evaluations + ai_hallucinations + visibility_analytics. Recharts ScatterChart with custom dot renderer. UI at `/dashboard/cluster-map`. |
+| GBP Mapper | `docs/RFC_GBP_ONBOARDING_V2_REPLACEMENT.md` | Maps GBP API responses to LocalVector location rows. Pure functions: `mapGBPLocationToRow()` + `mapGBPHours()`. Auto-import (1 loc) or cookie-pointer picker (2+ locs). Onboarding interstitial at `/onboarding/connect`. |
 
 ## Build History
 
-See `DEVLOG.md` (project root) and `docs/DEVLOG.md` for the complete sprint-by-sprint build log. Current sprint: 88.
+See `DEVLOG.md` (project root) and `docs/DEVLOG.md` for the complete sprint-by-sprint build log. Current sprint: 89.

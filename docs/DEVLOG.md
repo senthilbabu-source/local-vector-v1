@@ -4,6 +4,41 @@
 
 ---
 
+## 2026-02-28 — Sprint 89: GBP Data Mapping + Import Flow (Completed)
+
+**Goal:** Transform the GBP "connect" button from a token-only operation into a full data import pipeline. New users who connect GBP now have hours and address auto-populated, skipping the manual wizard.
+
+**Scope:**
+- `lib/types/gbp.ts` — **NEW.** GBPAccount, GBPLocation interfaces per RFC §3.4.
+- `lib/services/gbp-mapper.ts` — **NEW.** mapGBPLocationToRow() and mapGBPHours() — pure functions, no I/O.
+- `app/api/auth/google/callback/route.ts` — **REWRITE.** Now fetches GBP locations, auto-imports single location, writes multi-location to pending_gbp_imports, redirects to picker.
+- `app/api/auth/google/route.ts` — **MODIFIED.** Added gbp_oauth_source cookie for dual-redirect support.
+- `app/onboarding/connect/page.tsx` — **NEW.** GBP connect interstitial ("Connect GBP" vs "Manual").
+- `app/onboarding/connect/select/page.tsx` — **NEW.** Multi-location picker.
+- `app/onboarding/connect/select/LocationPicker.tsx` — **NEW.** Client wrapper for location selection.
+- `app/onboarding/connect/actions.ts` — **NEW.** importGBPLocation() server action.
+- `app/onboarding/connect/_components/GBPLocationCard.tsx` — **NEW.** Location card component.
+- `app/onboarding/connect/_components/ConnectGBPButton.tsx` — **NEW.** Google-branded OAuth button.
+- `app/onboarding/page.tsx` — **MODIFIED.** ?source= fallback toast for GBP flow failures.
+- `app/(auth)/register/page.tsx` — **MODIFIED.** Post-registration redirect to /onboarding/connect.
+
+**Tests added:**
+- `src/__tests__/unit/gbp-mapper.test.ts` — 23 tests (mapGBPHours + mapGBPLocationToRow).
+- `src/__tests__/unit/gbp-import-action.test.ts` — 9 tests (importGBPLocation server action).
+- `src/__tests__/unit/gbp-callback-locations.test.ts` — 7 tests (callback location fetch + routing via MSW).
+
+**Run commands:**
+```bash
+npx vitest run src/__tests__/unit/gbp-mapper.test.ts
+npx vitest run src/__tests__/unit/gbp-import-action.test.ts
+npx vitest run src/__tests__/unit/gbp-callback-locations.test.ts
+npx vitest run   # ALL tests passing (1784 passed, 7 skipped)
+```
+
+**E2E note:** No E2E tests modified. New GBP onboarding flow needs E2E coverage in a future sprint (requires Google OAuth mock strategy).
+
+---
+
 ## 2026-02-28 — Bug Fix: `assembleDraftContent` async (AI_RULES §25)
 
 **Goal:** Fix Next.js 16 build error — `assembleDraftContent` was a sync export in `'use server'` file `brief-actions.ts`, violating AI_RULES §25 (`Server Actions must be async functions`).

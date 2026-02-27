@@ -30,7 +30,23 @@ export type PrimaryLocation = {
 // Headline matches Doc 06 §7: "Teach AI the Truth About Your Business"
 // ---------------------------------------------------------------------------
 
-export default async function OnboardingPage() {
+// Fallback toast messages for GBP flow failures
+const TOAST_MESSAGES: Record<string, string> = {
+  gbp_failed: 'Google connection failed. Let\u2019s fill in your info manually.',
+  gbp_denied: 'Google connection was cancelled. No worries \u2014 fill in manually below.',
+  gbp_no_accounts: 'No Google Business Profile found for this account. Fill in manually.',
+  gbp_no_locations: 'No business locations found in your Google account. Fill in manually.',
+};
+
+export default async function OnboardingPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const params = await searchParams;
+  const source = typeof params?.source === 'string' ? params.source : null;
+  const toastMessage = source ? TOAST_MESSAGES[source] ?? null : null;
+
   // ── Auth ──────────────────────────────────────────────────────────────────
   const ctx = await getSafeAuthContext();
   if (!ctx) {
@@ -70,6 +86,13 @@ export default async function OnboardingPage() {
   return (
     <div className="min-h-screen bg-midnight-slate flex items-center justify-center p-4">
       <div className="w-full max-w-xl">
+
+        {/* ── Fallback toast — GBP flow error (Sprint 89) ──────────────── */}
+        {toastMessage && (
+          <div className="mb-6 rounded-lg border border-alert-amber/30 bg-alert-amber/10 px-4 py-3 text-sm text-alert-amber">
+            {toastMessage}
+          </div>
+        )}
 
         {/* ── Header — Doc 06 §7 headline ─────────────────────────────── */}
         <div className="mb-8 text-center">

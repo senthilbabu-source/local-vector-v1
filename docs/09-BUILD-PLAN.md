@@ -504,20 +504,20 @@
   - [ ] Register Google Cloud OAuth 2.0 client — scopes: `https://www.googleapis.com/auth/business.manage` *(env: GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET)*
   - [x] Build `app/api/auth/google/route.ts` — CSRF state cookie, redirect to Google consent (Sprint 57B)
   - [x] Build `app/api/auth/google/callback/route.ts` — code exchange, token storage, GBP account + email fetch (Sprint 57B)
-  - [ ] Build `app/onboarding/connect/page.tsx` — interstitial with "Connect GBP" + "Do it manually" escape *(deferred — not in Sprint 57B scope)*
-  - [ ] Build `app/onboarding/connect/select/page.tsx` — location picker (reads `pending_gbp_imports`) *(deferred)*
+  - [x] Build `app/onboarding/connect/page.tsx` — interstitial with "Connect GBP" + "Do it manually" escape (Sprint 89)
+  - [x] Build `app/onboarding/connect/select/page.tsx` — location picker (reads `pending_gbp_imports`) (Sprint 89)
   - [x] Build `disconnectGBP()` server action in `app/dashboard/integrations/actions.ts` (Sprint 57B)
-  - [ ] Build `importGBPLocation()` server action *(deferred)*
-  - [ ] Update `app/api/auth/register/route.ts` redirect: `/onboarding` → `/onboarding/connect` *(deferred)*
+  - [x] Build `importGBPLocation()` server action (Sprint 89)
+  - [x] Update `app/(auth)/register/page.tsx` redirect: `/dashboard` → `/onboarding/connect` (Sprint 89)
   - [x] Build `GBPConnectButton.tsx` — 4-state UI: not-configured / plan-gated / connect / connected+disconnect (Sprint 57B)
   - [x] Update `app/dashboard/integrations/page.tsx` — GBP Connect section with plan gating via `canConnectGBP()` (Sprint 57B)
-  - [ ] **🤖 Agent Rule:** `pending_gbp_imports` rows expire after 10 minutes (`expires_at`). Location picker page validates expiry before rendering — redirect to `/onboarding/connect` if expired.
+  - [x] **🤖 Agent Rule:** `pending_gbp_imports` rows expire after 10 minutes (`expires_at`). Location picker page validates expiry before rendering — redirect to `/onboarding/connect` if expired. (Sprint 89)
 
-- [ ] **GBP Data Mapping**
-  - [ ] Map GBP `regularHours` → `locations.hours_data` (HoursData type, 24h format)
-  - [ ] Map GBP `openInfo.status` → `locations.operational_status`
-  - [ ] Map GBP attributes → `locations.amenities` (best-effort; null for unknown attributes)
-  - [ ] **⚠️ Timezone gap (RFC Rev 2 §4.2):** GBP hours have no explicit timezone. Audit prompt must supply timezone context from `locations.city` + `locations.state`.
+- [x] **GBP Data Mapping** (Sprint 89)
+  - [x] Map GBP `regularHours` → `locations.hours_data` (HoursData type, 24h format)
+  - [ ] Map GBP `openInfo.status` → `locations.operational_status` *(deferred — not in readMask)*
+  - [x] Map GBP attributes → `locations.amenities` set to null (intentional gap per RFC §4.3)
+  - [ ] **⚠️ Timezone gap (RFC Rev 2 §4.2):** GBP hours have no explicit timezone. *(deferred to Sprint 90)*
 
 - [ ] **WordPress Publish Integration**
   - [ ] Build `lib/publish/wordpress.ts` — WordPress REST API client (basic auth or application password)

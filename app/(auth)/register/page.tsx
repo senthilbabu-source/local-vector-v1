@@ -101,7 +101,7 @@ export default function RegisterPage() {
         });
 
         if (loginRes.ok) {
-          router.push('/dashboard');
+          router.push('/onboarding/connect');
           router.refresh();
           return;
         }

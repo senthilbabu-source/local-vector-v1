@@ -1357,5 +1357,15 @@ Scatter plot visualization showing where a business sits in each AI engine's rec
 * **Chart:** Recharts `ScatterChart` with custom dot renderer (star for self, circle for competitors), SVG fog overlay with Gaussian blur, quadrant reference lines at 50/50.
 * **Fixtures:** `MOCK_CLUSTER_INPUT`, `MOCK_EVALUATIONS`, `MOCK_HALLUCINATIONS` in `src/__fixtures__/cluster-map-fixtures.ts`.
 
+## 51. Cookie-Pointer Pattern — OAuth Data Handoff (Sprint 89)
+
+When passing data between an OAuth callback and a downstream picker page, NEVER store the raw payload in a cookie. Browsers silently drop cookies over 4KB.
+
+* **Pattern:** Write the full payload to a `pending_*` table with a short TTL (`expires_at = NOW() + 10 minutes`). Store ONLY the UUID pointer in an `httpOnly` cookie.
+* **Example:** `pending_gbp_imports` stores the raw GBP locations array. The `gbp_import_id` cookie holds just the UUID.
+* **Validation:** The picker page must verify `org_id` matches the authenticated user AND `expires_at > now()` before rendering.
+* **Cleanup:** After successful import, DELETE the `pending_*` row and the cookie.
+* **Pure mapper pattern:** `lib/services/gbp-mapper.ts` — all GBP-to-LocalVector field mapping is in pure functions (no I/O, no Supabase). Tested independently, called from both callback (auto-import) and server action (picker import).
+
 ---
 > **End of System Instructions**
