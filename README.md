@@ -1,5 +1,7 @@
 # LocalVector.ai
 
+[![CI](https://github.com/senthilbabu-source/local-vector-v1/actions/workflows/test.yml/badge.svg)](https://github.com/senthilbabu-source/local-vector-v1/actions/workflows/test.yml)
+
 AI visibility monitoring platform for local restaurants — detects and fixes hallucinations across ChatGPT, Perplexity, Gemini, and other AI search engines.
 
 ## What It Does

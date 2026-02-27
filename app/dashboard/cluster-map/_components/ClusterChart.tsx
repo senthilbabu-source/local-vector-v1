@@ -27,13 +27,13 @@ interface ClusterChartProps {
 // Custom dot renderer
 // ---------------------------------------------------------------------------
 
-function renderDot(props: {
-  cx?: number;
-  cy?: number;
-  payload?: ClusterMapPoint;
-}) {
-  const { cx, cy, payload } = props;
-  if (cx == null || cy == null || !payload) return null;
+function renderDot(props: unknown): React.ReactElement {
+  const { cx, cy, payload } = props as {
+    cx?: number;
+    cy?: number;
+    payload?: ClusterMapPoint;
+  };
+  if (cx == null || cy == null || !payload) return <g />;
 
   const radius = Math.max(8, (payload.sov ?? 0) * 50);
 

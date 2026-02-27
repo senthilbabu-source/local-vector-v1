@@ -178,7 +178,7 @@ export async function generateContentBrief(
 export async function assembleDraftContent(
   structure: BriefStructure,
   aiContent: ContentBrief | null,
-): string {
+): Promise<string> {
   const sections: string[] = [];
 
   // Header

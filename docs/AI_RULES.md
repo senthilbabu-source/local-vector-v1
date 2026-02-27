@@ -1378,4 +1378,24 @@ All Google Business Profile API response transformation for re-sync/import is ce
 * **isTokenExpired():** 5-minute buffer before actual expiry. Use before any GBP API call.
 
 ---
+
+## 42. Zero-Skip Test Policy (Sprint 92)
+
+The test suite must always run with zero skips. `vi.skip`, `it.skip`, and `describe.skip` are prohibited in committed code.
+
+* **Permitted:** `it.todo('description — Sprint N will implement')` for genuinely future work
+* **Not permitted:** `it.skip(...)` as a workaround for a broken test or missing infrastructure
+* **Integration tests:** Live in `src/__tests__/integration/` and are excluded from default `npx vitest run`. Run via `npm run test:integration` (requires local Supabase).
+* **CI enforcer:** The CI workflow runs `tsc --noEmit` → `vitest run` (unit only). Both must pass.
+
+## 43. Sentry Integration (Sprint 26A, verified Sprint 92)
+
+Sentry is integrated via `@sentry/nextjs`. Configuration files: `sentry.client.config.ts`, `sentry.server.config.ts`, `sentry.edge.config.ts`.
+
+* **Rule:** `enabled: !!process.env.NEXT_PUBLIC_SENTRY_DSN` — Sentry only fires when the DSN is set (disabled in test/CI where DSN is empty)
+* **Error boundaries:** Dashboard has `app/dashboard/error.tsx` that calls `Sentry.captureException()`
+* **Source maps:** Uploaded to Sentry via `SENTRY_AUTH_TOKEN` during production builds only
+* **next.config.ts:** Wrapped with `withSentryConfig()` — do not remove this wrapper
+
+---
 > **End of System Instructions**

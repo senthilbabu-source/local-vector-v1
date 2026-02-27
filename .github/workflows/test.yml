@@ -7,12 +7,12 @@ on:
     branches: [main]
 
 jobs:
-  unit-and-integration:
-    name: Vitest (unit + integration)
+  typecheck-and-test:
+    name: TypeScript + Vitest
     runs-on: ubuntu-latest
 
     env:
-      # Supabase — dummy values for unit/integration tests (all DB calls are mocked)
+      # Supabase — dummy values for unit tests (all DB calls are mocked)
       NEXT_PUBLIC_SUPABASE_URL: http://localhost:54321
       NEXT_PUBLIC_SUPABASE_ANON_KEY: dummy-anon-key
       SUPABASE_SERVICE_ROLE_KEY: dummy-service-role-key
@@ -21,7 +21,7 @@ jobs:
       CRON_SECRET: test-cron-secret
 
       # External APIs — intentionally empty so all fallback/mock paths activate
-      # MSW intercepts any calls that reach the network layer in integration tests
+      # MSW intercepts any calls that reach the network layer
       OPENAI_API_KEY: ''
       PERPLEXITY_API_KEY: ''
 
@@ -31,6 +31,9 @@ jobs:
       # Stripe — cleared so billing routes use demo branch (no charges)
       STRIPE_SECRET_KEY: ''
       STRIPE_WEBHOOK_SECRET: ''
+
+      # Sentry — disabled in test environment
+      NEXT_PUBLIC_SENTRY_DSN: ''
 
     steps:
       - name: Checkout repository
@@ -45,9 +48,12 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Run unit + integration tests
+      - name: Type check
+        run: npx tsc --noEmit
+
+      - name: Run unit tests
         run: npm test
-        # npm test = vitest run (src/__tests__/unit/ + src/__tests__/integration/)
+        # npm test = vitest run (src/__tests__/unit/)
         # All external API calls are mocked — no live DB or API keys required.
 
       # NOTE: Playwright E2E tests require a live Supabase local stack with the full
