@@ -79,7 +79,7 @@ export async function getUserOrgs(
         id: org.id,
         name: org.name,
         plan: org.plan ?? 'trial',
-        role: m.role,
+        role: m.role ?? 'viewer',
       };
     });
 }

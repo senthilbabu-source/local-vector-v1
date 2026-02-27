@@ -3,7 +3,7 @@ import { getSafeAuthContext } from '@/lib/auth';
 import { createClient } from '@/lib/supabase/server';
 import { maxLocations, type PlanTier } from '@/lib/plan-enforcer';
 import { roleSatisfies } from '@/lib/auth/org-roles';
-import PlanGate from '@/components/plan-gate/PlanGate';
+import { PlanGate } from '@/components/plan-gate/PlanGate';
 import LocationCard, { type LocationCardData } from './_components/LocationCard';
 import LocationFormModal from './_components/LocationFormModal';
 

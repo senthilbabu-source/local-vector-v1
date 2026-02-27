@@ -4,7 +4,7 @@
  * To regenerate after schema changes:
  *   npx supabase gen types typescript --project-id <project-id> > lib/supabase/database.types.ts
  *
- * Last manual sync: 2026-02-25 (Sprint 63)
+ * Last manual sync: 2026-02-27 (Sprint FIX-1 — Sprint 99-101 additions)
  */
 
 export type Json =
@@ -1296,6 +1296,10 @@ export type Database = {
           notify_hallucination_alerts: boolean | null;
           notify_weekly_digest: boolean | null;
           notify_sov_alerts: boolean | null;
+          seat_limit: number | null;
+          seats_updated_at: string | null;
+          seat_overage_count: number | null;
+          seat_overage_since: string | null;
         };
         Insert: {
           id?: string;
@@ -1317,6 +1321,10 @@ export type Database = {
           notify_hallucination_alerts?: boolean | null;
           notify_weekly_digest?: boolean | null;
           notify_sov_alerts?: boolean | null;
+          seat_limit?: number | null;
+          seats_updated_at?: string | null;
+          seat_overage_count?: number | null;
+          seat_overage_since?: string | null;
         };
         Update: {
           id?: string;
@@ -1338,6 +1346,10 @@ export type Database = {
           notify_hallucination_alerts?: boolean | null;
           notify_weekly_digest?: boolean | null;
           notify_sov_alerts?: boolean | null;
+          seat_limit?: number | null;
+          seats_updated_at?: string | null;
+          seat_overage_count?: number | null;
+          seat_overage_since?: string | null;
         };
         Relationships: [];
       };
@@ -1853,6 +1865,173 @@ export type Database = {
             columns: ["location_id"];
             isOneToOne: false;
             referencedRelation: "locations";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      location_permissions: {
+        Row: {
+          id: string;
+          membership_id: string;
+          location_id: string;
+          role: Database["public"]["Enums"]["membership_role"];
+          granted_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          membership_id: string;
+          location_id: string;
+          role?: Database["public"]["Enums"]["membership_role"];
+          granted_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          membership_id?: string;
+          location_id?: string;
+          role?: Database["public"]["Enums"]["membership_role"];
+          granted_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "location_permissions_membership_id_fkey";
+            columns: ["membership_id"];
+            isOneToOne: false;
+            referencedRelation: "memberships";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "location_permissions_location_id_fkey";
+            columns: ["location_id"];
+            isOneToOne: false;
+            referencedRelation: "locations";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "location_permissions_granted_by_fkey";
+            columns: ["granted_by"];
+            isOneToOne: false;
+            referencedRelation: "users";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      occasion_snoozes: {
+        Row: {
+          id: string;
+          org_id: string;
+          user_id: string;
+          occasion_id: string;
+          snoozed_until: string;
+          snoozed_at: string;
+          snooze_count: number;
+        };
+        Insert: {
+          id?: string;
+          org_id: string;
+          user_id: string;
+          occasion_id: string;
+          snoozed_until: string;
+          snoozed_at?: string;
+          snooze_count?: number;
+        };
+        Update: {
+          id?: string;
+          org_id?: string;
+          user_id?: string;
+          occasion_id?: string;
+          snoozed_until?: string;
+          snoozed_at?: string;
+          snooze_count?: number;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "occasion_snoozes_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "occasion_snoozes_occasion_id_fkey";
+            columns: ["occasion_id"];
+            isOneToOne: false;
+            referencedRelation: "local_occasions";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      sidebar_badge_state: {
+        Row: {
+          id: string;
+          org_id: string;
+          user_id: string;
+          section: string;
+          last_seen_at: string;
+        };
+        Insert: {
+          id?: string;
+          org_id: string;
+          user_id: string;
+          section: string;
+          last_seen_at?: string;
+        };
+        Update: {
+          id?: string;
+          org_id?: string;
+          user_id?: string;
+          section?: string;
+          last_seen_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "sidebar_badge_state_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      stripe_webhook_events: {
+        Row: {
+          id: string;
+          stripe_event_id: string;
+          event_type: string;
+          processed_at: string;
+          org_id: string | null;
+          payload: Json | null;
+          error: string | null;
+        };
+        Insert: {
+          id?: string;
+          stripe_event_id: string;
+          event_type: string;
+          processed_at?: string;
+          org_id?: string | null;
+          payload?: Json | null;
+          error?: string | null;
+        };
+        Update: {
+          id?: string;
+          stripe_event_id?: string;
+          event_type?: string;
+          processed_at?: string;
+          org_id?: string | null;
+          payload?: Json | null;
+          error?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "stripe_webhook_events_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
             referencedColumns: ["id"];
           },
         ];

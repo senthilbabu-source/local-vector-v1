@@ -48,7 +48,16 @@ import {
 // ── Fixtures ────────────────────────────────────────────────────────────
 const ORG_ID = 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11';
 
-const LOC_PRIMARY = {
+interface LocationFixture {
+  id: string;
+  business_name: string;
+  display_name: string | null;
+  city: string | null;
+  state: string | null;
+  is_primary: boolean;
+}
+
+const LOC_PRIMARY: LocationFixture = {
   id: 'loc-primary-001',
   business_name: 'Downtown Grill',
   display_name: 'Downtown',
@@ -57,7 +66,7 @@ const LOC_PRIMARY = {
   is_primary: true,
 };
 
-const LOC_SECONDARY = {
+const LOC_SECONDARY: LocationFixture = {
   id: 'loc-secondary-002',
   business_name: 'Uptown Grill',
   display_name: 'Uptown',
@@ -66,7 +75,7 @@ const LOC_SECONDARY = {
   is_primary: false,
 };
 
-const LOC_TERTIARY = {
+const LOC_TERTIARY: LocationFixture = {
   id: 'loc-tertiary-003',
   business_name: 'Midtown Grill',
   display_name: null,
@@ -76,7 +85,7 @@ const LOC_TERTIARY = {
 };
 
 /** Helper: configure the Supabase mock to resolve with given data/error. */
-function setDbResult(data: typeof LOC_PRIMARY[] | null, error: { message: string } | null = null) {
+function setDbResult(data: LocationFixture[] | null, error: { message: string } | null = null) {
   mockOrder3.mockResolvedValue({ data, error });
 }
 

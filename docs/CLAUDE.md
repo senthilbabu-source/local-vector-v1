@@ -55,8 +55,8 @@ lib/page-audit/        — HTML parser + AEO auditor
 lib/tools/             — AI chat tool definitions
 lib/auth/              — Role enforcement (org-roles.ts: roleSatisfies, assertOrgRole, ROLE_PERMISSIONS)
 lib/mcp/               — MCP server tool registrations
-lib/supabase/database.types.ts — Full Database type (29 tables, 9 enums, Relationships)
-supabase/migrations/   — Applied SQL migrations (31, timestamp-ordered)
+lib/supabase/database.types.ts — Full Database type (33 tables, 9 enums, Relationships)
+supabase/migrations/   — Applied SQL migrations (34, timestamp-ordered)
 supabase/prod_schema.sql — Full production schema dump
 docs/                  — 50 spec documents (authoritative for planned features)
 src/__tests__/         — Unit + integration tests
@@ -119,6 +119,9 @@ tests/e2e/             — Playwright E2E tests (18 specs)
 29. `20260228000002_sov_phase5_cleanup.sql` — `is_active` column + `UNIQUE(location_id, query_text)` constraint on `target_queries`, duplicate dedup
 30. `20260301000001_add_llms_txt_updated_at.sql` — `llms_txt_updated_at` column on `locations`
 31. `20260301000002_multi_user_foundation.sql` — `pending_invitations` table + `invited_by`/`joined_at` columns on `memberships` + RLS + indexes
+32. `20260301000003_seat_billing_location_permissions.sql` — `seat_limit`/`seat_overage_count`/`seat_overage_since` on `organizations` + `location_permissions` table
+33. `20260302000001_multi_location_management.sql` — `is_archived`/`display_name`/`timezone`/`location_order` on `locations`
+34. `20260302000002_occasion_snooze_sidebar_badges.sql` — `occasion_snoozes` + `sidebar_badge_state` tables
 
 ## Testing Commands
 
@@ -173,6 +176,17 @@ UPSTASH_REDIS_REST_URL, UPSTASH_REDIS_REST_TOKEN
 | GBP Mapper | `docs/RFC_GBP_ONBOARDING_V2_REPLACEMENT.md` | Maps GBP API responses to LocalVector location rows. Pure functions: `mapGBPLocationToRow()` + `mapGBPHours()`. Auto-import (1 loc) or cookie-pointer picker (2+ locs). Onboarding interstitial at `/onboarding/connect`. |
 | Multi-User Roles | `lib/auth/org-roles.ts` | Role hierarchy (viewer/member=0, admin=1, owner=2) + `roleSatisfies()` + `assertOrgRole()` + `ROLE_PERMISSIONS` matrix. Token-based invitation flow via `pending_invitations` table. Team management at `/dashboard/settings/team`. Invite acceptance at `/invite/[token]`. Agency plan required for multi-user. |
 
+## Recent Fix Sprints
+
+### Sprint FIX-1 — Schema Types Regeneration (2026-02-27)
+- `lib/supabase/database.types.ts` — Regenerated. Sprint 99-101 tables now typed.
+- `supabase/prod_schema.sql` — Verified aligned with all migrations.
+- Removed `(supabase as any)` casts from occasion-feed, badge-counts, occasions actions.
+- Fixed Stripe SDK v20 `quantity` → `items[].quantity` in seat-manager.
+- Fixed PlanGate import (default → named), active-org role null coalesce.
+- Tests: 12 Vitest (type-guard regression suite in `database-types-completeness.test.ts`)
+- Result: 0 TS errors (was 41), 2555 tests pass, 179 files.
+
 ## Build History
 
-See `DEVLOG.md` (project root) and `docs/DEVLOG.md` for the complete sprint-by-sprint build log. Current sprint: 98.
+See `DEVLOG.md` (project root) and `docs/DEVLOG.md` for the complete sprint-by-sprint build log. Current sprint: 101 (+ FIX-1).

@@ -4,6 +4,30 @@
 
 ---
 
+## 2026-02-27 — Sprint FIX-1: Schema Types Regeneration + prod_schema.sql Sync (Completed)
+
+**Problem:**
+- 41 TypeScript errors caused by stale `database.types.ts` — Sprint 99-101 migrations (seat_limit, location_permissions, occasion_snoozes, sidebar_badge_state) were not reflected in types.
+- Three production files used `(supabase as any)` casts as workarounds.
+- `PlanGate` import was default instead of named. Stripe SDK v20 `quantity` param required `items` array.
+
+**Solution:**
+- `lib/supabase/database.types.ts` — Updated. Now includes: seat_limit/seats_updated_at/seat_overage_count/seat_overage_since on organizations; full types for location_permissions, occasion_snoozes, sidebar_badge_state, stripe_webhook_events tables.
+- `lib/occasions/occasion-feed.ts` — Removed `(supabase as any)` cast. Direct typed query.
+- `lib/badges/badge-counts.ts` — Removed `(supabase as any)` casts (x2). Direct typed queries.
+- `app/actions/occasions.ts` — Removed `(supabase as any)` casts (x2). Direct typed queries.
+- `lib/stripe/seat-manager.ts` — Fixed Stripe SDK v20 `quantity` → `items[].quantity` pattern.
+- `app/dashboard/settings/locations/page.tsx` — Fixed PlanGate import (default → named).
+- `lib/auth/active-org.ts` — Fixed `role` null coalesce for OrgInfo type.
+- Test fixes: active-location fixture types, badge-counts duplicate props, seat-actions destructuring.
+
+**Tests added:**
+- `src/__tests__/unit/database-types-completeness.test.ts` — **12 Vitest tests.** Type-guard regression tests (9) + source file scan tests (3). Guards against future type drift.
+
+**Result:** `npx tsc --noEmit` → 0 errors (was 41). 2555 tests pass (was 2543), 179 files. No regressions.
+
+---
+
 ## 2026-03-02 — Sprint 101: Occasion Alert Feed + Sidebar Badges (Gaps #58 + #59: 80%/50% → 100%)
 
 **Problem:**

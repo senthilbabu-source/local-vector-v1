@@ -68,8 +68,7 @@ export async function snoozeOccasion(input: {
   const snoozedUntilISO = snoozedUntil.toISOString();
 
   // Upsert snooze — on conflict update snoozed_until and increment count
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- table not yet in generated types
-  const { error } = await (supabase as any)
+  const { error } = await supabase
     .from('occasion_snoozes')
     .upsert(
       {
@@ -124,8 +123,7 @@ export async function dismissOccasionPermanently(input: {
 
   const farFuture = '9999-12-31T23:59:59Z';
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- table not yet in generated types
-  const { error } = await (supabase as any)
+  const { error } = await supabase
     .from('occasion_snoozes')
     .upsert(
       {

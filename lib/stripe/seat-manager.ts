@@ -174,10 +174,15 @@ export async function updateSeatQuantity(
     };
   }
 
-  // 7. Call Stripe — use top-level quantity (works for single-item subscriptions)
+  // 7. Call Stripe — update seat quantity via subscription items (Stripe SDK v20+)
   try {
+    const subscription = await getStripe().subscriptions.retrieve(org.stripe_subscription_id);
+    const itemId = subscription.items.data[0]?.id;
+    if (!itemId) {
+      return { success: false, error: 'no_subscription' };
+    }
     await getStripe().subscriptions.update(org.stripe_subscription_id, {
-      quantity: newSeatCount,
+      items: [{ id: itemId, quantity: newSeatCount }],
       proration_behavior: 'create_prorations',
     });
   } catch (err) {

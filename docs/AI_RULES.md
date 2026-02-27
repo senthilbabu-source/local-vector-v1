@@ -1584,4 +1584,19 @@ All plan-gated UI in the dashboard uses `components/plan-gate/PlanGate.tsx`. Nev
   Server action failure restores the card via router.refresh().
 
 ---
+
+## §55. Schema Type Alignment — `database.types.ts` is the TypeScript Authority (FIX-1)
+
+After any migration that adds tables or columns, the following three files must be updated together:
+
+1. `lib/supabase/database.types.ts` — Regenerate with `npx supabase gen types typescript`
+2. `supabase/prod_schema.sql` — Regenerate with `npx supabase db dump`
+3. Any code using `(supabase as any)` workarounds for the new tables — remove casts
+
+**Rule:** Never ship a migration without immediately regenerating these two files.
+**Rule:** Never use `(supabase as any)` as a permanent fix — it is a temporary workaround only.
+**Rule:** `npx tsc --noEmit` must return 0 errors before any commit.
+**Enforcement:** `src/__tests__/unit/database-types-completeness.test.ts` will fail if `(supabase as any)` casts are reintroduced for Sprint 99-101 tables.
+
+---
 > **End of System Instructions**

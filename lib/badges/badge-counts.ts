@@ -45,8 +45,7 @@ export async function getSidebarBadgeCounts(
 ): Promise<SidebarBadgeCounts> {
   try {
     // Fetch both last_seen timestamps in one query
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- table not yet in generated types
-    const { data: badgeStates } = await (supabase as any)
+    const { data: badgeStates } = await supabase
       .from('sidebar_badge_state')
       .select('section, last_seen_at')
       .eq('org_id', orgId)
@@ -115,8 +114,7 @@ export async function markSectionSeen(
   section: BadgeSection,
 ): Promise<void> {
   try {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- table not yet in generated types
-    await (supabase as any)
+    await supabase
       .from('sidebar_badge_state')
       .upsert(
         {

@@ -63,8 +63,6 @@ function createMockSupabase(overrides?: {
             eq: vi.fn().mockReturnValue({
               gt: vi.fn().mockReturnValue({
                 eq: vi.fn().mockReturnValue(terminalResult),
-                count: terminalResult.count,
-                error: terminalResult.error,
                 ...terminalResult,
               }),
               ...terminalResult,
@@ -84,8 +82,6 @@ function createMockSupabase(overrides?: {
           eq: vi.fn().mockReturnValue({
             gt: vi.fn().mockReturnValue({
               eq: vi.fn().mockReturnValue(terminalResult),
-              count: terminalResult.count,
-              error: terminalResult.error,
               ...terminalResult,
             }),
             ...terminalResult,

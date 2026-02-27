@@ -606,7 +606,11 @@ CREATE TABLE IF NOT EXISTS "public"."locations" (
     "google_location_name" character varying(255),
     "gbp_integration_id" "uuid",
     "gbp_synced_at" timestamp with time zone,
-    "llms_txt_updated_at" timestamp with time zone DEFAULT "now"()
+    "llms_txt_updated_at" timestamp with time zone DEFAULT "now"(),
+    "is_archived" boolean DEFAULT false NOT NULL,
+    "display_name" character varying(100),
+    "timezone" character varying(50) DEFAULT 'America/New_York'::character varying,
+    "location_order" integer DEFAULT 0
 );
 
 
@@ -646,7 +650,9 @@ CREATE TABLE IF NOT EXISTS "public"."memberships" (
     "user_id" "uuid" NOT NULL,
     "org_id" "uuid" NOT NULL,
     "role" "public"."membership_role" DEFAULT 'member'::"public"."membership_role",
-    "created_at" timestamp with time zone DEFAULT "now"()
+    "created_at" timestamp with time zone DEFAULT "now"(),
+    "invited_by" "uuid",
+    "joined_at" timestamp with time zone DEFAULT "now"() NOT NULL
 );
 
 
@@ -703,7 +709,11 @@ CREATE TABLE IF NOT EXISTS "public"."organizations" (
     "current_billing_period_start" timestamp with time zone,
     "onboarding_completed" boolean DEFAULT false,
     "created_at" timestamp with time zone DEFAULT "now"(),
-    "updated_at" timestamp with time zone DEFAULT "now"()
+    "updated_at" timestamp with time zone DEFAULT "now"(),
+    "seat_limit" integer DEFAULT 1,
+    "seats_updated_at" timestamp with time zone DEFAULT "now"(),
+    "seat_overage_count" integer DEFAULT 0,
+    "seat_overage_since" timestamp with time zone
 );
 
 
@@ -827,6 +837,83 @@ CREATE TABLE IF NOT EXISTS "public"."visibility_scores" (
 
 
 ALTER TABLE "public"."visibility_scores" OWNER TO "postgres";
+
+
+CREATE TABLE IF NOT EXISTS "public"."pending_invitations" (
+    "id" "uuid" DEFAULT "extensions"."uuid_generate_v4"() NOT NULL,
+    "org_id" "uuid" NOT NULL,
+    "email" "text" NOT NULL,
+    "role" "public"."membership_role" DEFAULT 'viewer'::"public"."membership_role" NOT NULL,
+    "token" "text" DEFAULT "encode"("gen_random_bytes"(32), 'hex'::"text") NOT NULL,
+    "invited_by" "uuid" NOT NULL,
+    "status" "text" DEFAULT 'pending'::"text" NOT NULL,
+    "expires_at" timestamp with time zone DEFAULT ("now"() + '7 days'::interval) NOT NULL,
+    "accepted_at" timestamp with time zone,
+    "created_at" timestamp with time zone DEFAULT "now"() NOT NULL,
+    CONSTRAINT "pending_invitations_status_check" CHECK (("status" = ANY (ARRAY['pending'::text, 'accepted'::text, 'revoked'::text, 'expired'::text]))),
+    CONSTRAINT "pending_invitations_org_email_unique" UNIQUE ("org_id", "email")
+);
+
+
+ALTER TABLE "public"."pending_invitations" OWNER TO "postgres";
+
+
+CREATE TABLE IF NOT EXISTS "public"."stripe_webhook_events" (
+    "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
+    "stripe_event_id" "text" NOT NULL,
+    "event_type" "text" NOT NULL,
+    "processed_at" timestamp with time zone DEFAULT "now"() NOT NULL,
+    "org_id" "uuid",
+    "payload" "jsonb",
+    "error" "text"
+);
+
+
+ALTER TABLE "public"."stripe_webhook_events" OWNER TO "postgres";
+
+
+CREATE TABLE IF NOT EXISTS "public"."location_permissions" (
+    "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
+    "membership_id" "uuid" NOT NULL,
+    "location_id" "uuid" NOT NULL,
+    "role" "public"."membership_role" DEFAULT 'viewer'::"public"."membership_role" NOT NULL,
+    "granted_by" "uuid",
+    "created_at" timestamp with time zone DEFAULT "now"() NOT NULL,
+    "updated_at" timestamp with time zone DEFAULT "now"() NOT NULL,
+    CONSTRAINT "location_permissions_membership_location_unique" UNIQUE ("membership_id", "location_id")
+);
+
+
+ALTER TABLE "public"."location_permissions" OWNER TO "postgres";
+
+
+CREATE TABLE IF NOT EXISTS "public"."occasion_snoozes" (
+    "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
+    "org_id" "uuid" NOT NULL,
+    "user_id" "uuid" NOT NULL,
+    "occasion_id" "uuid" NOT NULL,
+    "snoozed_until" timestamp with time zone NOT NULL,
+    "snoozed_at" timestamp with time zone DEFAULT "now"() NOT NULL,
+    "snooze_count" integer DEFAULT 1 NOT NULL,
+    CONSTRAINT "occasion_snoozes_org_user_occasion_unique" UNIQUE ("org_id", "user_id", "occasion_id")
+);
+
+
+ALTER TABLE "public"."occasion_snoozes" OWNER TO "postgres";
+
+
+CREATE TABLE IF NOT EXISTS "public"."sidebar_badge_state" (
+    "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
+    "org_id" "uuid" NOT NULL,
+    "user_id" "uuid" NOT NULL,
+    "section" "text" NOT NULL,
+    "last_seen_at" timestamp with time zone DEFAULT "now"() NOT NULL,
+    CONSTRAINT "sidebar_badge_state_section_check" CHECK (("section" = ANY (ARRAY['content_drafts'::"text", 'visibility'::"text"]))),
+    CONSTRAINT "sidebar_badge_state_org_user_section_unique" UNIQUE ("org_id", "user_id", "section")
+);
+
+
+ALTER TABLE "public"."sidebar_badge_state" OWNER TO "postgres";
 
 
 ALTER TABLE ONLY "public"."ai_audits"
@@ -1042,6 +1129,41 @@ ALTER TABLE ONLY "public"."visibility_scores"
 
 
 
+ALTER TABLE ONLY "public"."pending_invitations"
+    ADD CONSTRAINT "pending_invitations_pkey" PRIMARY KEY ("id");
+
+
+
+ALTER TABLE ONLY "public"."pending_invitations"
+    ADD CONSTRAINT "pending_invitations_token_key" UNIQUE ("token");
+
+
+
+ALTER TABLE ONLY "public"."stripe_webhook_events"
+    ADD CONSTRAINT "stripe_webhook_events_pkey" PRIMARY KEY ("id");
+
+
+
+ALTER TABLE ONLY "public"."stripe_webhook_events"
+    ADD CONSTRAINT "stripe_webhook_events_stripe_event_id_key" UNIQUE ("stripe_event_id");
+
+
+
+ALTER TABLE ONLY "public"."location_permissions"
+    ADD CONSTRAINT "location_permissions_pkey" PRIMARY KEY ("id");
+
+
+
+ALTER TABLE ONLY "public"."occasion_snoozes"
+    ADD CONSTRAINT "occasion_snoozes_pkey" PRIMARY KEY ("id");
+
+
+
+ALTER TABLE ONLY "public"."sidebar_badge_state"
+    ADD CONSTRAINT "sidebar_badge_state_pkey" PRIMARY KEY ("id");
+
+
+
 CREATE INDEX "idx_ai_evaluations_location" ON "public"."ai_evaluations" USING "btree" ("location_id");
 
 
@@ -1192,6 +1314,43 @@ CREATE INDEX "idx_visibility_analytics_org_date" ON "public"."visibility_analyti
 
 
 CREATE INDEX "idx_visibility_org_date" ON "public"."visibility_scores" USING "btree" ("org_id", "snapshot_date" DESC);
+
+
+
+CREATE INDEX IF NOT EXISTS "idx_pending_invitations_token" ON "public"."pending_invitations" USING "btree" ("token");
+
+
+CREATE INDEX IF NOT EXISTS "idx_pending_invitations_org_id" ON "public"."pending_invitations" USING "btree" ("org_id");
+
+
+CREATE INDEX IF NOT EXISTS "idx_pending_invitations_email" ON "public"."pending_invitations" USING "btree" ("email");
+
+
+CREATE INDEX IF NOT EXISTS "idx_stripe_webhook_events_event_id" ON "public"."stripe_webhook_events" USING "btree" ("stripe_event_id");
+
+
+CREATE INDEX IF NOT EXISTS "idx_location_permissions_membership" ON "public"."location_permissions" USING "btree" ("membership_id");
+
+
+CREATE INDEX IF NOT EXISTS "idx_location_permissions_location" ON "public"."location_permissions" USING "btree" ("location_id");
+
+
+CREATE INDEX IF NOT EXISTS "idx_orgs_seat_limit" ON "public"."organizations" USING "btree" ("seat_limit");
+
+
+CREATE INDEX IF NOT EXISTS "idx_occasion_snoozes_org_user" ON "public"."occasion_snoozes" USING "btree" ("org_id", "user_id");
+
+
+CREATE INDEX IF NOT EXISTS "idx_occasion_snoozes_snoozed_until" ON "public"."occasion_snoozes" USING "btree" ("snoozed_until");
+
+
+CREATE INDEX IF NOT EXISTS "idx_sidebar_badge_state_lookup" ON "public"."sidebar_badge_state" USING "btree" ("org_id", "user_id", "section");
+
+
+CREATE UNIQUE INDEX IF NOT EXISTS "idx_locations_one_primary_per_org" ON "public"."locations" ("org_id") WHERE ("is_primary" = true AND "is_archived" = false);
+
+
+CREATE INDEX IF NOT EXISTS "idx_locations_not_archived" ON "public"."locations" ("org_id", "is_archived") WHERE ("is_archived" = false);
 
 
 
@@ -1475,6 +1634,66 @@ ALTER TABLE ONLY "public"."visibility_scores"
 
 ALTER TABLE ONLY "public"."visibility_scores"
     ADD CONSTRAINT "visibility_scores_org_id_fkey" FOREIGN KEY ("org_id") REFERENCES "public"."organizations"("id") ON DELETE CASCADE;
+
+
+
+ALTER TABLE ONLY "public"."memberships"
+    ADD CONSTRAINT "memberships_invited_by_fkey" FOREIGN KEY ("invited_by") REFERENCES "public"."users"("id") ON DELETE SET NULL;
+
+
+
+ALTER TABLE ONLY "public"."pending_invitations"
+    ADD CONSTRAINT "pending_invitations_org_id_fkey" FOREIGN KEY ("org_id") REFERENCES "public"."organizations"("id") ON DELETE CASCADE;
+
+
+
+ALTER TABLE ONLY "public"."pending_invitations"
+    ADD CONSTRAINT "pending_invitations_invited_by_fkey" FOREIGN KEY ("invited_by") REFERENCES "public"."users"("id") ON DELETE CASCADE;
+
+
+
+ALTER TABLE ONLY "public"."stripe_webhook_events"
+    ADD CONSTRAINT "stripe_webhook_events_org_id_fkey" FOREIGN KEY ("org_id") REFERENCES "public"."organizations"("id") ON DELETE SET NULL;
+
+
+
+ALTER TABLE ONLY "public"."location_permissions"
+    ADD CONSTRAINT "location_permissions_membership_id_fkey" FOREIGN KEY ("membership_id") REFERENCES "public"."memberships"("id") ON DELETE CASCADE;
+
+
+
+ALTER TABLE ONLY "public"."location_permissions"
+    ADD CONSTRAINT "location_permissions_location_id_fkey" FOREIGN KEY ("location_id") REFERENCES "public"."locations"("id") ON DELETE CASCADE;
+
+
+
+ALTER TABLE ONLY "public"."location_permissions"
+    ADD CONSTRAINT "location_permissions_granted_by_fkey" FOREIGN KEY ("granted_by") REFERENCES "public"."users"("id") ON DELETE SET NULL;
+
+
+
+ALTER TABLE ONLY "public"."occasion_snoozes"
+    ADD CONSTRAINT "occasion_snoozes_org_id_fkey" FOREIGN KEY ("org_id") REFERENCES "public"."organizations"("id") ON DELETE CASCADE;
+
+
+
+ALTER TABLE ONLY "public"."occasion_snoozes"
+    ADD CONSTRAINT "occasion_snoozes_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "auth"."users"("id") ON DELETE CASCADE;
+
+
+
+ALTER TABLE ONLY "public"."occasion_snoozes"
+    ADD CONSTRAINT "occasion_snoozes_occasion_id_fkey" FOREIGN KEY ("occasion_id") REFERENCES "public"."local_occasions"("id") ON DELETE CASCADE;
+
+
+
+ALTER TABLE ONLY "public"."sidebar_badge_state"
+    ADD CONSTRAINT "sidebar_badge_state_org_id_fkey" FOREIGN KEY ("org_id") REFERENCES "public"."organizations"("id") ON DELETE CASCADE;
+
+
+
+ALTER TABLE ONLY "public"."sidebar_badge_state"
+    ADD CONSTRAINT "sidebar_badge_state_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "auth"."users"("id") ON DELETE CASCADE;
 
 
 
@@ -1851,6 +2070,56 @@ ALTER TABLE "public"."visibility_analytics" ENABLE ROW LEVEL SECURITY;
 
 ALTER TABLE "public"."visibility_scores" ENABLE ROW LEVEL SECURITY;
 
+
+ALTER TABLE "public"."pending_invitations" ENABLE ROW LEVEL SECURITY;
+
+
+ALTER TABLE "public"."stripe_webhook_events" ENABLE ROW LEVEL SECURITY;
+
+
+ALTER TABLE "public"."location_permissions" ENABLE ROW LEVEL SECURITY;
+
+
+ALTER TABLE "public"."occasion_snoozes" ENABLE ROW LEVEL SECURITY;
+
+
+ALTER TABLE "public"."sidebar_badge_state" ENABLE ROW LEVEL SECURITY;
+
+
+CREATE POLICY "invitations_org_isolation_select" ON "public"."pending_invitations" FOR SELECT USING (("org_id" = "public"."current_user_org_id"()));
+
+
+CREATE POLICY "invitations_org_isolation_insert" ON "public"."pending_invitations" FOR INSERT WITH CHECK (("org_id" = "public"."current_user_org_id"()));
+
+
+CREATE POLICY "invitations_org_isolation_update" ON "public"."pending_invitations" FOR UPDATE USING (("org_id" = "public"."current_user_org_id"()));
+
+
+CREATE POLICY "location_permissions_select" ON "public"."location_permissions" FOR SELECT USING (("membership_id" IN (SELECT "id" FROM "public"."memberships" WHERE ("org_id" = "public"."current_user_org_id"()))));
+
+
+CREATE POLICY "location_permissions_insert" ON "public"."location_permissions" FOR INSERT WITH CHECK (("membership_id" IN (SELECT "m"."id" FROM "public"."memberships" "m" WHERE ("m"."org_id" IN (SELECT "m2"."org_id" FROM "public"."memberships" "m2" WHERE (("m2"."user_id" = (SELECT "u"."id" FROM "public"."users" "u" WHERE ("u"."auth_provider_id" = "auth"."uid"()))) AND ("m2"."role" = 'owner'::"public"."membership_role")))))));
+
+
+CREATE POLICY "location_permissions_update" ON "public"."location_permissions" FOR UPDATE USING (("membership_id" IN (SELECT "m"."id" FROM "public"."memberships" "m" WHERE ("m"."org_id" IN (SELECT "m2"."org_id" FROM "public"."memberships" "m2" WHERE (("m2"."user_id" = (SELECT "u"."id" FROM "public"."users" "u" WHERE ("u"."auth_provider_id" = "auth"."uid"()))) AND ("m2"."role" = 'owner'::"public"."membership_role")))))));
+
+
+CREATE POLICY "location_permissions_delete" ON "public"."location_permissions" FOR DELETE USING (("membership_id" IN (SELECT "m"."id" FROM "public"."memberships" "m" WHERE ("m"."org_id" IN (SELECT "m2"."org_id" FROM "public"."memberships" "m2" WHERE (("m2"."user_id" = (SELECT "u"."id" FROM "public"."users" "u" WHERE ("u"."auth_provider_id" = "auth"."uid"()))) AND ("m2"."role" = 'owner'::"public"."membership_role")))))));
+
+
+CREATE POLICY "occasion_snoozes_select" ON "public"."occasion_snoozes" FOR SELECT USING (("user_id" = "auth"."uid"()));
+
+
+CREATE POLICY "occasion_snoozes_insert" ON "public"."occasion_snoozes" FOR INSERT WITH CHECK (("user_id" = "auth"."uid"()));
+
+
+CREATE POLICY "occasion_snoozes_update" ON "public"."occasion_snoozes" FOR UPDATE USING (("user_id" = "auth"."uid"()));
+
+
+CREATE POLICY "occasion_snoozes_delete" ON "public"."occasion_snoozes" FOR DELETE USING (("user_id" = "auth"."uid"()));
+
+
+CREATE POLICY "sidebar_badge_state_all" ON "public"."sidebar_badge_state" FOR ALL USING (("user_id" = "auth"."uid"()));
 
 
 
@@ -2453,6 +2722,33 @@ GRANT ALL ON TABLE "public"."visibility_scores" TO "anon";
 GRANT ALL ON TABLE "public"."visibility_scores" TO "authenticated";
 GRANT ALL ON TABLE "public"."visibility_scores" TO "service_role";
 
+
+
+GRANT ALL ON TABLE "public"."pending_invitations" TO "anon";
+GRANT ALL ON TABLE "public"."pending_invitations" TO "authenticated";
+GRANT ALL ON TABLE "public"."pending_invitations" TO "service_role";
+
+
+
+GRANT ALL ON TABLE "public"."stripe_webhook_events" TO "service_role";
+
+
+
+GRANT ALL ON TABLE "public"."location_permissions" TO "anon";
+GRANT ALL ON TABLE "public"."location_permissions" TO "authenticated";
+GRANT ALL ON TABLE "public"."location_permissions" TO "service_role";
+
+
+
+GRANT ALL ON TABLE "public"."occasion_snoozes" TO "anon";
+GRANT ALL ON TABLE "public"."occasion_snoozes" TO "authenticated";
+GRANT ALL ON TABLE "public"."occasion_snoozes" TO "service_role";
+
+
+
+GRANT ALL ON TABLE "public"."sidebar_badge_state" TO "anon";
+GRANT ALL ON TABLE "public"."sidebar_badge_state" TO "authenticated";
+GRANT ALL ON TABLE "public"."sidebar_badge_state" TO "service_role";
 
 
 

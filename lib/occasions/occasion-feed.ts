@@ -73,8 +73,7 @@ export async function getOccasionAlerts(
     if (inWindow.length === 0) return [];
 
     // 3. Fetch snoozed occasion IDs for this user
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- table not yet in generated types
-    const { data: snoozes } = await (supabase as any)
+    const { data: snoozes } = await supabase
       .from('occasion_snoozes')
       .select('occasion_id, snoozed_until')
       .eq('org_id', orgId)

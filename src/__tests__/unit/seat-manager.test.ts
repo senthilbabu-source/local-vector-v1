@@ -15,11 +15,15 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 // ---------------------------------------------------------------------------
 
 const mockSubscriptionsUpdate = vi.fn();
+const mockSubscriptionsRetrieve = vi.fn();
 
 vi.mock('stripe', () => {
   return {
     default: class MockStripe {
-      subscriptions = { update: mockSubscriptionsUpdate };
+      subscriptions = {
+        update: mockSubscriptionsUpdate,
+        retrieve: mockSubscriptionsRetrieve,
+      };
     },
   };
 });
@@ -84,6 +88,11 @@ beforeEach(() => {
   vi.clearAllMocks();
   savedStripeKey = process.env.STRIPE_SECRET_KEY;
   process.env.STRIPE_SECRET_KEY = 'sk_test_key';
+  // Default: retrieve returns subscription with one item
+  mockSubscriptionsRetrieve.mockResolvedValue({
+    id: 'sub_test_123',
+    items: { data: [{ id: 'si_item_001' }] },
+  });
 });
 
 afterEach(() => {
@@ -329,7 +338,7 @@ describe('updateSeatQuantity', () => {
     return org;
   }
 
-  it('calls stripe.subscriptions.update with correct quantity', async () => {
+  it('calls stripe.subscriptions.update with correct quantity via items', async () => {
     setupOrgForUpdate();
     mockSubscriptionsUpdate.mockResolvedValue({ id: TEST_SUBSCRIPTION_ID });
 
@@ -337,7 +346,9 @@ describe('updateSeatQuantity', () => {
     expect(result.success).toBe(true);
     expect(mockSubscriptionsUpdate).toHaveBeenCalledWith(
       TEST_SUBSCRIPTION_ID,
-      expect.objectContaining({ quantity: 7 })
+      expect.objectContaining({
+        items: [{ id: 'si_item_001', quantity: 7 }],
+      })
     );
   });
 
