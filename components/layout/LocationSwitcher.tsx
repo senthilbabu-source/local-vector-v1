@@ -1,18 +1,22 @@
 'use client';
 
 // ---------------------------------------------------------------------------
-// LocationSwitcher — Agency multi-location dropdown (Sprint 62F)
+// LocationSwitcher — Agency multi-location dropdown (Sprint 62F, Sprint 100)
 //
-// Renders only when the org has > 1 location. Sets a cookie
-// `lv_selected_location` and reloads on change.
+// Renders only when the org has > 1 location. Uses server action to set
+// HttpOnly cookie and reloads on change. Filters archived locations
+// (handled upstream by resolveActiveLocation).
 // ---------------------------------------------------------------------------
 
-import { useState } from 'react';
-import { MapPin, ChevronDown } from 'lucide-react';
+import { useState, useTransition } from 'react';
+import { MapPin, ChevronDown, Settings } from 'lucide-react';
+import Link from 'next/link';
+import { switchActiveLocation } from '@/app/actions/locations';
 
 export interface LocationOption {
   id: string;
   business_name: string;
+  display_name: string | null;
   city: string | null;
   state: string | null;
   is_primary: boolean;
@@ -21,21 +25,31 @@ export interface LocationOption {
 interface LocationSwitcherProps {
   locations: LocationOption[];
   selectedLocationId: string | null;
+  plan?: string | null;
 }
 
-export default function LocationSwitcher({ locations, selectedLocationId }: LocationSwitcherProps) {
+export default function LocationSwitcher({ locations, selectedLocationId, plan }: LocationSwitcherProps) {
   const [isOpen, setIsOpen] = useState(false);
+  const [isPending, startTransition] = useTransition();
 
   // Only render when there are multiple locations
   if (locations.length <= 1) return null;
 
   const current = locations.find((l) => l.id === selectedLocationId) ?? locations[0];
+  const displayLabel = (loc: LocationOption) => loc.display_name ?? loc.business_name;
 
   function handleSelect(locationId: string) {
-    // Set cookie with 1-year expiry
-    document.cookie = `lv_selected_location=${locationId}; path=/; max-age=${365 * 24 * 60 * 60}; SameSite=Lax`;
-    setIsOpen(false);
-    window.location.reload();
+    if (locationId === selectedLocationId) {
+      setIsOpen(false);
+      return;
+    }
+    startTransition(async () => {
+      const result = await switchActiveLocation(locationId);
+      if (result.success) {
+        setIsOpen(false);
+        window.location.reload();
+      }
+    });
   }
 
   return (
@@ -43,11 +57,15 @@ export default function LocationSwitcher({ locations, selectedLocationId }: Loca
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-2 w-full rounded-lg bg-midnight-slate px-3 py-2 text-left hover:bg-white/5 transition"
+        disabled={isPending}
+        data-testid="location-switcher-trigger"
+        className="flex items-center gap-2 w-full rounded-lg bg-midnight-slate px-3 py-2 text-left hover:bg-white/5 transition disabled:opacity-60"
       >
         <MapPin className="h-4 w-4 shrink-0 text-signal-green" />
         <div className="flex-1 min-w-0">
-          <p className="truncate text-sm font-medium text-white">{current.business_name}</p>
+          <p className="truncate text-sm font-medium text-white">
+            {isPending ? 'Switching…' : displayLabel(current)}
+          </p>
           <p className="truncate text-xs text-slate-500">
             {[current.city, current.state].filter(Boolean).join(', ') || 'No location'}
           </p>
@@ -63,13 +81,18 @@ export default function LocationSwitcher({ locations, selectedLocationId }: Loca
           <div className="fixed inset-0 z-40" onClick={() => setIsOpen(false)} />
 
           {/* Dropdown */}
-          <div className="absolute left-3 right-3 top-full mt-1 z-50 rounded-lg border border-white/10 bg-surface-dark shadow-lg overflow-hidden">
+          <div
+            data-testid="location-switcher"
+            className="absolute left-3 right-3 top-full mt-1 z-50 rounded-lg border border-white/10 bg-surface-dark shadow-lg overflow-hidden"
+          >
             {locations.map((loc) => (
               <button
                 key={loc.id}
                 type="button"
                 onClick={() => handleSelect(loc.id)}
-                className={`flex items-center gap-2 w-full px-3 py-2.5 text-left hover:bg-white/5 transition ${
+                disabled={isPending}
+                data-testid={`location-switcher-option-${loc.id}`}
+                className={`flex items-center gap-2 w-full px-3 py-2.5 text-left hover:bg-white/5 transition disabled:opacity-60 ${
                   loc.id === selectedLocationId ? 'bg-signal-green/10' : ''
                 }`}
               >
@@ -82,7 +105,7 @@ export default function LocationSwitcher({ locations, selectedLocationId }: Loca
                   <p className={`truncate text-sm font-medium ${
                     loc.id === selectedLocationId ? 'text-signal-green' : 'text-white'
                   }`}>
-                    {loc.business_name}
+                    {displayLabel(loc)}
                   </p>
                   <p className="truncate text-xs text-slate-500">
                     {[loc.city, loc.state].filter(Boolean).join(', ')}
@@ -95,6 +118,19 @@ export default function LocationSwitcher({ locations, selectedLocationId }: Loca
                 )}
               </button>
             ))}
+
+            {/* Manage Locations link — Agency orgs only */}
+            {plan === 'agency' && (
+              <Link
+                href="/dashboard/settings/locations"
+                onClick={() => setIsOpen(false)}
+                data-testid="location-switcher-manage-link"
+                className="flex items-center gap-2 px-3 py-2.5 text-xs text-slate-400 hover:text-white border-t border-white/5 transition"
+              >
+                <Settings className="h-3 w-3" />
+                Manage Locations
+              </Link>
+            )}
           </div>
         </>
       )}

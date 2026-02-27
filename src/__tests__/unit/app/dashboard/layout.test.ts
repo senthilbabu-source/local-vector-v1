@@ -103,25 +103,30 @@ const BASE_CTX: SafeAuthContext = {
 
 // ---------------------------------------------------------------------------
 // Supabase mock factory
-// Mocks the chain: .from().select().eq().eq().maybeSingle()
+// Mocks two chains:
+//   1. Onboarding guard: .from().select().eq().eq().maybeSingle()
+//   2. resolveActiveLocation: .from().select().eq().eq().order().order().order()
 // ---------------------------------------------------------------------------
 
 function setupLocationMock(
   location: { hours_data: unknown; amenities: unknown } | null,
 ) {
-  // Onboarding guard chain: .select('hours_data, amenities').eq().eq().maybeSingle()
+  // Onboarding guard chain: .select('hours_data, amenities').eq('org_id').eq('is_primary').maybeSingle()
   const maybeSingle = vi.fn().mockResolvedValue({ data: location });
   const eq2         = vi.fn().mockReturnValue({ maybeSingle });
   const eq1Guard    = vi.fn().mockReturnValue({ eq: eq2 });
 
-  // Locations fetch chain: .select('id, ...').eq().order()
-  const order       = vi.fn().mockResolvedValue({ data: [] });
-  const eq1Loc      = vi.fn().mockReturnValue({ order });
+  // resolveActiveLocation chain: .select('id, ...').eq('org_id').eq('is_archived').order().order().order()
+  const order3      = vi.fn().mockResolvedValue({ data: [] });
+  const order2      = vi.fn().mockReturnValue({ order: order3 });
+  const order1      = vi.fn().mockReturnValue({ order: order2 });
+  const eq2Loc      = vi.fn().mockReturnValue({ order: order1 });
+  const eq1Loc      = vi.fn().mockReturnValue({ eq: eq2Loc });
 
   // select() returns different chains on first vs second call
   const select = vi.fn()
     .mockReturnValueOnce({ eq: eq1Guard })   // 1st: onboarding guard
-    .mockReturnValueOnce({ eq: eq1Loc });    // 2nd: locations fetch
+    .mockReturnValueOnce({ eq: eq1Loc });    // 2nd: resolveActiveLocation
 
   const from = vi.fn().mockReturnValue({ select });
 

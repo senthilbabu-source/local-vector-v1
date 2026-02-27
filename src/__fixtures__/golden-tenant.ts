@@ -1351,3 +1351,53 @@ export const MOCK_AUDIT_REPORT_DATA: AuditReportData = {
     'Keep your business hours, menu, and amenities up to date to maintain high AI accuracy across all engines.',
   ],
 };
+
+// ---------------------------------------------------------------------------
+// Sprint 100 — Multi-Location Management Fixtures
+// ---------------------------------------------------------------------------
+
+/**
+ * Sprint 100 — Second location for multi-location testing (Agency tier).
+ * Seed UUID: b1eebc99-... (b1 = second location under same org).
+ */
+export const MOCK_SECOND_LOCATION = {
+  id: 'b1eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+  org_id: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+  business_name: 'Charcoal N Chill - Buckhead',
+  display_name: 'Buckhead',
+  address_line1: '3580 Piedmont Rd NE',
+  city: 'Atlanta',
+  state: 'GA',
+  zip: '30305',
+  phone: '(470) 555-1234',
+  website_url: 'https://charcoalnchill.com/buckhead',
+  operational_status: 'OPERATIONAL',
+  is_primary: false,
+  is_archived: false,
+  timezone: 'America/New_York',
+  location_order: 1,
+  slug: 'buckhead',
+} as const;
+
+/**
+ * Sprint 100 — Archived location for archive/filter tests.
+ * Seed UUID: b2eebc99-... (b2 = archived location under same org).
+ */
+export const MOCK_ARCHIVED_LOCATION = {
+  id: 'b2eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+  org_id: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+  business_name: 'Charcoal N Chill - Midtown',
+  display_name: 'Midtown (Closed)',
+  address_line1: '1100 Peachtree St NE',
+  city: 'Atlanta',
+  state: 'GA',
+  zip: '30309',
+  phone: '(470) 555-5678',
+  website_url: 'https://charcoalnchill.com/midtown',
+  operational_status: 'CLOSED_PERMANENTLY',
+  is_primary: false,
+  is_archived: true,
+  timezone: 'America/New_York',
+  location_order: 2,
+  slug: 'midtown',
+} as const;

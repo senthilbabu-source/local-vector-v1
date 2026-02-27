@@ -272,7 +272,7 @@ export default function Sidebar({ isOpen, onClose, displayName, orgName, plan, l
 
         {/* ── Location Switcher (multi-location orgs) ──────────── */}
         {locations && locations.length > 1 && (
-          <LocationSwitcher locations={locations} selectedLocationId={selectedLocationId ?? null} />
+          <LocationSwitcher locations={locations} selectedLocationId={selectedLocationId ?? null} plan={plan} />
         )}
 
         {/* ── Navigation ─────────────────────────────────────────── */}

@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation';
 import { getSafeAuthContext } from '@/lib/auth';
 import { fetchDashboardData } from '@/lib/data/dashboard';
+import { getActiveLocationId } from '@/lib/location/active-location';
 import { fetchProofTimeline } from '@/lib/data/proof-timeline';
 import { fetchEntityHealth } from '@/lib/data/entity-health';
 import { createClient } from '@/lib/supabase/server';
@@ -52,48 +53,38 @@ export default async function DashboardPage() {
   const ctx = await getSafeAuthContext();
   if (!ctx) redirect('/login');
 
+  // Sprint 100: resolve active location for location-scoped data
+  const supabaseForLocation = await createClient();
+  const activeLocationId = ctx.orgId
+    ? await getActiveLocationId(supabaseForLocation, ctx.orgId)
+    : null;
+
   const {
     openAlerts, fixedCount, interceptsThisMonth, visibilityScore, lastAuditAt,
     sovTrend, hallucinationsByModel, competitorComparison,
     currentLeak, previousLeak, revenueConfig, revenueSnapshots, orgPlan,
     healthScore, crawlerSummary, hasPublishedMenu, cronHealth, freshness,
-  } = await fetchDashboardData(ctx.orgId ?? '');
+  } = await fetchDashboardData(ctx.orgId ?? '', activeLocationId);
 
-  // ── Sprint 77: Proof Timeline summary card ──────────────────────────────
+  // ── Sprint 77: Proof Timeline summary card (Sprint 100: uses active location)
   // Non-blocking — if timeline fetch fails, proofTimeline is null.
   let proofTimeline: ProofTimeline | null = null;
   try {
-    if (ctx.orgId) {
+    if (ctx.orgId && activeLocationId) {
       const supabase = await createClient();
-      const { data: primaryLoc } = await supabase
-        .from('locations')
-        .select('id')
-        .eq('org_id', ctx.orgId)
-        .eq('is_primary', true)
-        .maybeSingle();
-      if (primaryLoc) {
-        proofTimeline = await fetchProofTimeline(supabase, ctx.orgId, primaryLoc.id);
-      }
+      proofTimeline = await fetchProofTimeline(supabase, ctx.orgId, activeLocationId);
     }
   } catch {
     // Proof timeline is non-critical — dashboard renders without it.
   }
 
-  // ── Sprint 80: Entity Health summary card ──────────────────────────────
+  // ── Sprint 80: Entity Health summary card (Sprint 100: uses active location)
   // Non-blocking — if entity health fetch fails, entityHealth is null.
   let entityHealth: EntityHealthResult | null = null;
   try {
-    if (ctx.orgId) {
+    if (ctx.orgId && activeLocationId) {
       const supabase = await createClient();
-      const { data: primaryLoc } = await supabase
-        .from('locations')
-        .select('id')
-        .eq('org_id', ctx.orgId)
-        .eq('is_primary', true)
-        .maybeSingle();
-      if (primaryLoc) {
-        entityHealth = await fetchEntityHealth(supabase, ctx.orgId, primaryLoc.id);
-      }
+      entityHealth = await fetchEntityHealth(supabase, ctx.orgId, activeLocationId);
     }
   } catch {
     // Entity health is non-critical — dashboard renders without it.

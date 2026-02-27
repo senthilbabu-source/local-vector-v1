@@ -1507,4 +1507,52 @@ All plan-gated UI in the dashboard uses `components/plan-gate/PlanGate.tsx`. Nev
 - All invitation server actions derive `orgId` from `getSafeAuthContext()` — never from client input (AI_RULES §18).
 
 ---
+
+## §53. Multi-Location Management — Active Context Rules (Sprint 100)
+
+### Active Location Resolution
+- `resolveActiveLocation()` in `lib/location/active-location.ts` is the ONLY place that resolves the active location. Never read the `lv_selected_location` cookie directly in page components.
+- Resolution order: cookie → primary → oldest → null. All stages filter `is_archived = false`.
+- `getActiveLocationId()` is the convenience wrapper — returns just the location ID string or null.
+- Dashboard layout (`app/dashboard/layout.tsx`) calls `resolveActiveLocation()` once and passes results to LocationSwitcher + child pages.
+
+### Location Cookie
+- Cookie name: `lv_selected_location`. Constant exported from `lib/location/active-location.ts`.
+- MUST be set via `switchActiveLocation()` server action — never via `document.cookie` on the client.
+- Cookie options: `httpOnly: true`, `sameSite: 'lax'`, `path: '/'`, `maxAge: 365 days`, `secure` in production.
+- When archiving a location, if it matches the current cookie value, the cookie MUST be cleared.
+- When switching orgs, the location cookie MUST be cleared (locations belong to orgs).
+
+### Data Isolation
+- Every data-fetching function that queries tenant-scoped tables MUST accept an optional `locationId?: string | null` parameter.
+- Pattern: `if (locationId) query = query.eq('location_id', locationId)` — null means org-wide (backwards compatible).
+- Data layers with location isolation: `dashboard.ts`, `crawler-analytics.ts`, `ai-responses.ts`, `freshness-alerts.ts`, `schema-generator.ts`.
+- Page components resolve active location via `getActiveLocationId()` and pass it to their data layer.
+
+### Location CRUD
+- All location actions live in `app/actions/locations.ts`. Five actions: `addLocation`, `updateLocation`, `archiveLocation`, `setPrimaryLocation`, `switchActiveLocation`.
+- Role requirements: `addLocation`/`updateLocation`/`archiveLocation` = admin+. `setPrimaryLocation` = owner only. `switchActiveLocation` = any role.
+- Plan limit: Agency = 10 locations max. All other plans = 1 location. Enforced in `addLocation` via `lib/plan-enforcer.ts`.
+- `is_primary` uniqueness enforced by partial unique index `idx_locations_one_primary_per_org ON locations(org_id) WHERE is_primary = true AND is_archived = false`.
+- Cannot archive: primary location, only active location, already-archived location.
+- Auto-primary: first location added to an org is automatically set as primary.
+
+### OrgSwitcher
+- `getActiveOrgId()` in `lib/auth/active-org.ts` resolves active org from `lv_active_org` cookie → validate against memberships → fallback to first.
+- `switchActiveOrg()` in `app/actions/switch-org.ts` validates membership, sets org cookie, and clears location cookie.
+- `OrgSwitcher` component only renders when user belongs to 2+ organizations.
+
+### Location Management Page
+- Location management lives at `/dashboard/settings/locations` (not `/dashboard/locations`).
+- Old `/dashboard/locations` redirects to the new path.
+- Location cards show: business name, display name, city/state, primary badge, edit/archive/set-primary actions.
+- Plan gate: multi-location add requires Agency plan. Single-location management is available to all plans.
+
+**Rules:**
+- Never use `document.cookie` to set `lv_selected_location` or `lv_active_org` — always use server actions.
+- Never query data without passing `locationId` when the active location is resolved. Omitting it silently returns org-wide data.
+- `display_name` is optional and distinct from `business_name`. Display in UI: `display_name ?? business_name`.
+- Location schemas: `AddLocationSchema` (create with display_name/timezone) and `UpdateLocationSchema` (partial) in `lib/schemas/locations.ts`.
+
+---
 > **End of System Instructions**

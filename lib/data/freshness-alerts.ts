@@ -20,13 +20,17 @@ export type { FreshnessStatus } from '@/lib/services/freshness-alert.service';
 export async function fetchFreshnessAlerts(
   supabase: SupabaseClient<Database>,
   orgId: string,
+  locationId?: string | null,
 ): Promise<FreshnessStatus> {
-  const { data: snapshots, error } = await supabase
+  let query = supabase
     .from('visibility_analytics')
     .select('snapshot_date, citation_rate, share_of_voice')
     .eq('org_id', orgId)
     .order('snapshot_date', { ascending: true })
     .limit(5);
+  if (locationId) query = query.eq('location_id', locationId);
+
+  const { data: snapshots, error } = await query;
 
   if (error) {
     console.error('[freshness-alerts] Failed to fetch visibility_analytics:', error.message);

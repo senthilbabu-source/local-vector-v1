@@ -85,16 +85,20 @@ function deriveStatus(visitCount: number): 'active' | 'low' | 'blind_spot' {
  */
 export async function fetchCrawlerAnalytics(
   supabase: SupabaseClient<Database>,
-  orgId: string
+  orgId: string,
+  locationId?: string | null,
 ): Promise<CrawlerSummary> {
   const thirtyDaysAgo = new Date();
   thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
-  const { data: hits } = await supabase
+  let query = supabase
     .from('crawler_hits')
     .select('bot_type, crawled_at')
     .eq('org_id', orgId)
     .gte('crawled_at', thirtyDaysAgo.toISOString());
+  if (locationId) query = query.eq('location_id', locationId);
+
+  const { data: hits } = await query;
 
   // Aggregate by bot_type: count + max crawled_at
   const agg = new Map<string, { count: number; maxAt: string | null }>();

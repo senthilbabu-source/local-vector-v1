@@ -89,77 +89,85 @@ const SEVERITY_ORDER: Record<string, number> = { critical: 0, high: 1, medium: 2
  *   visibilityScore — live integer 0–100 from share_of_voice; null if no snapshot yet.
  *   lastAuditAt     — ISO timestamp of most recent AI scan; null if never run.
  */
-export async function fetchDashboardData(orgId: string): Promise<DashboardData> {
+export async function fetchDashboardData(orgId: string, locationId?: string | null): Promise<DashboardData> {
   const supabase = await createClient();
 
   const monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString();
 
+  // Build location-scoped queries (Sprint 100: data isolation)
+  let openQuery = supabase
+    .from('ai_hallucinations')
+    .select(
+      'id, severity, category, model_provider, claim_text, expected_truth, correction_status, first_detected_at, last_seen_at, occurrence_count'
+    )
+    .eq('correction_status', 'open')
+    .order('last_seen_at', { ascending: false })
+    .limit(20);
+  if (locationId) openQuery = openQuery.eq('location_id', locationId);
+
+  let fixedQuery = supabase
+    .from('ai_hallucinations')
+    .select('*', { count: 'exact', head: true })
+    .eq('correction_status', 'fixed');
+  if (locationId) fixedQuery = fixedQuery.eq('location_id', locationId);
+
+  let interceptQuery = supabase
+    .from('competitor_intercepts')
+    .select('id', { count: 'exact', head: true })
+    .gte('created_at', monthStart);
+  if (locationId) interceptQuery = interceptQuery.eq('location_id', locationId);
+
+  let visQuery = supabase
+    .from('visibility_analytics')
+    .select('share_of_voice')
+    .eq('org_id', orgId)
+    .order('snapshot_date', { ascending: false })
+    .limit(1);
+  if (locationId) visQuery = visQuery.eq('location_id', locationId);
+
+  let auditQuery = supabase
+    .from('ai_audits')
+    .select('audit_date')
+    .eq('org_id', orgId)
+    .order('audit_date', { ascending: false })
+    .limit(1);
+  if (locationId) auditQuery = auditQuery.eq('location_id', locationId);
+
   const [openResult, fixedResult, interceptResult, visibilityResult, lastAuditResult] = await Promise.all([
-    // Open alerts — columns AlertFeed and RealityScoreCard need.
-    supabase
-      .from('ai_hallucinations')
-      .select(
-        'id, severity, category, model_provider, claim_text, expected_truth, correction_status, first_detected_at, last_seen_at, occurrence_count'
-      )
-      .eq('correction_status', 'open')
-      .order('last_seen_at', { ascending: false })
-      .limit(20),
-
-    // Count of fixed hallucinations for Quick Stats.
-    supabase
-      .from('ai_hallucinations')
-      .select('*', { count: 'exact', head: true })
-      .eq('correction_status', 'fixed'),
-
-    // Count of competitor intercept analyses run this calendar month.
-    supabase
-      .from('competitor_intercepts')
-      .select('id', { count: 'exact', head: true })
-      .gte('created_at', monthStart),
-
-    // Most recent visibility snapshot — share_of_voice is float 0.0–1.0.
-    // Returns null when the SOV cron (Phase 5) has not yet run.
-    supabase
-      .from('visibility_analytics')
-      .select('share_of_voice')
-      .eq('org_id', orgId)
-      .order('snapshot_date', { ascending: false })
-      .limit(1)
-      .maybeSingle(),
-
-    // Most recent AI audit — audit_date is the canonical scan timestamp.
-    // Returns null for new customers who have not had their first cron run.
-    supabase
-      .from('ai_audits')
-      .select('audit_date')
-      .eq('org_id', orgId)
-      .order('audit_date', { ascending: false })
-      .limit(1)
-      .maybeSingle(),
+    openQuery,
+    fixedQuery,
+    interceptQuery,
+    visQuery.maybeSingle(),
+    auditQuery.maybeSingle(),
   ]);
 
   // ── Surgery 4: Fetch chart data in parallel ─────────────────────────────
+  // Sprint 100: location-scoped chart data queries
+  let sovTrendQuery = supabase
+    .from('visibility_analytics')
+    .select('snapshot_date, share_of_voice')
+    .eq('org_id', orgId)
+    .order('snapshot_date', { ascending: true })
+    .limit(12);
+  if (locationId) sovTrendQuery = sovTrendQuery.eq('location_id', locationId);
+
+  let modelCountQuery = supabase
+    .from('ai_hallucinations')
+    .select('model_provider')
+    .eq('correction_status', 'open');
+  if (locationId) modelCountQuery = modelCountQuery.eq('location_id', locationId);
+
+  let interceptCompQuery = supabase
+    .from('competitor_intercepts')
+    .select('competitor_name, gap_analysis')
+    .gte('created_at', monthStart)
+    .limit(50);
+  if (locationId) interceptCompQuery = interceptCompQuery.eq('location_id', locationId);
+
   const [sovTrendResult, modelCountResult, interceptCompResult, revenueConfigResult, revenueSnapshotsResult, orgPlanResult] = await Promise.all([
-    // SOV trend: last 12 snapshots for the trend chart
-    supabase
-      .from('visibility_analytics')
-      .select('snapshot_date, share_of_voice')
-      .eq('org_id', orgId)
-      .order('snapshot_date', { ascending: true })
-      .limit(12),
-
-    // Hallucinations grouped by model (all time)
-    supabase
-      .from('ai_hallucinations')
-      .select('model_provider')
-      .eq('correction_status', 'open'),
-
-    // Competitor intercepts for comparison chart (this month)
-    supabase
-      .from('competitor_intercepts')
-      .select('competitor_name, gap_analysis')
-      .gte('created_at', monthStart)
-      .limit(50),
+    sovTrendQuery,
+    modelCountQuery,
+    interceptCompQuery,
 
     // Revenue config for the org
     supabase
@@ -239,20 +247,24 @@ export async function fetchDashboardData(orgId: string): Promise<DashboardData> 
   // Org plan
   const orgPlan = (orgPlanResult.data?.plan ?? 'trial') as PlanTier;
 
-  // ── Sprint 72: AI Health Score ──────────────────────────────────────────
-  // Fetch primary location for health score computation.
+  // ── Sprint 72: AI Health Score (Sprint 100: uses active location) ────────
   // Non-blocking — if location lookup fails, healthScore is null.
   let healthScore: HealthScoreResult | null = null;
   try {
-    const { data: primaryLocation } = await supabase
-      .from('locations')
-      .select('id')
-      .eq('org_id', orgId)
-      .eq('is_primary', true)
-      .maybeSingle();
+    // Prefer active location; fall back to primary
+    let healthLocationId = locationId;
+    if (!healthLocationId) {
+      const { data: primaryLocation } = await supabase
+        .from('locations')
+        .select('id')
+        .eq('org_id', orgId)
+        .eq('is_primary', true)
+        .maybeSingle();
+      healthLocationId = primaryLocation?.id ?? null;
+    }
 
-    if (primaryLocation) {
-      healthScore = await fetchHealthScore(supabase, orgId, primaryLocation.id);
+    if (healthLocationId) {
+      healthScore = await fetchHealthScore(supabase, orgId, healthLocationId);
     }
   } catch {
     // Health score is non-critical — dashboard renders without it.
@@ -269,7 +281,7 @@ export async function fetchDashboardData(orgId: string): Promise<DashboardData> 
       .eq('org_id', orgId)
       .eq('is_published', true);
     hasPublishedMenu = (count ?? 0) > 0;
-    crawlerSummary = await fetchCrawlerAnalytics(supabase, orgId);
+    crawlerSummary = await fetchCrawlerAnalytics(supabase, orgId, locationId);
   } catch {
     // Crawler analytics is non-critical — dashboard renders without it.
   }
@@ -287,7 +299,7 @@ export async function fetchDashboardData(orgId: string): Promise<DashboardData> 
   // Non-blocking — if freshness fetch fails, freshness is null.
   let freshness: FreshnessStatus | null = null;
   try {
-    freshness = await fetchFreshnessAlerts(supabase, orgId);
+    freshness = await fetchFreshnessAlerts(supabase, orgId, locationId);
   } catch {
     // Freshness alerts are non-critical — dashboard renders without them.
   }

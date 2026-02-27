@@ -939,6 +939,10 @@ export type Database = {
           avg_customer_value: number | null;
           monthly_covers: number | null;
           llms_txt_updated_at: string | null;
+          is_archived: boolean;
+          display_name: string | null;
+          timezone: string | null;
+          location_order: number | null;
         };
         Insert: {
           id?: string;
@@ -970,6 +974,10 @@ export type Database = {
           avg_customer_value?: number | null;
           monthly_covers?: number | null;
           llms_txt_updated_at?: string | null;
+          is_archived?: boolean;
+          display_name?: string | null;
+          timezone?: string | null;
+          location_order?: number | null;
         };
         Update: {
           id?: string;
@@ -1001,6 +1009,10 @@ export type Database = {
           avg_customer_value?: number | null;
           monthly_covers?: number | null;
           llms_txt_updated_at?: string | null;
+          is_archived?: boolean;
+          display_name?: string | null;
+          timezone?: string | null;
+          location_order?: number | null;
         };
         Relationships: [
           {

@@ -47,20 +47,27 @@ export function parseDisplayText(rawResponse: string | null): string | null {
 export async function fetchAIResponses(
   orgId: string,
   supabase: SupabaseClient<Database>,
+  locationId?: string | null,
 ): Promise<AIResponseEntry[]> {
-  const [queryResult, evalResult] = await Promise.all([
-    supabase
-      .from('target_queries')
-      .select('id, query_text, query_category')
-      .eq('org_id', orgId)
-      .order('created_at', { ascending: true }),
+  // Sprint 100: location-scoped queries for data isolation
+  let queryBuilder = supabase
+    .from('target_queries')
+    .select('id, query_text, query_category')
+    .eq('org_id', orgId)
+    .order('created_at', { ascending: true });
+  if (locationId) queryBuilder = queryBuilder.eq('location_id', locationId);
 
-    supabase
-      .from('sov_evaluations')
-      .select('query_id, engine, rank_position, raw_response, mentioned_competitors, cited_sources, created_at')
-      .eq('org_id', orgId)
-      .order('created_at', { ascending: false })
-      .limit(500),
+  let evalBuilder = supabase
+    .from('sov_evaluations')
+    .select('query_id, engine, rank_position, raw_response, mentioned_competitors, cited_sources, created_at')
+    .eq('org_id', orgId)
+    .order('created_at', { ascending: false })
+    .limit(500);
+  if (locationId) evalBuilder = evalBuilder.eq('location_id', locationId);
+
+  const [queryResult, evalResult] = await Promise.all([
+    queryBuilder,
+    evalBuilder,
   ]);
 
   const queries = queryResult.data ?? [];

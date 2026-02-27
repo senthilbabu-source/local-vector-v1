@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation';
 import { getSafeAuthContext } from '@/lib/auth';
 import { createClient } from '@/lib/supabase/server';
 import { fetchAIResponses } from '@/lib/data/ai-responses';
+import { getActiveLocationId } from '@/lib/location/active-location';
 import { canRunSovEvaluation, type PlanTier } from '@/lib/plan-enforcer';
 import ResponseLibrary from './_components/ResponseLibrary';
 
@@ -44,7 +45,9 @@ export default async function AIResponsesPage() {
     );
   }
 
-  const entries = await fetchAIResponses(ctx.orgId, supabase);
+  // Sprint 100: location-scoped AI responses
+  const activeLocationId = await getActiveLocationId(supabase, ctx.orgId);
+  const entries = await fetchAIResponses(ctx.orgId, supabase, activeLocationId);
 
   return (
     <div className="space-y-6">

@@ -31,28 +31,41 @@ export interface SchemaGeneratorData {
 export async function fetchSchemaGeneratorData(
   orgId: string,
   supabase: SupabaseClient<Database>,
+  locationId?: string | null,
 ): Promise<SchemaGeneratorData> {
+  // Sprint 100: location-scoped queries for data isolation
+  let locQuery = supabase
+    .from('locations')
+    .select(
+      'business_name, address_line1, city, state, zip, country, phone, website_url, hours_data, amenities, categories, google_place_id',
+    );
+  if (locationId) {
+    locQuery = locQuery.eq('id', locationId);
+  } else {
+    locQuery = locQuery.eq('org_id', orgId).eq('is_primary', true);
+  }
+
+  let targetQueryBuilder = supabase
+    .from('target_queries')
+    .select('query_text, query_category')
+    .eq('org_id', orgId)
+    .order('created_at', { ascending: true })
+    .limit(20);
+  if (locationId) targetQueryBuilder = targetQueryBuilder.eq('location_id', locationId);
+
+  let integBuilder = supabase
+    .from('location_integrations')
+    .select('platform, listing_url');
+  if (locationId) {
+    integBuilder = integBuilder.eq('location_id', locationId);
+  } else {
+    integBuilder = integBuilder.eq('org_id', orgId);
+  }
+
   const [locResult, queryResult, integResult] = await Promise.all([
-    supabase
-      .from('locations')
-      .select(
-        'business_name, address_line1, city, state, zip, country, phone, website_url, hours_data, amenities, categories, google_place_id',
-      )
-      .eq('org_id', orgId)
-      .eq('is_primary', true)
-      .maybeSingle(),
-
-    supabase
-      .from('target_queries')
-      .select('query_text, query_category')
-      .eq('org_id', orgId)
-      .order('created_at', { ascending: true })
-      .limit(20),
-
-    supabase
-      .from('location_integrations')
-      .select('platform, listing_url')
-      .eq('org_id', orgId),
+    locQuery.maybeSingle(),
+    targetQueryBuilder,
+    integBuilder,
   ]);
 
   const loc = locResult.data;

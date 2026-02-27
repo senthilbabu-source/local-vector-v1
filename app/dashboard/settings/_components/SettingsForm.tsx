@@ -285,6 +285,13 @@ export default function SettingsForm({ displayName, email, orgName, plan, notify
             >
               Manage team members &rarr;
             </Link>
+            <Link
+              data-testid="settings-locations-tab"
+              href="/dashboard/settings/locations"
+              className="block text-xs font-medium text-signal-green hover:underline"
+            >
+              Manage locations &rarr;
+            </Link>
           </div>
         </div>
       </section>

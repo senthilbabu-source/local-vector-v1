@@ -4,6 +4,64 @@
 
 ---
 
+## 2026-03-02 — Sprint 100: Multi-Location Management (Gap #57: 40% → 100%) (Completed)
+
+**Goal:** Complete Agency-tier multi-location management — full CRUD for locations, location-scoped data isolation across all dashboard queries, org-switching UI for multi-org users, and a dedicated location management page.
+
+**Problem:**
+- LocationSwitcher existed (Sprint 62) but used client-side cookies (not HttpOnly), no edit/archive/set-primary capabilities, and no data isolation verification.
+- Dashboard data layers (6+ files) queried by `org_id` only — all locations' data was mixed together.
+- No mechanism for users belonging to multiple organizations to switch between them.
+- No dedicated location management page — locations could be created but not edited, archived, or reordered.
+
+**Key Architecture Decision:**
+Moved location management from `/dashboard/locations` to `/dashboard/settings/locations` (settings concern). Converted LocationSwitcher to HttpOnly cookie via server action. Kept OrgSwitcher minimal (cookie-based, no RLS changes — full multi-org RLS deferred to Sprint 101). Data isolation uses backwards-compatible pattern: `if (locationId) query = query.eq('location_id', locationId)`.
+
+**Solution:**
+- **Migration:** Added `is_archived`, `display_name`, `timezone`, `location_order` columns. Partial unique index `idx_locations_one_primary_per_org` enforces one primary per org. Backfill `display_name` from `business_name`.
+- **Active Location Utility:** `lib/location/active-location.ts` — centralized resolution (cookie → primary → oldest → null), filters archived, validates cookie against org.
+- **Location Actions:** `app/actions/locations.ts` — 5 server actions: `addLocation` (admin+, plan limit), `updateLocation` (admin+), `archiveLocation` (admin+, guards), `setPrimaryLocation` (owner only), `switchActiveLocation` (any role, HttpOnly cookie).
+- **LocationSwitcher Enhancement:** Replaced `document.cookie` with server action, added `display_name` support, "Manage Locations" link for Agency plan.
+- **Location Management Page:** `/dashboard/settings/locations` — Server Component, card grid with edit/archive/set-primary actions, plan gate for multi-location.
+- **Data Isolation Fixes:** Added `locationId` parameter to 5 data layers + 2 calling pages. Pattern: `if (locationId) query = query.eq('location_id', locationId)`.
+- **OrgSwitcher:** `lib/auth/active-org.ts` (cookie-based org resolution), `app/actions/switch-org.ts` (membership validation + cookie), `components/layout/OrgSwitcher.tsx` (dropdown, hidden for single-org users).
+
+**Changes:**
+- `supabase/migrations/20260302000001_multi_location_management.sql` — **NEW.** is_archived, display_name, timezone, location_order + indexes + backfill
+- `lib/location/active-location.ts` — **NEW.** resolveActiveLocation, getActiveLocationId, LOCATION_COOKIE
+- `app/actions/locations.ts` — **NEW.** addLocation, updateLocation, archiveLocation, setPrimaryLocation, switchActiveLocation
+- `lib/auth/active-org.ts` — **NEW.** getActiveOrgId, getUserOrgs, ORG_COOKIE
+- `app/actions/switch-org.ts` — **NEW.** switchActiveOrg server action
+- `components/layout/OrgSwitcher.tsx` — **NEW.** Multi-org dropdown component
+- `app/dashboard/settings/locations/page.tsx` — **NEW.** Location management page
+- `app/dashboard/settings/locations/_components/LocationFormModal.tsx` — **NEW.** Add/Edit location modal
+- `app/dashboard/settings/locations/_components/LocationCard.tsx` — **NEW.** Location card with actions
+- `lib/schemas/locations.ts` — **MODIFIED.** Added AddLocationSchema, UpdateLocationSchema
+- `lib/supabase/database.types.ts` — **MODIFIED.** Added 4 new location columns to types
+- `app/dashboard/layout.tsx` — **MODIFIED.** Replaced inline cookie logic with resolveActiveLocation()
+- `components/layout/LocationSwitcher.tsx` — **MODIFIED.** HttpOnly cookie, display_name, manage link
+- `components/layout/Sidebar.tsx` — **MODIFIED.** Pass plan prop to LocationSwitcher
+- `lib/data/dashboard.ts` — **MODIFIED.** Added locationId parameter to all queries
+- `lib/data/crawler-analytics.ts` — **MODIFIED.** Added locationId parameter
+- `lib/data/ai-responses.ts` — **MODIFIED.** Added locationId parameter to both queries
+- `lib/data/freshness-alerts.ts` — **MODIFIED.** Added locationId parameter
+- `lib/data/schema-generator.ts` — **MODIFIED.** Added locationId parameter, location-specific lookup
+- `app/dashboard/page.tsx` — **MODIFIED.** Resolves active location, passes to data layer
+- `app/dashboard/ai-responses/page.tsx` — **MODIFIED.** Added location scoping
+- `app/dashboard/locations/page.tsx` — **MODIFIED.** Redirects to settings/locations
+- `app/dashboard/settings/_components/SettingsForm.tsx` — **MODIFIED.** Added manage locations link
+
+**Tests added:** 92 new tests across 3 test files
+- `src/__tests__/unit/active-location.test.ts` — 24 tests (cookie resolution, primary fallback, oldest fallback, archived filter, data mapping)
+- `src/__tests__/unit/location-actions.test.ts` — 52 tests (all 5 actions: auth, role, plan gate, validation, edge cases, cookie management)
+- `src/__tests__/unit/org-switcher.test.ts` — 16 tests (switchActiveOrg, getActiveOrgId, getUserOrgs)
+
+**Fixtures added:** `MOCK_SECOND_LOCATION`, `MOCK_ARCHIVED_LOCATION` in `src/__fixtures__/golden-tenant.ts`
+
+**Total test count:** ~2428 (2336 prior + 92 new)
+
+---
+
 ## 2026-03-01 — Sprint 99: Seat-Based Billing + Agency Permissions (Gap #75: 60% → 100%) (Completed)
 
 **Goal:** Complete the Agency tier by wiring seat-based billing into Stripe and adding granular per-location permissions. Three deliverables: Stripe seat quantity management, bidirectional seat limit enforcement, and per-location scoped roles.
