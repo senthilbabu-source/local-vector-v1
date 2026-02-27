@@ -361,6 +361,51 @@ export const MOCK_CRAWLER_SUMMARY: import('@/lib/data/crawler-analytics').Crawle
   ],
 };
 
+/**
+ * Sprint 75 — Canonical CorrectionInput fixture for Charcoal N Chill.
+ * Uses a "permanently closed" hallucination — the most common and impactful type.
+ */
+export const MOCK_CORRECTION_INPUT: import('@/lib/services/correction-generator.service').CorrectionInput = {
+  hallucination: {
+    id: 'b1eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+    claim_text: 'Charcoal N Chill appears to be permanently closed.',
+    expected_truth: 'Charcoal N Chill is actively operating at 11950 Jones Bridge Road Ste 103, Alpharetta, GA.',
+    category: 'closed',
+    severity: 'critical',
+    model_provider: 'openai-gpt4o',
+  },
+  location: {
+    business_name: 'Charcoal N Chill',
+    address_line1: '11950 Jones Bridge Road Ste 103',
+    city: 'Alpharetta',
+    state: 'GA',
+    zip: '30005',
+    phone: '(470) 546-4866',
+    website_url: 'https://charcoalnchill.com',
+    hours_data: {
+      monday: 'closed',
+      tuesday: { open: '17:00', close: '01:00' },
+      wednesday: { open: '17:00', close: '01:00' },
+      thursday: { open: '17:00', close: '01:00' },
+      friday: { open: '17:00', close: '02:00' },
+      saturday: { open: '17:00', close: '02:00' },
+      sunday: { open: '17:00', close: '01:00' },
+    },
+    amenities: {
+      has_outdoor_seating: true,
+      serves_alcohol: true,
+      has_hookah: true,
+      is_kid_friendly: false,
+      takes_reservations: true,
+      has_live_music: true,
+      has_dj: true,
+      has_private_rooms: true,
+    },
+    categories: ['Hookah Bar', 'Indian Restaurant', 'Fusion Restaurant', 'Lounge'],
+    operational_status: 'OPERATIONAL',
+  },
+};
+
 export const RIVAL_TENANT = {
   org: {
     name: 'Cloud 9 Lounge',

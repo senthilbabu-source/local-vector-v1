@@ -4,6 +4,38 @@
 
 ---
 
+## 2026-02-28 — Sprint 75: Hallucination → Correction Content Generator (Completed)
+
+**Goal:** Close the Fear Engine loop by generating actionable correction content for each detected hallucination — a GBP post draft, website correction snippet, llms.txt correction notice, and social post — all built deterministically from verified ground truth data. No AI calls.
+
+**Scope:**
+- `lib/services/correction-generator.service.ts` — **NEW.** Pure correction generator (~300 lines). Exports: `generateCorrectionPackage()` (category-based template system for 7+ hallucination types: closed/status, hours, address, phone, menu, amenity, generic), `formatHoursForCorrection()` (human-readable hours from HoursData). Generates 4 content pieces per hallucination: GBP post, website snippet, llms.txt entry, social post. All content from ground truth — zero AI calls. GBP/website content never amplifies the hallucinated claim.
+- `lib/data/correction-generator.ts` — **NEW.** Data fetcher. Queries `ai_hallucinations` by id+org_id, fetches primary location ground truth, casts JSONB columns (§38.4), assembles `CorrectionInput`, delegates to pure service.
+- `app/dashboard/actions/correction.ts` — **NEW.** Two Server Actions: `generateCorrection(formData)` — Zod-validated UUID, fetches correction package. `createCorrectionDraft(formData)` — plan-gated (Growth+), creates `content_drafts` row with `trigger_type='hallucination_correction'`, `trigger_id` = hallucination UUID.
+- `app/dashboard/_components/CorrectionPanel.tsx` — **NEW.** Client Component. Shows diagnosis, ranked actions (HIGH/MEDIUM/LOW impact badges), content previews, copy-to-clipboard buttons, "Create Draft for Approval" button (plan-gated via `canRunAutopilot`). Uses `useTransition()` for server action calls.
+- `app/dashboard/_components/AlertFeedClient.tsx` — **NEW.** Client wrapper for interactive alert cards with "Fix This →" button that toggles CorrectionPanel inline.
+- `app/dashboard/_components/AlertFeed.tsx` — **MODIFIED.** Refactored to delegate active alerts rendering to AlertFeedClient; keeps empty state as Server Component.
+- `app/dashboard/page.tsx` — **MODIFIED.** Passes `canCreateDraft` (from `canRunAutopilot`) to AlertFeed for plan gating.
+- `supabase/migrations/20260227000004_hallucination_correction_trigger.sql` — **NEW.** Adds `hallucination_correction` to `content_drafts.trigger_type` CHECK constraint.
+- `supabase/prod_schema.sql` — **MODIFIED.** Updated trigger_type CHECK.
+- `src/__fixtures__/golden-tenant.ts` — **MODIFIED.** Added `MOCK_CORRECTION_INPUT` fixture (permanently-closed hallucination + full Charcoal N Chill ground truth).
+
+**Tests added:**
+- `src/__tests__/unit/correction-generator-service.test.ts` — **30 Vitest tests.** Category-specific corrections (7 types), diagnosis quality, action ranking, content quality rules (no claim amplification, length limits), hours formatting, edge cases (null fields).
+- `src/__tests__/unit/correction-data.test.ts` — **7 Vitest tests.** Data fetching, JSONB casting, null handling, org scoping.
+- `src/__tests__/unit/correction-action.test.ts` — **9 Vitest tests.** Auth guard, validation, happy paths for both actions, trigger_type='hallucination_correction'.
+
+**Run commands:**
+```bash
+npx vitest run src/__tests__/unit/correction-generator-service.test.ts  # 30 tests passing
+npx vitest run src/__tests__/unit/correction-data.test.ts               # 7 tests passing
+npx vitest run src/__tests__/unit/correction-action.test.ts             # 9 tests passing
+npx vitest run                                                          # 1085 tests passing (81/82 files)
+npx tsc --noEmit                                                        # 0 errors
+```
+
+---
+
 ## 2026-02-27 — Sprint 74: Google AI Overview Monitoring — Gemini + Search Grounding (Completed)
 
 **Goal:** Add Google AI Overview monitoring to the SOV Engine using Gemini with Google Search grounding, enabling LocalVector to track what appears when someone Googles a tenant's business category — the #1 AI surface covering 47% of commercial searches.

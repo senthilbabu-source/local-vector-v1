@@ -440,7 +440,7 @@ CREATE TABLE IF NOT EXISTS "public"."content_drafts" (
     "updated_at" timestamp with time zone DEFAULT "now"() NOT NULL,
     CONSTRAINT "content_drafts_content_type_check" CHECK ((("content_type")::"text" = ANY ((ARRAY['faq_page'::character varying, 'occasion_page'::character varying, 'blog_post'::character varying, 'landing_page'::character varying, 'gbp_post'::character varying])::"text"[]))),
     CONSTRAINT "content_drafts_status_check" CHECK ((("status")::"text" = ANY ((ARRAY['draft'::character varying, 'approved'::character varying, 'published'::character varying, 'rejected'::character varying, 'archived'::character varying])::"text"[]))),
-    CONSTRAINT "content_drafts_trigger_type_check" CHECK ((("trigger_type")::"text" = ANY ((ARRAY['competitor_gap'::character varying, 'occasion'::character varying, 'prompt_missing'::character varying, 'first_mover'::character varying, 'manual'::character varying])::"text"[])))
+    CONSTRAINT "content_drafts_trigger_type_check" CHECK ((("trigger_type")::"text" = ANY ((ARRAY['competitor_gap'::character varying, 'occasion'::character varying, 'prompt_missing'::character varying, 'first_mover'::character varying, 'manual'::character varying, 'hallucination_correction'::character varying])::"text"[])))
 );
 
 

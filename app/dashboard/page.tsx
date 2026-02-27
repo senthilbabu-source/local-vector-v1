@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation';
 import { getSafeAuthContext } from '@/lib/auth';
 import { fetchDashboardData } from '@/lib/data/dashboard';
+import { canRunAutopilot, type PlanTier } from '@/lib/plan-enforcer';
 import { nextSundayLabel } from './_components/scan-health-utils';
 import RealityScoreCard from './_components/RealityScoreCard';
 import AlertFeed from './_components/AlertFeed';
@@ -48,6 +49,7 @@ export default async function DashboardPage() {
   const scores = deriveRealityScore(openAlerts.length, visibilityScore);
   const firstName = ctx.fullName?.split(' ')[0] ?? ctx.email.split('@')[0];
   const hasOpenAlerts = openAlerts.length > 0;
+  const draftGated = canRunAutopilot((orgPlan ?? 'trial') as PlanTier);
   const sovSparkline = sovTrend.slice(-7).map((d) => d.sov);
   return (
     <div className="space-y-5">
@@ -81,7 +83,7 @@ export default async function DashboardPage() {
       {/* Fear First layout (Doc 06 §1 Design Principle #1) */}
       {hasOpenAlerts ? (
         <>
-          <AlertFeed alerts={openAlerts} />
+          <AlertFeed alerts={openAlerts} canCreateDraft={draftGated} />
           <RealityScoreCard {...scores} openAlertCount={openAlerts.length} lastAuditAt={lastAuditAt} />
         </>
       ) : (

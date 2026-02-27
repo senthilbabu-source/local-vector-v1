@@ -1135,4 +1135,17 @@ All AI bot user-agent detection is centralized in `lib/crawler/bot-detector.ts`.
 **Fixtures:** `MOCK_CRAWLER_HIT`, `MOCK_CRAWLER_SUMMARY` in `src/__fixtures__/golden-tenant.ts`. Seed UUIDs: g0–g5.
 
 ---
+
+## 41. Correction Content Is Ground-Truth Only — No AI Generation (Sprint 75)
+
+Correction content for hallucinations is generated deterministically from verified ground truth data. **No AI/LLM calls** are used to generate correction text.
+
+* **Why:** Using an LLM to correct an LLM hallucination risks producing a new hallucination. Correction content must be factually verifiable.
+* **Pattern:** `generateCorrectionPackage()` in `lib/services/correction-generator.service.ts` uses template interpolation with data from the `locations` table (hours, address, amenities, etc.).
+* **Never amplify:** GBP posts, website snippets, and social posts MUST NOT include the hallucinated claim. Only `llms.txt` entries reference the false claim (explicitly labeled as incorrect) because AI crawlers need to see the correction paired with the error.
+* **Ground truth imports:** Always use types from `lib/types/ground-truth.ts` (§9) for hours_data, amenities, etc.
+* **Content_drafts trigger_type:** Correction drafts use `trigger_type='hallucination_correction'` with `trigger_id` pointing to the `ai_hallucinations.id`.
+* **Fixtures:** `MOCK_CORRECTION_INPUT` in `src/__fixtures__/golden-tenant.ts`.
+
+---
 > **End of System Instructions**

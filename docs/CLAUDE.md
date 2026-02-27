@@ -93,6 +93,7 @@ tests/e2e/             — Playwright E2E tests (18 specs)
 21. `20260227000001_page_audit_dimensions.sql` — `faq_schema_score`, `entity_clarity_score` columns on `page_audits`
 22. `20260227000002_crawler_hits_location_id.sql` — `location_id` column on `crawler_hits` + backfill + composite index
 23. `20260227000003_sov_cited_sources.sql` — `cited_sources JSONB` column on `sov_evaluations` for Google AI Overview citation sources
+24. `20260227000004_hallucination_correction_trigger.sql` — Adds `hallucination_correction` to `content_drafts.trigger_type` CHECK constraint
 
 ## Testing Commands
 
@@ -131,7 +132,8 @@ UPSTASH_REDIS_REST_URL, UPSTASH_REDIS_REST_TOKEN
 | Schema Fix Generator | `lib/schema-generator/` | Generate JSON-LD (FAQ, Hours, LocalBusiness) from ground truth |
 | AI Health Score | `lib/services/ai-health-score.service.ts` | Composite 0–100 score from SOV + page audit + hallucinations + schema. Pure function, no I/O. |
 | Crawler Analytics | `lib/crawler/bot-detector.ts` + `lib/data/crawler-analytics.ts` | AI bot detection registry (10 bots) + visit aggregation + blind spot detection. Wired via `proxy.ts` fire-and-forget → `POST /api/internal/crawler-log`. |
+| Correction Generator | `lib/services/correction-generator.service.ts` | Pure, deterministic correction content from ground truth (no AI calls). Generates GBP post, website snippet, llms.txt entry, social post per hallucination. Uses `trigger_type='hallucination_correction'` in `content_drafts`. |
 
 ## Build History
 
-See `DEVLOG.md` (project root) and `docs/DEVLOG.md` for the complete sprint-by-sprint build log. Current sprint: 74.
+See `DEVLOG.md` (project root) and `docs/DEVLOG.md` for the complete sprint-by-sprint build log. Current sprint: 75.
