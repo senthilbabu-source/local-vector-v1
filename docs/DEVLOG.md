@@ -4,6 +4,56 @@
 
 ---
 
+## 2026-03-01 — Sprint 98: Multi-User Foundation — Invitations + Roles (Gap #75: 0% → 60%) (Completed)
+
+**Goal:** Build the foundational multi-user system: role enforcement library, token-based invitation flow, team management UI, and invite acceptance page. Enables org owners to invite admin/viewer team members with email-verified acceptance.
+
+**Problem:**
+- Single-user system: `memberships` table existed but only the auto-created owner row was ever used.
+- No invitation mechanism, no role enforcement library, no team management UI.
+- RLS via `current_user_org_id()` already supports multi-user but no way to add users.
+
+**Key Architecture Decision:**
+Sprint spec assumed creating NEW `org_members` table and `org_role` enum, but pre-flight investigation revealed the existing `memberships` table and `membership_role` enum already provide this infrastructure. Adapted entire implementation to reuse existing tables, avoiding data duplication and maintaining consistency with `current_user_org_id()` RLS.
+
+**Solution:**
+- **Role Library:** `lib/auth/org-roles.ts` — `roleSatisfies()`, `assertOrgRole()`, `getOrgRole()`, `ROLE_PERMISSIONS`, `InsufficientRoleError`. Hierarchy: viewer/member=0, admin=1, owner=2.
+- **Invitation Actions:** `app/actions/invitations.ts` — `sendInvitation`, `revokeInvitation`, `removeMember`, `updateMemberRole`. All derive orgId from session (§18).
+- **Accept Flow:** `app/actions/accept-invitation.ts` — service-role client bypasses RLS for invitee who isn't yet a member. Email match is case-insensitive.
+- **Email:** `emails/InvitationEmail.tsx` (React Email, dark theme) + `lib/email/send-invitation.ts` (Resend wrapper).
+- **Public Invite Page:** `app/(public)/invite/[token]/` — 6 states (invalid, pending_login, pending_accept, wrong_account, success, error).
+- **Team UI:** `app/dashboard/settings/team/` — members table, pending invitations, invite form. PlanGate wraps invite (agency required).
+- **Migration:** `pending_invitations` table + `invited_by`/`joined_at` columns on existing `memberships`.
+
+**Changes:**
+- `supabase/migrations/20260301000002_multi_user_foundation.sql` — **NEW.** pending_invitations table + memberships columns + RLS + indexes
+- `lib/auth/org-roles.ts` — **NEW.** Role enforcement library (hierarchy, permissions, assertion, InsufficientRoleError)
+- `app/actions/invitations.ts` — **NEW.** Send/revoke/remove/updateRole server actions
+- `app/actions/accept-invitation.ts` — **NEW.** Token-based invite acceptance (service-role)
+- `lib/email/send-invitation.ts` — **NEW.** Resend email sender for invitations
+- `emails/InvitationEmail.tsx` — **NEW.** React Email dark theme invitation template
+- `app/api/invitations/accept/route.ts` — **NEW.** Public GET route for email link redirect
+- `app/(public)/layout.tsx` — **NEW.** Bare passthrough layout for public routes
+- `app/(public)/invite/[token]/page.tsx` — **NEW.** Server Component invite page
+- `app/(public)/invite/[token]/InviteAcceptClient.tsx` — **NEW.** Client Component with 6 acceptance states
+- `app/dashboard/settings/team/page.tsx` — **NEW.** Team management page (Server Component)
+- `app/dashboard/settings/team/_components/TeamClient.tsx` — **NEW.** Team management client (members table + invite form)
+- `app/dashboard/settings/_components/SettingsForm.tsx` — **MODIFIED.** Added "Manage team members →" link
+- `lib/supabase/database.types.ts` — **MODIFIED.** Added pending_invitations types + memberships columns
+- `docs/AI_RULES.md` — **MODIFIED.** Added §51
+
+**Test counts:**
+- `src/__tests__/unit/org-roles.test.ts` — 31 tests
+- `src/__tests__/unit/invitations.test.ts` — 20 tests
+- `src/__tests__/unit/accept-invitation.test.ts` — 12 tests
+- **Sprint 98 total: 63 new tests**
+- **Full suite: 2285 tests passing, 166 files**
+
+**Gaps Closed:**
+- Gap #75: Multi-User Foundation — 0% → 60% (remaining: ownership transfer, E2E tests, profile page)
+
+---
+
 ## 2026-03-01 — Sprint 97: Citation Cron + Dynamic llms.txt (Gaps #60 + #62: 40%/30% → 100%) (Completed)
 
 **Goal:** Close two interconnected data pipeline gaps: make the citation cron tenant-derived (reading real org categories and metros instead of hardcoded arrays), and transform the static `/llms.txt` into a dynamic, org-specific AI visibility file.

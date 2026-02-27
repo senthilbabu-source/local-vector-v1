@@ -44,6 +44,8 @@ app/dashboard/agent-readiness/   — AI Agent Readiness Score (Sprint 84)
 app/dashboard/revenue-impact/    — Revenue Impact Calculator (Sprint 85)
 app/dashboard/share-of-voice/   — SOV page + Content Brief Generator (Sprint 86)
 app/dashboard/cluster-map/     — AI Visibility Cluster Map (Sprint 87)
+app/dashboard/settings/team/  — Team Management page (Sprint 98)
+app/(public)/invite/[token]/  — Invite acceptance page (Sprint 98)
 app/onboarding/connect/       — GBP OAuth interstitial + location picker (Sprint 89)
 lib/schema-generator/        — Pure JSON-LD generators: FAQ, Hours, LocalBusiness, ReserveAction, OrderAction (Sprint 70/84)
 lib/ai/                — AI provider config, schemas, actions
@@ -51,9 +53,10 @@ lib/services/          — Pure business logic services
 lib/autopilot/         — Content draft generation and publish pipeline
 lib/page-audit/        — HTML parser + AEO auditor
 lib/tools/             — AI chat tool definitions
+lib/auth/              — Role enforcement (org-roles.ts: roleSatisfies, assertOrgRole, ROLE_PERMISSIONS)
 lib/mcp/               — MCP server tool registrations
 lib/supabase/database.types.ts — Full Database type (29 tables, 9 enums, Relationships)
-supabase/migrations/   — Applied SQL migrations (29, timestamp-ordered)
+supabase/migrations/   — Applied SQL migrations (31, timestamp-ordered)
 supabase/prod_schema.sql — Full production schema dump
 docs/                  — 50 spec documents (authoritative for planned features)
 src/__tests__/         — Unit + integration tests
@@ -77,6 +80,8 @@ tests/e2e/             — Playwright E2E tests (18 specs)
 | `page_audits` | AEO page audit results per org (5 dimension scores: answer_first, schema_completeness, faq_schema, keyword_density/aeo_readability, entity_clarity + recommendations with dimensionKey/schemaType) |
 | `google_oauth_tokens` | GBP OAuth credentials per org (service-role writes, authenticated SELECT) |
 | `location_integrations` | Platform connections per location (Big 6 + listing URLs + WordPress `wp_username`/`wp_app_password`) |
+| `memberships` | Org membership per user — role (owner/admin/member/viewer), invited_by, joined_at. No RLS (used by SECURITY DEFINER `current_user_org_id()`). UNIQUE(user_id, org_id). |
+| `pending_invitations` | Token-based invitation tracking — email, role, token (unique 32-byte hex), status (pending/accepted/revoked/expired), expires_at (7 days). RLS: org-scoped via `current_user_org_id()`. UNIQUE(org_id, email). |
 | `cron_run_log` | Cron execution health log (cron_name, duration_ms, status, summary JSONB) — service-role only, no RLS policies |
 | `crawler_hits` | AI bot visit log per magic menu page — bot_type, user_agent, crawled_at. RLS: org_isolation_select + service_role_insert. Columns: org_id, menu_id, location_id, bot_type, user_agent |
 | `entity_checks` | Entity presence across 7 AI knowledge graph platforms per location. 7 status columns (confirmed/missing/unchecked/incomplete), `platform_metadata` JSONB, `entity_score` integer. Full org RLS. |
@@ -112,6 +117,8 @@ tests/e2e/             — Playwright E2E tests (18 specs)
 27. `20260226000011_source_mentions.sql` — `source_mentions` JSONB column on `sov_evaluations`
 28. `20260226000012_revenue_config.sql` — `avg_customer_value` (numeric) + `monthly_covers` (integer) columns on `locations`
 29. `20260228000002_sov_phase5_cleanup.sql` — `is_active` column + `UNIQUE(location_id, query_text)` constraint on `target_queries`, duplicate dedup
+30. `20260301000001_add_llms_txt_updated_at.sql` — `llms_txt_updated_at` column on `locations`
+31. `20260301000002_multi_user_foundation.sql` — `pending_invitations` table + `invited_by`/`joined_at` columns on `memberships` + RLS + indexes
 
 ## Testing Commands
 
@@ -164,7 +171,8 @@ UPSTASH_REDIS_REST_URL, UPSTASH_REDIS_REST_TOKEN
 | Content Brief Generator | `lib/services/content-brief-builder.service.ts` + `lib/services/content-brief-generator.service.ts` | Two-layer SOV gap → content brief pipeline. Layer 1 (pure): slug, title tag, H1, schema recommendations, llms.txt. Layer 2 (AI): `generateObject` with gpt-4o-mini + `ContentBriefSchema` for answer capsule, outline sections, FAQ questions. Triggered from SOV page via `generateContentBrief()` server action. Saves to `content_drafts` with `trigger_type='prompt_missing'`. Fallback: structure-only brief when no API key. |
 | Cluster Map | `lib/services/cluster-map.service.ts` + `lib/data/cluster-map.ts` | Scatter plot visualization: Brand Authority (X) × Fact Accuracy (Y) × SOV bubble size. Hallucination fog overlay from Fear Engine (severity-scaled red zones). Engine toggle for per-AI-model view (Perplexity/ChatGPT/Gemini/Copilot). Pure service, no AI calls, no new tables — aggregates from sov_evaluations + ai_hallucinations + visibility_analytics. Recharts ScatterChart with custom dot renderer. UI at `/dashboard/cluster-map`. |
 | GBP Mapper | `docs/RFC_GBP_ONBOARDING_V2_REPLACEMENT.md` | Maps GBP API responses to LocalVector location rows. Pure functions: `mapGBPLocationToRow()` + `mapGBPHours()`. Auto-import (1 loc) or cookie-pointer picker (2+ locs). Onboarding interstitial at `/onboarding/connect`. |
+| Multi-User Roles | `lib/auth/org-roles.ts` | Role hierarchy (viewer/member=0, admin=1, owner=2) + `roleSatisfies()` + `assertOrgRole()` + `ROLE_PERMISSIONS` matrix. Token-based invitation flow via `pending_invitations` table. Team management at `/dashboard/settings/team`. Invite acceptance at `/invite/[token]`. Agency plan required for multi-user. |
 
 ## Build History
 
-See `DEVLOG.md` (project root) and `docs/DEVLOG.md` for the complete sprint-by-sprint build log. Current sprint: 89.
+See `DEVLOG.md` (project root) and `docs/DEVLOG.md` for the complete sprint-by-sprint build log. Current sprint: 98.

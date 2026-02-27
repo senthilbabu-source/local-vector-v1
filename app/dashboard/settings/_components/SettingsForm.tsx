@@ -271,12 +271,19 @@ export default function SettingsForm({ displayName, email, orgName, plan, notify
               Manage billing &rarr;
             </Link>
           </div>
-          <div className="pt-2 border-t border-white/5">
+          <div className="pt-2 border-t border-white/5 space-y-2">
             <Link
               href="/dashboard/settings/business-info"
-              className="text-xs font-medium text-signal-green hover:underline"
+              className="block text-xs font-medium text-signal-green hover:underline"
             >
               Edit business information &rarr;
+            </Link>
+            <Link
+              data-testid="settings-team-tab"
+              href="/dashboard/settings/team"
+              className="block text-xs font-medium text-signal-green hover:underline"
+            >
+              Manage team members &rarr;
             </Link>
           </div>
         </div>

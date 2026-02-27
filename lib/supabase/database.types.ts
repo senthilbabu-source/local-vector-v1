@@ -1109,6 +1109,8 @@ export type Database = {
           user_id: string;
           org_id: string;
           role: Database["public"]["Enums"]["membership_role"] | null;
+          invited_by: string | null;
+          joined_at: string | null;
           created_at: string | null;
         };
         Insert: {
@@ -1116,6 +1118,8 @@ export type Database = {
           user_id: string;
           org_id: string;
           role?: Database["public"]["Enums"]["membership_role"] | null;
+          invited_by?: string | null;
+          joined_at?: string | null;
           created_at?: string | null;
         };
         Update: {
@@ -1123,6 +1127,8 @@ export type Database = {
           user_id?: string;
           org_id?: string;
           role?: Database["public"]["Enums"]["membership_role"] | null;
+          invited_by?: string | null;
+          joined_at?: string | null;
           created_at?: string | null;
         };
         Relationships: [
@@ -1322,6 +1328,60 @@ export type Database = {
           notify_sov_alerts?: boolean | null;
         };
         Relationships: [];
+      };
+      pending_invitations: {
+        Row: {
+          id: string;
+          org_id: string;
+          email: string;
+          role: Database["public"]["Enums"]["membership_role"];
+          token: string;
+          invited_by: string;
+          status: string;
+          expires_at: string;
+          accepted_at: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          org_id: string;
+          email: string;
+          role?: Database["public"]["Enums"]["membership_role"];
+          token?: string;
+          invited_by: string;
+          status?: string;
+          expires_at?: string;
+          accepted_at?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          org_id?: string;
+          email?: string;
+          role?: Database["public"]["Enums"]["membership_role"];
+          token?: string;
+          invited_by?: string;
+          status?: string;
+          expires_at?: string;
+          accepted_at?: string | null;
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "pending_invitations_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "pending_invitations_invited_by_fkey";
+            columns: ["invited_by"];
+            isOneToOne: false;
+            referencedRelation: "users";
+            referencedColumns: ["id"];
+          },
+        ];
       };
       page_audits: {
         Row: {
