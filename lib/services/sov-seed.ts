@@ -160,12 +160,15 @@ export async function seedSOVQueries(
 
   const { error } = await supabase
     .from('target_queries')
-    .insert(rows)
+    .upsert(rows, {
+      onConflict: 'location_id,query_text',
+      ignoreDuplicates: true,
+    })
     .select('id');
 
   if (error) {
-    // Unique constraint violations are expected on re-seed — log but don't throw
-    console.warn(`[sov-seed] Insert warning for location ${location.id}: ${error.message}`);
+    // Genuine errors (not constraint violations) — log for cron diagnostics
+    console.error(`[sov-seed] Upsert error for location ${location.id}: ${error.message}`);
   }
 
   return { seeded: rows.length };

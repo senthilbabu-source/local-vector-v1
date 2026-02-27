@@ -122,6 +122,7 @@ async function _runInlineSOVImpl(handle: { logId: string | null; startedAt: numb
       locations ( business_name, city, state, categories ),
       organizations ( plan_status, plan )
     `)
+    .eq('is_active', true)
     .eq('organizations.plan_status', 'active')
     .limit(500);
 

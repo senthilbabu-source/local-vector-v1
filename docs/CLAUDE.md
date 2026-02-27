@@ -52,7 +52,7 @@ lib/page-audit/        — HTML parser + AEO auditor
 lib/tools/             — AI chat tool definitions
 lib/mcp/               — MCP server tool registrations
 lib/supabase/database.types.ts — Full Database type (29 tables, 9 enums, Relationships)
-supabase/migrations/   — Applied SQL migrations (28, timestamp-ordered)
+supabase/migrations/   — Applied SQL migrations (29, timestamp-ordered)
 supabase/prod_schema.sql — Full production schema dump
 docs/                  — 50 spec documents (authoritative for planned features)
 src/__tests__/         — Unit + integration tests
@@ -65,7 +65,7 @@ tests/e2e/             — Playwright E2E tests (18 specs)
 |-------|---------|
 | `organizations` | Tenant root — has `plan_tier`, `plan_status`, notification prefs (`notify_hallucination_alerts`, `notify_weekly_digest`, `notify_sov_alerts`) |
 | `locations` | Business locations per org. Revenue config: `avg_customer_value` (numeric, default 45), `monthly_covers` (integer, default 800) |
-| `target_queries` | SOV query library per location |
+| `target_queries` | SOV query library per location. Columns: `query_category` (discovery/comparison/occasion/near_me/custom), `occasion_tag`, `intent_modifier`, `is_active` (soft-disable toggle). UNIQUE on `(location_id, query_text)`. |
 | `sov_evaluations` | Per-query SOV results (engine, rank, competitors, `sentiment_data` JSONB, `source_mentions` JSONB) |
 | `visibility_analytics` | Aggregated SOV scores per snapshot date |
 | `ai_hallucinations` | Detected hallucinations with severity + status tracking |
@@ -110,6 +110,7 @@ tests/e2e/             — Playwright E2E tests (18 specs)
 26. `20260226000010_sentiment_data.sql` — `sentiment_data` JSONB column on `sov_evaluations` + partial index
 27. `20260226000011_source_mentions.sql` — `source_mentions` JSONB column on `sov_evaluations`
 28. `20260226000012_revenue_config.sql` — `avg_customer_value` (numeric) + `monthly_covers` (integer) columns on `locations`
+29. `20260228000002_sov_phase5_cleanup.sql` — `is_active` column + `UNIQUE(location_id, query_text)` constraint on `target_queries`, duplicate dedup
 
 ## Testing Commands
 
@@ -164,4 +165,4 @@ UPSTASH_REDIS_REST_URL, UPSTASH_REDIS_REST_TOKEN
 
 ## Build History
 
-See `DEVLOG.md` (project root) and `docs/DEVLOG.md` for the complete sprint-by-sprint build log. Current sprint: 87.
+See `DEVLOG.md` (project root) and `docs/DEVLOG.md` for the complete sprint-by-sprint build log. Current sprint: 88.

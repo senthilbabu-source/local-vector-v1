@@ -4,6 +4,42 @@
 
 ---
 
+## 2026-02-28 — Sprint 88: Phase 5 SOV Cleanup + Build Plan Reconciliation (Completed)
+
+**Goal:** Close the final Phase 5 SOV gaps — add missing `UNIQUE(location_id, query_text)` constraint, add `is_active` soft-disable column, fix sov-seed.ts to use proper upsert, add duplicate detection to addTargetQuery, supersede the unpromoted migration, reconcile Build Plan Phase 5 checkboxes.
+
+**Scope:**
+- `supabase/migrations/20260228000002_sov_phase5_cleanup.sql` — **NEW.** Adds `is_active BOOLEAN NOT NULL DEFAULT TRUE` column, deduplicates existing rows (keeps earliest created_at), adds `UNIQUE(location_id, query_text)` constraint, creates partial index `idx_target_queries_active` on `is_active = TRUE`.
+- `lib/supabase/database.types.ts` — **MODIFIED.** Added `is_active: boolean` to target_queries Row, `is_active?: boolean` to Insert/Update.
+- `lib/services/sov-seed.ts` — **MODIFIED.** Replaced `.insert()` + `console.warn` with `.upsert({ onConflict: 'location_id,query_text', ignoreDuplicates: true })` + `console.error`. Now truly idempotent.
+- `app/dashboard/share-of-voice/actions.ts` — **MODIFIED.** `addTargetQuery()` now detects PostgreSQL `23505` (unique_violation) and returns "This query already exists for this location." instead of raw error. **NEW:** `toggleQueryActive()` server action — flips `is_active` boolean with Zod validation and belt-and-suspenders `org_id` check.
+- `app/api/cron/sov/route.ts` — **MODIFIED.** Added `.eq('is_active', true)` to target_queries fetch in inline fallback path.
+- `lib/inngest/functions/sov-cron.ts` — **MODIFIED.** Added `.eq('is_active', true)` to target_queries fetch in Step 1.
+- `app/dashboard/share-of-voice/page.tsx` — **MODIFIED.** Query fetch now selects `is_active` and filters `.eq('is_active', true)`. Added parallel paused count query. `pausedCount` shown in Quick Stats when > 0. `is_active` passed through to QueryWithEvals.
+- `app/dashboard/share-of-voice/_components/SovCard.tsx` — **MODIFIED.** `QueryWithEvals` type now includes `is_active: boolean`. Added `handlePause()` with `useTransition`. `QueryRow` has new Eye/EyeOff toggle button (amber hover, zinc default) next to delete button.
+- `docs/20260223000001_sov_engine.sql` — **MODIFIED.** Added SUPERSEDED header block explaining all features were delivered incrementally.
+- `docs/09-BUILD-PLAN.md` — **MODIFIED.** Phase 5 checkboxes updated to reflect actual completion across sprints 48–88.
+- `supabase/prod_schema.sql` — **MODIFIED.** Added `is_active` column, `uq_target_queries_location_text` UNIQUE constraint, `idx_target_queries_active` partial index.
+- `docs/CLAUDE.md` — **MODIFIED.** Migration #29 added. `target_queries` table description updated with columns and constraint. Migration count updated to 29. Sprint count updated to 88.
+- `supabase/seed.sql` — **MODIFIED.** All 4 `target_queries` inserts now include explicit `is_active = TRUE`.
+
+**Tests added:**
+- `src/__tests__/unit/sov-seed-idempotent.test.ts` — **6 tests.** Upsert with onConflict + ignoreDuplicates, error logging, field validation, occasion queries, edge cases.
+- `src/__tests__/unit/sov-query-toggle.test.ts` — **7 tests.** toggleQueryActive: flip true→false, false→true, auth guard, org_id enforcement, validation, DB error.
+- `src/__tests__/unit/sov-add-query-dedup.test.ts` — **3 tests.** 23505 friendly error, other errors passthrough, success case.
+
+**Run commands:**
+```bash
+npx vitest run src/__tests__/unit/sov-seed-idempotent.test.ts  # 6 tests passing
+npx vitest run src/__tests__/unit/sov-query-toggle.test.ts     # 7 tests passing
+npx vitest run src/__tests__/unit/sov-add-query-dedup.test.ts  # 3 tests passing
+npx vitest run                                                  # 1745 tests passing (131 files)
+```
+
+**Verified counts:** Vitest: 1745 tests, 132 files (131 passed, 1 skipped: rls-isolation integration requires running Supabase).
+
+---
+
 ## 2026-02-28 — Sprint 87: AI Visibility Cluster Map (Completed)
 
 **Goal:** Build the AI Visibility Cluster Map — a scatter plot showing where your business sits in each AI engine's recommendation space, overlaid with hallucination fog zones from the Fear Engine. X-axis: Brand Authority (citation frequency). Y-axis: Fact Accuracy (truth score). Bubble size: Share of Voice. Engine toggle for per-AI-model filtering. No new tables, no AI calls — pure data visualization from 4 existing tables.

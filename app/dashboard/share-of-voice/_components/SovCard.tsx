@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useTransition } from 'react';
-import { addTargetQuery, runSovEvaluation, deleteTargetQuery } from '../actions';
+import { addTargetQuery, runSovEvaluation, deleteTargetQuery, toggleQueryActive } from '../actions';
 import { canRunSovEvaluation } from '@/lib/plan-enforcer';
 import type { SovEngine } from '@/lib/schemas/sov';
 import GenerateBriefButton from './GenerateBriefButton';
@@ -21,6 +21,7 @@ export type SovEvalRow = {
 export type QueryWithEvals = {
   id: string;
   query_text: string;
+  is_active: boolean;
   openaiEval: SovEvalRow;
   perplexityEval: SovEvalRow;
 };
@@ -194,6 +195,8 @@ function QueryRow({
   canRun,
   onDelete,
   isDeletePending,
+  onPause,
+  isPausePending,
   hasBriefDraft,
 }: {
   query: QueryWithEvals;
@@ -203,6 +206,8 @@ function QueryRow({
   canRun: boolean;
   onDelete: (queryId: string) => void;
   isDeletePending: boolean;
+  onPause: (queryId: string, isActive: boolean) => void;
+  isPausePending: boolean;
   hasBriefDraft: boolean;
 }) {
   // Aggregate competitors across both engines (deduplicated)
@@ -222,23 +227,44 @@ function QueryRow({
 
   return (
     <div className="py-4 first:pt-0">
-      {/* Query text + delete button */}
+      {/* Query text + pause/delete buttons */}
       <div className="mb-2.5 flex items-start justify-between gap-2">
         <p className="text-sm font-medium text-white leading-snug">
           &ldquo;{query.query_text}&rdquo;
         </p>
-        <button
-          type="button"
-          onClick={() => onDelete(query.id)}
-          disabled={isDeletePending}
-          title="Delete query"
-          className="shrink-0 rounded p-1 text-slate-600 transition hover:bg-white/5 hover:text-alert-crimson disabled:opacity-50"
-          data-testid="delete-query-btn"
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" />
-          </svg>
-        </button>
+        <div className="flex shrink-0 items-center gap-1">
+          <button
+            type="button"
+            onClick={() => onPause(query.id, !query.is_active)}
+            disabled={isPausePending}
+            title={query.is_active ? 'Pause query' : 'Resume query'}
+            className="shrink-0 rounded p-1 text-zinc-500 transition hover:bg-white/5 hover:text-amber-400 disabled:opacity-50"
+            data-testid="pause-query-btn"
+          >
+            {query.is_active ? (
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178Z" />
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
+              </svg>
+            ) : (
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M3.98 8.223A10.477 10.477 0 0 0 1.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.451 10.451 0 0 1 12 4.5c4.756 0 8.773 3.162 10.065 7.498a10.522 10.522 0 0 1-4.293 5.774M6.228 6.228 3 3m3.228 3.228 3.65 3.65m7.894 7.894L21 21m-3.228-3.228-3.65-3.65m0 0a3 3 0 1 0-4.243-4.243m4.242 4.242L9.88 9.88" />
+              </svg>
+            )}
+          </button>
+          <button
+            type="button"
+            onClick={() => onDelete(query.id)}
+            disabled={isDeletePending}
+            title="Delete query"
+            className="shrink-0 rounded p-1 text-slate-600 transition hover:bg-white/5 hover:text-alert-crimson disabled:opacity-50"
+            data-testid="delete-query-btn"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" />
+            </svg>
+          </button>
+        </div>
       </div>
 
       {/* Engine cells */}
@@ -325,6 +351,16 @@ export default function SovCard({ locationId, locationLabel, queries, plan, brie
     });
   }
 
+  // ── Pause/resume query state ─────────────────────────────────────────────
+  const [isPausePending, startPauseTransition] = useTransition();
+
+  function handlePause(queryId: string, isActive: boolean) {
+    startPauseTransition(async () => {
+      const result = await toggleQueryActive({ query_id: queryId, is_active: isActive });
+      if (!result.success) setRunError(result.error);
+    });
+  }
+
   // ── Delete query state ────────────────────────────────────────────────────
   const [isDeletePending, startDeleteTransition] = useTransition();
 
@@ -386,6 +422,8 @@ export default function SovCard({ locationId, locationLabel, queries, plan, brie
               canRun={canRun}
               onDelete={handleDelete}
               isDeletePending={isDeletePending}
+              onPause={handlePause}
+              isPausePending={isPausePending}
               hasBriefDraft={briefDraftSet.has(query.id)}
             />
           ))}

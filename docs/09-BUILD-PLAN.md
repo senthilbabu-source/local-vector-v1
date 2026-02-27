@@ -317,58 +317,58 @@
 
 ### Checklist
 
-- [ ] **Database Migration**
-  - [ ] ⚠️ **NOTE (Group A remediation, 2026-02-23):** `docs/20260223000001_sov_engine.sql` was NOT promoted to `supabase/migrations/`. It creates `sov_target_queries` + `sov_first_mover_alerts` (Phase 5 target schema), which differ from the live `target_queries` + `sov_evaluations` tables used by all existing SOV code (migration `20260221000004_create_sov_tracking.sql`). Promoting this migration as-is would create orphaned parallel tables. **Phase 5 build task:** migrate live `target_queries` data to `sov_target_queries` (richer schema), update all SOV code to use the new table names, then apply the migration.
-  - [ ] Verify `sov_target_queries` and `sov_first_mover_alerts` tables created with correct RLS
-  - [ ] Verify `sov_target_queries` UNIQUE constraint on `(location_id, query_text)`
+- [x] **Database Migration**
+  - [x] ⚠️ **NOTE (Sprint 88 reconciliation, 2026-02-28):** `docs/20260223000001_sov_engine.sql` has been formally SUPERSEDED. It planned `sov_target_queries` + `sov_first_mover_alerts` as replacement tables, but all intended features were delivered incrementally into the existing `target_queries` + `content_drafts` tables across sprints 48–88. The migration file is preserved for historical reference with a SUPERSEDED header. No table rename is needed.
+  - [x] `target_queries` has `query_category`, `occasion_tag`, `intent_modifier` (Sprint 65, migration `20260226000001`)
+  - [x] `UNIQUE(location_id, query_text)` constraint (Sprint 88, migration `20260228000002`)
+  - [x] `is_active` column for soft-disable toggle (Sprint 88, migration `20260228000002`)
+  - ~~Migrate to `sov_target_queries`~~ — **SUPERSEDED.** Table stays as `target_queries`. See Sprint 88.
+  - ~~Create `sov_first_mover_alerts`~~ — **SUPERSEDED.** First Mover alerts use `content_drafts.trigger_type = 'first_mover'`. See Sprint 48.
 
-- [ ] **Query Seeding**
-  - [ ] Implement `seedSOVQueries(locationId)` in `lib/sov/seed.ts` (Doc 04c Section 3.1)
-  - [ ] Call `seedSOVQueries()` on location creation (wire into the onboarding completion Server Action)
-  - [ ] Seed Golden Tenant (Charcoal N Chill) with 13 system-generated queries
-  - [ ] **🤖 Agent Rule:** `sov_target_queries` table DDL is in `docs/20260223000001_sov_engine.sql` (NOT yet in `supabase/migrations/` — see NOTE above). Import `QueryCategory` type from `src/lib/types/sov.ts` (Doc 03, Section 15.12).
+- [x] **Query Seeding**
+  - [x] `seedSOVQueries(location)` in `lib/services/sov-seed.ts` — 4 query categories (discovery, near_me, occasion, comparison)
+  - [x] Wired into onboarding completion (`app/onboarding/actions.ts` line 130)
+  - [x] Golden Tenant seeded with system-generated queries (`supabase/seed.sql`)
 
-- [ ] **SOV Cron**
-  - [ ] Build `app/api/cron/sov/route.ts` — Next.js Route Handler (Doc 04c Section 4.1)
-  - [ ] Implement `runSOVQuery()` with Perplexity Sonar SOV prompt (Doc 04c Section 4.2)
-  - [ ] Implement `writeSOVResults()` — upserts to `visibility_analytics` (Doc 04c Section 4.3)
-  - [ ] Add `STOP_SOV_CRON` kill switch env var check at function entry
-  - [ ] Configure Vercel Cron trigger: Sunday 2 AM EST → `POST /api/cron/sov`
-  - [ ] Implement `POST /api/cron/sov` route handler (service-role auth via `CRON_SECRET`)
+- [x] **SOV Cron**
+  - [x] `app/api/cron/sov/route.ts` — Route Handler with Inngest dispatch + inline fallback
+  - [x] `runSOVQuery()` with Perplexity Sonar + OpenAI multi-model (Sprint 61B)
+  - [x] `writeSOVResults()` — upserts to `visibility_analytics`
+  - [x] `STOP_SOV_CRON` kill switch
+  - [x] Vercel Cron trigger configured in `vercel.json`
+  - [x] `CRON_SECRET` auth guard
 
-- [ ] **Reality Score Fix**
-  - [ ] Implement `calculateVisibilityScore()` in `lib/scores/visibility.ts` (Doc 04c Section 5.1)
-  - [ ] Remove hardcoded `visibility = 98` from `RealityScoreCard` component
-  - [ ] Implement `state: 'calculating'` UI (Doc 06 Section 8.2 — skeleton, no fake zero)
-  - [ ] Wire updated score formula into scoring cron (Doc 04 Section 6)
-  - [ ] **🤖 Agent Rule:** `calculateVisibilityScore()` returns `number | null`. `null` = cron not yet run. Never render `0` for null — render the calculating skeleton.
+- [x] **Reality Score Fix**
+  - [x] Visibility reads live `visibility_analytics.share_of_voice` x 100 (`lib/data/dashboard.ts` line 199)
+  - [x] Hardcoded `98` removed — `RealityScoreCard` accepts `visibility: number | null`
+  - [x] `state: 'calculating'` UI — shows "First AI visibility scan runs Sunday, {date}" when null
+  - [x] Score formula: `realityScore = visibility * 0.4 + accuracy * 0.4 + dataHealth * 0.2`
 
-- [ ] **First Mover Alert Pipeline**
-  - [ ] Implement `checkFirstMoverAlerts()` in SOV cron (Doc 04c Section 6.1)
-  - [ ] Writes to `sov_first_mover_alerts` table (upsert on `org_id, query_id` conflict)
-  - [ ] Build `GET /api/sov/alerts` endpoint (Doc 05 Section 12)
-  - [ ] Build `FirstMoverAlertCard` component (Doc 06 Section 8.3)
-  - [ ] Wire alert count to sidebar Visibility badge
+- [x] **First Mover Alert Pipeline**
+  - [x] First Mover alerts created via `content_drafts` with `trigger_type = 'first_mover'` (Sprint 48)
+  - [x] `FirstMoverCard` component (`app/dashboard/share-of-voice/_components/FirstMoverCard.tsx`)
+  - ~~`sov_first_mover_alerts` table~~ — **SUPERSEDED** (uses `content_drafts`)
+  - ~~`GET /api/sov/alerts` endpoint~~ — **SUPERSEDED** (server component reads `content_drafts` directly)
+  - [ ] Wire alert count to sidebar badge — deferred (not blocking)
 
-- [ ] **SOV Dashboard (`/visibility`)**
-  - [ ] Build `/dashboard/visibility/page.tsx` (Doc 06 Section 8.1 wireframe)
-  - [ ] Build `SOVScoreRing` component with calculating state (Doc 06 Section 8.2)
-  - [ ] Build `SOVQueryTable` component (Doc 06 Section 8.4)
-  - [ ] Build `GET /api/sov/queries`, `POST /api/sov/queries`, `DELETE /api/sov/queries/:id` (Doc 05 Section 12)
-  - [ ] Add "Visibility" to sidebar (Growth+: full; Starter: read-only score only)
+- [x] **SOV Dashboard (`/share-of-voice`)**
+  - [x] `/dashboard/share-of-voice/page.tsx` — full page with score ring, trend chart, query table, first mover cards, gap alerts, category breakdown
+  - [x] `SOVScoreRing` with calculating state
+  - [x] `SovCard` (query table with eval results + pause/resume toggle)
+  - [x] `addTargetQuery`, `deleteTargetQuery`, `runSovEvaluation`, `toggleQueryActive` server actions
+  - [x] "Share of Voice" in sidebar
 
-- [ ] **Content Draft Trigger (Greed Engine patch)**
-  - [ ] Implement `triggerContentDraftIfNeeded()` in Greed Engine cron (Doc 04 Section 3.4)
-  - [x] ~~Run `supabase/migrations/20260223000002_content_pipeline.sql`~~ → promoted as `20260224000001_content_pipeline.sql` (Group A, 2026-02-23). `content_drafts`, `page_audits`, `local_occasions`, `citation_source_intelligence` tables now in schema.
-  - [ ] Verify `content_drafts` inserts for `gap_magnitude = 'high'` intercepts
+- [x] **Content Draft Trigger**
+  - [x] `createDraft()` called for first_mover alerts and prompt_missing gaps (Sprint 48)
+  - [x] `content_drafts` table created (`20260224000001_content_pipeline.sql`)
 
 ### Acceptance Criteria
-- [ ] SOV cron runs against Charcoal N Chill and writes to `visibility_analytics`
-- [ ] Reality Score Visibility component shows real number (not 98)
-- [ ] New tenant sees "Calculating..." state — not `0` or `98`
-- [ ] First Mover Alerts appear in `/visibility` when no local business is cited
-- [ ] `npx vitest run src/__tests__/unit/sov-cron.test.ts` — **ALL PASS**
-- [ ] `npx vitest run src/__tests__/unit/visibility-score.test.ts` — **ALL PASS** (including null state)
+- [x] SOV cron runs against Charcoal N Chill and writes to `visibility_analytics`
+- [x] Reality Score Visibility component shows real number (not 98)
+- [x] New tenant sees "Calculating..." state — not `0` or `98`
+- [x] First Mover Alerts appear in `/share-of-voice` when no local business is cited
+- [x] `npx vitest run src/__tests__/unit/cron-sov.test.ts` — **ALL PASS**
+- [x] `npx vitest run src/__tests__/unit/share-of-voice-actions.test.ts` — **ALL PASS**
 
 ---
 

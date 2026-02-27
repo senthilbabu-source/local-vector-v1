@@ -384,13 +384,14 @@ ON CONFLICT (id) DO NOTHING;
 --
 -- location_id retrieved via subquery (same pattern as sections 4 and 7–8).
 
-INSERT INTO public.target_queries (id, org_id, location_id, query_text, query_category)
+INSERT INTO public.target_queries (id, org_id, location_id, query_text, query_category, is_active)
 SELECT
   'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
   'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
   l.id,
   'Best BBQ restaurant in Alpharetta GA',
-  'discovery'
+  'discovery',
+  TRUE
 FROM public.locations l
 WHERE l.org_id = 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11'
   AND l.slug   = 'alpharetta'
@@ -444,13 +445,14 @@ LIMIT 1
 ON CONFLICT (id) DO NOTHING;
 
 -- New target query: hookah bar
-INSERT INTO public.target_queries (id, org_id, location_id, query_text, query_category)
+INSERT INTO public.target_queries (id, org_id, location_id, query_text, query_category, is_active)
 SELECT
   'c4eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
   'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
   l.id,
   'Best hookah bar near Alpharetta',
-  'near_me'
+  'near_me',
+  TRUE
 FROM public.locations l
 WHERE l.org_id = 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11'
   AND l.slug   = 'alpharetta'
@@ -1517,13 +1519,14 @@ WHERE org_id = 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11'
 -- The FAQ schema generator needs varied query categories for rich Q&A pairs.
 
 -- Comparison query
-INSERT INTO public.target_queries (id, org_id, location_id, query_text, query_category)
+INSERT INTO public.target_queries (id, org_id, location_id, query_text, query_category, is_active)
 SELECT
   'c8eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
   'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
   l.id,
   'Charcoal N Chill vs Cloud 9 Lounge Alpharetta',
-  'comparison'
+  'comparison',
+  TRUE
 FROM public.locations l
 WHERE l.org_id = 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11'
   AND l.slug   = 'alpharetta'
@@ -1531,13 +1534,14 @@ LIMIT 1
 ON CONFLICT (id) DO NOTHING;
 
 -- Occasion query
-INSERT INTO public.target_queries (id, org_id, location_id, query_text, query_category)
+INSERT INTO public.target_queries (id, org_id, location_id, query_text, query_category, is_active)
 SELECT
   'c9eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
   'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
   l.id,
   'birthday party venue Alpharetta with hookah and private rooms',
-  'occasion'
+  'occasion',
+  TRUE
 FROM public.locations l
 WHERE l.org_id = 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11'
   AND l.slug   = 'alpharetta'

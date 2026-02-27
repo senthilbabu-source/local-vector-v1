@@ -772,6 +772,7 @@ CREATE TABLE IF NOT EXISTS "public"."target_queries" (
     "query_category" character varying(50) DEFAULT 'discovery'::character varying NOT NULL,
     "occasion_tag" character varying(50),
     "intent_modifier" character varying(50),
+    "is_active" boolean DEFAULT true NOT NULL,
     "created_at" timestamp with time zone DEFAULT "now"() NOT NULL,
     CONSTRAINT "target_queries_category_check" CHECK (((query_category)::text = ANY ((ARRAY['discovery'::character varying, 'comparison'::character varying, 'occasion'::character varying, 'near_me'::character varying, 'custom'::character varying])::text[])))
 );
@@ -994,6 +995,9 @@ ALTER TABLE ONLY "public"."sov_evaluations"
 ALTER TABLE ONLY "public"."target_queries"
     ADD CONSTRAINT "target_queries_pkey" PRIMARY KEY ("id");
 
+ALTER TABLE ONLY "public"."target_queries"
+    ADD CONSTRAINT "uq_target_queries_location_text" UNIQUE ("location_id", "query_text");
+
 
 
 ALTER TABLE ONLY "public"."location_integrations"
@@ -1176,6 +1180,8 @@ CREATE INDEX "idx_target_queries_location" ON "public"."target_queries" USING "b
 CREATE INDEX "idx_target_queries_org" ON "public"."target_queries" USING "btree" ("org_id");
 
 CREATE INDEX "idx_target_queries_category" ON "public"."target_queries" USING "btree" ("query_category");
+
+CREATE INDEX "idx_target_queries_active" ON "public"."target_queries" USING "btree" ("location_id") WHERE ("is_active" = true);
 
 
 

@@ -29,6 +29,7 @@ type QueryRow = {
   location_id: string;
   query_text: string;
   query_category: string;
+  is_active: boolean;
 };
 
 type SovEvalRow = {
@@ -59,7 +60,7 @@ type FirstMoverRow = {
 async function fetchPageData(orgId: string) {
   const supabase = await createClient();
 
-  const [locResult, queryResult, evalResult, visResult, firstMoverResult, orgResult, briefDraftResult] =
+  const [locResult, queryResult, evalResult, visResult, firstMoverResult, orgResult, briefDraftResult, pausedCountResult] =
     await Promise.all([
       supabase
         .from('locations')
@@ -68,7 +69,8 @@ async function fetchPageData(orgId: string) {
 
       supabase
         .from('target_queries')
-        .select('id, location_id, query_text, query_category')
+        .select('id, location_id, query_text, query_category, is_active')
+        .eq('is_active', true)
         .order('created_at', { ascending: true }),
 
       // Ordered newest-first so the first match per (query, engine) is the latest
@@ -110,6 +112,13 @@ async function fetchPageData(orgId: string) {
         .eq('trigger_type', 'prompt_missing')
         .eq('org_id', orgId)
         .in('status', ['draft', 'approved']),
+
+      // Sprint 88: Count paused queries
+      supabase
+        .from('target_queries')
+        .select('id', { count: 'exact', head: true })
+        .eq('org_id', orgId)
+        .eq('is_active', false),
     ]);
 
   // Collect trigger_ids that already have briefs
@@ -127,6 +136,7 @@ async function fetchPageData(orgId: string) {
     firstMoverOpps: (firstMoverResult.data as FirstMoverRow[]) ?? [],
     plan: (orgResult.data?.plan as string) ?? 'trial',
     briefDraftTriggerIds,
+    pausedCount: pausedCountResult.count ?? 0,
   };
 }
 
@@ -140,7 +150,7 @@ export default async function ShareOfVoicePage() {
     redirect('/login');
   }
 
-  const { locations, queries, evaluations, visibilitySnapshots, firstMoverOpps, plan, briefDraftTriggerIds } =
+  const { locations, queries, evaluations, visibilitySnapshots, firstMoverOpps, plan, briefDraftTriggerIds, pausedCount } =
     await fetchPageData(ctx.orgId);
 
   // ── Derive SOV metrics from visibility_analytics ─────────────────────────
@@ -235,6 +245,14 @@ export default async function ShareOfVoicePage() {
                 {firstMoverOpps.length}
               </span>
             </div>
+            {pausedCount > 0 && (
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-slate-500">Paused Queries</span>
+                <span className="text-sm font-medium text-slate-400 tabular-nums">
+                  {pausedCount}
+                </span>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -342,6 +360,7 @@ export default async function ShareOfVoicePage() {
               const queriesWithEvals: QueryWithEvals[] = locationQueries.map((q) => ({
                 id: q.id,
                 query_text: q.query_text,
+                is_active: q.is_active,
                 openaiEval:
                   (evaluations.find(
                     (e) => e.query_id === q.id && e.engine === 'openai'

@@ -200,6 +200,10 @@ export async function addTargetQuery(input: AddQueryInput): Promise<ActionResult
   });
 
   if (error) {
+    // PostgreSQL unique_violation code = 23505
+    if (error.code === '23505') {
+      return { success: false, error: 'This query already exists for this location.' };
+    }
     return { success: false, error: error.message };
   }
 
@@ -305,6 +309,44 @@ export async function runSovEvaluation(input: RunSovInput): Promise<ActionResult
 
   if (insertError) {
     return { success: false, error: insertError.message };
+  }
+
+  revalidatePath('/dashboard/share-of-voice');
+  return { success: true };
+}
+
+// ---------------------------------------------------------------------------
+// toggleQueryActive — Server Action
+// ---------------------------------------------------------------------------
+
+const ToggleQuerySchema = z.object({
+  query_id: z.string().uuid(),
+  is_active: z.boolean(),
+});
+
+type ToggleQueryInput = z.infer<typeof ToggleQuerySchema>;
+
+export async function toggleQueryActive(input: ToggleQueryInput): Promise<ActionResult> {
+  const ctx = await getSafeAuthContext();
+  if (!ctx?.orgId) {
+    return { success: false, error: 'Unauthorized' };
+  }
+
+  const parsed = ToggleQuerySchema.safeParse(input);
+  if (!parsed.success) {
+    return { success: false, error: parsed.error.issues[0]?.message ?? 'Invalid input' };
+  }
+
+  const supabase = await createClient();
+
+  const { error } = await supabase
+    .from('target_queries')
+    .update({ is_active: parsed.data.is_active })
+    .eq('id', parsed.data.query_id)
+    .eq('org_id', ctx.orgId);
+
+  if (error) {
+    return { success: false, error: error.message };
   }
 
   revalidatePath('/dashboard/share-of-voice');

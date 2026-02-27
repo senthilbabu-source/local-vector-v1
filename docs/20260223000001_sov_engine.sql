@@ -1,3 +1,19 @@
+-- =====================================================================
+-- SUPERSEDED — DO NOT PROMOTE TO supabase/migrations/
+--
+-- This migration was written for Phase 5 planning but was NEVER applied.
+-- All intended features were delivered incrementally:
+--
+--   sov_target_queries  → stays as `target_queries` (migration 20260221000004)
+--                         + query_category/occasion_tag/intent_modifier (20260226000001)
+--                         + is_active + UNIQUE constraint (20260228000002, Sprint 88)
+--
+--   sov_first_mover_alerts → replaced by content_drafts.trigger_type = 'first_mover'
+--                            (migration 20260226000002, Sprint 48)
+--
+-- Kept for historical reference only. See Sprint 88 DEVLOG for full reconciliation.
+-- =====================================================================
+
 -- ============================================================
 -- Migration: 20260223000001_sov_engine.sql
 -- Description: SOV Engine — creates sov_target_queries and
