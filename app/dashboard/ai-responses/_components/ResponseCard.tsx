@@ -66,6 +66,7 @@ export default function ResponseCard({ entry }: Props) {
             rankPosition={eng.rankPosition}
             rawResponse={eng.rawResponse}
             mentionedCompetitors={eng.mentionedCompetitors}
+            citedSources={eng.citedSources}
             createdAt={eng.createdAt}
           />
         ))}

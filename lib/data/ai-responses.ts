@@ -18,6 +18,7 @@ export interface EngineResponse {
   rankPosition: number | null;
   rawResponse: string | null;
   mentionedCompetitors: string[];
+  citedSources?: { url: string; title: string }[] | null;
   createdAt: string;
 }
 
@@ -56,7 +57,7 @@ export async function fetchAIResponses(
 
     supabase
       .from('sov_evaluations')
-      .select('query_id, engine, rank_position, raw_response, mentioned_competitors, created_at')
+      .select('query_id, engine, rank_position, raw_response, mentioned_competitors, cited_sources, created_at')
       .eq('org_id', orgId)
       .order('created_at', { ascending: false })
       .limit(500),
@@ -78,6 +79,7 @@ export async function fetchAIResponses(
         rankPosition: ev.rank_position,
         rawResponse: ev.raw_response,
         mentionedCompetitors: (ev.mentioned_competitors as string[]) ?? [],
+        citedSources: ev.cited_sources as { url: string; title: string }[] | null,
         createdAt: ev.created_at,
       });
     }

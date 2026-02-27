@@ -250,4 +250,34 @@ describe('writeSOVResults', () => {
     // Competitors found — not a first mover opportunity
     expect(metrics.firstMoverCount).toBe(0);
   });
+
+  it('SOVQueryResult type accepts engine="google"', () => {
+    const result: SOVQueryResult = makeResult({
+      queryId: 'q1',
+      queryText: 'test',
+      queryCategory: 'discovery',
+      locationId: 'loc1',
+      engine: 'google',
+    });
+    expect(result.engine).toBe('google');
+  });
+
+  it('writes cited_sources when present in Google result', async () => {
+    const supabase = makeMockSupabase();
+    const results: SOVQueryResult[] = [
+      {
+        ...makeResult({ queryId: 'q1', queryText: 'test', queryCategory: 'discovery', locationId: 'loc1' }),
+        engine: 'google',
+        citedSources: [{ url: 'https://yelp.com', title: 'Yelp' }],
+      },
+    ];
+
+    await writeSOVResults('org-001', results, supabase);
+
+    expect(supabase._mockInsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        cited_sources: [{ url: 'https://yelp.com', title: 'Yelp' }],
+      }),
+    );
+  });
 });

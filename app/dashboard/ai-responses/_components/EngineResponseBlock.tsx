@@ -26,6 +26,7 @@ function rankLabel(rank: number | null): string {
 const ENGINE_CONFIG: Record<string, { label: string; dotClass: string }> = {
   openai: { label: 'ChatGPT', dotClass: 'bg-signal-green' },
   perplexity: { label: 'Perplexity', dotClass: 'bg-electric-indigo' },
+  google: { label: 'Google AI Overview', dotClass: 'bg-alert-amber' },
 };
 
 // ---------------------------------------------------------------------------
@@ -43,6 +44,7 @@ interface Props {
   rankPosition: number | null;
   rawResponse: string | null;
   mentionedCompetitors: string[];
+  citedSources?: { url: string; title: string }[] | null;
   createdAt: string;
 }
 
@@ -55,6 +57,7 @@ export default function EngineResponseBlock({
   rankPosition,
   rawResponse,
   mentionedCompetitors,
+  citedSources,
 }: Props) {
   const [expanded, setExpanded] = useState(false);
   const config = ENGINE_CONFIG[engine] ?? { label: engine, dotClass: 'bg-slate-400' };
@@ -119,6 +122,28 @@ export default function EngineResponseBlock({
           >
             Run SOV evaluation →
           </a>
+        </div>
+      )}
+
+      {/* Google cited sources */}
+      {citedSources && citedSources.length > 0 && (
+        <div className="mt-3 rounded-md border border-white/5 bg-white/[0.02] p-3">
+          <p className="text-xs font-semibold text-slate-400 mb-2">Sources Google Cited</p>
+          <ol className="space-y-1">
+            {citedSources.map((source, i) => (
+              <li key={source.url} className="text-xs text-slate-300">
+                <span className="text-slate-500 mr-1.5">{i + 1}.</span>
+                <a
+                  href={source.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-electric-indigo hover:text-electric-indigo/80 transition underline underline-offset-2"
+                >
+                  {source.title || source.url}
+                </a>
+              </li>
+            ))}
+          </ol>
         </div>
       )}
 

@@ -1464,6 +1464,7 @@ export type Database = {
           rank_position: number | null;
           mentioned_competitors: Json;
           raw_response: string | null;
+          cited_sources: Json | null;
           created_at: string;
         };
         Insert: {
@@ -1475,6 +1476,7 @@ export type Database = {
           rank_position?: number | null;
           mentioned_competitors?: Json;
           raw_response?: string | null;
+          cited_sources?: Json | null;
           created_at?: string;
         };
         Update: {
@@ -1486,6 +1488,7 @@ export type Database = {
           rank_position?: number | null;
           mentioned_competitors?: Json;
           raw_response?: string | null;
+          cited_sources?: Json | null;
           created_at?: string;
         };
         Relationships: [

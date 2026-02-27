@@ -49,6 +49,8 @@ export interface SOVQueryResult {
   businessesFound: string[];
   citationUrl: string | null;
   engine: string;
+  /** URLs cited by Google Search grounding. Only populated for engine='google'. */
+  citedSources?: { url: string; title: string }[];
 }
 
 // ---------------------------------------------------------------------------
@@ -93,6 +95,7 @@ function mockSOVResult(query: SOVQueryInput, engine = 'perplexity'): SOVQueryRes
 const MODEL_ENGINE_MAP: Record<string, string> = {
   'sov-query': 'perplexity',
   'sov-query-openai': 'openai',
+  'sov-query-google': 'google',
 };
 
 // ---------------------------------------------------------------------------
@@ -160,26 +163,87 @@ export async function runSOVQuery(
 }
 
 // ---------------------------------------------------------------------------
-// runMultiModelSOVQuery — Run same query against Perplexity + OpenAI in parallel
+// Google AI Overview — Search-grounded SOV query (Sprint 74)
 // ---------------------------------------------------------------------------
 
 /**
- * Run a single SOV query against both Perplexity Sonar and GPT-4o in parallel.
- * Returns 1-2 results (gracefully handles one provider failing).
+ * Natural-language SOV prompt for Google Search grounding.
+ * Unlike buildSOVCronPrompt (JSON-focused), this returns readable text
+ * that displays directly in the "AI Says" page.
+ */
+function buildGoogleGroundedPrompt(queryText: string): string {
+  return `Answer this question a local person might ask: "${queryText}"
+
+Provide a helpful, factual answer listing the top recommended options. Include specific business names, what makes each one notable, and any relevant details like specialties, ambiance, or popular items. Be specific and mention real businesses.`;
+}
+
+/**
+ * Run a SOV query against Gemini with Google Search grounding.
+ * Returns search-grounded response + cited source URLs.
+ *
+ * Unlike runSOVQuery (JSON-structured), this returns natural text so
+ * the response displays directly in the "AI Says" page. Business mention
+ * detection uses the same fuzzy substring matching.
+ */
+export async function runGoogleGroundedSOVQuery(
+  query: SOVQueryInput,
+): Promise<SOVQueryResult> {
+  if (!hasApiKey('google')) {
+    return mockSOVResult(query, 'google');
+  }
+
+  const { text, sources } = await generateText({
+    model: getModel('sov-query-google'),
+    prompt: buildGoogleGroundedPrompt(query.query_text),
+    temperature: 0.3,
+  });
+
+  // Fuzzy match: same logic as runSOVQuery
+  const businessName = query.locations.business_name.toLowerCase();
+  const responseLower = text.toLowerCase();
+  const ourBusinessCited =
+    responseLower.includes(businessName) || businessName.includes(responseLower);
+
+  return {
+    queryId: query.id,
+    queryText: query.query_text,
+    queryCategory: query.query_category,
+    locationId: query.location_id,
+    ourBusinessCited,
+    businessesFound: [],
+    citationUrl: null,
+    engine: 'google',
+    citedSources: sources?.map((s) => ({ url: s.url, title: s.title ?? '' })) ?? [],
+  };
+}
+
+// ---------------------------------------------------------------------------
+// runMultiModelSOVQuery — Run same query against Perplexity + OpenAI + Google
+// ---------------------------------------------------------------------------
+
+/**
+ * Run a single SOV query against Perplexity Sonar, GPT-4o, and optionally
+ * Google (search-grounded) in parallel. Returns 1-3 results (gracefully
+ * handles any provider failing via Promise.allSettled).
  * Used for Growth/Agency orgs to get multi-model visibility data.
  */
 export async function runMultiModelSOVQuery(
   query: SOVQueryInput,
 ): Promise<SOVQueryResult[]> {
-  const [perplexityResult, openaiResult] = await Promise.allSettled([
+  const promises: Promise<SOVQueryResult>[] = [
     runSOVQuery(query, 'sov-query'),
     runSOVQuery(query, 'sov-query-openai'),
-  ]);
+  ];
 
-  const results: SOVQueryResult[] = [];
-  if (perplexityResult.status === 'fulfilled') results.push(perplexityResult.value);
-  if (openaiResult.status === 'fulfilled') results.push(openaiResult.value);
-  return results;
+  // Add Google engine if API key is available
+  if (hasApiKey('google')) {
+    promises.push(runGoogleGroundedSOVQuery(query));
+  }
+
+  const settled = await Promise.allSettled(promises);
+  return settled
+    .filter((r): r is PromiseFulfilledResult<SOVQueryResult> => r.status === 'fulfilled')
+    .map((r) => r.value);
 }
 
 // ---------------------------------------------------------------------------
@@ -221,6 +285,7 @@ export async function writeSOVResults(
         businesses: [...result.businessesFound, ...(result.ourBusinessCited ? [result.queryText] : [])],
         cited_url: result.citationUrl,
       }),
+      cited_sources: result.citedSources ?? null,
     });
   }
 

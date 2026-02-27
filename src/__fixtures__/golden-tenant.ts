@@ -136,9 +136,40 @@ export const MOCK_SOV_RESPONSE = {
       mentionedCompetitors: ['Dreamland BBQ'],
       createdAt: '2026-02-26T12:05:00.000Z',
     },
+    {
+      engine: 'google',
+      rankPosition: 1,
+      rawResponse:
+        'Based on recent reviews and Google Business Profile data, Charcoal N Chill is a highly-rated hookah lounge in Alpharetta, GA, known for its Indo-American fusion cuisine and premium hookah experience. Other options include Cloud 9 Lounge and Astra Hookah.',
+      mentionedCompetitors: ['Cloud 9 Lounge', 'Astra Hookah'],
+      citedSources: [
+        { url: 'https://www.yelp.com/biz/charcoal-n-chill-alpharetta', title: 'Charcoal N Chill - Alpharetta - Yelp' },
+        { url: 'https://g.co/charcoal-n-chill', title: 'Charcoal N Chill - Google Business Profile' },
+      ],
+      createdAt: '2026-02-26T12:10:00.000Z',
+    },
   ],
-  latestDate: '2026-02-26T12:05:00.000Z',
+  latestDate: '2026-02-26T12:10:00.000Z',
 } as const;
+
+/**
+ * Sprint 74 — Canonical Google-grounded SOV result fixture.
+ * Use in all Google AI Overview tests.
+ */
+export const MOCK_GOOGLE_SOV_RESULT: import('@/lib/services/sov-engine.service').SOVQueryResult = {
+  queryId: 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+  queryText: 'Best BBQ restaurant in Alpharetta GA',
+  queryCategory: 'discovery',
+  locationId: 'b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+  ourBusinessCited: true,
+  businessesFound: [],
+  citationUrl: null,
+  engine: 'google',
+  citedSources: [
+    { url: 'https://www.yelp.com/biz/charcoal-n-chill-alpharetta', title: 'Charcoal N Chill - Yelp' },
+    { url: 'https://g.co/charcoal-n-chill', title: 'Google Business Profile' },
+  ],
+};
 
 /**
  * Sprint 70 — Schema Fix Generator input fixture.

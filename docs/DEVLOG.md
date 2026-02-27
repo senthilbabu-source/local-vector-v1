@@ -4,6 +4,39 @@
 
 ---
 
+## 2026-02-27 — Sprint 74: Google AI Overview Monitoring — Gemini + Search Grounding (Completed)
+
+**Goal:** Add Google AI Overview monitoring to the SOV Engine using Gemini with Google Search grounding, enabling LocalVector to track what appears when someone Googles a tenant's business category — the #1 AI surface covering 47% of commercial searches.
+
+**Scope:**
+- `lib/ai/providers.ts` — **MODIFIED.** Added `sov-query-google` model key: `google('gemini-2.0-flash', { useSearchGrounding: true })`. Uses existing `GOOGLE_GENERATIVE_AI_API_KEY`.
+- `lib/services/sov-engine.service.ts` — **MODIFIED.** Added `runGoogleGroundedSOVQuery()` — generates search-grounded SOV response with `citedSources` from `generateText().sources`. Extended `SOVQueryResult` type with optional `citedSources: { url, title }[]`. Extended `runMultiModelSOVQuery()` to include Google engine when `hasApiKey('google')` is true. Updated `writeSOVResults()` to write `cited_sources` JSONB. Added `buildGoogleGroundedPrompt()` for natural-language prompt.
+- `supabase/migrations/20260227000003_sov_cited_sources.sql` — **NEW.** Adds `cited_sources JSONB` column to `sov_evaluations`.
+- `supabase/prod_schema.sql` — **MODIFIED.** Added `cited_sources` column.
+- `lib/supabase/database.types.ts` — **MODIFIED.** Added `cited_sources: Json | null` to sov_evaluations Row/Insert/Update types.
+- `lib/data/ai-responses.ts` — **MODIFIED.** Added `citedSources` to `EngineResponse` type. Updated `fetchAIResponses()` to select and map `cited_sources`.
+- `app/dashboard/ai-responses/_components/EngineResponseBlock.tsx` — **MODIFIED.** Added "Google AI Overview" engine config with amber dot. Added `citedSources` prop. Renders "Sources Google Cited" section with clickable source links below response text when non-empty.
+- `app/dashboard/ai-responses/_components/ResponseCard.tsx` — **MODIFIED.** Passes `citedSources` through to EngineResponseBlock.
+- `supabase/seed.sql` — **MODIFIED.** Added Google sov_evaluation seed rows for BBQ and hookah queries. Updated UUID reference card.
+- `src/__fixtures__/golden-tenant.ts` — **MODIFIED.** Extended `MOCK_SOV_RESPONSE` with Google engine entry including `citedSources`. Added standalone `MOCK_GOOGLE_SOV_RESULT` fixture.
+- `docs/AI_RULES.md` — **MODIFIED.** Added `sov-query-google` to §19.3 model key registry table. Updated §36.2 Multi-Model SOV to include Google engine and citation sources.
+
+**Tests added:**
+- `src/__tests__/unit/sov-google-grounded.test.ts` — **16 Vitest tests.** Google SOV query runner, multi-model inclusion/exclusion, graceful failure, citedSources parsing, writeSOVResults with cited_sources.
+- `src/__tests__/unit/sov-engine-service.test.ts` — **+2 tests (13 total).** SOVQueryResult google type, citedSources in writeSOVResults.
+- `src/__tests__/unit/ai-responses-google.test.tsx` — **7 Vitest tests.** Google AI Overview tab rendering, citation source display, hide when null/empty.
+
+**Run commands:**
+```bash
+npx vitest run src/__tests__/unit/sov-google-grounded.test.ts      # 16 tests passing
+npx vitest run src/__tests__/unit/sov-engine-service.test.ts       # 13 tests passing
+npx vitest run src/__tests__/unit/ai-responses-google.test.tsx     # 7 tests passing
+npx vitest run                                                      # 1039 tests passing (78/79 files)
+npx tsc --noEmit                                                    # 0 errors
+```
+
+---
+
 ## 2026-02-27 — Sprint 73: AI Crawler Analytics — Wire crawler_hits in Middleware (Completed)
 
 **Goal:** Wire the existing but empty `crawler_hits` table to the proxy middleware so AI bot visits to Magic Menu pages are detected and logged, then build a Bot Activity dashboard with blind spot detection and fix recommendations.
