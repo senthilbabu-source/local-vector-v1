@@ -312,6 +312,4 @@ export async function snapshotRevenueLeak(
     console.error(`[revenue-leak] Snapshot upsert failed for org ${orgId}:`, error.message);
     throw new Error(`Revenue snapshot upsert failed: ${error.message}`);
   }
-
-  console.log(`[revenue-leak] Snapshot saved for org ${orgId}, location ${locationId}, date ${today}`);
 }

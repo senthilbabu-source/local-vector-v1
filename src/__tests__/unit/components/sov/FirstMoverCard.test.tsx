@@ -15,7 +15,7 @@
  */
 
 import React from 'react';
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 
 import FirstMoverCard from '@/app/dashboard/share-of-voice/_components/FirstMoverCard';
@@ -73,15 +73,13 @@ describe('FirstMoverCard', () => {
     expect(btn).toBeDefined();
   });
 
-  it('logs to console when Create Content is clicked', () => {
-    const spy = vi.spyOn(console, 'log').mockImplementation(() => {});
+  it('Create Content button is clickable without error', () => {
     render(<FirstMoverCard {...MOCK_PROPS} />);
 
-    fireEvent.click(screen.getByRole('button', { name: /Create Content/i }));
-    expect(spy).toHaveBeenCalledWith(
-      expect.stringContaining('draft-001'),
-    );
-    spy.mockRestore();
+    // Button click should not throw (handler is a no-op placeholder)
+    expect(() => {
+      fireEvent.click(screen.getByRole('button', { name: /Create Content/i }));
+    }).not.toThrow();
   });
 
   it('renders with correct test id', () => {

@@ -59,7 +59,6 @@ export default function FirstMoverCard({ id, queryText, createdAt }: FirstMoverC
           className="rounded-lg bg-signal-green/10 px-3 py-1.5 text-xs font-semibold text-signal-green hover:bg-signal-green/20 transition-colors"
           onClick={() => {
             // Future: navigate to content creation
-            console.log(`[FirstMover] Create content for draft ${id}`);
           }}
         >
           Create Content
@@ -69,7 +68,6 @@ export default function FirstMoverCard({ id, queryText, createdAt }: FirstMoverC
           className="rounded-lg bg-white/5 px-3 py-1.5 text-xs font-medium text-slate-400 hover:bg-white/10 transition-colors"
           onClick={() => {
             // Future: dismiss the alert
-            console.log(`[FirstMover] Dismiss draft ${id}`);
           }}
         >
           Dismiss

@@ -28,7 +28,8 @@ import {
   type SOVQueryInput,
   type SOVQueryResult,
 } from '@/lib/services/sov-engine.service';
-import { sendWeeklyDigest } from '@/lib/email';
+import { sendWeeklyDigest, sendFreshnessAlert } from '@/lib/email';
+import { fetchFreshnessAlerts } from '@/lib/data/freshness-alerts';
 import { runOccasionScheduler } from '@/lib/services/occasion-engine.service';
 import { detectQueryGaps } from '@/lib/services/prompt-intelligence.service';
 import { canRunAutopilot, canRunMultiModelSOV, type PlanTier } from '@/lib/plan-enforcer';
@@ -246,6 +247,34 @@ export async function processOrgSOV(batch: OrgBatch): Promise<OrgSOVResult> {
     console.error(`[inngest-sov] Prompt intelligence failed for org ${batch.orgId}:`, gapMsg);
   }
 
+  // Content Freshness Decay check (non-critical, Sprint 76)
+  try {
+    const freshness = await fetchFreshnessAlerts(supabase, batch.orgId);
+    if (freshness.alerts.length > 0 && ownerEmail) {
+      const { data: orgRow } = await supabase
+        .from('organizations')
+        .select('notify_sov_alerts')
+        .eq('id', batch.orgId)
+        .single();
+
+      if (orgRow?.notify_sov_alerts) {
+        const topAlert = freshness.alerts[0];
+        await sendFreshnessAlert({
+          to: ownerEmail,
+          businessName,
+          dropPercentage: topAlert.dropPercentage,
+          previousRate: topAlert.previousRate,
+          currentRate: topAlert.currentRate,
+          dashboardUrl: 'https://app.localvector.ai/dashboard',
+        }).catch((err: unknown) =>
+          console.error('[inngest-sov] Freshness alert email failed:', err),
+        );
+      }
+    }
+  } catch {
+    // Freshness check is non-critical
+  }
+
   return {
     success: true,
     queriesRun: results.length,
@@ -358,9 +387,6 @@ export const sovCronFunction = inngest.createFunction(
               org_id: '',
               locations: { business_name: '', city: null, state: null },
             });
-            console.log(
-              `[inngest-sov] Post-publish recheck for draft ${task.payload.draftId}: cited=${result.ourBusinessCited}`,
-            );
             await completeRecheck(task.payload.draftId);
           } catch (recheckErr) {
             console.error(`[inngest-sov] Recheck failed for draft ${task.payload.draftId}:`, recheckErr);

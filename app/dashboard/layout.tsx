@@ -61,8 +61,6 @@ export default async function DashboardLayout({
       .eq('is_primary', true)
       .maybeSingle()) as { data: PrimaryLocation | null };
 
-    console.log('[OnboardingGuard] orgId=%s primaryLocation=%o', ctx.orgId, primaryLocation);
-
     // Redirect to onboarding if a primary location exists but ground truth
     // hasn't been collected yet (both columns are null).
     //

@@ -310,7 +310,7 @@ async function _singlePerplexityCall(params: SingleCallParams): Promise<ScanResu
   if (!response.ok) {
     if (process.env.NODE_ENV === 'development') {
       const errBody = await response.text().catch(() => '(no body)');
-      console.warn(`[runFreeScan] Perplexity HTTP ${response.status}:`, errBody.slice(0, 500));
+      console.error(`[runFreeScan] Perplexity HTTP ${response.status}:`, errBody.slice(0, 500));
     }
     return { status: 'unavailable', reason: 'api_error' };
   }
@@ -351,7 +351,7 @@ async function _singlePerplexityCall(params: SingleCallParams): Promise<ScanResu
     const rawObj = JSON.parse(jsonStr) as Record<string, unknown>;
     const parsed = PerplexityScanSchema.safeParse(preprocessScanResponse(rawObj));
     if (!parsed.success && process.env.NODE_ENV === 'development') {
-      console.warn('[runFreeScan] Zod validation failed:', parsed.error.issues);
+      console.error('[runFreeScan] Zod validation failed:', parsed.error.issues);
     }
     if (parsed.success) {
       // Branch on every parsed field — AI_RULES §21: never ignore a parsed boolean.
@@ -390,7 +390,7 @@ async function _singlePerplexityCall(params: SingleCallParams): Promise<ScanResu
   } catch {
     // Not valid JSON — fall through to text-detection.
     if (process.env.NODE_ENV === 'development') {
-      console.warn('[runFreeScan] JSON parse failed. Raw response:', raw.slice(0, 500));
+      console.error('[runFreeScan] JSON parse failed. Raw response:', raw.slice(0, 500));
     }
   }
 
@@ -439,7 +439,7 @@ async function _singlePerplexityCall(params: SingleCallParams): Promise<ScanResu
 
   // No keyword match and JSON parse failed → service returned unusable data
   if (process.env.NODE_ENV === 'development') {
-    console.warn('[runFreeScan] All parse paths failed. Raw response:', raw.slice(0, 500));
+    console.error('[runFreeScan] All parse paths failed. Raw response:', raw.slice(0, 500));
   }
   return { status: 'unavailable', reason: 'api_error' };
 }
@@ -525,15 +525,11 @@ export async function runFreeScan(formData: FormData): Promise<ScanResult> {
     const score1 = _scoreScanResult(result1);
     const score2 = _scoreScanResult(result2);
 
-    if (process.env.NODE_ENV === 'development') {
-      console.log(`[runFreeScan] Best-of-2 scores: ${score1} vs ${score2} (${result1.status} vs ${result2.status})`);
-    }
-
     return score2 > score1 ? result2 : result1;
   } catch (err) {
     // Shouldn't happen (allSettled never rejects) but guard defensively
     if (process.env.NODE_ENV === 'development') {
-      console.warn('[runFreeScan] Uncaught error:', err);
+      console.error('[runFreeScan] Uncaught error:', err);
     }
     return { status: 'unavailable', reason: 'api_error' };
   }

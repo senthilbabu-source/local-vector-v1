@@ -224,3 +224,67 @@ export async function sendWeeklyDigest(
 
   console.log(`[email] Weekly digest sent to ${to} for ${payload.businessName}`);
 }
+
+// ---------------------------------------------------------------------------
+// Content Freshness Decay Alert (Sprint 76)
+// ---------------------------------------------------------------------------
+
+export interface FreshnessAlertPayload {
+  to: string;
+  businessName: string;
+  dropPercentage: number;
+  previousRate: number;
+  currentRate: number;
+  dashboardUrl: string;
+}
+
+/**
+ * Sends a "Citation Rate Dropped" alert email when freshness decay is detected.
+ *
+ * No-ops silently when RESEND_API_KEY is not configured.
+ * Errors are NOT swallowed — callers should wrap with .catch().
+ */
+export async function sendFreshnessAlert(
+  payload: FreshnessAlertPayload
+): Promise<void> {
+  if (!process.env.RESEND_API_KEY) {
+    console.log(
+      `[email] RESEND_API_KEY absent — skipping freshness alert for ${payload.businessName}`
+    );
+    return;
+  }
+
+  const prevPct = Math.round(payload.previousRate * 100);
+  const currPct = Math.round(payload.currentRate * 100);
+  const subject = `📉 Citation rate dropped ${payload.dropPercentage}% for ${payload.businessName}`;
+
+  await getResend().emails.send({
+    from: 'LocalVector Alerts <alerts@localvector.ai>',
+    to: payload.to,
+    subject,
+    html: `
+      <div style="font-family:sans-serif;max-width:560px;margin:0 auto">
+        <h2 style="color:#f59e0b">Citation Freshness Alert</h2>
+        <p>
+          Your citation rate for <strong>${payload.businessName}</strong> dropped
+          <strong>${payload.dropPercentage}%</strong> — from ${prevPct}% to ${currPct}%.
+        </p>
+        <p>
+          This usually means AI models are deprioritizing your business due to stale content.
+          Refreshing your content can help recover your citation rate.
+        </p>
+        <p>
+          <a
+            href="${payload.dashboardUrl}"
+            style="display:inline-block;background:#4f46e5;color:#fff;padding:12px 24px;border-radius:6px;text-decoration:none;font-weight:600"
+          >
+            View Dashboard →
+          </a>
+        </p>
+        <p style="color:#6b7280;font-size:12px;margin-top:24px">
+          You're receiving this because you have SOV alerts enabled on LocalVector.ai.
+        </p>
+      </div>
+    `,
+  });
+}

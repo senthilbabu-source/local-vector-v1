@@ -56,8 +56,6 @@ export default async function OnboardingPage() {
     : baseQuery
   ).maybeSingle()) as { data: PrimaryLocation | null };
 
-  console.log('[OnboardingPage] orgId=%s location=%o', orgId, location);
-
   // No primary location — nothing to configure yet. Let the user reach the
   // dashboard; the empty-state UI will guide them from there.
   if (!location) {

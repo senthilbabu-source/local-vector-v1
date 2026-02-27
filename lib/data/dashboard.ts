@@ -19,6 +19,8 @@ import type { LeakSnapshotPoint } from '@/app/dashboard/_components/LeakTrendCha
 import { aggregateByModel, aggregateCompetitors } from '@/lib/utils/dashboard-aggregators';
 import { fetchHealthScore } from '@/lib/data/ai-health-score';
 import { fetchCrawlerAnalytics, type CrawlerSummary } from '@/lib/data/crawler-analytics';
+import { fetchCronHealth, type CronHealthSummary } from '@/lib/data/cron-health';
+import { fetchFreshnessAlerts, type FreshnessStatus } from '@/lib/data/freshness-alerts';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -65,6 +67,8 @@ export interface DashboardData {
   healthScore: HealthScoreResult | null;
   crawlerSummary: CrawlerSummary | null;
   hasPublishedMenu: boolean;
+  cronHealth: CronHealthSummary | null;
+  freshness: FreshnessStatus | null;
 }
 
 // ---------------------------------------------------------------------------
@@ -270,6 +274,24 @@ export async function fetchDashboardData(orgId: string): Promise<DashboardData> 
     // Crawler analytics is non-critical — dashboard renders without it.
   }
 
+  // ── Sprint 76: Cron Health Summary ──────────────────────────────────────
+  // Non-blocking — if cron health fetch fails, cronHealth is null.
+  let cronHealth: CronHealthSummary | null = null;
+  try {
+    cronHealth = await fetchCronHealth();
+  } catch {
+    // Cron health is non-critical — dashboard renders without it.
+  }
+
+  // ── Sprint 76: Content Freshness Alerts ───────────────────────────────
+  // Non-blocking — if freshness fetch fails, freshness is null.
+  let freshness: FreshnessStatus | null = null;
+  try {
+    freshness = await fetchFreshnessAlerts(supabase, orgId);
+  } catch {
+    // Freshness alerts are non-critical — dashboard renders without them.
+  }
+
   return {
     openAlerts,
     fixedCount: fixedResult.count ?? 0,
@@ -292,5 +314,7 @@ export async function fetchDashboardData(orgId: string): Promise<DashboardData> 
     healthScore,
     crawlerSummary,
     hasPublishedMenu,
+    cronHealth,
+    freshness,
   };
 }

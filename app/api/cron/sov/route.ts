@@ -24,7 +24,8 @@ import {
   type SOVQueryInput,
   type SOVQueryResult,
 } from '@/lib/services/sov-engine.service';
-import { sendWeeklyDigest } from '@/lib/email';
+import { sendWeeklyDigest, sendFreshnessAlert } from '@/lib/email';
+import { fetchFreshnessAlerts } from '@/lib/data/freshness-alerts';
 import { runOccasionScheduler } from '@/lib/services/occasion-engine.service';
 import { detectQueryGaps } from '@/lib/services/prompt-intelligence.service';
 import { canRunAutopilot, canRunMultiModelSOV, type PlanTier } from '@/lib/plan-enforcer';
@@ -248,6 +249,34 @@ async function _runInlineSOVImpl(handle: { logId: string | null; startedAt: numb
           );
         }
 
+        // Content Freshness Decay check (non-critical, Sprint 76)
+        try {
+          const freshness = await fetchFreshnessAlerts(supabase, orgId);
+          if (freshness.alerts.length > 0) {
+            const { data: orgRow } = await supabase
+              .from('organizations')
+              .select('notify_sov_alerts')
+              .eq('id', orgId)
+              .single();
+
+            if (orgRow?.notify_sov_alerts && ownerEmail) {
+              const topAlert = freshness.alerts[0];
+              await sendFreshnessAlert({
+                to: ownerEmail,
+                businessName,
+                dropPercentage: topAlert.dropPercentage,
+                previousRate: topAlert.previousRate,
+                currentRate: topAlert.currentRate,
+                dashboardUrl: 'https://app.localvector.ai/dashboard',
+              }).catch((err: unknown) =>
+                console.error('[cron-sov] Freshness alert email failed:', err),
+              );
+            }
+          }
+        } catch {
+          // Freshness check is non-critical
+        }
+
         // Occasion Engine sub-step (non-critical)
         try {
           const locationId = batch[0].location_id;
@@ -334,9 +363,6 @@ async function _runInlineSOVImpl(handle: { logId: string | null; startedAt: numb
           org_id: '',
           locations: { business_name: '', city: null, state: null },
         });
-        console.log(
-          `[cron-sov] Post-publish recheck for draft ${task.payload.draftId}: cited=${result.ourBusinessCited}`,
-        );
         await completeRecheck(task.payload.draftId);
       } catch (recheckErr) {
         console.error(`[cron-sov] Recheck failed for draft ${task.payload.draftId}:`, recheckErr);
