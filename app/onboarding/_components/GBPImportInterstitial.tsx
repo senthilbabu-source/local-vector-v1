@@ -54,7 +54,17 @@ function formatAmenitiesSummary(amenities: MappedLocationData['amenities']): str
 
 type ImportState = 'idle' | 'importing' | 'success' | 'error';
 
-export default function GBPImportInterstitial() {
+interface GBPImportInterstitialProps {
+  /** Called on successful import instead of redirecting to /dashboard. */
+  onImportSuccess?: (mapped: MappedLocationData) => void;
+  /** Called when user clicks "Enter manually" instead of navigating away. */
+  onSkipToManual?: () => void;
+}
+
+export default function GBPImportInterstitial({
+  onImportSuccess,
+  onSkipToManual,
+}: GBPImportInterstitialProps = {}) {
   const router = useRouter();
   const [state, setState] = useState<ImportState>('idle');
   const [result, setResult] = useState<GBPImportResult | null>(null);
@@ -67,8 +77,13 @@ export default function GBPImportInterstitial() {
 
     if (importResult.ok) {
       setState('success');
-      // Auto-advance to dashboard after 2 seconds
-      setTimeout(() => router.push('/dashboard'), 2000);
+      if (onImportSuccess && importResult.mapped) {
+        // Wizard mode: notify parent after brief success display
+        setTimeout(() => onImportSuccess(importResult.mapped!), 1500);
+      } else {
+        // Standalone mode: redirect to dashboard after 2 seconds
+        setTimeout(() => router.push('/dashboard'), 2000);
+      }
     } else {
       setState('error');
       setErrorMessage(
@@ -109,10 +124,14 @@ export default function GBPImportInterstitial() {
 
         <button
           data-testid="gbp-import-continue"
-          onClick={() => router.push('/dashboard')}
+          onClick={() =>
+            onImportSuccess && mapped
+              ? onImportSuccess(mapped)
+              : router.push('/dashboard')
+          }
           className="w-full rounded-lg bg-signal-green px-4 py-2.5 text-sm font-medium text-midnight-slate transition-colors hover:bg-signal-green/90"
         >
-          Continue to Dashboard
+          {onImportSuccess ? 'Continue' : 'Continue to Dashboard'}
         </button>
 
         <p className="mt-3 text-center text-xs text-slate-500">
@@ -142,13 +161,24 @@ export default function GBPImportInterstitial() {
           >
             Try Again
           </button>
-          <a
-            href="/onboarding?source=gbp_skip"
-            data-testid="gbp-import-manual-fallback"
-            className="text-center text-sm text-slate-400 transition-colors hover:text-white"
-          >
-            Enter my info manually &rarr;
-          </a>
+          {onSkipToManual ? (
+            <button
+              type="button"
+              onClick={onSkipToManual}
+              data-testid="gbp-import-manual-fallback"
+              className="text-center text-sm text-slate-400 transition-colors hover:text-white w-full"
+            >
+              Enter my info manually &rarr;
+            </button>
+          ) : (
+            <a
+              href="/onboarding?source=gbp_skip"
+              data-testid="gbp-import-manual-fallback"
+              className="text-center text-sm text-slate-400 transition-colors hover:text-white"
+            >
+              Enter my info manually &rarr;
+            </a>
+          )}
         </div>
       </div>
     );
@@ -197,13 +227,24 @@ export default function GBPImportInterstitial() {
         <div className="h-px flex-1 bg-white/10" />
       </div>
 
-      <a
-        href="/onboarding?source=gbp_skip"
-        data-testid="gbp-import-skip"
-        className="mt-4 block text-center text-sm text-slate-400 transition-colors hover:text-white"
-      >
-        Enter my info manually &rarr;
-      </a>
+      {onSkipToManual ? (
+        <button
+          type="button"
+          onClick={onSkipToManual}
+          data-testid="gbp-import-skip"
+          className="mt-4 block w-full text-center text-sm text-slate-400 transition-colors hover:text-white"
+        >
+          Enter my info manually &rarr;
+        </button>
+      ) : (
+        <a
+          href="/onboarding?source=gbp_skip"
+          data-testid="gbp-import-skip"
+          className="mt-4 block text-center text-sm text-slate-400 transition-colors hover:text-white"
+        >
+          Enter my info manually &rarr;
+        </a>
+      )}
     </div>
   );
 }

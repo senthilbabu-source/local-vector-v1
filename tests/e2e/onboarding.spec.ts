@@ -1,25 +1,24 @@
-// E2E Test 2 — The Onboarding Guard (Phase 12 Dashboard Layout Guard)
+// E2E Test — Onboarding Guard (incomplete@ user, Sprint 91 5-step wizard)
 //
 // Tests that the Dashboard Layout Guard correctly redirects an authenticated
 // user whose primary location has hours_data=NULL and amenities=NULL to the
-// /onboarding wizard, and that completing the wizard redirects to /dashboard.
+// /onboarding wizard, and that completing the 5-step wizard redirects to
+// /dashboard.
 //
 // Authentication:
-//   Uses the pre-authenticated storage state saved by tests/global-setup.ts
+//   Uses the pre-authenticated storage state saved by global.setup.ts
 //   for the incomplete@localvector.ai Playwright test user.
 //
 // DB state requirement:
-//   The incomplete test user's location must have hours_data=NULL and
-//   amenities=NULL for the guard to fire. Run `npx supabase db reset` before
-//   each full E2E run to restore this condition.
+//   global.setup.ts resets: hours_data=NULL, amenities=NULL,
+//   onboarding_completed=false, competitors=[], target_queries=[].
 //
-// Onboarding form (TruthCalibrationForm.tsx) — 3-step wizard:
-//   Step 1 — Business name (pre-filled from DB as "Test Restaurant")
-//   Step 2 — Amenity checkboxes (6 core amenities)
-//   Step 3 — Hours grid (7 days); Sunday defaults to "Closed" when hours_data=NULL
-//
-// The "Closed" toggle for Sunday passes the literal string "closed" to the
-// saveGroundTruth Server Action, satisfying the Doc 03 §15.1 requirement.
+// Sprint 91 Wizard Flow:
+//   Wizard Step 1 — "Tell us about your business" → "Get Started" (manual)
+//   Wizard Step 2 — TruthCalibrationForm (Business → Amenities → Hours)
+//   Wizard Step 3 — Competitors (skippable)
+//   Wizard Step 4 — SOV Queries → "Next → Launch"
+//   Wizard Step 5 — Launch (audit poll mocked for speed)
 //
 // Guard logic (app/dashboard/layout.tsx):
 //   if (primaryLocation && !primaryLocation.hours_data && !primaryLocation.amenities)
@@ -37,7 +36,16 @@ const INCOMPLETE_USER_STATE = path.join(
 test.use({ storageState: INCOMPLETE_USER_STATE });
 
 test.describe('Onboarding Guard — Dashboard redirect and wizard completion', () => {
-  test('redirects to /onboarding and completes the 3-step wizard', async ({ page }) => {
+  test('redirects to /onboarding and completes the 5-step wizard', async ({ page }) => {
+
+    // ── Mock audit-status endpoint for Step 5 speed ──────────────────────────
+    await page.route('**/api/onboarding/audit-status', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ status: 'complete', auditId: 'e2e-mock-audit' }),
+      });
+    });
 
     // ── 1. Navigate to a protected dashboard route ─────────────────────────
     // The authenticated incomplete user will NOT be sent to /login (they have a
@@ -49,57 +57,64 @@ test.describe('Onboarding Guard — Dashboard redirect and wizard completion', (
     await page.waitForURL('**/onboarding**', { timeout: 10_000 });
     expect(page.url()).toContain('/onboarding');
 
-    // The onboarding page headline (from Doc 06 §7)
+    // ── 3. Wizard Step 1 — "Tell us about your business" ──────────────────
+    // The incomplete@ user has no GBP connection, so manual path shows.
     await expect(
-      page.getByText(/Teach AI the Truth About Your Business/i)
+      page.getByText(/Tell us about your business/i)
     ).toBeVisible({ timeout: 5_000 });
 
-    // ── 3. Step 1 — Business Name ──────────────────────────────────────────
-    // The business name is pre-filled from the DB ("Test Restaurant").
-    // Just verify it's present and advance to Step 2.
+    // Click "Get Started" to advance to Wizard Step 2.
+    await page.getByTestId('step1-next-btn').click();
+
+    // ── 4. Wizard Step 2 — TruthCalibrationForm ───────────────────────────
+    // Sub-step 1: Business name pre-filled from DB ("Test Restaurant").
     const businessInput = page.getByRole('textbox');
     await expect(businessInput).toBeVisible();
     await expect(businessInput).toHaveValue(/Test Restaurant/i);
 
     await page.getByRole('button', { name: 'Next', exact: true }).click();
 
-    // ── 4. Step 2 — Amenities ─────────────────────────────────────────────
-    // The "Serves alcohol" checkbox label comes from AMENITY_FIELDS in
-    // TruthCalibrationForm.tsx.
+    // Sub-step 2: Amenities
     await expect(page.getByText('Serves alcohol')).toBeVisible();
-
-    // Toggle one amenity to produce a non-default state.
     const alcoholCheckbox = page.getByLabel('Serves alcohol');
     await alcoholCheckbox.check();
     await expect(alcoholCheckbox).toBeChecked();
 
     await page.getByRole('button', { name: 'Next', exact: true }).click();
 
-    // ── 5. Step 3 — Hours ─────────────────────────────────────────────────
-    // The hours grid shows all 7 days. Sunday defaults to "Closed" when
-    // hours_data=NULL (see initHours() in TruthCalibrationForm.tsx).
-    // This satisfies the "pass the literal string 'closed' for at least one day"
-    // requirement from Doc 03 §15.1 without any extra interaction.
+    // Sub-step 3: Hours grid. Sunday defaults to "Closed" when hours_data=NULL.
     await expect(page.getByText('Sunday')).toBeVisible();
-
-    // Verify that at least one "Closed" button is visible in the grid
-    // (confirms the default closed-day state is rendered correctly).
     const closedButtons = page.getByRole('button', { name: /Closed/i });
     await expect(closedButtons.first()).toBeVisible();
 
-    // ── 6. Submit the wizard ───────────────────────────────────────────────
-    // On Step 3 the navigation button reads "Save & Continue" (TruthCalibrationForm.tsx).
-    // This calls saveGroundTruth(), which:
-    //   - Updates locations.hours_data and locations.amenities
-    //   - Sends router.push('/dashboard') on success
+    // Submit hours → advances to Wizard Step 3 (Competitors).
     await page.getByRole('button', { name: /Save & Continue/i }).click();
 
-    // ── 7. Assert successful redirect to /dashboard ────────────────────────
-    // After saveGroundTruth succeeds, TruthCalibrationForm calls router.push('/dashboard').
-    // The layout guard will no longer fire because hours_data+amenities are now set.
-    await page.waitForURL('**/dashboard**', { timeout: 15_000 });
+    // ── 5. Wizard Step 3 — Competitors (skip) ─────────────────────────────
+    await expect(
+      page.getByText(/Who are your main competitors/i)
+    ).toBeVisible({ timeout: 10_000 });
+
+    await page.getByTestId('step3-skip-btn').click();
+
+    // ── 6. Wizard Step 4 — SOV Queries ────────────────────────────────────
+    await expect(
+      page.getByText(/How will AI find you/i)
+    ).toBeVisible({ timeout: 5_000 });
+
+    await page.getByTestId('step4-next-btn').click();
+
+    // ── 7. Wizard Step 5 — Launch ─────────────────────────────────────────
+    // Mocked audit-status returns "complete" immediately.
+    await expect(
+      page.getByTestId('step5-complete-state')
+        .or(page.getByTestId('step5-error-state'))
+        .or(page.getByTestId('step5-launching-state'))
+    ).toBeVisible({ timeout: 10_000 });
+
+    // ── 8. Assert successful redirect to /dashboard ───────────────────────
+    await page.waitForURL('**/dashboard**', { timeout: 30_000 });
     expect(page.url()).toContain('/dashboard');
-    // Verify the dashboard content (not redirected back to /onboarding)
     expect(page.url()).not.toContain('/onboarding');
   });
 });

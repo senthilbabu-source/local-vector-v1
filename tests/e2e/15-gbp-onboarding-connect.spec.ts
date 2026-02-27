@@ -56,9 +56,9 @@ test.describe('15 — GBP Onboarding Connect Interstitial', () => {
     expect(page.url()).toContain('/onboarding');
     expect(page.url()).not.toContain('/connect');
 
-    // The manual wizard headline should be visible
+    // The Sprint 91 wizard Step 1 headline should be visible
     await expect(
-      page.getByText(/Teach AI the Truth/i)
+      page.getByText(/Tell us about your business/i)
     ).toBeVisible({ timeout: 5_000 });
   });
 
@@ -70,9 +70,9 @@ test.describe('15 — GBP Onboarding Connect Interstitial', () => {
       page.getByText(/Google connection failed|failed.*manually/i)
     ).toBeVisible({ timeout: 5_000 });
 
-    // The manual wizard form should still be rendered below the toast
+    // The wizard Step 1 should still be rendered below the toast
     await expect(
-      page.getByText(/Teach AI the Truth/i)
+      page.getByText(/Tell us about your business/i)
     ).toBeVisible();
   });
 

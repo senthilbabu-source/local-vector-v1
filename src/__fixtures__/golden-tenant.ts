@@ -1058,3 +1058,28 @@ export const MOCK_GBP_MAPPED: import('@/lib/gbp/gbp-data-mapper').MappedLocation
   },
   primary_category: 'Hookah Bar',
 };
+
+// ---------------------------------------------------------------------------
+// Sprint 91: Onboarding Wizard Fixtures
+// ---------------------------------------------------------------------------
+
+/** Mock auto-seeded SOV queries (as returned from target_queries table) */
+export const MOCK_WIZARD_QUERIES = [
+  { id: 'q1eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', query_text: 'best hookah bar in Alpharetta GA', query_category: 'discovery' },
+  { id: 'q2eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', query_text: 'hookah lounge near me Alpharetta', query_category: 'near_me' },
+  { id: 'q3eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', query_text: 'best place for date night Alpharetta', query_category: 'occasion' },
+  { id: 'q4eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', query_text: 'top hookah bar near Alpharetta', query_category: 'discovery' },
+];
+
+/** Mock competitor names for onboarding Step 3 */
+export const MOCK_ONBOARDING_COMPETITORS = ['Cloud 9 Lounge', 'Krave Hookah Lounge'];
+
+/** Mock org with onboarding NOT completed (for testing wizard flow) */
+export const MOCK_ONBOARDING_ORG = {
+  id: 'b0eebc99-9c0b-4ef8-bb6d-6bb9bd380b11',
+  name: 'Incomplete Business',
+  slug: 'incomplete-business',
+  plan: 'trial' as const,
+  plan_status: 'trialing' as const,
+  onboarding_completed: false,
+};

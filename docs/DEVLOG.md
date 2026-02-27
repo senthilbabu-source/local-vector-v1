@@ -4,6 +4,57 @@
 
 ---
 
+## 2026-02-28 — Sprint 91: Onboarding Wizard Completion (Completed)
+
+**Goal:** Complete the onboarding wizard from 50% to 100%. Build full Step 1-5 flow, wire Sprint 89 GBP import into Step 1, auto-run first Fear Engine audit in Step 5, add progress indicator. New users reach a populated dashboard in < 3 minutes (GBP) or < 5 minutes (manual).
+
+**Scope:**
+- `app/onboarding/page.tsx` — **REWRITTEN.** Thin Server Component fetches location, GBP connection, and seeded queries, then renders OnboardingWizard client component. Redirects already-onboarded users.
+- `app/onboarding/_components/OnboardingWizard.tsx` — **NEW.** Main wizard client component managing WizardState across 5 steps. GBP amenity key mapping helper.
+- `app/onboarding/_components/WizardProgress.tsx` — **NEW.** Accessible step progress indicator. ARIA roles, 5 step labels, active/complete/inactive Tailwind states.
+- `app/onboarding/_components/GBPImportInterstitial.tsx` — **MODIFIED.** Added optional `onImportSuccess` and `onSkipToManual` callback props for wizard integration. Backward compatible.
+- `app/onboarding/_components/TruthCalibrationForm.tsx` — **MODIFIED.** Added `onSubmitSuccess`, `prefillHours`, `prefillAmenities`, `showPrefillBanner` props. GBP pre-fill banner. Backward compatible.
+- `app/onboarding/_components/Step3Competitors.tsx` — **NEW.** Free-form competitor name entry. Add/remove, max 5. Skip allowed. Saves via seedOnboardingCompetitors().
+- `app/onboarding/_components/Step4SOVQueries.tsx` — **NEW.** Displays seeded target_queries. Up to 3 custom additions via addCustomSOVQuery(). Removable custom queries.
+- `app/onboarding/_components/Step5Launch.tsx` — **NEW.** Triggers first Fear Engine audit via triggerFirstAudit() (calls processOrgAudit directly). Polls /api/onboarding/audit-status every 5s, cap 90s. Graceful degradation on timeout. Auto-redirect countdown. router.push('/dashboard').
+- `app/onboarding/actions.ts` — **MODIFIED.** Added 6 new server actions: seedOnboardingCompetitors, addCustomSOVQuery, deleteCustomSOVQuery, getSeededQueries, triggerFirstAudit, completeOnboarding.
+- `app/api/onboarding/audit-status/route.ts` — **NEW.** Polling endpoint for Step 5. Returns running/complete/not_found. Org-scoped. 5-minute window.
+- `src/__fixtures__/golden-tenant.ts` — **MODIFIED.** Added MOCK_WIZARD_QUERIES, MOCK_ONBOARDING_COMPETITORS, MOCK_ONBOARDING_ORG.
+
+**Tests added:**
+- `src/__tests__/unit/wizard-progress.test.tsx` — **10 Vitest tests.** Accessibility, step styling, data-testid.
+- `src/__tests__/unit/seed-competitors.test.ts` — **8 Vitest tests.** Auth, max-5 guard, deduplication, notes field.
+- `src/__tests__/unit/complete-onboarding.test.ts` — **7 Vitest tests.** Completion, SOV safety net, idempotency.
+- `src/__tests__/unit/trigger-first-audit.test.ts` — **5 Vitest tests.** Non-blocking failure handling, processOrgAudit call.
+- `src/__tests__/unit/audit-status-route.test.ts` — **6 Vitest tests.** Auth, status states, 5-min window, org scoping.
+- `tests/e2e/17-onboarding-wizard.spec.ts` — **12 Playwright tests.** Full manual path (5-step flow), competitor add/remove, SOV query display, launch/redirect, GBP toast messages. Mocked audit-status for speed.
+- `tests/e2e/02-onboarding-guard.spec.ts` — **UPDATED.** Now walks through Sprint 91 5-step wizard.
+- `tests/e2e/onboarding.spec.ts` — **UPDATED.** Same 5-step flow for incomplete@ user.
+- `tests/e2e/global.setup.ts` — **UPDATED.** Resets onboarding_completed, competitors, target_queries for incomplete@.
+- `tests/e2e/15-gbp-onboarding-connect.spec.ts` — **UPDATED.** Headline assertion matches new wizard.
+- `tests/e2e/16-gbp-import-flow.spec.ts` — **UPDATED.** Manual wizard assertions match new wizard.
+
+**Run commands:**
+```bash
+npx vitest run src/__tests__/unit/wizard-progress.test.tsx          # 10 tests
+npx vitest run src/__tests__/unit/seed-competitors.test.ts          # 8 tests
+npx vitest run src/__tests__/unit/complete-onboarding.test.ts       # 7 tests
+npx vitest run src/__tests__/unit/trigger-first-audit.test.ts       # 5 tests
+npx vitest run src/__tests__/unit/audit-status-route.test.ts        # 6 tests
+npx vitest run                                                       # 1914 passing — no regressions
+npx tsc --noEmit                                                     # 0 new type errors
+npx playwright test tests/e2e/17-onboarding-wizard.spec.ts          # 12 Playwright tests
+```
+
+**Key decisions:**
+- No migration needed — `organizations.onboarding_completed` (boolean) already exists.
+- All actions in `app/onboarding/actions.ts` (matches existing pattern).
+- Fear Engine triggered via `processOrgAudit()` directly (not Inngest event which fans out to all orgs).
+- Dashboard guard unchanged (backward compat for pre-Sprint 91 users).
+- Competitors table `notes` field used instead of non-existent `is_manual` column.
+
+---
+
 ## 2026-02-28 — Sprint 89: GBP Data Import — Full Mapping Pipeline (Completed)
 
 **Goal:** Complete the GBP data import pipeline. OAuth was connected (Sprint 57B) but no enriched data flowed into the system for re-sync. This sprint closes the loop: connect → fetch → map → upsert → populated dashboard.

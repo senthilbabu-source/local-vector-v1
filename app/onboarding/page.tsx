@@ -1,9 +1,9 @@
 import { redirect } from 'next/navigation';
 import { getSafeAuthContext } from '@/lib/auth';
 import { createClient, createServiceRoleClient } from '@/lib/supabase/server';
-import TruthCalibrationForm from './_components/TruthCalibrationForm';
-import GBPImportInterstitial from './_components/GBPImportInterstitial';
 import type { HoursData, Amenities } from '@/lib/types/ground-truth';
+import type { TargetQueryRow } from './actions';
+import OnboardingWizard from './_components/OnboardingWizard';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -19,16 +19,14 @@ export type PrimaryLocation = {
 };
 
 // ---------------------------------------------------------------------------
-// OnboardingPage — Server Component
+// OnboardingPage — Server Component (Sprint 91: Full 5-step wizard)
 //
 // Responsibilities:
 //   • Authenticate via getSafeAuthContext()
 //   • Redirect unauthenticated visitors to /login
-//   • Fetch the org's primary location (RLS-scoped — no org_id needed in query)
-//   • If location is already fully configured, skip ahead to /dashboard
-//   • Pass location data to TruthCalibrationForm (client component)
-//
-// Headline matches Doc 06 §7: "Teach AI the Truth About Your Business"
+//   • Redirect already-onboarded users to /dashboard
+//   • Fetch the org's primary location, GBP connection, and seeded queries
+//   • Pass all data to OnboardingWizard (client component)
 // ---------------------------------------------------------------------------
 
 // Fallback toast messages for GBP flow failures
@@ -54,41 +52,36 @@ export default async function OnboardingPage({
     redirect('/login');
   }
 
-  const supabase = await createClient();
+  // ── Already completed onboarding — skip to dashboard ──────────────────
+  if (ctx.onboarding_completed) {
+    redirect('/dashboard');
+  }
 
-  // ── Fetch primary location ─────────────────────────────────────────────────
-  // Scope by org_id explicitly (belt-and-suspenders alongside RLS) so the
-  // query is unambiguous when multiple orgs share the same DB instance and
-  // current_user_org_id() is unreliable for newly-seeded test users.
+  const supabase = await createClient();
   const orgId = ctx.orgId;
+
+  // ── Fetch primary location ─────────────────────────────────────────────
   const baseQuery = supabase
     .from('locations')
     .select('id, business_name, hours_data, amenities')
     .eq('is_primary', true);
 
-  // Each Supabase filter call returns a NEW query builder instance, so we must
-  // chain conditionally without discarding the returned reference.
   const { data: location } = (await (orgId
     ? baseQuery.eq('org_id', orgId)
     : baseQuery
   ).maybeSingle()) as { data: PrimaryLocation | null };
 
-  // No primary location — nothing to configure yet. Let the user reach the
-  // dashboard; the empty-state UI will guide them from there.
+  // No primary location — nothing to configure yet.
   if (!location) {
     redirect('/dashboard');
   }
 
-  // Already fully onboarded — skip the wizard.
+  // Already fully onboarded (hours + amenities set) — skip the wizard.
   if (location.hours_data && location.amenities) {
     redirect('/dashboard');
   }
 
-  // ── Sprint 89: Check GBP connection for import interstitial ──────────────
-  // Show the import interstitial when:
-  //   1. User has GBP connected (google_oauth_tokens row exists)
-  //   2. Location doesn't have hours_data yet (hasn't imported)
-  //   3. User didn't explicitly skip (source !== 'gbp_skip')
+  // ── Check GBP connection for import interstitial ───────────────────────
   let hasGBPConnection = false;
   if (orgId && source !== 'gbp_skip' && !location.hours_data) {
     const serviceRole = createServiceRoleClient();
@@ -100,45 +93,26 @@ export default async function OnboardingPage({
     hasGBPConnection = !!tokenRow;
   }
 
+  // ── Fetch seeded SOV queries for Step 4 ────────────────────────────────
+  let initialQueries: TargetQueryRow[] = [];
+  if (orgId) {
+    const { data: queries } = await supabase
+      .from('target_queries')
+      .select('id, query_text, query_category')
+      .eq('org_id', orgId)
+      .eq('is_active', true)
+      .order('created_at');
+
+    initialQueries = (queries ?? []) as TargetQueryRow[];
+  }
+
+  // ── Render wizard ──────────────────────────────────────────────────────
   return (
-    <div className="min-h-screen bg-midnight-slate flex items-center justify-center p-4">
-      <div className="w-full max-w-xl">
-
-        {/* ── Fallback toast — GBP flow error (Sprint 89) ──────────────── */}
-        {toastMessage && (
-          <div className="mb-6 rounded-lg border border-alert-amber/30 bg-alert-amber/10 px-4 py-3 text-sm text-alert-amber">
-            {toastMessage}
-          </div>
-        )}
-
-        {/* ── Header — Doc 06 §7 headline ─────────────────────────────── */}
-        <div className="mb-8 text-center">
-          <div className="inline-flex items-center gap-2 mb-4">
-            <img src="/logo.svg" alt="LocalVector" className="h-9 w-9" />
-            <span className="text-lg font-semibold text-white tracking-tight">
-              LocalVector<span className="text-signal-green">.ai</span>
-            </span>
-          </div>
-          <h1 className="text-2xl font-bold text-white tracking-tight mb-2">
-            {hasGBPConnection
-              ? 'Import Your Business Data'
-              : 'Teach AI the Truth About Your Business'}
-          </h1>
-          <p className="text-sm text-slate-400 max-w-sm mx-auto">
-            {hasGBPConnection
-              ? 'Your Google Business Profile is connected. Import your hours, address, and amenities automatically.'
-              : 'This sets the baseline the Fear Engine uses to catch hallucinations. If you skip "Alcohol," we can\u2019t detect "No Alcohol" lies.'}
-          </p>
-        </div>
-
-        {/* ── Sprint 89: GBP import interstitial or manual wizard ────── */}
-        {hasGBPConnection ? (
-          <GBPImportInterstitial />
-        ) : (
-          <TruthCalibrationForm location={location} />
-        )}
-
-      </div>
-    </div>
+    <OnboardingWizard
+      location={location}
+      hasGBPConnection={hasGBPConnection}
+      initialQueries={initialQueries}
+      toastMessage={toastMessage}
+    />
   );
 }

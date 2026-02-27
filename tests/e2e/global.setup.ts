@@ -220,8 +220,14 @@ async function provisionE2ETester(): Promise<void> {
 // ---------------------------------------------------------------------------
 
 /**
- * Resets incomplete@localvector.ai's primary location to NULL hours/amenities.
- * Prevents state leakage if a previous onboarding.spec.ts run submitted the form.
+ * Resets incomplete@localvector.ai's full onboarding state.
+ * Prevents state leakage from previous onboarding.spec.ts or wizard E2E runs.
+ *
+ * Resets:
+ *   - Primary location: hours_data=NULL, amenities=NULL (dashboard guard fires)
+ *   - Organization: onboarding_completed=false (wizard doesn't auto-skip)
+ *   - Competitors: deleted (Step 3 starts empty)
+ *   - Target queries: deleted (Step 4 starts fresh)
  */
 async function resetIncompleteLocation(): Promise<void> {
   await admin
@@ -230,7 +236,22 @@ async function resetIncompleteLocation(): Promise<void> {
     .eq('org_id', INCOMPLETE_ORG_ID)
     .eq('is_primary', true);
 
-  console.log('[global.setup] Reset incomplete@ location to NULL hours/amenities');
+  await admin
+    .from('organizations')
+    .update({ onboarding_completed: false })
+    .eq('id', INCOMPLETE_ORG_ID);
+
+  await admin
+    .from('competitors')
+    .delete()
+    .eq('org_id', INCOMPLETE_ORG_ID);
+
+  await admin
+    .from('target_queries')
+    .delete()
+    .eq('org_id', INCOMPLETE_ORG_ID);
+
+  console.log('[global.setup] Reset incomplete@ onboarding state (location, org, competitors, queries)');
 }
 
 // ---------------------------------------------------------------------------

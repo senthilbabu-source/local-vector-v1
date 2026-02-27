@@ -1,12 +1,13 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { createClient } from '@/lib/supabase/server';
+import { createClient, createServiceRoleClient } from '@/lib/supabase/server';
 import { getSafeAuthContext } from '@/lib/auth';
 import { z } from 'zod';
 import type { HoursData, Amenities } from '@/lib/types/ground-truth';
 import { seedSOVQueries } from '@/lib/services/sov-seed';
 import type { Json } from '@/lib/supabase/database.types';
+import { processOrgAudit } from '@/lib/inngest/functions/audit-cron';
 
 // ---------------------------------------------------------------------------
 // Schemas
@@ -143,5 +144,298 @@ export async function saveGroundTruth(
   }
 
   revalidatePath('/dashboard');
+  return { success: true };
+}
+
+// ---------------------------------------------------------------------------
+// seedOnboardingCompetitors — Sprint 91
+//
+// Inserts 1–5 competitor names for the authenticated user's org during
+// onboarding. Duplicates (case-insensitive) are silently skipped.
+// ---------------------------------------------------------------------------
+
+const CompetitorNamesSchema = z
+  .array(z.string().trim().min(1).max(255))
+  .min(0)
+  .max(5, 'Maximum 5 competitors allowed');
+
+export async function seedOnboardingCompetitors(
+  competitorNames: string[],
+): Promise<{ success: true; seeded: number } | { success: false; error: string }> {
+  const ctx = await getSafeAuthContext();
+  if (!ctx?.orgId) {
+    return { success: false, error: 'Unauthorized' };
+  }
+
+  const parsed = CompetitorNamesSchema.safeParse(competitorNames);
+  if (!parsed.success) {
+    return { success: false, error: parsed.error.issues[0]?.message ?? 'Invalid input' };
+  }
+
+  const names = parsed.data;
+  if (names.length === 0) {
+    return { success: true, seeded: 0 };
+  }
+
+  const supabase = await createClient();
+
+  // Fetch primary location for location_id
+  const { data: location } = await supabase
+    .from('locations')
+    .select('id')
+    .eq('org_id', ctx.orgId)
+    .eq('is_primary', true)
+    .maybeSingle();
+
+  // Fetch existing competitors for dedup
+  const { data: existing } = await supabase
+    .from('competitors')
+    .select('competitor_name')
+    .eq('org_id', ctx.orgId);
+
+  const existingLower = new Set(
+    (existing ?? []).map((c) => c.competitor_name.toLowerCase()),
+  );
+
+  const newNames = names.filter((n) => !existingLower.has(n.toLowerCase()));
+  if (newNames.length === 0) {
+    return { success: true, seeded: 0 };
+  }
+
+  const rows = newNames.map((name) => ({
+    org_id: ctx.orgId!,
+    location_id: location?.id ?? null,
+    competitor_name: name,
+    notes: 'Added during onboarding',
+  }));
+
+  const { error } = await supabase.from('competitors').insert(rows);
+  if (error) {
+    return { success: false, error: error.message };
+  }
+
+  return { success: true, seeded: newNames.length };
+}
+
+// ---------------------------------------------------------------------------
+// addCustomSOVQuery — Sprint 91
+//
+// Inserts a single custom SOV query into target_queries during onboarding.
+// Uses upsert with ignoreDuplicates to handle re-submissions gracefully.
+// ---------------------------------------------------------------------------
+
+const CustomQuerySchema = z.object({
+  query_text: z.string().trim().min(3, 'Query must be at least 3 characters').max(500),
+});
+
+export async function addCustomSOVQuery(
+  queryText: string,
+): Promise<ActionResult> {
+  const ctx = await getSafeAuthContext();
+  if (!ctx?.orgId) {
+    return { success: false, error: 'Unauthorized' };
+  }
+
+  const parsed = CustomQuerySchema.safeParse({ query_text: queryText });
+  if (!parsed.success) {
+    return { success: false, error: parsed.error.issues[0]?.message ?? 'Invalid query' };
+  }
+
+  const supabase = await createClient();
+
+  const { data: location } = await supabase
+    .from('locations')
+    .select('id')
+    .eq('org_id', ctx.orgId)
+    .eq('is_primary', true)
+    .maybeSingle();
+
+  if (!location) {
+    return { success: false, error: 'No primary location found' };
+  }
+
+  const { error } = await supabase
+    .from('target_queries')
+    .upsert(
+      {
+        org_id: ctx.orgId,
+        location_id: location.id,
+        query_text: parsed.data.query_text,
+        query_category: 'custom',
+      },
+      { onConflict: 'location_id,query_text', ignoreDuplicates: true },
+    );
+
+  if (error) {
+    return { success: false, error: error.message };
+  }
+
+  return { success: true };
+}
+
+// ---------------------------------------------------------------------------
+// deleteCustomSOVQuery — Sprint 91
+//
+// Deletes a custom query by ID. Only custom queries (query_category='custom')
+// owned by the authenticated user's org can be deleted.
+// ---------------------------------------------------------------------------
+
+export async function deleteCustomSOVQuery(
+  queryId: string,
+): Promise<ActionResult> {
+  const ctx = await getSafeAuthContext();
+  if (!ctx?.orgId) {
+    return { success: false, error: 'Unauthorized' };
+  }
+
+  if (!z.string().uuid().safeParse(queryId).success) {
+    return { success: false, error: 'Invalid query ID' };
+  }
+
+  const supabase = await createClient();
+
+  const { error } = await supabase
+    .from('target_queries')
+    .delete()
+    .eq('id', queryId)
+    .eq('org_id', ctx.orgId)
+    .eq('query_category', 'custom');
+
+  if (error) {
+    return { success: false, error: error.message };
+  }
+
+  return { success: true };
+}
+
+// ---------------------------------------------------------------------------
+// getSeededQueries — Sprint 91
+//
+// Fetches all active target_queries for the authenticated user's org.
+// Used by Step 4 of the onboarding wizard to display auto-seeded queries.
+// ---------------------------------------------------------------------------
+
+export type TargetQueryRow = {
+  id: string;
+  query_text: string;
+  query_category: string;
+};
+
+export async function getSeededQueries(): Promise<
+  { success: true; queries: TargetQueryRow[] } | { success: false; error: string }
+> {
+  const ctx = await getSafeAuthContext();
+  if (!ctx?.orgId) {
+    return { success: false, error: 'Unauthorized' };
+  }
+
+  const supabase = await createClient();
+
+  const { data, error } = await supabase
+    .from('target_queries')
+    .select('id, query_text, query_category')
+    .eq('org_id', ctx.orgId)
+    .eq('is_active', true)
+    .order('created_at');
+
+  if (error) {
+    return { success: false, error: error.message };
+  }
+
+  return { success: true, queries: (data ?? []) as TargetQueryRow[] };
+}
+
+// ---------------------------------------------------------------------------
+// triggerFirstAudit — Sprint 91
+//
+// Triggers the first Fear Engine hallucination audit for a new org during
+// onboarding. Calls processOrgAudit() directly (not via Inngest event —
+// the Inngest event fans out to ALL orgs; this targets a single org).
+//
+// Non-blocking: failure NEVER prevents onboarding from completing.
+// ---------------------------------------------------------------------------
+
+export async function triggerFirstAudit(): Promise<
+  { success: true; auditId: string | null } | { success: false; error: string }
+> {
+  const ctx = await getSafeAuthContext();
+  if (!ctx?.orgId) {
+    return { success: false, error: 'Unauthorized' };
+  }
+
+  try {
+    const result = await processOrgAudit({
+      id: ctx.orgId,
+      name: ctx.orgName ?? 'Unknown',
+    });
+    return { success: true, auditId: result.auditId };
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error('[onboarding] First audit trigger failed:', msg);
+    return { success: false, error: msg };
+  }
+}
+
+// ---------------------------------------------------------------------------
+// completeOnboarding — Sprint 91
+//
+// Marks onboarding as complete for the authenticated user's org.
+// Sets onboarding_completed = true on the organizations table.
+// Idempotent: safe to call if already completed.
+// Safety net: seeds SOV queries if none exist for the org.
+// ---------------------------------------------------------------------------
+
+export async function completeOnboarding(): Promise<ActionResult> {
+  const ctx = await getSafeAuthContext();
+  if (!ctx?.orgId) {
+    return { success: false, error: 'Unauthorized' };
+  }
+
+  // Use service role to bypass RLS on organizations table
+  const serviceRole = createServiceRoleClient();
+
+  const { error } = await serviceRole
+    .from('organizations')
+    .update({ onboarding_completed: true })
+    .eq('id', ctx.orgId);
+
+  if (error) {
+    return { success: false, error: error.message };
+  }
+
+  // Safety net: seed SOV queries if none exist
+  try {
+    const supabase = await createClient();
+    const { count } = await supabase
+      .from('target_queries')
+      .select('id', { count: 'exact', head: true })
+      .eq('org_id', ctx.orgId);
+
+    if (count === 0) {
+      const { data: location } = await supabase
+        .from('locations')
+        .select('id, business_name, city, state, categories')
+        .eq('org_id', ctx.orgId)
+        .eq('is_primary', true)
+        .maybeSingle();
+
+      if (location) {
+        await seedSOVQueries(
+          {
+            ...location,
+            org_id: ctx.orgId,
+            categories: location.categories as string[] | null,
+          },
+          [],
+          supabase,
+        );
+      }
+    }
+  } catch (seedErr) {
+    console.warn('[onboarding] Safety-net SOV seed failed:', seedErr);
+  }
+
+  revalidatePath('/dashboard');
+  revalidatePath('/onboarding');
   return { success: true };
 }

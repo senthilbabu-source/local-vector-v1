@@ -145,12 +145,12 @@ test.describe('16 — GBP Import Onboarding Interstitial', () => {
 
   test('shows manual wizard when GBP is not connected', async ({ page }) => {
     // The incomplete@ user doesn't have google_oauth_tokens,
-    // so the onboarding page should show the manual wizard.
+    // so the onboarding page should show the manual wizard (Sprint 91 Step 1).
     await page.goto('/onboarding');
 
-    // Should show the Truth Calibration headline (manual path)
+    // Should show the Sprint 91 wizard Step 1 headline (manual path)
     await expect(
-      page.getByText(/Teach AI the Truth/i),
+      page.getByText(/Tell us about your business/i),
     ).toBeVisible({ timeout: 10_000 });
   });
 
@@ -158,9 +158,9 @@ test.describe('16 — GBP Import Onboarding Interstitial', () => {
     // Navigate with gbp_skip source to bypass interstitial
     await page.goto('/onboarding?source=gbp_skip');
 
-    // Should show the manual wizard form
+    // Should show the Sprint 91 wizard Step 1
     await expect(
-      page.getByText(/Teach AI the Truth/i),
+      page.getByText(/Tell us about your business/i),
     ).toBeVisible({ timeout: 10_000 });
   });
 

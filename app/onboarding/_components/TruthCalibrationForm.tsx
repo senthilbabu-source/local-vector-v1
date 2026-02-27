@@ -4,7 +4,7 @@ import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { saveGroundTruth } from '../actions';
 import type { PrimaryLocation } from '../page';
-import type { DayOfWeek, Amenities } from '@/lib/types/ground-truth';
+import type { DayOfWeek, Amenities, HoursData } from '@/lib/types/ground-truth';
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -99,11 +99,25 @@ function initHours(
 // On submit: calls saveGroundTruth() Server Action, then pushes to /dashboard.
 // ---------------------------------------------------------------------------
 
+interface TruthCalibrationFormProps {
+  location: PrimaryLocation;
+  /** Called on successful submit instead of redirecting to /dashboard. */
+  onSubmitSuccess?: () => void;
+  /** GBP import pre-fill for hours (takes priority over location.hours_data). */
+  prefillHours?: HoursData | null;
+  /** GBP import pre-fill for amenities (merged into defaults). */
+  prefillAmenities?: Partial<AmenitiesState> | null;
+  /** Show "Imported from Google" banner above the form. */
+  showPrefillBanner?: boolean;
+}
+
 export default function TruthCalibrationForm({
   location,
-}: {
-  location: PrimaryLocation;
-}) {
+  onSubmitSuccess,
+  prefillHours,
+  prefillAmenities,
+  showPrefillBanner,
+}: TruthCalibrationFormProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
 
@@ -114,16 +128,16 @@ export default function TruthCalibrationForm({
   const [businessName, setBusinessName] = useState(location.business_name);
 
   const [amenities, setAmenities] = useState<AmenitiesState>({
-    has_outdoor_seating: location.amenities?.has_outdoor_seating ?? false,
-    serves_alcohol:      location.amenities?.serves_alcohol ?? false,
-    has_hookah:          location.amenities?.has_hookah ?? false,
-    is_kid_friendly:     location.amenities?.is_kid_friendly ?? false,
-    takes_reservations:  location.amenities?.takes_reservations ?? false,
-    has_live_music:      location.amenities?.has_live_music ?? false,
+    has_outdoor_seating: prefillAmenities?.has_outdoor_seating ?? location.amenities?.has_outdoor_seating ?? false,
+    serves_alcohol:      prefillAmenities?.serves_alcohol ?? location.amenities?.serves_alcohol ?? false,
+    has_hookah:          prefillAmenities?.has_hookah ?? location.amenities?.has_hookah ?? false,
+    is_kid_friendly:     prefillAmenities?.is_kid_friendly ?? location.amenities?.is_kid_friendly ?? false,
+    takes_reservations:  prefillAmenities?.takes_reservations ?? location.amenities?.takes_reservations ?? false,
+    has_live_music:      prefillAmenities?.has_live_music ?? location.amenities?.has_live_music ?? false,
   });
 
   const [hours, setHours] = useState<Record<DayOfWeek, DayHoursState>>(
-    initHours(location.hours_data)
+    initHours(prefillHours ?? location.hours_data)
   );
 
   // ── Handlers ──────────────────────────────────────────────────────────────
@@ -177,13 +191,28 @@ export default function TruthCalibrationForm({
         return;
       }
 
-      router.push('/dashboard');
+      if (onSubmitSuccess) {
+        onSubmitSuccess();
+      } else {
+        router.push('/dashboard');
+      }
     });
   }
 
   // ── Render ────────────────────────────────────────────────────────────────
   return (
-    <div className="rounded-2xl bg-surface-dark border border-white/5 overflow-hidden">
+    <div data-testid="step2-hours-form" className="rounded-2xl bg-surface-dark border border-white/5 overflow-hidden">
+
+      {/* ── GBP prefill banner (Sprint 91) ─────────────────────────── */}
+      {showPrefillBanner && (
+        <div
+          data-testid="step2-gbp-prefill-banner"
+          className="px-4 py-3 bg-signal-green/10 border-b border-signal-green/20 text-sm text-signal-green flex items-center gap-2"
+        >
+          <span>&#10003;</span>
+          Imported from Google — review and confirm your hours
+        </div>
+      )}
 
       {/* ── Step indicator ──────────────────────────────────────────── */}
       <div className="flex border-b border-white/5">
