@@ -6,9 +6,16 @@
 //
 // Flow:
 //   1. Authenticate via getSafeAuthContext() → orgId
-//   2. Build org-scoped tools via makeVisibilityTools(orgId)
-//   3. streamText() with GPT-4o + tools → streaming response
-//   4. Client receives text chunks + tool call results
+//   2. Rate limit check (20 req/hr/org) via Upstash sliding window
+//   3. Build org-scoped tools via makeVisibilityTools(orgId)
+//   4. streamText() with GPT-4o + tools → streaming response
+//   5. Client receives text chunks + tool call results
+//
+// Rate limiting (FIX-4):
+//   - Upstash sliding window: 20 requests/hour/org
+//   - Key: chat:{orgId} (per-org, not per-user)
+//   - Fail-open: if Redis is unavailable, allow the request through
+//   - 429 response with retry_after + X-RateLimit-* headers
 //
 // Spec: Surgical Integration Plan §Surgery 6
 // ---------------------------------------------------------------------------
@@ -17,10 +24,33 @@ import { streamText } from 'ai';
 import { getModel } from '@/lib/ai/providers';
 import { getSafeAuthContext } from '@/lib/auth';
 import { makeVisibilityTools } from '@/lib/tools/visibility-tools';
+import { Ratelimit } from '@upstash/ratelimit';
+import { Redis } from '@upstash/redis';
 
 export const maxDuration = 30;
 
-const SYSTEM_PROMPT = `You are the LocalVector AI Assistant — an expert in AI visibility, 
+// ── Rate limiter (module-level for connection reuse) ──────────────────────
+// Warn at module load time if Upstash env vars are missing
+if (!process.env.UPSTASH_REDIS_REST_URL || !process.env.UPSTASH_REDIS_REST_TOKEN) {
+  console.warn('[chat] UPSTASH_REDIS_REST_URL or TOKEN not set — rate limiting disabled');
+}
+
+let chatRatelimit: Ratelimit | null = null;
+if (process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN) {
+  const redis = new Redis({
+    url: process.env.UPSTASH_REDIS_REST_URL,
+    token: process.env.UPSTASH_REDIS_REST_TOKEN,
+  });
+
+  chatRatelimit = new Ratelimit({
+    redis,
+    limiter: Ratelimit.slidingWindow(20, '1 h'),
+    analytics: true,
+    prefix: 'localvector_chat',
+  });
+}
+
+const SYSTEM_PROMPT = `You are the LocalVector AI Assistant — an expert in AI visibility,
 search engine optimization for AI answers (AEO/GEO), and local business digital presence.
 
 You help business owners understand:
@@ -37,11 +67,44 @@ Keep responses concise and business-friendly. Avoid jargon unless asked.
 When showing metrics, highlight what changed and what to do about it.`;
 
 export async function POST(req: Request) {
+    // ── 1. Auth check ─────────────────────────────────────────────────────
     const ctx = await getSafeAuthContext();
     if (!ctx?.orgId) {
         return new Response('Unauthorized', { status: 401 });
     }
 
+    // ── 2. Rate limit check (after auth — no wasted credits on 401) ─────
+    let rateLimitResult = { success: true, limit: 20, remaining: 20, reset: Date.now() + 3600000 };
+    try {
+        if (chatRatelimit) {
+            rateLimitResult = await chatRatelimit.limit(`chat:${ctx.orgId}`);
+        }
+    } catch (e) {
+        console.error('[chat] Rate limit check failed — allowing request:', e);
+    }
+
+    if (!rateLimitResult.success) {
+        const retryAfter = Math.ceil((rateLimitResult.reset - Date.now()) / 1000);
+        return new Response(
+            JSON.stringify({
+                error: 'rate_limit_exceeded',
+                message: 'Too many AI chat requests. Please wait before sending more messages.',
+                retry_after: retryAfter,
+            }),
+            {
+                status: 429,
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-RateLimit-Limit': rateLimitResult.limit.toString(),
+                    'X-RateLimit-Remaining': rateLimitResult.remaining.toString(),
+                    'X-RateLimit-Reset': rateLimitResult.reset.toString(),
+                    'Retry-After': retryAfter.toString(),
+                },
+            }
+        );
+    }
+
+    // ── 3. Process request ────────────────────────────────────────────────
     const { messages } = await req.json();
 
     const tools = makeVisibilityTools(ctx.orgId);
@@ -54,7 +117,7 @@ export async function POST(req: Request) {
         maxSteps: 5,
     });
 
-    return result.toDataStreamResponse({
+    const response = result.toDataStreamResponse({
         getErrorMessage: (error) => {
             const msg = error instanceof Error ? error.message : String(error);
             console.error('[api/chat] stream error:', msg);
@@ -65,4 +128,11 @@ export async function POST(req: Request) {
             return 'AI service temporarily unavailable. Please try again.';
         },
     });
+
+    // Add rate limit headers to successful response
+    response.headers.set('X-RateLimit-Limit', rateLimitResult.limit.toString());
+    response.headers.set('X-RateLimit-Remaining', rateLimitResult.remaining.toString());
+    response.headers.set('X-RateLimit-Reset', rateLimitResult.reset.toString());
+
+    return response;
 }

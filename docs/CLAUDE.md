@@ -206,6 +206,15 @@ UPSTASH_REDIS_REST_URL, UPSTASH_REDIS_REST_TOKEN
 - SOV baseline clock started: 2026-02-27. Sprint 107 earliest: 2026-03-27. Sprint 109 earliest: 2026-04-24.
 - Result: All crons operational, 2598 tests pass, 184 files.
 
+### Sprint FIX-4 — Operational Hardening (2026-02-27)
+- `.env.local.example` — Completed with 17 missing env vars (CRON_SECRET, GOOGLE_CLIENT_ID/SECRET, ANTHROPIC_API_KEY, GOOGLE_GENERATIVE_AI_API_KEY, UPSTASH_REDIS_REST_URL/TOKEN, 7 STOP_*_CRON kill switches, 3 STRIPE_PRICE_ID_*).
+- `app/api/chat/route.ts` — Added Upstash sliding window rate limiting (20 req/hr/org). Fail-open pattern, 429 with retry headers, module-level Redis init.
+- `@upstash/ratelimit` added as dependency.
+- `cron-auth-guard.test.ts` — Extended with 3 kill switch tests (13 total).
+- AI_RULES: added §67 (env var documentation), §68 (rate limiting for AI endpoints).
+- Tests: 15 Vitest (`env-completeness.test.ts`), 10 Vitest (`chat-rate-limit.test.ts`), 3 Vitest (kill switch additions to `cron-auth-guard.test.ts`)
+- Result: 0 undocumented env vars, chat rate-limited, 2626 tests pass, 186 files.
+
 ## Tier Completion Status
 
 | Tier | Sprints | Status | Gate |
@@ -213,7 +222,7 @@ UPSTASH_REDIS_REST_URL, UPSTASH_REDIS_REST_TOKEN
 | Tier 1 | 1–30 | Complete | — |
 | Tier 2 | 31–70 | Complete | — |
 | Tier 3 | 71–101 | Complete | — |
-| Production Fixes | FIX-1 – FIX-3 | Complete | — |
+| Production Fixes | FIX-1 – FIX-4 | Complete | — |
 | Tier 4 | 102–106 | Gated | Sprint 102: Apple BC API approval. Sprint 103: Bing Places API approval. Sprint 104–106: no external gate. |
 | Tier 5 | 107–109 | Gated | 4–8 weeks of SOV baseline data required. SOV cron registered 2026-02-27. Sprint 107 earliest: 2026-03-27. |
 
@@ -231,4 +240,4 @@ No external dependencies. Can begin immediately. See AI_RULES §59.
 
 ## Build History
 
-See `DEVLOG.md` (project root) and `docs/DEVLOG.md` for the complete sprint-by-sprint build log. Current sprint: 101 (+ FIX-1, FIX-2, FIX-3).
+See `DEVLOG.md` (project root) and `docs/DEVLOG.md` for the complete sprint-by-sprint build log. Current sprint: 101 (+ FIX-1, FIX-2, FIX-3, FIX-4).

@@ -1745,4 +1745,29 @@ Every cron route handler at `app/api/cron/*/route.ts` MUST be registered in `ver
 All components in `components/plan-gate/` use **named exports**. Always import with `{ PlanGate }`, `{ PlanBlur }`, etc. Never use default imports for plan-gate components. `src/__tests__/unit/plan-gate-imports.test.ts` enforces this automatically.
 
 ---
+
+## §67. Environment Variable Documentation (FIX-4)
+
+Every environment variable referenced as `process.env.VAR_NAME` in `app/` or `lib/` MUST be documented in `.env.local.example` with a comment explaining its purpose and where to obtain the value.
+
+**Enforcement:** `src/__tests__/unit/env-completeness.test.ts` scans all production source files and fails if any `process.env.X` reference is missing from `.env.local.example`.
+
+**Rule:** Never add a new env var reference to production code without simultaneously adding it to `.env.local.example`.
+
+---
+
+## §68. Rate Limiting for AI Endpoints (FIX-4)
+
+All endpoints that trigger AI model calls (OpenAI, Anthropic, Google Gemini) MUST implement Upstash rate limiting using the pattern from `app/api/chat/route.ts`.
+
+**Pattern:**
+- Authenticated endpoints: key = `{prefix}:{orgId}` (org-level, not user-level)
+- Public endpoints: key = `{prefix}:{ip}` (IP-based, with fallback)
+- Default limit: 20 requests/hour/org for AI chat; custom limits for batch operations
+- Fail-open: if Redis is unavailable, allow the request through and log the error
+- Response: 429 with `retry_after`, `error` body, and `X-RateLimit-*` headers
+
+**Never initialize the Redis client inside a request handler** — always module-level.
+
+---
 > **End of System Instructions**

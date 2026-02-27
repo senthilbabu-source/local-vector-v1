@@ -4,6 +4,26 @@
 
 ---
 
+## 2026-02-27 — Sprint FIX-4: Env Var Documentation + /api/chat Rate Limiting (Completed)
+
+**Problems fixed:**
+1. `.env.local.example` was missing 17 env vars — cron auth, Google OAuth, AI provider keys, kill switches, Stripe price IDs, Upstash Redis.
+2. `/api/chat` had no rate limiting — single org/user could trigger unbounded AI costs.
+
+**Changes:**
+- `.env.local.example` — Added 17 missing variables with comments, organized into sections (Cron Security, Google OAuth, AI Providers, Stripe, Upstash Redis, Cron Kill Switches).
+- `app/api/chat/route.ts` — Added Upstash sliding window rate limit: 20 requests/hour/org. Fail-open on Redis unavailability. 429 response with retry_after + X-RateLimit-* headers. Module-level Redis/Ratelimit initialization.
+- `AI_RULES.md` — Added §59 (env var documentation) and §60 (AI endpoint rate limiting).
+
+**Tests added:**
+- `src/__tests__/unit/env-completeness.test.ts` — **15 Vitest tests.** Required vars documented + source scan for undocumented references.
+- `src/__tests__/unit/chat-rate-limit.test.ts` — **10 Vitest tests.** Rate limit enforcement + Redis fail-open + headers.
+- `src/__tests__/unit/cron-auth-guard.test.ts` — Extended with **3 kill switch tests** (13 total).
+
+**Result:** All tests passing. 0 TypeScript errors.
+
+---
+
 ## 2026-02-27 — Sprint FIX-3: Missing Cron Registration + PlanGate Import Verification (Completed)
 
 **Problems fixed:**

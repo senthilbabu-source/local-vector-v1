@@ -222,3 +222,34 @@ describe('cron route CRON_SECRET authorization guard', () => {
     });
   });
 });
+
+// ── Kill switch tests (FIX-4) ────────────────────────────────────────────
+
+describe('cron kill switch behavior', () => {
+  it('/api/cron/audit returns halted response when STOP_AUDIT_CRON=true', async () => {
+    vi.stubEnv('STOP_AUDIT_CRON', 'true');
+    const res = await auditGET(makeRequest('/api/cron/audit', `Bearer ${CRON_SECRET}`));
+    const body = await res.json();
+    expect(res.status).toBe(200);
+    expect(body.halted).toBe(true);
+    vi.stubEnv('STOP_AUDIT_CRON', '');
+  });
+
+  it('/api/cron/sov returns halted response when STOP_SOV_CRON=true', async () => {
+    vi.stubEnv('STOP_SOV_CRON', 'true');
+    const res = await sovGET(makeRequest('/api/cron/sov', `Bearer ${CRON_SECRET}`));
+    const body = await res.json();
+    expect(res.status).toBe(200);
+    expect(body.halted).toBe(true);
+    vi.stubEnv('STOP_SOV_CRON', '');
+  });
+
+  it('/api/cron/audit runs normally when STOP_AUDIT_CRON is unset', async () => {
+    vi.stubEnv('STOP_AUDIT_CRON', '');
+    const res = await auditGET(makeRequest('/api/cron/audit', `Bearer ${CRON_SECRET}`));
+    const body = await res.json();
+    // Should not be halted — proceeds to Inngest dispatch or inline execution
+    expect(body.halted).toBeUndefined();
+    expect(res.status).not.toBe(401);
+  });
+});
