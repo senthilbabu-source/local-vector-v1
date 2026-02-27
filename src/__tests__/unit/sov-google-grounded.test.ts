@@ -60,7 +60,9 @@ const MOCK_QUERY: SOVQueryInput = {
 
 function makeMockSupabase() {
   const mockUpsert = vi.fn().mockResolvedValue({ data: null, error: null });
-  const mockInsert = vi.fn().mockResolvedValue({ data: null, error: null });
+  const mockInsert = vi.fn().mockReturnValue({
+    select: vi.fn().mockResolvedValue({ data: [{ id: 'eval-uuid-001' }], error: null }),
+  });
   const mockUpdate = vi.fn().mockReturnValue({
     eq: vi.fn().mockResolvedValue({ data: null, error: null }),
   });

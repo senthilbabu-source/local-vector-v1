@@ -108,6 +108,9 @@ export const MODELS = {
 
   /** Menu OCR — GPT-4o Vision for PDF/image menu extraction (Sprint 59A) */
   'menu-ocr': openai('gpt-4o'),
+
+  /** Sprint 81 — Sentiment extraction (cheap, structured output) */
+  'sentiment-extract': openai('gpt-4o-mini'),
 } as const;
 
 export type ModelKey = keyof typeof MODELS;

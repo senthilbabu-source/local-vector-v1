@@ -342,6 +342,7 @@ Before marking any phase "Completed", verify all of the following are true:
 | `truth-audit-gemini` | Google Gemini 2.0 Flash | `generateText` | Truth Audit — Google engine (multi-engine comparison). |
 | `chat-assistant` | OpenAI gpt-4o | `generateText` | AI Chat Assistant — streaming conversational agent with tool calls. |
 | `menu-ocr` | OpenAI gpt-4o | `generateObject` | Menu OCR — GPT-4o Vision for PDF/image menu extraction. Uses `MenuOCRSchema`. |
+| `sentiment-extract` | OpenAI gpt-4o-mini | `generateObject` | Sentiment Extraction — per-evaluation sentiment scoring from SOV raw responses. Uses `SentimentExtractionSchema`. |
 
 **Zod schemas** live in `lib/ai/schemas.ts` — imported by both services and tests. Never define AI output types inline. **Important:** `zod-to-json-schema@3` (bundled with `ai@4`) cannot convert Zod v4 schemas. Always wrap Zod schemas with `zodSchema()` (exported from `lib/ai/schemas.ts`) when passing to `generateObject({ schema })` or `tool({ parameters })`.
 
@@ -1231,6 +1232,23 @@ The Entity Knowledge Graph Health Monitor tracks business presence across 7 AI k
 * **Page:** `app/dashboard/entity-health/page.tsx` — checklist UI with status dropdowns, claim guides, score bar.
 * **Dashboard card:** `app/dashboard/_components/EntityHealthCard.tsx`.
 * **Fixtures:** `MOCK_ENTITY_CHECK` in `src/__fixtures__/golden-tenant.ts`.
+
+## 48. AI Sentiment Extraction Pipeline — SOV Post-Processing (Sprint 81)
+
+The Sentiment Tracker extracts per-evaluation sentiment from SOV raw responses using `generateObject` + `SentimentExtractionSchema`, then aggregates into dashboard-ready summaries.
+
+* **Table column:** `sov_evaluations.sentiment_data` — JSONB column added via migration `20260226000010`. Partial index on `(org_id, created_at DESC) WHERE sentiment_data IS NOT NULL`.
+* **Schema:** `SentimentExtractionSchema` in `lib/ai/schemas.ts` — score (-1 to 1), label (5 values), descriptors (positive/negative/neutral arrays), tone (6 values), recommendation_strength (4 values).
+* **Model key:** `sentiment-extract` → OpenAI gpt-4o-mini in `lib/ai/providers.ts`. Uses `generateObject` with `zodSchema()` wrapper for Zod v4 compatibility.
+* **Extraction service:** `lib/services/sentiment.service.ts` — `extractSentiment(rawResponse, businessName)`. Pre-checks: null/empty → null, `hasApiKey('openai')` false → null, business name not in response → quick `not_mentioned` result (no API call). On API error → null (never throws).
+* **Aggregation (pure):** `aggregateSentiment(evaluations)` — average score (2dp), dominant label/tone via frequency, deduped descriptors by frequency (case-insensitive, max 15 per category), per-engine breakdown (max 10 descriptors each). Exported utility helpers: `countFrequencies`, `topKey`, `dedupeByFrequency`, `groupBy`.
+* **Pipeline integration:** `extractSOVSentiment(results, businessName)` and `writeSentimentData(supabase, sentimentMap)` in `lib/services/sov-engine.service.ts`. Called after `writeSOVResults()` in both Inngest cron and inline cron fallback. Uses `Promise.allSettled` — individual extraction failures are isolated.
+* **`writeSOVResults()` change:** Returns `evaluationIds: Array<{ id, engine, rawResponse }>` (via `.insert().select('id')`) to feed the sentiment pipeline.
+* **Data layer:** `lib/data/sentiment.ts` — `fetchSentimentSummary()` (30-day default, non-null sentiment_data) and `fetchSentimentTrend()` (12-week default, grouped by ISO week).
+* **Dashboard page:** `app/dashboard/sentiment/page.tsx` — Server Component with score card, descriptor display, engine breakdown, trend summary, empty state. Error boundary at `error.tsx`.
+* **Sidebar:** "AI Sentiment" nav item with `SmilePlus` icon, path `/dashboard/sentiment`.
+* **Fixtures:** `MOCK_SENTIMENT_EXTRACTION` and `MOCK_SENTIMENT_SUMMARY` in `src/__fixtures__/golden-tenant.ts`.
+* **`hasApiKey()` note:** Accepts provider names (`'openai'`, `'perplexity'`, `'anthropic'`, `'google'`), NOT model keys. The extraction service checks `hasApiKey('openai')`.
 
 ---
 > **End of System Instructions**

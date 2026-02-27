@@ -1534,6 +1534,7 @@ export type Database = {
           mentioned_competitors: Json;
           raw_response: string | null;
           cited_sources: Json | null;
+          sentiment_data: Json | null;
           created_at: string;
         };
         Insert: {
@@ -1546,6 +1547,7 @@ export type Database = {
           mentioned_competitors?: Json;
           raw_response?: string | null;
           cited_sources?: Json | null;
+          sentiment_data?: Json | null;
           created_at?: string;
         };
         Update: {
@@ -1558,6 +1560,7 @@ export type Database = {
           mentioned_competitors?: Json;
           raw_response?: string | null;
           cited_sources?: Json | null;
+          sentiment_data?: Json | null;
           created_at?: string;
         };
         Relationships: [

@@ -17,11 +17,12 @@
 // ---------------------------------------------------------------------------
 
 import type { SupabaseClient } from '@supabase/supabase-js';
-import type { Database } from '@/lib/supabase/database.types';
+import type { Database, Json } from '@/lib/supabase/database.types';
 import { generateText } from 'ai';
 import { getModel, hasApiKey, type ModelKey } from '@/lib/ai/providers';
-import { SovCronResultSchema, type SovCronResultOutput } from '@/lib/ai/schemas';
+import { SovCronResultSchema, type SovCronResultOutput, type SentimentExtraction } from '@/lib/ai/schemas';
 import { createDraft } from '@/lib/autopilot/create-draft';
+import { extractSentiment } from '@/lib/services/sentiment.service';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -339,31 +340,36 @@ export async function writeSOVResults(
   orgId: string,
   results: SOVQueryResult[],
   supabase: SupabaseClient<Database>,
-): Promise<{ shareOfVoice: number; citationRate: number; firstMoverCount: number }> {
+): Promise<{ shareOfVoice: number; citationRate: number; firstMoverCount: number; evaluationIds: Array<{ id: string; engine: string; rawResponse: string | null }> }> {
   if (results.length === 0) {
-    return { shareOfVoice: 0, citationRate: 0, firstMoverCount: 0 };
+    return { shareOfVoice: 0, citationRate: 0, firstMoverCount: 0, evaluationIds: [] };
   }
 
   const today = new Date().toISOString().split('T')[0];
+  const evaluationIds: Array<{ id: string; engine: string; rawResponse: string | null }> = [];
 
   // ── 1. Insert per-query evaluation history ─────────────────────────────
   // Each run is recorded in sov_evaluations with a created_at timestamp.
   // (target_queries has no updated_at/last_run_at column — we rely on
   //  sov_evaluations.created_at for "last run" semantics.)
   for (const result of results) {
-    await supabase.from('sov_evaluations').insert({
+    const rawResponse = JSON.stringify({
+      businesses: [...result.businessesFound, ...(result.ourBusinessCited ? [result.queryText] : [])],
+      cited_url: result.citationUrl,
+    });
+    const { data } = await supabase.from('sov_evaluations').insert({
       org_id: orgId,
       location_id: result.locationId,
       query_id: result.queryId,
       engine: result.engine ?? 'perplexity',
       rank_position: result.ourBusinessCited ? 1 : null,
       mentioned_competitors: result.businessesFound,
-      raw_response: JSON.stringify({
-        businesses: [...result.businessesFound, ...(result.ourBusinessCited ? [result.queryText] : [])],
-        cited_url: result.citationUrl,
-      }),
+      raw_response: rawResponse,
       cited_sources: result.citedSources ?? null,
-    });
+    }).select('id');
+    if (data?.[0]) {
+      evaluationIds.push({ id: data[0].id, engine: result.engine ?? 'perplexity', rawResponse });
+    }
   }
 
   // ── 2. Aggregate SOV metrics ────────────────────────────────────────────
@@ -416,7 +422,59 @@ export async function writeSOVResults(
     shareOfVoice: parseFloat(shareOfVoice.toFixed(1)), // percentage rounded to 1 decimal place
     citationRate: parseFloat(citationRate.toFixed(1)),
     firstMoverCount: firstMoverOpps.length,
+    evaluationIds,
   };
+}
+
+// ---------------------------------------------------------------------------
+// Sentiment extraction pipeline (Sprint 81)
+// ---------------------------------------------------------------------------
+
+/**
+ * Run sentiment extraction on SOV results.
+ * Call this AFTER writeSOVResults() so we have evaluation IDs.
+ * Returns a map of evaluation_id → SentimentExtraction.
+ * Side-effect resilient: failures return null per evaluation.
+ */
+export async function extractSOVSentiment(
+  results: Array<{ evaluationId: string; rawResponse: string | null; engine: string }>,
+  businessName: string,
+): Promise<Map<string, SentimentExtraction | null>> {
+  const entries = await Promise.allSettled(
+    results.map(async (r) => {
+      const sentiment = await extractSentiment(r.rawResponse, businessName);
+      return [r.evaluationId, sentiment] as const;
+    }),
+  );
+
+  const map = new Map<string, SentimentExtraction | null>();
+  for (const entry of entries) {
+    if (entry.status === 'fulfilled') {
+      map.set(entry.value[0], entry.value[1]);
+    }
+  }
+  return map;
+}
+
+/**
+ * Update sov_evaluations with extracted sentiment data.
+ * Called after extractSOVSentiment().
+ * Side-effect resilient: individual failures don't abort the batch.
+ */
+export async function writeSentimentData(
+  supabase: SupabaseClient<Database>,
+  sentimentMap: Map<string, SentimentExtraction | null>,
+): Promise<void> {
+  for (const [evaluationId, sentiment] of sentimentMap) {
+    if (sentiment === null) continue;
+    await supabase
+      .from('sov_evaluations')
+      .update({ sentiment_data: sentiment as unknown as Json })
+      .eq('id', evaluationId)
+      .then(({ error }) => {
+        if (error) console.error(`[sentiment] Write failed for ${evaluationId}:`, error);
+      });
+  }
 }
 
 // ---------------------------------------------------------------------------

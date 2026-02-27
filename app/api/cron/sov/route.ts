@@ -20,6 +20,8 @@ import {
   runSOVQuery,
   runMultiModelSOVQuery,
   writeSOVResults,
+  extractSOVSentiment,
+  writeSentimentData,
   sleep,
   type SOVQueryInput,
   type SOVQueryResult,
@@ -178,12 +180,26 @@ async function _runInlineSOVImpl(handle: { logId: string | null; startedAt: numb
       }
 
       if (results.length > 0) {
-        const { shareOfVoice, firstMoverCount } = await writeSOVResults(
+        const { shareOfVoice, firstMoverCount, evaluationIds } = await writeSOVResults(
           orgId,
           results,
           supabase,
         );
         summary.first_mover_alerts += firstMoverCount;
+
+        // Sprint 81: Sentiment extraction (non-critical)
+        try {
+          const bName = batch[0].locations?.business_name ?? '';
+          if (bName && evaluationIds.length > 0) {
+            const sentimentMap = await extractSOVSentiment(
+              evaluationIds.map(e => ({ evaluationId: e.id, rawResponse: e.rawResponse, engine: e.engine })),
+              bName,
+            );
+            await writeSentimentData(supabase, sentimentMap);
+          }
+        } catch {
+          // Sentiment extraction is non-critical
+        }
 
         const { data: membershipRow } = await supabase
           .from('memberships')

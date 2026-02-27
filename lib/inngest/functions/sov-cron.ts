@@ -24,6 +24,8 @@ import {
   runSOVQuery,
   runMultiModelSOVQuery,
   writeSOVResults,
+  extractSOVSentiment,
+  writeSentimentData,
   sleep,
   type SOVQueryInput,
   type SOVQueryResult,
@@ -121,11 +123,26 @@ export async function processOrgSOV(batch: OrgBatch): Promise<OrgSOVResult> {
   }
 
   // Write aggregated results
-  const { shareOfVoice, firstMoverCount } = await writeSOVResults(
+  const { shareOfVoice, firstMoverCount, evaluationIds } = await writeSOVResults(
     batch.orgId,
     results,
     supabase,
   );
+
+  // Sprint 81: Sentiment extraction (non-critical, runs after SOV data is safe)
+  try {
+    const businessName = batch.queries[0].locations?.business_name ?? '';
+    if (businessName && evaluationIds.length > 0) {
+      const sentimentMap = await extractSOVSentiment(
+        evaluationIds.map(e => ({ evaluationId: e.id, rawResponse: e.rawResponse, engine: e.engine })),
+        businessName,
+      );
+      await writeSentimentData(supabase, sentimentMap);
+    }
+  } catch (err) {
+    const sentimentMsg = err instanceof Error ? err.message : String(err);
+    console.error(`[inngest-sov] Sentiment extraction failed for org ${batch.orgId}:`, sentimentMsg);
+  }
 
   let occasionDrafts = 0;
   let gapsDetected = 0;

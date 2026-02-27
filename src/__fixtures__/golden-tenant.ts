@@ -555,6 +555,54 @@ export const MOCK_DIGEST_INPUT: import('@/lib/services/weekly-digest.service').D
  * 3/6 confirmed: Google KP, GBP, Yelp. TripAdvisor and Apple Maps missing. Bing incomplete.
  * UUIDs match supabase/seed.sql Section 25.
  */
+/**
+ * Sprint 81 — Canonical sentiment extraction for Charcoal N Chill.
+ * Positive overall, with one minor negative descriptor.
+ */
+export const MOCK_SENTIMENT_EXTRACTION: import('@/lib/ai/schemas').SentimentExtraction = {
+  score: 0.72,
+  label: 'positive',
+  descriptors: {
+    positive: ['popular', 'premium atmosphere', 'unique', 'highly rated', 'Indo-American fusion'],
+    negative: ['limited parking'],
+    neutral: ['located in Alpharetta', 'offers hookah'],
+  },
+  tone: 'enthusiastic',
+  recommendation_strength: 'primary',
+};
+
+/**
+ * Sprint 81 — Canonical sentiment summary for dashboard tests.
+ */
+export const MOCK_SENTIMENT_SUMMARY: import('@/lib/services/sentiment.service').SentimentSummary = {
+  averageScore: 0.65,
+  dominantLabel: 'positive',
+  dominantTone: 'positive',
+  topPositive: ['popular', 'premium', 'unique atmosphere', 'highly rated', 'Indo-American fusion'],
+  topNegative: ['limited parking'],
+  byEngine: {
+    perplexity: {
+      averageScore: 0.72,
+      label: 'positive',
+      tone: 'enthusiastic',
+      descriptors: { positive: ['popular', 'premium'], negative: [] },
+    },
+    openai: {
+      averageScore: 0.65,
+      label: 'positive',
+      tone: 'positive',
+      descriptors: { positive: ['highly rated', 'unique'], negative: ['limited parking'] },
+    },
+    copilot: {
+      averageScore: 0.50,
+      label: 'neutral',
+      tone: 'matter_of_fact',
+      descriptors: { positive: ['well-reviewed'], negative: [] },
+    },
+  },
+  evaluationCount: 12,
+};
+
 export const MOCK_ENTITY_CHECK: import('@/lib/services/entity-health.service').EntityCheckRow = {
   google_knowledge_panel: 'confirmed',
   google_business_profile: 'confirmed',

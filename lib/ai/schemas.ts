@@ -126,6 +126,42 @@ export const CitationCronResultSchema = z.object({
 
 export type CitationCronResultOutput = z.infer<typeof CitationCronResultSchema>;
 
+// ── Sentiment Extraction — SOV raw_response analysis (Sprint 81) ────────────
+
+/**
+ * Sprint 81 — Sentiment extraction schema.
+ * Used with generateObject() to extract sentiment from SOV raw_response.
+ */
+export const SentimentExtractionSchema = z.object({
+  /** Overall sentiment score: -1.0 (very negative) to 1.0 (very positive) */
+  score: z.number().min(-1).max(1),
+
+  /** Sentiment label */
+  label: z.enum(['very_positive', 'positive', 'neutral', 'negative', 'very_negative']),
+
+  /** Descriptors used about the business, categorized */
+  descriptors: z.object({
+    positive: z.array(z.string()).describe('Positive adjectives/phrases used about the business (e.g., "popular", "premium", "highly rated")'),
+    negative: z.array(z.string()).describe('Negative adjectives/phrases used about the business (e.g., "inconsistent", "overpriced", "slow service")'),
+    neutral: z.array(z.string()).describe('Neutral descriptors (e.g., "located in", "offers", "serves")'),
+  }),
+
+  /** Overall tone of how AI presents the business */
+  tone: z.enum([
+    'enthusiastic',     // Strong recommendation with superlatives
+    'positive',         // Clear recommendation, good description
+    'matter_of_fact',   // Factual, no strong opinion
+    'mixed',            // Both positive and negative elements
+    'cautious',         // Hedging, uncertain language
+    'negative',         // Discouraging, negative framing
+  ]),
+
+  /** Is the business the primary recommendation or an also-mentioned? */
+  recommendation_strength: z.enum(['primary', 'secondary', 'mentioned', 'not_mentioned']),
+});
+
+export type SentimentExtraction = z.infer<typeof SentimentExtractionSchema>;
+
 // ── Menu OCR — GPT-4o Vision PDF/image extraction (Sprint 59A) ──────────────
 
 export const MenuOCRItemSchema = z.object({

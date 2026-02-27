@@ -4,6 +4,49 @@
 
 ---
 
+## 2026-02-28 — Sprint 81: AI Sentiment Tracker (Completed)
+
+**Goal:** Track not just whether AI mentions the business, but HOW it describes it — positive/negative descriptors, tone, recommendation strength. Answers "ChatGPT calls you 'affordable but inconsistent' while calling your competitor 'premium and trendy.'"
+
+**Scope:**
+- `supabase/migrations/20260226000010_sentiment_data.sql` — **NEW.** Adds `sentiment_data JSONB` to `sov_evaluations`. Partial index on `(org_id, created_at DESC) WHERE sentiment_data IS NOT NULL`.
+- `lib/supabase/database.types.ts` — **MODIFIED.** Added `sentiment_data: Json | null` to sov_evaluations Row/Insert/Update.
+- `lib/ai/schemas.ts` — **MODIFIED.** Added `SentimentExtractionSchema` (Zod): score (-1 to 1), label (5 levels), descriptors (positive/negative/neutral arrays), tone (6 options), recommendation_strength (4 levels). Exported type `SentimentExtraction`.
+- `lib/ai/providers.ts` — **MODIFIED.** Added `sentiment-extract` model key: `openai('gpt-4o-mini')`.
+- `lib/services/sentiment.service.ts` — **NEW.** `extractSentiment()` — lightweight AI extraction via `generateObject`. Pre-checks: null/empty response returns null, missing API key returns null, business name not in response returns quick `not_mentioned` result (no API call). `aggregateSentiment()` — pure aggregation function. Computes average score, dominant label/tone, deduped descriptors sorted by frequency, per-engine breakdown. Utility helpers: `countFrequencies`, `dedupeByFrequency`, `groupBy`, `topKey`.
+- `lib/services/sov-engine.service.ts` — **MODIFIED.** `writeSOVResults()` now returns `evaluationIds` (via `.select('id')` after insert). Added `extractSOVSentiment()` (parallel extraction via `Promise.allSettled`) and `writeSentimentData()` (per-evaluation UPDATE with error logging).
+- `lib/inngest/functions/sov-cron.ts` — **MODIFIED.** Added sentiment extraction in `processOrgSOV()` after `writeSOVResults`. Non-critical try/catch — SOV data safe even if sentiment fails.
+- `app/api/cron/sov/route.ts` — **MODIFIED.** Added sentiment extraction to inline fallback after `writeSOVResults`.
+- `lib/data/sentiment.ts` — **NEW.** `fetchSentimentSummary()` (30-day default, filters non-null sentiment_data), `fetchSentimentTrend()` (12-week default, grouped by ISO week).
+- `app/dashboard/sentiment/page.tsx` — **NEW.** Server Component. Overall sentiment score card, descriptor tag display (positive green / negative red), per-engine breakdown with horizontal score bars, empty state message, trend summary.
+- `app/dashboard/sentiment/error.tsx` — **NEW.** Standard error boundary.
+- `components/layout/Sidebar.tsx` — **MODIFIED.** Added "AI Sentiment" link (icon: SmilePlus, auto-testid: nav-ai-sentiment).
+- `src/__fixtures__/golden-tenant.ts` — **MODIFIED.** Added `MOCK_SENTIMENT_EXTRACTION` and `MOCK_SENTIMENT_SUMMARY`.
+
+**Tests added:**
+- `src/__tests__/unit/sentiment-service.test.ts` — **30 Vitest tests.** extractSentiment (null/empty/no-key/not-mentioned/happy-path/error). aggregateSentiment (empty/score-calc/dominant-label/descriptors/dedup/per-engine). Utility functions.
+- `src/__tests__/unit/sentiment-data.test.ts` — **9 Vitest tests.** Summary query (org scope, date range, aggregation). Trend query (week grouping, weekly average).
+- `src/__tests__/unit/sentiment-extraction-integration.test.ts` — **7 Vitest tests.** Pipeline (parallel extraction, write, error handling).
+- `src/__tests__/unit/sentiment-page.test.ts` — **5 Vitest tests.** Page data shapes, sidebar link.
+
+**Existing test updates:**
+- `src/__tests__/unit/sov-engine-service.test.ts` — Updated `mockInsert` to chain `.select()` (new `writeSOVResults` return type).
+- `src/__tests__/unit/sov-google-grounded.test.ts` — Same mock update.
+- `src/__tests__/unit/inngest-sov-cron.test.ts` — Added `evaluationIds: []` to `writeSOVResults` mock.
+- `src/__tests__/unit/cron-sov.test.ts` — Added `evaluationIds: []` to `writeSOVResults` mock.
+
+**Run commands:**
+```bash
+npx vitest run src/__tests__/unit/sentiment-service.test.ts                    # 30 tests passing
+npx vitest run src/__tests__/unit/sentiment-data.test.ts                       # 9 tests passing
+npx vitest run src/__tests__/unit/sentiment-extraction-integration.test.ts     # 7 tests passing
+npx vitest run src/__tests__/unit/sentiment-page.test.ts                       # 5 tests passing
+npx vitest run src/__tests__/unit/                                              # 1338 tests passing (104 files)
+npx tsc --noEmit                                                                # 0 errors
+```
+
+---
+
 ## 2026-02-28 — Sprint 80: Entity Knowledge Graph Health Monitor (Completed)
 
 **Goal:** Build a dashboard showing entity presence across 7 knowledge graph platforms AI models use (Google KP, GBP, Yelp, TripAdvisor, Apple Maps, Bing Places, Wikidata). Auto-detects from existing data, user self-assesses the rest. Entities get cited, non-entities get hallucinated about.

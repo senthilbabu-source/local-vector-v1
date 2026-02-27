@@ -42,6 +42,7 @@ vi.mock('@/lib/services/sov-engine.service', () => ({
     shareOfVoice: 0,
     citationRate: 0,
     firstMoverCount: 0,
+    evaluationIds: [],
   }),
   sleep: vi.fn().mockResolvedValue(undefined),
 }));

@@ -38,6 +38,7 @@ vi.mock('@/lib/services/sov-engine.service', () => ({
     shareOfVoice: 33.3,
     citationRate: 50,
     firstMoverCount: 1,
+    evaluationIds: [],
   }),
   sleep: vi.fn().mockResolvedValue(undefined),
 }));
@@ -272,6 +273,7 @@ describe('processOrgSOV', () => {
       shareOfVoice: 0,
       citationRate: 0,
       firstMoverCount: 3,
+      evaluationIds: [],
     });
 
     const result = await processOrgSOV(makeBatch());
