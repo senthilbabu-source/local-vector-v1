@@ -603,6 +603,70 @@ export const MOCK_SENTIMENT_SUMMARY: import('@/lib/services/sentiment.service').
   evaluationCount: 12,
 };
 
+/**
+ * Sprint 82 — Canonical source mention extraction for OpenAI (no structured citations).
+ */
+export const MOCK_SOURCE_MENTION_EXTRACTION: import('@/lib/ai/schemas').SourceMentionExtraction = {
+  sources: [
+    {
+      name: 'Yelp',
+      type: 'review_site',
+      inferredUrl: 'https://www.yelp.com/biz/charcoal-n-chill-alpharetta',
+      context: '4.5 star rating with emphasis on atmosphere',
+      isCompetitorContent: false,
+    },
+    {
+      name: 'Google Maps',
+      type: 'directory',
+      inferredUrl: 'https://maps.google.com/charcoal-n-chill',
+      context: 'Business hours and location information',
+      isCompetitorContent: false,
+    },
+    {
+      name: 'Cloud 9 Lounge Blog',
+      type: 'blog',
+      inferredUrl: null,
+      context: 'Competitor comparison mentioning hookah selection',
+      isCompetitorContent: true,
+    },
+  ],
+  sourcingQuality: 'well_sourced',
+};
+
+/**
+ * Sprint 82 — Canonical SourceIntelligenceInput for full analysis.
+ */
+export const MOCK_SOURCE_INTELLIGENCE_INPUT: import('@/lib/services/source-intelligence.service').SourceIntelligenceInput = {
+  businessName: 'Charcoal N Chill',
+  websiteUrl: 'https://charcoalnchill.com',
+  evaluations: [
+    {
+      engine: 'google',
+      citedSources: [
+        { url: 'https://www.yelp.com/biz/charcoal-n-chill-alpharetta', title: 'Charcoal N Chill - Yelp' },
+        { url: 'https://charcoalnchill.com', title: 'Charcoal N Chill' },
+      ],
+      extractedMentions: null,
+      queryText: 'best hookah bar Alpharetta',
+    },
+    {
+      engine: 'perplexity',
+      citedSources: [
+        { url: 'https://www.yelp.com/biz/charcoal-n-chill-alpharetta', title: 'Yelp' },
+        { url: 'https://www.tripadvisor.com/Restaurant-charcoal-n-chill', title: 'TripAdvisor' },
+      ],
+      extractedMentions: null,
+      queryText: 'best hookah bar Alpharetta',
+    },
+    {
+      engine: 'openai',
+      citedSources: null,
+      extractedMentions: MOCK_SOURCE_MENTION_EXTRACTION,
+      queryText: 'best hookah bar Alpharetta',
+    },
+  ],
+};
+
 export const MOCK_ENTITY_CHECK: import('@/lib/services/entity-health.service').EntityCheckRow = {
   google_knowledge_panel: 'confirmed',
   google_business_profile: 'confirmed',

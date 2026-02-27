@@ -4,6 +4,37 @@
 
 ---
 
+## 2026-02-26 — Sprint 82: Citation Source Intelligence (Completed)
+
+**Goal:** Identify which specific web pages, review sites, articles, and social posts each AI engine cites when generating answers about the business. Two data paths: structured `cited_sources` from Google/Perplexity (Sprint 74), and AI-extracted `source_mentions` from OpenAI/Copilot raw_response via gpt-4o-mini.
+
+**Scope:**
+- `supabase/migrations/20260226000011_source_mentions.sql` — **NEW.** Adds `source_mentions JSONB` to `sov_evaluations`.
+- `supabase/prod_schema.sql` — **MODIFIED.** Added `sentiment_data` and `source_mentions` JSONB columns to sov_evaluations CREATE TABLE.
+- `lib/supabase/database.types.ts` — **MODIFIED.** Added `source_mentions: Json | null` to sov_evaluations Row/Insert/Update.
+- `lib/ai/schemas.ts` — **MODIFIED.** Added `SourceMentionExtractionSchema` (Zod): sources array (name, type enum, inferredUrl, context, isCompetitorContent), sourcingQuality enum. Exported type `SourceMentionExtraction`.
+- `lib/ai/providers.ts` — **MODIFIED.** Added `source-extract` model key: `openai('gpt-4o-mini')`.
+- `lib/services/source-intelligence.service.ts` — **NEW.** Part A: `extractSourceMentions()` — AI extraction for engines without structured citations. Part B: Pure analysis functions — `analyzeSourceIntelligence()` categorizes, deduplicates, ranks sources, computes first-party rate, generates alerts. Helper functions: `normalizeSourceKey`, `extractDomainName`, `categorizeUrl`, `mapMentionTypeToCategory`, `generateAlerts`. Alert types: competitor_content (high), missing_first_party (medium), over-reliance (medium).
+- `lib/services/sov-engine.service.ts` — **MODIFIED.** Added `extractSOVSourceMentions()` (filters to engines without cited_sources, parallel extraction via Promise.allSettled) and `writeSourceMentions()` (per-evaluation UPDATE to source_mentions JSONB).
+- `lib/inngest/functions/sov-cron.ts` — **MODIFIED.** Added source extraction step in `processOrgSOV()` after sentiment extraction. Non-critical try/catch.
+- `app/api/cron/sov/route.ts` — **MODIFIED.** Added source extraction to inline fallback after sentiment extraction.
+- `lib/data/source-intelligence.ts` — **NEW.** `fetchSourceIntelligence()` — parallel queries for sov_evaluations (with target_queries join) and location data, feeds into pure analyzeSourceIntelligence().
+- `app/dashboard/source-intelligence/page.tsx` — **NEW.** Server Component. SourceAlertCards (severity-sorted, red/amber borders), TopSourcesTable (ranked by citation count, engine color dots), CategoryBreakdownBars (horizontal bars with percentages, first-party rate), EngineSourceBreakdown (per-engine source tags), EmptyState.
+- `app/dashboard/source-intelligence/error.tsx` — **NEW.** Standard error boundary.
+- `components/layout/Sidebar.tsx` — **MODIFIED.** Added "AI Sources" link (icon: BookOpen, auto-testid: nav-ai-sources).
+- `src/__fixtures__/golden-tenant.ts` — **MODIFIED.** Added `MOCK_SOURCE_MENTION_EXTRACTION` and `MOCK_SOURCE_INTELLIGENCE_INPUT`.
+- `supabase/seed.sql` — **MODIFIED.** Added source_mentions JSONB to OpenAI seed evaluation.
+
+**Tests added:**
+- `src/__tests__/unit/source-intelligence-service.test.ts` — **35 Vitest tests.** extractSourceMentions (null/empty/no-key/model-key/happy-path/error). analyzeSourceIntelligence (dedup/merge-engines/both-paths/normalize-url/categorization/ranking/category-breakdown/first-party-rate/per-engine). generateAlerts (competitor/missing-first-party/over-reliance/healthy/severity-sort). Helper functions. Mock integration.
+- `src/__tests__/unit/source-intelligence-data.test.ts` — **7 Vitest tests.** Query scope, join, date range, location fetch, empty handling, happy path.
+- `src/__tests__/unit/source-intelligence-pipeline.test.ts` — **7 Vitest tests.** extractSOVSourceMentions (filter/skip/graceful-failure/map-shape). writeSourceMentions (update/skip-null/error-logging).
+- `src/__tests__/unit/source-intelligence-page.test.ts` — **6 Vitest tests.** Page data shapes (sources/categories/alerts/engine-breakdown/empty), sidebar link.
+
+**Test counts:** +55 new tests (4 files). Total: 1467 test cases, 114 files.
+
+---
+
 ## 2026-02-28 — Sprint 81: AI Sentiment Tracker (Completed)
 
 **Goal:** Track not just whether AI mentions the business, but HOW it describes it — positive/negative descriptors, tone, recommendation strength. Answers "ChatGPT calls you 'affordable but inconsistent' while calling your competitor 'premium and trendy.'"

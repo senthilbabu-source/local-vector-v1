@@ -162,6 +162,33 @@ export const SentimentExtractionSchema = z.object({
 
 export type SentimentExtraction = z.infer<typeof SentimentExtractionSchema>;
 
+// ── Source Mention Extraction — SOV raw_response source analysis (Sprint 82) ──
+
+/**
+ * Sprint 82 — Source mention extraction schema.
+ * Used with generateObject() to identify sources referenced in AI answers
+ * that don't provide structured citation URLs.
+ */
+export const SourceMentionExtractionSchema = z.object({
+  /** Sources mentioned or referenced in the response */
+  sources: z.array(z.object({
+    /** Name of the source (e.g., "Yelp", "TripAdvisor", "Google Maps", "their website") */
+    name: z.string(),
+    /** Type of source */
+    type: z.enum(['review_site', 'directory', 'news', 'blog', 'social_media', 'official_website', 'other']),
+    /** Inferred URL if identifiable, null otherwise */
+    inferredUrl: z.string().nullable(),
+    /** Brief context of what was cited (e.g., "4.5 star rating", "slow service mentioned") */
+    context: z.string(),
+    /** Whether this seems to reference a competitor's content rather than the target business */
+    isCompetitorContent: z.boolean(),
+  })),
+  /** Overall assessment of how well-sourced the response is */
+  sourcingQuality: z.enum(['well_sourced', 'moderately_sourced', 'poorly_sourced', 'unsourced']),
+});
+
+export type SourceMentionExtraction = z.infer<typeof SourceMentionExtractionSchema>;
+
 // ── Menu OCR — GPT-4o Vision PDF/image extraction (Sprint 59A) ──────────────
 
 export const MenuOCRItemSchema = z.object({

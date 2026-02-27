@@ -20,9 +20,10 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Database, Json } from '@/lib/supabase/database.types';
 import { generateText } from 'ai';
 import { getModel, hasApiKey, type ModelKey } from '@/lib/ai/providers';
-import { SovCronResultSchema, type SovCronResultOutput, type SentimentExtraction } from '@/lib/ai/schemas';
+import { SovCronResultSchema, type SovCronResultOutput, type SentimentExtraction, type SourceMentionExtraction } from '@/lib/ai/schemas';
 import { createDraft } from '@/lib/autopilot/create-draft';
 import { extractSentiment } from '@/lib/services/sentiment.service';
+import { extractSourceMentions } from '@/lib/services/source-intelligence.service';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -473,6 +474,59 @@ export async function writeSentimentData(
       .eq('id', evaluationId)
       .then(({ error }) => {
         if (error) console.error(`[sentiment] Write failed for ${evaluationId}:`, error);
+      });
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Source mention extraction pipeline (Sprint 82)
+// ---------------------------------------------------------------------------
+
+/**
+ * Run source mention extraction on SOV results that don't have structured citations.
+ * Call AFTER writeSOVResults(). Only runs for engines without cited_sources.
+ * Returns a map of evaluationId → SourceMentionExtraction.
+ * Side-effect resilient: failures return null per evaluation.
+ */
+export async function extractSOVSourceMentions(
+  results: Array<{ evaluationId: string; rawResponse: string | null; engine: string; citedSources?: unknown }>,
+  businessName: string,
+): Promise<Map<string, SourceMentionExtraction | null>> {
+  const entries = await Promise.allSettled(
+    results
+      .filter(r => !r.citedSources || (Array.isArray(r.citedSources) && r.citedSources.length === 0))
+      .map(async (r) => {
+        const mentions = await extractSourceMentions(r.rawResponse, businessName);
+        return [r.evaluationId, mentions] as const;
+      }),
+  );
+
+  const map = new Map<string, SourceMentionExtraction | null>();
+  for (const entry of entries) {
+    if (entry.status === 'fulfilled') {
+      map.set(entry.value[0], entry.value[1]);
+    }
+  }
+  return map;
+}
+
+/**
+ * Write extracted source mentions to sov_evaluations.
+ * Stores in the `source_mentions` JSONB column.
+ * Side-effect resilient: individual failures don't abort the batch.
+ */
+export async function writeSourceMentions(
+  supabase: SupabaseClient<Database>,
+  mentionsMap: Map<string, SourceMentionExtraction | null>,
+): Promise<void> {
+  for (const [evaluationId, mentions] of mentionsMap) {
+    if (mentions === null) continue;
+    await supabase
+      .from('sov_evaluations')
+      .update({ source_mentions: mentions as unknown as Json })
+      .eq('id', evaluationId)
+      .then(({ error }) => {
+        if (error) console.error(`[source-intelligence] Write failed for ${evaluationId}:`, error);
       });
   }
 }

@@ -1535,6 +1535,7 @@ export type Database = {
           raw_response: string | null;
           cited_sources: Json | null;
           sentiment_data: Json | null;
+          source_mentions: Json | null;
           created_at: string;
         };
         Insert: {
@@ -1548,6 +1549,7 @@ export type Database = {
           raw_response?: string | null;
           cited_sources?: Json | null;
           sentiment_data?: Json | null;
+          source_mentions?: Json | null;
           created_at?: string;
         };
         Update: {
@@ -1561,6 +1563,7 @@ export type Database = {
           raw_response?: string | null;
           cited_sources?: Json | null;
           sentiment_data?: Json | null;
+          source_mentions?: Json | null;
           created_at?: string;
         };
         Relationships: [

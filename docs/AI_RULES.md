@@ -343,6 +343,7 @@ Before marking any phase "Completed", verify all of the following are true:
 | `chat-assistant` | OpenAI gpt-4o | `generateText` | AI Chat Assistant — streaming conversational agent with tool calls. |
 | `menu-ocr` | OpenAI gpt-4o | `generateObject` | Menu OCR — GPT-4o Vision for PDF/image menu extraction. Uses `MenuOCRSchema`. |
 | `sentiment-extract` | OpenAI gpt-4o-mini | `generateObject` | Sentiment Extraction — per-evaluation sentiment scoring from SOV raw responses. Uses `SentimentExtractionSchema`. |
+| `source-extract` | OpenAI gpt-4o-mini | `generateObject` | Source mention extraction from SOV raw_response. Uses `SourceMentionExtractionSchema`. Only for engines without structured citations. |
 
 **Zod schemas** live in `lib/ai/schemas.ts` — imported by both services and tests. Never define AI output types inline. **Important:** `zod-to-json-schema@3` (bundled with `ai@4`) cannot convert Zod v4 schemas. Always wrap Zod schemas with `zodSchema()` (exported from `lib/ai/schemas.ts`) when passing to `generateObject({ schema })` or `tool({ parameters })`.
 
@@ -1249,6 +1250,24 @@ The Sentiment Tracker extracts per-evaluation sentiment from SOV raw responses u
 * **Sidebar:** "AI Sentiment" nav item with `SmilePlus` icon, path `/dashboard/sentiment`.
 * **Fixtures:** `MOCK_SENTIMENT_EXTRACTION` and `MOCK_SENTIMENT_SUMMARY` in `src/__fixtures__/golden-tenant.ts`.
 * **`hasApiKey()` note:** Accepts provider names (`'openai'`, `'perplexity'`, `'anthropic'`, `'google'`), NOT model keys. The extraction service checks `hasApiKey('openai')`.
+
+## 49. Citation Source Intelligence — What AI Reads About You (Sprint 82)
+
+Identifies which web pages and sources AI engines cite when describing the business.
+
+* **Two data paths:** (1) Structured `cited_sources` JSONB from Google/Perplexity (Sprint 74), (2) AI-extracted `source_mentions` from OpenAI/Copilot via `gpt-4o-mini`.
+* **Only engines without structured citations get AI extraction** — saves tokens. `extractSOVSourceMentions()` filters by checking `citedSources` is null or empty.
+* **Pipeline position:** Separate step after sentiment extraction (Sprint 81) in both Inngest cron and inline fallback. SOV + sentiment data safe even if source extraction fails.
+* **Analysis:** `analyzeSourceIntelligence()` is a pure function in `lib/services/source-intelligence.service.ts` — categorizes sources (first_party/review_site/directory/competitor/news/social/blog/other), deduplicates by normalized URL, ranks by citation count, generates alerts.
+* **Alerts:** `competitor_content` (high), `missing_first_party` when <10% (medium), over-reliance on single source >50% (medium).
+* **Different from Citation Gap (§34.1):** Gap = which platforms you're listed on (market-level, aggregate). Source Intelligence = which specific pages AI reads about YOU (org-level, per-evaluation).
+* **Schema:** `SourceMentionExtractionSchema` in `lib/ai/schemas.ts` — sources array (name, type, inferredUrl, context, isCompetitorContent), sourcingQuality enum.
+* **Model key:** `source-extract` → OpenAI gpt-4o-mini. Uses `hasApiKey('openai')` (not the model key name).
+* **DB column:** `sov_evaluations.source_mentions JSONB` — migration `20260226000011`.
+* **Data layer:** `lib/data/source-intelligence.ts` — `fetchSourceIntelligence()` (30-day default, parallel queries for evaluations + location).
+* **Dashboard:** `app/dashboard/source-intelligence/page.tsx` — alerts, top sources table, category breakdown bars, per-engine breakdown, empty state.
+* **Sidebar:** "AI Sources" nav item with `BookOpen` icon, path `/dashboard/source-intelligence`.
+* **Fixtures:** `MOCK_SOURCE_MENTION_EXTRACTION` and `MOCK_SOURCE_INTELLIGENCE_INPUT` in `src/__fixtures__/golden-tenant.ts`.
 
 ---
 > **End of System Instructions**

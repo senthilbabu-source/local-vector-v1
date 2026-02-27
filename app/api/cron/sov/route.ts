@@ -22,6 +22,8 @@ import {
   writeSOVResults,
   extractSOVSentiment,
   writeSentimentData,
+  extractSOVSourceMentions,
+  writeSourceMentions,
   sleep,
   type SOVQueryInput,
   type SOVQueryResult,
@@ -199,6 +201,20 @@ async function _runInlineSOVImpl(handle: { logId: string | null; startedAt: numb
           }
         } catch {
           // Sentiment extraction is non-critical
+        }
+
+        // Sprint 82: Source mention extraction (non-critical)
+        try {
+          const bName = batch[0].locations?.business_name ?? '';
+          if (bName && evaluationIds.length > 0) {
+            const mentionsMap = await extractSOVSourceMentions(
+              evaluationIds.map(e => ({ evaluationId: e.id, rawResponse: e.rawResponse, engine: e.engine })),
+              bName,
+            );
+            await writeSourceMentions(supabase, mentionsMap);
+          }
+        } catch {
+          // Source extraction is non-critical
         }
 
         const { data: membershipRow } = await supabase

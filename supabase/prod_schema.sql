@@ -755,6 +755,8 @@ CREATE TABLE IF NOT EXISTS "public"."sov_evaluations" (
     "mentioned_competitors" "jsonb" DEFAULT '[]'::"jsonb" NOT NULL,
     "raw_response" "text",
     "cited_sources" "jsonb",
+    "sentiment_data" "jsonb",
+    "source_mentions" "jsonb",
     "created_at" timestamp with time zone DEFAULT "now"() NOT NULL
 );
 

@@ -38,6 +38,7 @@ app/dashboard/system-health/ — System Health / Cron Dashboard (Sprint 76)
 app/dashboard/proof-timeline/ — Before/After Proof Timeline (Sprint 77)
 app/dashboard/entity-health/ — Entity Knowledge Graph Health Monitor (Sprint 80)
 app/dashboard/sentiment/     — AI Sentiment Tracker (Sprint 81)
+app/dashboard/source-intelligence/ — Citation Source Intelligence (Sprint 82)
 lib/schema-generator/        — Pure JSON-LD generators: FAQ, Hours, LocalBusiness (Sprint 70)
 lib/ai/                — AI provider config, schemas, actions
 lib/services/          — Pure business logic services
@@ -46,7 +47,7 @@ lib/page-audit/        — HTML parser + AEO auditor
 lib/tools/             — AI chat tool definitions
 lib/mcp/               — MCP server tool registrations
 lib/supabase/database.types.ts — Full Database type (29 tables, 9 enums, Relationships)
-supabase/migrations/   — Applied SQL migrations (26, timestamp-ordered)
+supabase/migrations/   — Applied SQL migrations (27, timestamp-ordered)
 supabase/prod_schema.sql — Full production schema dump
 docs/                  — 50 spec documents (authoritative for planned features)
 src/__tests__/         — Unit + integration tests
@@ -60,7 +61,7 @@ tests/e2e/             — Playwright E2E tests (18 specs)
 | `organizations` | Tenant root — has `plan_tier`, `plan_status`, notification prefs (`notify_hallucination_alerts`, `notify_weekly_digest`, `notify_sov_alerts`) |
 | `locations` | Business locations per org |
 | `target_queries` | SOV query library per location |
-| `sov_evaluations` | Per-query SOV results (engine, rank, competitors, `sentiment_data` JSONB) |
+| `sov_evaluations` | Per-query SOV results (engine, rank, competitors, `sentiment_data` JSONB, `source_mentions` JSONB) |
 | `visibility_analytics` | Aggregated SOV scores per snapshot date |
 | `ai_hallucinations` | Detected hallucinations with severity + status tracking |
 | `content_drafts` | AI-generated content awaiting human approval |
@@ -102,6 +103,7 @@ tests/e2e/             — Playwright E2E tests (18 specs)
 24. `20260227000004_hallucination_correction_trigger.sql` — Adds `hallucination_correction` to `content_drafts.trigger_type` CHECK constraint
 25. `20260228000001_entity_checks.sql` — `entity_checks` table: 7 platform status columns, `platform_metadata` JSONB, `entity_score`, full RLS
 26. `20260226000010_sentiment_data.sql` — `sentiment_data` JSONB column on `sov_evaluations` + partial index
+27. `20260226000011_source_mentions.sql` — `source_mentions` JSONB column on `sov_evaluations`
 
 ## Testing Commands
 
@@ -147,7 +149,8 @@ UPSTASH_REDIS_REST_URL, UPSTASH_REDIS_REST_TOKEN
 | Weekly Digest Email | `lib/services/weekly-digest.service.ts` + `lib/data/weekly-digest.ts` + `lib/email/send-digest.ts` | Weekly AI Snapshot digest via Resend + React Email. Cron → Inngest fan-out → per-org data gather → render → send. Shows Health Score trend, SOV delta, hallucination issues, wins, opportunities, bot activity. Deterministic — no AI calls. Kill switch: `STOP_DIGEST_CRON`. Template: `emails/weekly-digest.tsx`. |
 | Entity Health | `lib/services/entity-health.service.ts` + `lib/services/entity-auto-detect.ts` + `lib/data/entity-health.ts` | Tracks entity presence across 7 AI knowledge graph platforms (Google KP, GBP, Yelp, TripAdvisor, Apple Maps, Bing Places, Wikidata). Auto-detects Google/GBP/Yelp from existing data; user self-assesses the rest via checklist. Score = N/6 core platforms confirmed (Wikidata excluded). Pure service, no AI calls. |
 | Sentiment Tracker | `lib/services/sentiment.service.ts` + `lib/data/sentiment.ts` | Extracts per-evaluation sentiment from SOV raw responses via `generateObject` + `SentimentExtractionSchema`. Scores -1 to 1, label/tone/descriptors/recommendation_strength. Aggregates into dashboard summaries with per-engine breakdown. Integrated into SOV cron pipeline (Inngest + inline). UI at `/dashboard/sentiment`. |
+| Source Intelligence | `lib/services/source-intelligence.service.ts` + `lib/data/source-intelligence.ts` | Identifies which web pages AI engines cite when describing the business. Two data paths: structured `cited_sources` (Google/Perplexity) + AI-extracted `source_mentions` (OpenAI/Copilot via gpt-4o-mini). Pure analysis: categorize, deduplicate, rank, generate alerts (competitor content, low first-party rate, over-reliance). UI at `/dashboard/source-intelligence`. |
 
 ## Build History
 
-See `DEVLOG.md` (project root) and `docs/DEVLOG.md` for the complete sprint-by-sprint build log. Current sprint: 81.
+See `DEVLOG.md` (project root) and `docs/DEVLOG.md` for the complete sprint-by-sprint build log. Current sprint: 82.

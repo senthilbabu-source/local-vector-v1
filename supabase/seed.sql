@@ -599,6 +599,20 @@ WHERE l.org_id = 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11'
 LIMIT 1
 ON CONFLICT (id) DO NOTHING;
 
+-- ── 9e. SPRINT 82 — Source mentions for OpenAI evaluation ──────────────────────
+-- OpenAI doesn't return structured cited_sources, so source_mentions stores
+-- the AI-extracted references from raw_response.
+UPDATE public.sov_evaluations
+SET source_mentions = '{
+  "sources": [
+    {"name": "Yelp", "type": "review_site", "inferredUrl": "https://www.yelp.com/biz/charcoal-n-chill-alpharetta", "context": "4.5 star rating", "isCompetitorContent": false},
+    {"name": "Google Maps", "type": "directory", "inferredUrl": null, "context": "Business listing", "isCompetitorContent": false}
+  ],
+  "sourcingQuality": "well_sourced"
+}'::jsonb
+WHERE engine = 'openai'
+  AND org_id = 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11';
+
 -- ── 10. REALITY SCORE DASHBOARD SEED DATA (Phase 13) ─────────────────────────
 --
 -- Column mapping (verified against migrations/20260218000000_initial_schema.sql):

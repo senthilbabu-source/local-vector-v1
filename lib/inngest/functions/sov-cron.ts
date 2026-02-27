@@ -26,6 +26,8 @@ import {
   writeSOVResults,
   extractSOVSentiment,
   writeSentimentData,
+  extractSOVSourceMentions,
+  writeSourceMentions,
   sleep,
   type SOVQueryInput,
   type SOVQueryResult,
@@ -142,6 +144,21 @@ export async function processOrgSOV(batch: OrgBatch): Promise<OrgSOVResult> {
   } catch (err) {
     const sentimentMsg = err instanceof Error ? err.message : String(err);
     console.error(`[inngest-sov] Sentiment extraction failed for org ${batch.orgId}:`, sentimentMsg);
+  }
+
+  // Sprint 82: Source mention extraction (non-critical, runs after sentiment)
+  try {
+    const businessName = batch.queries[0].locations?.business_name ?? '';
+    if (businessName && evaluationIds.length > 0) {
+      const mentionsMap = await extractSOVSourceMentions(
+        evaluationIds.map(e => ({ evaluationId: e.id, rawResponse: e.rawResponse, engine: e.engine })),
+        businessName,
+      );
+      await writeSourceMentions(supabase, mentionsMap);
+    }
+  } catch (err) {
+    const sourceMsg = err instanceof Error ? err.message : String(err);
+    console.error(`[inngest-sov] Source extraction failed for org ${batch.orgId}:`, sourceMsg);
   }
 
   let occasionDrafts = 0;
