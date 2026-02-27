@@ -1843,3 +1843,54 @@ SET avg_customer_value = 45.00,
     monthly_covers = 800
 WHERE org_id = 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11'
   AND slug = 'alpharetta';
+
+-- ── 27. CLUSTER MAP SEED DATA (Sprint 87) ──────────────────────────────────
+-- Adds Google-engine SOV evaluations for existing target queries so the
+-- Cluster Map scatter plot shows 3-engine spread (Perplexity, OpenAI, Google).
+-- No new tables — just additional sov_evaluations rows.
+--
+-- Fixed UUIDs:
+--   d0eebc99-...-a01  : Google eval for BBQ query (c0)
+--   d0eebc99-...-a02  : Google eval for hookah query (c4)
+
+INSERT INTO public.sov_evaluations (
+  id, org_id, location_id, query_id,
+  engine, rank_position, mentioned_competitors, raw_response,
+  created_at
+)
+SELECT
+  'd0eebc99-9c0b-4ef8-bb6d-6bb9bd380a01',
+  'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+  l.id,
+  'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+  'google',
+  2,
+  '["Cloud 9 Lounge", "Sahara Hookah Lounge"]'::jsonb,
+  'Based on Google reviews, Charcoal N Chill in Alpharetta offers a unique fusion dining experience. Cloud 9 Lounge and Sahara Hookah Lounge are also popular in the area.',
+  NOW() - INTERVAL '5 days'
+FROM public.locations l
+WHERE l.org_id = 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11'
+  AND l.slug   = 'alpharetta'
+LIMIT 1
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO public.sov_evaluations (
+  id, org_id, location_id, query_id,
+  engine, rank_position, mentioned_competitors, raw_response,
+  created_at
+)
+SELECT
+  'd0eebc99-9c0b-4ef8-bb6d-6bb9bd380a02',
+  'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+  l.id,
+  'c4eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+  'google',
+  NULL,
+  '["Bollywood Grill"]'::jsonb,
+  'Based on local listings, Bollywood Grill is a top-rated Indian restaurant in Alpharetta.',
+  NOW() - INTERVAL '5 days'
+FROM public.locations l
+WHERE l.org_id = 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11'
+  AND l.slug   = 'alpharetta'
+LIMIT 1
+ON CONFLICT (id) DO NOTHING;

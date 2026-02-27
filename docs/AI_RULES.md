@@ -1342,5 +1342,20 @@ Generates AEO-optimized content briefs for SOV gap queries.
 * **Content Calendar integration:** Sprint 83 SOV gap recommendations already link to this generator.
 * **Fixtures:** `MOCK_BRIEF_STRUCTURE_INPUT` + `MOCK_CONTENT_BRIEF` in `src/__fixtures__/golden-tenant.ts`.
 
+## 50. AI Visibility Cluster Map (Sprint 87)
+
+Scatter plot visualization showing where a business sits in each AI engine's recommendation space, overlaid with hallucination fog zones from the Fear Engine.
+
+* **Axes:** X = Brand Authority (citation frequency, 0-100), Y = Fact Accuracy (truth score, 0-100), Bubble size = Share of Voice (0-1).
+* **Pure service:** `lib/services/cluster-map.service.ts` — `buildClusterMap()`, `calculateBrandAuthority()`, `extractCompetitorPoints()`, `buildHallucinationZones()`, `filterByEngine()`, `detectAvailableEngines()`. No I/O, no AI calls.
+* **Engine normalization:** `ENGINE_MAP` maps both `sov_evaluations.engine` (varchar: `perplexity`, `openai`, `google`) and `ai_hallucinations.model_provider` (enum: `openai-gpt4o`, `perplexity-sonar`, `google-gemini`) to `EngineFilter` union type.
+* **Hallucination fog:** Each open hallucination creates a translucent red zone. `SEVERITY_PENALTY` offsets Y-axis (critical: -25, high: -15, medium: -8, low: -3). `SEVERITY_RADIUS` controls fog size (critical: 40, high: 30, medium: 20, low: 12).
+* **Competitor points:** Extracted from `mentioned_competitors` JSONB in `sov_evaluations`. Assumed `factAccuracy=80` (no hallucination data for competitors).
+* **Data fetcher:** `lib/data/cluster-map.ts` — 4 parallel queries: `locations`, `sov_evaluations` (30-day), `ai_hallucinations` (open), `visibility_analytics` (latest). RLS-scoped.
+* **No new tables, no new migrations.** All data from existing tables.
+* **Engine toggle:** Client-side filter that re-fetches data via `getClusterMapData(engineFilter)` server action with `useTransition`.
+* **Chart:** Recharts `ScatterChart` with custom dot renderer (star for self, circle for competitors), SVG fog overlay with Gaussian blur, quadrant reference lines at 50/50.
+* **Fixtures:** `MOCK_CLUSTER_INPUT`, `MOCK_EVALUATIONS`, `MOCK_HALLUCINATIONS` in `src/__fixtures__/cluster-map-fixtures.ts`.
+
 ---
 > **End of System Instructions**

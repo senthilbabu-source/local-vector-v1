@@ -4,6 +4,39 @@
 
 ---
 
+## 2026-02-28 — Sprint 87: AI Visibility Cluster Map (Completed)
+
+**Goal:** Build the AI Visibility Cluster Map — a scatter plot showing where your business sits in each AI engine's recommendation space, overlaid with hallucination fog zones from the Fear Engine. X-axis: Brand Authority (citation frequency). Y-axis: Fact Accuracy (truth score). Bubble size: Share of Voice. Engine toggle for per-AI-model filtering. No new tables, no AI calls — pure data visualization from 4 existing tables.
+
+**Scope:**
+- `lib/services/cluster-map.service.ts` — **NEW.** ~250 lines, all pure. `buildClusterMap()`, `calculateBrandAuthority()`, `extractCompetitorPoints()`, `buildHallucinationZones()`, `filterByEngine()`, `detectAvailableEngines()`. ENGINE_MAP normalizes engine/model_provider strings to EngineFilter. SEVERITY_PENALTY/SEVERITY_RADIUS maps for fog zone positioning.
+- `lib/data/cluster-map.ts` — **NEW.** ~90 lines. `fetchClusterMapData()` — 4 parallel Supabase queries (locations, sov_evaluations 30-day, ai_hallucinations open, visibility_analytics latest). Computes truthScore from hallucination ratio. RLS-scoped.
+- `app/dashboard/cluster-map/actions.ts` — **NEW.** `getClusterMapData(engineFilter)` server action. getSafeAuthContext guard, primary location lookup, delegates to fetchClusterMapData.
+- `app/dashboard/cluster-map/page.tsx` — **NEW.** Server Component. Auth guard, empty states (no location, no evaluations), delegates to ClusterMapWrapper.
+- `app/dashboard/cluster-map/error.tsx` — **NEW.** Error boundary with Sentry reporting.
+- `app/dashboard/cluster-map/_components/EngineToggle.tsx` — **NEW.** Radio-style toggle for engine filter (All/Perplexity/ChatGPT/Gemini/Copilot). Disabled state for engines with no data.
+- `app/dashboard/cluster-map/_components/ClusterChart.tsx` — **NEW.** Recharts ScatterChart with custom dot renderer (star for self, circles for competitors), hallucination fog SVG overlay with gaussian blur, quadrant reference lines, custom tooltip.
+- `app/dashboard/cluster-map/_components/HallucinationAlertCard.tsx` — **NEW.** Alert cards below chart showing hallucination details with severity badges and link to Alerts page.
+- `app/dashboard/cluster-map/_components/ClusterMapWrapper.tsx` — **NEW.** Client state coordinator. useTransition for engine toggle, manages data refresh via server action.
+- `components/layout/Sidebar.tsx` — **MODIFIED.** Added Cluster Map nav item (ScatterChart icon) after Share of Voice.
+- `src/__fixtures__/cluster-map-fixtures.ts` — **NEW.** 10 evaluations across 5 queries x 2 engines, 3 hallucinations, pre-computed expected values.
+- `supabase/seed.sql` — **MODIFIED.** Added Section 27: Google-engine SOV evaluations for cluster map 3-engine spread.
+
+**Tests added:**
+- `src/__tests__/unit/services/cluster-map.service.test.ts` — **45 tests.** Brand authority, competitor extraction, hallucination zones, engine filtering, full buildClusterMap, edge cases.
+- `src/__tests__/unit/cluster-map-data.test.ts` — **12 tests.** Data fetcher with mocked Supabase, all 4 queries validated, truthScore computation, JSONB casting.
+- `src/__tests__/unit/cluster-map-action.test.ts` — **8 tests.** Auth guard, location lookup, engine filter passthrough, graceful degradation.
+
+**Run commands:**
+```bash
+npx vitest run src/__tests__/unit/services/cluster-map.service.test.ts  # 45 tests passing
+npx vitest run src/__tests__/unit/cluster-map-data.test.ts              # 12 tests passing
+npx vitest run src/__tests__/unit/cluster-map-action.test.ts            # 8 tests passing
+npx vitest run                                                           # All tests passing
+```
+
+---
+
 ## 2026-02-28 — Sprint 86: SOV Gap → Content Brief Generator (Completed)
 
 **Goal:** Build a Content Brief Generator that turns SOV gap queries (0% visibility) into AEO-optimized content briefs. Two-layer design: pure brief structure (URL, title, H1, schema recommendations, llms.txt) + AI-powered content (answer capsule, outline sections, FAQ questions via gpt-4o-mini generateObject). Saves to content_drafts with trigger_type='prompt_missing'. Closes the growth loop: DETECT gap → GENERATE fix.

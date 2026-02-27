@@ -43,6 +43,7 @@ app/dashboard/content-calendar/  — Proactive Content Calendar (Sprint 83)
 app/dashboard/agent-readiness/   — AI Agent Readiness Score (Sprint 84)
 app/dashboard/revenue-impact/    — Revenue Impact Calculator (Sprint 85)
 app/dashboard/share-of-voice/   — SOV page + Content Brief Generator (Sprint 86)
+app/dashboard/cluster-map/     — AI Visibility Cluster Map (Sprint 87)
 lib/schema-generator/        — Pure JSON-LD generators: FAQ, Hours, LocalBusiness, ReserveAction, OrderAction (Sprint 70/84)
 lib/ai/                — AI provider config, schemas, actions
 lib/services/          — Pure business logic services
@@ -159,7 +160,8 @@ UPSTASH_REDIS_REST_URL, UPSTASH_REDIS_REST_TOKEN
 | Agent Readiness (AAO) | `lib/services/agent-readiness.service.ts` + `lib/data/agent-readiness.ts` + `lib/schema-generator/action-schema.ts` | AI Agent Readiness Score (0-100). Evaluates 6 weighted capabilities: structured hours (15pts), menu schema (15pts), ReserveAction (25pts), OrderAction (25pts), accessible CTAs (10pts), CAPTCHA-free flows (10pts). Pure service + ReserveAction/OrderAction JSON-LD generators. No external API calls in V1. UI at `/dashboard/agent-readiness`. |
 | Revenue Impact Calculator | `lib/services/revenue-impact.service.ts` + `lib/data/revenue-impact.ts` | Converts visibility gaps into estimated dollar amounts. Three revenue streams: SOV gaps (missed AI-assisted visits via category search volumes x CTR), hallucination deterrence (severity-based customer impact), competitor advantage (diverted covers). User-customizable `avg_customer_value` + `monthly_covers` on `locations`. All deterministic math, no AI calls. No plan gating — dollar amounts drive Trial conversion. UI at `/dashboard/revenue-impact`. |
 | Content Brief Generator | `lib/services/content-brief-builder.service.ts` + `lib/services/content-brief-generator.service.ts` | Two-layer SOV gap → content brief pipeline. Layer 1 (pure): slug, title tag, H1, schema recommendations, llms.txt. Layer 2 (AI): `generateObject` with gpt-4o-mini + `ContentBriefSchema` for answer capsule, outline sections, FAQ questions. Triggered from SOV page via `generateContentBrief()` server action. Saves to `content_drafts` with `trigger_type='prompt_missing'`. Fallback: structure-only brief when no API key. |
+| Cluster Map | `lib/services/cluster-map.service.ts` + `lib/data/cluster-map.ts` | Scatter plot visualization: Brand Authority (X) × Fact Accuracy (Y) × SOV bubble size. Hallucination fog overlay from Fear Engine (severity-scaled red zones). Engine toggle for per-AI-model view (Perplexity/ChatGPT/Gemini/Copilot). Pure service, no AI calls, no new tables — aggregates from sov_evaluations + ai_hallucinations + visibility_analytics. Recharts ScatterChart with custom dot renderer. UI at `/dashboard/cluster-map`. |
 
 ## Build History
 
-See `DEVLOG.md` (project root) and `docs/DEVLOG.md` for the complete sprint-by-sprint build log. Current sprint: 86.
+See `DEVLOG.md` (project root) and `docs/DEVLOG.md` for the complete sprint-by-sprint build log. Current sprint: 87.

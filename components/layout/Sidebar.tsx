@@ -25,6 +25,7 @@ import {
   Activity,
   Settings,
   CreditCard,
+  ScatterChart,
   X,
 } from 'lucide-react';
 import LogoutButton from '@/app/dashboard/_components/LogoutButton';
@@ -60,6 +61,13 @@ export const NAV_ITEMS = [
     href: '/dashboard/share-of-voice',
     label: 'Share of Voice',
     icon: TrendingUp,
+    exact: false,
+    active: true,
+  },
+  {
+    href: '/dashboard/cluster-map',
+    label: 'Cluster Map',
+    icon: ScatterChart,
     exact: false,
     active: true,
   },
