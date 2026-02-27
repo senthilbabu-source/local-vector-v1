@@ -2,7 +2,9 @@ import { redirect } from 'next/navigation';
 import { getSafeAuthContext } from '@/lib/auth';
 import { createClient, createServiceRoleClient } from '@/lib/supabase/server';
 import type { HoursData, Amenities } from '@/lib/types/ground-truth';
+import { canRegenerateLLMsTxt, type PlanTier } from '@/lib/plan-enforcer';
 import BusinessInfoForm from './_components/BusinessInfoForm';
+import LLMsTxtCard from './_components/LLMsTxtCard';
 
 // ---------------------------------------------------------------------------
 // BusinessInfoPage — Server Component (Sprint 93)
@@ -46,7 +48,7 @@ export default async function BusinessInfoPage() {
   const { data: locationRow } = await supabase
     .from('locations')
     .select(
-      'id, name, business_name, phone, website_url, address_line1, city, state, zip, hours_data, amenities, categories, operational_status, gbp_synced_at'
+      'id, name, business_name, phone, website_url, address_line1, city, state, zip, hours_data, amenities, categories, operational_status, gbp_synced_at, llms_txt_updated_at'
     )
     .eq('org_id', orgId)
     .order('created_at', { ascending: true })
@@ -80,6 +82,17 @@ export default async function BusinessInfoPage() {
       }
     : null;
 
+  // Fetch org slug + plan for llms.txt card
+  const { data: orgRow } = await supabase
+    .from('organizations')
+    .select('slug, plan')
+    .eq('id', orgId)
+    .single();
+
+  const orgSlug = orgRow?.slug ?? '';
+  const orgPlan = (orgRow?.plan ?? 'trial') as PlanTier;
+  const llmsTxtUpdatedAt = (locationRow?.llms_txt_updated_at as string | null) ?? null;
+
   return (
     <div className="max-w-2xl space-y-5">
       <div>
@@ -95,6 +108,13 @@ export default async function BusinessInfoPage() {
         location={location}
         hasGBPConnection={!!tokenRow}
       />
+      {orgSlug && (
+        <LLMsTxtCard
+          orgSlug={orgSlug}
+          llmsTxtUpdatedAt={llmsTxtUpdatedAt}
+          canRegenerate={canRegenerateLLMsTxt(orgPlan)}
+        />
+      )}
     </div>
   );
 }

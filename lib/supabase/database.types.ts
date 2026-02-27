@@ -938,6 +938,7 @@ export type Database = {
           gbp_synced_at: string | null;
           avg_customer_value: number | null;
           monthly_covers: number | null;
+          llms_txt_updated_at: string | null;
         };
         Insert: {
           id?: string;
@@ -968,6 +969,7 @@ export type Database = {
           gbp_synced_at?: string | null;
           avg_customer_value?: number | null;
           monthly_covers?: number | null;
+          llms_txt_updated_at?: string | null;
         };
         Update: {
           id?: string;
@@ -998,6 +1000,7 @@ export type Database = {
           gbp_synced_at?: string | null;
           avg_customer_value?: number | null;
           monthly_covers?: number | null;
+          llms_txt_updated_at?: string | null;
         };
         Relationships: [
           {

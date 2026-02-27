@@ -4,6 +4,48 @@
 
 ---
 
+## 2026-03-01 — Sprint 97: Citation Cron + Dynamic llms.txt (Gaps #60 + #62: 40%/30% → 100%) (Completed)
+
+**Goal:** Close two interconnected data pipeline gaps: make the citation cron tenant-derived (reading real org categories and metros instead of hardcoded arrays), and transform the static `/llms.txt` into a dynamic, org-specific AI visibility file.
+
+**Problem:**
+1. Citation cron: hardcoded `TRACKED_CATEGORIES` × `TRACKED_METROS` (9 × 20 = 180 combos), never derived from real tenant data
+2. llms.txt: static marketing copy, same for all visitors, not business-specific or LLM-useful
+
+**Solution:**
+- **Citation Cron:** Rewrote route to fetch Growth+ orgs, extract category+city/state from their primary locations, deduplicate tuples, and run Perplexity citation sampling per unique tuple. Reuses existing `runCitationSample()` and `writeCitationResults()`.
+- **Dynamic llms.txt:** Pure `generateLLMsTxt()` builds structured plain-text from live location data (hours, amenities, menu highlights, hallucination corrections). Route serves org-specific content via `?org=slug`. Settings page shows URL + manual regeneration button.
+
+**Changes:**
+- `lib/citation/citation-query-builder.ts` — **NEW.** Pure tenant-derived query builder (normalizeCategoryLabel, buildMetroVariants, buildCitationQueries)
+- `lib/citation/citation-source-parser.ts` — **NEW.** Pure citation parser (extractDomain, domainToPlatform, aggregatePlatformCounts, KNOWN_CITATION_PLATFORMS)
+- `app/api/cron/citation/route.ts` — **REWRITTEN.** Tenant-derived, Growth+ plan-gated, error-isolated, deduplicates tuples
+- `lib/llms-txt/llms-txt-generator.ts` — **NEW.** Pure org-level llms.txt generator
+- `lib/llms-txt/llms-txt-data-loader.ts` — **NEW.** DB loader (org + location + menu items + hallucination corrections + published menu slug)
+- `app/llms.txt/route.ts` — **REWRITTEN.** Dynamic org-aware with `?org=slug`, 6h CDN cache, platform fallback
+- `app/actions/regenerate-llms-txt.ts` — **NEW.** On-demand regeneration server action (Growth+)
+- `app/dashboard/settings/business-info/_components/LLMsTxtCard.tsx` — **NEW.** AI Visibility File card
+- `app/dashboard/settings/business-info/page.tsx` — **MODIFIED.** Added LLMsTxtCard integration
+- `lib/plan-enforcer.ts` — **MODIFIED.** Added `canRegenerateLLMsTxt()` gate
+- `lib/supabase/database.types.ts` — **MODIFIED.** Added `llms_txt_updated_at` to locations type
+- `supabase/migrations/20260301000001_add_llms_txt_updated_at.sql` — **NEW.** Migration
+- `docs/AI_RULES.md` — **MODIFIED.** Added §50
+
+**Test counts:**
+- `src/__tests__/unit/citation-query-builder.test.ts` — 22 tests
+- `src/__tests__/unit/citation-source-parser.test.ts` — 30 tests
+- `src/__tests__/unit/llms-txt-generator.test.ts` — 24 tests
+- `src/__tests__/unit/citation-cron-tenant.test.ts` — 14 tests
+- `src/__tests__/unit/cron-citation.test.ts` — 6 tests (updated: legacy constants + gap score)
+- **Sprint 97 total: 96 new/updated tests**
+- **Full suite: 2222 tests passing, 163 files**
+
+**Gaps Closed:**
+- Gap #60: Citation Intelligence Cron — 40% → 100%
+- Gap #62: Smart llms.txt — 30% → 100%
+
+---
+
 ## 2026-02-28 — Sprint 94: Publish Pipeline Verification (WordPress + GBP Post) (Completed)
 
 **Goal:** Verify and fix the WordPress and GBP Post publishers end-to-end. Both files existed at ~70% but had zero test coverage. Close the detect → draft → publish loop.

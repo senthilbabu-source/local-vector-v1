@@ -1,229 +1,63 @@
 // ---------------------------------------------------------------------------
-// cron-citation.test.ts — Unit tests for GET /api/cron/citation
+// cron-citation.test.ts — SUPERSEDED by citation-cron-tenant.test.ts
 //
-// Strategy (mirrors cron-sov.test.ts):
-//   • The citation engine service is mocked completely — no real Perplexity
-//     calls, no MSW needed.
-//   • The Supabase service-role client is mocked.
-//   • Per-category+metro resilience is tested.
+// The citation cron route was rewritten in Sprint 97 to be tenant-derived
+// (deriving category+metro pairs from real org data instead of hardcoded
+// TRACKED_CATEGORIES × TRACKED_METROS arrays).
 //
-// Run:
-//   npx vitest run src/__tests__/unit/cron-citation.test.ts
+// All tests for the new route are in citation-cron-tenant.test.ts.
+//
+// This file retains a single smoke test to verify the old import paths
+// still resolve (the citation-engine.service.ts still exports the constants
+// for use in other contexts like calculateCitationGapScore).
+//
+// Run: npx vitest run src/__tests__/unit/cron-citation.test.ts
 // ---------------------------------------------------------------------------
 
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { NextRequest } from 'next/server';
-
-// ── Mock the citation engine service ─────────────────────────────────────
-// Constants are re-exported as-is; functions are mocked.
-vi.mock('@/lib/services/citation-engine.service', () => ({
-  TRACKED_CATEGORIES: [
-    'hookah lounge', 'restaurant', 'bar', 'lounge', 'event venue',
-    'nightclub', 'coffee shop', 'cocktail bar', 'sports bar',
-  ],
-  TRACKED_METROS: [
-    { city: 'Atlanta', state: 'GA' },
-    { city: 'Dallas', state: 'TX' },
-    { city: 'Houston', state: 'TX' },
-    { city: 'Chicago', state: 'IL' },
-    { city: 'Miami', state: 'FL' },
-    { city: 'Los Angeles', state: 'CA' },
-    { city: 'New York', state: 'NY' },
-    { city: 'Phoenix', state: 'AZ' },
-    { city: 'Las Vegas', state: 'NV' },
-    { city: 'Denver', state: 'CO' },
-    { city: 'Nashville', state: 'TN' },
-    { city: 'Austin', state: 'TX' },
-    { city: 'Seattle', state: 'WA' },
-    { city: 'Boston', state: 'MA' },
-    { city: 'Philadelphia', state: 'PA' },
-    { city: 'San Francisco', state: 'CA' },
-    { city: 'Orlando', state: 'FL' },
-    { city: 'San Diego', state: 'CA' },
-    { city: 'Portland', state: 'OR' },
-    { city: 'Charlotte', state: 'NC' },
-  ],
-  runCitationSample: vi.fn().mockResolvedValue({
-    platformCounts: { yelp: 4, tripadvisor: 2, google: 5 },
-    successfulQueries: 5,
-    sampleQuery: 'best hookah lounge in Atlanta GA',
-  }),
-  writeCitationResults: vi.fn().mockResolvedValue(3),
-  sleep: vi.fn().mockResolvedValue(undefined),
-}));
-
-// ── Mock the Supabase service-role client ────────────────────────────────
-vi.mock('@/lib/supabase/server', () => ({
-  createServiceRoleClient: vi.fn().mockReturnValue({
-    from: vi.fn(() => ({
-      upsert: vi.fn().mockResolvedValue({ data: null, error: null }),
-    })),
-  }),
-}));
-
-// ── Import handler and mocks after vi.mock declarations ──────────────────
-import { GET } from '@/app/api/cron/citation/route';
-import { createServiceRoleClient } from '@/lib/supabase/server';
+import { describe, it, expect } from 'vitest';
 import {
-  runCitationSample,
-  writeCitationResults,
   TRACKED_CATEGORIES,
   TRACKED_METROS,
+  extractPlatform,
+  calculateCitationGapScore,
 } from '@/lib/services/citation-engine.service';
 
-// ── Constants ────────────────────────────────────────────────────────────
-
-const CRON_SECRET = 'test-cron-secret-citation';
-const TOTAL_COMBINATIONS = TRACKED_CATEGORIES.length * TRACKED_METROS.length; // 9 × 20 = 180
-
-// ── Helpers ──────────────────────────────────────────────────────────────
-
-function makeRequest(secret?: string): NextRequest {
-  const headers = new Headers();
-  if (secret) headers.set('Authorization', `Bearer ${secret}`);
-  return new NextRequest('http://localhost:3000/api/cron/citation', { headers });
-}
-
-// ── Setup / Teardown ─────────────────────────────────────────────────────
-
-beforeEach(() => {
-  vi.clearAllMocks();
-  vi.stubEnv('CRON_SECRET', CRON_SECRET);
-  vi.stubEnv('PERPLEXITY_API_KEY', 'test-key');
-  delete process.env.STOP_CITATION_CRON;
-
-  // Re-set default mock implementations (cleared by vi.clearAllMocks)
-  vi.mocked(runCitationSample).mockResolvedValue({
-    platformCounts: { yelp: 4, tripadvisor: 2, google: 5 },
-    successfulQueries: 5,
-    sampleQuery: 'best hookah lounge in Atlanta GA',
-  });
-  vi.mocked(writeCitationResults).mockResolvedValue(3);
-});
-
-afterEach(() => {
-  vi.unstubAllEnvs();
-});
-
-// ── Tests ────────────────────────────────────────────────────────────────
-
-describe('GET /api/cron/citation', () => {
-  it('returns 401 when no Authorization header is present', async () => {
-    const res = await GET(makeRequest());
-    expect(res.status).toBe(401);
-    const body = await res.json();
-    expect(body.error).toBe('Unauthorized');
+describe('citation-engine.service — Legacy Constants & Gap Score', () => {
+  it('TRACKED_CATEGORIES still exports 9 categories', () => {
+    expect(TRACKED_CATEGORIES.length).toBe(9);
+    expect(TRACKED_CATEGORIES).toContain('hookah lounge');
   });
 
-  it('returns 401 when Authorization header has wrong secret', async () => {
-    const res = await GET(makeRequest('wrong-secret'));
-    expect(res.status).toBe(401);
+  it('TRACKED_METROS still exports 20 metros', () => {
+    expect(TRACKED_METROS.length).toBe(20);
+    expect(TRACKED_METROS[0]).toEqual({ city: 'Atlanta', state: 'GA' });
   });
 
-  it('returns 200 with halted flag when STOP_CITATION_CRON is set', async () => {
-    vi.stubEnv('STOP_CITATION_CRON', 'true');
-    const res = await GET(makeRequest(CRON_SECRET));
-    expect(res.status).toBe(200);
-    const body = await res.json();
-    expect(body.halted).toBe(true);
+  it('extractPlatform maps yelp.com correctly', () => {
+    expect(extractPlatform('https://www.yelp.com/biz/test')).toBe('yelp');
   });
 
-  it('calls createServiceRoleClient for database access', async () => {
-    await GET(makeRequest(CRON_SECRET));
-    expect(vi.mocked(createServiceRoleClient)).toHaveBeenCalled();
+  it('extractPlatform returns null for malformed URL', () => {
+    expect(extractPlatform('')).toBeNull();
   });
 
-  it('processes all category+metro combinations', async () => {
-    const res = await GET(makeRequest(CRON_SECRET));
-    expect(res.status).toBe(200);
-
-    expect(vi.mocked(runCitationSample)).toHaveBeenCalledTimes(TOTAL_COMBINATIONS);
+  it('calculateCitationGapScore returns 100 for no relevant platforms', () => {
+    const result = calculateCitationGapScore([], []);
+    expect(result.gapScore).toBe(100);
   });
 
-  it('calls writeCitationResults for each category+metro with results', async () => {
-    await GET(makeRequest(CRON_SECRET));
-
-    expect(vi.mocked(writeCitationResults)).toHaveBeenCalledTimes(TOTAL_COMBINATIONS);
-  });
-
-  it('returns summary with correct categories and metros count', async () => {
-    const res = await GET(makeRequest(CRON_SECRET));
-    const body = await res.json();
-
-    expect(body.ok).toBe(true);
-    expect(body.categories_processed).toBe(TRACKED_CATEGORIES.length);
-    expect(body.metros_processed).toBe(TRACKED_METROS.length);
-  });
-
-  it('accumulates queries_run across all combinations', async () => {
-    const res = await GET(makeRequest(CRON_SECRET));
-    const body = await res.json();
-
-    // 9 categories × 20 metros × 5 successful queries each = 900
-    expect(body.queries_run).toBe(TOTAL_COMBINATIONS * 5);
-  });
-
-  it('accumulates platforms_found across all combinations', async () => {
-    const res = await GET(makeRequest(CRON_SECRET));
-    const body = await res.json();
-
-    // Each combination writes 3 platforms (mocked return value)
-    expect(body.platforms_found).toBe(TOTAL_COMBINATIONS * 3);
-  });
-
-  it('continues when a single category+metro combination throws', async () => {
-    // First call throws, rest succeed
-    vi.mocked(runCitationSample).mockRejectedValueOnce(
-      new Error('Perplexity rate limit'),
-    );
-
-    const res = await GET(makeRequest(CRON_SECRET));
-    const body = await res.json();
-
-    expect(res.status).toBe(200);
-    expect(body.ok).toBe(true);
-    expect(body.errors).toBe(1);
-
-    // Total - 1 failed = rest succeeded
-    expect(vi.mocked(writeCitationResults)).toHaveBeenCalledTimes(TOTAL_COMBINATIONS - 1);
-  });
-
-  it('passes correct arguments to runCitationSample', async () => {
-    await GET(makeRequest(CRON_SECRET));
-
-    // Verify first call has correct category and metro
-    expect(vi.mocked(runCitationSample)).toHaveBeenCalledWith(
-      'hookah lounge',
-      'Atlanta',
-      'GA',
-    );
-  });
-
-  it('passes supabase client to writeCitationResults', async () => {
-    await GET(makeRequest(CRON_SECRET));
-
-    expect(vi.mocked(writeCitationResults)).toHaveBeenCalledWith(
-      expect.any(String), // category
-      expect.any(String), // city
-      expect.any(String), // state
-      expect.any(Object), // platformCounts
-      expect.any(Number), // successfulQueries
-      expect.any(String), // sampleQuery
-      expect.anything(),  // supabase client
-    );
-  });
-
-  it('skips writeCitationResults when successfulQueries is 0', async () => {
-    vi.mocked(runCitationSample).mockResolvedValue({
-      platformCounts: {},
-      successfulQueries: 0,
-      sampleQuery: null,
-    });
-
-    const res = await GET(makeRequest(CRON_SECRET));
-    const body = await res.json();
-
-    expect(body.ok).toBe(true);
-    expect(vi.mocked(writeCitationResults)).not.toHaveBeenCalled();
+  it('calculateCitationGapScore calculates gap from coverage', () => {
+    const platforms = [
+      { id: '1', business_category: 'hookah lounge', city: 'Atlanta', state: 'GA', platform: 'yelp', citation_frequency: 0.8, sample_query: 'test', sample_size: 5, model_provider: 'perplexity-sonar', measured_at: '2026-01-01' },
+      { id: '2', business_category: 'hookah lounge', city: 'Atlanta', state: 'GA', platform: 'google', citation_frequency: 0.6, sample_query: 'test', sample_size: 5, model_provider: 'perplexity-sonar', measured_at: '2026-01-01' },
+    ];
+    const listings = [
+      { directory: 'yelp', sync_status: 'synced' },
+    ];
+    const result = calculateCitationGapScore(platforms, listings);
+    expect(result.gapScore).toBe(50); // 1 of 2 platforms covered
+    expect(result.platformsCovered).toBe(1);
+    expect(result.platformsThatMatter).toBe(2);
+    expect(result.topGap?.platform).toBe('google');
   });
 });

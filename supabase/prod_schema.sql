@@ -605,7 +605,8 @@ CREATE TABLE IF NOT EXISTS "public"."locations" (
     "updated_at" timestamp with time zone DEFAULT "now"(),
     "google_location_name" character varying(255),
     "gbp_integration_id" "uuid",
-    "gbp_synced_at" timestamp with time zone
+    "gbp_synced_at" timestamp with time zone,
+    "llms_txt_updated_at" timestamp with time zone DEFAULT "now"()
 );
 
 

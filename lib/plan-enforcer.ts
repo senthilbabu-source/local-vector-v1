@@ -148,3 +148,12 @@ export function canRunMultiModelSOV(plan: PlanTier): boolean {
 export function canExportData(plan: PlanTier): boolean {
   return plan === 'growth' || plan === 'agency';
 }
+
+/**
+ * llms.txt regeneration — on-demand cache bust for dynamic llms.txt (Sprint 97).
+ * Growth and Agency orgs can manually regenerate their llms.txt file.
+ * Starter/Trial orgs do not see the regeneration button.
+ */
+export function canRegenerateLLMsTxt(plan: PlanTier): boolean {
+  return plan === 'growth' || plan === 'agency';
+}

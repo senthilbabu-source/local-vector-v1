@@ -1441,4 +1441,27 @@ All plan-gated UI in the dashboard uses `components/plan-gate/PlanGate.tsx`. Nev
 - `source-intelligence` requires `agency` plan. All other gated dashboard pages require `growth`. Do not relax these thresholds without a product decision and MEMORY.md entry.
 
 ---
+
+## §50. Dynamic llms.txt + Citation Cron — Architecture Rules (Sprint 97)
+
+### llms.txt
+- `generateLLMsTxt()` in `lib/llms-txt/llms-txt-generator.ts` is the ONLY place that constructs org-level llms.txt content. Never construct llms.txt strings inline in route handlers.
+- Data loading is in `loadLLMsTxtData()` (`lib/llms-txt/llms-txt-data-loader.ts`) — never inline DB queries in the route handler.
+- The public `/llms.txt` route ALWAYS returns something (never 404). Fall back to the platform-level static content if org slug is not found.
+- `regenerateLLMsTxt()` server action checks plan gate before touching the DB. Growth+ only.
+- llms.txt cache: `s-maxage=21600`. After manual regeneration, set `no-cache` to force revalidation.
+- Multi-location llms.txt (serving per-location files) is deferred to Sprint 100+. V1 always uses primary location.
+- The per-menu llms.txt at `/m/[slug]/llms.txt` is separate and serves magic menu data. The org-level `/llms.txt?org=slug` serves ground truth data.
+
+### Citation Cron
+- The citation cron in `app/api/cron/citation/route.ts` is **tenant-derived**: it reads each org's real category+city/state from the locations table.
+- `normalizeCategoryLabel()` in `lib/citation/citation-query-builder.ts` cleans raw category strings for query construction.
+- Citation data is **market-level intelligence** (shared across orgs in the same category+metro), stored in `citation_source_intelligence` with unique key `(business_category, city, state, platform, model_provider)`.
+- The cron MUST be error-isolated: one org/tuple failure must not abort others. Use try/catch per-tuple.
+- Citation cron skips Starter/Trial plan orgs. Check with `planSatisfies(org.plan, 'growth')`.
+- Perplexity is called via `runCitationSample()` from `lib/services/citation-engine.service.ts`.
+- `KNOWN_CITATION_PLATFORMS` in `lib/citation/citation-source-parser.ts` is the extended registry for domain-to-platform mapping.
+- Duplicate category+metro tuples across orgs are deduplicated — each unique tuple is processed once.
+
+---
 > **End of System Instructions**
