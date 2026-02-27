@@ -27,6 +27,7 @@ const ENGINE_CONFIG: Record<string, { label: string; dotClass: string }> = {
   openai: { label: 'ChatGPT', dotClass: 'bg-signal-green' },
   perplexity: { label: 'Perplexity', dotClass: 'bg-electric-indigo' },
   google: { label: 'Google AI Overview', dotClass: 'bg-alert-amber' },
+  copilot: { label: 'Microsoft Copilot', dotClass: 'bg-[#00A4EF]' },
 };
 
 // ---------------------------------------------------------------------------
@@ -144,6 +145,17 @@ export default function EngineResponseBlock({
               </li>
             ))}
           </ol>
+        </div>
+      )}
+
+      {/* Copilot insight box (Sprint 79) */}
+      {engine === 'copilot' && (
+        <div className="mt-3 rounded-md border border-[#00A4EF]/20 bg-[#00A4EF]/5 p-3">
+          <p className="text-xs text-slate-300 leading-relaxed">
+            <span className="font-semibold text-[#00A4EF]">Copilot Insight:</span>{' '}
+            Microsoft Copilot uses Bing&apos;s index, not Google&apos;s. If you&apos;re visible in
+            ChatGPT but not here, check your Bing Places listing and Yelp profile.
+          </p>
         </div>
       )}
 

@@ -231,7 +231,7 @@ describe('runMultiModelSOVQuery — with Google', () => {
     expect(engines).not.toContain('google');
   });
 
-  it('returns all 3 engines when all API keys present', async () => {
+  it('returns all 4 engines when all API keys present', async () => {
     vi.mocked(hasApiKey).mockReturnValue(true);
     vi.mocked(generateText).mockResolvedValue({
       text: JSON.stringify({
@@ -243,16 +243,16 @@ describe('runMultiModelSOVQuery — with Google', () => {
 
     const results = await runMultiModelSOVQuery(MOCK_QUERY);
 
-    expect(results.length).toBe(3);
+    expect(results.length).toBe(4);
     const engines = results.map((r) => r.engine).sort();
-    expect(engines).toEqual(['google', 'openai', 'perplexity']);
+    expect(engines).toEqual(['copilot', 'google', 'openai', 'perplexity']);
   });
 
   it('handles Google failure gracefully (other engines still return)', async () => {
     vi.mocked(hasApiKey).mockReturnValue(true);
 
     let callCount = 0;
-    vi.mocked(generateText).mockImplementation(async (opts) => {
+    vi.mocked(generateText).mockImplementation(async () => {
       callCount++;
       // Third call is Google — make it fail
       if (callCount === 3) {
@@ -263,15 +263,16 @@ describe('runMultiModelSOVQuery — with Google', () => {
           businesses: ['Charcoal N Chill'],
           cited_url: null,
         }),
+        sources: [],
       } as never;
     });
 
     const results = await runMultiModelSOVQuery(MOCK_QUERY);
 
-    // Should have 2 results (perplexity + openai), Google failed
-    expect(results.length).toBe(2);
+    // Should have 3 results (perplexity + openai + copilot), Google failed
+    expect(results.length).toBe(3);
     const engines = results.map((r) => r.engine).sort();
-    expect(engines).toEqual(['openai', 'perplexity']);
+    expect(engines).toEqual(['copilot', 'openai', 'perplexity']);
   });
 
   it('handles all engines failing (returns empty array)', async () => {

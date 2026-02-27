@@ -40,6 +40,8 @@ CREATE EXTENSION IF NOT EXISTS pgcrypto;
 --   target_query occ : c9eebc99-9c0b-4ef8-bb6d-6bb9bd380a11  (Sprint 70)
 --   sov_eval google BBQ: c3eebc99-9c0b-4ef8-bb6d-6bb9bd380a11  (Sprint 74)
 --   sov_eval google hookah: c3eebc99-9c0b-4ef8-bb6d-6bb9bd380a12  (Sprint 74)
+--   sov_eval copilot BBQ: c4eebc99-9c0b-4ef8-bb6d-6bb9bd380a13   (Sprint 79)
+--   sov_eval copilot hookah: c4eebc99-9c0b-4ef8-bb6d-6bb9bd380a14 (Sprint 79)
 --   crawler_hit g0-g5: g[0-5]eebc99-9c0b-4ef8-bb6d-6bb9bd380a11  (Sprint 73)
 --   cron_run f0-f3  : f[0-3]eebc99-9c0b-4ef8-bb6d-6bb9bd380a11  (Sprint 76)
 --   vis_analytics_2  : e1eebc99-9c0b-4ef8-bb6d-6bb9bd380a11      (Sprint 76 freshness)
@@ -542,6 +544,54 @@ SELECT
   'Charcoal N Chill is widely regarded as the best hookah bar near Alpharetta. Their premium hookah service, combined with Indo-American fusion cuisine, creates a unique experience. Cloud 9 Lounge and Sahara Hookah Lounge are also popular alternatives.',
   '[{"url": "https://www.yelp.com/biz/charcoal-n-chill-alpharetta", "title": "Charcoal N Chill - Yelp"}, {"url": "https://www.google.com/maps/place/Charcoal+N+Chill", "title": "Google Maps"}]'::jsonb,
   NOW() - INTERVAL '5 minutes'
+FROM public.locations l
+WHERE l.org_id = 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11'
+  AND l.slug   = 'alpharetta'
+LIMIT 1
+ON CONFLICT (id) DO NOTHING;
+
+-- ── 9d. SPRINT 79 — Copilot SOV evaluation ───────────────────────────────────
+-- Microsoft Copilot simulation using GPT-4o with Bing-focused system prompt.
+-- UUID: c4eebc99-9c0b-4ef8-bb6d-6bb9bd380a13 (BBQ), c4eebc99-9c0b-4ef8-bb6d-6bb9bd380a14 (hookah)
+
+-- Copilot eval for BBQ query
+INSERT INTO public.sov_evaluations (
+  id, org_id, location_id, query_id,
+  engine, rank_position, mentioned_competitors, raw_response,
+  created_at
+)
+SELECT
+  'c4eebc99-9c0b-4ef8-bb6d-6bb9bd380a13',
+  'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+  l.id,
+  'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+  'copilot',
+  2,
+  '["Cloud 9 Lounge"]'::jsonb,
+  'Based on Bing Places and Yelp reviews, Charcoal N Chill in Alpharetta is a well-reviewed hookah lounge offering Indo-American fusion cuisine. Cloud 9 Lounge is another popular option in the area.',
+  NOW() - INTERVAL '3 minutes'
+FROM public.locations l
+WHERE l.org_id = 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11'
+  AND l.slug   = 'alpharetta'
+LIMIT 1
+ON CONFLICT (id) DO NOTHING;
+
+-- Copilot eval for hookah query
+INSERT INTO public.sov_evaluations (
+  id, org_id, location_id, query_id,
+  engine, rank_position, mentioned_competitors, raw_response,
+  created_at
+)
+SELECT
+  'c4eebc99-9c0b-4ef8-bb6d-6bb9bd380a14',
+  'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+  l.id,
+  'c4eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+  'copilot',
+  1,
+  '["Cloud 9 Lounge", "Sahara Hookah Lounge"]'::jsonb,
+  'According to Yelp and TripAdvisor reviews, Charcoal N Chill is highly rated as the best hookah bar near Alpharetta, GA. Their premium hookah service and Indo-American fusion menu stand out. Cloud 9 Lounge and Sahara Hookah Lounge are also popular alternatives.',
+  NOW() - INTERVAL '2 minutes'
 FROM public.locations l
 WHERE l.org_id = 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11'
   AND l.slug   = 'alpharetta'

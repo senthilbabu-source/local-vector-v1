@@ -148,8 +148,16 @@ export const MOCK_SOV_RESPONSE = {
       ],
       createdAt: '2026-02-26T12:10:00.000Z',
     },
+    {
+      engine: 'copilot',
+      rankPosition: 2,
+      rawResponse:
+        'Based on Bing Places and Yelp reviews, Charcoal N Chill in Alpharetta is a well-reviewed hookah lounge offering Indo-American fusion cuisine. Cloud 9 Lounge is another popular option in the area.',
+      mentionedCompetitors: ['Cloud 9 Lounge'],
+      createdAt: '2026-02-26T12:15:00.000Z',
+    },
   ],
-  latestDate: '2026-02-26T12:10:00.000Z',
+  latestDate: '2026-02-26T12:15:00.000Z',
 } as const;
 
 /**
@@ -169,6 +177,21 @@ export const MOCK_GOOGLE_SOV_RESULT: import('@/lib/services/sov-engine.service')
     { url: 'https://www.yelp.com/biz/charcoal-n-chill-alpharetta', title: 'Charcoal N Chill - Yelp' },
     { url: 'https://g.co/charcoal-n-chill', title: 'Google Business Profile' },
   ],
+};
+
+/**
+ * Sprint 79 — Canonical Copilot SOV result fixture.
+ * Use in all Microsoft Copilot SOV tests.
+ */
+export const MOCK_COPILOT_SOV_RESULT: import('@/lib/services/sov-engine.service').SOVQueryResult = {
+  queryId: 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+  queryText: 'Best BBQ restaurant in Alpharetta GA',
+  queryCategory: 'discovery',
+  locationId: 'b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+  ourBusinessCited: true,
+  businessesFound: [],
+  citationUrl: null,
+  engine: 'copilot',
 };
 
 /**

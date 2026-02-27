@@ -4,6 +4,31 @@
 
 ---
 
+## 2026-02-28 — Sprint 79: Copilot/Bing Monitoring (Completed)
+
+**Goal:** Add Microsoft Copilot as the fourth SOV query engine, covering the Bing data ecosystem (Bing Places, Yelp, TripAdvisor) — a fundamentally different citation source set than Google/ChatGPT/Perplexity. +14% AI market coverage.
+
+**Scope:**
+- `lib/ai/providers.ts` — **MODIFIED.** Added `sov-query-copilot` model key: `openai('gpt-4o')`. Reuses existing `OPENAI_API_KEY`. No new env var.
+- `lib/services/sov-engine.service.ts` — **MODIFIED.** Added `runCopilotSOVQuery()` with Copilot-simulation system prompt emphasizing Bing Places, Yelp, TripAdvisor data sources. Added `buildCopilotSystemPrompt()`. Extended `runMultiModelSOVQuery()` to include Copilot when `hasApiKey('openai')` is true. Added `'copilot'` to `MODEL_ENGINE_MAP`.
+- `app/dashboard/ai-responses/_components/EngineResponseBlock.tsx` — **MODIFIED.** Added "Microsoft Copilot" engine config with `bg-[#00A4EF]` dot color. Copilot-specific insight box: "Copilot uses Bing's index, not Google's. If you're visible in ChatGPT but not here, check your Bing Places listing and Yelp profile."
+- `supabase/seed.sql` — **MODIFIED.** Added Copilot sov_evaluation seed rows (UUIDs c4eebc99...a13, c4eebc99...a14). Updated UUID reference card.
+- `src/__fixtures__/golden-tenant.ts` — **MODIFIED.** Extended `MOCK_SOV_RESPONSE` with Copilot engine entry. Added standalone `MOCK_COPILOT_SOV_RESULT` fixture.
+- `src/__tests__/unit/sov-google-grounded.test.ts` — **MODIFIED.** Updated multi-model tests to expect 4 engines (added Copilot).
+
+**Tests added:**
+- `src/__tests__/unit/sov-copilot.test.ts` — **15 Vitest tests.** Copilot runner returns correct engine, parsed business citation, system prompt contains Bing/Yelp/TripAdvisor. Multi-model includes/excludes Copilot based on API key. Graceful failure via Promise.allSettled.
+- `src/__tests__/unit/ai-responses-copilot.test.tsx` — **5 Vitest tests.** Copilot tab rendering, insight box display, conditional hide for non-Copilot engines.
+
+**Run commands:**
+```bash
+npx vitest run src/__tests__/unit/sov-copilot.test.ts              # 15 tests passing
+npx vitest run src/__tests__/unit/ai-responses-copilot.test.tsx     # 5 tests passing
+npx vitest run                                                      # All tests passing
+```
+
+---
+
 ## 2026-02-28 — Sprint 78: Weekly AI Snapshot Email with CTAs (Completed)
 
 **Goal:** Build a weekly digest email sent every Monday via Resend + React Email, showing AI Health Score trend, new issues, wins, opportunities, and bot activity — the retention engine that keeps restaurant owners engaged without logging in.

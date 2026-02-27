@@ -335,6 +335,7 @@ Before marking any phase "Completed", verify all of the following are true:
 | `sov-query` | Perplexity Sonar | `generateText` | SOV Engine — share-of-voice queries (live web results). |
 | `sov-query-openai` | OpenAI gpt-4o | `generateText` | SOV Engine — OpenAI alternative for multi-model SOV. |
 | `sov-query-google` | Google Gemini 2.0 Flash + Search Grounding | `generateText` | SOV Engine — Google AI Overview simulation. Uses `useSearchGrounding: true` for search-grounded responses with cited source URLs. |
+| `sov-query-copilot` | OpenAI GPT-4o (Copilot simulation) | `generateText` | SOV Engine — Microsoft Copilot simulation. Uses Bing-focused system prompt emphasizing Bing Places, Yelp, TripAdvisor citation sources. |
 | `truth-audit-openai` | OpenAI gpt-4o-mini | `generateText` | Truth Audit — OpenAI engine (multi-engine accuracy scoring). |
 | `truth-audit-perplexity` | Perplexity Sonar | `generateText` | Truth Audit — Perplexity engine (live web, multi-engine). |
 | `truth-audit-anthropic` | Anthropic Claude Sonnet | `generateText` | Truth Audit — Anthropic engine (multi-engine comparison). |
@@ -945,14 +946,14 @@ Client component at `app/dashboard/content-drafts/_components/OccasionTimeline.t
 - **Create Draft action:** Sets `trigger_type='occasion'` and `trigger_id` on the new draft. The `CreateDraftSchema` in `actions.ts` accepts optional `trigger_type` and `trigger_id` fields.
 - **Collapsible:** Default expanded, toggles with ChevronDown/ChevronUp.
 
-### 36.2 — Multi-Model SOV (Perplexity + OpenAI)
-Growth and Agency orgs run SOV queries against Perplexity, OpenAI, and Google (search-grounded) in parallel, tripling AI coverage. Starter/Trial orgs use single-model (Perplexity only).
+### 36.2 — Multi-Model SOV (Perplexity + OpenAI + Google + Copilot)
+Growth and Agency orgs run SOV queries against Perplexity, OpenAI, Google (search-grounded), and Copilot (Bing-simulated) in parallel. Starter/Trial orgs use single-model (Perplexity only).
 
 - **Plan gate:** `canRunMultiModelSOV(plan)` from `lib/plan-enforcer.ts` (Growth+).
 - **Entry point:** `runMultiModelSOVQuery()` in `lib/services/sov-engine.service.ts` — uses `Promise.allSettled` so one provider failing doesn't kill the rest.
-- **Engine tracking:** `SOVQueryResult.engine` field (`'perplexity'` | `'openai'` | `'google'`). `writeSOVResults()` writes `result.engine` to `sov_evaluations.engine`.
+- **Engine tracking:** `SOVQueryResult.engine` field (`'perplexity'` | `'openai'` | `'google'` | `'copilot'`). `writeSOVResults()` writes `result.engine` to `sov_evaluations.engine`.
 - **Citation sources:** Google engine returns `citedSources: { url, title }[]` from search grounding. Stored in `sov_evaluations.cited_sources` JSONB. NULL for non-Google engines.
-- **Model keys:** `'sov-query'` (Perplexity), `'sov-query-openai'` (OpenAI), and `'sov-query-google'` (Google + Search Grounding) in `lib/ai/providers.ts`.
+- **Model keys:** `'sov-query'` (Perplexity), `'sov-query-openai'` (OpenAI), `'sov-query-google'` (Google + Search Grounding), and `'sov-query-copilot'` (OpenAI GPT-4o + Copilot system prompt) in `lib/ai/providers.ts`.
 - **Cron integration:** Both `lib/inngest/functions/sov-cron.ts` and `app/api/cron/sov/route.ts` branch on `canRunMultiModelSOV(plan)`.
 
 ### 36.3 — WordPress Credential Management

@@ -88,6 +88,9 @@ export const MODELS = {
   /** SOV Engine — Google AI Overview simulation (search-grounded) */
   'sov-query-google': google('gemini-2.0-flash', { useSearchGrounding: true }),
 
+  /** SOV Engine — Microsoft Copilot simulation (Bing-grounded via GPT-4o) */
+  'sov-query-copilot': openai('gpt-4o'),
+
   /** Truth Audit — Anthropic engine (multi-engine comparison) */
   'truth-audit-anthropic': anthropic('claude-sonnet-4-20250514'),
 
