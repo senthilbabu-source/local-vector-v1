@@ -1771,7 +1771,7 @@ All endpoints that trigger AI model calls (OpenAI, Anthropic, Google Gemini) MUS
 
 ---
 
-## §57. E2E Test Coverage Requirements (FIX-5)
+## §69. E2E Test Coverage Requirements (FIX-5)
 
 Every sprint that ships user-facing features must include E2E tests before the sprint is considered complete.
 
