@@ -11,6 +11,22 @@
     {
       "path": "/api/cron/refresh-places",
       "schedule": "0 9 * * *"
+    },
+    {
+      "path": "/api/cron/audit",
+      "schedule": "0 8 * * *"
+    },
+    {
+      "path": "/api/cron/sov",
+      "schedule": "0 7 * * 0"
+    },
+    {
+      "path": "/api/cron/citation",
+      "schedule": "0 10 * * *"
+    },
+    {
+      "path": "/api/cron/content-audit",
+      "schedule": "0 8 1 * *"
     }
   ]
 }

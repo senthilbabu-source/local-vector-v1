@@ -4,6 +4,33 @@
 
 ---
 
+## 2026-02-27 — Sprint FIX-3: Missing Cron Registration + PlanGate Import Verification (Completed)
+
+**Problems fixed:**
+1. `vercel.json` missing 4 of 7 cron routes — audit, sov, citation, content-audit were never firing in production.
+2. PlanGate import in `app/dashboard/settings/locations/page.tsx` verified as already using correct named import `{ PlanGate }`.
+
+**Changes:**
+- `vercel.json` — Added 4 missing cron entries. All 7 crons now registered.
+  - `/api/cron/audit`: `0 8 * * *` (daily 8 AM UTC / 3 AM EST)
+  - `/api/cron/sov`: `0 7 * * 0` (weekly Sunday 7 AM UTC / 2 AM EST)
+  - `/api/cron/citation`: `0 10 * * *` (daily 10 AM UTC)
+  - `/api/cron/content-audit`: `0 8 1 * *` (monthly 1st 8 AM UTC / 3 AM EST)
+- All 4 cron routes verified: CRON_SECRET auth guard + kill switch present in each.
+- `docs/AI_RULES.md` — Added §65 (cron registration completeness) and §66 (named exports rule).
+
+**SOV baseline clock started:** 2026-02-27
+Sprint 107 earliest: 2026-03-27 (+28 days). Sprint 109 earliest: 2026-04-24 (+56 days).
+
+**Tests added:**
+- `src/__tests__/unit/vercel-cron-config.test.ts` — **14 Vitest tests.** Registry completeness + schedule validation + file existence.
+- `src/__tests__/unit/cron-auth-guard.test.ts` — **10 Vitest tests.** CRON_SECRET auth on all 4 cron routes.
+- `src/__tests__/unit/plan-gate-imports.test.ts` — **4 Vitest tests.** Named import enforcement for PlanGate.
+
+**Result:** `npx tsc --noEmit` → 0 errors. All tests passing. 28 new tests total.
+
+---
+
 ## 2026-02-27 — Sprint FIX-6: Documentation Sync — AI_RULES Tier 4/5 Stubs + CLAUDE.md Final State (Completed)
 
 **Goal:** Bring AI_RULES.md, CLAUDE.md, and MEMORY.md into full alignment with actual project state before Tier 4 work begins.

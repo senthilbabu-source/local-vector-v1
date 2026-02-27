@@ -197,6 +197,15 @@ UPSTASH_REDIS_REST_URL, UPSTASH_REDIS_REST_TOKEN
 - Tests: 12 Vitest (`memberships-rls.test.ts`), 3 Vitest (`npm-audit.test.ts`)
 - Result: 0 HIGH npm vulns (was 3), 2570 tests pass, 181 files.
 
+### Sprint FIX-3 — Missing Cron Registration + Baseline Clock Start (2026-02-27)
+- `vercel.json` — Added 4 missing cron entries: audit (`0 8 * * *`), sov (`0 7 * * 0`), citation (`0 10 * * *`), content-audit (`0 8 1 * *`). All 7 crons now registered.
+- All 4 routes verified: CRON_SECRET auth guard + kill switch already present.
+- PlanGate import in locations/page.tsx verified as already correct (named import).
+- AI_RULES: added §65 (cron registration completeness), §66 (named exports rule).
+- Tests: 14 Vitest (`vercel-cron-config.test.ts`), 10 Vitest (`cron-auth-guard.test.ts`), 4 Vitest (`plan-gate-imports.test.ts`)
+- SOV baseline clock started: 2026-02-27. Sprint 107 earliest: 2026-03-27. Sprint 109 earliest: 2026-04-24.
+- Result: All crons operational, 2598 tests pass, 184 files.
+
 ## Tier Completion Status
 
 | Tier | Sprints | Status | Gate |
@@ -204,9 +213,9 @@ UPSTASH_REDIS_REST_URL, UPSTASH_REDIS_REST_TOKEN
 | Tier 1 | 1–30 | Complete | — |
 | Tier 2 | 31–70 | Complete | — |
 | Tier 3 | 71–101 | Complete | — |
-| Production Fixes | FIX-1 – FIX-2 | Complete | — |
+| Production Fixes | FIX-1 – FIX-3 | Complete | — |
 | Tier 4 | 102–106 | Gated | Sprint 102: Apple BC API approval. Sprint 103: Bing Places API approval. Sprint 104–106: no external gate. |
-| Tier 5 | 107–109 | Gated | 4–8 weeks of SOV baseline data required (cron not yet registered in vercel.json). |
+| Tier 5 | 107–109 | Gated | 4–8 weeks of SOV baseline data required. SOV cron registered 2026-02-27. Sprint 107 earliest: 2026-03-27. |
 
 ### Next Sprint Ready to Execute: Sprint 104 — Dynamic FAQ Auto-Generation
 No external dependencies. Can begin immediately. See AI_RULES §59.
@@ -216,10 +225,10 @@ No external dependencies. Can begin immediately. See AI_RULES §59.
 - Sprint 103 (Bing Places): Submit API request at https://bingplaces.com
 
 ### Sprints Pending Data Accumulation:
-- Sprint 107 (Competitor Prompt Hijacking): Needs 4+ weeks SOV data after cron registration.
-- Sprint 108 (Per-Engine Playbooks): Needs 8+ weeks SOV data.
-- Sprint 109 (Intent Discovery): Needs 8+ weeks Perplexity query data.
+- Sprint 107 (Competitor Prompt Hijacking): Needs 4+ weeks SOV data. Earliest: 2026-03-27.
+- Sprint 108 (Per-Engine Playbooks): Needs 8+ weeks SOV data. Earliest: 2026-04-24.
+- Sprint 109 (Intent Discovery): Needs 8+ weeks Perplexity query data. Earliest: 2026-04-24.
 
 ## Build History
 
-See `DEVLOG.md` (project root) and `docs/DEVLOG.md` for the complete sprint-by-sprint build log. Current sprint: 101 (+ FIX-1, FIX-2).
+See `DEVLOG.md` (project root) and `docs/DEVLOG.md` for the complete sprint-by-sprint build log. Current sprint: 101 (+ FIX-1, FIX-2, FIX-3).

@@ -1725,4 +1725,24 @@ Sprint 109 will mine Perplexity's query data to discover the actual natural-lang
 - Intent maps stored in a new `intent_clusters` table — never overwrite raw query data.
 
 ---
+
+## §65. Cron Registration Completeness (FIX-3)
+
+Every cron route handler at `app/api/cron/*/route.ts` MUST be registered in `vercel.json`. Adding a cron handler without registering it produces no error — the handler simply never fires. `src/__tests__/unit/vercel-cron-config.test.ts` enforces this automatically.
+
+**Checklist when adding a new cron:**
+1. Create `app/api/cron/<name>/route.ts`
+2. Add `CRON_SECRET` authorization guard (returns 401 without correct header)
+3. Add `STOP_<NAME>_CRON` kill switch (returns early with `{ skipped: true }`)
+4. Register in `vercel.json` with appropriate schedule
+5. Document `CRON_SECRET` and `STOP_<NAME>_CRON` in `.env.local.example`
+6. Add the path to `vercel-cron-config.test.ts`
+
+---
+
+## §66. Named vs Default Exports — Plan Gate Components (FIX-3)
+
+All components in `components/plan-gate/` use **named exports**. Always import with `{ PlanGate }`, `{ PlanBlur }`, etc. Never use default imports for plan-gate components. `src/__tests__/unit/plan-gate-imports.test.ts` enforces this automatically.
+
+---
 > **End of System Instructions**
