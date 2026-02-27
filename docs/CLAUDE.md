@@ -222,9 +222,15 @@ UPSTASH_REDIS_REST_URL, UPSTASH_REDIS_REST_TOKEN
 - `tests/e2e/21-multi-location-management.spec.ts` — 14 tests: PlanGate regression guard, location cards, primary badge, overflow menu, add/edit buttons, switcher.
 - `tests/e2e/22-occasion-alerts-badges.spec.ts` — 13 tests: dashboard feed, alert card structure, snooze dropdown, sidebar badges, cross-user isolation.
 - Conditional `test.skip()` pattern for RLS-empty data (memberships, locations, occasions).
-- AI_RULES: added §57 (E2E coverage requirements per sprint).
+- AI_RULES: added §69 (E2E coverage requirements per sprint).
 - Tests: 51 Playwright E2E (41 pass, 10 skip — data-dependent)
 - Result: 0 new failures, 22 E2E spec files total.
+
+### Sprint FIX-6 — Documentation Sync (2026-02-27)
+- `docs/AI_RULES.md` — Fixed duplicate §57 (FIX-5 E2E rule renumbered to §69). Tier 4/5 stubs (§57–§64) for Sprints 102–109 verified: each has status, gate condition, pre-sprint requirements, and provisional rules.
+- `docs/CLAUDE.md` — This update. FIX-6 added to completion inventory. Tier status table updated.
+- Auto-memory MEMORY.md — FIX-6 completion noted.
+- No code changes. No migrations. No new tests.
 
 ## Tier Completion Status
 
@@ -233,7 +239,7 @@ UPSTASH_REDIS_REST_URL, UPSTASH_REDIS_REST_TOKEN
 | Tier 1 | 1–30 | Complete | — |
 | Tier 2 | 31–70 | Complete | — |
 | Tier 3 | 71–101 | Complete | — |
-| Production Fixes | FIX-1 – FIX-5 | Complete | — |
+| Production Fixes | FIX-1 – FIX-6 | Complete | — |
 | Tier 4 | 102–106 | Gated | Sprint 102: Apple BC API approval. Sprint 103: Bing Places API approval. Sprint 104–106: no external gate. |
 | Tier 5 | 107–109 | Gated | 4–8 weeks of SOV baseline data required. SOV cron registered 2026-02-27. Sprint 107 earliest: 2026-03-27. |
 
@@ -251,4 +257,4 @@ No external dependencies. Can begin immediately. See AI_RULES §59.
 
 ## Build History
 
-See `DEVLOG.md` (project root) and `docs/DEVLOG.md` for the complete sprint-by-sprint build log. Current sprint: 101 (+ FIX-1, FIX-2, FIX-3, FIX-4, FIX-5).
+See `DEVLOG.md` (project root) and `docs/DEVLOG.md` for the complete sprint-by-sprint build log. Current sprint: 101 (+ FIX-1 through FIX-6). Production readiness: all 10 audit issues resolved.

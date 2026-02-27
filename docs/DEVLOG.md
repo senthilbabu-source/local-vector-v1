@@ -27,7 +27,7 @@
 - 1 billing plan badge test: getCurrentPlan() async resolution
 - 1 occasion feed test: no occasion data in current date range
 
-**AI_RULES update:** Added §57 — E2E test coverage requirements for future sprints.
+**AI_RULES update:** Added §69 — E2E test coverage requirements for future sprints (originally §57, renumbered in FIX-6 to resolve duplicate with Sprint 102 stub).
 
 **Result:** 41 new E2E tests passing, 10 skipped (data-dependent). 0 regressions in existing specs. `npx tsc --noEmit` = 0 errors.
 
@@ -42,7 +42,7 @@
 **Changes:**
 - `.env.local.example` — Added 17 missing variables with comments, organized into sections (Cron Security, Google OAuth, AI Providers, Stripe, Upstash Redis, Cron Kill Switches).
 - `app/api/chat/route.ts` — Added Upstash sliding window rate limit: 20 requests/hour/org. Fail-open on Redis unavailability. 429 response with retry_after + X-RateLimit-* headers. Module-level Redis/Ratelimit initialization.
-- `AI_RULES.md` — Added §59 (env var documentation) and §60 (AI endpoint rate limiting).
+- `AI_RULES.md` — Added §67 (env var documentation) and §68 (AI endpoint rate limiting).
 
 **Tests added:**
 - `src/__tests__/unit/env-completeness.test.ts` — **15 Vitest tests.** Required vars documented + source scan for undocumented references.
@@ -85,14 +85,23 @@ Sprint 107 earliest: 2026-03-27 (+28 days). Sprint 109 earliest: 2026-04-24 (+56
 **Goal:** Bring AI_RULES.md, CLAUDE.md, and MEMORY.md into full alignment with actual project state before Tier 4 work begins.
 
 **Changes:**
-- `docs/AI_RULES.md` — Appended §57–§64: Tier 4/5 sprint stubs for Sprints 102-109. Each stub documents: execution status, gate condition, pre-sprint requirements, and provisional rules.
-- `docs/CLAUDE.md` — Added FIX-2 to Recent Fix Sprints. Fixed memberships table description (now has RLS). Added migration #35. Added Tier Completion Status table. Identified Sprint 104 as next immediately-executable sprint.
-- `MEMORY.md` — Updated test counts to FIX-2 levels (2570/181). Added production readiness decision record. Added security hardening notes.
-- `docs/DEVLOG.md` — This entry.
+- `docs/AI_RULES.md` — Tier 4/5 sprint stubs (§57–§64) for Sprints 102-109 verified present. Fixed duplicate §57 collision: FIX-5 E2E rule renumbered from §57 → §69. Each stub documents: execution status, gate condition, pre-sprint requirements, and provisional rules. Full §number inventory now: §1–§56, §57–§64 (Tier 4/5 stubs), §65–§68 (FIX-3/FIX-4 rules), §69 (FIX-5 E2E rule). No gaps, no duplicates.
+- `docs/CLAUDE.md` — Added FIX-6 to Recent Fix Sprints. Updated Tier Completion Status table (FIX-1–FIX-6). Updated Build History line. All FIX sprints now documented.
+- Root `CLAUDE.md` — Updated rule count reference (was "55 engineering rules", now "§1–§69").
+- Auto-memory `MEMORY.md` — FIX-6 completion noted, duplicate §57 fix documented.
+- `docs/DEVLOG.md` — This entry (updated from stale partial version).
 
 **No code changes. No migrations. No new tests.**
 
-**Result:** AI context files are now accurate. Next Claude Code session will correctly understand: Tiers 1-3 complete through Sprint 101, FIX-1 and FIX-2 resolved schema types and security issues, Sprint 104 is ready to execute immediately.
+**Result:** AI context files are now accurate. Next Claude Code session will correctly understand:
+- Tiers 1-3 complete through Sprint 101
+- FIX-1 through FIX-6 resolved all production readiness issues
+- Sprint 104 is ready to execute immediately (no external dependencies)
+- Sprint 102/103 waiting on API approvals
+- Sprints 107-109 need 4-8 weeks of SOV data (clock started 2026-02-27)
+- AI_RULES has 69 sections with no numbering collisions
+
+**Production readiness status: READY** (all 10 audit issues resolved)
 
 ---
 
