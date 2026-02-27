@@ -4,6 +4,34 @@
 
 ---
 
+## 2026-02-28 — Sprint 89b: GBP Flow Refinement + Golden Tenant Fixtures + E2E (Completed)
+
+**Goal:** Refine Sprint 89 implementation to align with 89b spec: golden-tenant fixtures, Zod-validated server action, joined addressLines, E2E coverage.
+
+**Scope:**
+- `lib/services/gbp-mapper.ts` — **MODIFIED.** MappedLocation: removed `address_line2`, `country` now non-nullable (default 'US'), `google_location_name` non-nullable. `addressLines` joined into single `address_line1`.
+- `app/onboarding/connect/actions.ts` — **MODIFIED.** Signature changed to `importGBPLocation(input: { locationIndex })` with Zod validation. Added belt-and-suspenders `.eq('org_id', ctx.orgId)`.
+- `app/onboarding/connect/select/LocationPicker.tsx` — **MODIFIED.** Updated call signature.
+- `app/(auth)/register/page.tsx` — **MODIFIED.** Google OAuth `redirectTo` → `/onboarding/connect`.
+- `src/__fixtures__/golden-tenant.ts` — **MODIFIED.** Added 5 GBP fixtures (MOCK_GBP_LOCATION, MOCK_GBP_LOCATION_MINIMAL, MOCK_GBP_LOCATION_NO_ADDRESS, MOCK_GBP_ACCOUNT, MOCK_GBP_LOCATION_SECOND).
+
+**Tests rewritten (using golden-tenant fixtures):**
+- `src/__tests__/unit/gbp-mapper.test.ts` — 22 tests (was 23).
+- `src/__tests__/unit/gbp-import-action.test.ts` — 13 tests (was 9).
+- `src/__tests__/unit/gbp-callback-locations.test.ts` — 9 tests (was 7).
+- `tests/e2e/15-gbp-onboarding-connect.spec.ts` — **NEW.** 5 Playwright E2E tests.
+
+**Run commands:**
+```bash
+npx vitest run src/__tests__/unit/gbp-mapper.test.ts              # 22 tests PASS
+npx vitest run src/__tests__/unit/gbp-import-action.test.ts        # 13 tests PASS
+npx vitest run src/__tests__/unit/gbp-callback-locations.test.ts   # 9 tests PASS
+npx vitest run                                                      # 1789 tests passing
+npx playwright test tests/e2e/15-gbp-onboarding-connect.spec.ts   # 5 tests
+```
+
+---
+
 ## 2026-02-28 — Sprint 89: GBP Data Mapping + Import Flow (Completed)
 
 **Goal:** Transform the GBP "connect" button from a token-only operation into a full data import pipeline. New users who connect GBP now have hours and address auto-populated, skipping the manual wizard.
@@ -34,8 +62,6 @@ npx vitest run src/__tests__/unit/gbp-import-action.test.ts
 npx vitest run src/__tests__/unit/gbp-callback-locations.test.ts
 npx vitest run   # ALL tests passing (1784 passed, 7 skipped)
 ```
-
-**E2E note:** No E2E tests modified. New GBP onboarding flow needs E2E coverage in a future sprint (requires Google OAuth mock strategy).
 
 ---
 

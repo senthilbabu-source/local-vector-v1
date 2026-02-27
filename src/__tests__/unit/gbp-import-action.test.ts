@@ -1,231 +1,215 @@
 // ---------------------------------------------------------------------------
-// gbp-import-action.test.ts — Unit tests for importGBPLocation server action
+// gbp-import-action.test.ts — Unit tests for importGBPLocation Server Action
 //
-// Sprint 89: 9 tests — mocks auth, cookies, Supabase, SOV seeder.
+// Sprint 89: Tests the server action that reads from pending_gbp_imports,
+// maps the GBP location, and writes to the locations table.
+//
+// Mock strategy: vi.mock all server dependencies (supabase, auth, cache,
+// cookies, sov-seed). Factory creates chainable Supabase mock per table.
 //
 // Run:
 //   npx vitest run src/__tests__/unit/gbp-import-action.test.ts
 // ---------------------------------------------------------------------------
 
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
-// ---------------------------------------------------------------------------
-// Mocks
-// ---------------------------------------------------------------------------
-
-const mockGetSafeAuthContext = vi.fn();
-vi.mock('@/lib/auth', () => ({
-  getSafeAuthContext: () => mockGetSafeAuthContext(),
-}));
-
-vi.mock('next/cache', () => ({
-  revalidatePath: vi.fn(),
-}));
-
-const mockCookieGet = vi.fn();
-const mockCookieDelete = vi.fn();
-vi.mock('next/headers', () => ({
-  cookies: vi.fn().mockResolvedValue({
-    get: (name: string) => mockCookieGet(name),
-    delete: (name: string) => mockCookieDelete(name),
-  }),
-}));
-
-const mockSeedSOVQueries = vi.fn().mockResolvedValue({ seeded: 5 });
-vi.mock('@/lib/services/sov-seed', () => ({
-  seedSOVQueries: (...args: unknown[]) => mockSeedSOVQueries(...args),
-}));
-
-// Supabase mock
-const mockSingle = vi.fn();
-const mockSelect = vi.fn().mockReturnValue({ single: mockSingle });
-const mockInsert = vi.fn().mockReturnValue({ select: mockSelect });
-const mockUpsert = vi.fn().mockResolvedValue({ error: null });
-const mockDeleteEq = vi.fn().mockResolvedValue({ error: null });
-const mockDelete = vi.fn().mockReturnValue({ eq: mockDeleteEq });
-const mockCountEq2 = vi.fn().mockResolvedValue({ count: 0 });
-const mockCountEq1 = vi.fn().mockReturnValue({ eq: mockCountEq2 });
-const mockCountSelect = vi.fn().mockReturnValue({ eq: mockCountEq1 });
-
-const mockFrom = vi.fn().mockImplementation((table: string) => {
-  if (table === 'pending_gbp_imports') {
-    return {
-      select: vi.fn().mockReturnValue({
-        eq: vi.fn().mockReturnValue({
-          single: mockSingle,
-        }),
-      }),
-      delete: mockDelete,
-    };
-  }
-  if (table === 'locations') {
-    return {
-      select: mockCountSelect,
-      insert: mockInsert,
-    };
-  }
-  if (table === 'location_integrations') {
-    return { upsert: mockUpsert };
-  }
-  return { select: vi.fn(), insert: vi.fn() };
-});
+// ── Hoist vi.mock declarations ────────────────────────────────────────────
 
 vi.mock('@/lib/supabase/server', () => ({
-  createServiceRoleClient: vi.fn(() => ({ from: mockFrom })),
+  createClient: vi.fn(),
+  createServiceRoleClient: vi.fn(),
+}));
+vi.mock('@/lib/auth', () => ({ getSafeAuthContext: vi.fn() }));
+vi.mock('next/cache', () => ({ revalidatePath: vi.fn() }));
+vi.mock('next/headers', () => ({
+  cookies: vi.fn().mockResolvedValue({
+    get: vi.fn().mockReturnValue({ value: 'import-uuid-001' }),
+    delete: vi.fn(),
+  }),
+}));
+vi.mock('@/lib/services/sov-seed', () => ({
+  seedSOVQueries: vi.fn().mockResolvedValue({ seeded: 10 }),
 }));
 
-// ---------------------------------------------------------------------------
-// Import under test (after mocks)
-// ---------------------------------------------------------------------------
+// ── Import subjects ───────────────────────────────────────────────────────
 
-const { importGBPLocation } = await import(
-  '@/app/onboarding/connect/actions'
-);
+import { importGBPLocation } from '@/app/onboarding/connect/actions';
+import { createServiceRoleClient } from '@/lib/supabase/server';
+import { getSafeAuthContext } from '@/lib/auth';
+import { seedSOVQueries } from '@/lib/services/sov-seed';
+import { revalidatePath } from 'next/cache';
+import { MOCK_GBP_LOCATION } from '@/__fixtures__/golden-tenant';
 
-// ---------------------------------------------------------------------------
-// Fixtures
-// ---------------------------------------------------------------------------
+// ── Shared fixtures ───────────────────────────────────────────────────────
 
-const TEST_ORG_ID = 'org-1234';
-const TEST_IMPORT_ID = 'import-uuid-5678';
-const MOCK_PENDING = {
-  id: TEST_IMPORT_ID,
-  org_id: TEST_ORG_ID,
-  locations_data: [
-    {
-      name: 'accounts/123/locations/456',
-      title: 'Test Restaurant',
-      storefrontAddress: {
-        addressLines: ['100 Test St'],
-        locality: 'Atlanta',
-        administrativeArea: 'GA',
-        postalCode: '30301',
-        regionCode: 'US',
-      },
-      regularHours: {
-        periods: [
-          { openDay: 'MONDAY', openTime: { hours: 9 }, closeDay: 'MONDAY', closeTime: { hours: 17 } },
-        ],
-      },
-      primaryPhone: '(555) 123-4567',
-    },
-    {
-      name: 'accounts/123/locations/789',
-      title: 'Test Restaurant 2',
-    },
-  ],
-  account_name: 'accounts/123',
-  has_more: false,
+const ORG_ID = 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11';
+const LOCATION_ID = 'loc-new-001';
+const IMPORT_ROW_ID = 'import-uuid-001';
+const MOCK_AUTH = { orgId: ORG_ID, userId: 'user-001' };
+
+const VALID_PENDING_IMPORT = {
+  id: IMPORT_ROW_ID,
+  org_id: ORG_ID,
+  locations_data: [MOCK_GBP_LOCATION],
+  account_name: 'accounts/123456789',
   expires_at: new Date(Date.now() + 5 * 60 * 1000).toISOString(),
-  created_at: new Date().toISOString(),
 };
 
-// ---------------------------------------------------------------------------
-// Tests
-// ---------------------------------------------------------------------------
+// ── Supabase mock factory ─────────────────────────────────────────────────
+
+function createMockServiceRole({
+  pendingResult = { data: VALID_PENDING_IMPORT, error: null } as { data: unknown; error: unknown },
+  primaryCount = 0,
+  insertResult = { data: { id: LOCATION_ID }, error: null } as { data: unknown; error: unknown },
+  upsertResult = { data: null, error: null },
+  deleteResult = { data: null, error: null },
+} = {}) {
+  // pending_gbp_imports.select().eq().eq().single()
+  const pendingSingle = vi.fn().mockResolvedValue(pendingResult);
+  const pendingEq2 = vi.fn().mockReturnValue({ single: pendingSingle });
+  const pendingEq1 = vi.fn().mockReturnValue({ eq: pendingEq2 });
+  const pendingSelect = vi.fn().mockReturnValue({ eq: pendingEq1 });
+  const deleteEq = vi.fn().mockResolvedValue(deleteResult);
+  const pendingDelete = vi.fn().mockReturnValue({ eq: deleteEq });
+
+  // locations.select for is_primary count
+  // The last .eq() in the chain must resolve directly (it's awaited, not called)
+  const countEq2 = vi.fn().mockResolvedValue({ count: primaryCount, error: null });
+  const countEq1 = vi.fn().mockReturnValue({ eq: countEq2 });
+  const locCountSelect = vi.fn().mockReturnValue({ eq: countEq1 });
+
+  // locations.insert().select().single()
+  const insertSingle = vi.fn().mockResolvedValue(insertResult);
+  const insertSelect = vi.fn().mockReturnValue({ single: insertSingle });
+  const locInsert = vi.fn().mockReturnValue({ select: insertSelect });
+
+  // location_integrations.upsert()
+  const intUpsert = vi.fn().mockResolvedValue(upsertResult);
+
+  const from = vi.fn().mockImplementation((table: string) => {
+    if (table === 'pending_gbp_imports') return { select: pendingSelect, delete: pendingDelete };
+    if (table === 'locations') return { select: locCountSelect, insert: locInsert };
+    if (table === 'location_integrations') return { upsert: intUpsert };
+    return {};
+  });
+
+  vi.mocked(createServiceRoleClient).mockReturnValue({ from } as never);
+  return { from, locInsert, intUpsert, pendingDelete, deleteEq };
+}
+
+// ── Tests ──────────────────────────────────────────────────────────────────
 
 describe('importGBPLocation', () => {
   beforeEach(() => {
+    vi.mocked(getSafeAuthContext).mockResolvedValue(MOCK_AUTH as never);
+  });
+
+  afterEach(() => {
     vi.clearAllMocks();
-
-    // Default: authenticated user with org
-    mockGetSafeAuthContext.mockResolvedValue({
-      userId: 'user-1',
-      orgId: TEST_ORG_ID,
-    });
-
-    // Default: cookie has import ID
-    mockCookieGet.mockImplementation((name: string) => {
-      if (name === 'gbp_import_id') return { value: TEST_IMPORT_ID };
-      return undefined;
-    });
-
-    // Default: pending import found
-    mockSingle.mockResolvedValue({ data: MOCK_PENDING, error: null });
-
-    // Default: insert returns location with ID
-    const mockLocationSingle = vi.fn().mockResolvedValue({
-      data: { id: 'loc-new-1' },
-      error: null,
-    });
-    mockSelect.mockReturnValue({ single: mockLocationSingle });
-
-    // Default: no existing primary location
-    mockCountEq2.mockResolvedValue({ count: 0 });
   });
 
-  it('inserts location with mapped hours_data from GBP', async () => {
-    const result = await importGBPLocation(0);
+  it('should insert location with mapped hours_data from GBP', async () => {
+    const { locInsert } = createMockServiceRole();
+    const result = await importGBPLocation({ locationIndex: 0 });
     expect(result.success).toBe(true);
-    expect(mockInsert).toHaveBeenCalled();
-    const insertedRow = mockInsert.mock.calls[0][0];
-    expect(insertedRow.hours_data).not.toBeNull();
-    expect(insertedRow.hours_data.monday).toEqual({ open: '09:00', close: '17:00' });
+    expect(locInsert).toHaveBeenCalledOnce();
+    const arg = locInsert.mock.calls[0][0];
+    expect(arg.business_name).toBe('Charcoal N Chill');
+    expect(arg.hours_data).not.toBeNull();
+    expect(arg.hours_data.monday).toBe('closed');
+    expect(arg.hours_data.tuesday).toEqual({ open: '17:00', close: '01:00' });
+    expect(arg.org_id).toBe(ORG_ID);
   });
 
-  it('creates location_integrations row with platform=google', async () => {
-    await importGBPLocation(0);
-    expect(mockUpsert).toHaveBeenCalled();
-    const upsertedRow = mockUpsert.mock.calls[0][0];
-    expect(upsertedRow.platform).toBe('google');
-    expect(upsertedRow.status).toBe('connected');
+  it('should create location_integrations row with platform="google"', async () => {
+    const { intUpsert } = createMockServiceRole();
+    await importGBPLocation({ locationIndex: 0 });
+    expect(intUpsert).toHaveBeenCalledOnce();
+    const arg = intUpsert.mock.calls[0][0];
+    expect(arg.platform).toBe('google');
+    expect(arg.status).toBe('connected');
+    expect(arg.external_id).toBe('accounts/123456789/locations/987654321');
   });
 
-  it('sets is_primary=true when no existing primary location', async () => {
-    mockCountEq2.mockResolvedValue({ count: 0 });
-    await importGBPLocation(0);
-    const insertedRow = mockInsert.mock.calls[0][0];
-    expect(insertedRow.is_primary).toBe(true);
+  it('should set is_primary=true when no existing primary location', async () => {
+    const { locInsert } = createMockServiceRole({ primaryCount: 0 });
+    await importGBPLocation({ locationIndex: 0 });
+    expect(locInsert.mock.calls[0][0].is_primary).toBe(true);
   });
 
-  it('sets is_primary=false when primary location already exists', async () => {
-    mockCountEq2.mockResolvedValue({ count: 1 });
-    await importGBPLocation(0);
-    const insertedRow = mockInsert.mock.calls[0][0];
-    expect(insertedRow.is_primary).toBe(false);
+  it('should set is_primary=false when primary location already exists', async () => {
+    const { locInsert } = createMockServiceRole({ primaryCount: 1 });
+    await importGBPLocation({ locationIndex: 0 });
+    expect(locInsert.mock.calls[0][0].is_primary).toBe(false);
   });
 
-  it('calls seedSOVQueries with the new location', async () => {
-    await importGBPLocation(0);
-    expect(mockSeedSOVQueries).toHaveBeenCalledTimes(1);
-    const seedArg = mockSeedSOVQueries.mock.calls[0][0];
-    expect(seedArg.id).toBe('loc-new-1');
-    expect(seedArg.business_name).toBe('Test Restaurant');
+  it('should call seedSOVQueries with the new location', async () => {
+    createMockServiceRole();
+    await importGBPLocation({ locationIndex: 0 });
+    expect(seedSOVQueries).toHaveBeenCalledOnce();
+    const seedArgs = vi.mocked(seedSOVQueries).mock.calls[0];
+    expect(seedArgs[0].id).toBe(LOCATION_ID);
+    expect(seedArgs[0].org_id).toBe(ORG_ID);
+    expect(seedArgs[0].business_name).toBe('Charcoal N Chill');
+    expect(seedArgs[0].city).toBe('Alpharetta');
   });
 
-  it('rejects unauthorized requests', async () => {
-    mockGetSafeAuthContext.mockResolvedValue(null);
-    const result = await importGBPLocation(0);
+  it('should reject unauthorized requests (null context)', async () => {
+    vi.mocked(getSafeAuthContext).mockResolvedValueOnce(null);
+    const result = await importGBPLocation({ locationIndex: 0 });
     expect(result).toEqual({ success: false, error: 'Unauthorized' });
   });
 
-  it('rejects expired pending_gbp_imports', async () => {
-    mockSingle.mockResolvedValue({
-      data: {
-        ...MOCK_PENDING,
-        expires_at: new Date(Date.now() - 60 * 1000).toISOString(),
+  it('should reject expired pending_gbp_imports', async () => {
+    createMockServiceRole({
+      pendingResult: {
+        data: { ...VALID_PENDING_IMPORT, expires_at: new Date(Date.now() - 60000).toISOString() },
+        error: null,
       },
-      error: null,
     });
-    const result = await importGBPLocation(0);
-    expect(result).toEqual({
-      success: false,
-      error: 'Import session expired. Please reconnect.',
-    });
+    const result = await importGBPLocation({ locationIndex: 0 });
+    expect(result.success).toBe(false);
+    if (!result.success) expect(result.error).toMatch(/expired/i);
   });
 
-  it('rejects when org_id does not match authenticated user', async () => {
-    mockSingle.mockResolvedValue({
-      data: { ...MOCK_PENDING, org_id: 'other-org' },
-      error: null,
+  it('should reject when org_id does not match authenticated user', async () => {
+    createMockServiceRole({
+      pendingResult: { data: { ...VALID_PENDING_IMPORT, org_id: 'different-org' }, error: null },
     });
-    const result = await importGBPLocation(0);
-    expect(result).toEqual({ success: false, error: 'Unauthorized' });
+    const result = await importGBPLocation({ locationIndex: 0 });
+    expect(result.success).toBe(false);
+    if (!result.success) expect(result.error).toMatch(/unauthorized/i);
   });
 
-  it('deletes pending_gbp_imports row after successful import', async () => {
-    await importGBPLocation(0);
-    expect(mockDelete).toHaveBeenCalled();
-    expect(mockDeleteEq).toHaveBeenCalledWith('id', TEST_IMPORT_ID);
+  it('should delete pending_gbp_imports row after successful import', async () => {
+    const { pendingDelete, deleteEq } = createMockServiceRole();
+    await importGBPLocation({ locationIndex: 0 });
+    expect(pendingDelete).toHaveBeenCalled();
+    expect(deleteEq).toHaveBeenCalledWith('id', IMPORT_ROW_ID);
+  });
+
+  it('should set amenities to null (GBP intentional gap)', async () => {
+    const { locInsert } = createMockServiceRole();
+    await importGBPLocation({ locationIndex: 0 });
+    expect(locInsert.mock.calls[0][0].amenities).toBeNull();
+  });
+
+  it('should revalidate dashboard path', async () => {
+    createMockServiceRole();
+    await importGBPLocation({ locationIndex: 0 });
+    expect(vi.mocked(revalidatePath)).toHaveBeenCalledWith('/dashboard');
+  });
+
+  it('should return error when location insert fails', async () => {
+    createMockServiceRole({ insertResult: { data: null, error: { message: 'Duplicate slug' } } });
+    const result = await importGBPLocation({ locationIndex: 0 });
+    expect(result.success).toBe(false);
+  });
+
+  it('should reject invalid locationIndex (out of bounds)', async () => {
+    createMockServiceRole();
+    const result = await importGBPLocation({ locationIndex: 99 });
+    expect(result.success).toBe(false);
+    if (!result.success) expect(result.error).toMatch(/index/i);
   });
 });

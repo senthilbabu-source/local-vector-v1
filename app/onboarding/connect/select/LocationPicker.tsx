@@ -20,7 +20,7 @@ export default function LocationPicker({ locations }: Props) {
 
   async function handleSelect(index: number) {
     setError(null);
-    const result = await importGBPLocation(index);
+    const result = await importGBPLocation({ locationIndex: index });
     if (result.success) {
       router.push('/dashboard');
     } else {

@@ -9,6 +9,8 @@
  * competitor intercept fixture data for all Compete page tests.
  */
 
+import type { GBPAccount, GBPLocation } from '@/lib/types/gbp';
+
 export const GOLDEN_TENANT = {
   org: {
     name: 'Charcoal N Chill',
@@ -872,4 +874,108 @@ export const MOCK_CONTENT_BRIEF: import('@/lib/ai/schemas').ContentBrief = {
     },
   ],
   metaDescription: 'Book a private event at Charcoal N Chill in Alpharetta, GA. Premium hookah, Indo-American fusion dining, and Versace lounge seating for 20-80 guests.',
+};
+
+// ---------------------------------------------------------------------------
+// Sprint 89 — GBP API Fixtures for Charcoal N Chill
+// ---------------------------------------------------------------------------
+
+/**
+ * Sprint 89 — Canonical GBP location fixture for Charcoal N Chill.
+ * Mirrors the real GBP API response for the golden tenant.
+ * Used by all GBP mapper, callback, and import action tests.
+ */
+export const MOCK_GBP_LOCATION: GBPLocation = {
+  name: 'accounts/123456789/locations/987654321',
+  title: 'Charcoal N Chill',
+  storefrontAddress: {
+    addressLines: ['11950 Jones Bridge Road', 'Ste 103'],
+    locality: 'Alpharetta',
+    administrativeArea: 'GA',
+    postalCode: '30005',
+    regionCode: 'US',
+  },
+  regularHours: {
+    periods: [
+      { openDay: 'TUESDAY',   openTime: { hours: 17, minutes: 0 }, closeDay: 'TUESDAY',   closeTime: { hours: 1, minutes: 0 } },
+      { openDay: 'WEDNESDAY', openTime: { hours: 17, minutes: 0 }, closeDay: 'WEDNESDAY', closeTime: { hours: 1, minutes: 0 } },
+      { openDay: 'THURSDAY',  openTime: { hours: 17, minutes: 0 }, closeDay: 'THURSDAY',  closeTime: { hours: 1, minutes: 0 } },
+      { openDay: 'FRIDAY',    openTime: { hours: 17, minutes: 0 }, closeDay: 'FRIDAY',    closeTime: { hours: 2, minutes: 0 } },
+      { openDay: 'SATURDAY',  openTime: { hours: 17, minutes: 0 }, closeDay: 'SATURDAY',  closeTime: { hours: 2, minutes: 0 } },
+      { openDay: 'SUNDAY',    openTime: { hours: 17, minutes: 0 }, closeDay: 'SUNDAY',    closeTime: { hours: 1, minutes: 0 } },
+    ],
+  },
+  primaryPhone: '(470) 546-4866',
+  websiteUri: 'https://charcoalnchill.com',
+  metadata: {
+    placeId: 'ChIJi8-1ywdO9YgR9s5j-y0_1lI',
+    mapsUri: 'https://maps.google.com/?cid=12345',
+    newReviewUri: 'https://search.google.com/local/writereview?placeid=ChIJi8-1ywdO9YgR9s5j-y0_1lI',
+  },
+};
+
+/**
+ * Sprint 89 — GBP location with minimal data (no hours, no phone, no website).
+ * Tests the mapper's null-handling paths.
+ */
+export const MOCK_GBP_LOCATION_MINIMAL: GBPLocation = {
+  name: 'accounts/123456789/locations/111111111',
+  title: 'Ghost Kitchen XYZ',
+  storefrontAddress: {
+    addressLines: ['456 Elm Street'],
+    locality: 'Roswell',
+    administrativeArea: 'GA',
+    postalCode: '30075',
+    regionCode: 'US',
+  },
+};
+
+/**
+ * Sprint 89 — GBP location with NO storefrontAddress (virtual business).
+ */
+export const MOCK_GBP_LOCATION_NO_ADDRESS: GBPLocation = {
+  name: 'accounts/123456789/locations/222222222',
+  title: 'Virtual Catering Co',
+  primaryPhone: '(555) 000-1234',
+  websiteUri: 'https://virtualcatering.example.com',
+};
+
+/**
+ * Sprint 89 — GBP account fixture.
+ */
+export const MOCK_GBP_ACCOUNT: GBPAccount = {
+  name: 'accounts/123456789',
+  accountName: 'Aruna Surendera Babu',
+  type: 'PERSONAL',
+};
+
+/**
+ * Sprint 89 — Second GBP location for multi-location picker tests.
+ */
+export const MOCK_GBP_LOCATION_SECOND: GBPLocation = {
+  name: 'accounts/123456789/locations/333333333',
+  title: 'Charcoal N Chill - Downtown',
+  storefrontAddress: {
+    addressLines: ['200 Peachtree St NW'],
+    locality: 'Atlanta',
+    administrativeArea: 'GA',
+    postalCode: '30303',
+    regionCode: 'US',
+  },
+  regularHours: {
+    periods: [
+      { openDay: 'MONDAY',    openTime: { hours: 11, minutes: 30 }, closeDay: 'MONDAY',    closeTime: { hours: 22, minutes: 0 } },
+      { openDay: 'TUESDAY',   openTime: { hours: 11, minutes: 30 }, closeDay: 'TUESDAY',   closeTime: { hours: 22, minutes: 0 } },
+      { openDay: 'WEDNESDAY', openTime: { hours: 11, minutes: 30 }, closeDay: 'WEDNESDAY', closeTime: { hours: 22, minutes: 0 } },
+      { openDay: 'THURSDAY',  openTime: { hours: 11, minutes: 30 }, closeDay: 'THURSDAY',  closeTime: { hours: 23, minutes: 0 } },
+      { openDay: 'FRIDAY',    openTime: { hours: 11, minutes: 30 }, closeDay: 'FRIDAY',    closeTime: { hours: 0,  minutes: 0 } },
+      { openDay: 'SATURDAY',  openTime: { hours: 10, minutes: 0 },  closeDay: 'SATURDAY',  closeTime: { hours: 0,  minutes: 0 } },
+      { openDay: 'SUNDAY',    openTime: { hours: 10, minutes: 0 },  closeDay: 'SUNDAY',    closeTime: { hours: 21, minutes: 0 } },
+    ],
+  },
+  primaryPhone: '(404) 555-9876',
+  websiteUri: 'https://charcoalnchill.com/downtown',
+  metadata: {
+    placeId: 'ChIJtest_downtown_123',
+  },
 };
