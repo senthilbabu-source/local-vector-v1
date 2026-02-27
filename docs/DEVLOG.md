@@ -4,6 +4,22 @@
 
 ---
 
+## 2026-02-27 — Sprint FIX-6: Documentation Sync — AI_RULES Tier 4/5 Stubs + CLAUDE.md Final State (Completed)
+
+**Goal:** Bring AI_RULES.md, CLAUDE.md, and MEMORY.md into full alignment with actual project state before Tier 4 work begins.
+
+**Changes:**
+- `docs/AI_RULES.md` — Appended §57–§64: Tier 4/5 sprint stubs for Sprints 102-109. Each stub documents: execution status, gate condition, pre-sprint requirements, and provisional rules.
+- `docs/CLAUDE.md` — Added FIX-2 to Recent Fix Sprints. Fixed memberships table description (now has RLS). Added migration #35. Added Tier Completion Status table. Identified Sprint 104 as next immediately-executable sprint.
+- `MEMORY.md` — Updated test counts to FIX-2 levels (2570/181). Added production readiness decision record. Added security hardening notes.
+- `docs/DEVLOG.md` — This entry.
+
+**No code changes. No migrations. No new tests.**
+
+**Result:** AI context files are now accurate. Next Claude Code session will correctly understand: Tiers 1-3 complete through Sprint 101, FIX-1 and FIX-2 resolved schema types and security issues, Sprint 104 is ready to execute immediately.
+
+---
+
 ## 2026-02-27 — Sprint FIX-2: Security Hardening — npm Vulnerabilities + memberships RLS (Completed)
 
 **Problem:**

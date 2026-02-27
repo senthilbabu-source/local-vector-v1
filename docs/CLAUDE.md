@@ -56,7 +56,7 @@ lib/tools/             — AI chat tool definitions
 lib/auth/              — Role enforcement (org-roles.ts: roleSatisfies, assertOrgRole, ROLE_PERMISSIONS)
 lib/mcp/               — MCP server tool registrations
 lib/supabase/database.types.ts — Full Database type (33 tables, 9 enums, Relationships)
-supabase/migrations/   — Applied SQL migrations (34, timestamp-ordered)
+supabase/migrations/   — Applied SQL migrations (35, timestamp-ordered)
 supabase/prod_schema.sql — Full production schema dump
 docs/                  — 50 spec documents (authoritative for planned features)
 src/__tests__/         — Unit + integration tests
@@ -80,7 +80,7 @@ tests/e2e/             — Playwright E2E tests (18 specs)
 | `page_audits` | AEO page audit results per org (5 dimension scores: answer_first, schema_completeness, faq_schema, keyword_density/aeo_readability, entity_clarity + recommendations with dimensionKey/schemaType) |
 | `google_oauth_tokens` | GBP OAuth credentials per org (service-role writes, authenticated SELECT) |
 | `location_integrations` | Platform connections per location (Big 6 + listing URLs + WordPress `wp_username`/`wp_app_password`) |
-| `memberships` | Org membership per user — role (owner/admin/member/viewer), invited_by, joined_at. No RLS (used by SECURITY DEFINER `current_user_org_id()`). UNIQUE(user_id, org_id). |
+| `memberships` | Org membership per user — role (owner/admin/member/viewer), invited_by, joined_at. RLS: `memberships_org_isolation_select/insert/update/delete` via `current_user_org_id()` (added FIX-2). UNIQUE(user_id, org_id). |
 | `pending_invitations` | Token-based invitation tracking — email, role, token (unique 32-byte hex), status (pending/accepted/revoked/expired), expires_at (7 days). RLS: org-scoped via `current_user_org_id()`. UNIQUE(org_id, email). |
 | `cron_run_log` | Cron execution health log (cron_name, duration_ms, status, summary JSONB) — service-role only, no RLS policies |
 | `crawler_hits` | AI bot visit log per magic menu page — bot_type, user_agent, crawled_at. RLS: org_isolation_select + service_role_insert. Columns: org_id, menu_id, location_id, bot_type, user_agent |
@@ -122,6 +122,7 @@ tests/e2e/             — Playwright E2E tests (18 specs)
 32. `20260301000003_seat_billing_location_permissions.sql` — `seat_limit`/`seat_overage_count`/`seat_overage_since` on `organizations` + `location_permissions` table
 33. `20260302000001_multi_location_management.sql` — `is_archived`/`display_name`/`timezone`/`location_order` on `locations`
 34. `20260302000002_occasion_snooze_sidebar_badges.sql` — `occasion_snoozes` + `sidebar_badge_state` tables
+35. `20260303000001_memberships_rls.sql` — ENABLE RLS + 4 org isolation policies on `memberships` (FIX-2)
 
 ## Testing Commands
 
@@ -187,6 +188,38 @@ UPSTASH_REDIS_REST_URL, UPSTASH_REDIS_REST_TOKEN
 - Tests: 12 Vitest (type-guard regression suite in `database-types-completeness.test.ts`)
 - Result: 0 TS errors (was 41), 2555 tests pass, 179 files.
 
+### Sprint FIX-2 — Security Hardening (2026-02-27)
+- npm audit fix: `@modelcontextprotocol/sdk` 1.27.1, `minimatch` 9.0.9, `rollup` 4.59.0 — 0 HIGH vulnerabilities remaining.
+- `supabase/migrations/20260303000001_memberships_rls.sql` — ENABLE RLS + 4 org isolation policies on `memberships` table.
+- `supabase/prod_schema.sql` — Updated with memberships RLS.
+- `local_occasions` assessed as global table (no `org_id` column) — no RLS needed.
+- AI_RULES: added §56 (security maintenance rules).
+- Tests: 12 Vitest (`memberships-rls.test.ts`), 3 Vitest (`npm-audit.test.ts`)
+- Result: 0 HIGH npm vulns (was 3), 2570 tests pass, 181 files.
+
+## Tier Completion Status
+
+| Tier | Sprints | Status | Gate |
+|------|---------|--------|------|
+| Tier 1 | 1–30 | Complete | — |
+| Tier 2 | 31–70 | Complete | — |
+| Tier 3 | 71–101 | Complete | — |
+| Production Fixes | FIX-1 – FIX-2 | Complete | — |
+| Tier 4 | 102–106 | Gated | Sprint 102: Apple BC API approval. Sprint 103: Bing Places API approval. Sprint 104–106: no external gate. |
+| Tier 5 | 107–109 | Gated | 4–8 weeks of SOV baseline data required (cron not yet registered in vercel.json). |
+
+### Next Sprint Ready to Execute: Sprint 104 — Dynamic FAQ Auto-Generation
+No external dependencies. Can begin immediately. See AI_RULES §59.
+
+### Sprints Pending External Approval:
+- Sprint 102 (Apple Business Connect): Submit API request at https://developer.apple.com/business-connect/
+- Sprint 103 (Bing Places): Submit API request at https://bingplaces.com
+
+### Sprints Pending Data Accumulation:
+- Sprint 107 (Competitor Prompt Hijacking): Needs 4+ weeks SOV data after cron registration.
+- Sprint 108 (Per-Engine Playbooks): Needs 8+ weeks SOV data.
+- Sprint 109 (Intent Discovery): Needs 8+ weeks Perplexity query data.
+
 ## Build History
 
-See `DEVLOG.md` (project root) and `docs/DEVLOG.md` for the complete sprint-by-sprint build log. Current sprint: 101 (+ FIX-1).
+See `DEVLOG.md` (project root) and `docs/DEVLOG.md` for the complete sprint-by-sprint build log. Current sprint: 101 (+ FIX-1, FIX-2).

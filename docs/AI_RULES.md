@@ -1607,4 +1607,122 @@ After any migration that adds tables or columns, the following three files must 
 **MCP security:** The `/api/mcp/[transport]` endpoint serves org-scoped tools. The `@modelcontextprotocol/sdk` package must be at the latest patched version at all times. Cross-client data leaks at the transport layer bypass all org isolation.
 
 ---
+
+## §57. Apple Business Connect Sync (PLACEHOLDER — Sprint 102, NOT YET EXECUTED)
+
+> **Status:** Awaiting Apple Business Connect API approval. Do not implement until API access is confirmed.
+> **Gate condition:** Apple Business Connect API credentials approved and accessible.
+
+Sprint 102 will sync business profile data from Apple Business Connect (ABC) into LocalVector's `locations` table via a new `abc_connections` table and `/api/cron/abc-sync` route.
+
+**Pre-sprint requirements:**
+- Submit Apple Business Connect API access request at https://developer.apple.com/business-connect/
+- Confirm API response schema before designing the data mapper
+- Follow the GBP data mapper pattern from `lib/gbp/gbp-data-mapper.ts` for the ABC mapper
+
+**Provisional rule:** All Apple Business Connect data transformation must be centralized in `lib/abc/abc-data-mapper.ts` — never inline in route handlers.
+
+---
+
+## §58. Bing Places Sync (PLACEHOLDER — Sprint 103, NOT YET EXECUTED)
+
+> **Status:** Awaiting Bing Places Partner API approval. Do not implement until API access is confirmed.
+> **Gate condition:** Bing Places Partner API credentials approved and accessible.
+
+Sprint 103 will sync business data from Bing Places for Business into LocalVector via a new `bing_connections` table and `/api/cron/bing-sync` route.
+
+**Pre-sprint requirements:**
+- Apply for Bing Places Partner API at https://bingplaces.com
+- Confirm Bing Places API authentication method (OAuth vs API key)
+- Follow the same OAuth + cron pattern established by GBP (Sprints 57B, 89, 90)
+
+**Provisional rule:** All Bing Places data transformation must be centralized in `lib/bing/bing-data-mapper.ts`.
+
+---
+
+## §59. Dynamic FAQ Auto-Generation (PLACEHOLDER — Sprint 104, NOT YET EXECUTED)
+
+> **Status:** No external dependencies. Can execute immediately.
+> **Gate condition:** None — ready to run.
+
+Sprint 104 will auto-generate FAQ schema markup (`FAQPage` JSON-LD) from location data, GBP Q&A, and AI analysis. Output injected into the location's public page and AEO schema layer.
+
+**Pre-sprint requirements:**
+- Read `lib/schema-generator/` (Sprint 70/84) before designing FAQ generation — reuse the schema builder pattern
+- FAQ content generated via AI SDK — use `lib/ai/providers.ts` pattern
+
+**Provisional rules:**
+- FAQ generation must be idempotent — running twice produces the same output for the same input data.
+- Generated FAQ items stored in `locations.faq_data` (jsonb) — not hard-coded in schema templates.
+- Maximum 10 FAQ items per location — truncate, do not error, if AI returns more.
+
+---
+
+## §60. Review Response Engine (PLACEHOLDER — Sprint 105, NOT YET EXECUTED)
+
+> **Status:** Requires active Agency customers with live review data before meaningful testing.
+> **Gate condition:** At least 3 Agency-tier customers actively using LocalVector with GBP reviews flowing in.
+
+Sprint 105 will generate AI-drafted responses to Google Business Profile reviews, surfaced in a new "Reviews" dashboard section. Responses are drafts only — the business owner approves before publishing.
+
+**Provisional rules:**
+- Review responses are ALWAYS drafts — never auto-publish without explicit user approval.
+- Response generation must respect the kill-switch pattern for cost control.
+- Store draft responses in a new `review_responses` table — never mutate the source review data.
+
+---
+
+## §61. RAG Chatbot Widget (PLACEHOLDER — Sprint 106, NOT YET EXECUTED)
+
+> **Status:** Requires 80%+ complete menu/product data for at least one location.
+> **Gate condition:** Golden tenant has complete menu data in `magic_menus` table.
+
+Sprint 106 will embed a RAG-powered chatbot widget on the public-facing location page (`/m/[slug]`). The chatbot answers customer questions using the location's menu, hours, amenities, and FAQ data as its knowledge base.
+
+**Provisional rules:**
+- The chatbot widget is a `'use client'` component with a floating button — lazy load with dynamic import, must not block LCP.
+- RAG retrieval is server-side only — never expose raw menu data or embedding vectors to the client.
+- Widget must degrade gracefully when AI is unavailable — show a static "Contact us" fallback.
+
+---
+
+## §62. Competitor Prompt Hijacking (PLACEHOLDER — Sprint 107, NOT YET EXECUTED)
+
+> **Status:** Requires 4–8 weeks of SOV baseline data.
+> **Gate condition:** `/api/cron/sov` has been running in production for at least 4 weeks (confirmed by `cron_run_log` entries).
+
+Sprint 107 will analyze SOV data to identify competitor prompts where a business could outrank current AI citations, and generate targeted content briefs.
+
+**Provisional rules:**
+- Competitor analysis uses only data already stored in `sov_evaluations` — never triggers new live AI queries for this feature.
+- Content briefs stored in a new `content_briefs` table — not in the SOV snapshot records.
+
+---
+
+## §63. Per-Engine AI Playbooks (PLACEHOLDER — Sprint 108, NOT YET EXECUTED)
+
+> **Status:** Requires 8 weeks of multi-engine SOV data (Perplexity, GPT-4o, Gemini, Copilot).
+> **Gate condition:** `/api/cron/sov` has been running for at least 8 weeks with all 4 engines active.
+
+Sprint 108 will generate per-AI-engine optimization playbooks — specific guidance on how to optimize content for each engine's citation patterns.
+
+**Provisional rules:**
+- Playbooks are per-engine AND per-business-category — a hookah lounge playbook differs from a dentist playbook.
+- Playbook generation must be re-runnable — new data updates playbooks, not creates duplicates.
+
+---
+
+## §64. Intent Discovery Engine (PLACEHOLDER — Sprint 109, NOT YET EXECUTED)
+
+> **Status:** Requires 8 weeks of Perplexity query history data.
+> **Gate condition:** Perplexity SOV engine has been running for at least 8 weeks with `raw_query` data stored.
+
+Sprint 109 will mine Perplexity's query data to discover the actual natural-language questions users ask when finding local businesses — creating an "intent map" that drives content strategy.
+
+**Provisional rules:**
+- Intent discovery runs as a monthly batch job — not per request.
+- Query clustering uses a deterministic algorithm (not pure LLM) to ensure reproducible intent groups.
+- Intent maps stored in a new `intent_clusters` table — never overwrite raw query data.
+
+---
 > **End of System Instructions**
