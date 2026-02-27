@@ -13,6 +13,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Database } from '@/lib/supabase/database.types';
 import type { ContentDraftRow, PublishResult } from '@/lib/types/autopilot';
+import { refreshGBPAccessToken } from '@/lib/services/gbp-token-refresh';
 
 /** GBP post body maximum length. */
 export const GBP_MAX_CHARS = 1500;
@@ -52,44 +53,6 @@ export function truncateAtSentence(text: string, maxChars: number): string {
 }
 
 // ---------------------------------------------------------------------------
-// Token Refresh
-// ---------------------------------------------------------------------------
-
-async function refreshGBPToken(
-  orgId: string,
-  refreshToken: string,
-  supabase: SupabaseClient<Database>,
-): Promise<string> {
-  const response = await fetch('https://oauth2.googleapis.com/token', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: new URLSearchParams({
-      grant_type: 'refresh_token',
-      refresh_token: refreshToken,
-      client_id: process.env.GOOGLE_CLIENT_ID ?? '',
-      client_secret: process.env.GOOGLE_CLIENT_SECRET ?? '',
-    }),
-  });
-
-  if (!response.ok) {
-    throw new Error(`GBP token refresh failed: ${response.status}`);
-  }
-
-  const data = await response.json();
-  const newAccessToken = data.access_token;
-  const expiresIn = data.expires_in ?? 3600;
-  const expiresAt = new Date(Date.now() + expiresIn * 1000).toISOString();
-
-  // Update token in database
-  await supabase
-    .from('google_oauth_tokens')
-    .update({ access_token: newAccessToken, expires_at: expiresAt })
-    .eq('org_id', orgId);
-
-  return newAccessToken;
-}
-
-// ---------------------------------------------------------------------------
 // Main Export
 // ---------------------------------------------------------------------------
 
@@ -118,7 +81,9 @@ export async function publishToGBP(
   let accessToken = tokenRow.access_token;
   const expiresAt = new Date(tokenRow.expires_at);
   if (expiresAt <= new Date()) {
-    accessToken = await refreshGBPToken(orgId, tokenRow.refresh_token, supabase);
+    const refreshResult = await refreshGBPAccessToken(orgId, tokenRow.refresh_token, supabase);
+    if (!refreshResult.success) throw new Error(refreshResult.error ?? 'Token refresh failed');
+    accessToken = refreshResult.newAccessToken!;
   }
 
   // Get location name for the GBP API URL
@@ -159,7 +124,9 @@ export async function publishToGBP(
 
   // Handle token expiry (401) with one retry
   if (gbpResponse.status === 401) {
-    const newToken = await refreshGBPToken(orgId, tokenRow.refresh_token, supabase);
+    const retryRefresh = await refreshGBPAccessToken(orgId, tokenRow.refresh_token, supabase);
+    if (!retryRefresh.success) throw new Error(retryRefresh.error ?? 'Token refresh failed');
+    const newToken = retryRefresh.newAccessToken!;
     const retryResponse = await fetch(
       `https://mybusiness.googleapis.com/v4/${locationName}/localPosts`,
       {

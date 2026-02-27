@@ -1367,5 +1367,15 @@ When passing data between an OAuth callback and a downstream picker page, NEVER 
 * **Cleanup:** After successful import, DELETE the `pending_*` row and the cookie.
 * **Pure mapper pattern:** `lib/services/gbp-mapper.ts` — all GBP-to-LocalVector field mapping is in pure functions (no I/O, no Supabase). Tested independently, called from both callback (auto-import) and server action (picker import).
 
+## 41. GBP Data Mapping — Centralized in `lib/gbp/gbp-data-mapper.ts` (Sprint 89)
+
+All Google Business Profile API response transformation for re-sync/import is centralized in `lib/gbp/gbp-data-mapper.ts`. The initial OAuth import mapper remains at `lib/services/gbp-mapper.ts`.
+
+* **Rule:** Never inline GBP field transformation in API routes or actions. Always call `mapGBPToLocation()`.
+* **Adding new fields:** Add to `GBPLocation` interface in `lib/types/gbp.ts`, add mapping in `mapGBPToLocation()`, add test in `gbp-data-mapper.test.ts`.
+* **Adding amenities:** Append to `KNOWN_AMENITY_ATTRIBUTES` record. New entries automatically appear in import output.
+* **Token refresh:** All token expiry checks and refreshes use `lib/services/gbp-token-refresh.ts`. Never inline OAuth token refresh calls.
+* **isTokenExpired():** 5-minute buffer before actual expiry. Use before any GBP API call.
+
 ---
 > **End of System Instructions**

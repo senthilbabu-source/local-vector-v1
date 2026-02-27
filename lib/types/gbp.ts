@@ -39,4 +39,21 @@ export interface GBPLocation {
     mapsUri?: string;
     newReviewUri?: string;
   };
+
+  // Sprint 89 additions — enriched fields from GBP API readMask
+  openInfo?: {
+    status?: 'OPEN' | 'CLOSED_PERMANENTLY' | 'CLOSED_TEMPORARILY';
+  };
+
+  attributes?: GBPAttribute[];
+
+  categories?: {
+    primaryCategory?: { displayName?: string };
+    additionalCategories?: Array<{ displayName?: string }>;
+  };
+}
+
+export interface GBPAttribute {
+  attributeId: string; // e.g. "has_wifi", "has_outdoor_seating"
+  values: (string | boolean | number)[];
 }

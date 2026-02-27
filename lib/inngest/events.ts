@@ -35,4 +35,14 @@ export type Events = {
   'cron/digest.weekly': {
     data: Record<string, never>;
   };
+
+  /** Sprint 90: Triggered by Vercel Cron → refresh-gbp-tokens. Proactive token refresh. */
+  'cron/gbp-token-refresh.hourly': {
+    data: Record<string, never>;
+  };
+
+  /** Sprint 90: Triggered by Vercel Cron → refresh-places. Google ToS compliance. */
+  'cron/places-refresh.daily': {
+    data: Record<string, never>;
+  };
 };

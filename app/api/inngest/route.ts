@@ -14,6 +14,8 @@ import { auditCronFunction } from '@/lib/inngest/functions/audit-cron';
 import { contentAuditCronFunction } from '@/lib/inngest/functions/content-audit-cron';
 import { postPublishCheckFunction } from '@/lib/inngest/functions/post-publish-check';
 import { weeklyDigestCron } from '@/lib/inngest/functions/weekly-digest-cron';
+import { tokenRefreshCron } from '@/lib/inngest/functions/token-refresh-cron';
+import { placesRefreshCron } from '@/lib/inngest/functions/places-refresh-cron';
 
 export const { GET, POST, PUT } = serve({
   client: inngest,
@@ -23,6 +25,8 @@ export const { GET, POST, PUT } = serve({
     contentAuditCronFunction,
     postPublishCheckFunction,
     weeklyDigestCron,
+    tokenRefreshCron,
+    placesRefreshCron,
   ],
 });
 

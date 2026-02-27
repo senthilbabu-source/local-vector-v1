@@ -935,6 +935,7 @@ export type Database = {
           updated_at: string | null;
           google_location_name: string | null;
           gbp_integration_id: string | null;
+          gbp_synced_at: string | null;
           avg_customer_value: number | null;
           monthly_covers: number | null;
         };
@@ -964,6 +965,7 @@ export type Database = {
           updated_at?: string | null;
           google_location_name?: string | null;
           gbp_integration_id?: string | null;
+          gbp_synced_at?: string | null;
           avg_customer_value?: number | null;
           monthly_covers?: number | null;
         };
@@ -993,6 +995,7 @@ export type Database = {
           updated_at?: string | null;
           google_location_name?: string | null;
           gbp_integration_id?: string | null;
+          gbp_synced_at?: string | null;
           avg_customer_value?: number | null;
           monthly_covers?: number | null;
         };

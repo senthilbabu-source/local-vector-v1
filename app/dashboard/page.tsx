@@ -6,8 +6,10 @@ import { fetchEntityHealth } from '@/lib/data/entity-health';
 import { createClient } from '@/lib/supabase/server';
 import type { ProofTimeline } from '@/lib/services/proof-timeline.service';
 import type { EntityHealthResult } from '@/lib/services/entity-health.service';
-import { canRunAutopilot, type PlanTier } from '@/lib/plan-enforcer';
+import { canRunAutopilot, canConnectGBP, type PlanTier } from '@/lib/plan-enforcer';
+import { createServiceRoleClient } from '@/lib/supabase/server';
 import { nextSundayLabel } from './_components/scan-health-utils';
+import GBPImportCard from './_components/GBPImportCard';
 import RealityScoreCard from './_components/RealityScoreCard';
 import AlertFeed from './_components/AlertFeed';
 import SOVTrendChart from './_components/SOVTrendChart';
@@ -95,10 +97,40 @@ export default async function DashboardPage() {
   } catch {
     // Entity health is non-critical — dashboard renders without it.
   }
+  // ── Sprint 89: GBP Import Card (Growth+ plan gated) ────────────────────
+  let gbpSyncedAt: string | null = null;
+  let hasGBPConnection = false;
+  const planTier = (orgPlan ?? 'trial') as PlanTier;
+  if (ctx.orgId && canConnectGBP(planTier)) {
+    try {
+      const serviceRole = createServiceRoleClient();
+      const { data: tokenRow } = await serviceRole
+        .from('google_oauth_tokens')
+        .select('id')
+        .eq('org_id', ctx.orgId)
+        .maybeSingle();
+      hasGBPConnection = !!tokenRow;
+
+      if (hasGBPConnection) {
+        const supabase2 = await createClient();
+        const { data: loc } = await supabase2
+          .from('locations')
+          .select('gbp_synced_at')
+          .eq('org_id', ctx.orgId)
+          .order('created_at', { ascending: true })
+          .limit(1)
+          .maybeSingle();
+        gbpSyncedAt = loc?.gbp_synced_at ?? null;
+      }
+    } catch {
+      // GBP card is non-critical
+    }
+  }
+
   const scores = deriveRealityScore(openAlerts.length, visibilityScore);
   const firstName = ctx.fullName?.split(' ')[0] ?? ctx.email.split('@')[0];
   const hasOpenAlerts = openAlerts.length > 0;
-  const draftGated = canRunAutopilot((orgPlan ?? 'trial') as PlanTier);
+  const draftGated = canRunAutopilot(planTier);
   const sovSparkline = sovTrend.slice(-7).map((d) => d.sov);
   return (
     <div className="space-y-5">
@@ -159,6 +191,8 @@ export default async function DashboardPage() {
       <ProofTimelineCard timeline={proofTimeline} />
       {/* Sprint 80: Entity Health Card */}
       <EntityHealthCard entityHealth={entityHealth} />
+      {/* Sprint 89: GBP Import Card (Growth+ with GBP connected) */}
+      {hasGBPConnection && <GBPImportCard gbpSyncedAt={gbpSyncedAt} />}
       {/* Sprint 76: Content Freshness + Cron Health Cards */}
       <ContentFreshnessCard freshness={freshness} />
       <CronHealthCard cronHealth={cronHealth} />

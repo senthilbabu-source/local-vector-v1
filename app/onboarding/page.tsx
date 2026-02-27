@@ -1,7 +1,8 @@
 import { redirect } from 'next/navigation';
 import { getSafeAuthContext } from '@/lib/auth';
-import { createClient } from '@/lib/supabase/server';
+import { createClient, createServiceRoleClient } from '@/lib/supabase/server';
 import TruthCalibrationForm from './_components/TruthCalibrationForm';
+import GBPImportInterstitial from './_components/GBPImportInterstitial';
 import type { HoursData, Amenities } from '@/lib/types/ground-truth';
 
 // ---------------------------------------------------------------------------
@@ -83,6 +84,22 @@ export default async function OnboardingPage({
     redirect('/dashboard');
   }
 
+  // ── Sprint 89: Check GBP connection for import interstitial ──────────────
+  // Show the import interstitial when:
+  //   1. User has GBP connected (google_oauth_tokens row exists)
+  //   2. Location doesn't have hours_data yet (hasn't imported)
+  //   3. User didn't explicitly skip (source !== 'gbp_skip')
+  let hasGBPConnection = false;
+  if (orgId && source !== 'gbp_skip' && !location.hours_data) {
+    const serviceRole = createServiceRoleClient();
+    const { data: tokenRow } = await serviceRole
+      .from('google_oauth_tokens')
+      .select('id')
+      .eq('org_id', orgId)
+      .maybeSingle();
+    hasGBPConnection = !!tokenRow;
+  }
+
   return (
     <div className="min-h-screen bg-midnight-slate flex items-center justify-center p-4">
       <div className="w-full max-w-xl">
@@ -103,16 +120,23 @@ export default async function OnboardingPage({
             </span>
           </div>
           <h1 className="text-2xl font-bold text-white tracking-tight mb-2">
-            Teach AI the Truth About Your Business
+            {hasGBPConnection
+              ? 'Import Your Business Data'
+              : 'Teach AI the Truth About Your Business'}
           </h1>
           <p className="text-sm text-slate-400 max-w-sm mx-auto">
-            This sets the baseline the Fear Engine uses to catch hallucinations.
-            If you skip &quot;Alcohol,&quot; we can&apos;t detect &quot;No Alcohol&quot; lies.
+            {hasGBPConnection
+              ? 'Your Google Business Profile is connected. Import your hours, address, and amenities automatically.'
+              : 'This sets the baseline the Fear Engine uses to catch hallucinations. If you skip "Alcohol," we can\u2019t detect "No Alcohol" lies.'}
           </p>
         </div>
 
-        {/* ── Wizard ──────────────────────────────────────────────────── */}
-        <TruthCalibrationForm location={location} />
+        {/* ── Sprint 89: GBP import interstitial or manual wizard ────── */}
+        {hasGBPConnection ? (
+          <GBPImportInterstitial />
+        ) : (
+          <TruthCalibrationForm location={location} />
+        )}
 
       </div>
     </div>

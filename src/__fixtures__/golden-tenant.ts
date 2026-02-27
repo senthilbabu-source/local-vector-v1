@@ -979,3 +979,82 @@ export const MOCK_GBP_LOCATION_SECOND: GBPLocation = {
     placeId: 'ChIJtest_downtown_123',
   },
 };
+
+/**
+ * Sprint 89 — Enhanced GBP location with openInfo, attributes, and categories.
+ * Used by the /api/gbp/import re-sync endpoint tests.
+ * Matches the extended GBPLocation interface in lib/types/gbp.ts.
+ */
+export const MOCK_GBP_LOCATION_ENRICHED: GBPLocation = {
+  name: 'accounts/123456789/locations/987654321',
+  title: 'Charcoal N Chill',
+  storefrontAddress: {
+    addressLines: ['11950 Jones Bridge Road', 'Ste 103'],
+    locality: 'Alpharetta',
+    administrativeArea: 'GA',
+    postalCode: '30005',
+    regionCode: 'US',
+  },
+  regularHours: {
+    periods: [
+      { openDay: 'TUESDAY',   openTime: { hours: 17, minutes: 0 }, closeDay: 'TUESDAY',   closeTime: { hours: 1, minutes: 0 } },
+      { openDay: 'WEDNESDAY', openTime: { hours: 17, minutes: 0 }, closeDay: 'WEDNESDAY', closeTime: { hours: 1, minutes: 0 } },
+      { openDay: 'THURSDAY',  openTime: { hours: 17, minutes: 0 }, closeDay: 'THURSDAY',  closeTime: { hours: 1, minutes: 0 } },
+      { openDay: 'FRIDAY',    openTime: { hours: 17, minutes: 0 }, closeDay: 'FRIDAY',    closeTime: { hours: 2, minutes: 0 } },
+      { openDay: 'SATURDAY',  openTime: { hours: 17, minutes: 0 }, closeDay: 'SATURDAY',  closeTime: { hours: 2, minutes: 0 } },
+      { openDay: 'SUNDAY',    openTime: { hours: 17, minutes: 0 }, closeDay: 'SUNDAY',    closeTime: { hours: 1, minutes: 0 } },
+    ],
+  },
+  primaryPhone: '(470) 546-4866',
+  websiteUri: 'https://charcoalnchill.com',
+  metadata: {
+    placeId: 'ChIJi8-1ywdO9YgR9s5j-y0_1lI',
+    mapsUri: 'https://maps.google.com/?cid=12345',
+    newReviewUri: 'https://search.google.com/local/writereview?placeid=ChIJi8-1ywdO9YgR9s5j-y0_1lI',
+  },
+  openInfo: { status: 'OPEN' },
+  attributes: [
+    { attributeId: 'has_wifi',             values: [true] },
+    { attributeId: 'has_outdoor_seating',  values: [true] },
+    { attributeId: 'serves_alcohol',       values: [true] },
+    { attributeId: 'has_live_music',       values: [true] },
+    { attributeId: 'accepts_reservations', values: [true] },
+    { attributeId: 'has_dine_in',          values: [true] },
+  ],
+  categories: {
+    primaryCategory: { displayName: 'Hookah Bar' },
+  },
+};
+
+/**
+ * Sprint 89 — Expected MappedLocationData output for MOCK_GBP_LOCATION_ENRICHED.
+ * Canonical expected output for enhanced mapper tests.
+ */
+export const MOCK_GBP_MAPPED: import('@/lib/gbp/gbp-data-mapper').MappedLocationData = {
+  business_name: 'Charcoal N Chill',
+  phone: '(470) 546-4866',
+  website_url: 'https://charcoalnchill.com',
+  address_line1: '11950 Jones Bridge Road, Ste 103',
+  city: 'Alpharetta',
+  state: 'GA',
+  zip: '30005',
+  operational_status: 'open',
+  hours_data: {
+    monday:    'closed',
+    tuesday:   { open: '17:00', close: '01:00' },
+    wednesday: { open: '17:00', close: '01:00' },
+    thursday:  { open: '17:00', close: '01:00' },
+    friday:    { open: '17:00', close: '02:00' },
+    saturday:  { open: '17:00', close: '02:00' },
+    sunday:    { open: '17:00', close: '01:00' },
+  },
+  amenities: {
+    wifi: true,
+    outdoor_seating: true,
+    alcohol: true,
+    live_music: true,
+    reservations: true,
+    dine_in: true,
+  },
+  primary_category: 'Hookah Bar',
+};

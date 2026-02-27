@@ -4,6 +4,76 @@
 
 ---
 
+## 2026-02-28 — Sprint 89: GBP Data Import — Full Mapping Pipeline (Completed)
+
+**Goal:** Complete the GBP data import pipeline. OAuth was connected (Sprint 57B) but no enriched data flowed into the system for re-sync. This sprint closes the loop: connect → fetch → map → upsert → populated dashboard.
+
+**Scope:**
+- `lib/types/gbp.ts` — **MODIFIED.** Extended GBPLocation with openInfo, attributes, categories, GBPAttribute interface.
+- `lib/gbp/gbp-data-mapper.ts` — **NEW.** Enhanced GBP → LocationData mapper. Exports: `mapGBPToLocation()`, `mapHours()`, `mapOperationalStatus()`, `mapAmenities()`, `formatTime()`, `KNOWN_AMENITY_ATTRIBUTES`, `GBP_DAY_MAP`. Handles all 7 days, midnight closes, unknown attributes.
+- `lib/services/gbp-token-refresh.ts` — **MODIFIED.** Added `isTokenExpired()` (5-min buffer).
+- `app/api/gbp/import/route.ts` — **NEW.** Authenticated POST endpoint. Auth → token check → GBP fetch (readMask) → map → upsert with gbp_synced_at. Error codes: not_connected, token_expired, gbp_api_error, no_location, upsert_failed.
+- `app/actions/gbp-import.ts` — **NEW.** Server Action wrapper for triggerGBPImport().
+- `app/onboarding/page.tsx` — **MODIFIED.** GBP import interstitial step added. States: idle, importing (spinner), success (data preview card), error (error_code-specific message + manual fallback). data-testid attributes on all interactive elements.
+- `app/onboarding/_components/GBPImportInterstitial.tsx` — **NEW.** Client component for the import interstitial.
+- `app/dashboard/_components/GBPImportCard.tsx` — **NEW.** Growth+ plan gated via canConnectGBP(). Shows last sync time or "never synced" CTA. Inline loading on Sync Now.
+- `app/dashboard/page.tsx` — **MODIFIED.** GBPImportCard added to dashboard for connected users.
+- `supabase/migrations/20260228000003_locations_gbp_sync.sql` — **NEW.** Adds gbp_synced_at timestamptz + index.
+- `supabase/prod_schema.sql` — **MODIFIED.** Added gbp_synced_at to locations.
+- `lib/supabase/database.types.ts` — **MODIFIED.** Added gbp_synced_at to locations Row/Insert/Update.
+- `supabase/seed.sql` — **MODIFIED.** Updated Charcoal N Chill location with realistic hours_data, operational_status, amenities, gbp_synced_at.
+- `src/__fixtures__/golden-tenant.ts` — **MODIFIED.** Added MOCK_GBP_LOCATION_ENRICHED and MOCK_GBP_MAPPED.
+
+**Tests added:**
+- `src/__tests__/unit/gbp-data-mapper.test.ts` — **39 Vitest tests.** Pure function tests: mapGBPToLocation (13), mapHours (8), mapOperationalStatus (6), mapAmenities (7), formatTime (5).
+- `src/__tests__/unit/gbp-import-route.test.ts` — **12 Vitest tests.** Auth guard, error codes, GBP fetch mock, upsert, token refresh.
+- `src/__tests__/unit/gbp-token-refresh.test.ts` — **5 new isTokenExpired tests** added to existing 12 tests (17 total).
+- `tests/e2e/16-gbp-import-flow.spec.ts` — **8 Playwright tests.** Dashboard card (2), Onboarding interstitial (4), Toast messages (2). All GBP API calls mocked via page.route().
+
+**Run commands:**
+- `npx vitest run src/__tests__/unit/gbp-data-mapper.test.ts` — 39 tests
+- `npx vitest run src/__tests__/unit/gbp-import-route.test.ts` — 12 tests
+- `npx vitest run src/__tests__/unit/gbp-token-refresh.test.ts` — 17 tests (5 new + 12 existing)
+- `npx vitest run` — All unit tests — no regressions (1878 passing)
+- `npx playwright test tests/e2e/16-gbp-import-flow.spec.ts` — 8 e2e tests
+- `npx tsc --noEmit` — 0 new type errors
+
+---
+
+## 2026-02-27 — Sprint 90: GBP Token Refresh + Places Detail Refresh Crons (Completed)
+
+**Goal:** Proactive GBP OAuth token refresh (hourly cron) and Google Places Detail refresh (daily cron for ToS compliance). Fixes Gap #71 (token time bomb) and Gap #72 (stale Place Details).
+
+**Scope:**
+- `lib/services/gbp-token-refresh.ts` — **NEW.** Shared service: `refreshGBPAccessToken()` (single org) + `refreshExpiringTokens()` (bulk cron). Returns `TokenRefreshResult` with `newAccessToken`.
+- `lib/services/places-refresh.ts` — **NEW.** `refreshStalePlaceDetails()` — finds locations >29 days stale for active-plan orgs, fetches Google Places API (New), updates DB. Zombie filter excludes churned orgs.
+- `app/api/cron/refresh-gbp-tokens/route.ts` — **NEW.** Hourly cron: CRON_SECRET auth, kill switch (STOP_TOKEN_REFRESH_CRON), Inngest dispatch + inline fallback.
+- `app/api/cron/refresh-places/route.ts` — **NEW.** Daily cron (9am UTC): CRON_SECRET auth, kill switch (STOP_PLACES_REFRESH_CRON), Inngest dispatch + inline fallback.
+- `lib/inngest/functions/token-refresh-cron.ts` — **NEW.** Inngest function for hourly token refresh.
+- `lib/inngest/functions/places-refresh-cron.ts` — **NEW.** Inngest function for daily places refresh.
+- `lib/inngest/events.ts` — **MODIFIED.** Added `cron/gbp-token-refresh.hourly` and `cron/places-refresh.daily` events.
+- `app/api/inngest/route.ts` — **MODIFIED.** Registered 2 new Inngest functions.
+- `lib/autopilot/publish-gbp.ts` — **MODIFIED.** Extracted private `refreshGBPToken()` → shared `refreshGBPAccessToken()` import.
+- `vercel.json` — **MODIFIED.** Added 2 cron schedules: `0 * * * *` (token refresh) + `0 9 * * *` (places refresh).
+- `src/__helpers__/msw/handlers.ts` — **MODIFIED.** Added guards for `oauth2.googleapis.com` and `places.googleapis.com`.
+
+**New tests (33 total):**
+- `src/__tests__/unit/gbp-token-refresh.test.ts` — 12 tests (7 refreshGBPAccessToken + 5 refreshExpiringTokens)
+- `src/__tests__/unit/cron-refresh-tokens-route.test.ts` — 6 tests (auth, kill switch, Inngest, fallback, logging)
+- `src/__tests__/unit/places-refresh.test.ts` — 9 tests (API key guard, stale query, refresh, skip, failures, zombie filter, FieldMask)
+- `src/__tests__/unit/cron-refresh-places-route.test.ts` — 6 tests (auth, kill switch, Inngest, fallback, logging)
+
+**Run commands:**
+```bash
+npx vitest run src/__tests__/unit/gbp-token-refresh.test.ts          # 12 tests PASS
+npx vitest run src/__tests__/unit/cron-refresh-tokens-route.test.ts   # 6 tests PASS
+npx vitest run src/__tests__/unit/places-refresh.test.ts              # 9 tests PASS
+npx vitest run src/__tests__/unit/cron-refresh-places-route.test.ts   # 6 tests PASS
+npx vitest run                                                         # 1822 tests passing (was 1789)
+```
+
+---
+
 ## 2026-02-28 — Sprint 89b: GBP Flow Refinement + Golden Tenant Fixtures + E2E (Completed)
 
 **Goal:** Refine Sprint 89 implementation to align with 89b spec: golden-tenant fixtures, Zod-validated server action, joined addressLines, E2E coverage.

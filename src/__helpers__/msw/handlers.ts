@@ -97,6 +97,20 @@ export const externalApiGuards = [
       { status: 500 }
     )
   ),
+
+  http.all('https://oauth2.googleapis.com/*', () =>
+    HttpResponse.json(
+      { error: 'Google OAuth is not mocked for this test.' },
+      { status: 500 }
+    )
+  ),
+
+  http.all('https://places.googleapis.com/*', () =>
+    HttpResponse.json(
+      { error: 'Google Places API (New) is not mocked for this test.' },
+      { status: 500 }
+    )
+  ),
 ];
 
 // ---------------------------------------------------------------------------

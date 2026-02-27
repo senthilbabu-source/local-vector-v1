@@ -1896,5 +1896,35 @@ SELECT
 FROM public.locations l
 WHERE l.org_id = 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11'
   AND l.slug   = 'alpharetta'
-LIMIT 1
+LIMIT 1;
+
+-- ══════════════════════════════════════════════════════════════
+-- Sprint 89: Update golden tenant location with GBP-synced data
+-- ══════════════════════════════════════════════════════════════
+
+UPDATE public.locations
+SET
+  hours_data = '{
+    "monday":    "closed",
+    "tuesday":   {"open": "17:00", "close": "01:00"},
+    "wednesday": {"open": "17:00", "close": "01:00"},
+    "thursday":  {"open": "17:00", "close": "01:00"},
+    "friday":    {"open": "17:00", "close": "02:00"},
+    "saturday":  {"open": "17:00", "close": "02:00"},
+    "sunday":    {"open": "17:00", "close": "01:00"}
+  }'::jsonb,
+  operational_status = 'OPERATIONAL',
+  amenities = '{
+    "has_outdoor_seating": true,
+    "serves_alcohol": true,
+    "has_hookah": true,
+    "is_kid_friendly": false,
+    "takes_reservations": true,
+    "has_live_music": true,
+    "has_dj": true,
+    "has_private_rooms": true
+  }'::jsonb,
+  gbp_synced_at = NOW() - INTERVAL '3 days'
+WHERE org_id = 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11'
+  AND slug = 'alpharetta'
 ON CONFLICT (id) DO NOTHING;
