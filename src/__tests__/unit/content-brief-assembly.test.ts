@@ -7,7 +7,7 @@
 //   npx vitest run src/__tests__/unit/content-brief-assembly.test.ts
 // ---------------------------------------------------------------------------
 
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeAll } from 'vitest';
 import { assembleDraftContent } from '@/app/dashboard/share-of-voice/brief-actions';
 import { buildBriefStructure } from '@/lib/services/content-brief-builder.service';
 import { MOCK_BRIEF_STRUCTURE_INPUT, MOCK_CONTENT_BRIEF } from '@/src/__fixtures__/golden-tenant';
@@ -24,7 +24,11 @@ const structure = buildBriefStructure(MOCK_BRIEF_STRUCTURE_INPUT);
 
 describe('assembleDraftContent', () => {
   describe('with AI content', () => {
-    const result = assembleDraftContent(structure, MOCK_CONTENT_BRIEF);
+    let result: string;
+
+    beforeAll(async () => {
+      result = await assembleDraftContent(structure, MOCK_CONTENT_BRIEF);
+    });
 
     it('includes H1 from structure', () => {
       expect(result).toContain(`# ${structure.h1}`);
@@ -83,7 +87,11 @@ describe('assembleDraftContent', () => {
   });
 
   describe('without AI content (fallback)', () => {
-    const result = assembleDraftContent(structure, null);
+    let result: string;
+
+    beforeAll(async () => {
+      result = await assembleDraftContent(structure, null);
+    });
 
     it('includes placeholder when AI content is null', () => {
       expect(result).toContain('## Answer Capsule');

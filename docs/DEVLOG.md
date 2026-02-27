@@ -4,6 +4,18 @@
 
 ---
 
+## 2026-02-28 — Bug Fix: `assembleDraftContent` async (AI_RULES §25)
+
+**Goal:** Fix Next.js 16 build error — `assembleDraftContent` was a sync export in `'use server'` file `brief-actions.ts`, violating AI_RULES §25 (`Server Actions must be async functions`).
+
+**Scope:**
+- `app/dashboard/share-of-voice/brief-actions.ts` — **MODIFIED.** `assembleDraftContent` → `async`. Internal call site now uses `await`.
+- `src/__tests__/unit/content-brief-assembly.test.ts` — **MODIFIED.** Moved `assembleDraftContent()` calls into `beforeAll(async () => { ... })` hooks to await the now-async function.
+
+**Tests:** No new tests. Existing 11 tests in `content-brief-assembly.test.ts` updated to async pattern.
+
+---
+
 ## 2026-02-28 — Sprint 88: Phase 5 SOV Cleanup + Build Plan Reconciliation (Completed)
 
 **Goal:** Close the final Phase 5 SOV gaps — add missing `UNIQUE(location_id, query_text)` constraint, add `is_active` soft-disable column, fix sov-seed.ts to use proper upsert, add duplicate detection to addTargetQuery, supersede the unpromoted migration, reconcile Build Plan Phase 5 checkboxes.

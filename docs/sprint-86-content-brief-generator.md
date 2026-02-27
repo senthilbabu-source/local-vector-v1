@@ -491,7 +491,7 @@ export async function generateContentBrief(
   });
 
   // Assemble draft content
-  const draftContent = assembleDraftContent(structure, briefContent);
+  const draftContent = await assembleDraftContent(structure, briefContent);
 
   // Save to content_drafts
   const { data: draft, error: insertError } = await supabase
@@ -524,7 +524,7 @@ export async function generateContentBrief(
  * Assemble the draft content from structure + AI-generated content.
  * If AI content is null (no API key), produces structure-only brief.
  */
-function assembleDraftContent(
+async function assembleDraftContent(
   structure: ReturnType<typeof buildBriefStructure>,
   aiContent: Awaited<ReturnType<typeof generateBriefContent>>,
 ): string {
