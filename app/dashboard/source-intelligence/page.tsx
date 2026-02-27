@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation';
 import { getSafeAuthContext } from '@/lib/auth';
 import { createClient } from '@/lib/supabase/server';
 import { fetchSourceIntelligence } from '@/lib/data/source-intelligence';
+import { PlanGate } from '@/components/plan-gate/PlanGate';
 import type { NormalizedSource, SourceAlert, SourceCategory } from '@/lib/services/source-intelligence.service';
 
 // ---------------------------------------------------------------------------
@@ -36,14 +37,15 @@ export default async function SourceIntelligencePage() {
 
   const supabase = await createClient();
 
-  // Get first location for this org
-  const { data: locations } = await supabase
-    .from('locations')
-    .select('id')
-    .eq('org_id', ctx.orgId)
-    .limit(1);
+  // Get first location + org plan in parallel
+  const [locResult, orgResult] = await Promise.all([
+    supabase.from('locations').select('id').eq('org_id', ctx.orgId).limit(1),
+    supabase.from('organizations').select('plan').eq('id', ctx.orgId).single(),
+  ]);
 
-  const locationId = locations?.[0]?.id;
+  const locationId = locResult.data?.[0]?.id;
+  const plan = (orgResult.data?.plan as string) ?? 'trial';
+
   if (!locationId) {
     return (
       <div className="space-y-4">
@@ -51,7 +53,9 @@ export default async function SourceIntelligencePage() {
           <h1 className="text-xl font-semibold text-white">What AI Reads About You</h1>
           <p className="mt-0.5 text-sm text-[#94A3B8]">The sources AI engines cite when describing your business</p>
         </div>
-        <EmptyState />
+        <PlanGate requiredPlan="agency" currentPlan={plan} feature="Citation Source Intelligence">
+          <EmptyState />
+        </PlanGate>
       </div>
     );
   }
@@ -65,7 +69,9 @@ export default async function SourceIntelligencePage() {
           <h1 className="text-xl font-semibold text-white">What AI Reads About You</h1>
           <p className="mt-0.5 text-sm text-[#94A3B8]">The sources AI engines cite when describing your business</p>
         </div>
-        <EmptyState />
+        <PlanGate requiredPlan="agency" currentPlan={plan} feature="Citation Source Intelligence">
+          <EmptyState />
+        </PlanGate>
       </div>
     );
   }
@@ -79,17 +85,26 @@ export default async function SourceIntelligencePage() {
         </p>
       </div>
 
-      {/* Alerts */}
-      {result.alerts.length > 0 && <SourceAlertCards alerts={result.alerts} />}
+      {/* ── Plan-gated content (blur teaser for Growth and below) ──── */}
+      <PlanGate requiredPlan="agency" currentPlan={plan} feature="Citation Source Intelligence">
+        {/* Alerts */}
+        {result.alerts.length > 0 && <SourceAlertCards alerts={result.alerts} />}
 
-      {/* Top Sources Table */}
-      <TopSourcesTable sources={result.sources} />
+        {/* Top Sources Table */}
+        <div className="mt-6">
+          <TopSourcesTable sources={result.sources} />
+        </div>
 
-      {/* Category Breakdown */}
-      <CategoryBreakdownBars breakdown={result.categoryBreakdown} firstPartyRate={result.firstPartyRate} />
+        {/* Category Breakdown */}
+        <div className="mt-6">
+          <CategoryBreakdownBars breakdown={result.categoryBreakdown} firstPartyRate={result.firstPartyRate} />
+        </div>
 
-      {/* Per-Engine Breakdown */}
-      <EngineSourceBreakdown byEngine={result.byEngine} />
+        {/* Per-Engine Breakdown */}
+        <div className="mt-6">
+          <EngineSourceBreakdown byEngine={result.byEngine} />
+        </div>
+      </PlanGate>
     </div>
   );
 }

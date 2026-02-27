@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation';
 import { getSafeAuthContext } from '@/lib/auth';
 import { createClient } from '@/lib/supabase/server';
 import { fetchSentimentSummary, fetchSentimentTrend } from '@/lib/data/sentiment';
+import { PlanGate } from '@/components/plan-gate/PlanGate';
 import type { SentimentExtraction } from '@/lib/ai/schemas';
 
 // ---------------------------------------------------------------------------
@@ -45,14 +46,15 @@ export default async function SentimentPage() {
 
   const supabase = await createClient();
 
-  // Get first location for this org
-  const { data: locations } = await supabase
-    .from('locations')
-    .select('id')
-    .eq('org_id', ctx.orgId)
-    .limit(1);
+  // Get first location + org plan in parallel
+  const [locResult, orgResult] = await Promise.all([
+    supabase.from('locations').select('id').eq('org_id', ctx.orgId).limit(1),
+    supabase.from('organizations').select('plan').eq('id', ctx.orgId).single(),
+  ]);
 
-  const locationId = locations?.[0]?.id;
+  const locationId = locResult.data?.[0]?.id;
+  const plan = (orgResult.data?.plan as string) ?? 'trial';
+
   if (!locationId) {
     return (
       <div className="space-y-4">
@@ -60,7 +62,9 @@ export default async function SentimentPage() {
           <h1 className="text-xl font-semibold text-white">AI Sentiment Analysis</h1>
           <p className="mt-0.5 text-sm text-[#94A3B8]">How AI engines describe your business</p>
         </div>
-        <EmptyState />
+        <PlanGate requiredPlan="growth" currentPlan={plan} feature="AI Sentiment Tracker">
+          <EmptyState />
+        </PlanGate>
       </div>
     );
   }
@@ -77,7 +81,9 @@ export default async function SentimentPage() {
           <h1 className="text-xl font-semibold text-white">AI Sentiment Analysis</h1>
           <p className="mt-0.5 text-sm text-[#94A3B8]">How AI engines describe your business</p>
         </div>
-        <EmptyState />
+        <PlanGate requiredPlan="growth" currentPlan={plan} feature="AI Sentiment Tracker">
+          <EmptyState />
+        </PlanGate>
       </div>
     );
   }
@@ -91,25 +97,36 @@ export default async function SentimentPage() {
         </p>
       </div>
 
-      {/* Overall Sentiment */}
-      <SentimentScoreCard
-        score={summary.averageScore}
-        label={summary.dominantLabel}
-        tone={summary.dominantTone}
-        evaluationCount={summary.evaluationCount}
-      />
+      {/* ── Plan-gated content (blur teaser for Starter/Trial) ─────── */}
+      <PlanGate requiredPlan="growth" currentPlan={plan} feature="AI Sentiment Tracker">
+        {/* Overall Sentiment */}
+        <SentimentScoreCard
+          score={summary.averageScore}
+          label={summary.dominantLabel}
+          tone={summary.dominantTone}
+          evaluationCount={summary.evaluationCount}
+        />
 
-      {/* Descriptors */}
-      <DescriptorDisplay
-        positive={summary.topPositive}
-        negative={summary.topNegative}
-      />
+        {/* Descriptors */}
+        <div className="mt-6">
+          <DescriptorDisplay
+            positive={summary.topPositive}
+            negative={summary.topNegative}
+          />
+        </div>
 
-      {/* Per-Engine Breakdown */}
-      <EngineBreakdownCard byEngine={summary.byEngine} />
+        {/* Per-Engine Breakdown */}
+        <div className="mt-6">
+          <EngineBreakdownCard byEngine={summary.byEngine} />
+        </div>
 
-      {/* Sentiment Trend */}
-      {trend.length >= 2 && <SentimentTrendSummary trend={trend} />}
+        {/* Sentiment Trend */}
+        {trend.length >= 2 && (
+          <div className="mt-6">
+            <SentimentTrendSummary trend={trend} />
+          </div>
+        )}
+      </PlanGate>
     </div>
   );
 }

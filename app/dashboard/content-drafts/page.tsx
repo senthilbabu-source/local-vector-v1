@@ -12,9 +12,9 @@ import { redirect } from 'next/navigation';
 import { FileText } from 'lucide-react';
 import { getSafeAuthContext } from '@/lib/auth';
 import { createClient } from '@/lib/supabase/server';
-import { canRunAutopilot, type PlanTier } from '@/lib/plan-enforcer';
 import { getDaysUntilPeak } from '@/lib/services/occasion-engine.service';
 import type { LocalOccasionRow } from '@/lib/types/occasions';
+import { PlanGate } from '@/components/plan-gate/PlanGate';
 import ContentDraftCard, { type ContentDraftRow } from './_components/ContentDraftCard';
 import DraftFilterTabs from './_components/DraftFilterTabs';
 import OccasionTimeline, { type OccasionWithCountdown } from './_components/OccasionTimeline';
@@ -100,29 +100,6 @@ async function fetchPlan(orgId: string): Promise<string> {
 }
 
 // ---------------------------------------------------------------------------
-// UpgradeGate — inline (single use, AI_RULES §over-engineering)
-// ---------------------------------------------------------------------------
-
-function UpgradeGate() {
-  return (
-    <div className="flex flex-col items-center justify-center min-h-[60vh] gap-6 text-center">
-      <FileText className="h-12 w-12 text-slate-600" />
-      <h2 className="text-xl font-semibold text-white">AI Content Drafts</h2>
-      <p className="text-slate-400 max-w-md">
-        Content Drafts is available on the Growth plan. Upgrade to get AI-generated
-        content from First Mover opportunities and competitor gaps.
-      </p>
-      <a
-        href="/dashboard/billing"
-        className="rounded-lg bg-signal-green px-6 py-2.5 text-sm font-semibold text-deep-navy hover:bg-signal-green/90 transition"
-      >
-        Upgrade to Growth — $59/mo
-      </a>
-    </div>
-  );
-}
-
-// ---------------------------------------------------------------------------
 // Page
 // ---------------------------------------------------------------------------
 
@@ -136,18 +113,13 @@ export default async function ContentDraftsPage({
     redirect('/login');
   }
 
-  const plan = await fetchPlan(ctx.orgId);
-
-  if (!canRunAutopilot(plan as PlanTier)) {
-    return <UpgradeGate />;
-  }
-
   const resolvedParams = await searchParams;
   const statusFilter = resolvedParams.status;
-  const [drafts, occasions, occasionDraftMap] = await Promise.all([
+  const [drafts, occasions, occasionDraftMap, plan] = await Promise.all([
     fetchPageData(ctx.orgId, statusFilter),
     fetchUpcomingOccasions(),
     fetchOccasionDraftMap(ctx.orgId),
+    fetchPlan(ctx.orgId),
   ]);
 
   // Summary counts (across all drafts, not just filtered)
@@ -167,56 +139,65 @@ export default async function ContentDraftsPage({
         </p>
       </div>
 
-      {/* ── Summary strip ──────────────────────────────────────────── */}
-      <div className="flex flex-wrap gap-4">
-        <div className="rounded-xl bg-surface-dark px-4 py-3 ring-1 ring-white/5">
-          <p className="text-xs text-slate-500">Pending Review</p>
-          <p className="mt-0.5 text-2xl font-bold tabular-nums text-amber-400">
-            {draftCount}
-          </p>
+      {/* ── Plan-gated content (blur teaser for Starter/Trial) ───── */}
+      <PlanGate requiredPlan="growth" currentPlan={plan} feature="Content Drafts">
+        {/* ── Summary strip ────────────────────────────────────────── */}
+        <div className="flex flex-wrap gap-4">
+          <div className="rounded-xl bg-surface-dark px-4 py-3 ring-1 ring-white/5">
+            <p className="text-xs text-slate-500">Pending Review</p>
+            <p className="mt-0.5 text-2xl font-bold tabular-nums text-amber-400">
+              {draftCount}
+            </p>
+          </div>
+          <div className="rounded-xl bg-surface-dark px-4 py-3 ring-1 ring-white/5">
+            <p className="text-xs text-slate-500">Approved</p>
+            <p className="mt-0.5 text-2xl font-bold tabular-nums text-emerald-400">
+              {approvedCount}
+            </p>
+          </div>
+          <div className="rounded-xl bg-surface-dark px-4 py-3 ring-1 ring-white/5">
+            <p className="text-xs text-slate-500">Total Drafts</p>
+            <p className="mt-0.5 text-2xl font-bold tabular-nums text-white">
+              {allDrafts.length}
+            </p>
+          </div>
         </div>
-        <div className="rounded-xl bg-surface-dark px-4 py-3 ring-1 ring-white/5">
-          <p className="text-xs text-slate-500">Approved</p>
-          <p className="mt-0.5 text-2xl font-bold tabular-nums text-emerald-400">
-            {approvedCount}
-          </p>
-        </div>
-        <div className="rounded-xl bg-surface-dark px-4 py-3 ring-1 ring-white/5">
-          <p className="text-xs text-slate-500">Total Drafts</p>
-          <p className="mt-0.5 text-2xl font-bold tabular-nums text-white">
-            {allDrafts.length}
-          </p>
-        </div>
-      </div>
 
-      {/* ── Upcoming Occasions ──────────────────────────────────────── */}
-      <OccasionTimeline
-        occasions={occasions}
-        existingDraftsByOccasionId={occasionDraftMap}
-      />
-
-      {/* ── Filter tabs ────────────────────────────────────────────── */}
-      <DraftFilterTabs />
-
-      {/* ── Draft cards ────────────────────────────────────────────── */}
-      {drafts.length === 0 ? (
-        <div className="flex flex-col items-center justify-center rounded-xl bg-surface-dark px-6 py-16 text-center ring-1 ring-white/5">
-          <FileText className="mx-auto h-10 w-10 text-slate-600" />
-          <p className="mt-3 text-sm font-medium text-slate-400">
-            {statusFilter ? 'No drafts match this filter' : 'No content drafts yet'}
-          </p>
-          <p className="mt-1 text-xs text-slate-500">
-            AI-generated content from First Mover opportunities and competitor
-            gaps will appear here automatically.
-          </p>
+        {/* ── Upcoming Occasions ────────────────────────────────────── */}
+        <div className="mt-6">
+          <OccasionTimeline
+            occasions={occasions}
+            existingDraftsByOccasionId={occasionDraftMap}
+          />
         </div>
-      ) : (
-        <div className="space-y-4">
-          {drafts.map((draft) => (
-            <ContentDraftCard key={draft.id} draft={draft} />
-          ))}
+
+        {/* ── Filter tabs ──────────────────────────────────────────── */}
+        <div className="mt-6">
+          <DraftFilterTabs />
         </div>
-      )}
+
+        {/* ── Draft cards ──────────────────────────────────────────── */}
+        <div className="mt-6">
+          {drafts.length === 0 ? (
+            <div className="flex flex-col items-center justify-center rounded-xl bg-surface-dark px-6 py-16 text-center ring-1 ring-white/5">
+              <FileText className="mx-auto h-10 w-10 text-slate-600" />
+              <p className="mt-3 text-sm font-medium text-slate-400">
+                {statusFilter ? 'No drafts match this filter' : 'No content drafts yet'}
+              </p>
+              <p className="mt-1 text-xs text-slate-500">
+                AI-generated content from First Mover opportunities and competitor
+                gaps will appear here automatically.
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {drafts.map((draft) => (
+                <ContentDraftCard key={draft.id} draft={draft} />
+              ))}
+            </div>
+          )}
+        </div>
+      </PlanGate>
     </div>
   );
 }

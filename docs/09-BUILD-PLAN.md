@@ -730,6 +730,22 @@ These features span multiple phases but were completed together in Sprint 59.
 
 ---
 
+## Sprint 96 — Plan Gate Polish: Blur Teasers (2026-02-27)
+
+- [x] `components/plan-gate/PlanGate.tsx` — reusable blur-teaser plan gate wrapper (RSC)
+- [x] `lib/plan-enforcer.ts` — added `planSatisfies()` + `PLAN_HIERARCHY` exports
+- [x] Citations page wrapped in `<PlanGate requiredPlan="growth">` (replaced hard wall)
+- [x] Page Audits page wrapped in `<PlanGate requiredPlan="growth">` (replaced hard wall)
+- [x] Content Drafts page wrapped in `<PlanGate requiredPlan="growth">` (replaced UpgradeGate, restructured data fetch)
+- [x] Sentiment page wrapped in `<PlanGate requiredPlan="growth">` (added plan fetch)
+- [x] Source Intelligence page wrapped in `<PlanGate requiredPlan="agency">` (added plan fetch)
+- [x] 32 unit tests (planSatisfies + PlanGate component)
+- [x] 21 page integration tests (plan gate thresholds per page)
+- [x] Full suite: 2139 tests, 0 regressions, 0 type errors
+- [x] AI_RULES §47 added
+
+---
+
 ## Technical Dependencies by Phase
 
 | Phase | Core Dependency | Est. Cost (Dev Mode) | Risk |

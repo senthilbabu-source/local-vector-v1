@@ -1426,5 +1426,19 @@ Export routes at `app/api/exports/` must have `export const runtime = 'nodejs'`.
 * **No HTML** inside PDF templates (`<div>`, `<p>`, `<table>` are invalid).
 * **Never** `<Image src={null}>` — use a styled `<View>` placeholder instead.
 
+## 47. Plan Gate UI — Always Use `<PlanGate>` (Sprint 96)
+
+All plan-gated UI in the dashboard uses `components/plan-gate/PlanGate.tsx`. Never implement ad-hoc blur or upgrade cards inline in page components.
+
+**Rules:**
+- `<PlanGate requiredPlan="..." currentPlan={plan} feature="...">` wraps only the value-bearing content block — never the entire page, never the page header.
+- Data MUST still be fetched for gated users. `<PlanGate>` receives real populated children. The blur teaser only works because Starter users see their actual data blurred.
+- Plan satisfaction logic lives exclusively in `planSatisfies()` from `lib/plan-enforcer.ts`. Never compare plan strings inline (e.g. `plan !== 'growth'`).
+- Tailwind blur class is always the literal `"blur-sm"`. Never construct blur class dynamically (violates §12).
+- `pointer-events-none` and `select-none` must accompany `blur-sm` on gated content — prevents keyboard traversal into aria-hidden content.
+- `data-testid="plan-gate-upgrade-cta"` must be present on the upgrade button for Playwright tests.
+- The upgrade CTA is an `<a href>` tag — not a `<button onClick>`. Upgrade navigation is always a full page transition, not a client-side handler.
+- `source-intelligence` requires `agency` plan. All other gated dashboard pages require `growth`. Do not relax these thresholds without a product decision and MEMORY.md entry.
+
 ---
 > **End of System Instructions**

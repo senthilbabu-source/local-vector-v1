@@ -13,6 +13,27 @@
 export type PlanTier = 'trial' | 'starter' | 'growth' | 'agency';
 
 /**
+ * Numeric hierarchy for plan comparison. Higher number = more features.
+ * Used by planSatisfies() to determine if a plan meets a requirement.
+ */
+export const PLAN_HIERARCHY: Record<string, number> = {
+  trial: 0,
+  starter: 1,
+  growth: 2,
+  agency: 3,
+};
+
+/**
+ * Returns true when currentPlan is at or above requiredPlan in the hierarchy.
+ * Unknown plan strings are treated as trial (level 0) — never crashes.
+ */
+export function planSatisfies(currentPlan: string | null | undefined, requiredPlan: string): boolean {
+  const current = PLAN_HIERARCHY[currentPlan ?? ''] ?? 0;
+  const required = PLAN_HIERARCHY[requiredPlan] ?? 0;
+  return current >= required;
+}
+
+/**
  * Daily automated AI audits (Phase 9 cron) require Growth or Agency plan.
  * Starter/Trial orgs receive weekly audits only.
  */

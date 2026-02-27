@@ -2530,4 +2530,39 @@ npx tsc --noEmit                                                 # 0 type errors
 ```
 
 ---
+
+## 2026-02-27 — Sprint 96: Plan Gate Polish — Blur Teasers (Gap #66: 30% → 100%)
+
+**Goal:** Apply consistent blur-teaser plan gate pattern across 5 premium dashboard pages. Starter/Trial users see real data behind `blur-sm` overlay with upgrade CTA. Replaces hard "Upgrade Required" walls that killed conversion.
+
+**Scope:**
+- Built `components/plan-gate/PlanGate.tsx` — single reusable RSC blur-teaser wrapper
+- Added `planSatisfies()` + `PLAN_HIERARCHY` to `lib/plan-enforcer.ts`
+- Applied `<PlanGate>` to 5 pages: citations (growth), page-audits (growth), content-drafts (growth), sentiment (growth), source-intelligence (agency)
+- Removed 3 ad-hoc upgrade walls (citations, page-audits, content-drafts inline UpgradeGate)
+- Added plan fetching to sentiment + source-intelligence pages (previously had no plan gate)
+- Data always fetches for gated users — blur teaser shows real data, not placeholder
+
+**Files changed:**
+- `components/plan-gate/PlanGate.tsx` — NEW: blur-teaser wrapper component (RSC)
+- `components/plan-gate/index.ts` — NEW: barrel export
+- `lib/plan-enforcer.ts` — MODIFIED: added `planSatisfies()`, `PLAN_HIERARCHY`
+- `app/dashboard/citations/page.tsx` — MODIFIED: replaced hard wall with PlanGate
+- `app/dashboard/page-audits/page.tsx` — MODIFIED: replaced hard wall with PlanGate
+- `app/dashboard/content-drafts/page.tsx` — MODIFIED: removed UpgradeGate, restructured data fetch, added PlanGate
+- `app/dashboard/sentiment/page.tsx` — MODIFIED: added plan fetch + PlanGate
+- `app/dashboard/source-intelligence/page.tsx` — MODIFIED: added plan fetch + PlanGate (agency)
+- `src/__tests__/unit/plan-gate.test.tsx` — NEW: 32 tests
+- `src/__tests__/unit/plan-gate-pages.test.tsx` — NEW: 21 tests
+
+**Tests added:** 53 total new tests across 2 test files
+
+```bash
+npx vitest run src/__tests__/unit/plan-gate.test.tsx           # 32 tests
+npx vitest run src/__tests__/unit/plan-gate-pages.test.tsx     # 21 tests
+npx vitest run                                                   # 2139 total — no regressions
+npx tsc --noEmit                                                 # 0 type errors
+```
+
+---
 > **End of Development Log**

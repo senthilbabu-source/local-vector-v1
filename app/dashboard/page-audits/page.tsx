@@ -6,10 +6,9 @@
 // ---------------------------------------------------------------------------
 
 import { redirect } from 'next/navigation';
-import Link from 'next/link';
 import { getSafeAuthContext } from '@/lib/auth';
 import { createClient } from '@/lib/supabase/server';
-import { canRunPageAudit, type PlanTier } from '@/lib/plan-enforcer';
+import { PlanGate } from '@/components/plan-gate/PlanGate';
 import AuditScoreOverview from './_components/AuditScoreOverview';
 import PageAuditCardWrapper from './_components/PageAuditCardWrapper';
 import type { PageAuditRecommendation } from '@/lib/page-audit/auditor';
@@ -69,38 +68,6 @@ export default async function PageAuditsPage() {
 
   const { audits, plan } = await fetchPageAuditData(ctx.orgId);
 
-  // ── Plan gate — Growth/Agency only ────────────────────────────────────────
-  if (!canRunPageAudit(plan as PlanTier)) {
-    return (
-      <div className="space-y-8">
-        <div>
-          <h1 className="text-xl font-semibold text-white">Page Audits</h1>
-          <p className="mt-0.5 text-sm text-[#94A3B8]">
-            Score your pages on 5 AEO dimensions to maximize AI visibility.
-          </p>
-        </div>
-        <div className="flex flex-col items-center justify-center rounded-2xl bg-surface-dark border border-white/5 px-6 py-16 text-center">
-          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-electric-indigo/10 text-electric-indigo mb-4">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-              <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
-              <path d="M7 11V7a5 5 0 0110 0v4" />
-            </svg>
-          </div>
-          <h2 className="text-base font-semibold text-white">Upgrade to Growth</h2>
-          <p className="mt-2 max-w-sm text-sm text-slate-400">
-            Page Audits analyze your website pages across 5 AEO dimensions and provide actionable recommendations. Available on Growth and Agency plans.
-          </p>
-          <Link
-            href="/dashboard/billing"
-            className="mt-5 inline-flex items-center rounded-lg bg-signal-green/10 px-4 py-2 text-sm font-semibold text-signal-green ring-1 ring-inset ring-signal-green/20 transition hover:bg-signal-green/20"
-          >
-            View Plans
-          </Link>
-        </div>
-      </div>
-    );
-  }
-
   // ── Empty state — no audits yet ───────────────────────────────────────────
   if (audits.length === 0) {
     return (
@@ -150,38 +117,41 @@ export default async function PageAuditsPage() {
         </p>
       </div>
 
-      {/* ── Score Overview ──────────────────────────────────────────────── */}
-      <AuditScoreOverview
-        overallScore={avgScore}
-        totalPages={audits.length}
-        lastAuditedAt={latestAuditDate}
-      />
+      {/* ── Plan-gated content (blur teaser for Starter/Trial) ─────── */}
+      <PlanGate requiredPlan="growth" currentPlan={plan} feature="Page Audit">
+        {/* ── Score Overview ────────────────────────────────────────── */}
+        <AuditScoreOverview
+          overallScore={avgScore}
+          totalPages={audits.length}
+          lastAuditedAt={latestAuditDate}
+        />
 
-      {/* ── Page Cards ──────────────────────────────────────────────────── */}
-      <section>
-        <h2 className="text-sm font-semibold text-white tracking-tight mb-3">
-          Audited Pages
-          <span className="ml-2 text-xs font-medium text-slate-500">{audits.length}</span>
-        </h2>
-        <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
-          {audits.map((audit) => (
-            <PageAuditCardWrapper
-              key={audit.id}
-              pageUrl={audit.page_url}
-              pageType={audit.page_type}
-              overallScore={audit.overall_score ?? 0}
-              answerFirstScore={audit.answer_first_score}
-              schemaCompletenessScore={audit.schema_completeness_score}
-              faqSchemaPresent={audit.faq_schema_present ?? false}
-              faqSchemaScore={audit.faq_schema_score}
-              keywordDensityScore={audit.aeo_readability_score}
-              entityClarityScore={audit.entity_clarity_score}
-              recommendations={audit.recommendations ?? []}
-              lastAuditedAt={audit.last_audited_at}
-            />
-          ))}
-        </div>
-      </section>
+        {/* ── Page Cards ────────────────────────────────────────────── */}
+        <section className="mt-6">
+          <h2 className="text-sm font-semibold text-white tracking-tight mb-3">
+            Audited Pages
+            <span className="ml-2 text-xs font-medium text-slate-500">{audits.length}</span>
+          </h2>
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+            {audits.map((audit) => (
+              <PageAuditCardWrapper
+                key={audit.id}
+                pageUrl={audit.page_url}
+                pageType={audit.page_type}
+                overallScore={audit.overall_score ?? 0}
+                answerFirstScore={audit.answer_first_score}
+                schemaCompletenessScore={audit.schema_completeness_score}
+                faqSchemaPresent={audit.faq_schema_present ?? false}
+                faqSchemaScore={audit.faq_schema_score}
+                keywordDensityScore={audit.aeo_readability_score}
+                entityClarityScore={audit.entity_clarity_score}
+                recommendations={audit.recommendations ?? []}
+                lastAuditedAt={audit.last_audited_at}
+              />
+            ))}
+          </div>
+        </section>
+      </PlanGate>
     </div>
   );
 }
