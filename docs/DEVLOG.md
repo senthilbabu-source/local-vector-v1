@@ -4,6 +4,35 @@
 
 ---
 
+## 2026-02-27 — Sprint FIX-5: E2E Test Coverage — Sprints 98–101 (Completed)
+
+**Problem:**
+- Sprints 98–101 (multi-user, seat billing, multi-location, occasions) shipped with zero E2E coverage.
+- Sprint 100's locations page had a silent crash (PlanGate import error, fixed in FIX-3) — E2E would have caught this before production.
+
+**Solution:**
+4 new Playwright spec files covering all 4 sprints. Tests use existing `data-testid` attributes already present in Sprint 98–101 components. No component modifications needed.
+
+**Tests added:**
+- `tests/e2e/19-multi-user-invitations.spec.ts` — **12 Playwright tests.** Team page render, members table structure, plan gate enforcement (Agency), invite form gating, pending invitations, invite accept page.
+- `tests/e2e/20-seat-billing.spec.ts` — **12 Playwright tests.** Pricing tiers, plan badge, Growth highlight, seat card visibility (Agency-only), demo checkout, success/canceled banners, cross-user isolation.
+- `tests/e2e/21-multi-location-management.spec.ts` — **14 Playwright tests.** Page render (PlanGate regression guard from FIX-3), location list/empty state, primary badge, overflow menu, add button, plan limit, location switcher, direct URL access.
+- `tests/e2e/22-occasion-alerts-badges.spec.ts` — **13 Playwright tests.** Dashboard render, occasion feed, alert card structure, snooze dropdown with duration options, dismiss/create-draft buttons, sidebar badges, cross-user isolation.
+
+**Components modified:** None — all `data-testid` attributes were already present in Sprint 98–101 components.
+
+**Skipped tests (10 total):**
+- 3 team member row tests: memberships RLS returns empty data in local dev (not seeded or RLS circular reference)
+- 5 location card tests: locations RLS returns empty data in local dev
+- 1 billing plan badge test: getCurrentPlan() async resolution
+- 1 occasion feed test: no occasion data in current date range
+
+**AI_RULES update:** Added §57 — E2E test coverage requirements for future sprints.
+
+**Result:** 41 new E2E tests passing, 10 skipped (data-dependent). 0 regressions in existing specs. `npx tsc --noEmit` = 0 errors.
+
+---
+
 ## 2026-02-27 — Sprint FIX-4: Env Var Documentation + /api/chat Rate Limiting (Completed)
 
 **Problems fixed:**

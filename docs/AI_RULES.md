@@ -1770,4 +1770,26 @@ All endpoints that trigger AI model calls (OpenAI, Anthropic, Google Gemini) MUS
 **Never initialize the Redis client inside a request handler** — always module-level.
 
 ---
+
+## §57. E2E Test Coverage Requirements (FIX-5)
+
+Every sprint that ships user-facing features must include E2E tests before the sprint is considered complete.
+
+**Required coverage per sprint:**
+- At minimum 1 happy-path test for each new user-visible flow
+- At minimum 1 error/edge-case test per new API endpoint
+- At minimum 1 regression test for any feature fixed in a prior sprint
+
+**Selector rules (enforced):**
+- All E2E selectors use `data-testid` attributes — no CSS class selectors, no text selectors as primary selectors
+- `data-testid` attributes are added alongside component code — not retroactively
+
+**Mocking rules:**
+- All Supabase `/rest/v1/` calls are mocked in E2E via `page.route()` when not using real DB
+- All external API calls (Stripe, GBP, Anthropic) are mocked in E2E via `page.route()`
+- `page.waitForTimeout()` is forbidden — use event-driven waits only
+
+**Sprint E2E gaps:** Sprints 98–101 have E2E coverage as of FIX-5. Sprints 102+ must ship with E2E on day one.
+
+---
 > **End of System Instructions**

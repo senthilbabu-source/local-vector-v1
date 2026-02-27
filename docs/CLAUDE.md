@@ -12,7 +12,7 @@ LocalVector is an AEO/GEO SaaS platform that helps local businesses monitor and 
 - **Billing:** Stripe webhooks → `organizations.plan_tier` enum (`trial | starter | growth | agency`)
 - **Email:** Resend + React Email (`emails/`)
 - **Cache:** Upstash Redis (`lib/redis.ts`) — optional, all callers must degrade gracefully
-- **Testing:** Vitest (unit/integration in `src/__tests__/`), Playwright (E2E in `tests/e2e/`, 18 specs)
+- **Testing:** Vitest (unit/integration in `src/__tests__/`), Playwright (E2E in `tests/e2e/`, 22 specs)
 - **Monitoring:** Sentry (client, server, edge configs)
 
 ## Architecture Rules
@@ -60,7 +60,7 @@ supabase/migrations/   — Applied SQL migrations (35, timestamp-ordered)
 supabase/prod_schema.sql — Full production schema dump
 docs/                  — 50 spec documents (authoritative for planned features)
 src/__tests__/         — Unit + integration tests
-tests/e2e/             — Playwright E2E tests (18 specs)
+tests/e2e/             — Playwright E2E tests (22 specs)
 ```
 
 ## Database Tables (Key Ones)
@@ -215,6 +215,17 @@ UPSTASH_REDIS_REST_URL, UPSTASH_REDIS_REST_TOKEN
 - Tests: 15 Vitest (`env-completeness.test.ts`), 10 Vitest (`chat-rate-limit.test.ts`), 3 Vitest (kill switch additions to `cron-auth-guard.test.ts`)
 - Result: 0 undocumented env vars, chat rate-limited, 2626 tests pass, 186 files.
 
+### Sprint FIX-5 — E2E Coverage for Sprints 98-101 (2026-02-27)
+- 4 Playwright spec files covering Sprints 98-101 features (multi-user, billing, locations, occasions).
+- `tests/e2e/19-multi-user-invitations.spec.ts` — 12 tests: team page render, members table, owner role, plan gate, invite form, invite accept.
+- `tests/e2e/20-seat-billing.spec.ts` — 12 tests: pricing tiers, plan badge, seat card visibility, demo checkout, success/canceled banners.
+- `tests/e2e/21-multi-location-management.spec.ts` — 14 tests: PlanGate regression guard, location cards, primary badge, overflow menu, add/edit buttons, switcher.
+- `tests/e2e/22-occasion-alerts-badges.spec.ts` — 13 tests: dashboard feed, alert card structure, snooze dropdown, sidebar badges, cross-user isolation.
+- Conditional `test.skip()` pattern for RLS-empty data (memberships, locations, occasions).
+- AI_RULES: added §57 (E2E coverage requirements per sprint).
+- Tests: 51 Playwright E2E (41 pass, 10 skip — data-dependent)
+- Result: 0 new failures, 22 E2E spec files total.
+
 ## Tier Completion Status
 
 | Tier | Sprints | Status | Gate |
@@ -222,7 +233,7 @@ UPSTASH_REDIS_REST_URL, UPSTASH_REDIS_REST_TOKEN
 | Tier 1 | 1–30 | Complete | — |
 | Tier 2 | 31–70 | Complete | — |
 | Tier 3 | 71–101 | Complete | — |
-| Production Fixes | FIX-1 – FIX-4 | Complete | — |
+| Production Fixes | FIX-1 – FIX-5 | Complete | — |
 | Tier 4 | 102–106 | Gated | Sprint 102: Apple BC API approval. Sprint 103: Bing Places API approval. Sprint 104–106: no external gate. |
 | Tier 5 | 107–109 | Gated | 4–8 weeks of SOV baseline data required. SOV cron registered 2026-02-27. Sprint 107 earliest: 2026-03-27. |
 
@@ -240,4 +251,4 @@ No external dependencies. Can begin immediately. See AI_RULES §59.
 
 ## Build History
 
-See `DEVLOG.md` (project root) and `docs/DEVLOG.md` for the complete sprint-by-sprint build log. Current sprint: 101 (+ FIX-1, FIX-2, FIX-3, FIX-4).
+See `DEVLOG.md` (project root) and `docs/DEVLOG.md` for the complete sprint-by-sprint build log. Current sprint: 101 (+ FIX-1, FIX-2, FIX-3, FIX-4, FIX-5).
