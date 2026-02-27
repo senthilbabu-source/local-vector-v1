@@ -1287,5 +1287,27 @@ The Content Calendar aggregates 5 signal sources into time-bucketed content reco
 * **Sidebar:** "Content Calendar" nav item with `CalendarDays` icon, path `/dashboard/content-calendar`.
 * **Fixtures:** `MOCK_CALENDAR_INPUT` in `src/__fixtures__/golden-tenant.ts` — mixed signals (1 occasion, 2 SOV gaps, 1 stale page, 1 stale menu, 1 competitor gap, 1 hallucination).
 
+## 47. Agent Readiness Score — AAO (Sprint 84)
+
+Evaluates whether AI agents can transact with the business. 6 capabilities, weighted scoring (total = 100):
+
+* **Structured Hours** (15 pts): OpeningHoursSpecification schema or `hours_data` populated.
+* **Menu Schema** (15 pts): Menu JSON-LD or published Magic Menu.
+* **ReserveAction Schema** (25 pts): ReserveAction in markup or booking URL detected.
+* **OrderAction Schema** (25 pts): OrderAction in markup or ordering URL detected.
+* **Accessible CTAs** (10 pts): Inferred from `entity_clarity_score` in page audits.
+* **CAPTCHA-Free Flows** (10 pts): Always partial in V1 (requires live crawl for real detection).
+
+Statuses: active (full pts), partial (50% pts), missing (0 pts). Levels: agent_ready >= 70, partially_ready >= 40, not_ready < 40.
+
+* **Schema generators:** `lib/schema-generator/action-schema.ts` — pure functions (§39). `generateReserveActionSchema()` + `generateOrderActionSchema()`.
+* **No external API calls in V1.** Computed from existing tables.
+* **No plan gating.** Available to all tiers.
+* **Pure service:** `lib/services/agent-readiness.service.ts` — `computeAgentReadiness()` takes `AgentReadinessInput`, returns `AgentReadinessResult`.
+* **Data layer:** `lib/data/agent-readiness.ts` — `fetchAgentReadiness()` runs 3 parallel Supabase queries (locations, magic_menus, page_audits).
+* **Dashboard:** `app/dashboard/agent-readiness/page.tsx` — Server Component with score ring, top priority card, capability checklist.
+* **Sidebar:** "Agent Readiness" nav item with `BotMessageSquare` icon, path `/dashboard/agent-readiness`.
+* **Fixtures:** `MOCK_AGENT_READINESS_INPUT` in `src/__fixtures__/golden-tenant.ts` — hours + menu active, actions missing, score=40, partially_ready.
+
 ---
 > **End of System Instructions**

@@ -753,3 +753,38 @@ export const MOCK_ENTITY_CHECK: import('@/lib/services/entity-health.service').E
     bing_places: { note: 'Missing hours' },
   },
 };
+
+/**
+ * Sprint 84 — Canonical AgentReadinessInput for Charcoal N Chill.
+ * Mixed status: hours + menu active, actions missing, CTAs partial.
+ * Expected score: 15 + 15 + 0 + 0 + 5 + 5 = 40 (Partially Ready)
+ */
+export const MOCK_AGENT_READINESS_INPUT: import('@/lib/services/agent-readiness.service').AgentReadinessInput = {
+  location: {
+    businessName: 'Charcoal N Chill',
+    websiteUrl: 'https://charcoalnchill.com',
+    hoursData: {
+      monday: { open: '16:00', close: '00:00' },
+      tuesday: { open: '16:00', close: '00:00' },
+      wednesday: { open: '16:00', close: '00:00' },
+      thursday: { open: '16:00', close: '02:00' },
+      friday: { open: '16:00', close: '02:00' },
+      saturday: { open: '14:00', close: '02:00' },
+      sunday: { open: '14:00', close: '00:00' },
+    },
+    phone: '(770) 555-1234',
+  },
+  hasPublishedMenu: true,
+  hasMenuJsonLd: true,
+  pageAudit: {
+    schemaCompletenessScore: 55,
+    faqSchemaPresent: false,
+    entityClarityScore: 52,
+    recommendations: [
+      { title: 'Add FAQ Schema', dimensionKey: 'faqSchema', schemaType: 'FAQPage' },
+    ],
+  },
+  hasBookingUrl: false,
+  hasOrderingUrl: false,
+  detectedSchemaTypes: ['OpeningHoursSpecification', 'LocalBusiness'],
+};

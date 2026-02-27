@@ -4,6 +4,36 @@
 
 ---
 
+## 2026-02-28 — Sprint 84: Agent Readiness Score (AAO) (Completed)
+
+**Goal:** Build an AI Agent Readiness Score (0-100) evaluating whether autonomous AI agents can transact with the business. Evaluates 6 weighted capabilities: structured hours, menu schema, ReserveAction, OrderAction, accessible CTAs, and CAPTCHA-free flows. The Assistive Agent Optimization (AAO) metric no competitor offers for restaurants.
+
+**Scope:**
+- `lib/services/agent-readiness.service.ts` — **NEW.** ~310 lines, all pure functions. `computeAgentReadiness()` entry point. 6 assessors: `assessStructuredHours()` (15pts — schema detection + hours_data fallback), `assessMenuSchema()` (15pts — JSON-LD + published menu), `assessReserveAction()` (25pts — schema + booking URL fallback), `assessOrderAction()` (25pts — schema + ordering URL fallback), `assessAccessibleCTAs()` (10pts — inferred from entity_clarity_score), `assessCaptchaFree()` (10pts — always partial in V1). Three statuses: active (full), partial (50%), missing (0). Levels: agent_ready >=70, partially_ready >=40, not_ready <40. Top priority selection by highest maxPoints among non-active.
+- `lib/schema-generator/action-schema.ts` — **NEW.** Pure generators (§39). `generateReserveActionSchema()` + `generateOrderActionSchema()` — produce JSON-LD with Restaurant type, potentialAction, EntryPoint with urlTemplate. No I/O.
+- `lib/data/agent-readiness.ts` — **NEW.** `fetchAgentReadiness()` — 3 parallel queries (location, magic_menus, page_audits). Infers detected schema types from audit scores. Checks location attributes for booking/ordering URLs. Assembles `AgentReadinessInput`.
+- `app/dashboard/agent-readiness/page.tsx` — **NEW.** Server Component. AgentScoreRing (reuses SVG pattern from §34.1), TopPriorityCard, CapabilityChecklist (6 items with status icons, points, fix guides, schema CTAs).
+- `app/dashboard/agent-readiness/error.tsx` — **NEW.** Standard error boundary.
+- `components/layout/Sidebar.tsx` — **MODIFIED.** Added "Agent Readiness" link (test-id: nav-agent-readiness) with BotMessageSquare icon.
+- `src/__fixtures__/golden-tenant.ts` — **MODIFIED.** Added `MOCK_AGENT_READINESS_INPUT` (hours + menu active, actions missing, score=40, partially_ready).
+
+**Tests added:**
+- `src/__tests__/unit/agent-readiness-service.test.ts` — **45 tests.** Score calculation, levels, active count, top priority, all 6 assessors, MOCK integration.
+- `src/__tests__/unit/action-schema.test.ts` — **10 tests.** ReserveAction + OrderAction generators.
+- `src/__tests__/unit/agent-readiness-data.test.ts` — **7 tests.** Parallel queries, schema inference, attribute extraction.
+- `src/__tests__/unit/agent-readiness-page.test.ts` — **7 tests.** Score ring, capability checklist, sidebar.
+
+**Run commands:**
+```bash
+npx vitest run src/__tests__/unit/agent-readiness-service.test.ts     # 45 tests passing
+npx vitest run src/__tests__/unit/action-schema.test.ts               # 10 tests passing
+npx vitest run src/__tests__/unit/agent-readiness-data.test.ts        # 7 tests passing
+npx vitest run src/__tests__/unit/agent-readiness-page.test.ts        # 7 tests passing
+npx vitest run                                                         # All tests passing
+```
+
+---
+
 ## 2026-02-28 — Sprint 83: Proactive Content Calendar (Completed)
 
 **Goal:** Build an AI-driven content publishing calendar that aggregates 5 signal sources (occasions, SOV gaps, page freshness, competitor gaps, hallucination corrections) into time-bucketed, urgency-scored content recommendations. Transforms LocalVector from reactive ("here's what happened") to proactive ("here's what to do next").
