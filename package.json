@@ -19,6 +19,7 @@
     "@hookform/resolvers": "^5.2.2",
     "@modelcontextprotocol/sdk": "^1.25.2",
     "@react-email/components": "^1.0.8",
+    "@react-pdf/renderer": "^4.3.2",
     "@remixicon/react": "^4.9.0",
     "@sentry/nextjs": "^10.39.0",
     "@supabase/ssr": "^0.8.0",

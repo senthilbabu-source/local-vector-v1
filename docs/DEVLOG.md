@@ -2496,5 +2496,38 @@ npx next build                                                     # 0 errors
 | `hybrid-upload.spec.ts` | 2 | Upload tabs visible, CSV upload → ReviewState |
 | `onboarding.spec.ts` | 1 | Redirect to /onboarding + 3-step wizard completion |
 
+## 2026-02-28 — Sprint 95: CSV Export + PDF Audit Report (Completed)
+
+**Goal:** CSV export (hallucination history) + PDF audit report for Agency clients.
+Both Growth+ plan gated. PDF uses @react-pdf/renderer (pure Node.js, Vercel-compatible).
+
+**Scope:**
+- `lib/exports/csv-builder.ts` — **NEW.** Pure CSV builder. RFC 4180, CRLF, formula injection prevention (=, +, -, @ → single-quote prefix). 500-char claim cap.
+- `lib/exports/pdf-assembler.ts` — **NEW.** Pure data assembler → AuditReportData. Reality Score computation, model breakdown, top-5 hallucinations (high risk first), 10-query SOV summary, 3–5 data-driven recommendations.
+- `lib/exports/pdf-template.tsx` — **NEW.** React-PDF JSX. 6 sections: cover page, executive summary (Reality Score bar), model breakdown table, top hallucinations, SOV summary, recommendations. Fixed page footer with page-number render prop. Logo placeholder when no logo_url.
+- `app/api/exports/hallucinations/route.ts` — **NEW.** runtime=nodejs. Auth + Growth+ gate. 90-day / 500-row cap. text/csv with attachment Content-Disposition.
+- `app/api/exports/audit-report/route.tsx` — **NEW.** runtime=nodejs. Auth + Growth+ gate. 4 parallel queries. renderToBuffer → application/pdf.
+- `app/dashboard/hallucinations/page.tsx` — **MODIFIED.** Export CSV + PDF buttons added with data-testid. Disabled + upgrade tooltip for Starter plan.
+- `app/dashboard/page.tsx` — **MODIFIED.** Export PDF button added to dashboard header.
+- `app/dashboard/_components/ExportButtons.tsx` — **NEW.** Client component. window.location.href download trigger. Plan-gated enable/disable with tooltip.
+- `lib/plan-enforcer.ts` — **MODIFIED.** Added `canExportData()` for Growth+ gate.
+- `src/__fixtures__/golden-tenant.ts` — **MODIFIED.** Added MOCK_HALLUCINATION_ROWS (6 rows, incl. formula injection case) + MOCK_AUDIT_REPORT_DATA.
+
+**Tests added:**
+- `csv-builder.test.ts` — **27 Vitest tests.** Headers, escaping, formula injection, edge cases.
+- `pdf-assembler.test.ts` — **26 Vitest tests.** Assembly, caps, sorting, recommendations.
+- `csv-export-route.test.ts` — **12 Vitest tests.** Auth, plan gate, query filters, headers.
+- `pdf-export-route.test.ts` — **16 Vitest tests.** Auth, plan gate, parallel queries, PDF render, error handling.
+
+**Run commands:**
+```bash
+npx vitest run src/__tests__/unit/csv-builder.test.ts          # 27 tests
+npx vitest run src/__tests__/unit/pdf-assembler.test.ts        # 26 tests
+npx vitest run src/__tests__/unit/csv-export-route.test.ts     # 12 tests
+npx vitest run src/__tests__/unit/pdf-export-route.test.ts     # 16 tests
+npx vitest run                                                   # 2086 total — no regressions
+npx tsc --noEmit                                                 # 0 type errors
+```
+
 ---
 > **End of Development Log**

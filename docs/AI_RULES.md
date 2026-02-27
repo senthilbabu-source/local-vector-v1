@@ -1407,5 +1407,24 @@ All actions that write to external platforms (WordPress, GBP) follow two rules:
 * **GBP content:** Strip HTML tags before sending to GBP summary. Auto-truncate at sentence boundary, 1500 chars max.
 * **WordPress auth:** Basic auth with `base64(username:applicationPassword)`. Trim external whitespace from Application Password.
 
+## 45. Export Routes — Node.js Runtime Required (Sprint 95)
+
+Export routes at `app/api/exports/` must have `export const runtime = 'nodejs'`.
+
+* **Rule:** Never `export const runtime = 'edge'` in any export route.
+* **Download trigger:** `window.location.href = '/api/exports/...'` — NOT `fetch()`.
+  Direct navigation is required for `Content-Disposition: attachment` to trigger the download dialog.
+* **CSV:** Always use `escapeCSVValue()` + `sanitizeCSVField()` from `lib/exports/csv-builder.ts`.
+
+## 46. React-PDF Rules (Sprint 95)
+
+`@react-pdf/renderer` is used for PDF generation. Server-side only.
+
+* **Never import** `@react-pdf/renderer` in `'use client'` components.
+* **Only use** React-PDF primitives: `Document`, `Page`, `View`, `Text`, `Image`, `Link`.
+* **All styles** must be in `StyleSheet.create()` — no inline dynamic style objects.
+* **No HTML** inside PDF templates (`<div>`, `<p>`, `<table>` are invalid).
+* **Never** `<Image src={null}>` — use a styled `<View>` placeholder instead.
+
 ---
 > **End of System Instructions**

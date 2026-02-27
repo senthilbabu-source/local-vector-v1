@@ -6,10 +6,11 @@ import { fetchEntityHealth } from '@/lib/data/entity-health';
 import { createClient } from '@/lib/supabase/server';
 import type { ProofTimeline } from '@/lib/services/proof-timeline.service';
 import type { EntityHealthResult } from '@/lib/services/entity-health.service';
-import { canRunAutopilot, canConnectGBP, type PlanTier } from '@/lib/plan-enforcer';
+import { canRunAutopilot, canConnectGBP, canExportData, type PlanTier } from '@/lib/plan-enforcer';
 import { createServiceRoleClient } from '@/lib/supabase/server';
 import { nextSundayLabel } from './_components/scan-health-utils';
 import GBPImportCard from './_components/GBPImportCard';
+import ExportButtons from './_components/ExportButtons';
 import RealityScoreCard from './_components/RealityScoreCard';
 import AlertFeed from './_components/AlertFeed';
 import SOVTrendChart from './_components/SOVTrendChart';
@@ -131,18 +132,22 @@ export default async function DashboardPage() {
   const firstName = ctx.fullName?.split(' ')[0] ?? ctx.email.split('@')[0];
   const hasOpenAlerts = openAlerts.length > 0;
   const draftGated = canRunAutopilot(planTier);
+  const exportGated = canExportData(planTier);
   const sovSparkline = sovTrend.slice(-7).map((d) => d.sov);
   return (
     <div className="space-y-5">
-      <div>
-        <h1 className="text-xl font-semibold text-white tracking-tight">
-          Welcome back, {firstName}
-        </h1>
-        <p className="mt-0.5 text-sm text-slate-400">
-          {hasOpenAlerts
-            ? `${openAlerts.length} AI ${openAlerts.length === 1 ? 'lie' : 'lies'} detected — fix them before your customers notice.`
-            : 'Your AI visibility is clean. Keep your ground truth up to date.'}
-        </p>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-xl font-semibold text-white tracking-tight">
+            Welcome back, {firstName}
+          </h1>
+          <p className="mt-0.5 text-sm text-slate-400">
+            {hasOpenAlerts
+              ? `${openAlerts.length} AI ${openAlerts.length === 1 ? 'lie' : 'lies'} detected — fix them before your customers notice.`
+              : 'Your AI visibility is clean. Keep your ground truth up to date.'}
+          </p>
+        </div>
+        <ExportButtons canExport={exportGated} showCSV={false} showPDF />
       </div>
       {/* Welcome banner — day-1 tenants only */}
       {scores.realityScore === null && openAlerts.length === 0 && (

@@ -10,6 +10,8 @@
  */
 
 import type { GBPAccount, GBPLocation } from '@/lib/types/gbp';
+import type { HallucinationAuditRow } from '@/lib/exports/csv-builder';
+import type { AuditReportData } from '@/lib/exports/pdf-assembler';
 
 export const GOLDEN_TENANT = {
   org: {
@@ -1164,4 +1166,188 @@ export const MOCK_CONTENT_DRAFT_GBP: ContentDraftRow = {
   approved_at: '2026-02-27T12:00:00Z',
   created_at: '2026-02-26T09:00:00Z',
   updated_at: '2026-02-27T12:00:00Z',
+};
+
+// ---------------------------------------------------------------------------
+// Sprint 95 — CSV Export + PDF Audit Report fixtures
+// ---------------------------------------------------------------------------
+
+/**
+ * Sprint 95 — Canonical hallucination audit rows for CSV/PDF export tests.
+ * Covers: high/medium/low/null risk, formula injection, null corrections,
+ * multiple model providers.
+ */
+export const MOCK_HALLUCINATION_ROWS: HallucinationAuditRow[] = [
+  {
+    id: 'h0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+    org_id: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+    location_id: 'b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+    audit_id: null,
+    model_provider: 'perplexity-sonar',
+    claim_text: 'What time does Charcoal N Chill close on Friday?',
+    expected_truth: 'Charcoal N Chill is open until 2 AM on Friday and Saturday.',
+    severity: 'high',
+    correction_status: 'open',
+    category: 'hours',
+    resolved_at: null,
+    resolution_notes: null,
+    first_detected_at: '2026-02-25T14:30:00Z',
+    last_seen_at: '2026-02-25T14:30:00Z',
+    occurrence_count: 3,
+    propagation_events: null,
+    detected_at: '2026-02-25T14:30:00Z',
+    created_at: '2026-02-25T14:30:00Z',
+  },
+  {
+    id: 'h1eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+    org_id: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+    location_id: 'b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+    audit_id: null,
+    model_provider: 'openai-gpt4o',
+    claim_text: '=SUM(1,2)',
+    expected_truth: null,
+    severity: 'low',
+    correction_status: 'fixed',
+    category: null,
+    resolved_at: '2026-02-24T12:00:00Z',
+    resolution_notes: null,
+    first_detected_at: '2026-02-24T10:00:00Z',
+    last_seen_at: '2026-02-24T10:00:00Z',
+    occurrence_count: 1,
+    propagation_events: null,
+    detected_at: '2026-02-24T10:00:00Z',
+    created_at: '2026-02-24T10:00:00Z',
+  },
+  {
+    id: 'h2eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+    org_id: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+    location_id: 'b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+    audit_id: null,
+    model_provider: 'google-gemini',
+    claim_text: 'Charcoal N Chill serves sushi and ramen.',
+    expected_truth: 'Charcoal N Chill serves Indian fusion cuisine, not sushi or ramen.',
+    severity: 'medium',
+    correction_status: 'open',
+    category: 'menu',
+    resolved_at: null,
+    resolution_notes: null,
+    first_detected_at: '2026-02-23T09:00:00Z',
+    last_seen_at: '2026-02-23T09:00:00Z',
+    occurrence_count: 2,
+    propagation_events: null,
+    detected_at: '2026-02-23T09:00:00Z',
+    created_at: '2026-02-23T09:00:00Z',
+  },
+  {
+    id: 'h3eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+    org_id: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+    location_id: 'b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+    audit_id: null,
+    model_provider: 'microsoft-copilot',
+    claim_text: 'Charcoal N Chill does not take reservations.',
+    expected_truth: null,
+    severity: null,
+    correction_status: 'dismissed',
+    category: null,
+    resolved_at: null,
+    resolution_notes: null,
+    first_detected_at: '2026-02-22T11:00:00Z',
+    last_seen_at: '2026-02-22T11:00:00Z',
+    occurrence_count: 1,
+    propagation_events: null,
+    detected_at: '2026-02-22T11:00:00Z',
+    created_at: '2026-02-22T11:00:00Z',
+  },
+  {
+    id: 'h4eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+    org_id: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+    location_id: 'b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+    audit_id: null,
+    model_provider: 'anthropic-claude',
+    claim_text: 'Charcoal N Chill is located in downtown Atlanta.',
+    expected_truth: 'Charcoal N Chill is located at 11950 Jones Bridge Road, Alpharetta, GA.',
+    severity: 'high',
+    correction_status: 'open',
+    category: 'location',
+    resolved_at: null,
+    resolution_notes: null,
+    first_detected_at: '2026-02-21T16:00:00Z',
+    last_seen_at: '2026-02-21T16:00:00Z',
+    occurrence_count: 5,
+    propagation_events: null,
+    detected_at: '2026-02-21T16:00:00Z',
+    created_at: '2026-02-21T16:00:00Z',
+  },
+  {
+    id: 'h5eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+    org_id: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+    location_id: 'b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+    audit_id: null,
+    model_provider: 'google-gemini',
+    claim_text: 'Charcoal N Chill is open on Mondays.',
+    expected_truth: 'Charcoal N Chill is closed on Mondays.',
+    severity: 'low',
+    correction_status: 'recurring',
+    category: 'hours',
+    resolved_at: null,
+    resolution_notes: null,
+    first_detected_at: '2026-02-20T08:00:00Z',
+    last_seen_at: '2026-02-26T08:00:00Z',
+    occurrence_count: 4,
+    propagation_events: null,
+    detected_at: '2026-02-20T08:00:00Z',
+    created_at: '2026-02-20T08:00:00Z',
+  },
+];
+
+/**
+ * Sprint 95 — Pre-assembled audit report data for PDF template tests.
+ */
+export const MOCK_AUDIT_REPORT_DATA: AuditReportData = {
+  org: { name: 'Charcoal N Chill', city: 'Alpharetta', state: 'GA', logoUrl: null },
+  period: {
+    start: '2025-12-01T00:00:00Z',
+    end: '2026-02-28T23:59:59Z',
+    generatedAt: '2026-02-28T12:00:00Z',
+  },
+  summary: {
+    realityScore: 72,
+    totalAudits: 247,
+    hallucinationCount: 38,
+    hallucinationRate: 15,
+    byRisk: { high: 8, medium: 19, low: 11 },
+    modelCount: 4,
+  },
+  modelBreakdown: [
+    { model: 'ChatGPT (OpenAI)', audits: 62, hallucinations: 8, accuracy: 87 },
+    { model: 'Perplexity', audits: 61, hallucinations: 12, accuracy: 80 },
+    { model: 'Google Gemini', audits: 63, hallucinations: 10, accuracy: 84 },
+    { model: 'Microsoft Copilot', audits: 61, hallucinations: 8, accuracy: 87 },
+  ],
+  topHallucinations: [
+    {
+      date: 'February 25, 2026',
+      model: 'Perplexity',
+      question: 'What time does Charcoal N Chill close on Friday?',
+      aiResponse: 'Charcoal N Chill closes at 10 PM on Fridays.',
+      correction: 'Charcoal N Chill is open until 2 AM on Friday and Saturday.',
+      riskLevel: 'high',
+    },
+  ],
+  sovRows: [
+    {
+      query: 'hookah lounge alpharetta',
+      results: {
+        'ChatGPT (OpenAI)': 'cited',
+        'Perplexity': 'not_cited',
+        'Google Gemini': 'cited',
+        'Microsoft Copilot': 'cited',
+      },
+    },
+  ],
+  recommendations: [
+    'Your Reality Score is 72/100. Address the 8 high-risk hallucinations to improve accuracy.',
+    'Perplexity has not cited your business for any tracked queries. Allow PerplexityBot in your robots.txt and ensure your menu schema is published.',
+    'Keep your business hours, menu, and amenities up to date to maintain high AI accuracy across all engines.',
+  ],
 };

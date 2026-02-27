@@ -118,3 +118,12 @@ export function canConnectGBP(plan: PlanTier): boolean {
 export function canRunMultiModelSOV(plan: PlanTier): boolean {
   return plan === 'growth' || plan === 'agency';
 }
+
+/**
+ * CSV / PDF export — downloadable reports (Sprint 95).
+ * Starter/Trial orgs see a disabled button with an upgrade tooltip.
+ * Growth and Agency orgs can download CSV and PDF exports.
+ */
+export function canExportData(plan: PlanTier): boolean {
+  return plan === 'growth' || plan === 'agency';
+}

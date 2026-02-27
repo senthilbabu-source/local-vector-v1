@@ -2,11 +2,13 @@ import { redirect } from 'next/navigation';
 import { getSafeAuthContext } from '@/lib/auth';
 import { createClient } from '@/lib/supabase/server';
 import { buildTruthAuditResult, type EngineScore } from '@/lib/services/truth-audit.service';
+import { canExportData, type PlanTier } from '@/lib/plan-enforcer';
 import type { EvaluationEngine } from '@/lib/schemas/evaluations';
 import EvaluationCard, { type EngineEval } from './_components/EvaluationCard';
 import TruthScoreCard from './_components/TruthScoreCard';
 import EngineComparisonGrid from './_components/EngineComparisonGrid';
 import StatusDropdown from './_components/StatusDropdown';
+import ExportButtons from '../_components/ExportButtons';
 import type { CorrectionStatus } from '../actions';
 
 // ---------------------------------------------------------------------------
@@ -139,16 +141,23 @@ export default async function HallucinationsPage() {
   );
   const truthResult = buildTruthAuditResult(engineScoreArray, hasClosedHallucinations);
 
+  // ── Sprint 95: Export plan gate ────────────────────────────────────────
+  const userPlan = (ctx.plan ?? 'trial') as PlanTier;
+  const exportAllowed = canExportData(userPlan);
+
   return (
     <div className="space-y-8">
 
       {/* ── Page header ─────────────────────────────────────────────────── */}
-      <div>
-        <h1 className="text-xl font-semibold text-white">AI Truth Audit</h1>
-        <p className="mt-0.5 text-sm text-[#94A3B8]">
-          Multi-engine truth verification — see how accurately AI engines describe your
-          business across OpenAI, Perplexity, Anthropic, and Gemini.
-        </p>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-xl font-semibold text-white">AI Truth Audit</h1>
+          <p className="mt-0.5 text-sm text-[#94A3B8]">
+            Multi-engine truth verification — see how accurately AI engines describe your
+            business across OpenAI, Perplexity, Anthropic, and Gemini.
+          </p>
+        </div>
+        <ExportButtons canExport={exportAllowed} />
       </div>
 
       {/* ── Truth Score + Engine Comparison ───────────────────────────────── */}
