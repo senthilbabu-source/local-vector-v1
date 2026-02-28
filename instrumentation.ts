@@ -16,23 +16,27 @@
 // Next.js docs: https://nextjs.org/docs/app/building-your-application/optimizing/instrumentation
 
 export async function register() {
-  // Guard 1: Only activate in the Node.js runtime (not the Edge runtime).
-  // Server Components and Server Actions run in Node.js; this is where MSW
-  // needs to intercept calls.
-  if (process.env.NEXT_RUNTIME !== 'nodejs') return;
+  if (process.env.NEXT_RUNTIME === 'nodejs') {
+    // Sentry server-side initialisation (runs once on server startup).
+    // Dynamic import keeps the config tree-shakeable.
+    await import('./sentry.server.config');
 
-  // Guard 2: Only activate when explicitly opted-in via env var.
-  // This prevents MSW from interfering with normal dev or production traffic.
-  if (process.env.NEXT_PUBLIC_API_MOCKING !== 'enabled') return;
+    // MSW: Only activate when explicitly opted-in via env var.
+    // This prevents MSW from interfering with normal dev or production traffic.
+    if (process.env.NEXT_PUBLIC_API_MOCKING === 'enabled') {
+      // Dynamic import keeps MSW out of the production bundle entirely.
+      const { server } = await import('./src/mocks/node');
 
-  // Dynamic import keeps MSW out of the production bundle entirely.
-  // The import path resolves to src/mocks/node.ts via the tsconfig @/ alias.
-  const { server } = await import('./src/mocks/node');
+      // 'bypass' means unhandled requests (e.g. Supabase REST API, internal
+      // Next.js fetch) pass through to the real network.
+      server.listen({ onUnhandledRequest: 'bypass' });
 
-  // 'bypass' means unhandled requests (e.g. Supabase REST API, internal Next.js
-  // fetch) pass through to the real network. Only the explicitly registered
-  // handlers (OpenAI, Perplexity) are intercepted.
-  server.listen({ onUnhandledRequest: 'bypass' });
+      console.log('[MSW] Node.js server started — API mocking is ENABLED');
+    }
+  }
 
-  console.log('[MSW] Node.js server started — API mocking is ENABLED');
+  if (process.env.NEXT_RUNTIME === 'edge') {
+    // Sentry edge runtime initialisation.
+    await import('./sentry.edge.config');
+  }
 }

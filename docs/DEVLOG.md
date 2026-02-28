@@ -4,6 +4,25 @@
 
 ---
 
+## 2026-02-28 — Hotfix FIX-7: Seed UUID Violations, SQL Syntax, Integrations Error Logging (Completed)
+
+**Objective:** Fix seed.sql failures that prevented `npx supabase db reset` from completing, and improve integrations page error diagnostics.
+
+**Fix 1 — Seed UUID hex violations (§7 regression):**
+- `supabase/seed.sql` — **MODIFIED.** 11 hand-crafted UUIDs used non-hex prefixes (`g0`–`g5`, `h0`–`h3`, `i0`), violating AI_RULES §7.
+- Remapped: `g0`→`00`, `g1`→`01`, `g2`→`02`, `g3`→`03`, `g4`→`04`, `g5`→`05`, `h0`→`a0…a10`, `h1`→`a1…a10`, `h2`→`a2…a10`, `h3`→`a3…a10`, `i0`→`a4…a10`.
+- Root cause: Sprints 77 (vis_analytics) and 80 (entity_checks) seeded rows with `g`/`h`/`i` prefixes beyond hex range.
+
+**Fix 2 — Invalid ON CONFLICT on UPDATE:**
+- `supabase/seed.sql` line 1993 — **MODIFIED.** Sprint 89 GBP-sync seed block had `ON CONFLICT (id) DO NOTHING` appended to an `UPDATE` statement. `ON CONFLICT` is only valid on `INSERT`. Removed the invalid clause.
+
+**Fix 3 — Integrations page error logging:**
+- `app/dashboard/integrations/page.tsx` — **MODIFIED.** `console.error('[integrations] fetch error:', error)` logged `{}` because Supabase PostgrestError doesn't serialize with spread. Changed to `JSON.stringify(error, null, 2)` for full diagnostic output.
+
+**AI_RULES:** Added §122 (Seed SQL validation rules).
+
+---
+
 ## 2026-02-28 — Sprint O: V1 Complete — Revenue Defaults, Content Flow, Benchmark Enhancement (Completed)
 
 **Objective:** Close the final three open items from the February 2026 code analysis. After this sprint, LocalVector V1 is complete with no known gaps.

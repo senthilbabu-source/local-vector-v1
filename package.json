@@ -21,7 +21,7 @@
     "@react-email/components": "^1.0.8",
     "@react-pdf/renderer": "^4.3.2",
     "@remixicon/react": "^4.9.0",
-    "@sentry/nextjs": "^10.39.0",
+    "@sentry/nextjs": "^10.40.0",
     "@supabase/ssr": "^0.8.0",
     "@supabase/supabase-js": "^2.97.0",
     "@testing-library/dom": "^10.4.1",

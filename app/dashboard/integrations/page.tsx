@@ -83,7 +83,7 @@ async function fetchPageData(): Promise<LocationWithIntegrations[]> {
   };
 
   if (error) {
-    console.error('[integrations] fetch error:', error);
+    console.error('[integrations] fetch error:', JSON.stringify(error, null, 2));
   }
 
   return data ?? [];

@@ -18,10 +18,14 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 const mockInit = vi.fn();
 const mockCaptureException = vi.fn();
+const mockReplayIntegration = vi.fn().mockReturnValue({ name: 'Replay' });
+const mockCaptureRouterTransitionStart = vi.fn();
 
 vi.mock('@sentry/nextjs', () => ({
   init: mockInit,
   captureException: mockCaptureException,
+  replayIntegration: mockReplayIntegration,
+  captureRouterTransitionStart: mockCaptureRouterTransitionStart,
 }));
 
 // ---------------------------------------------------------------------------
@@ -34,12 +38,12 @@ describe('Sentry configuration', () => {
     vi.resetModules();
   });
 
-  it('sentry.client.config calls Sentry.init with DSN from env', async () => {
+  it('instrumentation-client calls Sentry.init with DSN from env', async () => {
     const savedDsn = process.env.NEXT_PUBLIC_SENTRY_DSN;
     process.env.NEXT_PUBLIC_SENTRY_DSN = 'https://abc@o123.ingest.sentry.io/456';
 
     try {
-      await import('@/sentry.client.config');
+      await import('@/instrumentation-client');
 
       expect(mockInit).toHaveBeenCalledTimes(1);
       expect(mockInit).toHaveBeenCalledWith(
@@ -58,7 +62,7 @@ describe('Sentry configuration', () => {
     delete process.env.NEXT_PUBLIC_SENTRY_DSN;
 
     try {
-      await import('@/sentry.client.config');
+      await import('@/instrumentation-client');
 
       expect(mockInit).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -76,7 +80,7 @@ describe('Sentry configuration', () => {
     process.env.NEXT_PUBLIC_SENTRY_DSN = 'https://abc@sentry.io/123';
 
     try {
-      await import('@/sentry.client.config');
+      await import('@/instrumentation-client');
 
       expect(mockInit).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -94,7 +98,7 @@ describe('Sentry configuration', () => {
     process.env.NEXT_PUBLIC_SENTRY_DSN = 'https://abc@sentry.io/123';
 
     try {
-      await import('@/sentry.client.config');
+      await import('@/instrumentation-client');
 
       expect(mockInit).toHaveBeenCalledWith(
         expect.objectContaining({

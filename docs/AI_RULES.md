@@ -2473,5 +2473,15 @@ Calendar-originated drafts show "Generated from calendar · {occasion name}" via
 - Benchmark feature was fully built in Sprint F (N4). Sprint O adds staleness + sample mode guard.
 - Regression guard: `src/__tests__/unit/sprint-o-benchmark.test.ts` (9 tests).
 
+## §122. Seed SQL Validation Rules (FIX-7)
+
+All hand-crafted UUIDs in `supabase/seed.sql` must be valid hex (0-9, a-f only). `ON CONFLICT` is only valid on `INSERT`, never on `UPDATE`.
+
+**Rules:**
+- **UUID hex enforcement (§7 strengthened):** Before adding seed rows, verify every UUID character is hex. Prefixes `g`–`z` are invalid and crash `npx supabase db reset`.
+- **No ON CONFLICT on UPDATE:** `ON CONFLICT (col) DO NOTHING` is PostgreSQL INSERT-only syntax. UPDATE statements use `WHERE` clauses for idempotency.
+- **Supabase error serialization:** Supabase `PostgrestError` objects log as `{}` with `console.error(error)`. Always use `JSON.stringify(error, null, 2)` for diagnostic logging.
+- **Regression guard:** Run `npx supabase db reset` after any seed.sql change — it must complete without errors.
+
 ---
 > **End of System Instructions**

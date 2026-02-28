@@ -1693,16 +1693,16 @@ ON CONFLICT (org_id, location_id, snapshot_date) DO NOTHING;
 -- Leaves PerplexityBot, Meta-External, Bytespider, Amazonbot, Applebot as blind spots.
 --
 -- Fixed UUIDs:
---   crawler_hit g0 : g0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11
---   crawler_hit g1 : g1eebc99-9c0b-4ef8-bb6d-6bb9bd380a11
---   crawler_hit g2 : g2eebc99-9c0b-4ef8-bb6d-6bb9bd380a11
---   crawler_hit g3 : g3eebc99-9c0b-4ef8-bb6d-6bb9bd380a11
---   crawler_hit g4 : g4eebc99-9c0b-4ef8-bb6d-6bb9bd380a11
---   crawler_hit g5 : g5eebc99-9c0b-4ef8-bb6d-6bb9bd380a11
+--   crawler_hit g0 : 00eebc99-9c0b-4ef8-bb6d-6bb9bd380a00
+--   crawler_hit g1 : 01eebc99-9c0b-4ef8-bb6d-6bb9bd380a01
+--   crawler_hit g2 : 02eebc99-9c0b-4ef8-bb6d-6bb9bd380a02
+--   crawler_hit g3 : 03eebc99-9c0b-4ef8-bb6d-6bb9bd380a03
+--   crawler_hit g4 : 04eebc99-9c0b-4ef8-bb6d-6bb9bd380a04
+--   crawler_hit g5 : 05eebc99-9c0b-4ef8-bb6d-6bb9bd380a05
 
 INSERT INTO public.crawler_hits (id, org_id, menu_id, location_id, bot_type, user_agent, crawled_at)
 SELECT
-  'g0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+  '00eebc99-9c0b-4ef8-bb6d-6bb9bd380a00',
   'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
   'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
   l.id,
@@ -1717,7 +1717,7 @@ ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO public.crawler_hits (id, org_id, menu_id, location_id, bot_type, user_agent, crawled_at)
 SELECT
-  'g1eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+  '01eebc99-9c0b-4ef8-bb6d-6bb9bd380a01',
   'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
   'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
   l.id,
@@ -1732,7 +1732,7 @@ ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO public.crawler_hits (id, org_id, menu_id, location_id, bot_type, user_agent, crawled_at)
 SELECT
-  'g2eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+  '02eebc99-9c0b-4ef8-bb6d-6bb9bd380a02',
   'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
   'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
   l.id,
@@ -1747,7 +1747,7 @@ ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO public.crawler_hits (id, org_id, menu_id, location_id, bot_type, user_agent, crawled_at)
 SELECT
-  'g3eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+  '03eebc99-9c0b-4ef8-bb6d-6bb9bd380a03',
   'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
   'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
   l.id,
@@ -1762,7 +1762,7 @@ ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO public.crawler_hits (id, org_id, menu_id, location_id, bot_type, user_agent, crawled_at)
 SELECT
-  'g4eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+  '04eebc99-9c0b-4ef8-bb6d-6bb9bd380a04',
   'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
   'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
   l.id,
@@ -1777,7 +1777,7 @@ ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO public.crawler_hits (id, org_id, menu_id, location_id, bot_type, user_agent, crawled_at)
 SELECT
-  'g5eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+  '05eebc99-9c0b-4ef8-bb6d-6bb9bd380a05',
   'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
   'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
   l.id,
@@ -1820,7 +1820,7 @@ ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO public.visibility_analytics (id, org_id, location_id, share_of_voice, citation_rate, snapshot_date)
 SELECT
-  'h0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+  'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a10',
   'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
   l.id,
   0.12,
@@ -1834,7 +1834,7 @@ ON CONFLICT (org_id, location_id, snapshot_date) DO NOTHING;
 
 INSERT INTO public.visibility_analytics (id, org_id, location_id, share_of_voice, citation_rate, snapshot_date)
 SELECT
-  'h1eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+  'a1eebc99-9c0b-4ef8-bb6d-6bb9bd380a10',
   'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
   l.id,
   0.12,
@@ -1848,7 +1848,7 @@ ON CONFLICT (org_id, location_id, snapshot_date) DO NOTHING;
 
 INSERT INTO public.visibility_analytics (id, org_id, location_id, share_of_voice, citation_rate, snapshot_date)
 SELECT
-  'h2eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+  'a2eebc99-9c0b-4ef8-bb6d-6bb9bd380a10',
   'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
   l.id,
   0.17,
@@ -1862,7 +1862,7 @@ ON CONFLICT (org_id, location_id, snapshot_date) DO NOTHING;
 
 INSERT INTO public.visibility_analytics (id, org_id, location_id, share_of_voice, citation_rate, snapshot_date)
 SELECT
-  'h3eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+  'a3eebc99-9c0b-4ef8-bb6d-6bb9bd380a10',
   'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
   l.id,
   0.19,
@@ -1888,7 +1888,7 @@ INSERT INTO public.entity_checks
    tripadvisor, apple_maps, bing_places, wikidata,
    entity_score, platform_metadata)
 SELECT
-  'i0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+  'a4eebc99-9c0b-4ef8-bb6d-6bb9bd380a10',
   'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
   l.id,
   'confirmed', 'confirmed', 'confirmed',
@@ -1989,5 +1989,4 @@ SET
   }'::jsonb,
   gbp_synced_at = NOW() - INTERVAL '3 days'
 WHERE org_id = 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11'
-  AND slug = 'alpharetta'
-ON CONFLICT (id) DO NOTHING;
+  AND slug = 'alpharetta';
