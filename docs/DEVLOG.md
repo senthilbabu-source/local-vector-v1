@@ -4,6 +4,53 @@
 
 ---
 
+## 2026-02-28 — Sprint H: Action Surfaces — Triage Queue, SOV Verdict, Citation Health, Compete Win/Loss (Completed)
+
+**Features implemented (4 items):**
+1. **Hallucination Triage Queue:** Replaced flat hallucinations table with three-column Kanban triage board — "Fix Now" (open, severity-sorted), "In Progress" (verifying), "Resolved" (fixed/dismissed/recurring, capped at 10). AlertCard uses `describeAlert()` from Sprint G. DismissAlertButton reuses existing `updateHallucinationStatus()` server action.
+2. **SOV Verdict Panel:** Verdict-first panel above all SOV page content showing big SOV %, week-over-week delta, and top competitor mention count aggregated from `sov_evaluations.mentioned_competitors`.
+3. **Citation Summary Panel:** Summary panel inside PlanGate showing covered/gap/score counts with plain-English verdict about citation health based on listing coverage.
+4. **Compete Win/Loss Verdict:** Win/Loss verdict panel between competitor management and intercept results derived from `competitor_intercepts.winner` matching the business name.
+
+**Schema decisions:**
+- **Hallucination status swimlanes:** `correction_status` values: open → "Fix Now", verifying → "In Progress", fixed/dismissed/recurring → "Resolved". `dismissed` treated as resolved (not a fourth column) since dismissed alerts require no further action.
+- **No competitor SOV %:** The DB stores mention counts in `sov_evaluations.mentioned_competitors`, not per-competitor SOV percentages. Verdict panel shows mention frequency instead.
+- **No per-source wrong info:** `citation_source_intelligence` is market-level aggregate data. Citation health is derived from listing coverage (listed vs not listed), not per-source accuracy.
+- **Compete win/loss:** Derived from `competitor_intercepts.winner` string matching against `businessName`. Each intercept is one matchup.
+
+**Changes:**
+
+*Hallucination Triage Queue:*
+- **`app/dashboard/hallucinations/_components/AlertCard.tsx`** — NEW. Uses `describeAlert()`, severity badge (critical/warning/info), status-specific actions, follow-up status banner, `timeAgo()` helper.
+- **`app/dashboard/hallucinations/_components/DismissAlertButton.tsx`** — NEW. Client component calling `updateHallucinationStatus(id, 'dismissed')`.
+- **`app/dashboard/hallucinations/_components/TriageSwimlane.tsx`** — NEW. Column wrapper with title, count badge, AlertCard list, empty state.
+- **`app/dashboard/hallucinations/_components/HallucinationsPageHeader.tsx`** — NEW. Verdict header: 0 open → green, >0 → red count.
+- **`app/dashboard/hallucinations/page.tsx`** — MODIFIED. Extended fetch to include `category`, `follow_up_result`. Replaced Flagged Hallucinations table with triage swimlane grid (lg:grid-cols-3).
+
+*SOV Verdict Panel:*
+- **`app/dashboard/share-of-voice/_components/SOVVerdictPanel.tsx`** — NEW. Big SOV %, delta, competitor mention context.
+- **`app/dashboard/share-of-voice/page.tsx`** — MODIFIED. Added competitor mention aggregation from evaluations. Inserted SOVVerdictPanel above SOVScoreRing.
+
+*Citation Summary Panel:*
+- **`app/dashboard/citations/_components/CitationsSummaryPanel.tsx`** — NEW. 3-count grid (covered/gaps/score) + verdict.
+- **`app/dashboard/citations/page.tsx`** — MODIFIED. Inserted CitationsSummaryPanel inside PlanGate, above TopGapCard.
+
+*Compete Win/Loss Verdict:*
+- **`app/dashboard/compete/_components/CompeteVerdictPanel.tsx`** — NEW. Win/loss counts from intercepts.
+- **`app/dashboard/compete/page.tsx`** — MODIFIED. Inserted CompeteVerdictPanel between competitor management and analyses sections.
+
+**Tests added: 51 tests (6 files)**
+- `alert-card.test.tsx` (14): headline from describeAlert, severity badges, status actions, meta
+- `triage-swimlane.test.tsx` (5): title, count, AlertCard rendering, empty state, testids
+- `sov-verdict-panel.test.tsx` (11): currentPct, delta colors, competitor context, no-data state (note: 11th test is the 'panel hidden when null' test)
+- `citations-summary-panel.test.tsx` (8): totals, coverage grid, gap styling, verdict
+- `compete-verdict-panel.test.tsx` (8): win/loss counts, colors, singular/plural, all-wins
+- `hallucinations-page-header.test.tsx` (5): clean/issues verdict, counts, singular
+
+**AI_RULES:** §97–§100 added.
+
+---
+
 ## 2026-02-28 — Sprint G: Human-Readable Dashboard — Plain-English Issues, Consequence-First Design (Completed)
 
 **Features implemented (3 items):**

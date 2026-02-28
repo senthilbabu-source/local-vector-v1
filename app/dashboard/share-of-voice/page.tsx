@@ -13,6 +13,7 @@ import SOVTrendChart, { type SOVDataPoint } from '@/app/dashboard/_components/SO
 import FirstMoverCard from './_components/FirstMoverCard';
 import GapAlertCard from './_components/GapAlertCard';
 import CategoryBreakdownChart from './_components/CategoryBreakdownChart';
+import SOVVerdictPanel from './_components/SOVVerdictPanel';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -170,6 +171,27 @@ export default async function ShareOfVoicePage() {
       ? latest.share_of_voice - previous.share_of_voice
       : null;
 
+  // ── Sprint H: Top competitor from mentioned_competitors ──────────────────
+  const competitorMentionMap = new Map<string, number>();
+  for (const e of evaluations) {
+    const competitors = e.mentioned_competitors;
+    if (Array.isArray(competitors)) {
+      for (const name of competitors) {
+        if (typeof name === 'string' && name.length > 0) {
+          competitorMentionMap.set(name, (competitorMentionMap.get(name) ?? 0) + 1);
+        }
+      }
+    }
+  }
+  let topCompetitor: { name: string; mentionCount: number } | null = null;
+  let maxMentions = 0;
+  for (const [name, count] of competitorMentionMap) {
+    if (count > maxMentions) {
+      maxMentions = count;
+      topCompetitor = { name, mentionCount: count };
+    }
+  }
+
   // ── Trend chart data (oldest → newest for left-to-right rendering) ───────
   const trendData: SOVDataPoint[] = [...visibilitySnapshots]
     .reverse()
@@ -207,6 +229,14 @@ export default async function ShareOfVoicePage() {
           answering relevant local search queries.
         </p>
       </div>
+
+      {/* ── Sprint H: Verdict Panel — before any chart ────────────────────── */}
+      <SOVVerdictPanel
+        currentPct={shareOfVoice}
+        previousPct={previous ? previous.share_of_voice * 100 : null}
+        topCompetitor={topCompetitor}
+        totalQueries={queries.length}
+      />
 
       {/* ── Aggregate SOV Score Ring ──────────────────────────────────────── */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

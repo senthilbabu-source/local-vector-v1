@@ -2174,5 +2174,50 @@ Dashboard redesigned from data dump to action surface. Charts moved to detail pa
 - Header subtitle changed from "AI lies" to "wrong facts"
 - No new DB tables, crons, or API routes. Pure front-end work.
 
+## §97. Hallucination Triage Queue (Sprint H)
+
+Hallucinations page (`/dashboard/hallucinations`) replaced the flat Flagged Hallucinations table with a three-column Kanban triage view.
+
+**Rules:**
+- **Swimlane partitioning:** "Fix Now" = `correction_status === 'open'` (sorted by severity: critical → high → medium → low). "In Progress" = `correction_status === 'verifying'`. "Resolved" = `fixed | dismissed | recurring` (capped at 10).
+- **AlertCard always uses `describeAlert()` from `lib/issue-descriptions.ts`.** No hardcoded alert copy in AlertCard. AI_RULES §93 still applies.
+- **DismissAlertButton** reuses existing `updateHallucinationStatus()` server action from `app/dashboard/actions.ts`. No new server actions created.
+- **Status→action mapping:** open → "Fix with AI" + "Dismiss". verifying → follow-up status banner. fixed → green "Fixed" text. recurring → "Try again →" link.
+- **HallucinationsPageHeader** shows verdict: 0 open → green "No wrong facts". >0 → red count + "Fix these..."
+- No new DB tables, migrations, crons, or API routes. Pure front-end.
+
+## §98. SOV Verdict Panel (Sprint H)
+
+Share of Voice page (`/dashboard/share-of-voice`) now leads with a verdict panel before the SOV Score Ring and trend chart.
+
+**Rules:**
+- **SOVVerdictPanel** renders above all existing content. Shows big SOV % + week-over-week delta + top competitor mention count.
+- **Competitor aggregation:** Counts `mentioned_competitors` across all `sov_evaluations`. Most-mentioned competitor shown with query count context.
+- **No competitor SOV %** — the DB has mention counts, not per-competitor SOV. Panel shows mention frequency, not percentage gap.
+- **No data state:** data-testid="sov-verdict-no-data" when `shareOfVoice` is null (pre-first scan).
+- No new DB tables, migrations, crons, or API routes. Pure front-end.
+
+## §99. Citation Summary Panel (Sprint H)
+
+Citations page (`/dashboard/citations`) now leads with a summary panel inside the existing PlanGate.
+
+**Rules:**
+- **CitationsSummaryPanel** shows total platforms, covered count (listed), gap count (not listed), gap score.
+- **Health derivation based on listing coverage:** "Listed" = business has a listing on that platform. "Not Listed" = platform AI cites but business has no listing.
+- **No `has_wrong_info` / `is_claimed` concept** — the `citation_source_intelligence` table is market-level data, not per-org source accuracy. Health is purely listing coverage.
+- **Verdict:** 0 gaps → green "citation coverage is strong". >0 gaps → red count + advice.
+- No new DB tables, migrations, crons, or API routes. Pure front-end.
+
+## §100. Compete Win/Loss Verdict (Sprint H)
+
+Competitor Intercept page (`/dashboard/compete`) now shows a win/loss verdict panel between competitor management and intercept results.
+
+**Rules:**
+- **CompeteVerdictPanel** shows win count (green) and loss count (amber) derived from `competitor_intercepts.winner` matching `businessName`.
+- **Win = intercept where `winner === businessName`**. Loss = intercept where `winner !== null && winner !== businessName`.
+- **Renders nothing** when `totalIntercepts === 0` — existing empty state handles this case.
+- **All-wins state:** "leading across the board" message in green.
+- No new DB tables, migrations, crons, or API routes. Pure front-end.
+
 ---
 > **End of System Instructions**

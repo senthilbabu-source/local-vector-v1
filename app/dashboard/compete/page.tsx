@@ -7,6 +7,7 @@ import AddCompetitorForm from './_components/AddCompetitorForm';
 import CompetitorChip from './_components/CompetitorChip';
 import RunAnalysisButton from './_components/RunAnalysisButton';
 import InterceptCard from './_components/InterceptCard';
+import CompeteVerdictPanel from './_components/CompeteVerdictPanel';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -150,6 +151,23 @@ export default async function CompetePage() {
 
         <AddCompetitorForm currentCount={competitors.length} maxAllowed={maxAllowed} />
       </section>
+
+      {/* ── Sprint H: Win/Loss Verdict ─────────────────────────────────── */}
+      {(() => {
+        const winCount = intercepts.filter(
+          (i) => i.winner === businessName,
+        ).length;
+        const lossCount = intercepts.filter(
+          (i) => i.winner !== null && i.winner !== businessName,
+        ).length;
+        return (
+          <CompeteVerdictPanel
+            winCount={winCount}
+            lossCount={lossCount}
+            totalIntercepts={intercepts.length}
+          />
+        );
+      })()}
 
       {/* ── Analyses ─────────────────────────────────────────────────────── */}
       {competitors.length > 0 && (

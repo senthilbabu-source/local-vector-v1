@@ -15,6 +15,7 @@ import { PlanGate } from '@/components/plan-gate/PlanGate';
 import CitationGapScore from './_components/CitationGapScore';
 import PlatformCitationBar from './_components/PlatformCitationBar';
 import TopGapCard from './_components/TopGapCard';
+import CitationsSummaryPanel from './_components/CitationsSummaryPanel';
 
 // ---------------------------------------------------------------------------
 // Data fetching
@@ -143,6 +144,14 @@ export default async function CitationsPage() {
 
       {/* ── Plan-gated content (blur teaser for Starter/Trial) ─────── */}
       <PlanGate requiredPlan="growth" currentPlan={plan} feature="Citation Gap Analysis">
+        {/* ── Sprint H: Citation Health Summary ──────────────────────── */}
+        <CitationsSummaryPanel
+          totalPlatforms={platforms.length}
+          coveredCount={gapSummary.platformsCovered}
+          gapCount={gapSummary.platformsThatMatter - gapSummary.platformsCovered}
+          gapScore={gapSummary.gapScore}
+        />
+
         {/* ── Top Gap Card — #1 uncovered platform ───────────────────── */}
         {gapSummary.topGap && (
           <TopGapCard

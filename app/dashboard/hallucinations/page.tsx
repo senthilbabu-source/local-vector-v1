@@ -12,6 +12,9 @@ import ExportButtons from '../_components/ExportButtons';
 import HallucinationsByModel from '../_components/HallucinationsByModel';
 import { aggregateByModel } from '@/lib/utils/dashboard-aggregators';
 import type { CorrectionStatus } from '../actions';
+import type { HallucinationRow } from '@/lib/data/dashboard';
+import TriageSwimlane from './_components/TriageSwimlane';
+import HallucinationsPageHeader from './_components/HallucinationsPageHeader';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -37,10 +40,15 @@ type Hallucination = {
   id: string;
   claim_text: string;
   severity: 'critical' | 'high' | 'medium' | 'low';
+  category: string | null;
   model_provider: string;
   correction_status: CorrectionStatus;
   expected_truth: string | null;
   detected_at: string;
+  first_detected_at: string | null;
+  last_seen_at: string | null;
+  occurrence_count: number | null;
+  follow_up_result: string | null;
 };
 
 // ---------------------------------------------------------------------------
@@ -69,7 +77,7 @@ async function fetchPageData(): Promise<{
 
     supabase
       .from('ai_hallucinations')
-      .select('id, claim_text, severity, model_provider, correction_status, expected_truth, detected_at')
+      .select('id, claim_text, severity, category, model_provider, correction_status, expected_truth, detected_at, first_detected_at, last_seen_at, occurrence_count, follow_up_result')
       .order('detected_at', { ascending: false }),
   ]);
 
@@ -258,116 +266,73 @@ export default async function HallucinationsPage() {
         />
       )}
 
-      {/* ── Historical AI Hallucinations (Phase 4) ───────────────────────── */}
-      <section>
-        <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-[#94A3B8]">
-          Flagged Hallucinations
-        </h2>
+      {/* ── Sprint H: Hallucination Triage Queue ─────────────────────────── */}
+      {(() => {
+        // Cast to HallucinationRow shape for AlertCard compatibility
+        const triageAlerts: HallucinationRow[] = hallucinations.map((h) => ({
+          id: h.id,
+          severity: h.severity as HallucinationRow['severity'],
+          category: h.category,
+          model_provider: h.model_provider as HallucinationRow['model_provider'],
+          claim_text: h.claim_text,
+          expected_truth: h.expected_truth,
+          correction_status: h.correction_status as HallucinationRow['correction_status'],
+          first_detected_at: h.first_detected_at ?? h.detected_at,
+          last_seen_at: h.last_seen_at ?? h.detected_at,
+          occurrence_count: h.occurrence_count ?? 1,
+          follow_up_result: h.follow_up_result ?? null,
+        }));
 
-        {/* Summary badges */}
-        {hallucinations.length > 0 && (
-          <div className="mb-4 flex flex-wrap gap-3">
-            {(['critical', 'high', 'medium', 'low'] as const).map((sev) => {
-              const count = hallucinations.filter((h) => h.severity === sev).length;
-              if (count === 0) return null;
-              return (
-                <div
-                  key={sev}
-                  className={`flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium ring-1 ring-inset ${SEVERITY_STYLES[sev]}`}
-                >
-                  <span className="capitalize">{sev}</span>
-                  <span className="font-bold">{count}</span>
-                </div>
-              );
-            })}
-          </div>
-        )}
+        // Partition into swimlanes — sorted by severity for Fix Now
+        const SEVERITY_ORDER: Record<string, number> = { critical: 0, high: 1, medium: 2, low: 3 };
+        const fixNowAlerts = triageAlerts
+          .filter((a) => a.correction_status === 'open')
+          .sort((a, b) => (SEVERITY_ORDER[a.severity] ?? 9) - (SEVERITY_ORDER[b.severity] ?? 9));
+        const inProgressAlerts = triageAlerts.filter((a) => a.correction_status === 'verifying');
+        const resolvedAlerts = triageAlerts
+          .filter((a) => a.correction_status === 'fixed' || a.correction_status === 'dismissed' || a.correction_status === 'recurring')
+          .slice(0, 10);
 
-        <div className="overflow-hidden rounded-xl bg-surface-dark border border-white/5">
-          {hallucinations.length === 0 ? (
-            <div className="flex flex-col items-center justify-center px-6 py-12 text-center">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                className="mx-auto h-10 w-10 text-slate-300"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                strokeWidth={1.5}
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"
+        return (
+          <section className="space-y-4">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <h2 className="text-sm font-semibold uppercase tracking-wide text-[#94A3B8]">
+                  Hallucination Triage
+                </h2>
+                <HallucinationsPageHeader
+                  openCount={fixNowAlerts.length}
+                  resolvedCount={resolvedAlerts.length}
                 />
-              </svg>
-              <p className="mt-3 text-sm font-medium text-[#94A3B8]">
-                No hallucinations flagged yet
-              </p>
-              <p className="mt-1 text-xs text-slate-400">
-                Run an AI audit above to start detecting inaccuracies.
-              </p>
+              </div>
             </div>
-          ) : (
-            <table className="min-w-full divide-y divide-white/5">
-              <thead className="bg-midnight-slate">
-                <tr>
-                  <th className="py-3 pl-6 pr-3 text-left text-xs font-semibold uppercase tracking-wide text-[#94A3B8]">
-                    Claim
-                  </th>
-                  <th className="px-3 py-3 text-left text-xs font-semibold uppercase tracking-wide text-[#94A3B8]">
-                    Severity
-                  </th>
-                  <th className="px-3 py-3 text-left text-xs font-semibold uppercase tracking-wide text-[#94A3B8]">
-                    Model
-                  </th>
-                  <th className="px-3 py-3 text-left text-xs font-semibold uppercase tracking-wide text-[#94A3B8]">
-                    Detected
-                  </th>
-                  <th className="px-3 py-3 text-left text-xs font-semibold uppercase tracking-wide text-[#94A3B8]">
-                    Status
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-white/5 bg-surface-dark">
-                {hallucinations.map((h) => (
-                  <tr key={h.id} className="transition hover:bg-white/5">
-                    <td className="py-3.5 pl-6 pr-3 align-top">
-                      <p className="max-w-sm text-sm font-medium text-white leading-snug">
-                        {h.claim_text}
-                      </p>
-                      {h.expected_truth && (
-                        <p className="mt-1 max-w-sm text-xs text-slate-400 leading-snug">
-                          <span className="font-medium text-[#94A3B8]">Truth:</span>{' '}
-                          {h.expected_truth}
-                        </p>
-                      )}
-                    </td>
-                    <td className="whitespace-nowrap px-3 py-3.5 align-top">
-                      <SeverityBadge severity={h.severity} />
-                    </td>
-                    <td className="whitespace-nowrap px-3 py-3.5 align-top text-sm text-[#94A3B8]">
-                      {modelLabel(h.model_provider)}
-                    </td>
-                    <td className="whitespace-nowrap px-3 py-3.5 align-top text-sm text-slate-400">
-                      {new Date(h.detected_at).toLocaleDateString('en-US', {
-                        month: 'short',
-                        day: 'numeric',
-                        year: 'numeric',
-                      })}
-                    </td>
-                    <td className="whitespace-nowrap px-3 py-3.5 align-top">
-                      <StatusDropdown
-                        hallucinationId={h.id}
-                        currentStatus={h.correction_status}
-                      />
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
-        </div>
-      </section>
+
+            <div className="grid grid-cols-1 gap-6 lg:grid-cols-3" data-testid="triage-grid">
+              <TriageSwimlane
+                title="Fix Now"
+                count={fixNowAlerts.length}
+                alerts={fixNowAlerts}
+                emptyMessage="No open issues — you're all clear"
+                data-testid="swimlane-fix-now"
+              />
+              <TriageSwimlane
+                title="In Progress"
+                count={inProgressAlerts.length}
+                alerts={inProgressAlerts}
+                emptyMessage="Corrections you submit appear here while being verified"
+                data-testid="swimlane-in-progress"
+              />
+              <TriageSwimlane
+                title="Resolved"
+                count={resolvedAlerts.length}
+                alerts={resolvedAlerts}
+                emptyMessage="Fixed issues will appear here"
+                data-testid="swimlane-resolved"
+              />
+            </div>
+          </section>
+        );
+      })()}
 
     </div>
   );
