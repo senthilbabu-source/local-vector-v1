@@ -2325,5 +2325,30 @@ The `PLATFORM_SYNC_CONFIG` in `lib/integrations/platform-config.ts` is the SSOT 
 - `real_oauth` platforms (google only): full toggle, sync button, URL input.
 - Regression guard: `src/__tests__/unit/integrations-listings.test.ts` (20 tests).
 
+## §110. Listings Verification Pattern (Sprint L)
+
+Verification routes compare platform API data against local org data. Yelp is the first platform verified; Bing deferred to Sprint M.
+
+**Rules:**
+- Auth: `getSafeAuthContext()` — org_id derived server-side (never client).
+- Table: `location_integrations` — per-location per-platform via `(location_id, platform)` unique key.
+- Columns: `verification_result` JSONB (cached full result), `verified_at` (rate limit), `has_discrepancy` (boolean flag).
+- Rate limit: 24 hours per `(location_id, platform)` — check `verified_at` before API call.
+- Pure utility: `detectDiscrepancies()` in `lib/integrations/detect-discrepancies.ts` — no I/O.
+- Name comparison: fuzzy (alphanumeric-only, substring inclusion). Phone: last 10 digits. Address: first 2 words.
+- Env var: `YELP_API_KEY` must be in `.env.local.example`. Route returns 503 when missing.
+- Regression guard: `src/__tests__/unit/listing-verification.test.tsx` (16 tests).
+
+## §111. Sample Data Coverage Audit (Sprint L)
+
+Sprint B's sample data infrastructure is complete and is the SSOT. No duplicate components.
+
+**Rules:**
+- The 4 stat panels (AIVisibilityPanel, WrongFactsPanel, AIBotAccessPanel, LastScanPanel) + TopIssuesPanel receive sample data via `lib/sample-data/sample-dashboard-data.ts`.
+- Secondary cards (BotActivity, ProofTimeline, EntityHealth, CronHealth, ContentFreshness) show built-in empty states — NOT sample data. This is intentional.
+- Plan-gated cards (Revenue charts) are invisible to trial/starter users — NOT sample-populated.
+- Component names: `SampleModeBanner` (not `SampleDataBanner`), `SampleDataBadge` (not `SampleDataOverlay`). Do not create duplicates.
+- Regression guard: `src/__tests__/unit/sample-data-mode.test.ts` (18 tests) + `src/__tests__/unit/sample-data-components.test.tsx` (6 component tests, jsdom).
+
 ---
 > **End of System Instructions**

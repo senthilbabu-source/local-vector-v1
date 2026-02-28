@@ -572,6 +572,11 @@ CREATE TABLE IF NOT EXISTS "public"."location_integrations" (
     "last_sync_at" timestamp with time zone,
     "external_id" character varying(255),
     "listing_url" "text",
+    "wp_username" character varying(255),
+    "wp_app_password" "text",
+    "verified_at" timestamp with time zone,
+    "verification_result" "jsonb",
+    "has_discrepancy" boolean DEFAULT false,
     "created_at" timestamp with time zone DEFAULT "now"() NOT NULL
 );
 

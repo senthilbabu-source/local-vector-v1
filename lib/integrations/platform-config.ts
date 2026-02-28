@@ -22,6 +22,8 @@ export interface PlatformSyncConfig {
   eta?: string;
   /** External URL where users can manage their listing on this platform */
   claimUrl?: string;
+  /** True if we can verify business data via read-only API (Sprint L) */
+  verifiable?: boolean;
 }
 
 export const PLATFORM_SYNC_CONFIG: Record<Big6Platform, PlatformSyncConfig> = {
@@ -31,8 +33,9 @@ export const PLATFORM_SYNC_CONFIG: Record<Big6Platform, PlatformSyncConfig> = {
   },
   yelp: {
     syncType: 'manual_url',
-    syncDescription: 'Manual URL tracking — automated sync coming soon',
+    syncDescription: 'Manual URL tracking — data verification available',
     claimUrl: 'https://biz.yelp.com',
+    verifiable: true,
   },
   tripadvisor: {
     syncType: 'manual_url',

@@ -905,6 +905,9 @@ export type Database = {
           listing_url: string | null;
           wp_username: string | null;
           wp_app_password: string | null;
+          verified_at: string | null;
+          verification_result: Record<string, unknown> | null;
+          has_discrepancy: boolean;
         };
         Insert: {
           id?: string;
@@ -918,6 +921,9 @@ export type Database = {
           listing_url?: string | null;
           wp_username?: string | null;
           wp_app_password?: string | null;
+          verified_at?: string | null;
+          verification_result?: Record<string, unknown> | null;
+          has_discrepancy?: boolean;
         };
         Update: {
           id?: string;
@@ -931,6 +937,9 @@ export type Database = {
           listing_url?: string | null;
           wp_username?: string | null;
           wp_app_password?: string | null;
+          verified_at?: string | null;
+          verification_result?: Record<string, unknown> | null;
+          has_discrepancy?: boolean;
         };
         Relationships: [
           {

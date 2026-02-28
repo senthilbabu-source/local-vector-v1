@@ -1,8 +1,10 @@
 // ---------------------------------------------------------------------------
-// src/__tests__/unit/sample-data-mode.test.ts — Sprint B (C4)
+// src/__tests__/unit/sample-data-mode.test.ts — Sprint B (C4) + Sprint L
 //
-// Validates sample data logic — pure function tests.
-// No jsdom needed — these are plain TypeScript function tests.
+// Validates sample data logic — pure function tests + data shape validation.
+// Sprint L additions: SAMPLE_WRONG_FACTS_COUNT, SAMPLE_BOT_DATA shapes.
+// Component tests (SampleDataBadge, SampleModeBanner) are in
+// sample-data-components.test.tsx (separate file — requires jsdom).
 // ---------------------------------------------------------------------------
 
 import { describe, it, expect, vi, afterEach } from 'vitest';
@@ -15,6 +17,8 @@ import {
   SAMPLE_FIXED_COUNT,
   SAMPLE_INTERCEPTS_THIS_MONTH,
   SAMPLE_OPEN_ALERT_COUNT,
+  SAMPLE_WRONG_FACTS_COUNT,
+  SAMPLE_BOT_DATA,
 } from '@/lib/sample-data/sample-dashboard-data';
 
 // ---------------------------------------------------------------------------
@@ -114,5 +118,28 @@ describe('SAMPLE data shapes', () => {
   it('SAMPLE_OPEN_ALERT_COUNT is a positive number', () => {
     expect(typeof SAMPLE_OPEN_ALERT_COUNT).toBe('number');
     expect(SAMPLE_OPEN_ALERT_COUNT).toBeGreaterThan(0);
+  });
+
+  // ── Sprint L additions ──────────────────────────────────────────────────
+
+  it('SAMPLE_WRONG_FACTS_COUNT is a positive number', () => {
+    expect(typeof SAMPLE_WRONG_FACTS_COUNT).toBe('number');
+    expect(SAMPLE_WRONG_FACTS_COUNT).toBeGreaterThan(0);
+  });
+
+  it('SAMPLE_BOT_DATA is a non-empty array with required fields', () => {
+    expect(Array.isArray(SAMPLE_BOT_DATA)).toBe(true);
+    expect(SAMPLE_BOT_DATA.length).toBeGreaterThanOrEqual(1);
+    for (const bot of SAMPLE_BOT_DATA) {
+      expect(typeof bot.botType).toBe('string');
+      expect(typeof bot.label).toBe('string');
+      expect(typeof bot.status).toBe('string');
+      expect(['active', 'blind_spot', 'low']).toContain(bot.status);
+    }
+  });
+
+  it('SAMPLE_BOT_DATA contains at least one blind_spot bot', () => {
+    const blindSpots = SAMPLE_BOT_DATA.filter((b) => b.status === 'blind_spot');
+    expect(blindSpots.length).toBeGreaterThanOrEqual(1);
   });
 });

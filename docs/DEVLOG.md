@@ -4,6 +4,41 @@
 
 ---
 
+## 2026-02-28 — Sprint L: Retention & Onboarding — Sample Data Audit, Listings Verification, Tour Completion (Completed)
+
+**Objective:** Address 3 highest-churn-risk gaps: sample data mode completeness, Yelp API listing verification, and GuidedTour completion.
+
+**C4 — Sample Data Mode (audit only — Sprint B already completed):**
+- Core infrastructure: `isSampleMode()`, `sample-dashboard-data.ts`, `SampleModeBanner`, `SampleDataBadge` — all implemented in Sprint B
+- Dashboard coverage: 4 stat panels + TopIssuesPanel have sample data. Secondary cards show empty states (intentional). Plan-gated cards invisible to trial users.
+- Added 9 new tests across 2 files: 3 data shape tests in `sample-data-mode.test.ts` (SAMPLE_WRONG_FACTS_COUNT, SAMPLE_BOT_DATA shape/blind_spot), 6 component tests in `sample-data-components.test.tsx` (SampleDataBadge 3, SampleModeBanner 3)
+- Total sample data tests: 24 across 2 files (`sample-data-mode.test.ts`: 18, `sample-data-components.test.tsx`: 6)
+
+**C2 Phase 2 — Listings Verification (Yelp Fusion API):**
+- Migration: `20260309000001_listing_verification.sql` — adds `verified_at`, `verification_result` (JSONB), `has_discrepancy` to `location_integrations`
+- Pure utility: `lib/integrations/detect-discrepancies.ts` — fuzzy name match, address first-2-words, phone last-10-digits comparison
+- API route: `app/api/integrations/verify-yelp/route.ts` — Yelp Fusion phone search, 24h rate limit, org_id server-derived via getSafeAuthContext()
+- Component: `ListingVerificationRow.tsx` — Deep Night theme, states: not verified / verified-clean / discrepancies / not-found
+- Platform config: `verifiable: true` flag added to `PlatformSyncConfig` interface; set on yelp
+- Env var: `YELP_API_KEY` added to `.env.local.example`
+- Bing deferred to Sprint M (Azure Cognitive Services auth pattern differs)
+
+**M2 — GuidedTour Completion (verification only — Sprint E already completed):**
+- Tour steps: 8 (5 original + 3 from Sprint E: Share of Voice, Citations, Revenue Impact)
+- Sidebar testids: `nav-share-of-voice`, `nav-citations`, `nav-revenue-impact` — all present
+- Restart Tour button in Settings — confirmed present
+- Existing tests: `guided-tour-steps.test.ts` (8 tests) — all passing
+
+**Tests added:**
+- `src/__tests__/unit/sample-data-mode.test.ts` — **+3 tests** (18 total, was 15)
+- `src/__tests__/unit/sample-data-components.test.tsx` — **6 tests** (SampleDataBadge 3, SampleModeBanner 3) — NEW
+- `src/__tests__/unit/listing-verification.test.tsx` — **16 tests** (detectDiscrepancies + ListingVerificationRow)
+- `tests/e2e/sprint-l-smoke.spec.ts` — **10 E2E tests** (listings verification, sample mode, tour nav targets)
+
+**AI_RULES additions:** §110 (Listings verification pattern), §111 (Sample data coverage audit).
+
+---
+
 ## 2026-02-28 — Sprint K: Infrastructure & Trust — Sentry Sweep, Listings Verification, Sidebar & Digest Verification (Completed)
 
 **Objective:** Verify and complete 5 areas of quiet breakage from the code analysis. Sprint K is an infrastructure audit — most work was already done in earlier sprints. The primary new work was fixing 4 remaining bare `catch {}` blocks.

@@ -21,7 +21,10 @@ import { canConnectGBP, type PlanTier } from '@/lib/plan-enforcer';
 import PlatformRow, { type IntegrationData } from './_components/PlatformRow';
 import GBPConnectButton from './_components/GBPConnectButton';
 import WordPressConnectButton from './_components/WordPressConnectButton';
+import { ListingVerificationRow } from './_components/ListingVerificationRow';
 import { getListingHealth } from './_utils/health';
+import { PLATFORM_SYNC_CONFIG } from '@/lib/integrations/platform-config';
+import type { VerificationResult } from '@/lib/integrations/detect-discrepancies';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -33,6 +36,9 @@ type Integration = {
   status: string;
   last_sync_at: string | null;
   listing_url: string | null;
+  verified_at: string | null;
+  verification_result: Record<string, unknown> | null;
+  has_discrepancy: boolean;
 };
 
 type LocationWithIntegrations = {
@@ -60,7 +66,7 @@ async function fetchPageData(): Promise<LocationWithIntegrations[]> {
   const { data, error } = (await supabase
     .from('locations')
     .select(
-      'id, business_name, city, state, location_integrations!location_integrations_location_id_fkey(id, platform, status, last_sync_at, listing_url)'
+      'id, business_name, city, state, location_integrations!location_integrations_location_id_fkey(id, platform, status, last_sync_at, listing_url, verified_at, verification_result, has_discrepancy)'
     )
     .order('created_at', { ascending: true })) as {
     data: LocationWithIntegrations[] | null;
@@ -357,14 +363,30 @@ export default async function IntegrationsPage() {
                   (i) => i.platform === platform
                 );
                 const integration: IntegrationData = integrationRow ?? null;
+                const syncConfig = PLATFORM_SYNC_CONFIG[platform];
 
                 return (
-                  <PlatformRow
-                    key={platform}
-                    locationId={location.id}
-                    platform={platform}
-                    integration={integration}
-                  />
+                  <div key={platform}>
+                    <PlatformRow
+                      locationId={location.id}
+                      platform={platform}
+                      integration={integration}
+                    />
+                    {/* Sprint L: Verification row for platforms with API verification */}
+                    {syncConfig.verifiable && (
+                      <ListingVerificationRow
+                        platform={platform}
+                        platformLabel={platform === 'yelp' ? 'Yelp' : platform}
+                        claimUrl={syncConfig.claimUrl ?? '#'}
+                        cachedResult={
+                          integrationRow?.verification_result
+                            ? (integrationRow.verification_result as unknown as VerificationResult)
+                            : null
+                        }
+                        locationId={location.id}
+                      />
+                    )}
+                  </div>
                 );
               })}
             </div>

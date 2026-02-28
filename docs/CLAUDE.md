@@ -12,7 +12,7 @@ LocalVector is an AEO/GEO SaaS platform that helps local businesses monitor and 
 - **Billing:** Stripe webhooks → `organizations.plan_tier` enum (`trial | starter | growth | agency`)
 - **Email:** Resend + React Email (`emails/`)
 - **Cache:** Upstash Redis (`lib/redis.ts`) — optional, all callers must degrade gracefully
-- **Testing:** Vitest (unit/integration in `src/__tests__/`), Playwright (E2E in `tests/e2e/`, 29 specs). Current: 3231 tests, 235 files.
+- **Testing:** Vitest (unit/integration in `src/__tests__/`), Playwright (E2E in `tests/e2e/`, 30 specs). Current: 3256 tests, 238 files.
 - **Monitoring:** Sentry (client, server, edge configs) — all catch blocks instrumented (Sprint A, AI_RULES §70)
 
 ## Architecture Rules
@@ -73,11 +73,11 @@ lib/agent-readiness/scenario-descriptions.ts — Capability jargon→scenario tr
 lib/admin/format-relative-date.ts — Intl.RelativeTimeFormat utility for admin pages (Sprint D, §81)
 lib/mcp/               — MCP server tool registrations
 lib/supabase/database.types.ts — Full Database type (33 tables, 9 enums, Relationships)
-supabase/migrations/   — Applied SQL migrations (40, timestamp-ordered)
+supabase/migrations/   — Applied SQL migrations (41, timestamp-ordered)
 supabase/prod_schema.sql — Full production schema dump
 docs/                  — 50 spec documents (authoritative for planned features)
 src/__tests__/         — Unit + integration tests
-tests/e2e/             — Playwright E2E tests (29 specs)
+tests/e2e/             — Playwright E2E tests (30 specs)
 app/api/ai-preview/    — AI Answer Preview SSE endpoint (Sprint F, §90)
 app/dashboard/ai-responses/_components/ — AIAnswerPreviewWidget (Sprint F)
 app/dashboard/_components/BenchmarkComparisonCard.tsx — City benchmark comparison (Sprint F, §92)
@@ -150,6 +150,7 @@ app/dashboard/_components/BenchmarkComparisonCard.tsx — City benchmark compari
 38. `20260306000001_api_credits.sql` — `api_credits` table for per-org monthly credit tracking + `increment_credits_used()` RPC + RLS (Sprint D)
 39. `20260307000001_orgs_industry.sql` — `industry text DEFAULT 'restaurant'` column on `organizations` for multi-vertical support (Sprint E)
 40. `20260308000001_sprint_f_engagement.sql` — N3: `correction_query`, `verifying_since`, `follow_up_checked_at`, `follow_up_result` on `ai_hallucinations`. N4: `benchmarks` table + RLS + `compute_benchmarks()` RPC (Sprint F)
+41. `20260309000001_listing_verification.sql` — `verified_at`, `verification_result` (JSONB), `has_discrepancy` (boolean) on `location_integrations` (Sprint L)
 
 ## Testing Commands
 
@@ -380,6 +381,7 @@ ADMIN_EMAILS
 | Sprint I | Jargon Retirement (Revenue, Sentiment, Source Intel, Bot Activity) | Complete | — |
 | Sprint J | Jargon Retirement (Entity Health, Agent Readiness, Cluster Map) | Complete | — |
 | Sprint K | Infrastructure & Trust (Sentry Sweep, Listings/Sidebar/Digest Verification) | Complete | — |
+| Sprint L | Retention & Onboarding (Sample Data Audit, Listings Verification, Tour Completion) | Complete | — |
 | Tier 4 | 102–106 | Gated | Sprint 102: Apple BC API approval. Sprint 103: Bing Places API approval. Sprint 104–106: no external gate. |
 | Tier 5 | 107–109 | Gated | 4–8 weeks of SOV baseline data required. SOV cron registered 2026-02-27. Sprint 107 earliest: 2026-03-27. |
 
@@ -397,4 +399,4 @@ No external dependencies. Can begin immediately. See AI_RULES §59.
 
 ## Build History
 
-See `DEVLOG.md` (project root) and `docs/DEVLOG.md` for the complete sprint-by-sprint build log. Current sprint: 101 (+ FIX-1 through FIX-6 + Sprint A + Sprint B + Sprint C + Sprint D + Sprint E + Sprint F + Sprint G + Sprint H + Sprint I + Sprint J + Sprint K). AI_RULES: §1–§109 (109 sections). Production readiness: all audit issues resolved.
+See `DEVLOG.md` (project root) and `docs/DEVLOG.md` for the complete sprint-by-sprint build log. Current sprint: 101 (+ FIX-1 through FIX-6 + Sprint A + Sprint B + Sprint C + Sprint D + Sprint E + Sprint F + Sprint G + Sprint H + Sprint I + Sprint J + Sprint K + Sprint L). AI_RULES: §1–§111 (111 sections). Production readiness: all audit issues resolved.
