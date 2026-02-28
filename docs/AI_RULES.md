@@ -1829,5 +1829,65 @@ All plan tier display names MUST use `lib/plan-display-names.ts`.
 - Import `getPlanDisplayName` from `@/lib/plan-display-names`
 - The billing page, sidebar, and any future plan display must use this helper
 
+## §72. Sample Data Mode (Sprint B)
+
+New orgs with `realityScore === null` and `created_at` < 14 days ago see sample data on the dashboard.
+
+**Architecture:**
+- `lib/sample-data/sample-dashboard-data.ts` — SSOT for all sample data shapes
+- `lib/sample-data/use-sample-mode.ts` — `isSampleMode(realityScore, orgCreatedAt)` pure function
+- `components/ui/SampleDataBadge.tsx` — amber pill overlay on sample-data cards
+- `components/ui/SampleModeBanner.tsx` — dismissible banner (sessionStorage)
+
+**Rules:**
+- Sample data shapes MUST exactly match real data types from `lib/data/dashboard.ts`
+- `isSampleMode()` is called ONCE at the top of the server component — never re-derive in child components
+- The `SampleDataBadge` uses `absolute` positioning — wrapping `<div>` MUST have `relative`
+- Sample mode auto-disables when `realityScore !== null` (real scan completed) or org is > 14 days old
+- `orgCreatedAt` is fetched alongside `orgPlan` in `fetchDashboardData()`
+
+## §73. InfoTooltip System (Sprint B)
+
+All dashboard metric cards must have `InfoTooltip` components explaining what the metric is, how it's calculated, and what action to take.
+
+**Architecture:**
+- `components/ui/InfoTooltip.tsx` — Radix Popover-based `?` icon, hover + click
+- `lib/tooltip-content.tsx` — SSOT for all tooltip text (TooltipBody JSX)
+
+**Rules:**
+- Tooltip text lives in `lib/tooltip-content.tsx` — never inline in card components
+- `data-testid="info-tooltip-trigger"` on the button, `data-testid="info-tooltip-content"` on popover
+- InfoTooltip must not interfere with MetricCard `href` links — uses `e.stopPropagation()`
+- Do NOT add InfoTooltip to chart axes, legend items, or Recharts data points
+
+## §74. Settings Expansion (Sprint B)
+
+Settings page has 7 sections: Account, Security, Organization, AI Monitoring, Notifications, Webhooks, Danger Zone.
+
+**New DB columns (migration `20260304000001`):**
+- `organizations.monitored_ai_models` — `text[]` default `{openai,perplexity,gemini,copilot}`
+- `organizations.score_drop_threshold` — `integer` default `10`
+- `organizations.webhook_url` — `text` (agency plan only, server-side enforced)
+
+**Rules:**
+- Settings save pattern: `useTransition()` + Server Actions (match existing pattern)
+- Webhook URL is server-side gated to agency plan in `updateAdvancedPrefs()`
+- Plan display name uses `getPlanDisplayName()` from `lib/plan-display-names.ts` (§71)
+- Restart Tour clears `localStorage.removeItem('lv_tour_completed')` and reloads
+
+## §75. Plan Feature Comparison Table (Sprint B)
+
+Billing page includes a full feature comparison matrix below the tier cards.
+
+**Architecture:**
+- `lib/plan-feature-matrix.ts` — static `FeatureRow[]` derived from `lib/plan-enforcer.ts`
+- `app/dashboard/billing/_components/PlanComparisonTable.tsx` — table component
+
+**Rules:**
+- Feature matrix MUST stay in sync with `lib/plan-enforcer.ts` gating functions
+- Each `FeatureRow.value` is `boolean | string` — never `undefined` or `null`
+- Current plan column is highlighted with `bg-electric-indigo/5` + "Your Plan" badge
+- `data-testid="plan-comparison-table"` on the table wrapper
+
 ---
 > **End of System Instructions**

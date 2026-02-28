@@ -17,6 +17,7 @@
 
 import Link from 'next/link';
 import { LineChart, Line, ResponsiveContainer } from 'recharts';
+import { InfoTooltip } from '@/components/ui/InfoTooltip';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -33,6 +34,8 @@ export interface MetricCardProps {
     change?: string;
     /** If provided, the entire card becomes a link to this path */
     href?: string;
+    /** Optional tooltip content (Sprint B H1) */
+    tooltip?: React.ReactNode;
     /** Additional class names */
     className?: string;
 }
@@ -73,6 +76,7 @@ export default function MetricCard({
     color = 'default',
     change,
     href,
+    tooltip,
     className = '',
 }: MetricCardProps) {
     const sparkData = trend?.map((v, i) => ({ i, v }));
@@ -85,9 +89,12 @@ export default function MetricCard({
             ].join(' ')}
         >
             {/* Label */}
-            <p className="text-xs font-medium text-slate-500 uppercase tracking-wide">
-                {label}
-            </p>
+            <div className="flex items-center gap-1.5">
+                <p className="text-xs font-medium text-slate-500 uppercase tracking-wide">
+                    {label}
+                </p>
+                {tooltip && <InfoTooltip content={tooltip} />}
+            </div>
 
             {/* Value + Change badge */}
             <div className="flex items-end gap-2 mt-1.5">

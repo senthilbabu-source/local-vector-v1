@@ -169,6 +169,89 @@ export async function updateNotificationPrefs(formData: FormData): Promise<Actio
 }
 
 // ---------------------------------------------------------------------------
+// Sprint B: AI Monitoring Preferences — Server Action
+// ---------------------------------------------------------------------------
+
+const VALID_AI_MODELS = ['openai', 'perplexity', 'gemini', 'copilot'] as const;
+
+const AIMonitoringSchema = z.object({
+  monitored_ai_models: z.array(z.enum(VALID_AI_MODELS)).min(1, 'Select at least one AI model'),
+});
+
+export async function updateAIMonitoringPrefs(formData: FormData): Promise<ActionResult> {
+  const ctx = await getSafeAuthContext();
+  if (!ctx?.orgId) {
+    return { success: false, error: 'Unauthorized' };
+  }
+
+  const models = formData.get('monitored_ai_models');
+  const parsed = AIMonitoringSchema.safeParse({
+    monitored_ai_models: typeof models === 'string' ? JSON.parse(models) : [],
+  });
+  if (!parsed.success) {
+    return { success: false, error: parsed.error.issues[0]?.message ?? 'Invalid input' };
+  }
+
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from('organizations')
+    .update({ monitored_ai_models: parsed.data.monitored_ai_models })
+    .eq('id', ctx.orgId);
+
+  if (error) {
+    return { success: false, error: error.message };
+  }
+
+  revalidatePath('/dashboard/settings');
+  return { success: true };
+}
+
+// ---------------------------------------------------------------------------
+// Sprint B: Score Drop Threshold + Webhook URL — Server Action
+// ---------------------------------------------------------------------------
+
+const AdvancedPrefsSchema = z.object({
+  score_drop_threshold: z.number().int().min(0).max(50),
+  webhook_url: z.string().url('Must be a valid URL').or(z.literal('')).nullable(),
+});
+
+export async function updateAdvancedPrefs(formData: FormData): Promise<ActionResult> {
+  const ctx = await getSafeAuthContext();
+  if (!ctx?.orgId) {
+    return { success: false, error: 'Unauthorized' };
+  }
+
+  const parsed = AdvancedPrefsSchema.safeParse({
+    score_drop_threshold: Number(formData.get('score_drop_threshold') ?? 10),
+    webhook_url: formData.get('webhook_url') || null,
+  });
+  if (!parsed.success) {
+    return { success: false, error: parsed.error.issues[0]?.message ?? 'Invalid input' };
+  }
+
+  const updateData: Record<string, unknown> = {
+    score_drop_threshold: parsed.data.score_drop_threshold,
+  };
+  // Only write webhook_url if the plan allows it (agency) — server-side enforcement
+  if (ctx.plan === 'agency') {
+    updateData.webhook_url = parsed.data.webhook_url;
+  }
+
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from('organizations')
+    .update(updateData)
+    .eq('id', ctx.orgId);
+
+  if (error) {
+    return { success: false, error: error.message };
+  }
+
+  revalidatePath('/dashboard/settings');
+  return { success: true };
+}
+
+// ---------------------------------------------------------------------------
 // softDeleteOrganization — Server Action (Sprint 62)
 // ---------------------------------------------------------------------------
 

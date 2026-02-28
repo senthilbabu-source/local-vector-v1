@@ -12,7 +12,7 @@ LocalVector is an AEO/GEO SaaS platform that helps local businesses monitor and 
 - **Billing:** Stripe webhooks → `organizations.plan_tier` enum (`trial | starter | growth | agency`)
 - **Email:** Resend + React Email (`emails/`)
 - **Cache:** Upstash Redis (`lib/redis.ts`) — optional, all callers must degrade gracefully
-- **Testing:** Vitest (unit/integration in `src/__tests__/`), Playwright (E2E in `tests/e2e/`, 23 specs)
+- **Testing:** Vitest (unit/integration in `src/__tests__/`), Playwright (E2E in `tests/e2e/`, 23 specs). Current: 2685 tests, 192 files.
 - **Monitoring:** Sentry (client, server, edge configs) — all catch blocks instrumented (Sprint A, AI_RULES §70)
 
 ## Architecture Rules
@@ -56,9 +56,12 @@ lib/page-audit/        — HTML parser + AEO auditor
 lib/tools/             — AI chat tool definitions
 lib/auth/              — Role enforcement (org-roles.ts: roleSatisfies, assertOrgRole, ROLE_PERMISSIONS)
 lib/plan-display-names.ts — Plan tier display name SSOT (Sprint A, AI_RULES §71)
+lib/sample-data/          — Sample data mode: sample-dashboard-data.ts + use-sample-mode.ts (Sprint B, §72)
+lib/tooltip-content.tsx   — InfoTooltip content SSOT: 10 metric tooltip entries (Sprint B, §73)
+lib/plan-feature-matrix.ts — Plan feature comparison matrix: 24 rows, 6 categories (Sprint B, §75)
 lib/mcp/               — MCP server tool registrations
 lib/supabase/database.types.ts — Full Database type (33 tables, 9 enums, Relationships)
-supabase/migrations/   — Applied SQL migrations (35, timestamp-ordered)
+supabase/migrations/   — Applied SQL migrations (36, timestamp-ordered)
 supabase/prod_schema.sql — Full production schema dump
 docs/                  — 50 spec documents (authoritative for planned features)
 src/__tests__/         — Unit + integration tests
@@ -69,7 +72,7 @@ tests/e2e/             — Playwright E2E tests (23 specs)
 
 | Table | Purpose |
 |-------|---------|
-| `organizations` | Tenant root — has `plan_tier`, `plan_status`, notification prefs (`notify_hallucination_alerts`, `notify_weekly_digest`, `notify_sov_alerts`) |
+| `organizations` | Tenant root — has `plan_tier`, `plan_status`, notification prefs (`notify_hallucination_alerts`, `notify_weekly_digest`, `notify_sov_alerts`), AI monitoring prefs (`monitored_ai_models text[]`, `score_drop_threshold integer`, `webhook_url text` — Sprint B) |
 | `locations` | Business locations per org. Revenue config: `avg_customer_value` (numeric, default 45), `monthly_covers` (integer, default 800) |
 | `target_queries` | SOV query library per location. Columns: `query_category` (discovery/comparison/occasion/near_me/custom), `occasion_tag`, `intent_modifier`, `is_active` (soft-disable toggle). UNIQUE on `(location_id, query_text)`. |
 | `sov_evaluations` | Per-query SOV results (engine, rank, competitors, `sentiment_data` JSONB, `source_mentions` JSONB) |
@@ -125,6 +128,7 @@ tests/e2e/             — Playwright E2E tests (23 specs)
 33. `20260302000001_multi_location_management.sql` — `is_archived`/`display_name`/`timezone`/`location_order` on `locations`
 34. `20260302000002_occasion_snooze_sidebar_badges.sql` — `occasion_snoozes` + `sidebar_badge_state` tables
 35. `20260303000001_memberships_rls.sql` — ENABLE RLS + 4 org isolation policies on `memberships` (FIX-2)
+36. `20260304000001_sprint_b_settings_expansion.sql` — `monitored_ai_models text[]`, `score_drop_threshold integer`, `webhook_url text` on `organizations` (Sprint B)
 
 ## Testing Commands
 
@@ -245,6 +249,15 @@ UPSTASH_REDIS_REST_URL, UPSTASH_REDIS_REST_TOKEN
 - Tests: 20 Vitest (sentry-coverage 8, sidebar-groups 7, metric-card-links 5), 10 Playwright (23-sprint-a-smoke).
 - Result: 189 test files, 2646 tests pass, 0 TS errors, 0 bare catches remaining.
 
+### Sprint B — First Impressions (2026-02-27)
+- **C4 — Sample Data Mode:** New tenants (< 14 days, no SOV data) see realistic sample data on dashboard instead of blank cards. `lib/sample-data/use-sample-mode.ts` (pure `isSampleMode()`), `lib/sample-data/sample-dashboard-data.ts` (typed data SSOT), `components/ui/SampleDataBadge.tsx` (amber pill overlay), `components/ui/SampleModeBanner.tsx` (dismissible sessionStorage banner). Integrated into `app/dashboard/page.tsx` with `display*` variables for all 8 cards.
+- **H1 — InfoTooltip System:** `components/ui/InfoTooltip.tsx` — Radix Popover-based tooltip (hover 300ms + click, `e.stopPropagation()`). `lib/tooltip-content.tsx` — 10 tooltip entries (What/How/Action format). Wired into MetricCard (`tooltip` prop), AIHealthScoreCard (title + 4 component bars), RealityScoreCard, SOVTrendChart, HallucinationsByModel.
+- **H2 — Settings Expansion:** Migration `20260304000001` adds `monitored_ai_models text[]`, `score_drop_threshold integer`, `webhook_url text` to `organizations`. 2 new server actions: `updateAIMonitoringPrefs()`, `updateAdvancedPrefs()`. SettingsForm expanded to 7 sections (AI Monitoring toggles, Score Drop Threshold, Webhooks agency-gated, Restart Tour). `components/ui/UpgradePlanPrompt.tsx` for plan-gated features.
+- **M3 — Plan Feature Comparison:** `lib/plan-feature-matrix.ts` — 24 `FeatureRow` entries across 6 categories. `app/dashboard/billing/_components/PlanComparisonTable.tsx` — full comparison table with current plan column highlight. Added to billing page.
+- AI_RULES: added §72 (Sample Data Mode), §73 (InfoTooltip System), §74 (Settings Expansion), §75 (Plan Feature Comparison Table).
+- Tests: 39 Vitest (sample-data-mode 15, info-tooltip 11, plan-feature-matrix 13).
+- Result: 192 test files, 2685 tests pass. 1 migration.
+
 ## Tier Completion Status
 
 | Tier | Sprints | Status | Gate |
@@ -254,6 +267,7 @@ UPSTASH_REDIS_REST_URL, UPSTASH_REDIS_REST_TOKEN
 | Tier 3 | 71–101 | Complete | — |
 | Production Fixes | FIX-1 – FIX-6 | Complete | — |
 | Sprint A | Stop the Bleeding | Complete | — |
+| Sprint B | First Impressions | Complete | — |
 | Tier 4 | 102–106 | Gated | Sprint 102: Apple BC API approval. Sprint 103: Bing Places API approval. Sprint 104–106: no external gate. |
 | Tier 5 | 107–109 | Gated | 4–8 weeks of SOV baseline data required. SOV cron registered 2026-02-27. Sprint 107 earliest: 2026-03-27. |
 
@@ -271,4 +285,4 @@ No external dependencies. Can begin immediately. See AI_RULES §59.
 
 ## Build History
 
-See `DEVLOG.md` (project root) and `docs/DEVLOG.md` for the complete sprint-by-sprint build log. Current sprint: 101 (+ FIX-1 through FIX-6 + Sprint A). Production readiness: all audit issues resolved.
+See `DEVLOG.md` (project root) and `docs/DEVLOG.md` for the complete sprint-by-sprint build log. Current sprint: 101 (+ FIX-1 through FIX-6 + Sprint A + Sprint B). AI_RULES: §1–§75 (75 sections). Production readiness: all audit issues resolved.

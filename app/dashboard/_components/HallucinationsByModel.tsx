@@ -11,6 +11,8 @@
 
 import Link from 'next/link';
 import { ChevronRight } from 'lucide-react';
+import { InfoTooltip } from '@/components/ui/InfoTooltip';
+import { TOOLTIP_CONTENT } from '@/lib/tooltip-content';
 import {
     BarChart,
     Bar,
@@ -112,7 +114,10 @@ export default function HallucinationsByModel({
     return (
         <div className="rounded-xl bg-surface-dark border border-white/5 p-5">
             <div className="flex items-center justify-between mb-4">
-                <h3 className="text-sm font-semibold text-white">{title}</h3>
+                <div className="flex items-center gap-1.5">
+                    <h3 className="text-sm font-semibold text-white">{title}</h3>
+                    <InfoTooltip content={TOOLTIP_CONTENT.hallucinationsByModel} />
+                </div>
                 <Link href="/dashboard/hallucinations" className="text-xs text-primary hover:underline flex items-center gap-1">
                     View details
                     <ChevronRight className="h-3 w-3" />

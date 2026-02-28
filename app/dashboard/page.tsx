@@ -11,6 +11,19 @@ import type { EntityHealthResult } from '@/lib/services/entity-health.service';
 import { canRunAutopilot, canConnectGBP, canExportData, type PlanTier } from '@/lib/plan-enforcer';
 import { createServiceRoleClient } from '@/lib/supabase/server';
 import { nextSundayLabel } from './_components/scan-health-utils';
+import { isSampleMode } from '@/lib/sample-data/use-sample-mode';
+import {
+  SAMPLE_VISIBILITY_SCORE,
+  SAMPLE_HEALTH_SCORE,
+  SAMPLE_SOV_TREND,
+  SAMPLE_HALLUCINATIONS_BY_MODEL,
+  SAMPLE_FIXED_COUNT,
+  SAMPLE_INTERCEPTS_THIS_MONTH,
+  SAMPLE_OPEN_ALERT_COUNT,
+} from '@/lib/sample-data/sample-dashboard-data';
+import { SampleDataBadge } from '@/components/ui/SampleDataBadge';
+import { SampleModeBanner } from '@/components/ui/SampleModeBanner';
+import { TOOLTIP_CONTENT } from '@/lib/tooltip-content';
 import GBPImportCard from './_components/GBPImportCard';
 import ExportButtons from './_components/ExportButtons';
 import RealityScoreCard from './_components/RealityScoreCard';
@@ -66,7 +79,7 @@ export default async function DashboardPage() {
   const {
     openAlerts, fixedCount, interceptsThisMonth, visibilityScore, lastAuditAt,
     sovTrend, hallucinationsByModel, competitorComparison,
-    currentLeak, previousLeak, revenueConfig, revenueSnapshots, orgPlan,
+    currentLeak, previousLeak, revenueConfig, revenueSnapshots, orgPlan, orgCreatedAt,
     healthScore, crawlerSummary, hasPublishedMenu, cronHealth, freshness,
   } = await fetchDashboardData(ctx.orgId ?? '', activeLocationId);
 
@@ -143,7 +156,21 @@ export default async function DashboardPage() {
   const hasOpenAlerts = openAlerts.length > 0;
   const draftGated = canRunAutopilot(planTier);
   const exportGated = canExportData(planTier);
-  const sovSparkline = sovTrend.slice(-7).map((d) => d.sov);
+
+  // ── Sprint B: Sample Data Mode ──────────────────────────────────────────
+  const sampleMode = isSampleMode(scores.realityScore, orgCreatedAt);
+  const displayVisibilityScore = sampleMode ? SAMPLE_VISIBILITY_SCORE : visibilityScore;
+  const displayScores = sampleMode
+    ? deriveRealityScore(SAMPLE_OPEN_ALERT_COUNT, SAMPLE_VISIBILITY_SCORE)
+    : scores;
+  const displayHealthScore = sampleMode ? SAMPLE_HEALTH_SCORE : healthScore;
+  const displaySovTrend = sampleMode ? SAMPLE_SOV_TREND : sovTrend;
+  const displayHallucinationsByModel = sampleMode ? SAMPLE_HALLUCINATIONS_BY_MODEL : hallucinationsByModel;
+  const displayFixedCount = sampleMode ? SAMPLE_FIXED_COUNT : fixedCount;
+  const displayInterceptsThisMonth = sampleMode ? SAMPLE_INTERCEPTS_THIS_MONTH : interceptsThisMonth;
+  const displayOpenAlertCount = sampleMode ? SAMPLE_OPEN_ALERT_COUNT : openAlerts.length;
+
+  const sovSparkline = displaySovTrend.slice(-7).map((d) => d.sov);
   return (
     <div className="space-y-5">
       <div className="flex items-start justify-between gap-4">
@@ -159,8 +186,12 @@ export default async function DashboardPage() {
         </div>
         <ExportButtons canExport={exportGated} showCSV={false} showPDF />
       </div>
-      {/* Welcome banner — day-1 tenants only */}
-      {scores.realityScore === null && openAlerts.length === 0 && (
+      {/* Sprint B: Sample Data Banner — replaces the blank welcome banner */}
+      {sampleMode && (
+        <SampleModeBanner nextScanDate={`Sunday, ${nextSundayLabel()}`} />
+      )}
+      {/* Welcome banner — day-1 tenants past the 14-day sample window */}
+      {!sampleMode && scores.realityScore === null && openAlerts.length === 0 && (
         <div className="rounded-xl border border-signal-green/20 bg-signal-green/5 px-5 py-4">
           <h2 className="text-sm font-semibold text-signal-green">
             Welcome to LocalVector.ai
@@ -173,7 +204,12 @@ export default async function DashboardPage() {
         </div>
       )}
       {/* Sprint 72: AI Health Score — top of page, above existing content */}
-      {healthScore && <AIHealthScoreCard healthScore={healthScore} />}
+      {displayHealthScore && (
+        <div className="relative">
+          <AIHealthScoreCard healthScore={displayHealthScore} />
+          {sampleMode && <SampleDataBadge />}
+        </div>
+      )}
       {/* Sprint 101: Occasion Alert Feed — surfaces upcoming occasions with CTAs */}
       {occasionAlerts.length > 0 && (
         <OccasionAlertFeed alerts={occasionAlerts} canCreateDraft={draftGated} />
@@ -184,26 +220,45 @@ export default async function DashboardPage() {
       {hasOpenAlerts ? (
         <>
           <AlertFeed alerts={openAlerts} canCreateDraft={draftGated} />
-          <RealityScoreCard {...scores} openAlertCount={openAlerts.length} lastAuditAt={lastAuditAt} />
+          <div className="relative">
+            <RealityScoreCard {...displayScores} openAlertCount={displayOpenAlertCount} lastAuditAt={sampleMode ? '2026-02-23T08:00:00Z' : lastAuditAt} />
+            {sampleMode && <SampleDataBadge />}
+          </div>
         </>
       ) : (
         <>
-          <RealityScoreCard {...scores} openAlertCount={0} lastAuditAt={lastAuditAt} />
+          <div className="relative">
+            <RealityScoreCard {...displayScores} openAlertCount={displayOpenAlertCount} lastAuditAt={sampleMode ? '2026-02-23T08:00:00Z' : lastAuditAt} />
+            {sampleMode && <SampleDataBadge />}
+          </div>
           <AlertFeed alerts={[]} />
         </>
       )}
       {/* Surgery 4: Quick Stats Row */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <MetricCard label="Hallucinations fixed" value={fixedCount} color="green" href="/dashboard/hallucinations" />
-        <MetricCard label="Open alerts" value={openAlerts.length} color={hasOpenAlerts ? 'red' : 'green'} href="/dashboard/hallucinations" />
-        <MetricCard label="Intercept analyses" value={interceptsThisMonth} color="green" href="/dashboard/ai-responses" />
-        <MetricCard
-          label="AI Visibility"
-          value={scores.visibility != null ? `${scores.visibility}%` : '—'}
-          color="green"
-          trend={sovSparkline.length > 1 ? sovSparkline : undefined}
-          href="/dashboard/share-of-voice"
-        />
+        <div className="relative">
+          <MetricCard label="Hallucinations fixed" value={displayFixedCount} color="green" href="/dashboard/hallucinations" />
+          {sampleMode && <SampleDataBadge />}
+        </div>
+        <div className="relative">
+          <MetricCard label="Open alerts" value={displayOpenAlertCount} color={displayOpenAlertCount > 0 ? 'red' : 'green'} href="/dashboard/hallucinations" tooltip={TOOLTIP_CONTENT.openAlerts} />
+          {sampleMode && <SampleDataBadge />}
+        </div>
+        <div className="relative">
+          <MetricCard label="Intercept analyses" value={displayInterceptsThisMonth} color="green" href="/dashboard/ai-responses" tooltip={TOOLTIP_CONTENT.interceptCount} />
+          {sampleMode && <SampleDataBadge />}
+        </div>
+        <div className="relative">
+          <MetricCard
+            label="AI Visibility"
+            value={displayScores.visibility != null ? `${displayScores.visibility}%` : '—'}
+            color="green"
+            trend={sovSparkline.length > 1 ? sovSparkline : undefined}
+            href="/dashboard/share-of-voice"
+            tooltip={TOOLTIP_CONTENT.aiVisibility}
+          />
+          {sampleMode && <SampleDataBadge />}
+        </div>
       </div>
       {/* Sprint 73: Bot Activity Card */}
       <BotActivityCard crawlerSummary={crawlerSummary} hasPublishedMenu={hasPublishedMenu} />
@@ -225,8 +280,14 @@ export default async function DashboardPage() {
       )}
       {/* Surgery 4: Data Visualization Row */}
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <SOVTrendChart data={sovTrend} />
-        <HallucinationsByModel data={hallucinationsByModel} />
+        <div className="relative">
+          <SOVTrendChart data={displaySovTrend} />
+          {sampleMode && <SampleDataBadge />}
+        </div>
+        <div className="relative">
+          <HallucinationsByModel data={displayHallucinationsByModel} />
+          {sampleMode && <SampleDataBadge />}
+        </div>
       </div>
       {/* Surgery 4: Competitor Comparison */}
       {competitorComparison.length > 0 && (

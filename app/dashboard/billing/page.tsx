@@ -28,6 +28,7 @@ import {
   type CurrentPlanInfo,
 } from './actions';
 import SeatManagementCard from './_components/SeatManagementCard';
+import PlanComparisonTable from './_components/PlanComparisonTable';
 import { getPlanDisplayName } from '@/lib/plan-display-names';
 
 // ---------------------------------------------------------------------------
@@ -372,6 +373,15 @@ export default function BillingPage() {
       <div className="flex justify-center">
         <ManageSubscriptionButton planInfo={planInfo} />
       </div>
+
+      {/* Sprint B: Plan Feature Comparison Table */}
+      <section className="mt-12">
+        <h2 className="text-lg font-semibold text-white">Compare Plans</h2>
+        <p className="mt-1 text-sm text-slate-400">
+          See exactly what&apos;s included at each tier.
+        </p>
+        <PlanComparisonTable currentPlan={planInfo?.plan ?? null} />
+      </section>
 
       {/* Footer note */}
       <p className="text-center text-xs text-slate-600">

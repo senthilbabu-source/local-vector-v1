@@ -65,6 +65,7 @@ export interface DashboardData {
   revenueConfig: RevenueConfig | null;
   revenueSnapshots: LeakSnapshotPoint[];
   orgPlan: PlanTier;
+  orgCreatedAt: string | null;
   healthScore: HealthScoreResult | null;
   crawlerSummary: CrawlerSummary | null;
   hasPublishedMenu: boolean;
@@ -186,10 +187,10 @@ export async function fetchDashboardData(orgId: string, locationId?: string | nu
       .order('snapshot_date', { ascending: true })
       .limit(12),
 
-    // Org plan for plan-gating
+    // Org plan + created_at for plan-gating and sample data mode (Sprint B)
     supabase
       .from('organizations')
-      .select('plan')
+      .select('plan, created_at')
       .eq('id', orgId)
       .single(),
   ]);
@@ -245,8 +246,9 @@ export async function fetchDashboardData(orgId: string, locationId?: string | nu
     ? { leak_high: revenueSnapshots[revenueSnapshots.length - 2].leak_high }
     : null;
 
-  // Org plan
+  // Org plan + created_at (Sprint B: sample data mode)
   const orgPlan = (orgPlanResult.data?.plan ?? 'trial') as PlanTier;
+  const orgCreatedAt: string | null = orgPlanResult.data?.created_at ?? null;
 
   // ── Sprint 72: AI Health Score (Sprint 100: uses active location) ────────
   // Non-blocking — if location lookup fails, healthScore is null.
@@ -328,6 +330,7 @@ export async function fetchDashboardData(orgId: string, locationId?: string | nu
     revenueConfig,
     revenueSnapshots,
     orgPlan,
+    orgCreatedAt,
     healthScore,
     crawlerSummary,
     hasPublishedMenu,

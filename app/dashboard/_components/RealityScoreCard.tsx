@@ -4,6 +4,8 @@
 import Link from 'next/link';
 import { ChevronRight } from 'lucide-react';
 import { formatRelativeTime, nextSundayLabel } from './scan-health-utils';
+import { InfoTooltip } from '@/components/ui/InfoTooltip';
+import { TOOLTIP_CONTENT } from '@/lib/tooltip-content';
 
 // ---------------------------------------------------------------------------
 // Props
@@ -174,9 +176,12 @@ export default function RealityScoreCard({
       {/* ── Header ────────────────────────────────────────────────── */}
       <div className="flex items-center justify-between mb-4">
         <div>
-          <h2 className="text-sm font-semibold text-white tracking-tight">
-            Reality Score
-          </h2>
+          <div className="flex items-center gap-1.5">
+            <h2 className="text-sm font-semibold text-white tracking-tight">
+              Reality Score
+            </h2>
+            <InfoTooltip content={TOOLTIP_CONTENT.realityScore} />
+          </div>
           <p className="text-xs text-slate-500 mt-0.5">{subline}</p>
         </div>
         <div className="flex items-center gap-3">

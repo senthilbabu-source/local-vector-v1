@@ -13,6 +13,8 @@ import { ChevronRight } from 'lucide-react';
 import { nextSundayLabel } from './scan-health-utils';
 import type { HealthScoreResult } from '@/lib/services/ai-health-score.service';
 import { gradeDescription } from '@/lib/services/ai-health-score.service';
+import { InfoTooltip } from '@/components/ui/InfoTooltip';
+import { TOOLTIP_CONTENT } from '@/lib/tooltip-content';
 
 interface AIHealthScoreCardProps {
   healthScore: HealthScoreResult;
@@ -106,6 +108,13 @@ export default function AIHealthScoreCard({ healthScore }: AIHealthScoreCardProp
   const dashOffset = circ - (score / 100) * circ;
   const description = gradeDescription(grade);
 
+  const componentTooltipMap: Record<string, React.ReactNode> = {
+    visibility: TOOLTIP_CONTENT.visibilityComponent,
+    accuracy:   TOOLTIP_CONTENT.accuracyComponent,
+    structure:  TOOLTIP_CONTENT.structureComponent,
+    freshness:  TOOLTIP_CONTENT.freshnessComponent,
+  };
+
   const componentEntries = [
     { key: 'visibility', ...components.visibility },
     { key: 'accuracy', ...components.accuracy },
@@ -119,9 +128,12 @@ export default function AIHealthScoreCard({ healthScore }: AIHealthScoreCardProp
       data-testid="ai-health-score-card"
     >
       <div className="flex items-center justify-between mb-4">
-        <h2 className="text-sm font-semibold text-white tracking-tight">
-          AI Health Score
-        </h2>
+        <div className="flex items-center gap-1.5">
+          <h2 className="text-sm font-semibold text-white tracking-tight">
+            AI Health Score
+          </h2>
+          <InfoTooltip content={TOOLTIP_CONTENT.realityScore} />
+        </div>
         <Link href="/dashboard/entity-health" className="text-xs text-primary hover:underline flex items-center gap-1">
           View details
           <ChevronRight className="h-3 w-3" />
@@ -171,7 +183,10 @@ export default function AIHealthScoreCard({ healthScore }: AIHealthScoreCardProp
       <div className="space-y-2.5">
         {componentEntries.map((comp) => (
           <div key={comp.key} className="flex items-center gap-3">
-            <span className="text-xs text-slate-500 w-20 shrink-0">{comp.label}</span>
+            <span className="text-xs text-slate-500 w-24 shrink-0 flex items-center gap-1">
+              {comp.label}
+              <InfoTooltip content={componentTooltipMap[comp.key]} />
+            </span>
             <div className="flex-1 h-1.5 rounded-full bg-white/5 overflow-hidden">
               <div
                 className={`h-full rounded-full ${comp.score !== null ? barColor(comp.score) : ''} ${barWidthClass(comp.score)} transition-all duration-700`}

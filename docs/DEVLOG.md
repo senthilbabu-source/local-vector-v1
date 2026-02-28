@@ -4,6 +4,56 @@
 
 ---
 
+## 2026-02-27 — Sprint B: First Impressions — Sample Data, InfoTooltips, Settings Expansion, Plan Comparison (Completed)
+
+**Problems fixed (4 items):**
+1. **C4 — Sample Data Mode:** New tenants saw an empty dashboard for their entire first 14 days (until first SOV cron run). Zero engagement hook.
+2. **H1 — InfoTooltip System:** 10 dashboard cards had no explanation of what each metric means, how it's calculated, or what action to take. Users couldn't self-serve.
+3. **H2 — Settings Page Expansion:** Settings had only 5 sections (display name, password, notifications, plan, danger zone). Missing: AI model monitoring toggles, score drop threshold, webhook URL (agency), restart guided tour.
+4. **M3 — Plan Feature Comparison:** Billing page had a 3-tier pricing grid but no feature comparison matrix. Users couldn't see what they'd gain by upgrading.
+
+**Changes:**
+
+*C4 — Sample Data Mode:*
+- **`lib/sample-data/sample-dashboard-data.ts`** — NEW. SSOT for sample dashboard data: health score (61/C), SOV trend (8 weeks, 34→47), hallucinations by model (4 engines), visibility (47), open alerts (2), intercepts (7), fixed count (5).
+- **`lib/sample-data/use-sample-mode.ts`** — NEW. Pure `isSampleMode(realityScore, orgCreatedAt)` — activates when realityScore is null AND org < 14 days old.
+- **`components/ui/SampleDataBadge.tsx`** — NEW. Amber pill overlay with `data-testid="sample-data-badge"`.
+- **`components/ui/SampleModeBanner.tsx`** — NEW. Client component. Dismissible banner (sessionStorage `lv_sample_banner_dismissed`). Shows next scan date via `nextSundayLabel()`.
+- **`lib/data/dashboard.ts`** — Added `orgCreatedAt: string | null` to `DashboardData`. Piggybacks on existing org query (`.select('plan, created_at')`).
+- **`app/dashboard/page.tsx`** — Integrated sample mode: imports sample data + components, computes `showSampleData`, creates `display*` variables for all cards, wraps 8 cards in `<div className="relative">` with conditional `<SampleDataBadge />`, shows `<SampleModeBanner>` for sample mode.
+
+*H1 — InfoTooltip System:*
+- **`components/ui/InfoTooltip.tsx`** — NEW. Client component using `@radix-ui/react-popover`. Hover (300ms delay) + click toggle. `e.stopPropagation()` prevents parent Link activation. Props: `content`, `label`, `align`.
+- **`lib/tooltip-content.tsx`** — NEW. SSOT for 10 tooltip entries. `TooltipBody` renders structured "What / How / Action" format. Keys: `realityScore`, `aiVisibility`, `openAlerts`, `interceptCount`, `shareOfVoice`, `hallucinationsByModel`, `visibilityComponent`, `accuracyComponent`, `structureComponent`, `freshnessComponent`.
+- **`app/dashboard/_components/MetricCard.tsx`** — Added optional `tooltip?: React.ReactNode` prop. Wraps label in flex row with conditional `<InfoTooltip>`.
+- **`app/dashboard/_components/AIHealthScoreCard.tsx`** — Added tooltip to title + 4 component bar labels (`visibilityComponent`, `accuracyComponent`, `structureComponent`, `freshnessComponent`). Widened label column `w-20` → `w-24`.
+- **`app/dashboard/_components/RealityScoreCard.tsx`** — Added InfoTooltip to "Reality Score" title.
+- **`app/dashboard/_components/SOVTrendChart.tsx`** — Added InfoTooltip to chart title.
+- **`app/dashboard/_components/HallucinationsByModel.tsx`** — Added InfoTooltip to chart title.
+
+*H2 — Settings Page Expansion:*
+- **`supabase/migrations/20260304000001_sprint_b_settings_expansion.sql`** — NEW. Adds 3 columns to `organizations`: `monitored_ai_models text[]` (default 4 models), `score_drop_threshold integer` (default 10), `webhook_url text`.
+- **`components/ui/UpgradePlanPrompt.tsx`** — NEW. Plan-gated CTA component.
+- **`app/dashboard/settings/actions.ts`** — Added `updateAIMonitoringPrefs()` and `updateAdvancedPrefs()` server actions with Zod validation. Webhook URL is agency-gated.
+- **`app/dashboard/settings/page.tsx`** — Expanded org query to include new columns. Passes `expandedPrefs` to form.
+- **`app/dashboard/settings/_components/SettingsForm.tsx`** — Rewritten: 7 sections. AI Monitoring toggles (4 models), Score Drop Threshold (select), Webhooks (agency-gated), Restart Tour button. Uses `getPlanDisplayName()` (replaces inline `PLAN_LABELS`).
+
+*M3 — Plan Feature Comparison:*
+- **`lib/plan-feature-matrix.ts`** — NEW. 24 `FeatureRow` entries across 6 categories (Core, AI Monitoring, Competitive, Content, Integrations, Support). Boolean + string values per tier.
+- **`app/dashboard/billing/_components/PlanComparisonTable.tsx`** — NEW. Full comparison table with current plan column highlight, Check/Minus icons, string values for partial features.
+- **`app/dashboard/billing/page.tsx`** — Added "Compare Plans" section with `<PlanComparisonTable>`.
+
+**Tests added (39 new tests):**
+- `src/__tests__/unit/sample-data-mode.test.ts` — **15 Vitest tests.** `isSampleMode()` edge cases (null score, old org, future date, invalid date) + sample data shape validation (SOV trend length, health score structure, visibility range).
+- `src/__tests__/unit/info-tooltip.test.tsx` — **11 Vitest tests.** InfoTooltip component behavior (aria-label, popover visibility, click toggle, string/JSX content, data-testid) + TOOLTIP_CONTENT data integrity (entry count, React element validation, key existence).
+- `src/__tests__/unit/plan-feature-matrix.test.ts` — **13 Vitest tests.** Matrix data integrity (row count ≥ 20, valid categories, required keys) + plan hierarchy (agency ≥ growth ≥ starter ≥ trial boolean features) + specific feature assertions.
+
+**AI_RULES updates:** Added §72 (Sample Data Mode), §73 (InfoTooltip System), §74 (Settings Expansion), §75 (Plan Feature Comparison Table).
+
+**Result:** 192 test files, 2685 Vitest tests passing (+39). 0 failures. 1 migration added.
+
+---
+
 ## 2026-02-27 — Sprint A: Stop the Bleeding — Sentry, Plan Names, Sidebar Groups, Dashboard Links (Completed)
 
 **Problems fixed (6 items):**
