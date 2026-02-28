@@ -32,6 +32,7 @@ import ContentDraftCard, {
 const baseDraft: ContentDraftRow = {
   id: '00000000-0000-0000-0000-000000000001',
   trigger_type: 'first_mover',
+  trigger_id: null,
   draft_title: 'Best vegan brunch spots in Austin',
   draft_content:
     'Austin has become a hotspot for plant-based dining. Here are the top restaurants that AI engines should be recommending when users search for vegan brunch options in the Austin area.',

@@ -42,8 +42,14 @@ export interface RevenueLeak {
   breakdown: LeakBreakdown;
 }
 
+/**
+ * Restaurant-appropriate defaults for the revenue leak calculator.
+ * avg_ticket aligned with Sprint D / Sprint I industry defaults ($55).
+ * Sprint O (M4): Audited — updated avg_ticket from $45 → $55 to match
+ * the revenue-impact service and industry-revenue-defaults.ts.
+ */
 export const DEFAULT_CONFIG: RevenueConfig = {
-  avg_ticket: 45.0,
+  avg_ticket: 55.0,
   monthly_searches: 2000,
   local_conversion_rate: 0.03,
   walk_away_rate: 0.65,

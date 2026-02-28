@@ -49,6 +49,7 @@ export default function RevenueConfigForm({
             min={1}
             max={10000}
             step={0.01}
+            placeholder="e.g. 55"
             defaultValue={avgCustomerValue}
             className="w-full rounded-lg border border-white/10 bg-midnight-slate px-3 py-2 text-sm text-white placeholder-slate-500 focus:border-electric-indigo focus:outline-none focus:ring-1 focus:ring-electric-indigo"
           />
@@ -67,6 +68,7 @@ export default function RevenueConfigForm({
             min={1}
             max={100000}
             step={1}
+            placeholder="e.g. 1800"
             defaultValue={monthlyCovers}
             className="w-full rounded-lg border border-white/10 bg-midnight-slate px-3 py-2 text-sm text-white placeholder-slate-500 focus:border-electric-indigo focus:outline-none focus:ring-1 focus:ring-electric-indigo"
           />
@@ -80,8 +82,8 @@ export default function RevenueConfigForm({
         </button>
       </div>
       {isDefaultConfig && !message && (
-        <p className="text-xs text-slate-500">
-          Using default estimates. Customize for more accurate projections.
+        <p className="text-xs text-slate-500" data-testid="revenue-defaults-help">
+          Default values are based on typical restaurant revenue patterns. Adjust to match your actual numbers.
         </p>
       )}
       {message && (

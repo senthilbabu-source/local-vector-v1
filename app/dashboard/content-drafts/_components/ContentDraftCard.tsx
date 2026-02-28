@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { CalendarDays } from 'lucide-react';
 import { approveDraft, rejectDraft, archiveDraft, publishDraft } from '../actions';
 import type { PublishActionResult } from '../actions';
+import { DraftSourceTag } from './DraftSourceTag';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -13,6 +14,7 @@ import type { PublishActionResult } from '../actions';
 export interface ContentDraftRow {
   id: string;
   trigger_type: string;
+  trigger_id: string | null;
   draft_title: string;
   draft_content: string;
   target_prompt: string | null;
@@ -25,6 +27,8 @@ export interface ContentDraftRow {
 
 interface ContentDraftCardProps {
   draft: ContentDraftRow;
+  /** Occasion name for occasion-triggered drafts (Sprint O L3) */
+  occasionName?: string | null;
 }
 
 type PublishTarget = 'download' | 'wordpress' | 'gbp_post';
@@ -95,7 +99,7 @@ function targetLabel(target: PublishTarget): string {
 // Component
 // ---------------------------------------------------------------------------
 
-export default function ContentDraftCard({ draft }: ContentDraftCardProps) {
+export default function ContentDraftCard({ draft, occasionName }: ContentDraftCardProps) {
   const [isPending, startTransition] = useTransition();
   const [confirmTarget, setConfirmTarget] = useState<PublishTarget | null>(null);
   const [isPublishing, setIsPublishing] = useState(false);
@@ -208,6 +212,13 @@ export default function ContentDraftCard({ draft }: ContentDraftCardProps) {
           {status.label}
         </span>
       </div>
+
+      {/* ── Occasion source tag (Sprint O L3) ──────────────────── */}
+      {draft.trigger_type === 'occasion' && occasionName && (
+        <div className="mb-2">
+          <DraftSourceTag sourceOccasion={occasionName} />
+        </div>
+      )}
 
       {/* ── Title ──────────────────────────────────────────────── */}
       <h3 className="text-sm font-semibold text-white leading-snug mb-1">

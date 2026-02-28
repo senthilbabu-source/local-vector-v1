@@ -4,6 +4,44 @@
 
 ---
 
+## 2026-02-28 — Sprint O: V1 Complete — Revenue Defaults, Content Flow, Benchmark Enhancement (Completed)
+
+**Objective:** Close the final three open items from the February 2026 code analysis. After this sprint, LocalVector V1 is complete with no known gaps.
+
+**M4 — Revenue Config Defaults — Audit Results:**
+- OLD system (`revenue-leak.service.ts`): `avg_ticket` was $45 — updated to $55 to align with NEW system.
+- OLD system other values: `monthly_searches: 2000`, `local_conversion_rate: 0.03`, `walk_away_rate: 0.65` — all reasonable, kept as-is.
+- NEW system (`revenue-impact.service.ts`): `avgCustomerValue: 55`, `monthlyCovers: 1800` — already restaurant-appropriate. No changes needed.
+- Industry defaults (`lib/revenue-impact/industry-revenue-defaults.ts`): Restaurant at $55/1800 — already correct.
+- Golden tenant fixture: `avgCustomerValue: 55, monthlyCovers: 1800` — already correct. No changes needed.
+- `hookahRevenuePerTable` and `weekendMultiplier` from spec: Not in existing types. Deferred to industry abstraction layer.
+- `RevenueConfigForm.tsx`: Added `placeholder="e.g. 55"` / `"e.g. 1800"`. Updated help text to mention restaurant defaults.
+
+**L3 — Content Flow Clarity:**
+- **No migration needed.** `content_drafts` table already has `trigger_type='occasion'` + `trigger_id` linking to `local_occasions`.
+- `app/dashboard/content-drafts/_components/DraftSourceTag.tsx` — **NEW.** Pill tag: "Generated from calendar · {occasion name}". Links to /dashboard/content-calendar. `data-testid="draft-source-tag"`.
+- `app/dashboard/content-drafts/_components/ContentDraftCard.tsx` — **MODIFIED.** Added `trigger_id` to `ContentDraftRow`. Added optional `occasionName` prop. Renders `DraftSourceTag` when `trigger_type='occasion'` and `occasionName` provided.
+- `app/dashboard/content-drafts/page.tsx` — **MODIFIED.** Added `fetchOccasionNames()` lookup. Added `?from=calendar&occasion=` breadcrumb. Passes `occasionName` to cards.
+- `app/dashboard/content-drafts/_components/OccasionTimeline.tsx` — **MODIFIED.** Added `justCreatedFor` state. Post-creation success CTA with "View draft →" link.
+
+**N4 — Benchmark Enhancement (feature existed from Sprint F):**
+- `lib/data/benchmarks.ts` — **MODIFIED.** Added `MAX_BENCHMARK_AGE_DAYS = 14` staleness check. Added `computed_at` to `BenchmarkData` type.
+- `app/dashboard/page.tsx` — **MODIFIED.** Wrapped `BenchmarkComparisonCard` in `!sampleMode` guard.
+- Existing thresholds retained: RPC `HAVING COUNT >= 3`, card `MIN_DISPLAY_THRESHOLD = 10`.
+
+**Tests added:** 28 new unit tests across 3 files + 1 test fix (3346 total, was 3318)
+- `src/__tests__/unit/sprint-o-revenue-defaults.test.ts` — **11 tests** (NEW): default ranges, system alignment, no zero/null fields
+- `src/__tests__/unit/sprint-o-content-flow.test.tsx` — **8 tests** (NEW): DraftSourceTag, occasion-triggered cards, manual draft exclusion
+- `src/__tests__/unit/sprint-o-benchmark.test.ts` — **9 tests** (NEW): staleness check, fresh data, null city, category extraction
+- `src/__tests__/unit/components/content-drafts/ContentDraftCard.test.tsx` — **FIX**: Added `trigger_id: null` to baseDraft fixture
+- `tests/e2e/sprint-o-smoke.spec.ts` — **18 E2E tests** (NEW): revenue defaults, content flow, benchmark, regressions
+
+**AI_RULES:** Added §119-§121 (Revenue defaults alignment, DraftSourceTag, Benchmark staleness).
+
+**V1 Status: COMPLETE.** All items from the February 2026 code analysis have been addressed across Sprints A-O.
+
+---
+
 ## 2026-02-28 — Sprint N: New Capability — Settings Expansion, AI Preview Streaming, Correction Follow-Up Email (Completed)
 
 **Objective:** Add net-new capability across three areas: settings expansion (Claude model, scan day preference, competitor shortcut, 2 new notification toggles), AI Preview enhancement (true token-by-token streaming), and correction follow-up email notification. Features 2 (AI Preview) and 3 (Correction Follow-Up) were mostly built in Sprint F — Sprint N adds the delta and meaningful enhancements.

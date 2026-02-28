@@ -24,7 +24,11 @@ export interface BenchmarkData {
   avg_score: number;
   min_score: number;
   max_score: number;
+  computed_at?: string;
 }
+
+/** Sprint O: Benchmarks older than 14 days are stale and should not be shown */
+const MAX_BENCHMARK_AGE_DAYS = 14;
 
 export interface OrgLocationContext {
   city: string | null;
@@ -74,10 +78,19 @@ export async function fetchBenchmark(
     // Fetch the benchmark for this city + industry
     // Cast: benchmarks table is from Sprint F migration, not yet in database.types.ts
     const { data: benchmarkRow } = await (supabase.from as Function)('benchmarks')
-      .select('city, industry, org_count, avg_score, min_score, max_score')
+      .select('city, industry, org_count, avg_score, min_score, max_score, computed_at')
       .eq('city', city)
       .eq('industry', industry)
-      .maybeSingle() as { data: { city: string; industry: string; org_count: number; avg_score: number; min_score: number; max_score: number } | null };
+      .maybeSingle() as { data: { city: string; industry: string; org_count: number; avg_score: number; min_score: number; max_score: number; computed_at: string | null } | null };
+
+    // Sprint O: Staleness check — don't show benchmarks older than 14 days
+    if (benchmarkRow?.computed_at) {
+      const ageMs = Date.now() - new Date(benchmarkRow.computed_at).getTime();
+      const ageDays = ageMs / (1000 * 60 * 60 * 24);
+      if (ageDays > MAX_BENCHMARK_AGE_DAYS) {
+        return { benchmark: null, locationContext: { city, industry } };
+      }
+    }
 
     const benchmark: BenchmarkData | null = benchmarkRow
       ? {
@@ -87,6 +100,7 @@ export async function fetchBenchmark(
           avg_score: Number(benchmarkRow.avg_score),
           min_score: Number(benchmarkRow.min_score),
           max_score: Number(benchmarkRow.max_score),
+          computed_at: benchmarkRow.computed_at ?? undefined,
         }
       : null;
 

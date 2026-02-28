@@ -31,7 +31,7 @@ async function fetchPageData(orgId: string, statusFilter?: string) {
   let query = supabase
     .from('content_drafts')
     .select(
-      'id, trigger_type, draft_title, draft_content, target_prompt, content_type, aeo_score, status, human_approved, created_at'
+      'id, trigger_type, trigger_id, draft_title, draft_content, target_prompt, content_type, aeo_score, status, human_approved, created_at'
     )
     .eq('org_id', orgId)
     .order('created_at', { ascending: false })
@@ -91,6 +91,24 @@ async function fetchOccasionDraftMap(orgId: string): Promise<Record<string, stri
   return map;
 }
 
+/**
+ * Sprint O (L3): Build a map of occasion ID → occasion name for DraftSourceTag.
+ */
+async function fetchOccasionNames(occasionIds: string[]): Promise<Record<string, string>> {
+  if (occasionIds.length === 0) return {};
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from('local_occasions')
+    .select('id, name')
+    .in('id', occasionIds);
+
+  const map: Record<string, string> = {};
+  for (const row of data ?? []) {
+    map[row.id] = row.name;
+  }
+  return map;
+}
+
 async function fetchPlan(orgId: string): Promise<string> {
   const supabase = await createClient();
   const { data } = await supabase
@@ -108,7 +126,7 @@ async function fetchPlan(orgId: string): Promise<string> {
 export default async function ContentDraftsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ status?: string }>;
+  searchParams: Promise<{ status?: string; from?: string; occasion?: string }>;
 }) {
   const ctx = await getSafeAuthContext();
   if (!ctx?.orgId) {
@@ -121,12 +139,24 @@ export default async function ContentDraftsPage({
 
   const resolvedParams = await searchParams;
   const statusFilter = resolvedParams.status;
+  // Sprint O (L3): Breadcrumb support from content calendar
+  const fromCalendar = resolvedParams.from === 'calendar';
+  const breadcrumbOccasion = resolvedParams.occasion
+    ? decodeURIComponent(resolvedParams.occasion).slice(0, 100)
+    : null;
+
   const [drafts, occasions, occasionDraftMap, plan] = await Promise.all([
     fetchPageData(ctx.orgId, statusFilter),
     fetchUpcomingOccasions(),
     fetchOccasionDraftMap(ctx.orgId),
     fetchPlan(ctx.orgId),
   ]);
+
+  // Sprint O (L3): Fetch occasion names for drafts with trigger_type='occasion'
+  const occasionTriggerIds = drafts
+    .filter((d) => d.trigger_type === 'occasion' && d.trigger_id)
+    .map((d) => d.trigger_id!);
+  const occasionNames = await fetchOccasionNames(occasionTriggerIds);
 
   // Summary counts (across all drafts, not just filtered)
   const allDrafts = statusFilter ? await fetchPageData(ctx.orgId) : drafts;
@@ -135,6 +165,26 @@ export default async function ContentDraftsPage({
 
   return (
     <div className="space-y-6">
+
+      {/* ── Sprint O (L3): Calendar breadcrumb ────────────────────── */}
+      {fromCalendar && (
+        <nav
+          className="flex items-center gap-2 text-sm text-slate-500"
+          aria-label="Breadcrumb"
+          data-testid="calendar-breadcrumb"
+        >
+          <Link
+            href="/dashboard/content-calendar"
+            className="hover:text-white transition-colors"
+          >
+            Content Calendar
+          </Link>
+          <span aria-hidden="true">&rsaquo;</span>
+          <span className="text-white">
+            {breadcrumbOccasion ?? 'Generated draft'}
+          </span>
+        </nav>
+      )}
 
       {/* ── Page header ────────────────────────────────────────────── */}
       <div>
@@ -222,7 +272,15 @@ export default async function ContentDraftsPage({
           ) : (
             <div className="space-y-4">
               {drafts.map((draft) => (
-                <ContentDraftCard key={draft.id} draft={draft} />
+                <ContentDraftCard
+                  key={draft.id}
+                  draft={draft}
+                  occasionName={
+                    draft.trigger_type === 'occasion' && draft.trigger_id
+                      ? occasionNames[draft.trigger_id] ?? null
+                      : null
+                  }
+                />
               ))}
             </div>
           )}

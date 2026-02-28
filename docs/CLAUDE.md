@@ -387,6 +387,15 @@ ADMIN_EMAILS
 - Tests: 39 Vitest (sprint-n-settings 15, sprint-n-preview-streaming 6, sprint-n-correction-email 3, sprint-n-registration 15).
 - Result: 242 test files, 3318 tests pass. 1 migration.
 
+### Sprint O — V1 Complete: Revenue Defaults, Content Flow, Benchmark Enhancement (2026-02-28)
+- **M4 — Revenue Config Defaults:** Audited both revenue systems. OLD system `avg_ticket` updated from $45 → $55 to align with NEW system. `RevenueConfigForm` placeholders and help text added. Golden tenant and industry defaults already correct.
+- **L3 — Content Flow Clarity:** No migration needed — `trigger_type='occasion'` + `trigger_id` already link drafts to occasions. New `DraftSourceTag` component shows "Generated from calendar · {occasion}" on occasion-originated drafts. Post-creation success CTA with "View draft →" in OccasionTimeline. Breadcrumb on content-drafts page via `?from=calendar` param.
+- **N4 — Benchmark Enhancement:** Feature fully built in Sprint F. Sprint O adds 14-day staleness check in `fetchBenchmark()` and `!sampleMode` guard on dashboard BenchmarkComparisonCard.
+- AI_RULES: added §119 (Revenue Defaults Alignment), §120 (DraftSourceTag), §121 (Benchmark Staleness).
+- Tests: 28 Vitest (sprint-o-revenue-defaults 11, sprint-o-content-flow 8, sprint-o-benchmark 9) + 1 test fix. 18 E2E (sprint-o-smoke).
+- Result: 245 test files, 3346 tests pass. No migrations.
+- **This is the final sprint. LocalVector V1 is complete.**
+
 ## Tier Completion Status
 
 | Tier | Sprints | Status | Gate |
@@ -409,6 +418,7 @@ ADMIN_EMAILS
 | Sprint L | Retention & Onboarding (Sample Data Audit, Listings Verification, Tour Completion) | Complete | — |
 | Sprint M | Conversion & Reliability (Plan Matrix Refactor, Bing Verification, Banner Copy) | Complete | — |
 | Sprint N | New Capability (Settings Delta, Streaming Preview, Correction Email) | Complete | — |
+| Sprint O | V1 Complete (Revenue Defaults, Content Flow, Benchmark Enhancement) | Complete | — |
 | Tier 4 | 102–106 | Gated | Sprint 102: Apple BC API approval. Sprint 103: Bing Places API approval. Sprint 104–106: no external gate. |
 | Tier 5 | 107–109 | Gated | 4–8 weeks of SOV baseline data required. SOV cron registered 2026-02-27. Sprint 107 earliest: 2026-03-27. |
 
@@ -426,4 +436,4 @@ No external dependencies. Can begin immediately. See AI_RULES §59.
 
 ## Build History
 
-See `DEVLOG.md` (project root) and `docs/DEVLOG.md` for the complete sprint-by-sprint build log. Current sprint: 101 (+ FIX-1 through FIX-6 + Sprint A through Sprint N). AI_RULES: §1–§118 (118 sections). Production readiness: all audit issues resolved.
+See `DEVLOG.md` (project root) and `docs/DEVLOG.md` for the complete sprint-by-sprint build log. Current sprint: 101 (+ FIX-1 through FIX-6 + Sprint A through Sprint O). AI_RULES: §1–§121 (121 sections). Production readiness: all audit issues resolved. **V1 complete.**

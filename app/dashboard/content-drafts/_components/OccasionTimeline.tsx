@@ -63,6 +63,8 @@ export default function OccasionTimeline({
   const [expanded, setExpanded] = useState(true);
   const [isPending, startTransition] = useTransition();
   const [creatingFor, setCreatingFor] = useState<string | null>(null);
+  // Sprint O (L3): Track which occasion just had a draft created for success CTA
+  const [justCreatedFor, setJustCreatedFor] = useState<string | null>(null);
 
   if (occasions.length === 0) return null;
 
@@ -77,6 +79,7 @@ export default function OccasionTimeline({
       formData.set('trigger_id', occasion.id);
       await createManualDraft(formData);
       setCreatingFor(null);
+      setJustCreatedFor(occasion.id);
     });
   }
 
@@ -152,7 +155,23 @@ export default function OccasionTimeline({
                 )}
 
                 {/* Action */}
-                {hasDraft ? (
+                {justCreatedFor === occasion.id ? (
+                  <div
+                    className="mt-auto rounded-lg border border-emerald-400/20 bg-emerald-400/10 px-3 py-2 space-y-1"
+                    data-testid="calendar-generation-success"
+                  >
+                    <p className="text-xs text-emerald-400">
+                      Draft created for <span className="font-semibold">{occasion.name}</span>
+                    </p>
+                    <Link
+                      href={`/dashboard/content-drafts?from=calendar&occasion=${encodeURIComponent(occasion.name)}`}
+                      className="inline-flex items-center gap-1 text-xs font-medium text-emerald-400 hover:text-emerald-300 underline"
+                      data-testid="view-draft-link"
+                    >
+                      View draft &rarr;
+                    </Link>
+                  </div>
+                ) : hasDraft ? (
                   <Link
                     href="/dashboard/content-drafts?status=draft"
                     className="mt-auto inline-flex items-center gap-1 text-xs font-medium text-signal-green hover:underline"

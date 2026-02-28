@@ -249,13 +249,15 @@ export default async function DashboardPage() {
         <AlertFeed alerts={openAlerts} canCreateDraft={draftGated} />
       )}
 
-      {/* ── Benchmark Comparison ────────────────────────────────────────────── */}
-      <BenchmarkComparisonCard
-        orgScore={displayScores.realityScore}
-        orgCity={locationContext.city}
-        orgIndustry={locationContext.industry}
-        benchmark={benchmark}
-      />
+      {/* ── Benchmark Comparison (hidden in sample mode — Sprint O N4) ───── */}
+      {!sampleMode && (
+        <BenchmarkComparisonCard
+          orgScore={displayScores.realityScore}
+          orgCity={locationContext.city}
+          orgIndustry={locationContext.industry}
+          benchmark={benchmark}
+        />
+      )}
 
       {/* ── Detail Cards ────────────────────────────────────────────────────── */}
       <BotActivityCard crawlerSummary={crawlerSummary} hasPublishedMenu={hasPublishedMenu} />

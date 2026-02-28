@@ -2437,5 +2437,41 @@ Added `sendCorrectionFollowUpAlert()` to `lib/email.ts`. Wired into correction f
 - No-ops when `RESEND_API_KEY` is absent.
 - Regression guard: `src/__tests__/unit/sprint-n-correction-email.test.ts` (3 tests).
 
+## §119. Revenue Config Defaults Alignment (Sprint O)
+
+OLD system (`revenue-leak.service.ts`) `DEFAULT_CONFIG.avg_ticket` updated from $45 to $55 to match NEW system and industry defaults.
+
+**Rules:**
+- Both revenue systems must use aligned defaults: OLD `avg_ticket` = NEW `avgCustomerValue` = $55.
+- `RevenueConfigForm` inputs must have `placeholder` attributes showing example values.
+- Help text: "Default values are based on typical restaurant revenue patterns."
+- Industry defaults SSOT: `lib/revenue-impact/industry-revenue-defaults.ts` (Sprint I).
+- Regression guard: `src/__tests__/unit/sprint-o-revenue-defaults.test.ts` (11 tests).
+
+## §120. Content Flow Clarity — DraftSourceTag (Sprint O)
+
+Calendar-originated drafts show "Generated from calendar · {occasion name}" via `DraftSourceTag`.
+
+**Rules:**
+- `content_drafts.trigger_type='occasion'` + `trigger_id` link drafts to `local_occasions`.
+- No migration needed — `trigger_type` and `trigger_id` columns exist from original schema.
+- `DraftSourceTag` renders only when `trigger_type === 'occasion'` AND occasion name is resolved.
+- Occasion name lookup: `fetchOccasionNames()` in content-drafts page queries `local_occasions`.
+- Manual drafts (`trigger_type='manual'`) never show the source tag.
+- Calendar breadcrumb: shown on content-drafts when `?from=calendar` query param present.
+- Breadcrumb occasion name: decoded via `decodeURIComponent()`, limited to 100 chars.
+- Regression guard: `src/__tests__/unit/sprint-o-content-flow.test.tsx` (8 tests).
+
+## §121. Benchmark Staleness Check (Sprint O)
+
+`fetchBenchmark()` now rejects benchmarks older than 14 days.
+
+**Rules:**
+- `MAX_BENCHMARK_AGE_DAYS = 14` in `lib/data/benchmarks.ts`.
+- If `computed_at` > 14 days ago, `fetchBenchmark()` returns `null` (card doesn't render).
+- `BenchmarkComparisonCard` hidden in sample data mode (`!sampleMode` guard in dashboard page).
+- Benchmark feature was fully built in Sprint F (N4). Sprint O adds staleness + sample mode guard.
+- Regression guard: `src/__tests__/unit/sprint-o-benchmark.test.ts` (9 tests).
+
 ---
 > **End of System Instructions**
