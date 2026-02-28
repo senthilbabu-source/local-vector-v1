@@ -18,12 +18,15 @@ interface Step4SOVQueriesProps {
   initialQueries: TargetQueryRow[];
   onComplete: () => void;
   onBack: () => void;
+  /** Industry-specific placeholder — Sprint E */
+  searchPlaceholder?: string;
 }
 
 export default function Step4SOVQueries({
   initialQueries,
   onComplete,
   onBack,
+  searchPlaceholder = 'e.g. best hookah bar with live music',
 }: Step4SOVQueriesProps) {
   const [isPending, startTransition] = useTransition();
   const [inputValue, setInputValue] = useState('');
@@ -132,7 +135,7 @@ export default function Step4SOVQueries({
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="e.g. best hookah bar with live music"
+            placeholder={searchPlaceholder}
             maxLength={500}
             className="flex-1 rounded-lg border border-white/10 bg-midnight-slate px-3 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-signal-green/50 focus:border-signal-green/50 transition"
           />

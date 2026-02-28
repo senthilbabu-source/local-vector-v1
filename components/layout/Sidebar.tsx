@@ -31,6 +31,7 @@ import {
 import LogoutButton from '@/app/dashboard/_components/LogoutButton';
 import LocationSwitcher, { type LocationOption } from './LocationSwitcher';
 import { getPlanDisplayName } from '@/lib/plan-display-names';
+import { getIndustryConfig } from '@/lib/industries/industry-config';
 
 // ---------------------------------------------------------------------------
 // Nav items — mapped to Doc 06 §2 Application Shell
@@ -277,6 +278,7 @@ interface SidebarProps {
   locations?: LocationOption[];
   selectedLocationId?: string | null;
   badgeCounts?: Record<string, string | null>;
+  orgIndustry?: string | null;
 }
 
 // Map of nav item hrefs to badge data-testid suffixes
@@ -293,8 +295,9 @@ function planLabel(plan: string | null): string {
   return getPlanDisplayName(plan);
 }
 
-export default function Sidebar({ isOpen, onClose, displayName, orgName, plan, locations, selectedLocationId, badgeCounts }: SidebarProps) {
+export default function Sidebar({ isOpen, onClose, displayName, orgName, plan, locations, selectedLocationId, badgeCounts, orgIndustry }: SidebarProps) {
   const pathname = usePathname();
+  const industryConfig = getIndustryConfig(orgIndustry);
 
   function isActive(href: string, exact: boolean): boolean {
     if (href === '#') return false;
@@ -350,12 +353,18 @@ export default function Sidebar({ isOpen, onClose, displayName, orgName, plan, l
                 data-testid="sidebar-group-label"
                 className="px-3 mb-1 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60 select-none"
               >
-                {group.label}
+                {/* Sprint E: Dynamic group label for Content & Menu */}
+                {group.label === 'Content & Menu'
+                  ? `Content & ${industryConfig.servicesNoun}`
+                  : group.label}
               </p>
               <div className="space-y-0.5">
                 {group.items.map((item) => {
                   const active = isActive(item.href, item.exact);
-                  const Icon = item.icon;
+                  // Sprint E: Dynamic icon/label for Magic Menus based on org industry
+                  const isMagicMenu = item.href === '/dashboard/magic-menus';
+                  const Icon = isMagicMenu ? industryConfig.magicMenuIcon : item.icon;
+                  const displayLabel = isMagicMenu ? industryConfig.magicMenuLabel : item.label;
 
                   if (!item.active) {
                     return (
@@ -365,7 +374,7 @@ export default function Sidebar({ isOpen, onClose, displayName, orgName, plan, l
                         className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-slate-600 cursor-not-allowed select-none"
                       >
                         <Icon className="h-4 w-4 shrink-0" />
-                        {item.label}
+                        {displayLabel}
                       </span>
                     );
                   }
@@ -375,7 +384,7 @@ export default function Sidebar({ isOpen, onClose, displayName, orgName, plan, l
                       key={item.label}
                       href={item.href}
                       onClick={onClose}
-                      data-testid={`nav-${item.label.toLowerCase().replace(/\s+/g, '-')}`}
+                      data-testid={`nav-${displayLabel.toLowerCase().replace(/\s+/g, '-')}`}
                       className={[
                         'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition',
                         active
@@ -386,7 +395,7 @@ export default function Sidebar({ isOpen, onClose, displayName, orgName, plan, l
                       <Icon
                         className={['h-4 w-4 shrink-0', active ? 'text-signal-green' : ''].join(' ')}
                       />
-                      {item.label}
+                      {displayLabel}
                       {/* Sprint 101: Sidebar badge pill */}
                       {badgeCounts && BADGE_MAP[item.href] && badgeCounts[BADGE_MAP[item.href]!] && (
                         <span

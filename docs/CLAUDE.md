@@ -12,7 +12,7 @@ LocalVector is an AEO/GEO SaaS platform that helps local businesses monitor and 
 - **Billing:** Stripe webhooks → `organizations.plan_tier` enum (`trial | starter | growth | agency`)
 - **Email:** Resend + React Email (`emails/`)
 - **Cache:** Upstash Redis (`lib/redis.ts`) — optional, all callers must degrade gracefully
-- **Testing:** Vitest (unit/integration in `src/__tests__/`), Playwright (E2E in `tests/e2e/`, 27 specs). Current: 2816 tests, 202 files.
+- **Testing:** Vitest (unit/integration in `src/__tests__/`), Playwright (E2E in `tests/e2e/`, 28 specs). Current: 2881 tests, 207 files.
 - **Monitoring:** Sentry (client, server, edge configs) — all catch blocks instrumented (Sprint A, AI_RULES §70)
 
 ## Architecture Rules
@@ -49,7 +49,8 @@ app/dashboard/settings/team/  — Team Management page (Sprint 98)
 app/(public)/invite/[token]/  — Invite acceptance page (Sprint 98)
 app/admin/                    — Admin dashboard: customers, API usage, cron health, revenue (Sprint D)
 app/onboarding/connect/       — GBP OAuth interstitial + location picker (Sprint 89)
-lib/schema-generator/        — Pure JSON-LD generators: FAQ, Hours, LocalBusiness, ReserveAction, OrderAction (Sprint 70/84)
+lib/industries/              — Industry config SSOT: getIndustryConfig(), 4 verticals (Sprint E, §85)
+lib/schema-generator/        — Pure JSON-LD generators: FAQ, Hours, LocalBusiness, ReserveAction, OrderAction, Medical/Dental (Sprint 70/84/E)
 lib/ai/                — AI provider config, schemas, actions
 lib/services/          — Pure business logic services
 lib/autopilot/         — Content draft generation and publish pipeline
@@ -67,18 +68,18 @@ lib/credits/credit-service.ts — Credit check/consume service, fail-open design
 lib/admin/format-relative-date.ts — Intl.RelativeTimeFormat utility for admin pages (Sprint D, §81)
 lib/mcp/               — MCP server tool registrations
 lib/supabase/database.types.ts — Full Database type (33 tables, 9 enums, Relationships)
-supabase/migrations/   — Applied SQL migrations (38, timestamp-ordered)
+supabase/migrations/   — Applied SQL migrations (39, timestamp-ordered)
 supabase/prod_schema.sql — Full production schema dump
 docs/                  — 50 spec documents (authoritative for planned features)
 src/__tests__/         — Unit + integration tests
-tests/e2e/             — Playwright E2E tests (27 specs)
+tests/e2e/             — Playwright E2E tests (28 specs)
 ```
 
 ## Database Tables (Key Ones)
 
 | Table | Purpose |
 |-------|---------|
-| `organizations` | Tenant root — has `plan_tier`, `plan_status`, notification prefs (`notify_hallucination_alerts`, `notify_weekly_digest`, `notify_sov_alerts`), AI monitoring prefs (`monitored_ai_models text[]`, `score_drop_threshold integer`, `webhook_url text` — Sprint B) |
+| `organizations` | Tenant root — has `plan_tier`, `plan_status`, `industry` (text, default 'restaurant' — Sprint E), notification prefs (`notify_hallucination_alerts`, `notify_weekly_digest`, `notify_sov_alerts`), AI monitoring prefs (`monitored_ai_models text[]`, `score_drop_threshold integer`, `webhook_url text` — Sprint B) |
 | `locations` | Business locations per org. Revenue config: `avg_customer_value` (numeric, default 55), `monthly_covers` (integer, default 1800) |
 | `api_credits` | Per-org monthly API credit tracking. One active row per org (unique on `org_id`). `credits_used`, `credits_limit`, `reset_date`, `plan`. RLS: users can SELECT own org's credits via memberships join. `increment_credits_used()` RPC for atomic increment. (Sprint D) |
 | `target_queries` | SOV query library per location. Columns: `query_category` (discovery/comparison/occasion/near_me/custom), `occasion_tag`, `intent_modifier`, `is_active` (soft-disable toggle). UNIQUE on `(location_id, query_text)`. |
@@ -138,6 +139,7 @@ tests/e2e/             — Playwright E2E tests (27 specs)
 36. `20260304000001_sprint_b_settings_expansion.sql` — `monitored_ai_models text[]`, `score_drop_threshold integer`, `webhook_url text` on `organizations` (Sprint B)
 37. `20260305000001_clear_false_integrations.sql` — Reset false 'connected' statuses for non-google/non-wordpress platforms to 'disconnected' (Sprint C)
 38. `20260306000001_api_credits.sql` — `api_credits` table for per-org monthly credit tracking + `increment_credits_used()` RPC + RLS (Sprint D)
+39. `20260307000001_orgs_industry.sql` — `industry text DEFAULT 'restaurant'` column on `organizations` for multi-vertical support (Sprint E)
 
 ## Testing Commands
 
@@ -289,6 +291,13 @@ ADMIN_EMAILS
 - Tests: 68 Vitest (admin-auth-guard 7, credit-service 20, credit-gated-actions 19, revenue-config-defaults 12, positioning-banner 10), 21 Playwright (26-admin-dashboard 13, 27-credits-system 8).
 - Result: 202 test files, 2816 tests pass. 1 migration.
 
+### Sprint E — Grow the Product: Medical/Dental Vertical Extension & Guided Tour Depth (2026-02-27)
+- **M5 — Medical/Dental Vertical Extension:** Industry configuration layer enabling multi-vertical support. `lib/industries/industry-config.ts` — SSOT with 4 verticals (restaurant, medical_dental active; legal, real_estate placeholder). `getIndustryConfig()` with null-safe restaurant fallback. Medical/dental SOV seed queries in `sov-seed.ts`. Schema.org types (Physician, Dentist, MedicalClinic) in `lib/schema-generator/medical-types.ts`. Dynamic sidebar icon/label via `orgIndustry` prop chain (layout.tsx → DashboardShell → Sidebar). Industry-aware Magic Menus page copy. Golden tenant fixture (`ALPHARETTA_FAMILY_DENTAL`).
+- **M2 — Guided Tour Depth:** Expanded GuidedTour from 5 to 8 steps (added Share of Voice, Citations, Revenue Impact). `TOUR_STEPS` exported for testing. Created `components/ui/FirstVisitTooltip.tsx` — one-time per-page informational tooltip using localStorage `lv_visited_pages`. Wired into 5 pages: entity-health, agent-readiness, cluster-map, sentiment, crawler-analytics.
+- AI_RULES: added §85 (Industry Config), §86 (Medical Schema), §87 (Medical SOV Seeds), §88 (GuidedTour Expanded), §89 (FirstVisitTooltip).
+- Tests: 65 Vitest (industry-config 13, medical-schema-generator 17, sov-seed-medical 12, first-visit-tooltip 15, guided-tour-steps 8), 12 Playwright (sprint-e-smoke).
+- Result: 207 test files, 2881 tests pass. 1 migration.
+
 ## Tier Completion Status
 
 | Tier | Sprints | Status | Gate |
@@ -301,6 +310,7 @@ ADMIN_EMAILS
 | Sprint B | First Impressions | Complete | — |
 | Sprint C | Hardening | Complete | — |
 | Sprint D | Operate & Protect | Complete | — |
+| Sprint E | Grow the Product | Complete | — |
 | Tier 4 | 102–106 | Gated | Sprint 102: Apple BC API approval. Sprint 103: Bing Places API approval. Sprint 104–106: no external gate. |
 | Tier 5 | 107–109 | Gated | 4–8 weeks of SOV baseline data required. SOV cron registered 2026-02-27. Sprint 107 earliest: 2026-03-27. |
 
@@ -318,4 +328,4 @@ No external dependencies. Can begin immediately. See AI_RULES §59.
 
 ## Build History
 
-See `DEVLOG.md` (project root) and `docs/DEVLOG.md` for the complete sprint-by-sprint build log. Current sprint: 101 (+ FIX-1 through FIX-6 + Sprint A + Sprint B + Sprint C + Sprint D). AI_RULES: §1–§84 (84 sections). Production readiness: all audit issues resolved.
+See `DEVLOG.md` (project root) and `docs/DEVLOG.md` for the complete sprint-by-sprint build log. Current sprint: 101 (+ FIX-1 through FIX-6 + Sprint A + Sprint B + Sprint C + Sprint D + Sprint E). AI_RULES: §1–§89 (89 sections). Production readiness: all audit issues resolved.

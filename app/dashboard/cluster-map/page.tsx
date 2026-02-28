@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server';
 import { fetchClusterMapData } from '@/lib/data/cluster-map';
 import { Map } from 'lucide-react';
 import ClusterMapWrapper from './_components/ClusterMapWrapper';
+import { FirstVisitTooltip } from '@/components/ui/FirstVisitTooltip';
 
 // ---------------------------------------------------------------------------
 // Page
@@ -49,6 +50,11 @@ export default async function ClusterMapPage() {
 
   return (
     <div className="space-y-5">
+      <FirstVisitTooltip
+        pageKey="cluster-map"
+        title="What is the Cluster Map?"
+        content="AI models group businesses into semantic 'clusters' when answering search queries. This map shows which cluster your business is in, who else is in your cluster, and how to move into higher-visibility clusters."
+      />
       <PageHeader />
       <ClusterMapWrapper initialData={result} />
     </div>

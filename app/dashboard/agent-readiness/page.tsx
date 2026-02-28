@@ -15,6 +15,7 @@ import type {
   CapabilityStatus,
 } from '@/lib/services/agent-readiness.service';
 import { Bot, Zap, CheckCircle2, XCircle, AlertTriangle } from 'lucide-react';
+import { FirstVisitTooltip } from '@/components/ui/FirstVisitTooltip';
 
 // ── Color helpers (literal Tailwind — AI_RULES §12) ───────────────────────
 
@@ -83,6 +84,13 @@ export default async function AgentReadinessPage() {
 
   return (
     <div className="space-y-5">
+      {/* Sprint E: First-visit tooltip */}
+      <FirstVisitTooltip
+        pageKey="agent-readiness"
+        title="What is Agent Readiness?"
+        content="As AI 'agents' book reservations and answer customer questions autonomously, your business needs to be structured in a way agents can understand and act on. Agent Readiness measures how ready your data is for the agentic AI era."
+      />
+
       {/* ── Header ──────────────────────────────────────────── */}
       <div>
         <h1 className="text-xl font-semibold text-white tracking-tight flex items-center gap-2">

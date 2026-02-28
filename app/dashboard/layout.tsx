@@ -111,6 +111,23 @@ export default async function DashboardLayout({
     }
   }
 
+  // ── Sprint E: Fetch org industry for sidebar config ────────────────────────
+  let orgIndustry: string | null = null;
+  if (ctx.orgId) {
+    try {
+      const industrySupa = await createClient();
+      const { data: orgRow } = await industrySupa
+        .from('organizations')
+        .select('industry')
+        .eq('id', ctx.orgId)
+        .maybeSingle();
+      orgIndustry = (orgRow as { industry?: string | null } | null)?.industry ?? null;
+    } catch (err) {
+      Sentry.captureException(err, { tags: { file: 'dashboard/layout.tsx', sprint: 'E' } });
+      // Industry fetch failure is non-critical — defaults to restaurant
+    }
+  }
+
   // ── Sprint D: Credits meter data ───────────────────────────────────────────
   let credits: CreditsData = null;
   if (ctx.orgId) {
@@ -141,6 +158,7 @@ export default async function DashboardLayout({
       selectedLocationId={selectedLocationId}
       badgeCounts={badgeCounts}
       credits={credits}
+      orgIndustry={orgIndustry}
     >
       {children}
     </DashboardShell>

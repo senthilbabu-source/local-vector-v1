@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation';
 import { getSafeAuthContext } from '@/lib/auth';
 import { createClient } from '@/lib/supabase/server';
 import { fetchEntityHealth } from '@/lib/data/entity-health';
+import { FirstVisitTooltip } from '@/components/ui/FirstVisitTooltip';
 import {
   ENTITY_PLATFORM_REGISTRY,
   type EntityHealthResult,
@@ -90,6 +91,13 @@ export default async function EntityHealthPage() {
 
   return (
     <div className="space-y-5">
+      {/* Sprint E: First-visit tooltip */}
+      <FirstVisitTooltip
+        pageKey="entity-health"
+        title="What is Entity Health?"
+        content="AI models build a 'knowledge graph' of named entities. Your Entity Health score measures how well-structured and consistent your business's entity data is across all AI knowledge sources. Higher entity health = more accurate AI mentions."
+      />
+
       {/* ── Header ──────────────────────────────────────────── */}
       <div>
         <h1 className="text-xl font-semibold text-white tracking-tight flex items-center gap-2">

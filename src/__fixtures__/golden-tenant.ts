@@ -1411,3 +1411,79 @@ export const MOCK_ARCHIVED_LOCATION = {
   location_order: 2,
   slug: 'midtown',
 } as const;
+
+// ---------------------------------------------------------------------------
+// Sprint E — Medical/Dental Golden Tenant
+// Alpharetta Family Dental — a fictional but realistic dental practice
+// Used for M5 vertical extension tests
+// ---------------------------------------------------------------------------
+
+export const ALPHARETTA_FAMILY_DENTAL = {
+  org: {
+    id: 'fixture-org-dental-001',
+    name: 'Alpharetta Family Dental',
+    industry: 'medical_dental' as const,
+    plan: 'growth' as const,
+    created_at: '2026-01-15T00:00:00Z',
+  },
+  location: {
+    name: 'Alpharetta Family Dental',
+    specialty: 'General and Cosmetic Dentistry',
+    phone: '+16785550199',
+    website: 'https://alpharettafamilydental.example.com',
+    address: {
+      street: '1234 Windward Pkwy',
+      city: 'Alpharetta',
+      state: 'GA',
+      zip: '30005',
+    },
+    lat: 34.0754,
+    lng: -84.2941,
+    hours: {
+      monday: { open: '08:00', close: '17:00' },
+      tuesday: { open: '08:00', close: '17:00' },
+      wednesday: { open: '08:00', close: '17:00' },
+      thursday: { open: '08:00', close: '17:00' },
+      friday: { open: '08:00', close: '14:00' },
+      saturday: { open: '09:00', close: '13:00' },
+      sunday: { open: null, close: null },
+    },
+    services: [
+      'Preventive Cleanings',
+      'Teeth Whitening',
+      'Porcelain Veneers',
+      'Dental Implants',
+      'Invisalign',
+      'Emergency Dental Care',
+    ],
+    rating: { value: 4.8, count: 214 },
+  },
+  expectedSchema: {
+    '@context': 'https://schema.org',
+    '@type': 'Dentist',
+    name: 'Alpharetta Family Dental',
+    telephone: '+16785550199',
+    url: 'https://alpharettafamilydental.example.com',
+    address: {
+      '@type': 'PostalAddress',
+      streetAddress: '1234 Windward Pkwy',
+      addressLocality: 'Alpharetta',
+      addressRegion: 'GA',
+      postalCode: '30005',
+      addressCountry: 'US',
+    },
+    geo: {
+      '@type': 'GeoCoordinates',
+      latitude: 34.0754,
+      longitude: -84.2941,
+    },
+    medicalSpecialty: ['General and Cosmetic Dentistry'],
+    aggregateRating: {
+      '@type': 'AggregateRating',
+      ratingValue: 4.8,
+      reviewCount: 214,
+      bestRating: 5,
+      worstRating: 1,
+    },
+  },
+} as const;

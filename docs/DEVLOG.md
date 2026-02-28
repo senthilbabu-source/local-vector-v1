@@ -4,6 +4,52 @@
 
 ---
 
+## 2026-02-27 — Sprint E: Grow the Product — Medical/Dental Vertical Extension & Guided Tour Depth (Completed)
+
+**Features implemented (2 items):**
+1. **M5 — Medical/Dental Vertical Extension:** Added industry configuration layer enabling multi-vertical support. Medical/dental practices get industry-specific SOV seed queries, Schema.org types (Physician, Dentist, MedicalClinic), dynamic sidebar icon (Stethoscope) and label ("Magic Services"), and industry-aware copy throughout the onboarding wizard and Magic Menus page.
+2. **M2 — Guided Tour Depth:** Expanded GuidedTour from 5 to 8 steps (added Share of Voice, Citations, Revenue Impact). Created FirstVisitTooltip component for per-page one-time informational banners on 5 jargon-heavy pages (Entity Health, Agent Readiness, Cluster Map, AI Sentiment, Bot Activity). Restart Tour (Sprint B) confirmed already shipped — not re-implemented.
+
+**Changes:**
+
+*M5 — Industry Configuration:*
+- **`lib/industries/industry-config.ts`** — NEW. SSOT for industry-specific UI, schema, and copy. `INDUSTRY_CONFIG` record with 4 verticals (restaurant, medical_dental active; legal, real_estate placeholder). `getIndustryConfig()` with null-safe restaurant fallback.
+- **`supabase/migrations/20260307000001_orgs_industry.sql`** — NEW. Adds `industry text DEFAULT 'restaurant'` to `organizations`.
+- **`lib/services/sov-seed.ts`** — MODIFIED. Added `medicalDiscoveryQueries()`, `medicalNearMeQueries()`, `medicalSpecificQueries()`, `isMedicalCategory()`, `MEDICAL_DENTAL_CATEGORIES`. `seedSOVQueries()` accepts optional `industryId` param (backward-compatible).
+- **`lib/schema-generator/medical-types.ts`** — NEW. `generateMedicalSchema()` returns Physician or Dentist JSON-LD. `buildHoursSpecification()` helper.
+- **`lib/schema-generator/index.ts`** — MODIFIED. Re-exports medical types.
+- **`lib/schema-generator/local-business-schema.ts`** — MODIFIED. `inferSchemaOrgType()` now handles medical categories (dentist, physician, doctor, medical, clinic).
+- **`components/layout/Sidebar.tsx`** — MODIFIED. Dynamic Magic Menu icon/label via `getIndustryConfig(orgIndustry)`. Group label "Content & Menu" → "Content & {servicesNoun}".
+- **`components/layout/DashboardShell.tsx`** — MODIFIED. Passes `orgIndustry` prop to Sidebar.
+- **`app/dashboard/layout.tsx`** — MODIFIED. Fetches `organizations.industry` and passes to DashboardShell.
+- **`app/dashboard/magic-menus/page.tsx`** — MODIFIED. Uses `industryConfig.magicMenuLabel` for heading, `industryConfig.servicesNoun` for copy.
+- **`app/onboarding/_components/Step4SOVQueries.tsx`** — MODIFIED. Accepts optional `searchPlaceholder` prop (industry-aware).
+- **`src/__fixtures__/golden-tenant.ts`** — MODIFIED. Added `ALPHARETTA_FAMILY_DENTAL` fixture.
+
+*M2 — Guided Tour Depth:*
+- **`app/dashboard/_components/GuidedTour.tsx`** — MODIFIED. `STEPS` → `TOUR_STEPS` (exported). Added 3 new steps: Share of Voice, Citations, Revenue Impact (indices 5-7). Step 3 target updated from `nav-menu` to `nav-magic-menu`.
+- **`components/ui/FirstVisitTooltip.tsx`** — NEW. Client component using localStorage `lv_visited_pages`. Exports `hasVisited()`, `markVisited()`.
+- **`app/dashboard/entity-health/page.tsx`** — MODIFIED. Added FirstVisitTooltip.
+- **`app/dashboard/agent-readiness/page.tsx`** — MODIFIED. Added FirstVisitTooltip.
+- **`app/dashboard/cluster-map/page.tsx`** — MODIFIED. Added FirstVisitTooltip.
+- **`app/dashboard/sentiment/page.tsx`** — MODIFIED. Added FirstVisitTooltip.
+- **`app/dashboard/crawler-analytics/page.tsx`** — MODIFIED. Added FirstVisitTooltip.
+
+**Tests added:**
+- `industry-config.test.ts` — 13 tests (getIndustryConfig fallbacks, config completeness)
+- `medical-schema-generator.test.ts` — 17 tests (Physician/Dentist schema generation, hours, rating)
+- `sov-seed-medical.test.ts` — 12 tests (medical SOV seeds, backward compat, isMedicalCategory)
+- `first-visit-tooltip.test.tsx` — 15 tests (visibility, dismiss, localStorage, hasVisited)
+- `guided-tour-steps.test.ts` — 8 tests (step count, targets, uniqueness)
+- `sprint-e-smoke.spec.ts` — 12 E2E tests (nav testids, tooltips, tour steps)
+- **Total: 65 unit + 12 E2E = 77 new tests**
+
+**AI_RULES added:** §85 (Industry Config), §86 (Medical Schema), §87 (Medical SOV Seeds), §88 (GuidedTour Expanded), §89 (FirstVisitTooltip)
+
+**Result:** 207 test files, 2881 tests pass. 1 migration. 0 TS errors (Sprint E scope). 0 regressions.
+
+---
+
 ## 2026-02-27 — Sprint C: Hardening — Honest Listings, Test Coverage, Digest Guard, Seat Cost, Origin Tags (Completed)
 
 **Problems fixed (5 items):**

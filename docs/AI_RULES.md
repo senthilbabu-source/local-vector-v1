@@ -2018,5 +2018,63 @@ One-time dismissible banner explaining LocalVector vs traditional SEO tools.
 - Banner: `data-testid="positioning-banner"`
 - Links to `/dashboard/ai-responses` ("See what AI says about you")
 
+## §85. Industry Configuration SSOT (Sprint E)
+
+Multi-vertical support — LocalVector adapts UI, schema, and SOV seeds based on org industry.
+
+**Rules:**
+- SSOT: `lib/industries/industry-config.ts` — `INDUSTRY_CONFIG` record, `getIndustryConfig()` helper
+- Active verticals: `restaurant` (default), `medical_dental`. Placeholders: `legal`, `real_estate`
+- `getIndustryConfig(null)` → restaurant config (safe fallback for existing orgs)
+- Column: `organizations.industry` (text, default `'restaurant'`). Migration: `20260307000001`
+- Sidebar: Magic Menu item uses `industryConfig.magicMenuIcon` + `industryConfig.magicMenuLabel` dynamically
+- `data-testid` on nav items uses `displayLabel` (not `item.label`) — so medical orgs get `nav-magic-services`
+- Never inline industry checks — always use `getIndustryConfig()`
+
+## §86. Medical/Dental Schema Types (Sprint E)
+
+Schema.org types for medical/dental practices.
+
+**Rules:**
+- File: `lib/schema-generator/medical-types.ts` — `generateMedicalSchema()`, `buildHoursSpecification()`
+- Returns `Dentist` @type when specialty contains 'dent', `Physician` otherwise
+- Registered in `lib/schema-generator/index.ts` re-exports
+- `inferSchemaOrgType()` in `local-business-schema.ts` now handles medical categories (dentist, physician, doctor, medical, clinic)
+- Golden tenant: `ALPHARETTA_FAMILY_DENTAL` in `src/__fixtures__/golden-tenant.ts`
+
+## §87. Medical/Dental SOV Seed Templates (Sprint E)
+
+SOV seed generation extended with medical/dental query templates.
+
+**Rules:**
+- `seedSOVQueries()` accepts optional `industryId` parameter (backward-compatible — defaults to restaurant)
+- Medical path: `medicalDiscoveryQueries()`, `medicalNearMeQueries()`, `medicalSpecificQueries()`
+- `isMedicalCategory()` detects medical categories from location `categories` array
+- Medical seeds include insurance, emergency, accepting-patients queries
+- Restaurant path unchanged — `isHospitalityCategory()` + `occasionQueries()` only for hospitality
+
+## §88. GuidedTour Expanded Steps (Sprint E)
+
+Tour expanded from 5 to 8 steps.
+
+**Rules:**
+- `TOUR_STEPS` array (exported, testable) — 8 steps targeting sidebar nav `data-testid` attributes
+- Steps 6-8: Share of Voice, Citations, Revenue Impact
+- Step 3 now targets `nav-magic-menu` (was `nav-menu`, changed due to dynamic label)
+- Tour library: custom (no react-joyride). Do not add dependencies.
+- Restart Tour button in Settings (Sprint B) — already shipped, do NOT re-implement
+
+## §89. FirstVisitTooltip (Sprint E)
+
+One-time informational banner on first visit to jargon-heavy pages.
+
+**Rules:**
+- Component: `components/ui/FirstVisitTooltip.tsx` (Client Component)
+- localStorage key: `lv_visited_pages` (JSON array of page keys, permanent)
+- Exports: `FirstVisitTooltip`, `hasVisited()`, `markVisited()`
+- Wired into 5 pages: entity-health, agent-readiness, cluster-map, ai-sentiment, bot-activity
+- `data-testid`: `first-visit-tooltip-{pageKey}`, `first-visit-dismiss-{pageKey}`
+- Shows exactly once per page per device — after dismiss, never shown again
+
 ---
 > **End of System Instructions**

@@ -7,6 +7,7 @@ import { getSafeAuthContext } from '@/lib/auth';
 import { createClient } from '@/lib/supabase/server';
 import type { MenuWorkspaceData } from '@/lib/types/menu';
 import MenuWorkspace from './_components/MenuWorkspace';
+import { getIndustryConfig } from '@/lib/industries/industry-config';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -26,6 +27,7 @@ type PrimaryLocation = {
 async function fetchWorkspaceData(orgId: string): Promise<{
   location: PrimaryLocation | null;
   menu: MenuWorkspaceData | null;
+  industry: string | null;
 }> {
   const supabase = await createClient();
 
@@ -42,7 +44,15 @@ async function fetchWorkspaceData(orgId: string): Promise<{
     .eq('is_primary', true)
     .maybeSingle()) as { data: PrimaryLocation | null };
 
-  if (!location) return { location: null, menu: null };
+  // Sprint E: Fetch org industry for dynamic labels
+  const { data: orgRow } = await supabase
+    .from('organizations')
+    .select('industry')
+    .eq('id', orgId)
+    .maybeSingle();
+  const industry = (orgRow as { industry?: string | null } | null)?.industry ?? null;
+
+  if (!location) return { location: null, menu: null, industry };
 
   // Fetch the most recent magic_menu for this location (one workspace per location).
   const { data: menu } = (await supabase
@@ -55,7 +65,7 @@ async function fetchWorkspaceData(orgId: string): Promise<{
     .limit(1)
     .maybeSingle()) as { data: MenuWorkspaceData | null };
 
-  return { location, menu };
+  return { location, menu, industry };
 }
 
 // ---------------------------------------------------------------------------
@@ -68,9 +78,11 @@ export default async function MagicMenusPage() {
 
   // orgId is null only in the brief window after signup before the DB trigger
   // creates the org. In that case, skip the location query and show empty state.
-  const { location, menu } = ctx.orgId
+  const { location, menu, industry } = ctx.orgId
     ? await fetchWorkspaceData(ctx.orgId)
-    : { location: null, menu: null };
+    : { location: null, menu: null, industry: null };
+
+  const industryConfig = getIndustryConfig(industry);
 
   return (
     <div className="space-y-5">
@@ -78,11 +90,11 @@ export default async function MagicMenusPage() {
       {/* ── Page header ───────────────────────────────────────────── */}
       <div>
         <h1 className="text-xl font-semibold text-white tracking-tight">
-          Magic Menu
+          {industryConfig.magicMenuLabel}
         </h1>
         <p className="mt-0.5 text-sm text-slate-400">
-          AI-readable menu that teaches ChatGPT, Perplexity, and Google the
-          truth about your food.
+          AI-readable {industryConfig.servicesNoun.toLowerCase()} that teaches ChatGPT, Perplexity, and Google the
+          truth about your business.
         </p>
       </div>
 
@@ -92,7 +104,7 @@ export default async function MagicMenusPage() {
         <div className="rounded-2xl bg-surface-dark border border-white/5 px-6 py-10 text-center">
           <p className="text-sm font-medium text-slate-300">No location found.</p>
           <p className="mt-1 text-xs text-slate-500">
-            Add a location first before creating your Magic Menu.
+            Add a location first before creating your {industryConfig.magicMenuLabel}.
           </p>
           <a
             href="/dashboard/locations"

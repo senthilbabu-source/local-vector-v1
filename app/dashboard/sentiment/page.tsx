@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server';
 import { fetchSentimentSummary, fetchSentimentTrend } from '@/lib/data/sentiment';
 import { PlanGate } from '@/components/plan-gate/PlanGate';
 import type { SentimentExtraction } from '@/lib/ai/schemas';
+import { FirstVisitTooltip } from '@/components/ui/FirstVisitTooltip';
 
 // ---------------------------------------------------------------------------
 // Engine label mapping (matches AI Says page)
@@ -90,6 +91,13 @@ export default async function SentimentPage() {
 
   return (
     <div className="space-y-6">
+      {/* Sprint E: First-visit tooltip */}
+      <FirstVisitTooltip
+        pageKey="ai-sentiment"
+        title="What is AI Sentiment?"
+        content="Beyond whether AI mentions you, this page tracks how AI describes you. Positive sentiment ('popular,' 'highly rated') boosts conversion. Negative or neutral sentiment can be corrected by updating your citation sources and business description."
+      />
+
       <div>
         <h1 className="text-xl font-semibold text-white">AI Sentiment Analysis</h1>
         <p className="mt-0.5 text-sm text-[#94A3B8]">

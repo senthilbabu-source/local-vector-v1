@@ -88,6 +88,15 @@ export function inferSchemaOrgType(categories: string[] | null): string {
 
   const lower = categories.map((c) => c.toLowerCase());
 
+  // Medical/Dental — Sprint E
+  if (lower.some((c) => c.includes('dentist') || c.includes('dental'))) {
+    return 'Dentist';
+  }
+  if (lower.some((c) => c.includes('physician') || c.includes('doctor') || c.includes('medical') || c.includes('clinic'))) {
+    return 'Physician';
+  }
+
+  // Hospitality (existing)
   if (lower.some((c) => c.includes('hookah') || c.includes('lounge') || c.includes('bar'))) {
     return 'BarOrPub';
   }

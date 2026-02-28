@@ -5,6 +5,7 @@
 // Called during onboarding after a location is created.
 //
 // Spec: docs/04c-SOV-ENGINE.md §3 — Query Taxonomy
+// Sprint E: Industry-aware seed generation (medical/dental templates)
 // ---------------------------------------------------------------------------
 
 // ---------------------------------------------------------------------------
@@ -13,6 +14,7 @@
 
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Database } from '@/lib/supabase/database.types';
+import type { IndustryId } from '@/lib/industries/industry-config';
 
 interface LocationForSeed {
   id: string;
@@ -71,6 +73,49 @@ export function occasionQueries(city: string): string[] {
   ];
 }
 
+// ---------------------------------------------------------------------------
+// Medical/Dental SOV templates — Sprint E (M5)
+// ---------------------------------------------------------------------------
+
+export const MEDICAL_DENTAL_CATEGORIES = [
+  'dentist', 'dental', 'physician', 'doctor', 'medical', 'clinic',
+  'orthodont', 'pediatric', 'dermatolog', 'chiropract', 'optometr',
+  'therapist', 'surgeon', 'psychiatr', 'cardiolog', 'urgent care',
+];
+
+export function isMedicalCategory(categories: string[]): boolean {
+  return categories.some((cat) =>
+    MEDICAL_DENTAL_CATEGORIES.some((m) => cat.toLowerCase().includes(m))
+  );
+}
+
+export function medicalDiscoveryQueries(specialty: string, city: string, state: string): string[] {
+  return [
+    `best ${specialty} in ${city} ${state}`,
+    `top ${specialty} near ${city}`,
+    `best ${specialty} ${city}`,
+    `${specialty} recommendations ${city} ${state}`,
+  ];
+}
+
+export function medicalNearMeQueries(specialty: string, city: string): string[] {
+  return [
+    `${specialty} near me ${city}`,
+    `best ${specialty} near me`,
+    `${specialty} accepting new patients ${city}`,
+  ];
+}
+
+export function medicalSpecificQueries(specialty: string, city: string): string[] {
+  return [
+    `${specialty} that accept insurance ${city}`,
+    `in-network ${specialty} ${city}`,
+    `emergency ${specialty} ${city}`,
+    `same day ${specialty} appointment ${city}`,
+    `highly rated ${specialty} ${city}`,
+  ];
+}
+
 export function comparisonQueries(
   category: string,
   city: string,
@@ -103,35 +148,56 @@ export async function seedSOVQueries(
   location: LocationForSeed,
   competitors: CompetitorForSeed[],
   supabase: SupabaseClient<Database>,
+  industryId?: IndustryId,
 ): Promise<{ seeded: number }> {
   const city = location.city ?? 'local area';
   const state = location.state ?? '';
   const categories = location.categories ?? ['restaurant'];
   const primaryCategory = categories[0] ?? 'restaurant';
 
+  // Determine effective industry from explicit param or category inference
+  const effectiveIndustry = industryId ?? (isMedicalCategory(categories) ? 'medical_dental' : 'restaurant');
+
   // Each entry tracks query text + its category for proper First Mover filtering
   const tagged: { text: string; category: string; occasion_tag?: string }[] = [];
 
-  // Tier 1 — Discovery (always)
-  for (const q of discoveryQueries(primaryCategory, city, state)) {
-    tagged.push({ text: q, category: 'discovery' });
-  }
+  if (effectiveIndustry === 'medical_dental') {
+    // Medical/dental seed path — Sprint E
+    // Tier 1 — Discovery
+    for (const q of medicalDiscoveryQueries(primaryCategory, city, state)) {
+      tagged.push({ text: q, category: 'discovery' });
+    }
+    // Tier 2 — Near Me + accepting patients
+    for (const q of medicalNearMeQueries(primaryCategory, city)) {
+      tagged.push({ text: q, category: 'near_me' });
+    }
+    // Tier 3 — Medical-specific (insurance, emergency, ratings)
+    for (const q of medicalSpecificQueries(primaryCategory, city)) {
+      tagged.push({ text: q, category: 'discovery' });
+    }
+  } else {
+    // Restaurant / default seed path (unchanged)
+    // Tier 1 — Discovery (always)
+    for (const q of discoveryQueries(primaryCategory, city, state)) {
+      tagged.push({ text: q, category: 'discovery' });
+    }
 
-  // Tier 2 — Near Me (always)
-  for (const q of nearMeQueries(primaryCategory, city)) {
-    tagged.push({ text: q, category: 'near_me' });
-  }
+    // Tier 2 — Near Me (always)
+    for (const q of nearMeQueries(primaryCategory, city)) {
+      tagged.push({ text: q, category: 'near_me' });
+    }
 
-  // Tier 3 — Occasion (hospitality categories only)
-  if (isHospitalityCategory(categories)) {
-    const occasionTags = ['date_night', 'birthday', 'bachelorette', 'girls_night', 'romantic'];
-    const occasionTexts = occasionQueries(city);
-    for (let i = 0; i < occasionTexts.length; i++) {
-      tagged.push({ text: occasionTexts[i], category: 'occasion', occasion_tag: occasionTags[i] });
+    // Tier 3 — Occasion (hospitality categories only)
+    if (isHospitalityCategory(categories)) {
+      const occasionTags = ['date_night', 'birthday', 'bachelorette', 'girls_night', 'romantic'];
+      const occasionTexts = occasionQueries(city);
+      for (let i = 0; i < occasionTexts.length; i++) {
+        tagged.push({ text: occasionTexts[i], category: 'occasion', occasion_tag: occasionTags[i] });
+      }
     }
   }
 
-  // Tier 4 — Comparison (max 3 competitors)
+  // Tier 4 — Comparison (max 3 competitors, both industries)
   if (competitors.length > 0) {
     for (const q of comparisonQueries(primaryCategory, city, location.business_name, competitors)) {
       tagged.push({ text: q, category: 'comparison' });

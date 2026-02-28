@@ -5,6 +5,7 @@ import { fetchCrawlerAnalytics } from '@/lib/data/crawler-analytics';
 import type { BotActivity, BlindSpot } from '@/lib/data/crawler-analytics';
 import { Bot, Eye, EyeOff, ArrowRight } from 'lucide-react';
 import Link from 'next/link';
+import { FirstVisitTooltip } from '@/components/ui/FirstVisitTooltip';
 
 export default async function CrawlerAnalyticsPage() {
   const ctx = await getSafeAuthContext();
@@ -42,6 +43,13 @@ export default async function CrawlerAnalyticsPage() {
 
   return (
     <div className="space-y-5">
+      {/* Sprint E: First-visit tooltip */}
+      <FirstVisitTooltip
+        pageKey="bot-activity"
+        title="What is Bot Activity?"
+        content="AI crawlers visit your website to learn about your business. This page tracks which AI bots (GPTBot, ClaudeBot, PerplexityBot) have crawled your site and when — giving you visibility into how AI models are gathering data about you."
+      />
+
       <div>
         <h1 className="text-xl font-semibold text-white tracking-tight">AI Bot Activity</h1>
         <p className="mt-0.5 text-sm text-slate-400">Last 30 days</p>

@@ -21,7 +21,7 @@ interface TourStep {
   description: string;
 }
 
-const STEPS: TourStep[] = [
+export const TOUR_STEPS: TourStep[] = [
   {
     targetTestId: 'nav-dashboard',
     title: 'Your Command Center',
@@ -35,7 +35,7 @@ const STEPS: TourStep[] = [
       'When AI models get facts wrong about your business, we catch it here.',
   },
   {
-    targetTestId: 'nav-menu',
+    targetTestId: 'nav-magic-menu',
     title: 'Magic Menu',
     description:
       'Upload your PDF menu and we convert it to AI-readable structured data.',
@@ -51,6 +51,25 @@ const STEPS: TourStep[] = [
     title: 'AI Content Drafts',
     description:
       'AI-generated content suggestions to improve your visibility in AI answers.',
+  },
+  // Sprint E — 3 new tour steps (M2)
+  {
+    targetTestId: 'nav-share-of-voice',
+    title: 'Share of Voice',
+    description:
+      'Track how often AI models mention your business vs. your competitors when customers search for businesses like yours. This is the metric traditional SEO tools can\'t see.',
+  },
+  {
+    targetTestId: 'nav-citations',
+    title: 'Citations',
+    description:
+      'Citations are the web mentions that teach AI models about your business. More high-quality citations = higher AI visibility score. This page shows which citation sources are helping and which are missing.',
+  },
+  {
+    targetTestId: 'nav-revenue-impact',
+    title: 'Revenue Impact',
+    description:
+      'See the estimated monthly revenue you\'re losing because AI models are giving customers wrong information. Enter your average check size and covers per night — LocalVector calculates the rest.',
   },
 ];
 
@@ -82,7 +101,7 @@ export default function GuidedTour() {
 
   // Position tooltip relative to target element
   const positionTooltip = useCallback((stepIndex: number) => {
-    const step = STEPS[stepIndex];
+    const step = TOUR_STEPS[stepIndex];
     if (!step) return;
     const el = document.querySelector(`[data-testid="${step.targetTestId}"]`);
     if (!el) return;
@@ -104,7 +123,7 @@ export default function GuidedTour() {
   // Highlight the current target element
   useEffect(() => {
     if (currentStep === null) return;
-    const step = STEPS[currentStep];
+    const step = TOUR_STEPS[currentStep];
     if (!step) return;
     const el = document.querySelector(`[data-testid="${step.targetTestId}"]`);
     if (el) {
@@ -135,7 +154,7 @@ export default function GuidedTour() {
 
   function handleNext() {
     if (currentStep === null) return;
-    if (currentStep < STEPS.length - 1) {
+    if (currentStep < TOUR_STEPS.length - 1) {
       setCurrentStep(currentStep + 1);
     } else {
       handleDismiss();
@@ -149,10 +168,10 @@ export default function GuidedTour() {
 
   if (currentStep === null || !isLargeScreen) return null;
 
-  const step = STEPS[currentStep];
+  const step = TOUR_STEPS[currentStep];
   if (!step) return null;
 
-  const isLast = currentStep === STEPS.length - 1;
+  const isLast = currentStep === TOUR_STEPS.length - 1;
 
   return (
     <>
@@ -166,7 +185,7 @@ export default function GuidedTour() {
       >
         {/* Step indicator */}
         <p className="text-xs text-slate-500 mb-1.5">
-          Step {currentStep + 1} of {STEPS.length}
+          Step {currentStep + 1} of {TOUR_STEPS.length}
         </p>
         <h3 className="text-sm font-semibold text-white mb-1">{step.title}</h3>
         <p className="text-xs text-slate-400 leading-relaxed mb-4">
