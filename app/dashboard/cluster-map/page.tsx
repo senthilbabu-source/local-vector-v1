@@ -52,8 +52,8 @@ export default async function ClusterMapPage() {
     <div className="space-y-5">
       <FirstVisitTooltip
         pageKey="cluster-map"
-        title="What is the Cluster Map?"
-        content="AI models group businesses into semantic 'clusters' when answering search queries. This map shows which cluster your business is in, who else is in your cluster, and how to move into higher-visibility clusters."
+        title="What is the AI Visibility Map?"
+        content="This map shows where your business sits in AI search results compared to competitors. The further right you are, the more often AI mentions you. The higher up, the more accurate the information AI shares. Fix hallucinations and add citations to move up and to the right."
       />
       <PageHeader />
       <ClusterMapWrapper initialData={result} />
@@ -70,10 +70,10 @@ function PageHeader() {
     <div>
       <h1 className="text-xl font-semibold text-white tracking-tight flex items-center gap-2">
         <Map className="h-5 w-5 text-signal-green" />
-        AI Visibility Cluster Map
+        Where Does AI Place You?
       </h1>
       <p className="mt-0.5 text-sm text-slate-400">
-        Where your business sits in each AI engine&apos;s recommendation space
+        How often AI mentions your business and how accurate its information is, compared to competitors.
       </p>
     </div>
   );
@@ -84,8 +84,8 @@ function EmptyState() {
     <div className="flex flex-col items-center justify-center rounded-xl bg-surface-dark px-6 py-16 text-center border border-white/5">
       <p className="text-sm font-medium text-slate-300">No AI scan data yet</p>
       <p className="mt-1 text-xs text-slate-400">
-        Run your first AI scan to populate the Cluster Map. The scatter plot will show
-        your position across AI engines alongside competitors.
+        Run your first AI scan to see where AI places your business compared to
+        competitors. You&apos;ll see how often AI mentions you and how accurate its information is.
       </p>
       <a
         href="/dashboard/share-of-voice"

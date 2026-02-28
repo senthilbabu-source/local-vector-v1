@@ -12,7 +12,7 @@ LocalVector is an AEO/GEO SaaS platform that helps local businesses monitor and 
 - **Billing:** Stripe webhooks → `organizations.plan_tier` enum (`trial | starter | growth | agency`)
 - **Email:** Resend + React Email (`emails/`)
 - **Cache:** Upstash Redis (`lib/redis.ts`) — optional, all callers must degrade gracefully
-- **Testing:** Vitest (unit/integration in `src/__tests__/`), Playwright (E2E in `tests/e2e/`, 28 specs). Current: 3052 tests, 223 files.
+- **Testing:** Vitest (unit/integration in `src/__tests__/`), Playwright (E2E in `tests/e2e/`, 28 specs). Current: 3209 tests, 233 files.
 - **Monitoring:** Sentry (client, server, edge configs) — all catch blocks instrumented (Sprint A, AI_RULES §70)
 
 ## Architecture Rules
@@ -68,6 +68,8 @@ lib/credits/credit-service.ts — Credit check/consume service, fail-open design
 lib/ai-preview/model-queries.ts — AI Answer Preview query functions: queryOpenAI, queryPerplexity, queryGemini (Sprint F, §90)
 lib/services/correction-verifier.service.ts — Correction follow-up verifier: checkCorrectionStatus, extractKeyPhrases (Sprint F, §91)
 lib/data/benchmarks.ts        — Benchmark data layer: fetchBenchmark for city+industry comparison (Sprint F, §92)
+lib/entity-health/platform-descriptions.ts — Platform jargon→consequence translation layer (Sprint J, §105)
+lib/agent-readiness/scenario-descriptions.ts — Capability jargon→scenario translation layer (Sprint J, §106)
 lib/admin/format-relative-date.ts — Intl.RelativeTimeFormat utility for admin pages (Sprint D, §81)
 lib/mcp/               — MCP server tool registrations
 lib/supabase/database.types.ts — Full Database type (33 tables, 9 enums, Relationships)
@@ -335,6 +337,8 @@ ADMIN_EMAILS
 | Sprint F | Engagement & Retention | Complete | — |
 | Sprint G | Human-Readable Dashboard | Complete | — |
 | Sprint H | Action Surfaces | Complete | — |
+| Sprint I | Jargon Retirement (Revenue, Sentiment, Source Intel, Bot Activity) | Complete | — |
+| Sprint J | Jargon Retirement (Entity Health, Agent Readiness, Cluster Map) | Complete | — |
 | Tier 4 | 102–106 | Gated | Sprint 102: Apple BC API approval. Sprint 103: Bing Places API approval. Sprint 104–106: no external gate. |
 | Tier 5 | 107–109 | Gated | 4–8 weeks of SOV baseline data required. SOV cron registered 2026-02-27. Sprint 107 earliest: 2026-03-27. |
 
@@ -352,4 +356,4 @@ No external dependencies. Can begin immediately. See AI_RULES §59.
 
 ## Build History
 
-See `DEVLOG.md` (project root) and `docs/DEVLOG.md` for the complete sprint-by-sprint build log. Current sprint: 101 (+ FIX-1 through FIX-6 + Sprint A + Sprint B + Sprint C + Sprint D + Sprint E + Sprint F + Sprint G + Sprint H + Sprint I). AI_RULES: §1–§104 (104 sections). Production readiness: all audit issues resolved.
+See `DEVLOG.md` (project root) and `docs/DEVLOG.md` for the complete sprint-by-sprint build log. Current sprint: 101 (+ FIX-1 through FIX-6 + Sprint A + Sprint B + Sprint C + Sprint D + Sprint E + Sprint F + Sprint G + Sprint H + Sprint I + Sprint J). AI_RULES: §1–§107 (107 sections). Production readiness: all audit issues resolved.

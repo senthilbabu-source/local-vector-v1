@@ -91,8 +91,8 @@ function CustomTooltip({
         {isSelf ? `★ ${point.name}` : point.name}
       </p>
       <div className="mt-1 space-y-0.5 text-xs text-slate-400">
-        <p>Brand Authority: {point.brandAuthority}%</p>
-        <p>Fact Accuracy: {point.factAccuracy}%</p>
+        <p>AI Mention Rate: {point.brandAuthority}%</p>
+        <p>Information Accuracy: {point.factAccuracy}%</p>
         <p>
           SOV: {(point.sov * 100).toFixed(0)}% ({point.citationCount}/{point.totalQueries} queries)
         </p>
@@ -138,22 +138,22 @@ function QuadrantLabels() {
   return (
     <>
       <text x="78%" y="8%" fill="#334155" fontSize={10} textAnchor="middle">
-        High Authority
+        Often Mentioned
       </text>
       <text x="78%" y="12%" fill="#334155" fontSize={10} textAnchor="middle">
-        High Accuracy
+        Accurate Info
       </text>
       <text x="22%" y="8%" fill="#334155" fontSize={10} textAnchor="middle">
-        Low Authority
+        Rarely Mentioned
       </text>
       <text x="22%" y="12%" fill="#334155" fontSize={10} textAnchor="middle">
-        High Accuracy
+        Accurate Info
       </text>
       <text x="22%" y="92%" fill="#334155" fontSize={10} textAnchor="middle">
-        Danger Zone
+        Invisible
       </text>
       <text x="78%" y="92%" fill="#334155" fontSize={10} textAnchor="middle">
-        Hallucination Risk
+        Wrong Info Spreading
       </text>
     </>
   );
@@ -187,7 +187,7 @@ export default function ClusterChart({
             axisLine={{ stroke: 'rgba(255,255,255,0.05)' }}
             tickLine={false}
             label={{
-              value: 'Brand Authority',
+              value: 'How Often AI Mentions You',
               position: 'bottom',
               fill: '#94A3B8',
               fontSize: 12,
@@ -203,7 +203,7 @@ export default function ClusterChart({
             axisLine={false}
             tickLine={false}
             label={{
-              value: 'Fact Accuracy',
+              value: 'Information Accuracy',
               angle: -90,
               position: 'insideLeft',
               fill: '#94A3B8',
@@ -252,10 +252,10 @@ export default function ClusterChart({
         {hallucinationZones.length > 0 && (
           <div className="flex items-center gap-1.5">
             <span className="inline-block h-3 w-3 rounded-full bg-alert-crimson/30" />
-            Hallucination Fog
+            Wrong Information Zones
           </div>
         )}
-        <span className="text-slate-600">Bubble size = Share of Voice</span>
+        <span className="text-slate-600">Bubble size = AI visibility share</span>
       </div>
     </div>
   );

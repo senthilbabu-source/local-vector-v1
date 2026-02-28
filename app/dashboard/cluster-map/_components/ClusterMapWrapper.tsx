@@ -6,6 +6,7 @@ import { getClusterMapData } from '../actions';
 import EngineToggle from './EngineToggle';
 import ClusterChart from './ClusterChart';
 import HallucinationAlertCard from './HallucinationAlertCard';
+import { ClusterInterpretationPanel } from './ClusterInterpretationPanel';
 
 // ---------------------------------------------------------------------------
 // Props
@@ -34,6 +35,9 @@ export default function ClusterMapWrapper({ initialData }: ClusterMapWrapperProp
 
   return (
     <div className="space-y-5">
+      {/* Sprint J: Plain-English interpretation panel */}
+      <ClusterInterpretationPanel data={data} />
+
       {/* Engine Toggle */}
       <EngineToggle
         availableEngines={data.availableEngines}
@@ -55,7 +59,7 @@ export default function ClusterMapWrapper({ initialData }: ClusterMapWrapperProp
       {data.hallucinationZones.length > 0 && (
         <div>
           <h2 className="text-sm font-semibold text-white mb-3">
-            {data.hallucinationZones.length} Hallucination Zone{data.hallucinationZones.length !== 1 ? 's' : ''} Detected
+            {data.hallucinationZones.length} Incorrect Fact{data.hallucinationZones.length !== 1 ? 's' : ''} AI Is Sharing
           </h2>
           <div className="space-y-2">
             {data.hallucinationZones.map((zone) => (
@@ -68,8 +72,8 @@ export default function ClusterMapWrapper({ initialData }: ClusterMapWrapperProp
       {/* Stats Summary */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <StatCard label="Competitors" value={String(data.stats.totalCompetitors)} />
-        <StatCard label="Queries" value={String(data.stats.totalQueries)} />
-        <StatCard label="Hallucinations" value={String(data.stats.hallucinationCount)} />
+        <StatCard label="AI Queries" value={String(data.stats.totalQueries)} />
+        <StatCard label="Wrong Facts" value={String(data.stats.hallucinationCount)} />
         <StatCard
           label="Dominant Engine"
           value={formatEngine(data.stats.dominantEngine)}

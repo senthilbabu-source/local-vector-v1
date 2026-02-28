@@ -3386,4 +3386,55 @@ npx tsc --noEmit                                                    # 0 type err
 ```
 
 ---
+
+## 2026-02-28 — Sprint J: Jargon Retirement — Entity Health, Agent Readiness, Cluster Map
+
+**Goal:** Replace technical AI/SEO jargon with plain-English, customer-consequence language across three pages. Restaurant owners should understand every label without Googling a term.
+
+**Scope:**
+- Front-end only — no new DB tables, no new cron jobs, no new API routes, no new migrations.
+- Created translation layer files that map DB column names to customer-facing descriptions.
+- Added verdict panels at the top of each page with color-coded summary verdicts.
+- Reordered lists to show needs-attention items above passing items.
+- Updated FirstVisitTooltip content on all three pages to jargon-free text.
+
+**Page 1 — Entity Health ("Does AI Know Your Business?"):**
+- `lib/entity-health/platform-descriptions.ts` — **NEW.** Translation layer mapping 7 EntityPlatform keys to customer-consequence descriptions. Exports: `PLATFORM_DESCRIPTIONS`, `getPlatformConsequence()`.
+- `app/dashboard/entity-health/_components/EntityHealthVerdictPanel.tsx` — **NEW.** Summary panel with confirmed/total count, color-coded verdict sentence (strong/at_risk/critical/unknown), needs-action count.
+- `app/dashboard/entity-health/page.tsx` — **MODIFIED.** Title: "Entity Knowledge Graph Health" → "Does AI Know Your Business?". Added verdict panel. Platform cards split into "Needs Attention" (red) + "Confirmed" (green) sections. PlatformRow uses customer-consequence text from PLATFORM_DESCRIPTIONS. Removed old score summary box + recommendations section.
+
+**Page 2 — Agent Readiness ("Can AI Take Action for Your Customers?"):**
+- `lib/agent-readiness/scenario-descriptions.ts` — **NEW.** Maps 6 CapabilityId values to customer-interaction scenarios (e.g., "Can AI book a reservation?"). Exports: `SCENARIO_DESCRIPTIONS`, `getScenarioText()`.
+- `app/dashboard/agent-readiness/_components/AgentReadinessVerdictPanel.tsx` — **NEW.** Score ring SVG + active/total badge + verdict sentence (agent_ready/partially_ready/not_ready).
+- `app/dashboard/agent-readiness/_components/AgentReadinessScenarioCard.tsx` — **NEW.** Replaces capability rows with scenario cards — shows customer question, consequence text, fix guide, points badge.
+- `app/dashboard/agent-readiness/page.tsx` — **MODIFIED.** Title: "AI Agent Readiness" → "Can AI Take Action for Your Customers?". TopPriorityCard → "Biggest Opportunity" with scenario text. Capabilities split into "Gaps to Fix" (red) + "Ready" (green) using ScenarioCards.
+
+**Page 3 — Cluster Map ("Where Does AI Place You?"):**
+- `app/dashboard/cluster-map/_components/ClusterInterpretationPanel.tsx` — **NEW.** Plain-English interpretation: position verdict (quadrant-based), 3 stat explainers (mention rate, accuracy, competitors), top competitor callout.
+- `app/dashboard/cluster-map/_components/ClusterMapWrapper.tsx` — **MODIFIED.** Added interpretation panel. Heading: "Hallucination Zone(s)" → "Incorrect Fact(s) AI Is Sharing". Stats relabeled.
+- `app/dashboard/cluster-map/_components/ClusterChart.tsx` — **MODIFIED.** All axis labels, quadrant names, tooltips, and legend text rewritten to plain English. "Brand Authority" → "How Often AI Mentions You", "Hallucination Risk" → "Wrong Info Spreading", "Danger Zone" → "Invisible".
+- `app/dashboard/cluster-map/page.tsx` — **MODIFIED.** Title: "AI Visibility Cluster Map" → "Where Does AI Place You?". Subtitle and empty state rewritten.
+
+**Tests added:** 70 total new tests across 6 test files
+- `src/__tests__/unit/platform-descriptions.test.ts` — 13 tests (translation layer coverage + jargon ban)
+- `src/__tests__/unit/scenario-descriptions.test.ts` — 14 tests (translation layer coverage + jargon ban)
+- `src/__tests__/unit/entity-health-verdict-panel.test.tsx` — 10 tests (all verdict states + no jargon)
+- `src/__tests__/unit/agent-readiness-verdict-panel.test.tsx` — 8 tests (all verdict states + no jargon)
+- `src/__tests__/unit/agent-readiness-scenario-card.test.tsx` — 12 tests (scenario rendering + no jargon)
+- `src/__tests__/unit/cluster-interpretation-panel.test.tsx` — 13 tests (position interpretation + no jargon)
+
+**AI_RULES:** added §105 (Entity Health Jargon Ban), §106 (Agent Readiness Jargon Ban), §107 (Cluster Map Jargon Ban).
+
+```bash
+npx vitest run src/__tests__/unit/platform-descriptions.test.ts             # 13 tests
+npx vitest run src/__tests__/unit/scenario-descriptions.test.ts             # 14 tests
+npx vitest run src/__tests__/unit/entity-health-verdict-panel.test.tsx      # 10 tests
+npx vitest run src/__tests__/unit/agent-readiness-verdict-panel.test.tsx    # 8 tests
+npx vitest run src/__tests__/unit/agent-readiness-scenario-card.test.tsx    # 12 tests
+npx vitest run src/__tests__/unit/cluster-interpretation-panel.test.tsx     # 13 tests
+npx vitest run                                                               # 3209 total — no regressions
+npx tsc --noEmit                                                             # 0 type errors
+```
+
+---
 > **End of Development Log**

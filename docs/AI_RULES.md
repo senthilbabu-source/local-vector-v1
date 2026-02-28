@@ -2264,5 +2264,46 @@ Bot Activity page adds expandable fix instructions to blind-spot and low-activit
 - **Never claim** a robots.txt change will "definitely" fix a block — always say "should allow".
 - Shows on blind_spot rows (always) and low-activity rows (in BotRow).
 
+## §105. Entity Health Jargon Ban (Sprint J)
+
+Entity Health page title: "Does AI Know Your Business?" — never "Entity Knowledge Graph Health".
+
+**Rules:**
+- **Banned terms in UI text:** "knowledge graph", "ontological", "entity disambiguation", "semantic", "embedding", "NLP", "NER", "entity resolution", "canonical form", "entity" (when referring to the business).
+- **Replacement vocabulary:** "knowledge graph" → "what AI models know about you"; "entity" → "your business"; "entity health" → "how accurately AI knows your business".
+- **Platform descriptions SSOT:** `lib/entity-health/platform-descriptions.ts`. Maps `EntityPlatform` keys to `PlatformDescription` with customer-consequence text for each status (confirmed/missing/incomplete/unchecked).
+- **Verdict panel:** `EntityHealthVerdictPanel` shows confirmed/total count + plain-English verdict. Three tiers: strong (green), at_risk (amber), critical (red), unknown (gray).
+- **Failing-first layout:** Needs-attention platforms above confirmed platforms (not mixed).
+- **FirstVisitTooltip preserved** — Sprint E tooltip is NOT modified by Sprint J.
+
+## §106. Agent Readiness Jargon Ban (Sprint J)
+
+Agent Readiness page title: "Can AI Take Action for Your Customers?" — never "AI Agent Readiness".
+
+**Rules:**
+- **Banned terms in UI text:** "JSON-LD", "schema.org", "structured data", "action schema", "reservation schema", "microdata", "RDF", "ontology", "agentic", "OpeningHoursSpecification", "ReserveAction", "OrderAction".
+- **Replacement vocabulary:** "JSON-LD valid" → "AI can read your business information"; "structured data" → "your business information is formatted for AI"; "ReserveAction schema" → "AI can book a reservation"; "OrderAction schema" → "AI can place an order".
+- **Scenario descriptions SSOT:** `lib/agent-readiness/scenario-descriptions.ts`. Maps 6 `CapabilityId` values to `ScenarioDescription` with customer-interaction question + consequence text.
+- **Verdict panel:** `AgentReadinessVerdictPanel` shows score ring + active/total count + plain-English verdict.
+- **Scenario cards:** `AgentReadinessScenarioCard` shows customer question (e.g., "Can AI answer 'Are you open right now?'") instead of technical name ("Structured Hours").
+- **Top Priority card relabeled** "Biggest Opportunity" (was "Top Priority: [technical name]").
+- **Gaps-first layout:** Failing capabilities above ready capabilities.
+- Note: `fixGuide` text in the service layer still uses technical terms — Sprint J only rewrites user-facing labels and consequence text.
+
+## §107. Cluster Map Jargon Ban (Sprint J)
+
+Cluster Map page title: "Where Does AI Place You?" — never "AI Visibility Cluster Map".
+
+**Rules:**
+- **Banned terms in UI text:** "semantic", "embedding", "cluster centrality", "vector distance", "cosine similarity", "latent space", "brand authority", "fact accuracy" (as axis labels).
+- **Replacement vocabulary:** "brand authority" → "how often AI mentions you" / "AI mention rate"; "fact accuracy" → "information accuracy"; "hallucination fog" → "wrong information zones"; "cluster" → "group" or "category".
+- **Interpretation panel:** `ClusterInterpretationPanel` above chart. Shows position verdict, 3 stat explainers (mention rate, accuracy, competitors), and top competitor callout with relative comparison.
+- **Chart axis labels:** X = "How Often AI Mentions You", Y = "Information Accuracy".
+- **Quadrant labels:** "Often Mentioned / Accurate Info", "Rarely Mentioned / Accurate Info", "Invisible", "Wrong Info Spreading".
+- **Legend:** "Wrong Information Zones" (was "Hallucination Fog"). "AI visibility share" (was "Share of Voice").
+- **Hallucination zones heading:** "N Incorrect Fact(s) AI Is Sharing" (was "N Hallucination Zone(s) Detected").
+- **Stat cards:** "Wrong Facts" (was "Hallucinations"), "AI Queries" (was "Queries").
+- No new DB tables, migrations, crons, or API routes. Pure front-end.
+
 ---
 > **End of System Instructions**
