@@ -1,15 +1,34 @@
 // ---------------------------------------------------------------------------
-// lib/plan-feature-matrix.ts — Sprint B (M3)
+// lib/plan-feature-matrix.ts — Sprint M (M3)
 //
-// Static feature matrix derived from lib/plan-enforcer.ts gating functions.
-// Each row represents a feature, with plan columns indicating availability.
-//
-// IMPORTANT: If plan-enforcer.ts changes (new gates, changed tiers),
-// update this file to match. These two files must stay in sync.
+// Feature matrix derived from lib/plan-enforcer.ts gating functions.
+// Every row's availability is computed by calling the actual gating functions
+// rather than hardcoding boolean values. If plan-enforcer.ts changes,
+// this matrix updates automatically.
 //
 // Plans: trial | starter | growth | agency
 // Display names: The Audit | Starter | AI Shield | Brand Fortress
 // ---------------------------------------------------------------------------
+
+import {
+  type PlanTier,
+  planSatisfies,
+  canRunDailyAudit,
+  canRunSovEvaluation,
+  canRunCompetitorIntercept,
+  maxLocations,
+  maxCompetitors,
+  canRunAutopilot,
+  canRunPageAudit,
+  canRunOccasionEngine,
+  canViewCitationGap,
+  canConnectGBP,
+  canRunMultiModelSOV,
+  canExportData,
+  canRegenerateLLMsTxt,
+  canManageTeamSeats,
+  defaultSeatLimit,
+} from '@/lib/plan-enforcer';
 
 export interface FeatureRow {
   label: string;
@@ -20,38 +39,116 @@ export interface FeatureRow {
   agency:  boolean | string;
 }
 
-export const PLAN_FEATURE_MATRIX: FeatureRow[] = [
-  // ── Core ──────────────────────────────────────────────────────────────────
-  { category: 'Core',          label: 'Reality Score',                trial: true,    starter: true,    growth: true,    agency: true    },
-  { category: 'Core',          label: 'Weekly hallucination scan',    trial: true,    starter: true,    growth: true,    agency: true    },
-  { category: 'Core',          label: 'Daily hallucination scan',     trial: false,   starter: false,   growth: true,    agency: true    },
-  { category: 'Core',          label: 'Hallucination alerts',         trial: true,    starter: true,    growth: true,    agency: true    },
-  { category: 'Core',          label: 'Weekly digest email',          trial: false,   starter: true,    growth: true,    agency: true    },
+const TIERS: PlanTier[] = ['trial', 'starter', 'growth', 'agency'];
 
-  // ── AI Monitoring ──────────────────────────────────────────────────────────
-  { category: 'AI Monitoring', label: 'ChatGPT monitoring',           trial: true,    starter: true,    growth: true,    agency: true    },
-  { category: 'AI Monitoring', label: 'Perplexity monitoring',        trial: true,    starter: true,    growth: true,    agency: true    },
-  { category: 'AI Monitoring', label: 'Gemini monitoring',            trial: true,    starter: true,    growth: true,    agency: true    },
-  { category: 'AI Monitoring', label: 'Multi-model SOV',              trial: false,   starter: false,   growth: true,    agency: true    },
-  { category: 'AI Monitoring', label: 'Share of Voice tracking',      trial: false,   starter: false,   growth: true,    agency: true    },
+/**
+ * Safely call a boolean gating function. Returns false on any error
+ * so a broken gate never crashes the billing page.
+ */
+function gate(fn: (plan: PlanTier) => boolean, plan: PlanTier): boolean {
+  try { return fn(plan); } catch (_err) { return false; }
+}
 
-  // ── Competitive ────────────────────────────────────────────────────────────
-  { category: 'Competitive',   label: 'Competitor tracking',          trial: false,   starter: false,   growth: '3 max', agency: '10 max' },
-  { category: 'Competitive',   label: 'Competitor intercept analysis',trial: false,   starter: false,   growth: true,    agency: true    },
-  { category: 'Competitive',   label: 'Cluster map analysis',         trial: false,   starter: false,   growth: true,    agency: true    },
-  { category: 'Competitive',   label: 'Citation gap dashboard',       trial: false,   starter: false,   growth: true,    agency: true    },
+/**
+ * Convert a numeric limit into a display string or false.
+ * 0 means the feature is unavailable for that tier.
+ */
+function numericGate(fn: (plan: PlanTier) => number, plan: PlanTier, suffix = ''): boolean | string {
+  try {
+    const val = fn(plan);
+    if (val <= 0) return false;
+    return `${val}${suffix}`;
+  } catch (_err) {
+    return false;
+  }
+}
 
-  // ── Content ────────────────────────────────────────────────────────────────
-  { category: 'Content',       label: 'Magic Menu schema generation', trial: false,   starter: true,    growth: true,    agency: true    },
-  { category: 'Content',       label: 'AI content drafts',            trial: false,   starter: false,   growth: true,    agency: true    },
-  { category: 'Content',       label: 'AEO page audit',               trial: false,   starter: false,   growth: true,    agency: true    },
-  { category: 'Content',       label: 'Occasion engine',              trial: false,   starter: false,   growth: true,    agency: true    },
-  { category: 'Content',       label: 'CSV/PDF export',               trial: false,   starter: false,   growth: true,    agency: true    },
-  { category: 'Content',       label: 'llms.txt regeneration',        trial: false,   starter: false,   growth: true,    agency: true    },
+/**
+ * Build a single FeatureRow by evaluating a gating function across all 4 tiers.
+ */
+function boolRow(
+  label: string,
+  category: FeatureRow['category'],
+  fn: (plan: PlanTier) => boolean,
+): FeatureRow {
+  return {
+    label,
+    category,
+    trial:   gate(fn, 'trial'),
+    starter: gate(fn, 'starter'),
+    growth:  gate(fn, 'growth'),
+    agency:  gate(fn, 'agency'),
+  };
+}
 
-  // ── Integrations ──────────────────────────────────────────────────────────
-  { category: 'Integrations',  label: 'Google Business Profile sync', trial: false,   starter: true,    growth: true,    agency: true    },
-  { category: 'Integrations',  label: 'Webhook alerts (Slack/Zapier)',trial: false,   starter: false,   growth: false,   agency: true    },
-  { category: 'Integrations',  label: 'Multiple locations',           trial: '1',     starter: '1',     growth: '1',     agency: '10'    },
-  { category: 'Integrations',  label: 'Team seats',                   trial: '1',     starter: '1',     growth: '1',     agency: '5'     },
-];
+/**
+ * Build the full feature matrix from plan-enforcer.ts gating functions.
+ * Zero hardcoded availability — every cell is computed.
+ */
+export function buildFeatureMatrix(): FeatureRow[] {
+  // Helper for features available on all plans (no gating function exists)
+  const allPlans = (_plan: PlanTier) => true;
+
+  // Helper for starter+ features where no dedicated gate exists
+  const starterPlus = (plan: PlanTier) => planSatisfies(plan, 'starter');
+
+  return [
+    // ── Core ──────────────────────────────────────────────────────────────────
+    boolRow('Reality Score',             'Core', allPlans),
+    boolRow('Weekly hallucination scan', 'Core', allPlans),
+    boolRow('Daily hallucination scan',  'Core', canRunDailyAudit),
+    boolRow('Hallucination alerts',      'Core', allPlans),
+    boolRow('Weekly digest email',       'Core', starterPlus),
+
+    // ── AI Monitoring ──────────────────────────────────────────────────────────
+    boolRow('ChatGPT monitoring',  'AI Monitoring', allPlans),
+    boolRow('Perplexity monitoring','AI Monitoring', allPlans),
+    boolRow('Gemini monitoring',   'AI Monitoring', allPlans),
+    boolRow('Multi-model SOV',     'AI Monitoring', canRunMultiModelSOV),
+    boolRow('Share of Voice tracking','AI Monitoring', canRunSovEvaluation),
+
+    // ── Competitive ────────────────────────────────────────────────────────────
+    {
+      label: 'Competitor tracking',
+      category: 'Competitive',
+      trial:   numericGate(maxCompetitors, 'trial', ' max'),
+      starter: numericGate(maxCompetitors, 'starter', ' max'),
+      growth:  numericGate(maxCompetitors, 'growth', ' max'),
+      agency:  numericGate(maxCompetitors, 'agency', ' max'),
+    },
+    boolRow('Competitor intercept analysis', 'Competitive', canRunCompetitorIntercept),
+    boolRow('Cluster map analysis',          'Competitive', canRunCompetitorIntercept),
+    boolRow('Citation gap dashboard',        'Competitive', canViewCitationGap),
+
+    // ── Content ────────────────────────────────────────────────────────────────
+    boolRow('Magic Menu schema generation', 'Content', starterPlus),
+    boolRow('AI content drafts',            'Content', canRunAutopilot),
+    boolRow('AEO page audit',               'Content', canRunPageAudit),
+    boolRow('Occasion engine',              'Content', canRunOccasionEngine),
+    boolRow('CSV/PDF export',               'Content', canExportData),
+    boolRow('llms.txt regeneration',        'Content', canRegenerateLLMsTxt),
+
+    // ── Integrations ──────────────────────────────────────────────────────────
+    boolRow('Google Business Profile sync', 'Integrations', canConnectGBP),
+    boolRow('Webhook alerts (Slack/Zapier)','Integrations', canManageTeamSeats),
+    {
+      label: 'Multiple locations',
+      category: 'Integrations',
+      trial:   String(maxLocations('trial')),
+      starter: String(maxLocations('starter')),
+      growth:  String(maxLocations('growth')),
+      agency:  String(maxLocations('agency')),
+    },
+    {
+      label: 'Team seats',
+      category: 'Integrations',
+      trial:   String(defaultSeatLimit('trial')),
+      starter: String(defaultSeatLimit('starter')),
+      growth:  String(defaultSeatLimit('growth')),
+      agency:  String(defaultSeatLimit('agency')),
+    },
+  ];
+}
+
+/** Pre-built matrix for backward compatibility with existing imports. */
+export const PLAN_FEATURE_MATRIX: FeatureRow[] = buildFeatureMatrix();

@@ -27,6 +27,15 @@ import { PLATFORM_SYNC_CONFIG } from '@/lib/integrations/platform-config';
 import type { VerificationResult } from '@/lib/integrations/detect-discrepancies';
 
 // ---------------------------------------------------------------------------
+// Platform display names for verification rows (Sprint M)
+// ---------------------------------------------------------------------------
+
+const PLATFORM_LABELS: Record<string, string> = {
+  yelp: 'Yelp',
+  bing: 'Bing Places',
+};
+
+// ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
 
@@ -372,11 +381,11 @@ export default async function IntegrationsPage() {
                       platform={platform}
                       integration={integration}
                     />
-                    {/* Sprint L: Verification row for platforms with API verification */}
+                    {/* Sprint L/M: Verification row for platforms with API verification */}
                     {syncConfig.verifiable && (
                       <ListingVerificationRow
                         platform={platform}
-                        platformLabel={platform === 'yelp' ? 'Yelp' : platform}
+                        platformLabel={PLATFORM_LABELS[platform] ?? platform}
                         claimUrl={syncConfig.claimUrl ?? '#'}
                         cachedResult={
                           integrationRow?.verification_result
@@ -397,9 +406,9 @@ export default async function IntegrationsPage() {
       {/* ── Informational footer note ───────────────────────────────── */}
       {locations.length > 0 && (
         <p className="text-center text-xs text-slate-600">
-          Google Business Profile syncs automatically via OAuth. For Yelp and
-          Tripadvisor, enter your listing URLs so AI engines can reference them
-          directly. Bing, Apple Maps, and Facebook automated sync coming 2026.
+          Google Business Profile syncs automatically via OAuth. For Yelp, Bing,
+          and Tripadvisor, enter your listing URLs so AI engines can reference them
+          directly. Apple Maps and Facebook automated sync coming 2026.
         </p>
       )}
 

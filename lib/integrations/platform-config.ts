@@ -48,9 +48,10 @@ export const PLATFORM_SYNC_CONFIG: Record<Big6Platform, PlatformSyncConfig> = {
     eta: 'Q2 2026',
   },
   bing: {
-    syncType: 'coming_soon',
-    syncDescription: 'Automated sync coming Q2 2026',
-    eta: 'Q2 2026',
+    syncType: 'manual_url',
+    syncDescription: 'Manual URL tracking — data verification available',
+    claimUrl: 'https://www.bingplaces.com',
+    verifiable: true,
   },
   facebook: {
     syncType: 'coming_soon',

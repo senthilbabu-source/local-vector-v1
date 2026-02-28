@@ -2350,5 +2350,46 @@ Sprint B's sample data infrastructure is complete and is the SSOT. No duplicate 
 - Component names: `SampleModeBanner` (not `SampleDataBanner`), `SampleDataBadge` (not `SampleDataOverlay`). Do not create duplicates.
 - Regression guard: `src/__tests__/unit/sample-data-mode.test.ts` (18 tests) + `src/__tests__/unit/sample-data-components.test.tsx` (6 component tests, jsdom).
 
+## §112. Plan Feature Matrix Derivation (Sprint M)
+
+The `PLAN_FEATURE_MATRIX` in `lib/plan-feature-matrix.ts` is derived from `plan-enforcer.ts` gating functions, never hardcoded. If `plan-enforcer.ts` changes, the billing comparison table updates automatically.
+
+**Rules:**
+- Every feature row calls a gating function from `plan-enforcer.ts` for each plan tier.
+- Universal features (Reality Score, monitoring) use inline `() => true`.
+- Numeric limits (competitors, locations, seats) use `numericGate()` — returns `false` for 0, string for > 0.
+- `gate()` helper wraps all gating calls in try/catch — returns `false` on error (never crashes billing page).
+- `buildFeatureMatrix()` exported for testing; `PLAN_FEATURE_MATRIX` is the backward-compatible static export.
+- Regression guard: `src/__tests__/unit/plan-feature-matrix.test.ts` (19 tests).
+
+## §113. Bing Verification Pattern (Sprint M)
+
+Bing Places verification follows the Sprint L Yelp pattern with platform-specific differences.
+
+**Rules:**
+- Auth: query parameter (`key=BING_MAPS_KEY`), not Bearer header.
+- Search: name + city query (Bing does not support phone-based lookup).
+- Response: `resourceSets[0].resources[]` — use optional chaining throughout.
+- Match: `findBestBingMatch()` — fuzzy name match. Falls back to `resources[0]` when no name match found (logs Sentry breadcrumb).
+- Discrepancies: reuse `detectDiscrepancies()` from `lib/integrations/detect-discrepancies.ts`.
+- Table: `location_integrations` — same as Yelp, `platform: 'bing'`, upsert on `(location_id, platform)`.
+- Platform config: `syncType: 'manual_url'`, `verifiable: true`, `claimUrl: 'https://www.bingplaces.com'`.
+- Platform label: `PLATFORM_LABELS` map in `integrations/page.tsx` — `bing: 'Bing Places'`.
+- Env var: `BING_MAPS_KEY` in `.env.local.example`. Route returns 503 when missing.
+- Regression guard: `src/__tests__/unit/bing-verification.test.ts` (14 tests).
+
+## §114. Positioning Banner Copy (Sprint M)
+
+The `PositioningBanner` at `components/ui/PositioningBanner.tsx` explains AI visibility vs. traditional SEO measurement. Updated in Sprint M from generic branding to specific factual comparison.
+
+**Rules:**
+- Copy must be factual — no competitive tool names (no "unlike Yext"), no superlatives, no fear tactics.
+- Must reference "Reality Score" and "AI models" explicitly.
+- Must explain the distinction: search rankings vs. what AI models say about the business.
+- localStorage key: `lv_positioning_banner_dismissed` (permanent dismiss).
+- Shown for orgs < 30 days old AND not in sample mode (`isNewOrg && !sampleMode`).
+- One banner at a time: suppressed when `SampleModeBanner` is active.
+- Regression guard: `src/__tests__/unit/positioning-banner.test.tsx` (13 tests).
+
 ---
 > **End of System Instructions**

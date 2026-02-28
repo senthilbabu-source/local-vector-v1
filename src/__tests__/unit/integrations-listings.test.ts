@@ -50,8 +50,9 @@ describe('PLATFORM_SYNC_CONFIG — honest platform labeling', () => {
     expect(PLATFORM_SYNC_CONFIG.apple.syncType).toBe('coming_soon');
   });
 
-  it('bing has syncType "coming_soon"', () => {
-    expect(PLATFORM_SYNC_CONFIG.bing.syncType).toBe('coming_soon');
+  it('bing has syncType "manual_url" with verification (Sprint M)', () => {
+    expect(PLATFORM_SYNC_CONFIG.bing.syncType).toBe('manual_url');
+    expect(PLATFORM_SYNC_CONFIG.bing.verifiable).toBe(true);
   });
 
   it('facebook has syncType "coming_soon"', () => {

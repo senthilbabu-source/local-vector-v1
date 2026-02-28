@@ -57,7 +57,7 @@ export function ListingVerificationRow({
       }
       const { result: newResult } = await res.json();
       setResult(newResult);
-    } catch {
+    } catch (_err) {
       setError('Network error — please try again');
     } finally {
       setLoading(false);

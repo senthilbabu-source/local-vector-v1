@@ -1,12 +1,13 @@
 // ---------------------------------------------------------------------------
-// src/__tests__/unit/plan-feature-matrix.test.ts — Sprint B (M3)
+// src/__tests__/unit/plan-feature-matrix.test.ts — Sprint B + Sprint M (M3)
 //
 // Validates the feature matrix data integrity.
+// Sprint M: verifies matrix is derived from plan-enforcer.ts gating functions.
 // Pure data tests — no jsdom needed.
 // ---------------------------------------------------------------------------
 
 import { describe, it, expect } from 'vitest';
-import { PLAN_FEATURE_MATRIX, type FeatureRow } from '@/lib/plan-feature-matrix';
+import { PLAN_FEATURE_MATRIX, buildFeatureMatrix, type FeatureRow } from '@/lib/plan-feature-matrix';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -107,5 +108,58 @@ describe('PLAN_FEATURE_MATRIX', () => {
     expect(row).toBeDefined();
     expect(typeof row!.growth).toBe('string');
     expect(typeof row!.agency).toBe('string');
+  });
+
+  it('team seats row has numeric string values for all tiers', () => {
+    const row = PLAN_FEATURE_MATRIX.find((f) => f.label === 'Team seats');
+    expect(row).toBeDefined();
+    expect(row!.trial).toBe('1');
+    expect(row!.starter).toBe('1');
+    expect(row!.growth).toBe('1');
+    expect(row!.agency).toBe('5');
+  });
+
+  it('daily scan is growth+ only', () => {
+    const row = PLAN_FEATURE_MATRIX.find((f) => f.label === 'Daily hallucination scan');
+    expect(row).toBeDefined();
+    expect(row!.trial).toBe(false);
+    expect(row!.starter).toBe(false);
+    expect(row!.growth).toBe(true);
+    expect(row!.agency).toBe(true);
+  });
+
+  it('GBP sync is starter+ only', () => {
+    const row = PLAN_FEATURE_MATRIX.find((f) => f.label === 'Google Business Profile sync');
+    expect(row).toBeDefined();
+    expect(row!.trial).toBe(false);
+    expect(row!.starter).toBe(true);
+    expect(row!.growth).toBe(true);
+    expect(row!.agency).toBe(true);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// buildFeatureMatrix() — Sprint M
+// ---------------------------------------------------------------------------
+
+describe('buildFeatureMatrix()', () => {
+  it('returns the same data as PLAN_FEATURE_MATRIX export', () => {
+    const built = buildFeatureMatrix();
+    expect(built).toEqual(PLAN_FEATURE_MATRIX);
+  });
+
+  it('returns a new array on each call (not a shared reference)', () => {
+    const a = buildFeatureMatrix();
+    const b = buildFeatureMatrix();
+    expect(a).not.toBe(b);
+    expect(a).toEqual(b);
+  });
+
+  it('produces consistent results across multiple calls', () => {
+    const results = Array.from({ length: 5 }, () => buildFeatureMatrix());
+    for (const r of results) {
+      expect(r.length).toBe(results[0].length);
+      expect(r.map((row) => row.label)).toEqual(results[0].map((row) => row.label));
+    }
   });
 });

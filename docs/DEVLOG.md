@@ -4,6 +4,42 @@
 
 ---
 
+## 2026-02-28 — Sprint M: Conversion, Verification & Reliability — Plan Comparison Refactor, Bing Verification, Positioning Banner (Completed)
+
+**Objective:** Close 3 remaining gaps from the Feb 2026 analysis: plan upsell conversion (M3), Bing Places verification (C2 Phase 2), and positioning banner enhancement (M6). Service tests (M1/L5) skipped — all 3 files already had comprehensive coverage (48 tests across 3 files).
+
+**M3 — Plan Feature Comparison Table (refactored from Sprint B):**
+- `lib/plan-feature-matrix.ts` — **REWRITTEN.** All 24 feature rows now derive from `plan-enforcer.ts` gating functions via `buildFeatureMatrix()`. Zero hardcoded availability values. `gate()` helper wraps all calls in try/catch (returns `false` on error). Backward-compatible `PLAN_FEATURE_MATRIX` export maintained.
+- `app/dashboard/billing/_components/PlanComparisonTable.tsx` — No changes needed (already consumes `PLAN_FEATURE_MATRIX`).
+- 16 gating functions mapped: `canRunDailyAudit`, `canRunSovEvaluation`, `canRunCompetitorIntercept`, `maxLocations`, `maxCompetitors`, `canRunAutopilot`, `canRunPageAudit`, `canRunOccasionEngine`, `canViewCitationGap`, `canConnectGBP`, `canRunMultiModelSOV`, `canExportData`, `canRegenerateLLMsTxt`, `canManageTeamSeats`, `defaultSeatLimit`, `planSatisfies`.
+
+**C2 Phase 2 — Bing Places Verification:**
+- `app/api/integrations/verify-bing/route.ts` — **NEW.** Bing Local Business Search REST API verification. Auth via query parameter (`key=BING_MAPS_KEY`), not Bearer header. Name+city search (no phone-based lookup — Bing doesn't support it). Response: `resourceSets[0].resources[]`. Reuses `detectDiscrepancies()` from Sprint L.
+- `lib/integrations/platform-config.ts` — **MODIFIED.** Bing changed from `coming_soon` to `manual_url` with `verifiable: true` and `claimUrl: 'https://www.bingplaces.com'`.
+- `app/dashboard/integrations/page.tsx` — **MODIFIED.** Replaced hardcoded `platform === 'yelp' ? 'Yelp' : platform` with `PLATFORM_LABELS` mapping (`yelp: 'Yelp'`, `bing: 'Bing Places'`). Updated footer text.
+- `app/dashboard/integrations/_components/ListingVerificationRow.tsx` — **MODIFIED.** Fixed pre-existing bare `} catch {}` to `} catch (_err) {}`.
+- `.env.local.example` — **MODIFIED.** Added `BING_MAPS_KEY` documentation.
+
+**M6 — AI vs. Traditional SEO Positioning Banner:**
+- `components/ui/PositioningBanner.tsx` — **MODIFIED.** Updated copy from generic branding to specific AI visibility vs. search ranking explanation. New headline: "LocalVector measures a layer traditional SEO tools don't." Body now references Reality Score explicitly, no competitor tool names. Same component structure, localStorage key, data-testid, dismiss behavior.
+
+**Tests added:** 23 new tests across 3 files (3279 total, was 3256)
+- `src/__tests__/unit/plan-feature-matrix.test.ts` — **+6 tests** (19 total, was 13): team seats values, daily scan growth+, GBP starter+, `buildFeatureMatrix()` consistency
+- `src/__tests__/unit/bing-verification.test.ts` — **14 tests** (NEW): findBestBingMatch (5), formatBingAddress (4), detectDiscrepancies with Bing data (5)
+- `src/__tests__/unit/positioning-banner.test.tsx` — **+3 tests** (13 total, was 10): "AI models", "Reality Score", "search ranking" copy checks
+- `src/__tests__/unit/integrations-listings.test.ts` — **MODIFIED** 1 assertion: bing `coming_soon` → `manual_url` + `verifiable: true`
+
+**AI_RULES additions:** §112 (Plan feature matrix derivation), §113 (Bing verification pattern), §114 (Positioning banner M6 copy).
+
+```bash
+npx vitest run src/__tests__/unit/plan-feature-matrix.test.ts   # 19 tests
+npx vitest run src/__tests__/unit/bing-verification.test.ts     # 14 tests
+npx vitest run src/__tests__/unit/positioning-banner.test.tsx    # 13 tests
+npx vitest run                                                   # 3279 tests — 0 regressions
+```
+
+---
+
 ## 2026-02-28 — Sprint L: Retention & Onboarding — Sample Data Audit, Listings Verification, Tour Completion (Completed)
 
 **Objective:** Address 3 highest-churn-risk gaps: sample data mode completeness, Yelp API listing verification, and GuidedTour completion.
