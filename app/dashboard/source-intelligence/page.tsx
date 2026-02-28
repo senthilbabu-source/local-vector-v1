@@ -4,6 +4,8 @@ import { createClient } from '@/lib/supabase/server';
 import { fetchSourceIntelligence } from '@/lib/data/source-intelligence';
 import { PlanGate } from '@/components/plan-gate/PlanGate';
 import type { NormalizedSource, SourceAlert, SourceCategory } from '@/lib/services/source-intelligence.service';
+import { SourceHealthSummaryPanel } from './_components/SourceHealthSummaryPanel';
+import { SourceHealthBadge, deriveSourceHealth } from './_components/SourceHealthBadge';
 
 // ---------------------------------------------------------------------------
 // Engine label mapping (matches Sentiment page)
@@ -87,8 +89,15 @@ export default async function SourceIntelligencePage() {
 
       {/* ── Plan-gated content (blur teaser for Growth and below) ──── */}
       <PlanGate requiredPlan="agency" currentPlan={plan} feature="Citation Source Intelligence">
+        {/* Sprint I: Source health summary */}
+        <SourceHealthSummaryPanel result={result} />
+
         {/* Alerts */}
-        {result.alerts.length > 0 && <SourceAlertCards alerts={result.alerts} />}
+        {result.alerts.length > 0 && (
+          <div className="mt-6">
+            <SourceAlertCards alerts={result.alerts} />
+          </div>
+        )}
 
         {/* Top Sources Table */}
         <div className="mt-6">
@@ -154,18 +163,23 @@ function TopSourcesTable({ sources }: { sources: NormalizedSource[] }) {
           <div key={`${source.name}-${i}`} className="flex items-center gap-3 py-1.5">
             <span className="w-6 text-right text-xs font-mono text-slate-600">{i + 1}.</span>
             <div className="flex-1 min-w-0">
-              {source.url ? (
-                <a
-                  href={source.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-sm text-white hover:text-electric-indigo transition truncate block"
-                >
-                  {source.name}
-                </a>
-              ) : (
-                <span className="text-sm text-white truncate block">{source.name}</span>
-              )}
+              <div className="flex items-center gap-2">
+                {source.url ? (
+                  <a
+                    href={source.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-sm text-white hover:text-electric-indigo transition truncate"
+                  >
+                    {source.name}
+                  </a>
+                ) : (
+                  <span className="text-sm text-white truncate">{source.name}</span>
+                )}
+                <SourceHealthBadge
+                  health={deriveSourceHealth(source.category, source.isCompetitorAlert)}
+                />
+              </div>
             </div>
             <div className="flex items-center gap-1.5 shrink-0">
               {source.engines.map(engine => {

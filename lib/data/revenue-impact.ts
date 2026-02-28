@@ -10,17 +10,21 @@ import type { Database } from '@/lib/supabase/database.types';
 import {
   computeRevenueImpact,
   DEFAULT_REVENUE_CONFIG,
+  type RevenueConfig,
   type RevenueImpactInput,
   type RevenueImpactResult,
 } from '@/lib/services/revenue-impact.service';
 
 /**
  * Fetch revenue impact data and compute the estimate.
+ * Accepts optional industryDefaults to use per-industry values instead of
+ * the global DEFAULT_REVENUE_CONFIG when the location has no custom config.
  */
 export async function fetchRevenueImpact(
   supabase: SupabaseClient<Database>,
   orgId: string,
   locationId: string,
+  industryDefaults?: RevenueConfig,
 ): Promise<RevenueImpactResult> {
   const thirtyDaysAgo = new Date();
   thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
@@ -72,12 +76,14 @@ export async function fetchRevenueImpact(
   ]);
 
   // ── Revenue config ──
+  // Prefer location-specific config → industry defaults → global defaults
   const loc = locationResult.data;
+  const fallback = industryDefaults ?? DEFAULT_REVENUE_CONFIG;
   const config = {
     avgCustomerValue:
-      loc?.avg_customer_value ?? DEFAULT_REVENUE_CONFIG.avgCustomerValue,
+      loc?.avg_customer_value ?? fallback.avgCustomerValue,
     monthlyCovers:
-      loc?.monthly_covers ?? DEFAULT_REVENUE_CONFIG.monthlyCovers,
+      loc?.monthly_covers ?? fallback.monthlyCovers,
   };
 
   // ── SOV gaps ──

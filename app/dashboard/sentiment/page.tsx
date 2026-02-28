@@ -5,6 +5,7 @@ import { fetchSentimentSummary, fetchSentimentTrend } from '@/lib/data/sentiment
 import { PlanGate } from '@/components/plan-gate/PlanGate';
 import type { SentimentExtraction } from '@/lib/ai/schemas';
 import { FirstVisitTooltip } from '@/components/ui/FirstVisitTooltip';
+import { SentimentInterpretationPanel } from './_components/SentimentInterpretationPanel';
 
 // ---------------------------------------------------------------------------
 // Engine label mapping (matches AI Says page)
@@ -107,6 +108,9 @@ export default async function SentimentPage() {
 
       {/* ── Plan-gated content (blur teaser for Starter/Trial) ─────── */}
       <PlanGate requiredPlan="growth" currentPlan={plan} feature="AI Sentiment Tracker">
+        {/* Sprint I: Interpretation panel — before charts */}
+        <SentimentInterpretationPanel summary={summary} />
+
         {/* Overall Sentiment */}
         <SentimentScoreCard
           score={summary.averageScore}

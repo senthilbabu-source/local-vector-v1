@@ -2219,5 +2219,50 @@ Competitor Intercept page (`/dashboard/compete`) now shows a win/loss verdict pa
 - **All-wins state:** "leading across the board" message in green.
 - No new DB tables, migrations, crons, or API routes. Pure front-end.
 
+## §101. Revenue Industry Defaults (Sprint I)
+
+Revenue Impact page uses industry-smart defaults so an estimate is visible on first load. `getIndustryRevenueDefaults(industryId)` maps org industry to `{ avgCustomerValue, monthlyCovers }`.
+
+**Rules:**
+- **SSOT:** `lib/revenue-impact/industry-revenue-defaults.ts`. Matches `RevenueConfig` from `revenue-impact.service.ts`.
+- **Fallback chain:** location-specific config → industry defaults → global `DEFAULT_REVENUE_CONFIG`.
+- **Smart-defaults disclosure:** When using industry defaults, show blue banner: "Estimated using typical [industry] figures."
+- **`RevenueEstimatePanel`** renders above the config form with estimate, interpretation, and fix-alerts CTA.
+- Never present industry defaults as verified data for a specific business.
+
+## §102. Sentiment Interpretation Panel (Sprint I)
+
+AI Sentiment page leads with `SentimentInterpretationPanel` showing plain-English verdicts per engine.
+
+**Rules:**
+- **Score thresholds:** > 0.3 = positive, -0.3 to 0.3 = mixed, < -0.3 = negative (problem).
+- **Engines sorted worst-first** (ascending by `averageScore`).
+- **Worst-engine callout:** Amber banner shown only when worst engine is below -0.3, with CTA to fix alerts.
+- **"Needs attention" badge** on engines with score < -0.3.
+- Panel renders nothing when `evaluationCount === 0` or `byEngine` is empty.
+- Reuses existing `SentimentSummary` type — no new data fetches.
+
+## §103. Source Health Signals (Sprint I)
+
+Source Intelligence page leads with `SourceHealthSummaryPanel` showing source health grid and verdicts.
+
+**Rules:**
+- **Health derivation:** `deriveSourceHealth(category, isCompetitorAlert)` — first_party (green), competitor (red), review_site (blue), directory (amber), other (gray).
+- **No accuracy data in DB** — health is derived from source category and `isCompetitorAlert` flag.
+- **First-party rate thresholds:** >= 20% green, 10-20% amber, < 10% red.
+- **`SourceHealthBadge`** added to each row in the top sources table.
+- Plan gated: Agency only (existing gate preserved).
+
+## §104. Bot Fix Instructions (Sprint I)
+
+Bot Activity page adds expandable fix instructions to blind-spot and low-activity bot rows.
+
+**Rules:**
+- **SSOT:** `lib/bot-activity/bot-knowledge.ts`. All 10 tracked AI bots must have entries.
+- **`BotFixInstructions`** is a Client Component (needs `useState` for expand/collapse).
+- Shows: bot identity, business impact, exact `robots.txt` snippet with copy button, official docs link.
+- **Never claim** a robots.txt change will "definitely" fix a block — always say "should allow".
+- Shows on blind_spot rows (always) and low-activity rows (in BotRow).
+
 ---
 > **End of System Instructions**

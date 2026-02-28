@@ -4,6 +4,52 @@
 
 ---
 
+## 2026-02-28 — Sprint I: Action Surfaces Tier 2 — Revenue Impact, AI Sentiment, Source Intelligence, Bot Activity (Completed)
+
+**Features implemented (4 items):**
+1. **Revenue Impact → Show the Number First:** Industry-smart defaults pre-fill the Revenue Impact form so a revenue estimate appears on page load. `getIndustryRevenueDefaults()` maps org industry to sensible `avgCustomerValue`/`monthlyCovers`. New `RevenueEstimatePanel` shows the estimate prominently with breakdown interpretation and smart-defaults disclosure.
+2. **AI Sentiment → Model-by-Model Interpretation:** `SentimentInterpretationPanel` leads the sentiment page with plain-English verdicts per engine. Engines sorted worst-first. Worst engine gets an amber callout with CTA to fix alerts. Uses -1/+1 score thresholds (>0.3 = positive, <-0.3 = negative).
+3. **Source Intelligence → Source Health Signals:** `SourceHealthSummaryPanel` shows source count grid (first-party, review sites, competitor, alerts) with first-party citation rate. `SourceHealthBadge` added to each source in the top sources table. Plain-English verdicts based on alert severity and first-party rate.
+4. **Bot Activity → Actionable Fix Instructions:** `BotFixInstructions` expandable component on blind-spot and low-activity bot rows. `BOT_KNOWLEDGE_BASE` provides per-bot: what it is, why it matters, exact robots.txt snippet with copy button, official docs link. All 10 tracked AI bots covered.
+
+**Schema decisions:**
+- **No new DB tables/columns:** Sprint I is front-end only. Revenue defaults derived from `INDUSTRY_CONFIG` industry IDs. Sentiment verdicts from existing `sov_evaluations.sentiment_data` JSONB. Source health from existing `NormalizedSource.category` and `SourceAlert`. Bot info is static knowledge base.
+- **Industry revenue defaults:** Stored in `lib/revenue-impact/industry-revenue-defaults.ts`, not in DB. Matches existing `RevenueConfig` interface (`avgCustomerValue`, `monthlyCovers`).
+- **Source health derivation:** No accuracy/wrong-info data exists — health derived from source `category` (first_party=good, competitor=bad) and `isCompetitorAlert` flag.
+
+**Changes:**
+
+*Revenue Impact:*
+- **`lib/revenue-impact/industry-revenue-defaults.ts`** — NEW. `getIndustryRevenueDefaults()`, `REVENUE_FIELD_LABELS`, `REVENUE_FIELD_DESCRIPTIONS`.
+- **`app/dashboard/revenue-impact/_components/RevenueEstimatePanel.tsx`** — NEW. Estimate display with smart-defaults disclosure, interpretation, and fix-alerts CTA.
+- **`app/dashboard/revenue-impact/page.tsx`** — MODIFIED. Fetches org industry, passes industry defaults to `fetchRevenueImpact()`, renders estimate panel above form.
+- **`lib/data/revenue-impact.ts`** — MODIFIED. Added `industryDefaults` parameter to `fetchRevenueImpact()`.
+
+*AI Sentiment:*
+- **`app/dashboard/sentiment/_components/SentimentInterpretationPanel.tsx`** — NEW. Plain-English verdicts per engine, worst-model callout, score-based color coding.
+- **`app/dashboard/sentiment/page.tsx`** — MODIFIED. Added interpretation panel above existing charts.
+
+*Source Intelligence:*
+- **`app/dashboard/source-intelligence/_components/SourceHealthSummaryPanel.tsx`** — NEW. Health grid, first-party rate, verdicts.
+- **`app/dashboard/source-intelligence/_components/SourceHealthBadge.tsx`** — NEW. Per-source health badge (first_party/competitor/review/directory/other).
+- **`app/dashboard/source-intelligence/page.tsx`** — MODIFIED. Added summary panel and badges to source table rows.
+
+*Bot Activity:*
+- **`lib/bot-activity/bot-knowledge.ts`** — NEW. `BOT_KNOWLEDGE_BASE` with 10 bot entries, `getBotInfo()`.
+- **`app/dashboard/crawler-analytics/_components/BotFixInstructions.tsx`** — NEW. Client component with expand/collapse, robots.txt code block, copy button.
+- **`app/dashboard/crawler-analytics/page.tsx`** — MODIFIED. Added fix instructions to BlindSpotRow and low-activity BotRow.
+
+**Tests added:**
+- `src/__tests__/unit/industry-revenue-defaults.test.ts` — 11 tests
+- `src/__tests__/unit/bot-knowledge.test.ts` — 46 tests
+- `src/__tests__/unit/sentiment-interpretation-panel.test.tsx` — 11 tests
+- `src/__tests__/unit/source-health-summary.test.tsx` — 19 tests
+- `tests/e2e/sprint-i-smoke.spec.ts` — 7 E2E tests
+
+**AI_RULES added:** §97–§100 (Revenue Industry Defaults, Sentiment Interpretation, Source Health Signals, Bot Fix Instructions).
+
+---
+
 ## 2026-02-28 — Sprint H: Action Surfaces — Triage Queue, SOV Verdict, Citation Health, Compete Win/Loss (Completed)
 
 **Features implemented (4 items):**

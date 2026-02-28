@@ -6,6 +6,7 @@ import type { BotActivity, BlindSpot } from '@/lib/data/crawler-analytics';
 import { Bot, Eye, EyeOff, ArrowRight } from 'lucide-react';
 import Link from 'next/link';
 import { FirstVisitTooltip } from '@/components/ui/FirstVisitTooltip';
+import { BotFixInstructions } from './_components/BotFixInstructions';
 
 export default async function CrawlerAnalyticsPage() {
   const ctx = await getSafeAuthContext();
@@ -109,20 +110,28 @@ export default async function CrawlerAnalyticsPage() {
 
 function BotRow({ bot }: { bot: BotActivity }) {
   return (
-    <div className="flex items-center justify-between px-4 py-3">
-      <div className="flex items-center gap-3 min-w-0">
-        <StatusIcon status={bot.status} />
-        <div className="min-w-0">
-          <p className="text-sm font-medium text-white truncate">{bot.label}</p>
-          <p className="text-xs text-slate-500">{bot.engine}</p>
+    <div className="px-4 py-3">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3 min-w-0">
+          <StatusIcon status={bot.status} />
+          <div className="min-w-0">
+            <p className="text-sm font-medium text-white truncate">{bot.label}</p>
+            <p className="text-xs text-slate-500">{bot.engine}</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-4 shrink-0">
+          <p className="text-sm font-mono text-slate-300">
+            {bot.visitCount} {bot.visitCount === 1 ? 'visit' : 'visits'}
+          </p>
+          <StatusBadge status={bot.status} engine={bot.engine} />
         </div>
       </div>
-      <div className="flex items-center gap-4 shrink-0">
-        <p className="text-sm font-mono text-slate-300">
-          {bot.visitCount} {bot.visitCount === 1 ? 'visit' : 'visits'}
-        </p>
-        <StatusBadge status={bot.status} engine={bot.engine} />
-      </div>
+      {/* Sprint I: Expandable fix instructions for low-activity bots */}
+      {bot.status === 'low' && (
+        <div className="ml-7 mt-1">
+          <BotFixInstructions botType={bot.botType} />
+        </div>
+      )}
     </div>
   );
 }
@@ -140,6 +149,10 @@ function BlindSpotRow({ spot }: { spot: BlindSpot }) {
         <ArrowRight className="h-3 w-3 mt-0.5 shrink-0 text-signal-green" />
         {spot.fixRecommendation}
       </p>
+      {/* Sprint I: Expandable fix instructions */}
+      <div className="ml-5.5">
+        <BotFixInstructions botType={spot.botType} />
+      </div>
     </div>
   );
 }

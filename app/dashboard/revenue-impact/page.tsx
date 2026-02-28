@@ -5,6 +5,9 @@ import { fetchRevenueImpact } from '@/lib/data/revenue-impact';
 import type { RevenueLineItem } from '@/lib/services/revenue-impact.service';
 import { DollarSign, TrendingDown, AlertTriangle, Swords, ChevronDown, CheckCircle2 } from 'lucide-react';
 import RevenueConfigForm from './_components/RevenueConfigForm';
+import RevenueEstimatePanel from './_components/RevenueEstimatePanel';
+import { getIndustryRevenueDefaults } from '@/lib/revenue-impact/industry-revenue-defaults';
+import { getIndustryConfig } from '@/lib/industries/industry-config';
 
 // ── Category display helpers (literal Tailwind — AI_RULES §12) ──────────
 
@@ -44,12 +47,26 @@ export default async function RevenueImpactPage() {
 
   const supabase = await createClient();
 
-  const { data: location } = await supabase
-    .from('locations')
-    .select('id')
-    .eq('org_id', ctx.orgId)
-    .eq('is_primary', true)
-    .maybeSingle();
+  // Fetch location + org industry in parallel
+  const [locationResult, orgResult] = await Promise.all([
+    supabase
+      .from('locations')
+      .select('id')
+      .eq('org_id', ctx.orgId)
+      .eq('is_primary', true)
+      .maybeSingle(),
+    supabase
+      .from('organizations')
+      .select('*')
+      .eq('id', ctx.orgId)
+      .single(),
+  ]);
+
+  const location = locationResult.data;
+  // industry column exists (Sprint E migration) but may not be in generated types
+  const industryId = ((orgResult.data as Record<string, unknown>)?.industry as string) ?? null;
+  const industryDefaults = getIndustryRevenueDefaults(industryId);
+  const industryLabel = getIndustryConfig(industryId).label;
 
   if (!location) {
     return (
@@ -66,7 +83,7 @@ export default async function RevenueImpactPage() {
     );
   }
 
-  const result = await fetchRevenueImpact(supabase, ctx.orgId, location.id);
+  const result = await fetchRevenueImpact(supabase, ctx.orgId, location.id, industryDefaults);
 
   // Empty state: no data at all
   const hasNoData = result.totalMonthlyRevenue === 0 && result.lineItems.length === 0;
@@ -84,39 +101,26 @@ export default async function RevenueImpactPage() {
         </p>
       </div>
 
-      {/* ── Hero Number ────────────────────────────────────── */}
-      {!hasNoData ? (
-        <>
-          <div className="rounded-xl border border-white/5 bg-surface-dark px-5 py-6 text-center">
-            <p className="text-xs font-medium text-slate-400 uppercase tracking-wider mb-2">
-              Estimated Recoverable Revenue
-            </p>
-            <p className="text-4xl font-bold text-signal-green">
-              {formatCurrency(result.totalMonthlyRevenue)}
-              <span className="text-lg text-slate-400 font-normal">/mo</span>
-            </p>
-            <p className="mt-1 text-sm text-slate-500">
-              ({formatCurrency(result.totalAnnualRevenue)}/year)
-            </p>
-          </div>
+      {/* ── Estimate Panel (Sprint I) ────────────────────── */}
+      <RevenueEstimatePanel
+        monthlyLoss={result.totalMonthlyRevenue}
+        annualLoss={result.totalAnnualRevenue}
+        isDefaultConfig={result.isDefaultConfig}
+        industryLabel={industryLabel}
+        sovGapRevenue={result.sovGapRevenue}
+        hallucinationRevenue={result.hallucinationRevenue}
+        competitorRevenue={result.competitorRevenue}
+      />
 
-          {/* ── Breakdown ────────────────────────────────────── */}
-          <div>
-            <h2 className="text-sm font-semibold text-white mb-3">Breakdown</h2>
-            <div className="space-y-2">
-              {result.lineItems.map((item) => (
-                <LineItemCard key={item.category} item={item} />
-              ))}
-            </div>
+      {/* ── Breakdown ────────────────────────────────────── */}
+      {!hasNoData && result.lineItems.length > 0 && (
+        <div>
+          <h2 className="text-sm font-semibold text-white mb-3">Breakdown</h2>
+          <div className="space-y-2">
+            {result.lineItems.map((item) => (
+              <LineItemCard key={item.category} item={item} />
+            ))}
           </div>
-        </>
-      ) : (
-        <div className="rounded-xl border border-white/5 bg-surface-dark px-5 py-8 text-center">
-          <p className="text-sm text-slate-400">
-            Not enough data yet. Revenue impact is calculated from your SOV evaluations,
-            hallucination tracking, and competitor analysis. Run your first SOV queries to
-            unlock revenue projections.
-          </p>
         </div>
       )}
 
@@ -133,9 +137,11 @@ export default async function RevenueImpactPage() {
         </div>
       )}
 
-      {/* ── Revenue Settings ─────────────────────────────── */}
+      {/* ── Refine Your Estimate ─────────────────────────── */}
       <div>
-        <h2 className="text-sm font-semibold text-white mb-3">Revenue Settings</h2>
+        <h2 className="text-sm font-semibold text-white mb-3">
+          {result.isDefaultConfig ? 'Refine your estimate' : 'Revenue Settings'}
+        </h2>
         <div className="rounded-xl border border-white/5 bg-surface-dark px-5 py-4">
           <RevenueConfigForm
             locationId={location.id}
