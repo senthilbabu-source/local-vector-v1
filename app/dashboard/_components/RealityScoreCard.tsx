@@ -1,6 +1,8 @@
 // Server Component — no interactivity required for Phase 13.
 // Score expansion ("click to show breakdown") is deferred to a future phase.
 
+import Link from 'next/link';
+import { ChevronRight } from 'lucide-react';
 import { formatRelativeTime, nextSundayLabel } from './scan-health-utils';
 
 // ---------------------------------------------------------------------------
@@ -177,10 +179,16 @@ export default function RealityScoreCard({
           </h2>
           <p className="text-xs text-slate-500 mt-0.5">{subline}</p>
         </div>
-        {/* Real last-scan timestamp — replaces the hardcoded "Updated just now" */}
-        <span className="text-xs font-medium text-slate-500 tabular-nums">
-          {lastAuditAt ? `Updated ${formatRelativeTime(lastAuditAt)}` : 'No scans yet'}
-        </span>
+        <div className="flex items-center gap-3">
+          <Link href="/dashboard/hallucinations" className="text-xs text-primary hover:underline flex items-center gap-1">
+            View details
+            <ChevronRight className="h-3 w-3" />
+          </Link>
+          {/* Real last-scan timestamp — replaces the hardcoded "Updated just now" */}
+          <span className="text-xs font-medium text-slate-500 tabular-nums">
+            {lastAuditAt ? `Updated ${formatRelativeTime(lastAuditAt)}` : 'No scans yet'}
+          </span>
+        </div>
       </div>
 
       {/* ── Gauge + Components ────────────────────────────────────── */}

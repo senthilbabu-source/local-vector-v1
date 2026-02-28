@@ -9,6 +9,7 @@
 // ---------------------------------------------------------------------------
 
 import Link from 'next/link';
+import { ChevronRight } from 'lucide-react';
 import { nextSundayLabel } from './scan-health-utils';
 import type { HealthScoreResult } from '@/lib/services/ai-health-score.service';
 import { gradeDescription } from '@/lib/services/ai-health-score.service';
@@ -117,9 +118,15 @@ export default function AIHealthScoreCard({ healthScore }: AIHealthScoreCardProp
       className="rounded-2xl bg-surface-dark border border-white/5 p-5"
       data-testid="ai-health-score-card"
     >
-      <h2 className="text-sm font-semibold text-white tracking-tight mb-4">
-        AI Health Score
-      </h2>
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="text-sm font-semibold text-white tracking-tight">
+          AI Health Score
+        </h2>
+        <Link href="/dashboard/entity-health" className="text-xs text-primary hover:underline flex items-center gap-1">
+          View details
+          <ChevronRight className="h-3 w-3" />
+        </Link>
+      </div>
 
       {/* Score ring + grade */}
       <div className="flex items-center gap-6 mb-5">

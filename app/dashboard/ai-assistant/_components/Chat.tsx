@@ -23,6 +23,7 @@ import { useChat } from '@ai-sdk/react';
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { AreaChart, Area, XAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import { createClient } from '@/lib/supabase/client';
+import * as Sentry from '@sentry/nextjs';
 
 // ---------------------------------------------------------------------------
 // Tool Result Card Components
@@ -207,7 +208,8 @@ function CopyButton({ text }: { text: string }) {
             await navigator.clipboard.writeText(text);
             setCopied(true);
             setTimeout(() => setCopied(false), 2000);
-        } catch {
+        } catch (err) {
+            Sentry.captureException(err, { tags: { file: 'Chat.tsx', sprint: 'A' } });
             // Clipboard API may fail in insecure contexts — silent fallback
         }
     }, [text]);

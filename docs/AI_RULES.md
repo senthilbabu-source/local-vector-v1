@@ -1791,5 +1791,43 @@ Every sprint that ships user-facing features must include E2E tests before the s
 
 **Sprint E2E gaps:** Sprints 98–101 have E2E coverage as of FIX-5. Sprints 102+ must ship with E2E on day one.
 
+## §70. Sentry Error Instrumentation (Sprint A)
+
+Every `catch` block in `app/` and `lib/` MUST capture the error variable and call `Sentry.captureException`.
+
+**Pattern:**
+```typescript
+import * as Sentry from '@sentry/nextjs';
+
+try {
+  // ...
+} catch (err) {
+  Sentry.captureException(err, { tags: { file: 'filename.ts', sprint: 'A' } });
+  // existing fallback logic
+}
+```
+
+**Rules:**
+- No bare `} catch {` blocks — always capture `(err)`
+- `Sentry.captureException(err, { tags: { file, sprint } })` is the first line inside every catch
+- Existing fallback logic (return null, continue, console.warn) is preserved after the Sentry call
+- Regression guard: `grep -rn "} catch {" app/ lib/ --include="*.ts" --include="*.tsx"` must return 0 results
+
+## §71. Plan Display Name Single Source of Truth (Sprint A)
+
+All plan tier display names MUST use `lib/plan-display-names.ts`.
+
+**Mapping:**
+- `trial` → `The Audit`
+- `starter` → `Starter`
+- `growth` → `AI Shield`
+- `agency` → `Brand Fortress`
+- `null/undefined` → `Free`
+
+**Rules:**
+- Never inline plan name logic (e.g., `capitalize(plan)` or `plan + ' Plan'`)
+- Import `getPlanDisplayName` from `@/lib/plan-display-names`
+- The billing page, sidebar, and any future plan display must use this helper
+
 ---
 > **End of System Instructions**

@@ -14,6 +14,7 @@
 // Spec: docs/04c-SOV-ENGINE.md §4
 // ---------------------------------------------------------------------------
 
+import * as Sentry from '@sentry/nextjs';
 import { NextRequest, NextResponse } from 'next/server';
 import { createServiceRoleClient } from '@/lib/supabase/server';
 import {
@@ -200,7 +201,8 @@ async function _runInlineSOVImpl(handle: { logId: string | null; startedAt: numb
             );
             await writeSentimentData(supabase, sentimentMap);
           }
-        } catch {
+        } catch (err) {
+          Sentry.captureException(err, { tags: { cron: 'sov', phase: 'sentiment-extraction', sprint: 'A' }, extra: { orgId } });
           // Sentiment extraction is non-critical
         }
 
@@ -214,7 +216,8 @@ async function _runInlineSOVImpl(handle: { logId: string | null; startedAt: numb
             );
             await writeSourceMentions(supabase, mentionsMap);
           }
-        } catch {
+        } catch (err) {
+          Sentry.captureException(err, { tags: { cron: 'sov', phase: 'source-extraction', sprint: 'A' }, extra: { orgId } });
           // Source extraction is non-critical
         }
 
@@ -306,7 +309,8 @@ async function _runInlineSOVImpl(handle: { logId: string | null; startedAt: numb
               );
             }
           }
-        } catch {
+        } catch (err) {
+          Sentry.captureException(err, { tags: { cron: 'sov', phase: 'freshness-check', sprint: 'A' }, extra: { orgId } });
           // Freshness check is non-critical
         }
 
@@ -366,9 +370,23 @@ async function _runInlineSOVImpl(handle: { logId: string | null; startedAt: numb
       summary.orgs_processed++;
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
+      Sentry.captureException(err, { tags: { cron: 'sov', phase: 'org-processing', sprint: 'A' }, extra: { orgId } });
       console.error(`[cron-sov] Org ${orgId} failed:`, msg);
       summary.orgs_failed++;
     }
+  }
+
+  // Sprint A: Aggregate failure summary
+  if (summary.orgs_failed > 0) {
+    Sentry.captureMessage(`SOV cron completed with ${summary.orgs_failed} org failures`, {
+      level: 'warning',
+      tags: { cron: 'sov', sprint: 'A' },
+      extra: {
+        total_orgs: summary.orgs_processed + summary.orgs_failed,
+        succeeded: summary.orgs_processed,
+        failed: summary.orgs_failed,
+      },
+    });
   }
 
   // Archive expired occasion drafts

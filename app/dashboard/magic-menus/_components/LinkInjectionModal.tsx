@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { trackLinkInjection } from '../actions';
+import * as Sentry from '@sentry/nextjs';
 
 // ---------------------------------------------------------------------------
 // Props
@@ -42,7 +43,8 @@ export default function LinkInjectionModal({
       await navigator.clipboard.writeText(fullUrl);
       setCopied(true);
       setTimeout(() => setCopied(false), 2500);
-    } catch {
+    } catch (err) {
+      Sentry.captureException(err, { tags: { file: 'LinkInjectionModal.tsx', sprint: 'A' } });
       // Fallback: select the text if clipboard API is blocked
       setCopied(false);
     }

@@ -8,6 +8,7 @@
 // ---------------------------------------------------------------------------
 
 import * as cheerio from 'cheerio';
+import * as Sentry from '@sentry/nextjs';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -84,7 +85,8 @@ function extractJsonLd(html: string): Record<string, unknown>[] {
           }
         }
       }
-    } catch {
+    } catch (err) {
+      Sentry.captureException(err, { tags: { file: 'html-parser.ts', sprint: 'A' } });
       // Malformed JSON-LD — skip silently, log in debug
       console.debug('[html-parser] Malformed JSON-LD block, skipping');
     }

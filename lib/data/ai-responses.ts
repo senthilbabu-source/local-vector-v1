@@ -1,4 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
+import * as Sentry from '@sentry/nextjs';
 import type { Database } from '@/lib/supabase/database.types';
 
 // ---------------------------------------------------------------------------
@@ -35,7 +36,8 @@ export function parseDisplayText(rawResponse: string | null): string | null {
       return null;
     }
     return typeof parsed === 'string' ? parsed : null;
-  } catch {
+  } catch (err) {
+    Sentry.captureException(err, { tags: { file: 'ai-responses.ts', sprint: 'A' } });
     return rawResponse;
   }
 }

@@ -12,14 +12,15 @@ LocalVector is an AEO/GEO SaaS platform that helps local businesses monitor and 
 - **Billing:** Stripe webhooks → `organizations.plan_tier` enum (`trial | starter | growth | agency`)
 - **Email:** Resend + React Email (`emails/`)
 - **Cache:** Upstash Redis (`lib/redis.ts`) — optional, all callers must degrade gracefully
-- **Testing:** Vitest (unit/integration in `src/__tests__/`), Playwright (E2E in `tests/e2e/`, 22 specs)
-- **Monitoring:** Sentry (client, server, edge configs)
+- **Testing:** Vitest (unit/integration in `src/__tests__/`), Playwright (E2E in `tests/e2e/`, 23 specs)
+- **Monitoring:** Sentry (client, server, edge configs) — all catch blocks instrumented (Sprint A, AI_RULES §70)
 
 ## Architecture Rules
 
 - **Database is the source of truth.** `supabase/prod_schema.sql` is the canonical schema. All migrations in `supabase/migrations/` are applied in timestamp order.
 - **Services are pure.** Files in `lib/services/` never create their own Supabase client — callers pass one in. This lets the same service work with RLS-scoped clients (user actions) and service-role clients (cron routes).
 - **Plan gating lives in `lib/plan-enforcer.ts`.** Always check feature availability before rendering premium UI or executing paid-tier operations.
+- **Plan display names live in `lib/plan-display-names.ts`.** Never inline plan tier display logic (e.g., `capitalize(plan)`) — always use `getPlanDisplayName()`. Maps: trial→The Audit, starter→Starter, growth→AI Shield, agency→Brand Fortress, null→Free. (AI_RULES §71)
 - **AI providers are centralized.** Never call AI APIs directly — use `getModel(key)` from `lib/ai/providers.ts`. Mock fallbacks activate when API keys are absent.
 - **RLS pattern:** Every tenant-scoped table has `org_isolation_select/insert/update/delete` policies using `org_id = public.current_user_org_id()`.
 - **Cron routes** live in `app/api/cron/` and require `Authorization: Bearer <CRON_SECRET>` header. Each has a kill switch env var.
@@ -54,13 +55,14 @@ lib/autopilot/         — Content draft generation and publish pipeline
 lib/page-audit/        — HTML parser + AEO auditor
 lib/tools/             — AI chat tool definitions
 lib/auth/              — Role enforcement (org-roles.ts: roleSatisfies, assertOrgRole, ROLE_PERMISSIONS)
+lib/plan-display-names.ts — Plan tier display name SSOT (Sprint A, AI_RULES §71)
 lib/mcp/               — MCP server tool registrations
 lib/supabase/database.types.ts — Full Database type (33 tables, 9 enums, Relationships)
 supabase/migrations/   — Applied SQL migrations (35, timestamp-ordered)
 supabase/prod_schema.sql — Full production schema dump
 docs/                  — 50 spec documents (authoritative for planned features)
 src/__tests__/         — Unit + integration tests
-tests/e2e/             — Playwright E2E tests (22 specs)
+tests/e2e/             — Playwright E2E tests (23 specs)
 ```
 
 ## Database Tables (Key Ones)
@@ -232,6 +234,17 @@ UPSTASH_REDIS_REST_URL, UPSTASH_REDIS_REST_TOKEN
 - Auto-memory MEMORY.md — FIX-6 completion noted.
 - No code changes. No migrations. No new tests.
 
+### Sprint A — Stop the Bleeding (2026-02-27)
+- **C1:** Wired Sentry into all 68 bare `} catch {}` blocks across `app/` and `lib/` (46+ files). Pattern: `Sentry.captureException(err, { tags: { file, sprint: 'A' } })`.
+- **C3:** Created `lib/plan-display-names.ts` — SSOT for plan tier display names. Updated billing page + sidebar.
+- **H3:** SOV cron per-org failure logging — 3 inner catches + aggregate `captureMessage` on partial failure.
+- **H4:** Sidebar grouped navigation — `NAV_GROUPS` (5 groups: Overview, AI Visibility, Content & Menu, Intelligence, Admin) with `data-testid="sidebar-group-label"` headers.
+- **H5:** Dashboard card links — MetricCard `href` prop (4 cards) + "View details →" links on SOVTrendChart, HallucinationsByModel, AIHealthScoreCard, RealityScoreCard.
+- **L4:** ViralScanner error handling — `scanError` state, error UI with retry button, Sentry for Places autocomplete + scan submit.
+- AI_RULES: added §70 (Sentry instrumentation), §71 (plan display names SSOT).
+- Tests: 20 Vitest (sentry-coverage 8, sidebar-groups 7, metric-card-links 5), 10 Playwright (23-sprint-a-smoke).
+- Result: 189 test files, 2646 tests pass, 0 TS errors, 0 bare catches remaining.
+
 ## Tier Completion Status
 
 | Tier | Sprints | Status | Gate |
@@ -240,6 +253,7 @@ UPSTASH_REDIS_REST_URL, UPSTASH_REDIS_REST_TOKEN
 | Tier 2 | 31–70 | Complete | — |
 | Tier 3 | 71–101 | Complete | — |
 | Production Fixes | FIX-1 – FIX-6 | Complete | — |
+| Sprint A | Stop the Bleeding | Complete | — |
 | Tier 4 | 102–106 | Gated | Sprint 102: Apple BC API approval. Sprint 103: Bing Places API approval. Sprint 104–106: no external gate. |
 | Tier 5 | 107–109 | Gated | 4–8 weeks of SOV baseline data required. SOV cron registered 2026-02-27. Sprint 107 earliest: 2026-03-27. |
 
@@ -257,4 +271,4 @@ No external dependencies. Can begin immediately. See AI_RULES §59.
 
 ## Build History
 
-See `DEVLOG.md` (project root) and `docs/DEVLOG.md` for the complete sprint-by-sprint build log. Current sprint: 101 (+ FIX-1 through FIX-6). Production readiness: all 10 audit issues resolved.
+See `DEVLOG.md` (project root) and `docs/DEVLOG.md` for the complete sprint-by-sprint build log. Current sprint: 101 (+ FIX-1 through FIX-6 + Sprint A). Production readiness: all audit issues resolved.

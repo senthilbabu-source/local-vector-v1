@@ -10,6 +10,7 @@
 
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Database } from '@/lib/supabase/database.types';
+import * as Sentry from '@sentry/nextjs';
 import { fetchHealthScore } from '@/lib/data/ai-health-score';
 import {
   buildDigestPayload,
@@ -178,7 +179,8 @@ export async function fetchDigestForOrg(
         estimatedImpact: healthResult.topRecommendation.estimatedImpact ?? 5,
       };
     }
-  } catch {
+  } catch (err) {
+    Sentry.captureException(err, { tags: { file: 'weekly-digest.ts', sprint: 'A' } });
     // Health score fetch is non-critical
   }
 

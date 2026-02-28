@@ -10,6 +10,7 @@
 // Spec: docs/19-AUTOPILOT-ENGINE.md §5.2
 // ---------------------------------------------------------------------------
 
+import * as Sentry from '@sentry/nextjs';
 import type { ContentDraftRow, PublishResult } from '@/lib/types/autopilot';
 
 // ---------------------------------------------------------------------------
@@ -85,7 +86,8 @@ export async function publishToWordPress(
         status: 'draft', // Second approval layer in WP admin
       }),
     });
-  } catch {
+  } catch (err) {
+    Sentry.captureException(err, { tags: { file: 'publish-wordpress.ts', sprint: 'A' } });
     throw new Error('WordPress site unreachable. Check the site URL in Settings → Integrations.');
   }
 

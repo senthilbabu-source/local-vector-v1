@@ -30,6 +30,7 @@ import {
 } from 'lucide-react';
 import LogoutButton from '@/app/dashboard/_components/LogoutButton';
 import LocationSwitcher, { type LocationOption } from './LocationSwitcher';
+import { getPlanDisplayName } from '@/lib/plan-display-names';
 
 // ---------------------------------------------------------------------------
 // Nav items — mapped to Doc 06 §2 Application Shell
@@ -200,6 +201,70 @@ export const NAV_ITEMS = [
 ];
 
 // ---------------------------------------------------------------------------
+// Grouped navigation — Sprint A (H4)
+// ---------------------------------------------------------------------------
+
+type NavItem = (typeof NAV_ITEMS)[number];
+
+export const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
+  {
+    label: 'Overview',
+    items: NAV_ITEMS.filter((i) =>
+      ['/dashboard', '/dashboard/hallucinations'].includes(i.href),
+    ),
+  },
+  {
+    label: 'AI Visibility',
+    items: NAV_ITEMS.filter((i) =>
+      [
+        '/dashboard/share-of-voice',
+        '/dashboard/cluster-map',
+        '/dashboard/ai-responses',
+        '/dashboard/sentiment',
+        '/dashboard/source-intelligence',
+        '/dashboard/crawler-analytics',
+      ].includes(i.href),
+    ),
+  },
+  {
+    label: 'Content & Menu',
+    items: NAV_ITEMS.filter((i) =>
+      [
+        '/dashboard/magic-menus',
+        '/dashboard/content-drafts',
+        '/dashboard/content-calendar',
+        '/dashboard/page-audits',
+        '/dashboard/citations',
+        '/dashboard/proof-timeline',
+      ].includes(i.href),
+    ),
+  },
+  {
+    label: 'Intelligence',
+    items: NAV_ITEMS.filter((i) =>
+      [
+        '/dashboard/compete',
+        '/dashboard/revenue-impact',
+        '/dashboard/agent-readiness',
+        '/dashboard/entity-health',
+      ].includes(i.href),
+    ),
+  },
+  {
+    label: 'Admin',
+    items: NAV_ITEMS.filter((i) =>
+      [
+        '/dashboard/ai-assistant',
+        '/dashboard/integrations',
+        '/dashboard/system-health',
+        '/dashboard/settings',
+        '/dashboard/billing',
+      ].includes(i.href),
+    ),
+  },
+];
+
+// ---------------------------------------------------------------------------
 // Props
 // ---------------------------------------------------------------------------
 
@@ -225,12 +290,7 @@ const BADGE_MAP: Record<string, string> = {
 // ---------------------------------------------------------------------------
 
 function planLabel(plan: string | null): string {
-  const labels: Record<string, string> = {
-    starter: 'Starter Plan',
-    growth: 'Growth Plan',
-    agency: 'Agency Plan',
-  };
-  return plan ? (labels[plan] ?? `${plan} Plan`) : 'Free Plan';
+  return getPlanDisplayName(plan);
 }
 
 export default function Sidebar({ isOpen, onClose, displayName, orgName, plan, locations, selectedLocationId, badgeCounts }: SidebarProps) {
@@ -282,56 +342,68 @@ export default function Sidebar({ isOpen, onClose, displayName, orgName, plan, l
           <LocationSwitcher locations={locations} selectedLocationId={selectedLocationId ?? null} plan={plan} />
         )}
 
-        {/* ── Navigation ─────────────────────────────────────────── */}
-        <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-0.5">
-          {NAV_ITEMS.map((item) => {
-            const active = isActive(item.href, item.exact);
-            const Icon = item.icon;
-
-            if (!item.active) {
-              return (
-                <span
-                  key={item.label}
-                  title="Coming soon"
-                  className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-slate-600 cursor-not-allowed select-none"
-                >
-                  <Icon className="h-4 w-4 shrink-0" />
-                  {item.label}
-                </span>
-              );
-            }
-
-            return (
-              <Link
-                key={item.label}
-                href={item.href}
-                onClick={onClose}
-                data-testid={`nav-${item.label.toLowerCase().replace(/\s+/g, '-')}`}
-                className={[
-                  'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition',
-                  active
-                    ? 'bg-signal-green/15 text-signal-green'
-                    : 'text-slate-400 hover:bg-white/5 hover:text-white',
-                ].join(' ')}
+        {/* ── Navigation (grouped — Sprint A H4) ───────────────────── */}
+        <nav className="flex-1 overflow-y-auto px-3 py-4">
+          {NAV_GROUPS.map((group) => (
+            <div key={group.label} className="mb-4">
+              <p
+                data-testid="sidebar-group-label"
+                className="px-3 mb-1 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60 select-none"
               >
-                <Icon
-                  className={['h-4 w-4 shrink-0', active ? 'text-signal-green' : ''].join(' ')}
-                />
-                {item.label}
-                {/* Sprint 101: Sidebar badge pill */}
-                {badgeCounts && BADGE_MAP[item.href] && badgeCounts[BADGE_MAP[item.href]!] && (
-                  <span
-                    data-testid={`sidebar-badge-${BADGE_MAP[item.href]}`}
-                    className="ml-auto flex items-center justify-center"
-                  >
-                    <span className="min-w-[1.25rem] h-5 px-1 rounded-full bg-amber-100 text-amber-700 text-xs font-semibold leading-none flex items-center justify-center">
-                      {badgeCounts[BADGE_MAP[item.href]!]}
-                    </span>
-                  </span>
-                )}
-              </Link>
-            );
-          })}
+                {group.label}
+              </p>
+              <div className="space-y-0.5">
+                {group.items.map((item) => {
+                  const active = isActive(item.href, item.exact);
+                  const Icon = item.icon;
+
+                  if (!item.active) {
+                    return (
+                      <span
+                        key={item.label}
+                        title="Coming soon"
+                        className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-slate-600 cursor-not-allowed select-none"
+                      >
+                        <Icon className="h-4 w-4 shrink-0" />
+                        {item.label}
+                      </span>
+                    );
+                  }
+
+                  return (
+                    <Link
+                      key={item.label}
+                      href={item.href}
+                      onClick={onClose}
+                      data-testid={`nav-${item.label.toLowerCase().replace(/\s+/g, '-')}`}
+                      className={[
+                        'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition',
+                        active
+                          ? 'bg-signal-green/15 text-signal-green'
+                          : 'text-slate-400 hover:bg-white/5 hover:text-white',
+                      ].join(' ')}
+                    >
+                      <Icon
+                        className={['h-4 w-4 shrink-0', active ? 'text-signal-green' : ''].join(' ')}
+                      />
+                      {item.label}
+                      {/* Sprint 101: Sidebar badge pill */}
+                      {badgeCounts && BADGE_MAP[item.href] && badgeCounts[BADGE_MAP[item.href]!] && (
+                        <span
+                          data-testid={`sidebar-badge-${BADGE_MAP[item.href]}`}
+                          className="ml-auto flex items-center justify-center"
+                        >
+                          <span className="min-w-[1.25rem] h-5 px-1 rounded-full bg-amber-100 text-amber-700 text-xs font-semibold leading-none flex items-center justify-center">
+                            {badgeCounts[BADGE_MAP[item.href]!]}
+                          </span>
+                        </span>
+                      )}
+                    </Link>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
         </nav>
 
         {/* ── Footer: AI Visibility Score + logout ───────────────── */}

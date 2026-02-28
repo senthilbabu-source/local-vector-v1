@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
+import * as Sentry from '@sentry/nextjs';
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState('');
@@ -29,7 +30,8 @@ export default function ForgotPasswordPage() {
       }
 
       setStatus('sent');
-    } catch {
+    } catch (err) {
+      Sentry.captureException(err, { tags: { file: 'forgot-password/page.tsx', sprint: 'A' } });
       setErrorMsg('A network error occurred. Please try again.');
       setStatus('error');
     }

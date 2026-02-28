@@ -11,6 +11,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { triggerFirstAudit, completeOnboarding } from '../actions';
+import * as Sentry from '@sentry/nextjs';
 
 type LaunchState = 'launching' | 'complete' | 'error';
 
@@ -93,7 +94,8 @@ export default function Step5Launch() {
         if (data.status === 'complete') {
           void finishOnboarding('complete');
         }
-      } catch {
+      } catch (err) {
+        Sentry.captureException(err, { tags: { file: 'Step5Launch.tsx', sprint: 'A' } });
         // Ignore fetch errors — keep polling
       }
     }, POLL_INTERVAL_MS);

@@ -43,6 +43,7 @@
 import { headers } from 'next/headers';
 import { getRedis } from '@/lib/redis';
 import { z } from 'zod';
+import * as Sentry from '@sentry/nextjs';
 
 // ---------------------------------------------------------------------------
 // Public types
@@ -387,7 +388,8 @@ async function _singlePerplexityCall(params: SingleCallParams): Promise<ScanResu
         accuracy_issue_categories: parsed.data.accuracy_issue_categories,
       };
     }
-  } catch {
+  } catch (err) {
+    Sentry.captureException(err, { tags: { file: 'marketing.ts', sprint: 'A' } });
     // Not valid JSON — fall through to text-detection.
     if (process.env.NODE_ENV === 'development') {
       console.error('[runFreeScan] JSON parse failed. Raw response:', raw.slice(0, 500));
@@ -490,7 +492,8 @@ export async function runFreeScan(formData: FormData): Promise<ScanResult> {
     const ip = headersList.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown';
     const { allowed, retryAfterSeconds } = await checkRateLimit(ip);
     if (!allowed) return { status: 'rate_limited', retryAfterSeconds };
-  } catch {
+  } catch (err) {
+    Sentry.captureException(err, { tags: { file: 'marketing.ts', sprint: 'A' } });
     // KV unreachable — allow the scan
   }
 

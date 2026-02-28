@@ -4,6 +4,43 @@
 
 ---
 
+## 2026-02-27 — Sprint A: Stop the Bleeding — Sentry, Plan Names, Sidebar Groups, Dashboard Links (Completed)
+
+**Problems fixed (6 items):**
+1. **C1 — Sentry coverage:** 68 bare `} catch {}` blocks across `app/` and `lib/` swallowed errors silently. Zero observability in production.
+2. **C3 — Plan display names:** "AI Shield" (growth) and "Brand Fortress" (agency) showed as "Growth" and "Agency" on billing page and sidebar. Marketing names didn't match across surfaces.
+3. **H3 — SOV cron failure logging:** Per-org failures inside the SOV cron loop were silently caught. No Sentry aggregation of partial failures.
+4. **H4 — Sidebar group headers:** 23 flat nav items with no visual grouping. Users couldn't quickly locate features.
+5. **H5 — Dashboard card links:** MetricCards and chart cards had no click-through to detail pages. Dead-end dashboard.
+6. **L4 — ViralScanner error handling:** Places autocomplete and scan submission had bare catches with no user-facing error state.
+
+**Changes:**
+- **`lib/plan-display-names.ts`** — NEW. Single source of truth for plan tier → display name mapping. `getPlanDisplayName()` helper.
+- **`components/layout/Sidebar.tsx`** — Added `NAV_GROUPS` (5 groups: Overview, AI Visibility, Content & Menu, Intelligence, Admin). Group headers with `data-testid="sidebar-group-label"`. Plan badge uses `getPlanDisplayName`.
+- **`app/dashboard/billing/page.tsx`** — TIERS array uses `getPlanDisplayName()`. `CurrentPlanBadge` uses the helper. Bare catch → Sentry.
+- **`app/dashboard/page.tsx`** — 4 bare catches → Sentry. 4 MetricCards now have `href` props linking to detail pages.
+- **`app/dashboard/_components/MetricCard.tsx`** — Added optional `href` prop. When set, wraps card in `<Link>` with `data-testid="metric-card-link"` and hover elevation.
+- **`app/dashboard/_components/SOVTrendChart.tsx`** — Added "View details →" link to `/dashboard/share-of-voice`.
+- **`app/dashboard/_components/HallucinationsByModel.tsx`** — Added "View details →" link to `/dashboard/hallucinations`.
+- **`app/dashboard/_components/AIHealthScoreCard.tsx`** — Added "View details →" link to `/dashboard/entity-health`.
+- **`app/dashboard/_components/RealityScoreCard.tsx`** — Added "View details →" link to `/dashboard/hallucinations`.
+- **`app/api/cron/sov/route.ts`** — 3 inner bare catches → Sentry. Aggregate `captureMessage` when `orgs_failed > 0`.
+- **`app/_components/ViralScanner.tsx`** — Added `scanError` state, Sentry for Places autocomplete + scan submit, error UI with `data-testid="viral-scanner-error"` + retry button.
+- **68 bare catch blocks** across 46+ files in `app/` and `lib/` → all wired to `Sentry.captureException(err, { tags: { file, sprint: 'A' } })`.
+- **`src/__tests__/unit/components/layout/DashboardShell.test.tsx`** — Updated plan badge assertions from `'Growth Plan'`/`'Free Plan'` to `'AI Shield'`/`'Free'` to match C3 changes.
+
+**Tests added:**
+- `src/__tests__/unit/sentry-coverage.test.ts` — **8 Vitest tests.** Plan display name mapping, null/undefined handling, defensive fallback, PLAN_DISPLAY_NAMES shape.
+- `src/__tests__/unit/sidebar-groups.test.ts` — **7 Vitest tests.** Group count, labels, item counts, no duplicates, all items present, valid hrefs.
+- `src/__tests__/unit/metric-card-links.test.tsx` — **5 Vitest tests.** Link rendering with/without href, href matching, hover classes, no hover wrapper without href.
+- `tests/e2e/23-sprint-a-smoke.spec.ts` — **10 Playwright tests.** Plan display names on billing, sidebar group headers, MetricCard links, chart detail links, ViralScanner structure.
+
+**AI_RULES updates:** Added §70 (Sentry instrumentation) and §71 (plan display name SSOT).
+
+**Result:** 189 test files, 2646 Vitest tests passing. 0 TypeScript errors. 0 bare catches remaining in `app/` and `lib/`.
+
+---
+
 ## 2026-02-27 — Sprint FIX-5: E2E Test Coverage — Sprints 98–101 (Completed)
 
 **Problem:**

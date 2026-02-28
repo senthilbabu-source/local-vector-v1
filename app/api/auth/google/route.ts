@@ -21,6 +21,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { getAuthContext } from '@/lib/auth';
+import * as Sentry from '@sentry/nextjs';
 
 export const dynamic = 'force-dynamic';
 
@@ -47,7 +48,8 @@ export async function GET(request: NextRequest) {
   let auth;
   try {
     auth = await getAuthContext();
-  } catch {
+  } catch (err) {
+    Sentry.captureException(err, { tags: { file: 'auth/google/route.ts', sprint: 'A' } });
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 

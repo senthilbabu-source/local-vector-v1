@@ -25,6 +25,7 @@
 
 import { headers } from 'next/headers';
 import { getRedis } from '@/lib/redis';
+import * as Sentry from '@sentry/nextjs';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -62,7 +63,8 @@ async function checkRateLimit(
     const count = await getRedis().incr(key);
     if (count === 1) await getRedis().expire(key, RATE_LIMIT_WINDOW);
     return { allowed: count <= RATE_LIMIT_MAX };
-  } catch {
+  } catch (err) {
+    Sentry.captureException(err, { tags: { file: 'places/search/route.ts', sprint: 'A' } });
     // KV unreachable — allow the search (AI_RULES §17)
     return { allowed: true };
   }

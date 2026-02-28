@@ -9,6 +9,8 @@
 
 'use client';
 
+import Link from 'next/link';
+import { ChevronRight } from 'lucide-react';
 import {
     BarChart,
     Bar,
@@ -109,7 +111,13 @@ export default function HallucinationsByModel({
 
     return (
         <div className="rounded-xl bg-surface-dark border border-white/5 p-5">
-            <h3 className="text-sm font-semibold text-white mb-4">{title}</h3>
+            <div className="flex items-center justify-between mb-4">
+                <h3 className="text-sm font-semibold text-white">{title}</h3>
+                <Link href="/dashboard/hallucinations" className="text-xs text-primary hover:underline flex items-center gap-1">
+                    View details
+                    <ChevronRight className="h-3 w-3" />
+                </Link>
+            </div>
             <ResponsiveContainer width="100%" height={Math.max(160, chartData.length * 44)}>
                 <BarChart
                     data={chartData}

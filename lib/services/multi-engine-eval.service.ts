@@ -12,6 +12,7 @@
 
 import { generateText } from 'ai';
 import { getModel, hasApiKey } from '@/lib/ai/providers';
+import * as Sentry from '@sentry/nextjs';
 import type { EvaluationEngine } from '@/lib/schemas/evaluations';
 import { EVALUATION_ENGINES } from '@/lib/schemas/evaluations';
 
@@ -130,7 +131,8 @@ export async function callEngine(
         : [],
       response_text: String(parsed.response_text ?? text),
     };
-  } catch {
+  } catch (err) {
+    Sentry.captureException(err, { tags: { file: 'multi-engine-eval.service.ts', sprint: 'A' } });
     return mockResult(engine);
   }
 }

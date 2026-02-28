@@ -14,6 +14,7 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Database } from '@/lib/supabase/database.types';
 import { generateText } from 'ai';
 import { getModel, hasApiKey } from '@/lib/ai/providers';
+import * as Sentry from '@sentry/nextjs';
 import { OccasionDraftSchema } from '@/lib/ai/schemas';
 import { canRunOccasionEngine, type PlanTier } from '@/lib/plan-enforcer';
 import { getRedis } from '@/lib/redis';
@@ -132,7 +133,8 @@ export async function checkOccasionAlerts(
         skipped++;
         continue;
       }
-    } catch {
+    } catch (err) {
+      Sentry.captureException(err, { tags: { file: 'occasion-engine.service.ts', sprint: 'A' } });
       // Redis unavailable — proceed without dedup
     }
 
@@ -274,7 +276,8 @@ export async function generateOccasionDraft(
       title = parsed.title;
       content = parsed.content;
       aeoScore = parsed.estimated_aeo_score;
-    } catch {
+    } catch (err) {
+      Sentry.captureException(err, { tags: { file: 'occasion-engine.service.ts', sprint: 'A' } });
       // Unparseable AI response — use fallback
       title = `${businessName} — ${alert.occasionName} in ${city}`;
       content = text;
@@ -366,7 +369,8 @@ export async function runOccasionScheduler(
       const redis = getRedis();
       const dedupKey = `occasion_alert:${orgId}:${alert.occasionId}:${weekNumber}`;
       await redis.set(dedupKey, '1', { ex: 8 * 86_400 }); // 8-day TTL
-    } catch {
+    } catch (err) {
+      Sentry.captureException(err, { tags: { file: 'occasion-engine.service.ts', sprint: 'A' } });
       // Redis unavailable — continue without dedup persistence
     }
   }

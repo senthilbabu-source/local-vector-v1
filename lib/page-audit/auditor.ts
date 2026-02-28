@@ -18,6 +18,7 @@
 
 import { generateText, Output } from 'ai';
 import { getModel, hasApiKey } from '@/lib/ai/providers';
+import * as Sentry from '@sentry/nextjs';
 import { parsePage, type ParsedPage } from './html-parser';
 import { z } from 'zod';
 
@@ -94,7 +95,8 @@ async function scoreAnswerFirst(
 
     const parsed = JSON.parse(text);
     return typeof parsed.score === 'number' ? parsed.score : heuristicAnswerFirst(openingText, location);
-  } catch {
+  } catch (err) {
+    Sentry.captureException(err, { tags: { file: 'auditor.ts', sprint: 'A' } });
     return heuristicAnswerFirst(openingText, location);
   }
 }

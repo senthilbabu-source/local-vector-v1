@@ -12,6 +12,7 @@
 // KNOWN_CITATION_PLATFORMS is the single registry for domain -> platform mapping.
 // ---------------------------------------------------------------------------
 
+import * as Sentry from '@sentry/nextjs';
 import type { PlatformCitationCounts } from '@/lib/types/citations';
 
 /**
@@ -56,7 +57,8 @@ export function extractDomain(url: string): string {
   try {
     const hostname = new URL(url).hostname.replace(/^www\./, '');
     return hostname;
-  } catch {
+  } catch (err) {
+    Sentry.captureException(err, { tags: { file: 'citation-source-parser.ts', sprint: 'A' } });
     return '';
   }
 }

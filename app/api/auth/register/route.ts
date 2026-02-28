@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createServiceRoleClient } from '@/lib/supabase/server';
 import { RegisterSchema } from '@/lib/schemas/auth';
+import * as Sentry from '@sentry/nextjs';
 
 /**
  * POST /api/auth/register
@@ -24,7 +25,8 @@ export async function POST(request: Request): Promise<NextResponse> {
   let body: unknown;
   try {
     body = await request.json();
-  } catch {
+  } catch (err) {
+    Sentry.captureException(err, { tags: { file: 'auth/register/route.ts', sprint: 'A' } });
     return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
   }
 

@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server';
 import DashboardShell from '@/components/layout/DashboardShell';
 import { resolveActiveLocation } from '@/lib/location/active-location';
 import { getSidebarBadgeCounts, formatBadgeCount } from '@/lib/badges/badge-counts';
+import * as Sentry from '@sentry/nextjs';
 
 // ---------------------------------------------------------------------------
 // Dashboard Layout — Server Component
@@ -101,7 +102,8 @@ export default async function DashboardLayout({
         'content-drafts': formatBadgeCount(counts.contentDrafts),
         visibility: formatBadgeCount(counts.visibility),
       };
-    } catch {
+    } catch (err) {
+      Sentry.captureException(err, { tags: { file: 'dashboard/layout.tsx', sprint: 'A' } });
       // Badge fetch failure is non-critical — sidebar renders without badges
     }
   }

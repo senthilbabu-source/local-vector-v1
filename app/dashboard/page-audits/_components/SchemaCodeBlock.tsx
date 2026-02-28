@@ -5,6 +5,7 @@
 // ---------------------------------------------------------------------------
 
 import { useState } from 'react';
+import * as Sentry from '@sentry/nextjs';
 
 interface Props {
   code: string;
@@ -18,7 +19,8 @@ export default function SchemaCodeBlock({ code }: Props) {
       await navigator.clipboard.writeText(code);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
-    } catch {
+    } catch (err) {
+      Sentry.captureException(err, { tags: { file: 'SchemaCodeBlock.tsx', sprint: 'A' } });
       setCopied(false);
     }
   }

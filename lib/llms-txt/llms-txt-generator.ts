@@ -11,6 +11,7 @@
 // AI_RULES §50: This is the ONLY place that constructs org-level llms.txt content.
 // ---------------------------------------------------------------------------
 
+import * as Sentry from '@sentry/nextjs';
 import type { HoursData, DayOfWeek, DayHours, Amenities } from '@/lib/types/ground-truth';
 
 // ---------------------------------------------------------------------------
@@ -192,7 +193,8 @@ export function generateLLMsTxt(data: LLMsTxtInputData): string {
         lines.push(`- ${DAY_LABELS[day]}: ${display}`);
       }
       lines.push('');
-    } catch {
+    } catch (err) {
+      Sentry.captureException(err, { tags: { file: 'llms-txt-generator.ts', sprint: 'A' } });
       // Malformed hours_data — omit section entirely
     }
   }

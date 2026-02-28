@@ -28,6 +28,7 @@
 
 import { useState, useTransition, useEffect, type FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
+import * as Sentry from '@sentry/nextjs';
 import { runFreeScan, type ScanResult } from '@/app/actions/marketing';
 import { buildScanParams } from '@/app/scan/_utils/scan-params';
 
@@ -83,6 +84,7 @@ export default function ViralScanner() {
   const [showDropdown,  setShowDropdown]  = useState(false);
   const [noResults,     setNoResults]     = useState(false);
   const [searchError,   setSearchError]   = useState(false); // 429 from Places
+  const [scanError,     setScanError]     = useState<string | null>(null);
 
   // ── URL mode (Smart Search — Sprint 33) ─────────────────────────────────
   const [isUrlMode, setIsUrlMode] = useState(false);
@@ -147,7 +149,8 @@ export default function ViralScanner() {
         setSuggestions(list);
         setShowDropdown(list.length > 0);
         setNoResults(list.length === 0);
-      } catch {
+      } catch (err) {
+        Sentry.captureException(err, { tags: { component: 'ViralScanner', surface: 'landing-page', sprint: 'A' } });
         setSuggestions([]);
         setShowDropdown(false);
         setNoResults(false);
@@ -177,6 +180,7 @@ export default function ViralScanner() {
     setShowDropdown(false);
     setNoResults(false);
     setSearchError(false);
+    setScanError(null);
     setCityInput('');
     setIsUrlMode(false);
     setPhase('idle');
@@ -193,6 +197,7 @@ export default function ViralScanner() {
 
   function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    setScanError(null);
     const fd = new FormData();
     fd.append('businessName', nameInput.trim() || 'Your Business');
     fd.append('address',      selectedPlace?.address ?? '');
@@ -201,20 +206,26 @@ export default function ViralScanner() {
 
     setPhase('scanning');
     startTransition(async () => {
-      const scanResult = await runFreeScan(fd);
+      try {
+        const scanResult = await runFreeScan(fd);
 
-      // Redirect actionable results to /scan dashboard (Sprint 33 Part 3)
-      if (
-        scanResult.status === 'fail' ||
-        scanResult.status === 'pass' ||
-        scanResult.status === 'not_found'
-      ) {
-        const params = buildScanParams(scanResult, nameInput.trim());
-        router.push(`/scan?${params.toString()}`);
-      } else {
-        // unavailable / rate_limited: stay inline
-        setResult(scanResult);
-        setPhase('result');
+        // Redirect actionable results to /scan dashboard (Sprint 33 Part 3)
+        if (
+          scanResult.status === 'fail' ||
+          scanResult.status === 'pass' ||
+          scanResult.status === 'not_found'
+        ) {
+          const params = buildScanParams(scanResult, nameInput.trim());
+          router.push(`/scan?${params.toString()}`);
+        } else {
+          // unavailable / rate_limited: stay inline
+          setResult(scanResult);
+          setPhase('result');
+        }
+      } catch (err) {
+        Sentry.captureException(err, { tags: { component: 'ViralScanner', surface: 'landing-page', sprint: 'A' } });
+        setScanError('Our AI scanner is temporarily unavailable — please try again in a moment.');
+        setPhase('idle');
       }
     });
   }
@@ -312,6 +323,20 @@ export default function ViralScanner() {
       <p className="text-xs text-slate-500 mb-4">
         No signup required. See how AI models describe your business right now.
       </p>
+
+      {scanError && (
+        <div data-testid="viral-scanner-error" className="mb-3 rounded-lg border border-destructive/30 bg-destructive/5 p-4 text-center">
+          <p className="text-sm text-destructive">{scanError}</p>
+          <button
+            type="button"
+            data-testid="viral-scanner-retry"
+            onClick={() => { setScanError(null); handleReset(); }}
+            className="mt-2 text-xs text-muted-foreground hover:text-foreground underline"
+          >
+            Try again
+          </button>
+        </div>
+      )}
 
       <form onSubmit={handleSubmit} className="space-y-3">
 

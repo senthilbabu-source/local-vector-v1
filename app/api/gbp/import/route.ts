@@ -23,6 +23,7 @@ import {
 } from '@/lib/services/gbp-token-refresh';
 import type { GBPLocation } from '@/lib/types/gbp';
 import type { Json } from '@/lib/supabase/database.types';
+import * as Sentry from '@sentry/nextjs';
 
 export const dynamic = 'force-dynamic';
 
@@ -115,7 +116,8 @@ export async function POST() {
           gbpLocationName = firstLoc.name;
         }
       }
-    } catch {
+    } catch (err) {
+      Sentry.captureException(err, { tags: { file: 'gbp/import/route.ts', sprint: 'A' } });
       // Fall through — will error below
     }
   }

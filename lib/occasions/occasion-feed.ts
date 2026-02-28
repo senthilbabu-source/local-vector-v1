@@ -17,6 +17,7 @@
 
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Database } from '@/lib/supabase/database.types';
+import * as Sentry from '@sentry/nextjs';
 import { getDaysUntilPeak } from '@/lib/services/occasion-engine.service';
 import type { LocalOccasionRow } from '@/lib/types/occasions';
 
@@ -144,7 +145,8 @@ export async function getOccasionAlertCount(
   try {
     const alerts = await getOccasionAlerts(supabase, orgId, userId, null);
     return alerts.length;
-  } catch {
+  } catch (err) {
+    Sentry.captureException(err, { tags: { file: 'occasion-feed.ts', sprint: 'A' } });
     return 0;
   }
 }

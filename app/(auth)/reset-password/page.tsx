@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
+import * as Sentry from '@sentry/nextjs';
 
 export default function ResetPasswordPage() {
   const router = useRouter();
@@ -42,7 +43,8 @@ export default function ResetPasswordPage() {
 
       // Password updated — redirect to login
       router.push('/login');
-    } catch {
+    } catch (err) {
+      Sentry.captureException(err, { tags: { file: 'reset-password/page.tsx', sprint: 'A' } });
       setErrorMsg('A network error occurred. Please try again.');
       setStatus('error');
     }

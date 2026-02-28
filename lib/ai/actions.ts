@@ -1,6 +1,7 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
+import * as Sentry from '@sentry/nextjs';
 import { createClient } from '@/lib/supabase/server';
 import { getSafeAuthContext } from '@/lib/auth';
 import {
@@ -101,7 +102,8 @@ async function callOpenAI(prompt: string): Promise<SovResult> {
       mentioned_competitors: output.mentioned_competitors,
       raw_response: output.raw_response,
     };
-  } catch {
+  } catch (err) {
+    Sentry.captureException(err, { tags: { file: 'actions.ts', sprint: 'A' } });
     return { rank_position: null, mentioned_competitors: [], raw_response: text };
   }
 }
@@ -122,7 +124,8 @@ async function callPerplexity(prompt: string): Promise<SovResult> {
       mentioned_competitors: output.mentioned_competitors,
       raw_response: output.raw_response,
     };
-  } catch {
+  } catch (err) {
+    Sentry.captureException(err, { tags: { file: 'actions.ts', sprint: 'A' } });
     return { rank_position: null, mentioned_competitors: [], raw_response: text };
   }
 }
@@ -247,7 +250,8 @@ export async function runSovEvaluation(input: RunSovInput): Promise<ActionResult
         engine === 'openai'
           ? await callOpenAI(promptText)
           : await callPerplexity(promptText);
-    } catch {
+    } catch (err) {
+      Sentry.captureException(err, { tags: { file: 'actions.ts', sprint: 'A' } });
       await new Promise((r) => setTimeout(r, 3000));
       result = mockSovResult(engine);
     }

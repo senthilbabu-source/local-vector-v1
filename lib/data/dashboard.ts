@@ -9,6 +9,7 @@
 // ---------------------------------------------------------------------------
 
 import { createClient } from '@/lib/supabase/server';
+import * as Sentry from '@sentry/nextjs';
 import { calculateRevenueLeak, DEFAULT_CONFIG, type RevenueConfig, type RevenueLeak } from '@/lib/services/revenue-leak.service';
 import type { PlanTier } from '@/lib/plan-enforcer';
 import type { HealthScoreResult } from '@/lib/services/ai-health-score.service';
@@ -266,7 +267,8 @@ export async function fetchDashboardData(orgId: string, locationId?: string | nu
     if (healthLocationId) {
       healthScore = await fetchHealthScore(supabase, orgId, healthLocationId);
     }
-  } catch {
+  } catch (err) {
+    Sentry.captureException(err, { tags: { file: 'dashboard.ts', sprint: 'A' } });
     // Health score is non-critical — dashboard renders without it.
   }
 
@@ -282,7 +284,8 @@ export async function fetchDashboardData(orgId: string, locationId?: string | nu
       .eq('is_published', true);
     hasPublishedMenu = (count ?? 0) > 0;
     crawlerSummary = await fetchCrawlerAnalytics(supabase, orgId, locationId);
-  } catch {
+  } catch (err) {
+    Sentry.captureException(err, { tags: { file: 'dashboard.ts', sprint: 'A' } });
     // Crawler analytics is non-critical — dashboard renders without it.
   }
 
@@ -291,7 +294,8 @@ export async function fetchDashboardData(orgId: string, locationId?: string | nu
   let cronHealth: CronHealthSummary | null = null;
   try {
     cronHealth = await fetchCronHealth();
-  } catch {
+  } catch (err) {
+    Sentry.captureException(err, { tags: { file: 'dashboard.ts', sprint: 'A' } });
     // Cron health is non-critical — dashboard renders without it.
   }
 
@@ -300,7 +304,8 @@ export async function fetchDashboardData(orgId: string, locationId?: string | nu
   let freshness: FreshnessStatus | null = null;
   try {
     freshness = await fetchFreshnessAlerts(supabase, orgId, locationId);
-  } catch {
+  } catch (err) {
+    Sentry.captureException(err, { tags: { file: 'dashboard.ts', sprint: 'A' } });
     // Freshness alerts are non-critical — dashboard renders without them.
   }
 

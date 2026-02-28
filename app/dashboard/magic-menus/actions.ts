@@ -20,6 +20,7 @@ import { generateObject } from 'ai';
 import { getModel, hasApiKey } from '@/lib/ai/providers';
 import { MenuOCRSchema, zodSchema, type MenuOCROutput } from '@/lib/ai/schemas';
 import type { Json } from '@/lib/supabase/database.types';
+import * as Sentry from '@sentry/nextjs';
 
 // ---------------------------------------------------------------------------
 // Phase 18 — OpenAI menu extraction helper
@@ -122,7 +123,8 @@ async function extractMenuWithOpenAI(): Promise<MenuExtractedData | null> {
 
     const result = MenuExtractedDataSchema.safeParse(JSON.parse(cleaned));
     return result.success ? result.data : null;
-  } catch {
+  } catch (err) {
+    Sentry.captureException(err, { tags: { file: 'magic-menus/actions.ts', sprint: 'A' } });
     return null;
   }
 }

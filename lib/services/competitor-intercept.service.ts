@@ -23,6 +23,7 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Database } from '@/lib/supabase/database.types';
 import { generateText, generateObject } from 'ai';
 import { getModel, hasApiKey } from '@/lib/ai/providers';
+import * as Sentry from '@sentry/nextjs';
 import {
   PerplexityHeadToHeadSchema,
   InterceptAnalysisSchema,
@@ -166,7 +167,8 @@ export async function runInterceptForCompetitor(
         competitor.competitor_name,
         queryAsked,
       );
-    } catch {
+    } catch (err) {
+      Sentry.captureException(err, { tags: { file: 'competitor-intercept.service.ts', sprint: 'A' } });
       await new Promise((r) => setTimeout(r, 3000));
       perplexityResult = mockPerplexityResult(competitor.competitor_name);
     }
@@ -185,7 +187,8 @@ export async function runInterceptForCompetitor(
         competitor.competitor_name,
         perplexityResult,
       );
-    } catch {
+    } catch (err) {
+      Sentry.captureException(err, { tags: { file: 'competitor-intercept.service.ts', sprint: 'A' } });
       await new Promise((r) => setTimeout(r, 3000));
       interceptAnalysis = mockInterceptAnalysis(competitor.competitor_name);
     }

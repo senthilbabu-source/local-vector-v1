@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { generateContentBrief } from '../brief-actions';
 import { useRouter } from 'next/navigation';
+import * as Sentry from '@sentry/nextjs';
 
 interface GenerateBriefButtonProps {
   queryId: string;
@@ -38,7 +39,8 @@ export default function GenerateBriefButton({ queryId, queryText, hasDraft }: Ge
       } else if (!result.success) {
         setError(result.error ?? 'Failed to generate brief');
       }
-    } catch {
+    } catch (err) {
+      Sentry.captureException(err, { tags: { file: 'GenerateBriefButton.tsx', sprint: 'A' } });
       setError('Failed to generate brief');
     } finally {
       setLoading(false);

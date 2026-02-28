@@ -11,6 +11,7 @@ import {
   type RunSovInput,
   type SovEngine,
 } from '@/lib/schemas/sov';
+import * as Sentry from '@sentry/nextjs';
 
 // ---------------------------------------------------------------------------
 // Shared result type
@@ -290,7 +291,8 @@ export async function runSovEvaluation(input: RunSovInput): Promise<ActionResult
         engine === 'openai'
           ? await callOpenAI(promptText, apiKey)
           : await callPerplexity(promptText, apiKey);
-    } catch {
+    } catch (err) {
+      Sentry.captureException(err, { tags: { file: 'share-of-voice/actions.ts', sprint: 'A' } });
       await new Promise((r) => setTimeout(r, 3000));
       result = mockSovResult(engine);
     }

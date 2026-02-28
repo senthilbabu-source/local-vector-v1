@@ -16,6 +16,7 @@ import { roleSatisfies, ROLE_PERMISSIONS } from '@/lib/auth/org-roles';
 import { planSatisfies } from '@/lib/plan-enforcer';
 import { sendInvitationEmail } from '@/lib/email/send-invitation';
 import { checkSeatAvailability } from '@/lib/stripe/seat-manager';
+import * as Sentry from '@sentry/nextjs';
 
 // ---------------------------------------------------------------------------
 // Schemas
@@ -161,7 +162,8 @@ export async function sendInvitation(input: {
         email,
         token: reinvite.token,
       });
-    } catch {
+    } catch (err) {
+      Sentry.captureException(err, { tags: { file: 'invitations.ts', sprint: 'A' } });
       await supabase
         .from('pending_invitations')
         .delete()
@@ -196,7 +198,8 @@ export async function sendInvitation(input: {
       email,
       token: invitation.token,
     });
-  } catch {
+  } catch (err) {
+    Sentry.captureException(err, { tags: { file: 'invitations.ts', sprint: 'A' } });
     // Clean up — delete the invitation since email failed
     await supabase
       .from('pending_invitations')

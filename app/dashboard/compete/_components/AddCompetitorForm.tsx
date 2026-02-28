@@ -2,6 +2,7 @@
 
 import { useTransition, useState, useRef, useEffect } from 'react';
 import { addCompetitor } from '@/app/dashboard/compete/actions';
+import * as Sentry from '@sentry/nextjs';
 
 interface AddCompetitorFormProps {
   currentCount: number;
@@ -47,7 +48,8 @@ export default function AddCompetitorForm({ currentCount, maxAllowed }: AddCompe
         const list = data.suggestions ?? [];
         setSuggestions(list);
         setShowDropdown(list.length > 0);
-      } catch {
+      } catch (err) {
+        Sentry.captureException(err, { tags: { file: 'AddCompetitorForm.tsx', sprint: 'A' } });
         setSuggestions([]);
         setShowDropdown(false);
       } finally {

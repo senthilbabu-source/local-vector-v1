@@ -1,3 +1,4 @@
+import * as Sentry from '@sentry/nextjs';
 import { redirect } from 'next/navigation';
 import { getSafeAuthContext } from '@/lib/auth';
 import { fetchDashboardData } from '@/lib/data/dashboard';
@@ -77,7 +78,8 @@ export default async function DashboardPage() {
       const supabase = await createClient();
       proofTimeline = await fetchProofTimeline(supabase, ctx.orgId, activeLocationId);
     }
-  } catch {
+  } catch (err) {
+    Sentry.captureException(err, { tags: { component: 'proof-timeline', sprint: 'A' }, extra: { orgId: ctx.orgId } });
     // Proof timeline is non-critical — dashboard renders without it.
   }
 
@@ -89,7 +91,8 @@ export default async function DashboardPage() {
       const supabase = await createClient();
       entityHealth = await fetchEntityHealth(supabase, ctx.orgId, activeLocationId);
     }
-  } catch {
+  } catch (err) {
+    Sentry.captureException(err, { tags: { component: 'entity-health', sprint: 'A' }, extra: { orgId: ctx.orgId } });
     // Entity health is non-critical — dashboard renders without it.
   }
   // ── Sprint 101: Occasion Alert Feed ──────────────────────────────────────
@@ -99,7 +102,8 @@ export default async function DashboardPage() {
       const occasionSupa = await createClient();
       occasionAlerts = await getOccasionAlerts(occasionSupa, ctx.orgId, ctx.userId, activeLocationId);
     }
-  } catch {
+  } catch (err) {
+    Sentry.captureException(err, { tags: { component: 'occasion-alerts', sprint: 'A' }, extra: { orgId: ctx.orgId } });
     // Occasion alerts are non-critical — dashboard renders without them.
   }
 
@@ -128,7 +132,8 @@ export default async function DashboardPage() {
           .maybeSingle();
         gbpSyncedAt = loc?.gbp_synced_at ?? null;
       }
-    } catch {
+    } catch (err) {
+      Sentry.captureException(err, { tags: { component: 'gbp-card', sprint: 'A' }, extra: { orgId: ctx.orgId } });
       // GBP card is non-critical
     }
   }
@@ -189,14 +194,15 @@ export default async function DashboardPage() {
       )}
       {/* Surgery 4: Quick Stats Row */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <MetricCard label="Hallucinations fixed" value={fixedCount} color="green" />
-        <MetricCard label="Open alerts" value={openAlerts.length} color={hasOpenAlerts ? 'red' : 'green'} />
-        <MetricCard label="Intercept analyses" value={interceptsThisMonth} color="green" />
+        <MetricCard label="Hallucinations fixed" value={fixedCount} color="green" href="/dashboard/hallucinations" />
+        <MetricCard label="Open alerts" value={openAlerts.length} color={hasOpenAlerts ? 'red' : 'green'} href="/dashboard/hallucinations" />
+        <MetricCard label="Intercept analyses" value={interceptsThisMonth} color="green" href="/dashboard/ai-responses" />
         <MetricCard
           label="AI Visibility"
           value={scores.visibility != null ? `${scores.visibility}%` : '—'}
           color="green"
           trend={sovSparkline.length > 1 ? sovSparkline : undefined}
+          href="/dashboard/share-of-voice"
         />
       </div>
       {/* Sprint 73: Bot Activity Card */}

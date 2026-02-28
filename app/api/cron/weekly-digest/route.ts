@@ -20,6 +20,7 @@ import { logCronStart, logCronComplete, logCronFailed } from '@/lib/services/cro
 import { createServiceRoleClient } from '@/lib/supabase/server';
 import { fetchDigestForOrg } from '@/lib/data/weekly-digest';
 import { sendDigestEmail } from '@/lib/email/send-digest';
+import * as Sentry from '@sentry/nextjs';
 
 export const dynamic = 'force-dynamic';
 
@@ -83,7 +84,8 @@ async function runInlineDigest() {
         failed++;
       }); // §17 — side-effect resilience
       sent++;
-    } catch {
+    } catch (err) {
+      Sentry.captureException(err, { tags: { file: 'weekly-digest/route.ts', sprint: 'A' } });
       failed++;
     }
   }

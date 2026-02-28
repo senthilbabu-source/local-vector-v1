@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { RegisterSchema, type RegisterInput } from '@/lib/schemas/auth';
 import { createClient } from '@/lib/supabase/client';
+import * as Sentry from '@sentry/nextjs';
 
 type FieldName = keyof RegisterInput;
 
@@ -68,7 +69,8 @@ export default function RegisterPage() {
         setGlobalError(error.message);
         setOauthLoading(false);
       }
-    } catch {
+    } catch (err) {
+      Sentry.captureException(err, { tags: { file: 'register/page.tsx', sprint: 'A' } });
       setGlobalError('Google sign-up is not available. Please use email and password.');
       setOauthLoading(false);
     }
@@ -112,7 +114,8 @@ export default function RegisterPage() {
 
       const body = await res.json().catch(() => ({}));
       setGlobalError(body.error ?? 'Registration failed. Please try again.');
-    } catch {
+    } catch (err) {
+      Sentry.captureException(err, { tags: { file: 'register/page.tsx', sprint: 'A' } });
       setGlobalError('A network error occurred. Please try again.');
     }
   }

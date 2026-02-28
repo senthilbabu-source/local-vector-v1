@@ -19,6 +19,7 @@
 // ---------------------------------------------------------------------------
 
 import { z } from 'zod';
+import * as Sentry from '@sentry/nextjs';
 import type { MenuExtractedData } from '@/lib/types/menu';
 
 // ---------------------------------------------------------------------------
@@ -156,7 +157,8 @@ export async function parsePosExportWithGPT4o(
         ? `pos://${pos_system_detected}`
         : undefined,
     };
-  } catch {
+  } catch (err) {
+    Sentry.captureException(err, { tags: { file: 'parsePosExport.ts', sprint: 'A' } });
     // Network error, JSON parse error, Zod failure — all degrade to null.
     return null;
   }

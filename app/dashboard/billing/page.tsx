@@ -20,6 +20,7 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Check } from 'lucide-react';
+import * as Sentry from '@sentry/nextjs';
 import {
   createCheckoutSession,
   createPortalSession,
@@ -27,6 +28,7 @@ import {
   type CurrentPlanInfo,
 } from './actions';
 import SeatManagementCard from './_components/SeatManagementCard';
+import { getPlanDisplayName } from '@/lib/plan-display-names';
 
 // ---------------------------------------------------------------------------
 // Tier definitions
@@ -49,7 +51,7 @@ interface Tier {
 const TIERS: Tier[] = [
   {
     id:      'starter',
-    name:    'Starter',
+    name:    getPlanDisplayName('starter'),
     price:   '$29',
     period:  '/mo',
     tagline: 'Weekly AI scans to protect your core listing data.',
@@ -66,7 +68,7 @@ const TIERS: Tier[] = [
   },
   {
     id:      'growth',
-    name:    'Growth',
+    name:    getPlanDisplayName('growth'),
     price:   '$59',
     period:  '/mo',
     tagline: 'Daily scans plus competitive intelligence.',
@@ -84,7 +86,7 @@ const TIERS: Tier[] = [
   },
   {
     id:      'agency',
-    name:    'Agency',
+    name:    getPlanDisplayName('agency'),
     price:   'Custom',
     period:  '',
     tagline: 'White-label API access for agencies and multi-location brands.',
@@ -144,7 +146,7 @@ function CanceledBanner({ onDismiss }: { onDismiss: () => void }) {
 function CurrentPlanBadge({ planInfo }: { planInfo: CurrentPlanInfo | null }) {
   if (!planInfo) return null;
 
-  const planLabel = planInfo.plan.charAt(0).toUpperCase() + planInfo.plan.slice(1);
+  const planLabel = getPlanDisplayName(planInfo.plan);
   const isActive = planInfo.plan_status === 'active';
 
   return (
@@ -330,7 +332,9 @@ export default function BillingPage() {
   useEffect(() => {
     getCurrentPlan()
       .then(setPlanInfo)
-      .catch(() => {/* auth may fail in preview — ignore */});
+      .catch((err) => {
+        Sentry.captureException(err, { tags: { component: 'billing-page', sprint: 'A' } });
+      });
   }, []);
 
   return (

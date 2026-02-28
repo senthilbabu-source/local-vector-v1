@@ -291,7 +291,7 @@ describe('Sidebar — active route highlighting', () => {
         plan="growth"
       />,
     );
-    expect(screen.getByText('Growth Plan')).toBeDefined();
+    expect(screen.getByText('AI Shield')).toBeDefined();
   });
 
   it('displays Free Plan badge when plan is null', () => {
@@ -305,7 +305,7 @@ describe('Sidebar — active route highlighting', () => {
         plan={null}
       />,
     );
-    expect(screen.getByText('Free Plan')).toBeDefined();
+    expect(screen.getByText('Free')).toBeDefined();
   });
 
   it('renders with translate-x-0 class when isOpen=true', () => {

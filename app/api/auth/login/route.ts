@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { LoginSchema } from '@/lib/schemas/auth';
+import * as Sentry from '@sentry/nextjs';
 
 /**
  * POST /api/auth/login
@@ -21,7 +22,8 @@ export async function POST(request: Request): Promise<NextResponse> {
   let body: unknown;
   try {
     body = await request.json();
-  } catch {
+  } catch (err) {
+    Sentry.captureException(err, { tags: { file: 'auth/login/route.ts', sprint: 'A' } });
     return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
   }
 

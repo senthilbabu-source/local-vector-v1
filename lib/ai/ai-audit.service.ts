@@ -6,6 +6,7 @@
 
 import { generateText } from 'ai';
 import { getModel, hasApiKey } from '@/lib/ai/providers';
+import * as Sentry from '@sentry/nextjs';
 
 // ── Types (mirror prod_schema.sql enums exactly) ───────────────────────────
 
@@ -133,7 +134,8 @@ export async function auditLocation(
   try {
     const parsed = JSON.parse(text);
     return Array.isArray(parsed.hallucinations) ? parsed.hallucinations : [];
-  } catch {
+  } catch (err) {
+    Sentry.captureException(err, { tags: { file: 'ai-audit.service.ts', sprint: 'A' } });
     return [];
   }
 }

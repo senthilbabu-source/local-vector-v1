@@ -13,6 +13,8 @@
 
 'use client';
 
+import Link from 'next/link';
+import { ChevronRight } from 'lucide-react';
 import {
     AreaChart,
     Area,
@@ -88,7 +90,13 @@ export default function SOVTrendChart({ data, title = 'AI Visibility Trend' }: S
 
     return (
         <div className="rounded-xl bg-surface-dark border border-white/5 p-5">
-            <h3 className="text-sm font-semibold text-white mb-4">{title}</h3>
+            <div className="flex items-center justify-between mb-4">
+                <h3 className="text-sm font-semibold text-white">{title}</h3>
+                <Link href="/dashboard/share-of-voice" className="text-xs text-primary hover:underline flex items-center gap-1">
+                    View details
+                    <ChevronRight className="h-3 w-3" />
+                </Link>
+            </div>
             <ResponsiveContainer width="100%" height={220}>
                 <AreaChart data={chartData} margin={{ top: 5, right: 10, left: -20, bottom: 0 }}>
                     <defs>

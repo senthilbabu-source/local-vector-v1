@@ -18,13 +18,15 @@ import {
 } from '@/lib/exports/pdf-assembler';
 import { AuditReportPDF } from '@/lib/exports/pdf-template';
 import { deriveRealityScore } from '@/app/dashboard/page';
+import * as Sentry from '@sentry/nextjs';
 
 export async function GET() {
   // ── Auth — session only ─────────────────────────────────────────────────
   let auth;
   try {
     auth = await getAuthContext();
-  } catch {
+  } catch (err) {
+    Sentry.captureException(err, { tags: { file: 'audit-report/route.tsx', sprint: 'A' } });
     return new Response(JSON.stringify({ error: 'unauthorized' }), {
       status: 401,
       headers: { 'Content-Type': 'application/json' },

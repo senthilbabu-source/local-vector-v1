@@ -19,6 +19,7 @@
 
 import { inngest } from '../client';
 import { withTimeout } from '../timeout';
+import * as Sentry from '@sentry/nextjs';
 import { createServiceRoleClient } from '@/lib/supabase/server';
 import {
   runSOVQuery,
@@ -305,7 +306,8 @@ export async function processOrgSOV(batch: OrgBatch): Promise<OrgSOVResult> {
         );
       }
     }
-  } catch {
+  } catch (err) {
+    Sentry.captureException(err, { tags: { file: 'sov-cron.ts', sprint: 'A' } });
     // Freshness check is non-critical
   }
 

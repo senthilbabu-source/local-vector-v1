@@ -8,11 +8,14 @@
 //   • Simple: just label + value (drop-in replacement for QuickStat)
 //   • Sparkline: label + value + tiny trend line from recent data points
 //
+// Sprint A (H5): Optional `href` prop wraps the card in a Next.js Link.
+//
 // Design tokens: surface-dark, signal-green, alert-crimson, alert-amber.
 // ---------------------------------------------------------------------------
 
 'use client';
 
+import Link from 'next/link';
 import { LineChart, Line, ResponsiveContainer } from 'recharts';
 
 // ---------------------------------------------------------------------------
@@ -28,6 +31,8 @@ export interface MetricCardProps {
     color?: 'green' | 'red' | 'amber' | 'default';
     /** Optional change indicator: "+12%" or "-5%" */
     change?: string;
+    /** If provided, the entire card becomes a link to this path */
+    href?: string;
     /** Additional class names */
     className?: string;
 }
@@ -67,11 +72,12 @@ export default function MetricCard({
     trend,
     color = 'default',
     change,
+    href,
     className = '',
 }: MetricCardProps) {
     const sparkData = trend?.map((v, i) => ({ i, v }));
 
-    return (
+    const cardContent = (
         <div
             className={[
                 'rounded-xl bg-surface-dark border border-white/5 px-4 py-4',
@@ -118,4 +124,16 @@ export default function MetricCard({
             )}
         </div>
     );
+
+    if (href) {
+        return (
+            <Link href={href} data-testid="metric-card-link" className="block hover:no-underline group">
+                <div className="transition-all duration-150 group-hover:shadow-md group-hover:-translate-y-px">
+                    {cardContent}
+                </div>
+            </Link>
+        );
+    }
+
+    return cardContent;
 }

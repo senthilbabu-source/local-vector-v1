@@ -17,6 +17,7 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Database } from '@/lib/supabase/database.types';
 import { generateText } from 'ai';
 import { getModel, hasApiKey } from '@/lib/ai/providers';
+import * as Sentry from '@sentry/nextjs';
 import { CitationCronResultSchema } from '@/lib/ai/schemas';
 import type {
   PlatformCitationCounts,
@@ -106,7 +107,8 @@ export function extractPlatform(url: string | null): string | null {
     // Fallback: hostname without TLD (extensible)
     const parts = hostname.split('.');
     return parts.length > 0 ? parts[0] : null;
-  } catch {
+  } catch (err) {
+    Sentry.captureException(err, { tags: { file: 'citation-engine.service.ts', sprint: 'A' } });
     return null;
   }
 }
@@ -182,7 +184,8 @@ export async function runCitationQuery(
       .map((r) => r.source_url)
       .filter((url): url is string => url !== null);
     return { queryText, citedUrls, success: true };
-  } catch {
+  } catch (err) {
+    Sentry.captureException(err, { tags: { file: 'citation-engine.service.ts', sprint: 'A' } });
     // Unparseable response — treat as no results
     return { queryText, citedUrls: [], success: true };
   }
@@ -223,7 +226,8 @@ export async function runCitationSample(
           }
         }
       }
-    } catch {
+    } catch (err) {
+      Sentry.captureException(err, { tags: { file: 'citation-engine.service.ts', sprint: 'A' } });
       // Per-query failure — continue with next query
       continue;
     }

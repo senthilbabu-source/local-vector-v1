@@ -20,6 +20,7 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Database, Json } from '@/lib/supabase/database.types';
 import { generateText } from 'ai';
 import { getModel, hasApiKey, type ModelKey } from '@/lib/ai/providers';
+import * as Sentry from '@sentry/nextjs';
 import { SovCronResultSchema, type SovCronResultOutput, type SentimentExtraction, type SourceMentionExtraction } from '@/lib/ai/schemas';
 import { createDraft } from '@/lib/autopilot/create-draft';
 import { extractSentiment } from '@/lib/services/sentiment.service';
@@ -141,7 +142,8 @@ export async function runSOVQuery(
     const parsed = SovCronResultSchema.parse(JSON.parse(text));
     businesses = parsed.businesses ?? [];
     citationUrl = parsed.cited_url ?? null;
-  } catch {
+  } catch (err) {
+    Sentry.captureException(err, { tags: { file: 'sov-engine.service.ts', sprint: 'A' } });
     // unparseable response — treat as no results
   }
   // Fuzzy match: case-insensitive substring check.

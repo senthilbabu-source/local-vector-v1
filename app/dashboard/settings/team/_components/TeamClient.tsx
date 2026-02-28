@@ -8,6 +8,7 @@ import {
   updateMemberRole,
 } from '@/app/actions/invitations';
 import { planSatisfies } from '@/lib/plan-enforcer';
+import * as Sentry from '@sentry/nextjs';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -113,7 +114,8 @@ export default function TeamClient({
         day: 'numeric',
         year: 'numeric',
       });
-    } catch {
+    } catch (err) {
+      Sentry.captureException(err, { tags: { file: 'TeamClient.tsx', sprint: 'A' } });
       return '—';
     }
   }

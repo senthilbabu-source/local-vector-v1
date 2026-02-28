@@ -24,6 +24,7 @@
 // ---------------------------------------------------------------------------
 
 import Papa from 'papaparse';
+import * as Sentry from '@sentry/nextjs';
 import type { MenuExtractedData, MenuExtractedItem } from '@/lib/types/menu';
 
 // ---------------------------------------------------------------------------
@@ -51,7 +52,8 @@ function isValidHttpsUrl(value: string): boolean {
   try {
     const u = new URL(value);
     return u.protocol === 'https:';
-  } catch {
+  } catch (err) {
+    Sentry.captureException(err, { tags: { file: 'parseCsvMenu.ts', sprint: 'A' } });
     return false;
   }
 }

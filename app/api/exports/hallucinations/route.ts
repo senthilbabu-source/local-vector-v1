@@ -14,13 +14,15 @@ import {
   buildHallucinationCSV,
   type HallucinationAuditRow,
 } from '@/lib/exports/csv-builder';
+import * as Sentry from '@sentry/nextjs';
 
 export async function GET() {
   // ── Auth — session only, org_id derived server-side (AI_RULES §18) ──────
   let auth;
   try {
     auth = await getAuthContext();
-  } catch {
+  } catch (err) {
+    Sentry.captureException(err, { tags: { file: 'hallucinations/route.ts', sprint: 'A' } });
     return new Response(JSON.stringify({ error: 'unauthorized' }), {
       status: 401,
       headers: { 'Content-Type': 'application/json' },

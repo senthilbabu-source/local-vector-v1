@@ -1,5 +1,6 @@
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
+import * as Sentry from '@sentry/nextjs';
 import type { Database } from '@/lib/supabase/database.types';
 
 /**
@@ -22,7 +23,8 @@ export async function createClient() {
             cookiesToSet.forEach(({ name, value, options }) =>
               cookieStore.set(name, value, options)
             );
-          } catch {
+          } catch (err) {
+            Sentry.captureException(err, { tags: { file: 'server.ts', sprint: 'A' } });
             // setAll is called from Server Components where cookies cannot be set.
             // This is safe to ignore — middleware handles session refresh.
           }

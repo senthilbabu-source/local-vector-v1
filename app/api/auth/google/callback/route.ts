@@ -27,6 +27,7 @@ import { createServiceRoleClient } from '@/lib/supabase/server';
 import { mapGBPLocationToRow } from '@/lib/services/gbp-mapper';
 import type { GBPLocation } from '@/lib/types/gbp';
 import type { Json } from '@/lib/supabase/database.types';
+import * as Sentry from '@sentry/nextjs';
 
 export const dynamic = 'force-dynamic';
 
@@ -221,7 +222,8 @@ export async function GET(request: NextRequest) {
       accountsData = await accountsRes.json();
       gbpAccountName = accountsData.accounts?.[0]?.name ?? null;
     }
-  } catch {
+  } catch (err) {
+    Sentry.captureException(err, { tags: { file: 'google/callback/route.ts', sprint: 'A' } });
     console.warn('[google-oauth] Could not fetch GBP accounts');
   }
 
@@ -235,7 +237,8 @@ export async function GET(request: NextRequest) {
       const userInfo = await userInfoRes.json();
       googleEmail = userInfo.email ?? null;
     }
-  } catch {
+  } catch (err) {
+    Sentry.captureException(err, { tags: { file: 'google/callback/route.ts', sprint: 'A' } });
     // Non-fatal
   }
 

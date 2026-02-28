@@ -14,6 +14,7 @@
 
 import { generateObject } from 'ai';
 import { getModel, hasApiKey } from '@/lib/ai/providers';
+import * as Sentry from '@sentry/nextjs';
 import { SourceMentionExtractionSchema, zodSchema, type SourceMentionExtraction } from '@/lib/ai/schemas';
 
 // ── Types ─────────────────────────────────────────────
@@ -224,7 +225,8 @@ export function normalizeSourceKey(url: string): string {
     const u = new URL(url);
     // Remove trailing slashes, www prefix, query params for dedup
     return `${u.hostname.replace(/^www\./, '')}${u.pathname.replace(/\/$/, '')}`.toLowerCase();
-  } catch {
+  } catch (err) {
+    Sentry.captureException(err, { tags: { file: 'source-intelligence.service.ts', sprint: 'A' } });
     return url.toLowerCase();
   }
 }
@@ -249,7 +251,8 @@ export function extractDomainName(url: string): string {
       if (hostname.includes(domain)) return name;
     }
     return hostname;
-  } catch {
+  } catch (err) {
+    Sentry.captureException(err, { tags: { file: 'source-intelligence.service.ts', sprint: 'A' } });
     return url;
   }
 }
@@ -262,7 +265,7 @@ export function categorizeUrl(
 ): SourceCategory {
   const hostname = (() => {
     try { return new URL(url).hostname.toLowerCase().replace(/^www\./, ''); }
-    catch { return ''; }
+    catch (err) { Sentry.captureException(err, { tags: { file: 'source-intelligence.service.ts', sprint: 'A' } }); return ''; }
   })();
 
   // First-party: business's own website
@@ -270,7 +273,7 @@ export function categorizeUrl(
     try {
       const bizHost = new URL(websiteUrl).hostname.toLowerCase().replace(/^www\./, '');
       if (hostname === bizHost) return 'first_party';
-    } catch { /* ignore */ }
+    } catch (err) { Sentry.captureException(err, { tags: { file: 'source-intelligence.service.ts', sprint: 'A' } }); /* ignore */ }
   }
 
   // Review sites

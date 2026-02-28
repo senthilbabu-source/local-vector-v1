@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { LoginSchema, type LoginInput } from '@/lib/schemas/auth';
 import { createClient } from '@/lib/supabase/client';
+import * as Sentry from '@sentry/nextjs';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -29,7 +30,8 @@ export default function LoginPage() {
         setOauthLoading(false);
       }
       // If no error, Supabase redirects to Google — no need to reset loading
-    } catch {
+    } catch (err) {
+      Sentry.captureException(err, { tags: { file: 'login/page.tsx', sprint: 'A' } });
       setGlobalError('Google sign-in is not available. Please use email and password.');
       setOauthLoading(false);
     }
@@ -63,7 +65,8 @@ export default function LoginPage() {
       setGlobalError(
         body.error ?? 'Unable to sign in. Please check your credentials and try again.'
       );
-    } catch {
+    } catch (err) {
+      Sentry.captureException(err, { tags: { file: 'login/page.tsx', sprint: 'A' } });
       setGlobalError('A network error occurred. Please try again.');
     }
   }
