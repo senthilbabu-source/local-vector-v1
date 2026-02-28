@@ -36,21 +36,25 @@ interface NotifyPrefs {
   notify_hallucination_alerts: boolean;
   notify_weekly_digest:        boolean;
   notify_sov_alerts:           boolean;
+  notify_score_drop_alert:     boolean;
+  notify_new_competitor:       boolean;
 }
 
 interface ExpandedPrefs {
   monitored_ai_models:  string[];
   score_drop_threshold: number;
   webhook_url:          string;
+  scan_day_of_week:     number;
 }
 
 interface SettingsFormProps {
-  displayName: string;
-  email:       string;
-  orgName:     string;
-  plan:        string | null;
-  notifyPrefs: NotifyPrefs;
-  expandedPrefs: ExpandedPrefs;
+  displayName:     string;
+  email:           string;
+  orgName:         string;
+  plan:            string | null;
+  notifyPrefs:     NotifyPrefs;
+  expandedPrefs:   ExpandedPrefs;
+  competitorCount: number;
 }
 
 // ---------------------------------------------------------------------------
@@ -60,9 +64,12 @@ interface SettingsFormProps {
 const AI_MODELS = [
   { id: 'openai',     label: 'ChatGPT (OpenAI)',   description: 'GPT-4o and o1 responses' },
   { id: 'perplexity', label: 'Perplexity',         description: 'Real-time web-grounded answers' },
-  { id: 'gemini',     label: 'Google Gemini',       description: 'Gemini 1.5 Pro responses' },
+  { id: 'gemini',     label: 'Google Gemini',       description: 'Gemini 2.0 Flash responses' },
   { id: 'copilot',    label: 'Microsoft Copilot',   description: 'Copilot and Bing AI responses' },
+  { id: 'claude',     label: 'Claude (Anthropic)',   description: 'Claude Sonnet responses' },
 ] as const;
+
+const SCAN_DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'] as const;
 
 const TOUR_STORAGE_KEY = 'lv_tour_completed';
 
@@ -113,7 +120,7 @@ function Toggle({
 // SettingsForm
 // ---------------------------------------------------------------------------
 
-export default function SettingsForm({ displayName, email, orgName, plan, notifyPrefs, expandedPrefs }: SettingsFormProps) {
+export default function SettingsForm({ displayName, email, orgName, plan, notifyPrefs, expandedPrefs, competitorCount }: SettingsFormProps) {
   const [nameStatus, setNameStatus] = useState<{ success: boolean; message: string } | null>(null);
   const [pwStatus,   setPwStatus]   = useState<{ success: boolean; message: string } | null>(null);
   const [notifyStatus, setNotifyStatus] = useState<{ success: boolean; message: string } | null>(null);
@@ -131,9 +138,12 @@ export default function SettingsForm({ displayName, email, orgName, plan, notify
   const [hallAlerts, setHallAlerts] = useState(notifyPrefs.notify_hallucination_alerts);
   const [weeklyDigest, setWeeklyDigest] = useState(notifyPrefs.notify_weekly_digest);
   const [sovAlerts, setSovAlerts] = useState(notifyPrefs.notify_sov_alerts);
+  const [scoreDropAlert, setScoreDropAlert] = useState(notifyPrefs.notify_score_drop_alert);
+  const [newCompetitorAlert, setNewCompetitorAlert] = useState(notifyPrefs.notify_new_competitor);
 
   // Sprint B: AI Monitoring state
   const [monitoredModels, setMonitoredModels] = useState<string[]>(expandedPrefs.monitored_ai_models);
+  const [scanDayOfWeek, setScanDayOfWeek] = useState(expandedPrefs.scan_day_of_week);
 
   // Sprint B: Advanced prefs state
   const [scoreDropThreshold, setScoreDropThreshold] = useState(expandedPrefs.score_drop_threshold);
@@ -181,6 +191,8 @@ export default function SettingsForm({ displayName, email, orgName, plan, notify
     form.set('notify_hallucination_alerts', String(hallAlerts));
     form.set('notify_weekly_digest', String(weeklyDigest));
     form.set('notify_sov_alerts', String(sovAlerts));
+    form.set('notify_score_drop_alert', String(scoreDropAlert));
+    form.set('notify_new_competitor', String(newCompetitorAlert));
     startNotifyTransition(async () => {
       const result = await updateNotificationPrefs(form);
       setNotifyStatus(
@@ -195,6 +207,7 @@ export default function SettingsForm({ displayName, email, orgName, plan, notify
     setModelStatus(null);
     const form = new FormData();
     form.set('monitored_ai_models', JSON.stringify(monitoredModels));
+    form.set('scan_day_of_week', String(scanDayOfWeek));
     startModelTransition(async () => {
       const result = await updateAIMonitoringPrefs(form);
       setModelStatus(
@@ -403,6 +416,26 @@ export default function SettingsForm({ displayName, email, orgName, plan, notify
           ))}
         </div>
 
+        {/* Sprint N: Scan day preference */}
+        <div className="flex items-center justify-between py-3 border-t border-white/5 mt-2 pt-4">
+          <div className="flex-1">
+            <p className="text-sm font-medium text-white">Weekly scan day</p>
+            <p className="text-xs text-slate-500">
+              Your Reality Score updates the morning after this day&apos;s scan completes.
+            </p>
+          </div>
+          <select
+            value={scanDayOfWeek}
+            onChange={(e) => setScanDayOfWeek(Number(e.target.value))}
+            className="rounded-xl border border-white/10 bg-midnight-slate px-3 py-1.5 text-sm text-white"
+            data-testid="scan-day-select"
+          >
+            {SCAN_DAYS.map((day, i) => (
+              <option key={day} value={i}>{day}</option>
+            ))}
+          </select>
+        </div>
+
         {modelStatus && (
           <p className={`text-xs mt-3 ${modelStatus.success ? 'text-signal-green' : 'text-alert-crimson'}`}>
             {modelStatus.message}
@@ -440,6 +473,20 @@ export default function SettingsForm({ displayName, email, orgName, plan, notify
             onChange={setSovAlerts}
             label="Share of Voice alerts"
             description="Get notified about significant changes in your AI share of voice"
+          />
+          <Toggle
+            checked={scoreDropAlert}
+            onChange={setScoreDropAlert}
+            label="Reality Score drops"
+            description="Alert when your Reality Score drops by the threshold set below"
+            testId="toggle-score-drop-alert"
+          />
+          <Toggle
+            checked={newCompetitorAlert}
+            onChange={setNewCompetitorAlert}
+            label="New competitor detected"
+            description="Alert when a new competitor appears in your AI visibility results"
+            testId="toggle-new-competitor"
           />
         </div>
 
@@ -527,7 +574,28 @@ export default function SettingsForm({ displayName, email, orgName, plan, notify
         )}
       </section>
 
-      {/* ── Section 7: Danger Zone (Sprint 62) ────────────────────── */}
+      {/* ── Section 7: Competitors (Sprint N) ─────────────────────── */}
+      <section className="rounded-2xl bg-surface-dark border border-white/5 p-6">
+        <h2 className="text-sm font-semibold text-white mb-1">Competitors</h2>
+        <p className="text-xs text-slate-500 mb-4">
+          Manage the competitors LocalVector tracks in your AI visibility comparisons.
+        </p>
+        <div className="flex items-center justify-between">
+          <p className="text-sm text-slate-300">
+            <span className="font-semibold text-white" data-testid="competitor-count">{competitorCount}</span>
+            {' '}competitor{competitorCount !== 1 ? 's' : ''} tracked
+          </p>
+          <Link
+            href="/dashboard/compete"
+            className="inline-flex items-center gap-1 text-xs font-medium text-signal-green hover:underline transition"
+            data-testid="manage-competitors-link"
+          >
+            Manage competitors &rarr;
+          </Link>
+        </div>
+      </section>
+
+      {/* ── Section 8: Danger Zone (Sprint 62) ────────────────────── */}
       <section className="rounded-2xl border border-alert-crimson/20 p-6">
         <h2 className="text-sm font-semibold text-alert-crimson mb-2">Danger Zone</h2>
         <p className="text-xs text-slate-400 mb-4">

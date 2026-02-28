@@ -2391,5 +2391,51 @@ The `PositioningBanner` at `components/ui/PositioningBanner.tsx` explains AI vis
 - One banner at a time: suppressed when `SampleModeBanner` is active.
 - Regression guard: `src/__tests__/unit/positioning-banner.test.tsx` (13 tests).
 
+## §115. Settings Expansion — Claude Model & Scan Day (Sprint N)
+
+Settings form supports 5 AI models (added Claude/Anthropic). Scan day preference allows users to pick which day the weekly SOV cron runs.
+
+**Rules:**
+- `AI_MODELS` in `SettingsForm.tsx` must have 5 entries: openai, perplexity, gemini, copilot, claude.
+- `VALID_AI_MODELS` in `actions.ts` must match the 5 model IDs.
+- `scan_day_of_week` column: integer 0–6, CHECK constraint, default 0 (Sunday).
+- Competitor shortcut section: shows count + link to `/dashboard/compete`.
+- Migration: `20260310000001_sprint_n_settings.sql`.
+- Regression guard: `src/__tests__/unit/sprint-n-settings.test.ts` (15 tests).
+
+## §116. Notification Toggles — Score Drop & New Competitor (Sprint N)
+
+Two new boolean columns on organizations: `notify_score_drop_alert` (default true), `notify_new_competitor` (default false).
+
+**Rules:**
+- Both must be in `NotificationPrefsSchema` in `actions.ts`.
+- Both must have Toggle components in SettingsForm Section 5 with test IDs.
+- `notify_score_drop_alert` works alongside `score_drop_threshold` (Sprint B).
+
+## §117. AI Preview Token Streaming (Sprint N)
+
+Upgraded AI Answer Preview from batch (one event per model) to true token-by-token streaming using Vercel AI SDK's `streamText()`.
+
+**Rules:**
+- `streamOpenAI()`, `streamPerplexity()`, `streamGemini()` in `lib/ai-preview/model-queries.ts` return `AsyncGenerator<StreamChunk>`.
+- Original batch functions (`queryOpenAI` etc.) preserved — used by correction verifier.
+- SSE event format: `{ model, chunk, done: false }` per token, `{ model, chunk: '', done: true }` on finish.
+- Widget accumulates chunks incrementally; shows blinking cursor during streaming.
+- Widget supports abort via `AbortController` (Stop button).
+- Regression guard: `src/__tests__/unit/sprint-n-preview-streaming.test.ts` (6 tests).
+
+## §118. Correction Follow-Up Email Notification (Sprint N)
+
+Added `sendCorrectionFollowUpAlert()` to `lib/email.ts`. Wired into correction follow-up cron.
+
+**Rules:**
+- Payload: `{ to, businessName, claimText, result: 'fixed' | 'recurring', dashboardUrl }`.
+- "fixed" → green success email. "recurring" → amber warning email.
+- Only sent when org has `notify_hallucination_alerts` enabled.
+- Wrapped in `.catch()` in cron — email failure never blocks status update.
+- Cron summary includes `emailsSent` count.
+- No-ops when `RESEND_API_KEY` is absent.
+- Regression guard: `src/__tests__/unit/sprint-n-correction-email.test.ts` (3 tests).
+
 ---
 > **End of System Instructions**

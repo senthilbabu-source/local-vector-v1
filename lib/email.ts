@@ -288,3 +288,77 @@ export async function sendFreshnessAlert(
     `,
   });
 }
+
+// ---------------------------------------------------------------------------
+// Correction Follow-Up Alert (Sprint N)
+// ---------------------------------------------------------------------------
+
+export interface CorrectionFollowUpPayload {
+  to: string;
+  businessName: string;
+  claimText: string;
+  result: 'fixed' | 'recurring';
+  dashboardUrl: string;
+}
+
+/**
+ * Sends a follow-up notification after a correction re-scan completes.
+ *
+ * "fixed"     → green success: "Your correction worked!"
+ * "recurring" → amber warning: "The issue persists"
+ *
+ * No-ops silently when RESEND_API_KEY is not configured.
+ * Errors are NOT swallowed — callers should wrap with .catch().
+ */
+export async function sendCorrectionFollowUpAlert(
+  payload: CorrectionFollowUpPayload
+): Promise<void> {
+  if (!process.env.RESEND_API_KEY) {
+    console.log(
+      `[email] RESEND_API_KEY absent — skipping correction follow-up for ${payload.businessName}`
+    );
+    return;
+  }
+
+  const isFixed = payload.result === 'fixed';
+  const subject = isFixed
+    ? `✅ Correction confirmed for ${payload.businessName}`
+    : `⚠️ AI hallucination persists for ${payload.businessName}`;
+
+  const headingColor = isFixed ? '#16a34a' : '#f59e0b';
+  const heading = isFixed ? 'Correction Confirmed' : 'Hallucination Still Present';
+  const bodyText = isFixed
+    ? `Great news! The AI hallucination about <strong>${payload.businessName}</strong> has been corrected. The AI model is now providing accurate information.`
+    : `The AI hallucination about <strong>${payload.businessName}</strong> is still present after 14 days. The AI model has not yet updated its response.`;
+  const claimSnippet = payload.claimText.length > 120
+    ? payload.claimText.slice(0, 117) + '...'
+    : payload.claimText;
+  const actionLabel = isFixed ? 'View Proof Timeline →' : 'Review & Take Action →';
+
+  await getResend().emails.send({
+    from: 'LocalVector Alerts <alerts@localvector.ai>',
+    to: payload.to,
+    subject,
+    html: `
+      <div style="font-family:sans-serif;max-width:560px;margin:0 auto">
+        <h2 style="color:${headingColor}">${heading}</h2>
+        <p>${bodyText}</p>
+        <div style="background:#f8fafc;border-left:4px solid ${headingColor};padding:12px 16px;margin:16px 0;border-radius:4px">
+          <p style="margin:0;color:#475569;font-size:13px"><strong>Original claim:</strong></p>
+          <p style="margin:4px 0 0;color:#64748b;font-size:13px;font-style:italic">&ldquo;${claimSnippet}&rdquo;</p>
+        </div>
+        <p>
+          <a
+            href="${payload.dashboardUrl}"
+            style="display:inline-block;background:#4f46e5;color:#fff;padding:12px 24px;border-radius:6px;text-decoration:none;font-weight:600"
+          >
+            ${actionLabel}
+          </a>
+        </p>
+        <p style="color:#6b7280;font-size:12px;margin-top:24px">
+          You're receiving this because you have hallucination alerts enabled on LocalVector.ai.
+        </p>
+      </div>
+    `,
+  });
+}

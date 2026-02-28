@@ -718,7 +718,18 @@ CREATE TABLE IF NOT EXISTS "public"."organizations" (
     "seat_limit" integer DEFAULT 1,
     "seats_updated_at" timestamp with time zone DEFAULT "now"(),
     "seat_overage_count" integer DEFAULT 0,
-    "seat_overage_since" timestamp with time zone
+    "seat_overage_since" timestamp with time zone,
+    "notify_hallucination_alerts" boolean DEFAULT true,
+    "notify_weekly_digest" boolean DEFAULT true,
+    "notify_sov_alerts" boolean DEFAULT true,
+    "monitored_ai_models" "text"[] DEFAULT ARRAY['openai'::text, 'perplexity'::text, 'gemini'::text, 'copilot'::text],
+    "score_drop_threshold" integer DEFAULT 10,
+    "webhook_url" "text",
+    "industry" "text" DEFAULT 'restaurant'::"text",
+    "scan_day_of_week" integer DEFAULT 0,
+    "notify_score_drop_alert" boolean DEFAULT true,
+    "notify_new_competitor" boolean DEFAULT false,
+    CONSTRAINT "organizations_scan_day_of_week_check" CHECK (("scan_day_of_week" >= 0 AND "scan_day_of_week" <= 6))
 );
 
 

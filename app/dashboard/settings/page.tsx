@@ -18,26 +18,39 @@ export default async function SettingsPage() {
 
   const displayName = ctx.fullName ?? ctx.email.split('@')[0];
 
-  // Fetch notification + Sprint B expanded preferences
+  // Fetch notification + Sprint B expanded preferences + Sprint N additions
   const supabase = await createClient();
   const { data: org } = ctx.orgId
     ? await supabase
         .from('organizations')
-        .select('notify_hallucination_alerts, notify_weekly_digest, notify_sov_alerts, monitored_ai_models, score_drop_threshold, webhook_url')
+        .select('notify_hallucination_alerts, notify_weekly_digest, notify_sov_alerts, monitored_ai_models, score_drop_threshold, webhook_url, scan_day_of_week, notify_score_drop_alert, notify_new_competitor' as '*')
         .eq('id', ctx.orgId)
         .maybeSingle()
     : { data: null };
 
+  // Sprint N: Competitor count for shortcut section
+  const competitorCount = ctx.orgId
+    ? ((await supabase
+        .from('competitors')
+        .select('id', { count: 'exact', head: true })
+        .eq('org_id', ctx.orgId)).count ?? 0)
+    : 0;
+
+  const orgData = org as Record<string, unknown> | null;
+
   const notifyPrefs = {
-    notify_hallucination_alerts: org?.notify_hallucination_alerts ?? true,
-    notify_weekly_digest:        org?.notify_weekly_digest ?? true,
-    notify_sov_alerts:           org?.notify_sov_alerts ?? true,
+    notify_hallucination_alerts: (orgData?.notify_hallucination_alerts as boolean | null) ?? true,
+    notify_weekly_digest:        (orgData?.notify_weekly_digest as boolean | null) ?? true,
+    notify_sov_alerts:           (orgData?.notify_sov_alerts as boolean | null) ?? true,
+    notify_score_drop_alert:     (orgData?.notify_score_drop_alert as boolean | null) ?? true,
+    notify_new_competitor:       (orgData?.notify_new_competitor as boolean | null) ?? false,
   };
 
   const expandedPrefs = {
-    monitored_ai_models: (org?.monitored_ai_models as string[] | null) ?? ['openai', 'perplexity', 'gemini', 'copilot'],
-    score_drop_threshold: (org?.score_drop_threshold as number | null) ?? 10,
-    webhook_url: (org?.webhook_url as string | null) ?? '',
+    monitored_ai_models: (orgData?.monitored_ai_models as string[] | null) ?? ['openai', 'perplexity', 'gemini', 'copilot'],
+    score_drop_threshold: (orgData?.score_drop_threshold as number | null) ?? 10,
+    webhook_url: (orgData?.webhook_url as string | null) ?? '',
+    scan_day_of_week: (orgData?.scan_day_of_week as number | null) ?? 0,
   };
 
   return (
@@ -58,6 +71,7 @@ export default async function SettingsPage() {
         plan={ctx.plan}
         notifyPrefs={notifyPrefs}
         expandedPrefs={expandedPrefs}
+        competitorCount={competitorCount}
       />
 
     </div>

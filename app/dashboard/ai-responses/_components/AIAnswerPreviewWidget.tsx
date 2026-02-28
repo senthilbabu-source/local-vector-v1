@@ -1,19 +1,22 @@
 'use client';
 
 // ---------------------------------------------------------------------------
-// AIAnswerPreviewWidget — Sprint F (N2): On-Demand AI Answer Preview
+// AIAnswerPreviewWidget — Sprint F (N2) + Sprint N: Token Streaming
 //
 // Fires a single POST to /api/ai-preview, reads the SSE stream, and updates
-// model response cards as each model completes.
+// model response cards as chunks arrive — true token-by-token streaming.
+//
+// Sprint N enhancement: switched from batch (one event per model) to
+// incremental streaming (chunks accumulate in real time, with cursor).
 //
 // Credit cost: 1 credit per run (composite query, regardless of model count).
 // Max query length: 200 characters.
 // Placement: Top of /dashboard/ai-responses page, above stored responses.
 // ---------------------------------------------------------------------------
 
-import { useState } from 'react';
+import { useState, useRef, useCallback } from 'react';
 import Link from 'next/link';
-import { Loader2, Sparkles } from 'lucide-react';
+import { Loader2, Sparkles, Square } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import * as Sentry from '@sentry/nextjs';
 
@@ -37,7 +40,7 @@ const MODEL_COLORS: Record<ModelId, string> = {
 };
 
 interface ModelState {
-  status: 'idle' | 'loading' | 'complete' | 'error';
+  status: 'idle' | 'loading' | 'streaming' | 'complete' | 'error';
   content: string;
 }
 
@@ -59,11 +62,12 @@ export default function AIAnswerPreviewWidget() {
   const [models, setModels] = useState<Record<ModelId, ModelState>>(INITIAL_STATE);
   const [creditError, setCreditError] = useState<string | null>(null);
   const [hasRun, setHasRun] = useState(false);
+  const abortRef = useRef<AbortController | null>(null);
 
   const charCount = query.length;
   const queryValid = query.trim().length >= 3 && charCount <= MAX_CHARS;
 
-  async function handleRun() {
+  const handleRun = useCallback(async () => {
     if (!queryValid || running) return;
     setCreditError(null);
     setHasRun(true);
@@ -76,11 +80,15 @@ export default function AIAnswerPreviewWidget() {
       gemini: { status: 'loading', content: '' },
     });
 
+    const controller = new AbortController();
+    abortRef.current = controller;
+
     try {
       const res = await fetch('/api/ai-preview', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ query: query.trim() }),
+        signal: controller.signal,
       });
 
       if (res.status === 402) {
@@ -97,27 +105,33 @@ export default function AIAnswerPreviewWidget() {
         throw new Error(`API error: ${res.status}`);
       }
 
-      // Read SSE stream
+      // Read SSE stream — token-by-token chunks
       const reader = res.body.getReader();
       const decoder = new TextDecoder();
+      let buffer = '';
 
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
 
-        const text = decoder.decode(value);
-        const lines = text.split('\n').filter((l) => l.startsWith('data: '));
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop() ?? ''; // Keep incomplete last line
 
         for (const line of lines) {
+          if (!line.startsWith('data: ')) continue;
+          const raw = line.slice(6).trim();
+          if (!raw) continue;
+
           try {
-            const event = JSON.parse(line.slice(6));
+            const event = JSON.parse(raw);
 
             if (event.type === 'done') break;
             if (event.type === 'error') {
               setModels((prev) => {
                 const next = { ...prev };
                 for (const m of MODELS) {
-                  if (next[m].status === 'loading') {
+                  if (next[m].status === 'loading' || next[m].status === 'streaming') {
                     next[m] = { status: 'error', content: event.message };
                   }
                 }
@@ -126,31 +140,52 @@ export default function AIAnswerPreviewWidget() {
               break;
             }
 
-            // Model-specific event
+            // Model chunk event: { model, chunk, done, error? }
             if (event.model && MODELS.includes(event.model as ModelId)) {
-              setModels((prev) => ({
-                ...prev,
-                [event.model as ModelId]: {
-                  status: event.status === 'error' ? 'error' : 'complete',
-                  content: event.content ?? '',
-                },
-              }));
+              const modelId = event.model as ModelId;
+
+              if (event.error) {
+                // Model-level error
+                setModels((prev) => ({
+                  ...prev,
+                  [modelId]: { status: 'error', content: event.error },
+                }));
+              } else if (event.done) {
+                // Model finished streaming
+                setModels((prev) => ({
+                  ...prev,
+                  [modelId]: {
+                    status: 'complete',
+                    content: prev[modelId].content || '(No response)',
+                  },
+                }));
+              } else {
+                // Append text chunk
+                setModels((prev) => ({
+                  ...prev,
+                  [modelId]: {
+                    status: 'streaming',
+                    content: prev[modelId].content + (event.chunk ?? ''),
+                  },
+                }));
+              }
             }
           } catch (err) {
             Sentry.captureException(err, {
-              tags: { file: 'AIAnswerPreviewWidget.tsx', component: 'SSE-parse', sprint: 'K' },
+              tags: { file: 'AIAnswerPreviewWidget.tsx', component: 'SSE-parse', sprint: 'N' },
             });
           }
         }
       }
     } catch (err) {
+      if ((err as Error).name === 'AbortError') return; // User stopped
       Sentry.captureException(err, {
-        tags: { file: 'AIAnswerPreviewWidget.tsx', component: 'handleRun', sprint: 'K' },
+        tags: { file: 'AIAnswerPreviewWidget.tsx', component: 'handleRun', sprint: 'N' },
       });
       setModels((prev) => {
         const next = { ...prev };
         for (const m of MODELS) {
-          if (next[m].status === 'loading') {
+          if (next[m].status === 'loading' || next[m].status === 'streaming') {
             next[m] = { status: 'error', content: 'Preview failed — please try again' };
           }
         }
@@ -158,7 +193,13 @@ export default function AIAnswerPreviewWidget() {
       });
     } finally {
       setRunning(false);
+      abortRef.current = null;
     }
+  }, [query, queryValid, running]);
+
+  function handleStop() {
+    abortRef.current?.abort();
+    setRunning(false);
   }
 
   return (
@@ -198,15 +239,20 @@ export default function AIAnswerPreviewWidget() {
         </div>
         <button
           type="button"
-          onClick={handleRun}
-          disabled={!queryValid || running}
-          className="inline-flex items-center gap-1.5 rounded-lg bg-signal-green px-4 py-2 text-sm font-medium text-deep-navy transition hover:brightness-110 disabled:opacity-50 disabled:cursor-not-allowed"
+          onClick={running ? handleStop : handleRun}
+          disabled={!queryValid && !running}
+          className={cn(
+            'inline-flex items-center gap-1.5 rounded-lg px-4 py-2 text-sm font-medium transition',
+            running
+              ? 'bg-alert-crimson/20 text-alert-crimson hover:bg-alert-crimson/30'
+              : 'bg-signal-green text-deep-navy hover:brightness-110 disabled:opacity-50 disabled:cursor-not-allowed',
+          )}
           data-testid="ai-preview-run-btn"
         >
           {running ? (
             <>
-              <Loader2 className="h-3.5 w-3.5 animate-spin" />
-              Running…
+              <Square className="h-3.5 w-3.5" />
+              Stop
             </>
           ) : (
             <>
@@ -249,7 +295,7 @@ export default function AIAnswerPreviewWidget() {
 }
 
 // ---------------------------------------------------------------------------
-// ModelResponseCard — single model result
+// ModelResponseCard — single model result with streaming cursor
 // ---------------------------------------------------------------------------
 
 function ModelResponseCard({
@@ -263,15 +309,22 @@ function ModelResponseCard({
   colorClass: string;
   state: ModelState;
 }) {
+  const isStreaming = state.status === 'streaming';
+
   return (
     <div
       className={cn('rounded-lg border p-4', colorClass)}
       data-testid={`ai-preview-card-${modelId}`}
     >
-      <p className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-slate-400">
-        {label}
-      </p>
-      {state.status === 'idle' && <p className="text-sm text-slate-500">—</p>}
+      <div className="mb-2 flex items-center justify-between">
+        <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">
+          {label}
+        </p>
+        {(state.status === 'loading' || isStreaming) && (
+          <Loader2 className="h-3 w-3 animate-spin text-slate-500" aria-hidden="true" />
+        )}
+      </div>
+      {state.status === 'idle' && <p className="text-sm text-slate-500">&mdash;</p>}
       {state.status === 'loading' && (
         <div className="space-y-1.5" aria-label={`${label} loading`}>
           <div className="h-2.5 w-full animate-pulse rounded bg-white/5" />
@@ -279,8 +332,13 @@ function ModelResponseCard({
           <div className="h-2.5 w-3/5 animate-pulse rounded bg-white/5" />
         </div>
       )}
-      {state.status === 'complete' && (
-        <p className="text-xs leading-relaxed text-slate-300">{state.content}</p>
+      {(isStreaming || state.status === 'complete') && (
+        <p className="text-xs leading-relaxed text-slate-300" data-testid={`ai-preview-response-${modelId}`}>
+          {state.content}
+          {isStreaming && (
+            <span className="ml-0.5 inline-block h-3.5 w-[2px] animate-pulse bg-slate-400" aria-hidden="true" />
+          )}
+        </p>
       )}
       {state.status === 'error' && (
         <p className="text-xs text-alert-crimson/80">{state.content}</p>

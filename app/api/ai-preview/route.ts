@@ -1,8 +1,17 @@
 // ---------------------------------------------------------------------------
-// app/api/ai-preview/route.ts — Sprint F (N2): On-Demand AI Answer Preview
+// app/api/ai-preview/route.ts — Sprint F (N2) + Sprint N: Token Streaming
 //
 // POST endpoint that fires 3 model queries in parallel and streams results
-// back as Server-Sent Events (SSE). Costs 1 credit per composite run.
+// back as Server-Sent Events (SSE) token-by-token. Costs 1 credit per run.
+//
+// Sprint N enhancement: switched from batch (generateText → single event
+// per model) to streaming (streamText → per-chunk events per model).
+//
+// SSE event format:
+//   { model, chunk, done: false }       — partial text chunk
+//   { model, chunk: '', done: true }    — model finished
+//   { model, chunk: '', done: true, error: '...' } — model error
+//   { type: 'done' }                    — all models finished
 //
 // Auth: getSafeAuthContext() — org_id derived server-side (AI_RULES §4).
 // Credits: checkCredit() before, consumeCredit() after (Sprint D pattern).
@@ -12,7 +21,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getSafeAuthContext } from '@/lib/auth';
 import { createClient } from '@/lib/supabase/server';
 import { checkCredit, consumeCredit } from '@/lib/credits/credit-service';
-import { queryOpenAI, queryPerplexity, queryGemini } from '@/lib/ai-preview/model-queries';
+import { streamOpenAI, streamPerplexity, streamGemini } from '@/lib/ai-preview/model-queries';
 import * as Sentry from '@sentry/nextjs';
 
 export async function POST(req: NextRequest) {
@@ -41,7 +50,7 @@ export async function POST(req: NextRequest) {
     body = await req.json();
   } catch (err) {
     Sentry.captureException(err, {
-      tags: { route: 'ai-preview', action: 'parse-body', sprint: 'K' },
+      tags: { route: 'ai-preview', action: 'parse-body', sprint: 'N' },
     });
     return NextResponse.json({ error: 'invalid_body' }, { status: 400 });
   }
@@ -66,7 +75,7 @@ export async function POST(req: NextRequest) {
     ? `The user's business is "${org.name}". They want to know if and how AI models mention their business.`
     : '';
 
-  // ── Stream SSE response ───────────────────────────────────────────────────
+  // ── Stream SSE response — token-by-token from all 3 models in parallel ──
   const encoder = new TextEncoder();
   const stream = new ReadableStream({
     async start(controller) {
@@ -74,18 +83,21 @@ export async function POST(req: NextRequest) {
         controller.enqueue(encoder.encode(`data: ${JSON.stringify(data)}\n\n`));
       }
 
+      async function consumeStream(
+        modelId: string,
+        gen: AsyncGenerator<{ chunk: string; done: boolean; error?: string }>,
+      ) {
+        for await (const event of gen) {
+          send({ model: modelId, ...event });
+        }
+      }
+
       try {
-        // Fire all 3 model calls in parallel — results arrive as each completes
+        // Fire all 3 model streams in parallel — chunks interleave as they arrive
         await Promise.allSettled([
-          queryOpenAI(query, businessContext).then((result) =>
-            send({ model: 'chatgpt', ...result }),
-          ),
-          queryPerplexity(query, businessContext).then((result) =>
-            send({ model: 'perplexity', ...result }),
-          ),
-          queryGemini(query, businessContext).then((result) =>
-            send({ model: 'gemini', ...result }),
-          ),
+          consumeStream('chatgpt', streamOpenAI(query, businessContext)),
+          consumeStream('perplexity', streamPerplexity(query, businessContext)),
+          consumeStream('gemini', streamGemini(query, businessContext)),
         ]);
 
         // Consume 1 credit after all models have responded
@@ -96,7 +108,7 @@ export async function POST(req: NextRequest) {
         send({ type: 'done' });
       } catch (err) {
         Sentry.captureException(err, {
-          tags: { route: 'ai-preview', sprint: 'F' },
+          tags: { route: 'ai-preview', sprint: 'N' },
           extra: { orgId: ctx.orgId, queryLength: query.length },
         });
         send({ type: 'error', message: 'Preview unavailable — please try again' });

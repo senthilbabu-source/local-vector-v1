@@ -133,6 +133,8 @@ const NotificationPrefsSchema = z.object({
   notify_hallucination_alerts: z.boolean(),
   notify_weekly_digest:        z.boolean(),
   notify_sov_alerts:           z.boolean(),
+  notify_score_drop_alert:     z.boolean(),
+  notify_new_competitor:       z.boolean(),
 });
 
 // ---------------------------------------------------------------------------
@@ -149,6 +151,8 @@ export async function updateNotificationPrefs(formData: FormData): Promise<Actio
     notify_hallucination_alerts: formData.get('notify_hallucination_alerts') === 'true',
     notify_weekly_digest:        formData.get('notify_weekly_digest') === 'true',
     notify_sov_alerts:           formData.get('notify_sov_alerts') === 'true',
+    notify_score_drop_alert:     formData.get('notify_score_drop_alert') === 'true',
+    notify_new_competitor:       formData.get('notify_new_competitor') === 'true',
   });
   if (!parsed.success) {
     return { success: false, error: parsed.error.issues[0]?.message ?? 'Invalid input' };
@@ -157,7 +161,7 @@ export async function updateNotificationPrefs(formData: FormData): Promise<Actio
   const supabase = await createClient();
   const { error } = await supabase
     .from('organizations')
-    .update(parsed.data)
+    .update(parsed.data as never)
     .eq('id', ctx.orgId);
 
   if (error) {
@@ -172,10 +176,11 @@ export async function updateNotificationPrefs(formData: FormData): Promise<Actio
 // Sprint B: AI Monitoring Preferences — Server Action
 // ---------------------------------------------------------------------------
 
-const VALID_AI_MODELS = ['openai', 'perplexity', 'gemini', 'copilot'] as const;
+const VALID_AI_MODELS = ['openai', 'perplexity', 'gemini', 'copilot', 'claude'] as const;
 
 const AIMonitoringSchema = z.object({
   monitored_ai_models: z.array(z.enum(VALID_AI_MODELS)).min(1, 'Select at least one AI model'),
+  scan_day_of_week: z.number().int().min(0).max(6),
 });
 
 export async function updateAIMonitoringPrefs(formData: FormData): Promise<ActionResult> {
@@ -187,6 +192,7 @@ export async function updateAIMonitoringPrefs(formData: FormData): Promise<Actio
   const models = formData.get('monitored_ai_models');
   const parsed = AIMonitoringSchema.safeParse({
     monitored_ai_models: typeof models === 'string' ? JSON.parse(models) : [],
+    scan_day_of_week: Number(formData.get('scan_day_of_week') ?? 0),
   });
   if (!parsed.success) {
     return { success: false, error: parsed.error.issues[0]?.message ?? 'Invalid input' };
@@ -195,7 +201,10 @@ export async function updateAIMonitoringPrefs(formData: FormData): Promise<Actio
   const supabase = await createClient();
   const { error } = await supabase
     .from('organizations')
-    .update({ monitored_ai_models: parsed.data.monitored_ai_models })
+    .update({
+      monitored_ai_models: parsed.data.monitored_ai_models,
+      scan_day_of_week: parsed.data.scan_day_of_week,
+    } as never)
     .eq('id', ctx.orgId);
 
   if (error) {

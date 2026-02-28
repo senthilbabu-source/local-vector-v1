@@ -4,6 +4,36 @@
 
 ---
 
+## 2026-02-28 — Sprint N: New Capability — Settings Expansion, AI Preview Streaming, Correction Follow-Up Email (Completed)
+
+**Objective:** Add net-new capability across three areas: settings expansion (Claude model, scan day preference, competitor shortcut, 2 new notification toggles), AI Preview enhancement (true token-by-token streaming), and correction follow-up email notification. Features 2 (AI Preview) and 3 (Correction Follow-Up) were mostly built in Sprint F — Sprint N adds the delta and meaningful enhancements.
+
+**H2 — Settings Page Expansion:**
+- `app/dashboard/settings/_components/SettingsForm.tsx` — **MODIFIED.** Added Claude (Anthropic) to AI_MODELS (5 total). Added SCAN_DAYS constant. Added scan day `<select>` in AI Monitoring section. Added Competitors shortcut section (count + link to /dashboard/compete). Added 2 notification toggles: Reality Score drops, New competitor detected. Props expanded: `competitorCount`, `scan_day_of_week`, `notify_score_drop_alert`, `notify_new_competitor`.
+- `app/dashboard/settings/actions.ts` — **MODIFIED.** `VALID_AI_MODELS` expanded with 'claude'. `AIMonitoringSchema` extended with `scan_day_of_week` (0-6). `NotificationPrefsSchema` extended with `notify_score_drop_alert`, `notify_new_competitor`.
+- `app/dashboard/settings/page.tsx` — **MODIFIED.** Fetches `scan_day_of_week`, `notify_score_drop_alert`, `notify_new_competitor` from organizations. Queries competitor count. Passes `competitorCount` to SettingsForm.
+- `supabase/migrations/20260310000001_sprint_n_settings.sql` — **NEW.** Adds `scan_day_of_week integer DEFAULT 0`, `notify_score_drop_alert boolean DEFAULT true`, `notify_new_competitor boolean DEFAULT false` to organizations.
+- `supabase/prod_schema.sql` — **MODIFIED.** Added Sprint N columns to organizations table definition.
+
+**N2 Enhancement — AI Preview Token Streaming:**
+- `lib/ai-preview/model-queries.ts` — **MODIFIED.** Added `streamOpenAI()`, `streamPerplexity()`, `streamGemini()` using Vercel AI SDK `streamText()`. Internal `streamModel()` async generator yields `{ chunk, done, error? }`. Original batch functions preserved for correction verifier.
+- `app/api/ai-preview/route.ts` — **REWRITTEN.** Switched from `Promise.allSettled` with batch `queryX()` to concurrent `consumeStream()` with `streamX()` functions. SSE events now per-chunk instead of per-model.
+- `app/dashboard/ai-responses/_components/AIAnswerPreviewWidget.tsx` — **REWRITTEN.** New `streaming` status in ModelState. Chunks accumulate incrementally. Blinking cursor during streaming. Stop button via AbortController. Buffer-based SSE parsing for incomplete lines.
+
+**N3 Enhancement — Correction Follow-Up Email:**
+- `lib/email.ts` — **MODIFIED.** Added `sendCorrectionFollowUpAlert()` function. Fixed → green success email. Recurring → amber warning email. Claim text snippet in quote block. No-ops when RESEND_API_KEY absent.
+- `app/api/cron/correction-follow-up/route.ts` — **MODIFIED.** Added `sendFollowUpEmail()` helper that looks up org owner email and sends notification. Email failure wrapped in `.catch()` — never blocks cron. Summary includes `emailsSent` count.
+
+**Tests added:** 39 new tests across 4 files (3318 total, was 3279)
+- `src/__tests__/unit/sprint-n-settings.test.ts` — **15 tests** (NEW): Claude in model list (2), scan_day_of_week validation (2), notification toggles (2), competitor shortcut (2), migration (4), prod_schema columns (3)
+- `src/__tests__/unit/sprint-n-preview-streaming.test.ts` — **6 tests** (NEW): streamOpenAI/Perplexity/Gemini chunk yielding (3), missing API key errors (3)
+- `src/__tests__/unit/sprint-n-correction-email.test.ts` — **3 tests** (NEW): fixed email (1), recurring email (1), no-op without RESEND_API_KEY (1)
+- `src/__tests__/unit/sprint-n-registration.test.ts` — **15 tests** (NEW): vercel.json integrity (2), schema columns (4), email function (1), cron wiring (3), streaming exports (5)
+
+**AI_RULES:** Added §115-§118 (Settings Claude/scan day, notification toggles, AI Preview streaming, correction email).
+
+---
+
 ## 2026-02-28 — Sprint M: Conversion, Verification & Reliability — Plan Comparison Refactor, Bing Verification, Positioning Banner (Completed)
 
 **Objective:** Close 3 remaining gaps from the Feb 2026 analysis: plan upsell conversion (M3), Bing Places verification (C2 Phase 2), and positioning banner enhancement (M6). Service tests (M1/L5) skipped — all 3 files already had comprehensive coverage (48 tests across 3 files).
