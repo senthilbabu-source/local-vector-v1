@@ -4,6 +4,53 @@
 
 ---
 
+## 2026-02-28 — Sprint K: Infrastructure & Trust — Sentry Sweep, Listings Verification, Sidebar & Digest Verification (Completed)
+
+**Objective:** Verify and complete 5 areas of quiet breakage from the code analysis. Sprint K is an infrastructure audit — most work was already done in earlier sprints. The primary new work was fixing 4 remaining bare `catch {}` blocks.
+
+**C1 — Sentry gap-fill:**
+- Bare catches remaining before Sprint K: **4** (from grep)
+- Files fixed:
+  - `app/dashboard/crawler-analytics/_components/BotFixInstructions.tsx:30` — clipboard API catch → Sentry
+  - `app/dashboard/ai-responses/_components/AIAnswerPreviewWidget.tsx:138` — SSE parse catch → Sentry
+  - `app/dashboard/ai-responses/_components/AIAnswerPreviewWidget.tsx:143` — fetch/network catch → Sentry
+  - `app/api/ai-preview/route.ts:42` — JSON body parse catch → Sentry
+- Bare catches remaining after Sprint K: **0** (confirmed by sentry-sweep test)
+
+**C2 — Listings Honesty (verification only — Sprint C already completed):**
+- Mock setTimeout: **already removed in Sprint C**
+- Platforms changed to manual tracking: yelp, tripadvisor (Sprint C)
+- Coming soon platforms: apple, bing, facebook (Sprint C)
+- `listing_url` column: **already existed** — no migration needed
+- `PLATFORM_SYNC_CONFIG` SSOT: `lib/integrations/platform-config.ts` (Sprint C)
+- GBP connect flow: unchanged, still functional
+
+**H4 — Sidebar (verification only — Sprint A already completed):**
+- Status: **Sprint A already completed**
+- Groups: Overview (2 items), AI Visibility (6), Content & Menu (6), Intelligence (4), Admin (5)
+- Plan-gated items: preserved via existing NavItem render logic
+- Dynamic label: Content & Menu → Content & {industryConfig.servicesNoun} (Sprint E)
+
+**H6 — monthlyCostPerSeat (verification only — Sprint C already completed):**
+- Case applied: **A — fetched from Stripe via `getMonthlyCostPerSeat()`**
+- Price ID env var: `STRIPE_PRICE_ID_AGENCY_SEAT`
+- UI fallback: "Contact us for custom seat pricing" when null
+
+**L2 — Weekly digest guard (verification only — Sprint C already completed):**
+- No-scan detection: `sov_evaluations` COUNT per org > 0
+- Guard location: `lib/data/weekly-digest.ts` lines 64–75
+- Cron route: skipped orgs counted, Sentry.captureMessage logged
+
+**Tests added:**
+- `src/__tests__/unit/integrations-listings.test.ts` — **20 tests** (PLATFORM_SYNC_CONFIG + schema validation)
+- `src/__tests__/unit/sentry-sweep-verification.test.ts` — **2 tests** (grep-based zero-bare-catch regression guard)
+- `tests/e2e/sprint-k-smoke.spec.ts` — **14 E2E tests** (listings honesty, sidebar groups, Sentry pages)
+- Pre-existing: `sidebar-groups.test.ts` (7), `weekly-digest-guard.test.ts` (8) — verified passing
+
+**AI_RULES additions:** §108 (Sentry sweep completeness), §109 (Listings honesty verification).
+
+---
+
 ## 2026-02-28 — Sprint I: Action Surfaces Tier 2 — Revenue Impact, AI Sentiment, Source Intelligence, Bot Activity (Completed)
 
 **Features implemented (4 items):**

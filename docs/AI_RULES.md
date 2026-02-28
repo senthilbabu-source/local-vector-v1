@@ -2305,5 +2305,25 @@ Cluster Map page title: "Where Does AI Place You?" — never "AI Visibility Clus
 - **Stat cards:** "Wrong Facts" (was "Hallucinations"), "AI Queries" (was "Queries").
 - No new DB tables, migrations, crons, or API routes. Pure front-end.
 
+## §108. Sentry Sweep Completeness (Sprint K)
+
+Zero bare `} catch {` blocks allowed in `app/` and `lib/` directories (excluding test files). Every catch must capture the error parameter and call `Sentry.captureException(err)`.
+
+**Rules:**
+- Import pattern: `import * as Sentry from '@sentry/nextjs'`.
+- Tags: `{ file: 'RelativePath.tsx', component: 'FunctionName', sprint: 'K' }`.
+- Regression guard: `src/__tests__/unit/sentry-sweep-verification.test.ts` (2 grep-based tests).
+- Sprint A wired 68 catches. Sprint K fixed the final 4 (BotFixInstructions, AIAnswerPreviewWidget ×2, ai-preview route).
+
+## §109. Listings Honesty Verification (Sprint K)
+
+The `PLATFORM_SYNC_CONFIG` in `lib/integrations/platform-config.ts` is the SSOT for platform sync types. Only `google` has `real_oauth`. Non-GBP platforms must never show fake "Synced" or "Connected" states.
+
+**Rules:**
+- `manual_url` platforms (yelp, tripadvisor): show "Manual" badge, URL input, claim link. No sync button.
+- `coming_soon` platforms (apple, bing, facebook): show "Coming Soon" badge. No controls.
+- `real_oauth` platforms (google only): full toggle, sync button, URL input.
+- Regression guard: `src/__tests__/unit/integrations-listings.test.ts` (20 tests).
+
 ---
 > **End of System Instructions**

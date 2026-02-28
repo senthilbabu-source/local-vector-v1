@@ -12,7 +12,7 @@ LocalVector is an AEO/GEO SaaS platform that helps local businesses monitor and 
 - **Billing:** Stripe webhooks → `organizations.plan_tier` enum (`trial | starter | growth | agency`)
 - **Email:** Resend + React Email (`emails/`)
 - **Cache:** Upstash Redis (`lib/redis.ts`) — optional, all callers must degrade gracefully
-- **Testing:** Vitest (unit/integration in `src/__tests__/`), Playwright (E2E in `tests/e2e/`, 28 specs). Current: 3209 tests, 233 files.
+- **Testing:** Vitest (unit/integration in `src/__tests__/`), Playwright (E2E in `tests/e2e/`, 29 specs). Current: 3231 tests, 235 files.
 - **Monitoring:** Sentry (client, server, edge configs) — all catch blocks instrumented (Sprint A, AI_RULES §70)
 
 ## Architecture Rules
@@ -77,7 +77,7 @@ supabase/migrations/   — Applied SQL migrations (40, timestamp-ordered)
 supabase/prod_schema.sql — Full production schema dump
 docs/                  — 50 spec documents (authoritative for planned features)
 src/__tests__/         — Unit + integration tests
-tests/e2e/             — Playwright E2E tests (28 specs)
+tests/e2e/             — Playwright E2E tests (29 specs)
 app/api/ai-preview/    — AI Answer Preview SSE endpoint (Sprint F, §90)
 app/dashboard/ai-responses/_components/ — AIAnswerPreviewWidget (Sprint F)
 app/dashboard/_components/BenchmarkComparisonCard.tsx — City benchmark comparison (Sprint F, §92)
@@ -321,6 +321,46 @@ ADMIN_EMAILS
 - Tests: 65 Vitest (industry-config 13, medical-schema-generator 17, sov-seed-medical 12, first-visit-tooltip 15, guided-tour-steps 8), 12 Playwright (sprint-e-smoke).
 - Result: 207 test files, 2881 tests pass. 1 migration.
 
+### Sprint G — Human-Readable Dashboard (2026-02-28)
+- Replaced data-dump dashboard with action-surface layout. Removed 6 old cards (SOVTrendChart, HallucinationsByModel, CompetitorComparison, QuickStats, AIHealthScoreCard, RealityScoreCard). Added 4 stat panels grid + TopIssuesPanel.
+- `lib/issue-descriptions.ts` — plain-English translation layer. `describeAlert()` maps severity + model → human headline.
+- Stat panels: AIVisibilityPanel, WrongFactsPanel, AIBotAccessPanel, LastScanPanel in `app/dashboard/_components/panels/`.
+- AI_RULES: added §93 (Dashboard Redesign), §94 (Issue Descriptions), §95 (Stat Panels), §96 (Top Issues).
+- Tests: 79 Vitest, 14 Playwright (sprint-g-smoke).
+
+### Sprint H — Action Surfaces (2026-02-28)
+- Hallucination Triage Queue: 3-column Kanban (Fix Now / In Progress / Resolved) replaces flat table. AlertCard uses `describeAlert()`.
+- SOVVerdictPanel: big SOV %, delta, top competitor mention count above SOVScoreRing.
+- CitationsSummaryPanel: covered/gaps/score counts inside PlanGate.
+- CompeteVerdictPanel: win/loss derived from `competitor_intercepts.winner`.
+- AI_RULES: added §97-§100.
+- Tests: 51 Vitest.
+
+### Sprint I — Jargon Retirement Tier 2 (2026-02-28)
+- Revenue Impact: `RevenueEstimatePanel` with industry-smart defaults via `getIndustryRevenueDefaults()`.
+- AI Sentiment: `SentimentInterpretationPanel` with per-engine verdicts, worst-model callout.
+- Source Intelligence: `SourceHealthSummaryPanel` with health badges, first-party citation rate.
+- Bot Activity: `BotFixInstructions` expandable with `BOT_KNOWLEDGE_BASE` (10 bots).
+- AI_RULES: added §101-§104.
+- Tests: 87 Vitest, 7 Playwright (sprint-i-smoke).
+
+### Sprint J — Jargon Retirement Tier 3 (2026-02-28)
+- Entity Health: `PlatformDescriptionPanel` translates 7 platform statuses to plain-English consequences.
+- Agent Readiness: `ScenarioDescriptionPanel` translates 6 capabilities to real-world scenarios.
+- Cluster Map: `ClusterInterpretationPanel` with position verdict + axis/quadrant/legend rewording.
+- AI_RULES: added §105-§107.
+- Tests: 70 Vitest.
+
+### Sprint K — Infrastructure & Trust (2026-02-28)
+- **C1 — Sentry gap-fill:** Fixed final 4 bare `} catch {` blocks (BotFixInstructions, AIAnswerPreviewWidget ×2, ai-preview route). Zero remaining.
+- **C2 — Listings honesty:** Verified Sprint C implementation complete. `PLATFORM_SYNC_CONFIG` has 3 sync types, mock setTimeout removed, `savePlatformUrl` action functional.
+- **H4 — Sidebar groups:** Verified Sprint A implementation complete. NAV_GROUPS with 5 groups, all 23 items distributed.
+- **H6 — monthlyCostPerSeat:** Verified Sprint C implementation complete. `getMonthlyCostPerSeat()` wired, "Contact us" fallback in UI.
+- **L2 — Weekly digest guard:** Verified Sprint C implementation complete. `sov_evaluations` count guard in `fetchDigestForOrg()`.
+- AI_RULES: added §108 (Sentry Sweep Completeness), §109 (Listings Honesty Verification).
+- Tests: 22 Vitest (integrations-listings 20, sentry-sweep-verification 2), 14 Playwright (sprint-k-smoke).
+- Result: 235 test files, 3231 tests pass. No migrations.
+
 ## Tier Completion Status
 
 | Tier | Sprints | Status | Gate |
@@ -339,6 +379,7 @@ ADMIN_EMAILS
 | Sprint H | Action Surfaces | Complete | — |
 | Sprint I | Jargon Retirement (Revenue, Sentiment, Source Intel, Bot Activity) | Complete | — |
 | Sprint J | Jargon Retirement (Entity Health, Agent Readiness, Cluster Map) | Complete | — |
+| Sprint K | Infrastructure & Trust (Sentry Sweep, Listings/Sidebar/Digest Verification) | Complete | — |
 | Tier 4 | 102–106 | Gated | Sprint 102: Apple BC API approval. Sprint 103: Bing Places API approval. Sprint 104–106: no external gate. |
 | Tier 5 | 107–109 | Gated | 4–8 weeks of SOV baseline data required. SOV cron registered 2026-02-27. Sprint 107 earliest: 2026-03-27. |
 
@@ -356,4 +397,4 @@ No external dependencies. Can begin immediately. See AI_RULES §59.
 
 ## Build History
 
-See `DEVLOG.md` (project root) and `docs/DEVLOG.md` for the complete sprint-by-sprint build log. Current sprint: 101 (+ FIX-1 through FIX-6 + Sprint A + Sprint B + Sprint C + Sprint D + Sprint E + Sprint F + Sprint G + Sprint H + Sprint I + Sprint J). AI_RULES: §1–§107 (107 sections). Production readiness: all audit issues resolved.
+See `DEVLOG.md` (project root) and `docs/DEVLOG.md` for the complete sprint-by-sprint build log. Current sprint: 101 (+ FIX-1 through FIX-6 + Sprint A + Sprint B + Sprint C + Sprint D + Sprint E + Sprint F + Sprint G + Sprint H + Sprint I + Sprint J + Sprint K). AI_RULES: §1–§109 (109 sections). Production readiness: all audit issues resolved.

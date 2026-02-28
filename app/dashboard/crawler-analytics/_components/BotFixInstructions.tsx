@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { ChevronDown, ExternalLink, Copy, Check } from 'lucide-react';
 import { getBotInfo } from '@/lib/bot-activity/bot-knowledge';
+import * as Sentry from '@sentry/nextjs';
 
 // ---------------------------------------------------------------------------
 // BotFixInstructions — Sprint I
@@ -27,8 +28,10 @@ export function BotFixInstructions({ botType }: BotFixInstructionsProps) {
       await navigator.clipboard.writeText(info!.robotsTxtAllow);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
-    } catch {
-      // Clipboard API not available — ignore
+    } catch (err) {
+      Sentry.captureException(err, {
+        tags: { file: 'BotFixInstructions.tsx', component: 'handleCopy', sprint: 'K' },
+      });
     }
   }
 

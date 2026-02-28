@@ -15,6 +15,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { Loader2, Sparkles } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import * as Sentry from '@sentry/nextjs';
 
 // ---------------------------------------------------------------------------
 // Types & constants
@@ -135,12 +136,17 @@ export default function AIAnswerPreviewWidget() {
                 },
               }));
             }
-          } catch {
-            // Malformed SSE event — skip
+          } catch (err) {
+            Sentry.captureException(err, {
+              tags: { file: 'AIAnswerPreviewWidget.tsx', component: 'SSE-parse', sprint: 'K' },
+            });
           }
         }
       }
-    } catch {
+    } catch (err) {
+      Sentry.captureException(err, {
+        tags: { file: 'AIAnswerPreviewWidget.tsx', component: 'handleRun', sprint: 'K' },
+      });
       setModels((prev) => {
         const next = { ...prev };
         for (const m of MODELS) {

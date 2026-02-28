@@ -39,7 +39,10 @@ export async function POST(req: NextRequest) {
   let body: { query?: string };
   try {
     body = await req.json();
-  } catch {
+  } catch (err) {
+    Sentry.captureException(err, {
+      tags: { route: 'ai-preview', action: 'parse-body', sprint: 'K' },
+    });
     return NextResponse.json({ error: 'invalid_body' }, { status: 400 });
   }
 
