@@ -71,3 +71,16 @@ export const SAMPLE_OPEN_ALERT_COUNT = 2;
 import type { BenchmarkData } from '@/lib/data/benchmarks';
 export const SAMPLE_BENCHMARK: BenchmarkData | null = null; // Not yet available in sample mode
 export const SAMPLE_LOCATION_CONTEXT = { city: 'Alpharetta', industry: 'Restaurant' };
+
+// ── Sprint G: Wrong Facts count ──────────────────────────────────────────────
+export const SAMPLE_WRONG_FACTS_COUNT = 3;
+
+// ── Sprint G: Bot access data ────────────────────────────────────────────────
+// Matches BotActivity[] from lib/data/crawler-analytics.ts
+import type { BotActivity } from '@/lib/data/crawler-analytics';
+export const SAMPLE_BOT_DATA: BotActivity[] = [
+  { botType: 'claudebot', label: 'ClaudeBot', engine: 'Claude', description: 'Anthropic\'s AI crawler', visitCount: 0, lastVisitAt: null, status: 'blind_spot' },
+  { botType: 'perplexitybot', label: 'PerplexityBot', engine: 'Perplexity', description: 'Perplexity AI crawler', visitCount: 872, lastVisitAt: '2026-02-26T10:00:00Z', status: 'active' },
+  { botType: 'gptbot', label: 'GPTBot', engine: 'ChatGPT', description: 'OpenAI\'s AI crawler', visitCount: 25, lastVisitAt: '2026-02-25T14:00:00Z', status: 'active' },
+  { botType: 'googlebot', label: 'Googlebot', engine: 'Google', description: 'Google search crawler', visitCount: 24, lastVisitAt: '2026-02-24T08:00:00Z', status: 'active' },
+];

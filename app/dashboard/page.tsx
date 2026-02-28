@@ -14,26 +14,16 @@ import { nextSundayLabel } from './_components/scan-health-utils';
 import { isSampleMode } from '@/lib/sample-data/use-sample-mode';
 import {
   SAMPLE_VISIBILITY_SCORE,
-  SAMPLE_HEALTH_SCORE,
-  SAMPLE_SOV_TREND,
-  SAMPLE_HALLUCINATIONS_BY_MODEL,
-  SAMPLE_FIXED_COUNT,
-  SAMPLE_INTERCEPTS_THIS_MONTH,
   SAMPLE_OPEN_ALERT_COUNT,
+  SAMPLE_WRONG_FACTS_COUNT,
+  SAMPLE_BOT_DATA,
 } from '@/lib/sample-data/sample-dashboard-data';
 import { SampleDataBadge } from '@/components/ui/SampleDataBadge';
 import { SampleModeBanner } from '@/components/ui/SampleModeBanner';
 import { PositioningBanner } from '@/components/ui/PositioningBanner';
-import { TOOLTIP_CONTENT } from '@/lib/tooltip-content';
 import GBPImportCard from './_components/GBPImportCard';
 import ExportButtons from './_components/ExportButtons';
-import RealityScoreCard from './_components/RealityScoreCard';
 import AlertFeed from './_components/AlertFeed';
-import SOVTrendChart from './_components/SOVTrendChart';
-import HallucinationsByModel from './_components/HallucinationsByModel';
-import CompetitorComparison from './_components/CompetitorComparison';
-import MetricCard from './_components/MetricCard';
-import AIHealthScoreCard from './_components/AIHealthScoreCard';
 import RevenueLeakCard from './_components/RevenueLeakCard';
 import LeakBreakdownChart from './_components/LeakBreakdownChart';
 import LeakTrendChart from './_components/LeakTrendChart';
@@ -46,6 +36,12 @@ import BenchmarkComparisonCard from './_components/BenchmarkComparisonCard';
 import OccasionAlertFeed from './_components/OccasionAlertFeed';
 import { getOccasionAlerts } from '@/lib/occasions/occasion-feed';
 import type { DashboardOccasionAlert } from '@/lib/occasions/occasion-feed';
+// Sprint G: New dashboard panels
+import AIVisibilityPanel from './_components/panels/AIVisibilityPanel';
+import WrongFactsPanel from './_components/panels/WrongFactsPanel';
+import AIBotAccessPanel from './_components/panels/AIBotAccessPanel';
+import LastScanPanel from './_components/panels/LastScanPanel';
+import TopIssuesPanel from './_components/TopIssuesPanel';
 
 export type { HallucinationRow } from '@/lib/data/dashboard'; // re-export for AlertFeed.tsx
 
@@ -162,25 +158,18 @@ export default async function DashboardPage() {
 
   // ── Sprint B: Sample Data Mode ──────────────────────────────────────────
   const sampleMode = isSampleMode(scores.realityScore, orgCreatedAt);
-  const displayVisibilityScore = sampleMode ? SAMPLE_VISIBILITY_SCORE : visibilityScore;
   const displayScores = sampleMode
     ? deriveRealityScore(SAMPLE_OPEN_ALERT_COUNT, SAMPLE_VISIBILITY_SCORE)
     : scores;
-  const displayHealthScore = sampleMode ? SAMPLE_HEALTH_SCORE : healthScore;
-  const displaySovTrend = sampleMode ? SAMPLE_SOV_TREND : sovTrend;
-  const displayHallucinationsByModel = sampleMode ? SAMPLE_HALLUCINATIONS_BY_MODEL : hallucinationsByModel;
-  const displayFixedCount = sampleMode ? SAMPLE_FIXED_COUNT : fixedCount;
-  const displayInterceptsThisMonth = sampleMode ? SAMPLE_INTERCEPTS_THIS_MONTH : interceptsThisMonth;
   const displayOpenAlertCount = sampleMode ? SAMPLE_OPEN_ALERT_COUNT : openAlerts.length;
 
   // Sprint D (M6): Positioning Banner — show for new orgs (< 30 days old)
   const isNewOrg = orgCreatedAt
     ? Date.now() - new Date(orgCreatedAt).getTime() < 30 * 24 * 60 * 60 * 1000
     : false;
-
-  const sovSparkline = displaySovTrend.slice(-7).map((d) => d.sov);
   return (
     <div className="space-y-5">
+      {/* ── Header ──────────────────────────────────────────────────────────── */}
       <div className="flex items-start justify-between gap-4">
         <div>
           <h1 className="text-xl font-semibold text-white tracking-tight">
@@ -188,19 +177,18 @@ export default async function DashboardPage() {
           </h1>
           <p className="mt-0.5 text-sm text-slate-400">
             {hasOpenAlerts
-              ? `${openAlerts.length} AI ${openAlerts.length === 1 ? 'lie' : 'lies'} detected — fix them before your customers notice.`
+              ? `${openAlerts.length} wrong ${openAlerts.length === 1 ? 'fact' : 'facts'} detected — fix them before your customers notice.`
               : 'Your AI visibility is clean. Keep your ground truth up to date.'}
           </p>
         </div>
         <ExportButtons canExport={exportGated} showCSV={false} showPDF />
       </div>
-      {/* Sprint B: Sample Data Banner — replaces the blank welcome banner */}
+
+      {/* ── Banners ─────────────────────────────────────────────────────────── */}
       {sampleMode && (
         <SampleModeBanner nextScanDate={`Sunday, ${nextSundayLabel()}`} />
       )}
-      {/* Sprint D (M6): Positioning Banner — for new orgs after sample mode ends */}
       {isNewOrg && !sampleMode && <PositioningBanner />}
-      {/* Welcome banner — day-1 tenants past the 14-day sample window */}
       {!sampleMode && scores.realityScore === null && openAlerts.length === 0 && (
         <div className="rounded-xl border border-signal-green/20 bg-signal-green/5 px-5 py-4">
           <h2 className="text-sm font-semibold text-signal-green">
@@ -208,107 +196,84 @@ export default async function DashboardPage() {
           </h2>
           <p className="mt-1 text-sm text-slate-400">
             Your AI visibility dashboard is ready. Your first automated scan runs
-            Sunday, {nextSundayLabel()} — check back Monday for your Reality Score,
-            SOV trend, and hallucination alerts.
+            Sunday, {nextSundayLabel()} — check back Monday for your scores
+            and alerts.
           </p>
         </div>
       )}
-      {/* Sprint 72: AI Health Score — top of page, above existing content */}
-      {displayHealthScore && (
-        <div className="relative">
-          <AIHealthScoreCard healthScore={displayHealthScore} />
-          {sampleMode && <SampleDataBadge />}
-        </div>
-      )}
-      {/* Sprint 101: Occasion Alert Feed — surfaces upcoming occasions with CTAs */}
+
+      {/* Sprint 101: Occasion Alert Feed */}
       {occasionAlerts.length > 0 && (
         <OccasionAlertFeed alerts={occasionAlerts} canCreateDraft={draftGated} />
       )}
-      {/* Revenue Leak Scorecard — above Fear First layout */}
-      <RevenueLeakCard leak={currentLeak} previousLeak={previousLeak} config={revenueConfig} plan={orgPlan} />
-      {/* Fear First layout (Doc 06 §1 Design Principle #1) */}
-      {hasOpenAlerts ? (
-        <>
-          <AlertFeed alerts={openAlerts} canCreateDraft={draftGated} />
-          <div className="relative">
-            <RealityScoreCard {...displayScores} openAlertCount={displayOpenAlertCount} lastAuditAt={sampleMode ? '2026-02-23T08:00:00Z' : lastAuditAt} />
-            {sampleMode && <SampleDataBadge />}
-          </div>
-        </>
-      ) : (
-        <>
-          <div className="relative">
-            <RealityScoreCard {...displayScores} openAlertCount={displayOpenAlertCount} lastAuditAt={sampleMode ? '2026-02-23T08:00:00Z' : lastAuditAt} />
-            {sampleMode && <SampleDataBadge />}
-          </div>
-          <AlertFeed alerts={[]} />
-        </>
-      )}
-      {/* Surgery 4: Quick Stats Row */}
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+
+      {/* ── Sprint G: 4 Stat Panels ─────────────────────────────────────────── */}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <div className="relative">
-          <MetricCard label="Hallucinations fixed" value={displayFixedCount} color="green" href="/dashboard/hallucinations" />
-          {sampleMode && <SampleDataBadge />}
-        </div>
-        <div className="relative">
-          <MetricCard label="Open alerts" value={displayOpenAlertCount} color={displayOpenAlertCount > 0 ? 'red' : 'green'} href="/dashboard/hallucinations" tooltip={TOOLTIP_CONTENT.openAlerts} />
-          {sampleMode && <SampleDataBadge />}
-        </div>
-        <div className="relative">
-          <MetricCard label="Intercept analyses" value={displayInterceptsThisMonth} color="green" href="/dashboard/ai-responses" tooltip={TOOLTIP_CONTENT.interceptCount} />
-          {sampleMode && <SampleDataBadge />}
-        </div>
-        <div className="relative">
-          <MetricCard
-            label="AI Visibility"
-            value={displayScores.visibility != null ? `${displayScores.visibility}%` : '—'}
-            color="green"
-            trend={sovSparkline.length > 1 ? sovSparkline : undefined}
-            href="/dashboard/share-of-voice"
-            tooltip={TOOLTIP_CONTENT.aiVisibility}
+          <AIVisibilityPanel
+            score={displayScores.realityScore}
+            previousScore={null}
+            benchmark={benchmark}
+            orgCity={locationContext.city}
           />
           {sampleMode && <SampleDataBadge />}
         </div>
+        <div className="relative">
+          <WrongFactsPanel
+            alertCount={sampleMode ? SAMPLE_WRONG_FACTS_COUNT : openAlerts.length}
+            previousCount={null}
+          />
+          {sampleMode && <SampleDataBadge />}
+        </div>
+        <div className="relative">
+          <AIBotAccessPanel
+            bots={sampleMode ? SAMPLE_BOT_DATA.map(b => ({ ...b })) : (crawlerSummary?.bots ?? [])}
+          />
+          {sampleMode && <SampleDataBadge />}
+        </div>
+        <LastScanPanel lastScanAt={lastAuditAt} />
       </div>
-      {/* Sprint 73: Bot Activity Card */}
-      <BotActivityCard crawlerSummary={crawlerSummary} hasPublishedMenu={hasPublishedMenu} />
-      {/* Sprint 77: Proof Timeline Card */}
-      <ProofTimelineCard timeline={proofTimeline} />
-      {/* Sprint 80: Entity Health Card */}
-      <EntityHealthCard entityHealth={entityHealth} />
-      {/* Sprint F (N4): Benchmark Comparison Card */}
+
+      {/* ── Sprint G: Top Issues ─────────────────────────────────────────────── */}
+      <TopIssuesPanel
+        alerts={openAlerts}
+        crawlerSummary={crawlerSummary}
+        sampleMode={sampleMode}
+      />
+
+      {/* ── Revenue Leak Scorecard ──────────────────────────────────────────── */}
+      <RevenueLeakCard leak={currentLeak} previousLeak={previousLeak} config={revenueConfig} plan={orgPlan} />
+
+      {/* ── Alert Feed (detail view — for users who want to see all alerts) ── */}
+      {hasOpenAlerts && (
+        <AlertFeed alerts={openAlerts} canCreateDraft={draftGated} />
+      )}
+
+      {/* ── Benchmark Comparison ────────────────────────────────────────────── */}
       <BenchmarkComparisonCard
         orgScore={displayScores.realityScore}
         orgCity={locationContext.city}
         orgIndustry={locationContext.industry}
         benchmark={benchmark}
       />
+
+      {/* ── Detail Cards ────────────────────────────────────────────────────── */}
+      <BotActivityCard crawlerSummary={crawlerSummary} hasPublishedMenu={hasPublishedMenu} />
+      <ProofTimelineCard timeline={proofTimeline} />
+      <EntityHealthCard entityHealth={entityHealth} />
+
       {/* Sprint 89: GBP Import Card (Growth+ with GBP connected) */}
       {hasGBPConnection && <GBPImportCard gbpSyncedAt={gbpSyncedAt} />}
-      {/* Sprint 76: Content Freshness + Cron Health Cards */}
+
       <ContentFreshnessCard freshness={freshness} />
       <CronHealthCard cronHealth={cronHealth} />
-      {/* Revenue Leak Charts */}
+
+      {/* Revenue Leak Charts (Growth+ only) */}
       {currentLeak && orgPlan !== 'trial' && orgPlan !== 'starter' && (
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
           <LeakBreakdownChart breakdown={currentLeak.breakdown} />
           <LeakTrendChart snapshots={revenueSnapshots} />
         </div>
-      )}
-      {/* Surgery 4: Data Visualization Row */}
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <div className="relative">
-          <SOVTrendChart data={displaySovTrend} />
-          {sampleMode && <SampleDataBadge />}
-        </div>
-        <div className="relative">
-          <HallucinationsByModel data={displayHallucinationsByModel} />
-          {sampleMode && <SampleDataBadge />}
-        </div>
-      </div>
-      {/* Surgery 4: Competitor Comparison */}
-      {competitorComparison.length > 0 && (
-        <CompetitorComparison data={competitorComparison} />
       )}
     </div>
   );

@@ -2120,5 +2120,59 @@ Weekly cron that aggregates city+industry Reality Score benchmarks, displayed on
 - `data-testid`: `benchmark-comparison-card`, `benchmark-collecting-state`, `benchmark-ready-state`, `benchmark-no-score-state`
 - Migration: `20260308000001_sprint_f_engagement.sql`
 
+## §93. Issue Descriptions (Sprint G)
+
+Plain-English translation layer that converts `HallucinationRow` records and technical findings into consequence-first sentences for business owners.
+
+**Rules:**
+- SSOT: `lib/issue-descriptions.ts`
+- Exports: `IssueDescription`, `IssueSeverity`, `describeAlert()`, `describeTechnicalFinding()`, `getModelName()`, `mapSeverity()`
+- Severity mapping: DB `critical`/`high` → UI `critical`; DB `medium` → `warning`; DB `low` → `info`
+- Model name mapping via `MODEL_NAMES` record: `openai-gpt4o` → `ChatGPT`, `perplexity-sonar` → `Perplexity`, `google-gemini` → `Gemini`, `anthropic-claude` → `Claude`, `microsoft-copilot` → `Microsoft Copilot`
+- `describeAlert()` switches on `alert.category` (DB values: `hours`, `address`, `phone`, `menu`, `status`, `amenity`) to generate headlines like "ChatGPT is telling customers the wrong hours"
+- `describeTechnicalFinding()` handles `bot_blind_spot`, `content_thin`, `schema_missing` types
+- Category badges: `AI search`, `Site health`, `Listings`, `Content`
+- Fix CTAs: `Fix with AI` (credit-consuming), `How to fix →` (documentation), `View details →` (navigation)
+
+## §94. Dashboard Stat Panels (Sprint G)
+
+Four stat panels replacing the old QuickStats row of MetricCards on the main dashboard.
+
+**Rules:**
+- All panels in `app/dashboard/_components/panels/`
+- `AIVisibilityPanel.tsx` — Score gauge (SVG circle r=40) + weekly delta + benchmark text. Props: `score`, `previousScore`, `benchmark`, `orgCity`. `data-testid="ai-visibility-panel"`, `"ai-visibility-score"`, `"ai-visibility-delta"`, `"ai-visibility-benchmark"`
+- `WrongFactsPanel.tsx` — Big number, crimson when > 0, emerald when 0. Entire panel is `<Link href="/dashboard/hallucinations">`. Props: `alertCount`, `previousCount`. `data-testid="wrong-facts-panel"`, `"wrong-facts-count"`, `"wrong-facts-clear"`, `"wrong-facts-delta"`
+- `AIBotAccessPanel.tsx` — Top 4 bots sorted by urgency (blind_spot → low → active). Status colors: active=emerald, low=amber, blind_spot=crimson. Links to `/dashboard/crawler-analytics`. Props: `bots: BotActivity[]`. `data-testid="ai-bot-access-panel"`, `"ai-bot-row"`, `"ai-bot-access-empty"`
+- `LastScanPanel.tsx` — Relative time from `formatRelativeTime()` + next scan from `nextSundayLabel()`. Warning badge when > 14 days. Props: `lastScanAt: string | null`. `data-testid="last-scan-panel"`, `"last-scan-time"`, `"next-scan-time"`, `"last-scan-warning"`
+- Grid: `grid-cols-1 sm:grid-cols-2 lg:grid-cols-4`
+- Sample data: `SAMPLE_WRONG_FACTS_COUNT`, `SAMPLE_BOT_DATA` in `lib/sample-data/sample-dashboard-data.ts`
+
+## §95. Top Issues Panel (Sprint G)
+
+Prioritized plain-English issue list combining hallucination alerts and technical findings.
+
+**Rules:**
+- Component: `app/dashboard/_components/TopIssuesPanel.tsx`
+- Props: `alerts: HallucinationRow[]`, `crawlerSummary: CrawlerSummary | null`, `sampleMode: boolean`
+- Merges alerts (via `describeAlert()`) + technical findings (via `deriveTechnicalFindings()` + `describeTechnicalFinding()`)
+- Sorted by severity: critical → warning → info. Max 5 rows displayed.
+- Each row: severity dot indicator, headline, category badge, CTA button (Fix with AI / How to fix)
+- `deriveTechnicalFindings()` extracts blind_spot bots from CrawlerSummary → up to 2 findings
+- Sample mode: shows hardcoded `SAMPLE_ISSUES` when `sampleMode=true`, ignores `alerts` prop
+- Empty state: green checkmark + "No issues found" text
+- `data-testid`: `"top-issues-panel"`, `"top-issue-row-{index}"`, `"top-issue-fix-{index}"`, `"top-issue-how-{index}"`, `"top-issues-view-all"`, `"top-issues-empty"`
+
+## §96. Dashboard Layout Changes (Sprint G)
+
+Dashboard redesigned from data dump to action surface. Charts moved to detail pages.
+
+**Rules:**
+- **Removed from dashboard:** `SOVTrendChart` (already on `/dashboard/share-of-voice`), `HallucinationsByModel` (moved to `/dashboard/hallucinations`), `CompetitorComparison`, QuickStats row (4 MetricCards), `AIHealthScoreCard`, `RealityScoreCard`
+- **Added to dashboard:** 4 stat panels (§94) + TopIssuesPanel (§95)
+- **Layout order:** Header → Banners → OccasionAlertFeed → 4 Stat Panels grid → TopIssuesPanel → RevenueLeakCard → AlertFeed (only if hasOpenAlerts) → BenchmarkComparisonCard → BotActivityCard → ProofTimelineCard → EntityHealthCard → GBPImportCard → ContentFreshnessCard → CronHealthCard → Revenue charts
+- **HallucinationsByModel on hallucinations page:** Added to `app/dashboard/hallucinations/page.tsx` before the flagged hallucinations section. Uses `aggregateByModel()` from `lib/utils/dashboard-aggregators.ts`. Renders only when `hallucinations.length > 0`.
+- Header subtitle changed from "AI lies" to "wrong facts"
+- No new DB tables, crons, or API routes. Pure front-end work.
+
 ---
 > **End of System Instructions**

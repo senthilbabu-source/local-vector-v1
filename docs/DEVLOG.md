@@ -4,6 +4,48 @@
 
 ---
 
+## 2026-02-28 — Sprint G: Human-Readable Dashboard — Plain-English Issues, Consequence-First Design (Completed)
+
+**Features implemented (3 items):**
+1. **Issue Description Engine:** `lib/issue-descriptions.ts` translates `HallucinationRow` records and technical findings into plain-English consequence sentences (e.g., "ChatGPT is telling customers the wrong hours"). Maps DB `category` values to human headlines, `model_provider` to brand names, and 4-level severity to 3-level UI severity.
+2. **4 Stat Panels:** Replaced the old QuickStats row (4 MetricCards) with purpose-built panels — AIVisibilityPanel (score gauge + delta + benchmark), WrongFactsPanel (alert count, red/green), AIBotAccessPanel (top 4 bots sorted by urgency), LastScanPanel (relative time + next scan + stale warning).
+3. **Top Issues Panel:** Prioritized plain-English issue list merging hallucination alerts + technical findings (bot blind spots). Sorted by severity, max 5 rows, with "Fix with AI" / "How to fix" CTAs. Sample mode shows demo issues for new orgs.
+
+**Changes:**
+
+*Issue Description Engine:*
+- **`lib/issue-descriptions.ts`** — NEW. `describeAlert()` switch on category (hours/address/phone/menu/status/amenity), `describeTechnicalFinding()` for bot_blind_spot/content_thin/schema_missing, `getModelName()`, `mapSeverity()`.
+
+*4 Stat Panels:*
+- **`app/dashboard/_components/panels/AIVisibilityPanel.tsx`** — NEW. Score gauge SVG (r=40), delta badge, benchmark comparison text, InfoTooltip.
+- **`app/dashboard/_components/panels/WrongFactsPanel.tsx`** — NEW. Big number (crimson > 0, emerald = 0), entire panel links to /dashboard/hallucinations.
+- **`app/dashboard/_components/panels/AIBotAccessPanel.tsx`** — NEW. Bot rows sorted by urgency (blind_spot → low → active), status color indicators, links to /dashboard/crawler-analytics.
+- **`app/dashboard/_components/panels/LastScanPanel.tsx`** — NEW. Reuses `formatRelativeTime()` + `nextSundayLabel()`, warning badge for > 14 days stale.
+
+*Top Issues Panel:*
+- **`app/dashboard/_components/TopIssuesPanel.tsx`** — NEW. Merges alerts + technical findings, severity sort, max 5 rows, sample mode, empty state.
+
+*Dashboard Redesign:*
+- **`app/dashboard/page.tsx`** — MODIFIED. New layout: 4 stat panels grid + TopIssuesPanel. Removed SOVTrendChart, HallucinationsByModel, CompetitorComparison, QuickStats row, AIHealthScoreCard, RealityScoreCard. Header subtitle "AI lies" → "wrong facts".
+- **`app/dashboard/hallucinations/page.tsx`** — MODIFIED. Added HallucinationsByModel chart (moved from dashboard).
+- **`lib/sample-data/sample-dashboard-data.ts`** — MODIFIED. Added `SAMPLE_WRONG_FACTS_COUNT`, `SAMPLE_BOT_DATA`.
+
+**Tests added:**
+- `issue-descriptions.test.ts` — 36 tests (describeAlert per category, getModelName, mapSeverity, describeTechnicalFinding, edge cases)
+- `ai-visibility-panel.test.tsx` — 10 tests (score display, delta, benchmark, null states)
+- `wrong-facts-panel.test.tsx` — 5 tests (count, colors, link, InfoTooltip)
+- `ai-bot-access-panel.test.tsx` — 8 tests (rows, status indicators, sorting, empty state, link)
+- `last-scan-panel.test.tsx` — 6 tests (relative time, null state, warning, next scan)
+- `top-issues-panel.test.tsx` — 14 tests (rendering, sorting, sample mode, empty state, CTAs)
+- `sprint-g-smoke.spec.ts` — 14 E2E tests (layout, panels, chart relocation, accessibility)
+- **Total: 79 new unit tests + 14 E2E tests**
+
+**AI_RULES added:** §93 (Issue Descriptions), §94 (Stat Panels), §95 (Top Issues Panel), §96 (Dashboard Layout Changes)
+
+**Result:** 218 test files, 3001 tests pass (1 pre-existing flaky boundary test). 0 migrations. 0 TS errors (Sprint G scope). 0 regressions.
+
+---
+
 ## 2026-02-27 — Sprint F: Engagement & Retention — AI Answer Preview, Correction Follow-Up, Benchmark Comparison (Completed)
 
 **Features implemented (3 items):**

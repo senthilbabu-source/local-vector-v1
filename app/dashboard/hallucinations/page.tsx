@@ -9,6 +9,8 @@ import TruthScoreCard from './_components/TruthScoreCard';
 import EngineComparisonGrid from './_components/EngineComparisonGrid';
 import StatusDropdown from './_components/StatusDropdown';
 import ExportButtons from '../_components/ExportButtons';
+import HallucinationsByModel from '../_components/HallucinationsByModel';
+import { aggregateByModel } from '@/lib/utils/dashboard-aggregators';
 import type { CorrectionStatus } from '../actions';
 
 // ---------------------------------------------------------------------------
@@ -242,6 +244,19 @@ export default async function HallucinationsPage() {
           </div>
         )}
       </section>
+
+      {/* ── Sprint G: Hallucinations by Model chart ────────────────────── */}
+      {hallucinations.length > 0 && (
+        <HallucinationsByModel
+          data={aggregateByModel(
+            hallucinations
+              .filter((h) => h.correction_status === 'open')
+              .map((h) => ({
+                model_provider: h.model_provider as 'openai-gpt4o' | 'perplexity-sonar' | 'google-gemini' | 'anthropic-claude' | 'microsoft-copilot',
+              })),
+          )}
+        />
+      )}
 
       {/* ── Historical AI Hallucinations (Phase 4) ───────────────────────── */}
       <section>
