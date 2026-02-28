@@ -764,13 +764,23 @@ export const MOCK_ENTITY_CHECK: import('@/lib/services/entity-health.service').E
  * Expected score: 15 + 15 + 0 + 0 + 5 + 5 = 40 (Partially Ready)
  */
 /**
- * Sprint 85 — Canonical RevenueImpactInput for Charcoal N Chill.
- * $45 avg customer, 800 covers. 3 SOV gaps, 2 hallucinations, competitor advantage.
+ * Sprint D — Charcoal N Chill default revenue configuration.
+ * Matches DEFAULT_REVENUE_CONFIG in revenue-impact.service.ts.
+ * $55 avg check (food + hookah premium), 60 covers/night × 30 days = 1800/month.
+ */
+export const CHARCOAL_N_CHILL_REVENUE_CONFIG = {
+  avgCustomerValue: 55,
+  monthlyCovers: 1800,
+} as const;
+
+/**
+ * Sprint 85 / Sprint D — Canonical RevenueImpactInput for Charcoal N Chill.
+ * $55 avg customer, 1800 covers. 3 SOV gaps, 2 hallucinations, competitor advantage.
  */
 export const MOCK_REVENUE_IMPACT_INPUT: import('@/lib/services/revenue-impact.service').RevenueImpactInput = {
   config: {
-    avgCustomerValue: 45,
-    monthlyCovers: 800,
+    avgCustomerValue: 55,
+    monthlyCovers: 1800,
   },
   sovGaps: [
     { queryText: 'hookah near me', queryCategory: 'near_me', missingEngineCount: 3, totalEngineCount: 3 },

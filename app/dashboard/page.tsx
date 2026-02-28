@@ -23,6 +23,7 @@ import {
 } from '@/lib/sample-data/sample-dashboard-data';
 import { SampleDataBadge } from '@/components/ui/SampleDataBadge';
 import { SampleModeBanner } from '@/components/ui/SampleModeBanner';
+import { PositioningBanner } from '@/components/ui/PositioningBanner';
 import { TOOLTIP_CONTENT } from '@/lib/tooltip-content';
 import GBPImportCard from './_components/GBPImportCard';
 import ExportButtons from './_components/ExportButtons';
@@ -170,6 +171,11 @@ export default async function DashboardPage() {
   const displayInterceptsThisMonth = sampleMode ? SAMPLE_INTERCEPTS_THIS_MONTH : interceptsThisMonth;
   const displayOpenAlertCount = sampleMode ? SAMPLE_OPEN_ALERT_COUNT : openAlerts.length;
 
+  // Sprint D (M6): Positioning Banner — show for new orgs (< 30 days old)
+  const isNewOrg = orgCreatedAt
+    ? Date.now() - new Date(orgCreatedAt).getTime() < 30 * 24 * 60 * 60 * 1000
+    : false;
+
   const sovSparkline = displaySovTrend.slice(-7).map((d) => d.sov);
   return (
     <div className="space-y-5">
@@ -190,6 +196,8 @@ export default async function DashboardPage() {
       {sampleMode && (
         <SampleModeBanner nextScanDate={`Sunday, ${nextSundayLabel()}`} />
       )}
+      {/* Sprint D (M6): Positioning Banner — for new orgs after sample mode ends */}
+      {isNewOrg && !sampleMode && <PositioningBanner />}
       {/* Welcome banner — day-1 tenants past the 14-day sample window */}
       {!sampleMode && scores.realityScore === null && openAlerts.length === 0 && (
         <div className="rounded-xl border border-signal-green/20 bg-signal-green/5 px-5 py-4">

@@ -87,8 +87,8 @@ describe('Revenue Impact page', () => {
 
   it('6. renders revenue config form with inputs', () => {
     const result = buildMockResult();
-    expect(result.config.avgCustomerValue).toBe(45);
-    expect(result.config.monthlyCovers).toBe(800);
+    expect(result.config.avgCustomerValue).toBe(55);
+    expect(result.config.monthlyCovers).toBe(1800);
   });
 
   it('7. renders "using defaults" notice when isDefaultConfig', () => {

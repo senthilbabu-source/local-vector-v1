@@ -3091,5 +3091,67 @@ npx vitest run                                                   # 2139 total �
 npx tsc --noEmit                                                 # 0 type errors
 ```
 
+## 2026-02-27 — Sprint D: Operate & Protect (Completed)
+
+**Goal:** Prepare LocalVector.ai for active customer acquisition with operator visibility (admin dashboard), cost control (credit system), improved first impressions (revenue defaults + positioning banner).
+
+**Scope:**
+
+**L1 — Admin Operations Dashboard:**
+- `app/admin/layout.tsx` — **NEW.** Server component auth guard. Reads `ADMIN_EMAILS` env var (comma-separated, case-insensitive). Non-admin → redirect to `/dashboard`.
+- `app/admin/page.tsx` — **NEW.** Redirects to `/admin/customers`.
+- `app/admin/_components/AdminNav.tsx` — **NEW.** Client component nav bar with active link highlighting via `usePathname()`.
+- `app/admin/_components/AdminStatCard.tsx` — **NEW.** Reusable stat card with optional highlight (warning/danger).
+- `app/admin/_components/PlanBadge.tsx` — **NEW.** Colored plan badge using `getPlanDisplayName()`.
+- `app/admin/customers/page.tsx` — **NEW.** All orgs via service role. Name, plan badge, MRR, Stripe status, created date.
+- `app/admin/api-usage/page.tsx` — **NEW.** Fetches `api_credits` table. Highlights >80% amber, 100% red. Estimated API cost.
+- `app/admin/cron-health/page.tsx` — **NEW.** Last 100 runs from `cron_run_log`. Summary cards per cron + full log table.
+- `app/admin/revenue/page.tsx` — **NEW.** MRR/ARR stats, MRR by plan breakdown, trial conversion funnel.
+- `lib/admin/format-relative-date.ts` — **NEW.** `Intl.RelativeTimeFormat` utility, no date library.
+
+**N1 — Credit/Usage System:**
+- `supabase/migrations/20260306000001_api_credits.sql` — **NEW.** `api_credits` table, unique on `org_id`, RLS, `increment_credits_used()` RPC.
+- `supabase/prod_schema.sql` — **MODIFIED.** Added `api_credits` table definition + indexes + RLS.
+- `lib/supabase/database.types.ts` — **MODIFIED.** Added `api_credits` table types + `increment_credits_used` function type.
+- `lib/credits/credit-limits.ts` — **NEW.** `PLAN_CREDIT_LIMITS` (trial=25, starter=100, growth=500, agency=2000), `getCreditLimit()`, `getNextResetDate()`.
+- `lib/credits/credit-service.ts` — **NEW.** `checkCredit()`, `consumeCredit()`, internal `initializeCredits()`, `resetCredits()`. Fail-open design.
+- `app/dashboard/magic-menus/actions.ts` — **MODIFIED.** Credit-gated: `simulateAIParsing`, `uploadPosExport`, `uploadMenuFile`.
+- `app/dashboard/share-of-voice/actions.ts` — **MODIFIED.** Credit-gated: `runSovEvaluation`.
+- `app/dashboard/share-of-voice/brief-actions.ts` — **MODIFIED.** Credit-gated: `generateContentBrief`.
+- `app/dashboard/compete/actions.ts` — **MODIFIED.** Credit-gated: `runCompetitorIntercept`.
+- `app/dashboard/layout.tsx` — **MODIFIED.** Fetches credits data, passes to DashboardShell.
+- `components/layout/DashboardShell.tsx` — **MODIFIED.** Added `credits` prop, passes to TopBar.
+- `components/layout/TopBar.tsx` — **MODIFIED.** Added `CreditsMeterBar` component (battery-style, green/amber/red).
+
+**M4 — Revenue Config Defaults:**
+- `lib/services/revenue-impact.service.ts` — **MODIFIED.** `avgCustomerValue`: 45→55, `monthlyCovers`: 800→1800.
+- `src/__fixtures__/golden-tenant.ts` — **MODIFIED.** Added `CHARCOAL_N_CHILL_REVENUE_CONFIG`, updated `MOCK_REVENUE_IMPACT_INPUT.config`.
+
+**M6 — Positioning Banner:**
+- `components/ui/PositioningBanner.tsx` — **NEW.** Client component, localStorage dismiss, links to AI responses.
+- `app/dashboard/page.tsx` — **MODIFIED.** Added `PositioningBanner` gated by `isNewOrg && !sampleMode`.
+
+**Env:**
+- `.env.local.example` — **MODIFIED.** Added `ADMIN_EMAILS` documentation.
+
+**Tests added:**
+- `admin-auth-guard.test.ts` — **7 Vitest tests.** Auth guard redirect logic, case-insensitive matching, comma-separated emails.
+- `credit-service.test.ts` — **20 Vitest tests.** checkCredit, consumeCredit, getCreditLimit, getNextResetDate, fail-open behavior.
+- `credit-gated-actions.test.ts` — **19 Vitest tests.** Static analysis verifying credit gate in 6 actions, non-gated exclusions.
+- `revenue-config-defaults.test.ts` — **12 Vitest tests.** Default values, revenue calculations with new defaults.
+- `positioning-banner.test.tsx` — **10 Vitest tests.** Rendering, dismissal, localStorage persistence, dashboard integration.
+- `26-admin-dashboard.spec.ts` — **13 E2E tests.** Auth guard redirects, admin page rendering (conditional on ADMIN_EMAILS).
+- `27-credits-system.spec.ts` — **8 E2E tests.** Credits meter, credit-gated page loads, positioning banner behavior.
+
+```bash
+npx vitest run src/__tests__/unit/admin-auth-guard.test.ts        # 7 tests
+npx vitest run src/__tests__/unit/credit-service.test.ts          # 20 tests
+npx vitest run src/__tests__/unit/credit-gated-actions.test.ts    # 19 tests
+npx vitest run src/__tests__/unit/revenue-config-defaults.test.ts # 12 tests
+npx vitest run src/__tests__/unit/positioning-banner.test.tsx     # 10 tests
+npx vitest run                                                      # all — no regressions
+npx tsc --noEmit                                                    # 0 type errors
+```
+
 ---
 > **End of Development Log**

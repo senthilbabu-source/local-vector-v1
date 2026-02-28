@@ -130,8 +130,8 @@ describe('fetchRevenueImpact', () => {
       locationData: { avg_customer_value: null, monthly_covers: null },
     });
     const result = await fetchRevenueImpact(supabase, TEST_ORG_ID, TEST_LOC_ID);
-    expect(result.config.avgCustomerValue).toBe(45);
-    expect(result.config.monthlyCovers).toBe(800);
+    expect(result.config.avgCustomerValue).toBe(55);
+    expect(result.config.monthlyCovers).toBe(1800);
   });
 
   it('4. computes SOV gaps from evaluations with null rank_position', async () => {

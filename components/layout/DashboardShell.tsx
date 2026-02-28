@@ -18,6 +18,7 @@ interface DashboardShellProps {
   locations?: LocationOption[];
   selectedLocationId?: string | null;
   badgeCounts?: Record<string, string | null>;
+  credits?: { credits_used: number; credits_limit: number; reset_date: string } | null;
 }
 
 // ---------------------------------------------------------------------------
@@ -37,6 +38,7 @@ export default function DashboardShell({
   locations,
   selectedLocationId,
   badgeCounts,
+  credits,
 }: DashboardShellProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
@@ -73,6 +75,7 @@ export default function DashboardShell({
           orgName={orgName}
           displayName={displayName}
           plan={plan}
+          credits={credits}
         />
 
         {/* Main content area */}

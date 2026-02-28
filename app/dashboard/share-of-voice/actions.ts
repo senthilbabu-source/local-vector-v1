@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
 import { getSafeAuthContext } from '@/lib/auth';
+import { checkCredit, consumeCredit } from '@/lib/credits/credit-service';
 import { z } from 'zod';
 import {
   AddQuerySchema,
@@ -238,6 +239,12 @@ export async function runSovEvaluation(input: RunSovInput): Promise<ActionResult
     return { success: false, error: 'Unauthorized' };
   }
 
+  // Sprint D: Credit check before LLM call
+  const creditCheck = await checkCredit(ctx.orgId);
+  if (!creditCheck.ok && creditCheck.reason === 'insufficient_credits') {
+    return { success: false, error: 'credit_limit_reached' };
+  }
+
   // ── Input validation ──────────────────────────────────────────────────────
   const parsed = RunSovSchema.safeParse(input);
   if (!parsed.success) {
@@ -314,6 +321,10 @@ export async function runSovEvaluation(input: RunSovInput): Promise<ActionResult
   }
 
   revalidatePath('/dashboard/share-of-voice');
+
+  // Sprint D: Consume credit after successful LLM operation
+  if (creditCheck.ok) await consumeCredit(ctx.orgId);
+
   return { success: true };
 }
 

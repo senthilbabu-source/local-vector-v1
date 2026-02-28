@@ -70,9 +70,14 @@ export interface RevenueImpactResult {
 
 // ── Constants ─────────────────────────────────────────────────────────────
 
+/**
+ * Restaurant-optimized default revenue configuration.
+ * Modeled after Charcoal N Chill (hookah lounge + fusion restaurant, Alpharetta GA).
+ * Sprint D (M4): $55 avg check (food + hookah premium), 60 covers/night × 30 days.
+ */
 export const DEFAULT_REVENUE_CONFIG: RevenueConfig = {
-  avgCustomerValue: 45,
-  monthlyCovers: 800,
+  avgCustomerValue: 55,
+  monthlyCovers: 1800,
 };
 
 /** Estimated monthly AI-assisted searches per query category */

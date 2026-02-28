@@ -916,6 +916,28 @@ CREATE TABLE IF NOT EXISTS "public"."sidebar_badge_state" (
 ALTER TABLE "public"."sidebar_badge_state" OWNER TO "postgres";
 
 
+CREATE TABLE IF NOT EXISTS "public"."api_credits" (
+    "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
+    "org_id" "uuid" NOT NULL,
+    "plan" "text" NOT NULL,
+    "credits_used" integer DEFAULT 0 NOT NULL,
+    "credits_limit" integer NOT NULL,
+    "reset_date" timestamp with time zone NOT NULL,
+    "created_at" timestamp with time zone DEFAULT "now"() NOT NULL,
+    "updated_at" timestamp with time zone DEFAULT "now"() NOT NULL,
+    CONSTRAINT "api_credits_credits_non_negative" CHECK (("credits_used" >= 0)),
+    CONSTRAINT "api_credits_limit_positive" CHECK (("credits_limit" > 0))
+);
+
+
+ALTER TABLE "public"."api_credits" OWNER TO "postgres";
+
+
+ALTER TABLE ONLY "public"."api_credits"
+    ADD CONSTRAINT "api_credits_pkey" PRIMARY KEY ("id");
+
+
+
 ALTER TABLE ONLY "public"."ai_audits"
     ADD CONSTRAINT "ai_audits_pkey" PRIMARY KEY ("id");
 
@@ -1164,6 +1186,12 @@ ALTER TABLE ONLY "public"."sidebar_badge_state"
 
 
 
+CREATE UNIQUE INDEX "idx_api_credits_org_id" ON "public"."api_credits" USING "btree" ("org_id");
+
+
+CREATE INDEX "idx_api_credits_usage" ON "public"."api_credits" USING "btree" ("credits_used" DESC);
+
+
 CREATE INDEX "idx_ai_evaluations_location" ON "public"."ai_evaluations" USING "btree" ("location_id");
 
 
@@ -1401,6 +1429,11 @@ ALTER TABLE ONLY "public"."ai_audits"
 
 ALTER TABLE ONLY "public"."ai_audits"
     ADD CONSTRAINT "ai_audits_org_id_fkey" FOREIGN KEY ("org_id") REFERENCES "public"."organizations"("id") ON DELETE CASCADE;
+
+
+
+ALTER TABLE ONLY "public"."api_credits"
+    ADD CONSTRAINT "api_credits_org_id_fkey" FOREIGN KEY ("org_id") REFERENCES "public"."organizations"("id") ON DELETE CASCADE;
 
 
 
@@ -1712,6 +1745,9 @@ CREATE POLICY "Users can update their own profile." ON "public"."users" FOR UPDA
 ALTER TABLE "public"."ai_audits" ENABLE ROW LEVEL SECURITY;
 
 
+ALTER TABLE "public"."api_credits" ENABLE ROW LEVEL SECURITY;
+
+
 ALTER TABLE "public"."ai_evaluations" ENABLE ROW LEVEL SECURITY;
 
 
@@ -1887,6 +1923,10 @@ CREATE POLICY "org_isolation_insert" ON "public"."target_queries" FOR INSERT WIT
 
 
 CREATE POLICY "org_isolation_select" ON "public"."ai_audits" FOR SELECT USING (("org_id" = "public"."current_user_org_id"()));
+
+
+
+CREATE POLICY "Users can read own org credits" ON "public"."api_credits" FOR SELECT USING (("org_id" IN (SELECT "memberships"."org_id" FROM "public"."memberships" WHERE ("memberships"."user_id" = (SELECT "users"."id" FROM "public"."users" WHERE ("users"."auth_provider_id" = "auth"."uid"()))))));
 
 
 

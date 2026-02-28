@@ -12,7 +12,7 @@ LocalVector is an AEO/GEO SaaS platform that helps local businesses monitor and 
 - **Billing:** Stripe webhooks → `organizations.plan_tier` enum (`trial | starter | growth | agency`)
 - **Email:** Resend + React Email (`emails/`)
 - **Cache:** Upstash Redis (`lib/redis.ts`) — optional, all callers must degrade gracefully
-- **Testing:** Vitest (unit/integration in `src/__tests__/`), Playwright (E2E in `tests/e2e/`, 25 specs). Current: 2748 tests, 197 files.
+- **Testing:** Vitest (unit/integration in `src/__tests__/`), Playwright (E2E in `tests/e2e/`, 27 specs). Current: 2816 tests, 202 files.
 - **Monitoring:** Sentry (client, server, edge configs) — all catch blocks instrumented (Sprint A, AI_RULES §70)
 
 ## Architecture Rules
@@ -47,6 +47,7 @@ app/dashboard/share-of-voice/   — SOV page + Content Brief Generator (Sprint 8
 app/dashboard/cluster-map/     — AI Visibility Cluster Map (Sprint 87)
 app/dashboard/settings/team/  — Team Management page (Sprint 98)
 app/(public)/invite/[token]/  — Invite acceptance page (Sprint 98)
+app/admin/                    — Admin dashboard: customers, API usage, cron health, revenue (Sprint D)
 app/onboarding/connect/       — GBP OAuth interstitial + location picker (Sprint 89)
 lib/schema-generator/        — Pure JSON-LD generators: FAQ, Hours, LocalBusiness, ReserveAction, OrderAction (Sprint 70/84)
 lib/ai/                — AI provider config, schemas, actions
@@ -61,13 +62,16 @@ lib/tooltip-content.tsx   — InfoTooltip content SSOT: 10 metric tooltip entrie
 lib/plan-feature-matrix.ts — Plan feature comparison matrix: 24 rows, 6 categories (Sprint B, §75)
 lib/integrations/platform-config.ts — Platform sync type SSOT: real_oauth/manual_url/coming_soon (Sprint C, §76)
 lib/stripe/get-monthly-cost-per-seat.ts — Stripe per-seat cost fetch (Sprint C, §78)
+lib/credits/credit-limits.ts  — Plan credit limits SSOT: trial=25, starter=100, growth=500, agency=2000 (Sprint D, §82)
+lib/credits/credit-service.ts — Credit check/consume service, fail-open design (Sprint D, §82)
+lib/admin/format-relative-date.ts — Intl.RelativeTimeFormat utility for admin pages (Sprint D, §81)
 lib/mcp/               — MCP server tool registrations
 lib/supabase/database.types.ts — Full Database type (33 tables, 9 enums, Relationships)
-supabase/migrations/   — Applied SQL migrations (36, timestamp-ordered)
+supabase/migrations/   — Applied SQL migrations (38, timestamp-ordered)
 supabase/prod_schema.sql — Full production schema dump
 docs/                  — 50 spec documents (authoritative for planned features)
 src/__tests__/         — Unit + integration tests
-tests/e2e/             — Playwright E2E tests (25 specs)
+tests/e2e/             — Playwright E2E tests (27 specs)
 ```
 
 ## Database Tables (Key Ones)
@@ -75,7 +79,8 @@ tests/e2e/             — Playwright E2E tests (25 specs)
 | Table | Purpose |
 |-------|---------|
 | `organizations` | Tenant root — has `plan_tier`, `plan_status`, notification prefs (`notify_hallucination_alerts`, `notify_weekly_digest`, `notify_sov_alerts`), AI monitoring prefs (`monitored_ai_models text[]`, `score_drop_threshold integer`, `webhook_url text` — Sprint B) |
-| `locations` | Business locations per org. Revenue config: `avg_customer_value` (numeric, default 45), `monthly_covers` (integer, default 800) |
+| `locations` | Business locations per org. Revenue config: `avg_customer_value` (numeric, default 55), `monthly_covers` (integer, default 1800) |
+| `api_credits` | Per-org monthly API credit tracking. One active row per org (unique on `org_id`). `credits_used`, `credits_limit`, `reset_date`, `plan`. RLS: users can SELECT own org's credits via memberships join. `increment_credits_used()` RPC for atomic increment. (Sprint D) |
 | `target_queries` | SOV query library per location. Columns: `query_category` (discovery/comparison/occasion/near_me/custom), `occasion_tag`, `intent_modifier`, `is_active` (soft-disable toggle). UNIQUE on `(location_id, query_text)`. |
 | `sov_evaluations` | Per-query SOV results (engine, rank, competitors, `sentiment_data` JSONB, `source_mentions` JSONB) |
 | `visibility_analytics` | Aggregated SOV scores per snapshot date |
@@ -132,6 +137,7 @@ tests/e2e/             — Playwright E2E tests (25 specs)
 35. `20260303000001_memberships_rls.sql` — ENABLE RLS + 4 org isolation policies on `memberships` (FIX-2)
 36. `20260304000001_sprint_b_settings_expansion.sql` — `monitored_ai_models text[]`, `score_drop_threshold integer`, `webhook_url text` on `organizations` (Sprint B)
 37. `20260305000001_clear_false_integrations.sql` — Reset false 'connected' statuses for non-google/non-wordpress platforms to 'disconnected' (Sprint C)
+38. `20260306000001_api_credits.sql` — `api_credits` table for per-org monthly credit tracking + `increment_credits_used()` RPC + RLS (Sprint D)
 
 ## Testing Commands
 
@@ -151,6 +157,7 @@ OPENAI_API_KEY, PERPLEXITY_API_KEY, ANTHROPIC_API_KEY, GOOGLE_GENERATIVE_AI_API_
 CRON_SECRET, STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET, RESEND_API_KEY
 GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET
 UPSTASH_REDIS_REST_URL, UPSTASH_REDIS_REST_TOKEN
+ADMIN_EMAILS
 ```
 
 ---
@@ -185,6 +192,8 @@ UPSTASH_REDIS_REST_URL, UPSTASH_REDIS_REST_TOKEN
 | Cluster Map | `lib/services/cluster-map.service.ts` + `lib/data/cluster-map.ts` | Scatter plot visualization: Brand Authority (X) × Fact Accuracy (Y) × SOV bubble size. Hallucination fog overlay from Fear Engine (severity-scaled red zones). Engine toggle for per-AI-model view (Perplexity/ChatGPT/Gemini/Copilot). Pure service, no AI calls, no new tables — aggregates from sov_evaluations + ai_hallucinations + visibility_analytics. Recharts ScatterChart with custom dot renderer. UI at `/dashboard/cluster-map`. |
 | GBP Mapper | `docs/RFC_GBP_ONBOARDING_V2_REPLACEMENT.md` | Maps GBP API responses to LocalVector location rows. Pure functions: `mapGBPLocationToRow()` + `mapGBPHours()`. Auto-import (1 loc) or cookie-pointer picker (2+ locs). Onboarding interstitial at `/onboarding/connect`. |
 | Multi-User Roles | `lib/auth/org-roles.ts` | Role hierarchy (viewer/member=0, admin=1, owner=2) + `roleSatisfies()` + `assertOrgRole()` + `ROLE_PERMISSIONS` matrix. Token-based invitation flow via `pending_invitations` table. Team management at `/dashboard/settings/team`. Invite acceptance at `/invite/[token]`. Agency plan required for multi-user. |
+| Admin Dashboard | `app/admin/` | Operator visibility into customers, API usage, cron health, revenue. Auth guard via `ADMIN_EMAILS` env var. Uses `createServiceRoleClient()` for cross-org queries. 4 pages + shared components. |
+| Credit System | `lib/credits/credit-service.ts` + `lib/credits/credit-limits.ts` | Per-org monthly API credit limits. `checkCredit()` → LLM call → `consumeCredit()` pattern. Fail-open design. Auto-init + auto-reset. 6 credit-gated actions. Credits meter in TopBar. |
 
 ## Recent Fix Sprints
 
@@ -271,6 +280,15 @@ UPSTASH_REDIS_REST_URL, UPSTASH_REDIS_REST_TOKEN
 - Tests: 63 Vitest (cron-logger 16, sov-seed 23, weekly-digest-guard 8, get-monthly-cost-per-seat 11, content-draft-origin 5), 26 Playwright (24-listings-honest-state 8, 25-sprint-c-pages 18).
 - Result: 197 test files, 2748 tests pass. 1 migration.
 
+### Sprint D — Operate & Protect (2026-02-27)
+- **L1 — Admin Dashboard:** 4 admin pages (Customers, API Usage, Cron Health, Revenue) at `/admin/*`. Auth guard via `ADMIN_EMAILS` env var in `app/admin/layout.tsx`. Uses `createServiceRoleClient()` to bypass RLS. Shared components: AdminNav, AdminStatCard, PlanBadge. `lib/admin/format-relative-date.ts` utility.
+- **N1 — Credit/Usage System:** `api_credits` table (migration `20260306000001`). `lib/credits/credit-limits.ts` (plan limits SSOT) + `lib/credits/credit-service.ts` (checkCredit/consumeCredit, fail-open, auto-init, auto-reset). 6 credit-gated server actions: `simulateAIParsing`, `uploadMenuFile`, `uploadPosExport`, `runSovEvaluation`, `generateContentBrief`, `runCompetitorIntercept`. Credits meter in TopBar (green/amber/red battery bar). `increment_credits_used()` RPC for atomic increment.
+- **M4 — Revenue Config Defaults:** `avgCustomerValue`: 45→55, `monthlyCovers`: 800→1800 (restaurant-appropriate). `CHARCOAL_N_CHILL_REVENUE_CONFIG` fixture.
+- **M6 — Positioning Banner:** `components/ui/PositioningBanner.tsx` (Client Component, localStorage dismiss). Shows for orgs < 30 days, not in sample mode. Links to `/dashboard/ai-responses`.
+- AI_RULES: added §81 (Admin Auth Guard), §82 (Credit System), §83 (Revenue Defaults), §84 (Positioning Banner).
+- Tests: 68 Vitest (admin-auth-guard 7, credit-service 20, credit-gated-actions 19, revenue-config-defaults 12, positioning-banner 10), 21 Playwright (26-admin-dashboard 13, 27-credits-system 8).
+- Result: 202 test files, 2816 tests pass. 1 migration.
+
 ## Tier Completion Status
 
 | Tier | Sprints | Status | Gate |
@@ -282,6 +300,7 @@ UPSTASH_REDIS_REST_URL, UPSTASH_REDIS_REST_TOKEN
 | Sprint A | Stop the Bleeding | Complete | — |
 | Sprint B | First Impressions | Complete | — |
 | Sprint C | Hardening | Complete | — |
+| Sprint D | Operate & Protect | Complete | — |
 | Tier 4 | 102–106 | Gated | Sprint 102: Apple BC API approval. Sprint 103: Bing Places API approval. Sprint 104–106: no external gate. |
 | Tier 5 | 107–109 | Gated | 4–8 weeks of SOV baseline data required. SOV cron registered 2026-02-27. Sprint 107 earliest: 2026-03-27. |
 
@@ -299,4 +318,4 @@ No external dependencies. Can begin immediately. See AI_RULES §59.
 
 ## Build History
 
-See `DEVLOG.md` (project root) and `docs/DEVLOG.md` for the complete sprint-by-sprint build log. Current sprint: 101 (+ FIX-1 through FIX-6 + Sprint A + Sprint B + Sprint C). AI_RULES: §1–§80 (80 sections). Production readiness: all audit issues resolved.
+See `DEVLOG.md` (project root) and `docs/DEVLOG.md` for the complete sprint-by-sprint build log. Current sprint: 101 (+ FIX-1 through FIX-6 + Sprint A + Sprint B + Sprint C + Sprint D). AI_RULES: §1–§84 (84 sections). Production readiness: all audit issues resolved.

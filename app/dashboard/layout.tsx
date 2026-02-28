@@ -6,6 +6,9 @@ import { resolveActiveLocation } from '@/lib/location/active-location';
 import { getSidebarBadgeCounts, formatBadgeCount } from '@/lib/badges/badge-counts';
 import * as Sentry from '@sentry/nextjs';
 
+// Sprint D: Credits meter type
+type CreditsData = { credits_used: number; credits_limit: number; reset_date: string } | null;
+
 // ---------------------------------------------------------------------------
 // Dashboard Layout — Server Component
 //
@@ -108,6 +111,23 @@ export default async function DashboardLayout({
     }
   }
 
+  // ── Sprint D: Credits meter data ───────────────────────────────────────────
+  let credits: CreditsData = null;
+  if (ctx.orgId) {
+    try {
+      const creditsSupa = await createClient();
+      const { data } = await creditsSupa
+        .from('api_credits')
+        .select('credits_used, credits_limit, reset_date')
+        .eq('org_id', ctx.orgId)
+        .single();
+      credits = data;
+    } catch (err) {
+      Sentry.captureException(err, { tags: { file: 'dashboard/layout.tsx', sprint: 'D' } });
+      // Credits meter is non-critical — TopBar renders without it
+    }
+  }
+
   // ── Render ────────────────────────────────────────────────────────────────
   const displayName = ctx.fullName ?? ctx.email.split('@')[0];
   const orgName = ctx.orgName ?? 'Your Organization';
@@ -120,6 +140,7 @@ export default async function DashboardLayout({
       locations={locations}
       selectedLocationId={selectedLocationId}
       badgeCounts={badgeCounts}
+      credits={credits}
     >
       {children}
     </DashboardShell>

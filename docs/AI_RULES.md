@@ -1964,5 +1964,59 @@ Occasion-triggered content drafts MUST display "Occasion Engine" badge with Cale
 
 **Regression fix:** `weekly-digest-data.test.ts` updated — mock now tracks `sov_evaluations` calls with index (first=count guard, second=SOV wins data)
 
+## §81. Admin Dashboard Auth Guard (Sprint D)
+
+All `/admin/*` routes are protected by `ADMIN_EMAILS` env var in `app/admin/layout.tsx`.
+
+**Rules:**
+- `ADMIN_EMAILS` is a comma-separated list of emails, case-insensitive, whitespace-trimmed
+- Non-authenticated users → redirect to `/login`
+- Authenticated but non-admin users → redirect to `/dashboard`
+- Empty or unset `ADMIN_EMAILS` → all users redirected (admin panel locked)
+- Admin pages use `createServiceRoleClient()` to bypass RLS for cross-org queries
+- Admin nav: Customers | API Usage | Cron Health | Revenue | ← Dashboard
+- `/admin` root redirects to `/admin/customers`
+- `ADMIN_EMAILS` must be documented in `.env.local.example` (enforced by `env-completeness.test.ts`)
+
+## §82. Credit/Usage System (Sprint D)
+
+API credit system gates LLM-calling server actions with per-org monthly limits.
+
+**Rules:**
+- Table: `api_credits` (one active row per org, unique on `org_id`)
+- Plan limits: trial=25, starter=100, growth=500, agency=2000 (in `lib/credits/credit-limits.ts`)
+- Auto-initialize: first `checkCredit()` creates the row using the org's current plan
+- Auto-reset: when `reset_date` has passed, credits_used resets to 0 and reset_date advances to next month 1st
+- **Fail-open:** DB errors in credit service allow the operation (don't block users). Errors logged to Sentry.
+- **Consume-after-success:** Credits consumed AFTER successful LLM call, not before. If LLM fails, no credit consumed.
+- Credit-gated actions (6): `simulateAIParsing`, `uploadMenuFile`, `uploadPosExport`, `runSovEvaluation`, `generateContentBrief`, `runCompetitorIntercept`
+- **NOT credit-gated** (no LLM): `reauditPage`, `generateCorrection`, `addCompetitor`
+- Return `{ error: 'credit_limit_reached' }` when credits exhausted
+- Credits meter in TopBar: green (<80%), amber (80-99%), red (100%) progress bar
+- Atomic increment via `increment_credits_used(p_org_id)` RPC function (SECURITY DEFINER)
+
+## §83. Revenue Config Defaults (Sprint D)
+
+Default revenue config values are restaurant-industry-appropriate.
+
+**Rules:**
+- `DEFAULT_REVENUE_CONFIG` in `lib/services/revenue-impact.service.ts`
+- `avgCustomerValue`: 55 (not 45 — reflects hookah lounge + fusion food check average)
+- `monthlyCovers`: 1800 (not 800 — 60 covers/night × 30 days for full-service restaurant)
+- Fixture: `CHARCOAL_N_CHILL_REVENUE_CONFIG` in `src/__fixtures__/golden-tenant.ts` matches defaults
+
+## §84. Positioning Banner (Sprint D)
+
+One-time dismissible banner explaining LocalVector vs traditional SEO tools.
+
+**Rules:**
+- Component: `components/ui/PositioningBanner.tsx` (Client Component)
+- localStorage key: `lv_positioning_banner_dismissed` (permanent dismiss)
+- Shows when: org < 30 days old AND not in sample mode
+- Never shows simultaneously with SampleModeBanner
+- Dismiss button: `data-testid="positioning-banner-dismiss"`
+- Banner: `data-testid="positioning-banner"`
+- Links to `/dashboard/ai-responses` ("See what AI says about you")
+
 ---
 > **End of System Instructions**

@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { createClient } from '@/lib/supabase/server';
 import { getSafeAuthContext } from '@/lib/auth';
+import { checkCredit, consumeCredit } from '@/lib/credits/credit-service';
 import { toUniqueSlug } from '@/lib/utils/slug';
 import {
   CreateMagicMenuSchema,
@@ -288,9 +289,15 @@ export async function toggleMenuStatus(menuId: string): Promise<ActionResult> {
  */
 export async function simulateAIParsing(
   locationId: string
-): Promise<{ success: true; menu: MenuWorkspaceData } | { success: false; error: string }> {
+): Promise<{ success: true; menu: MenuWorkspaceData } | { success: false; error: string; creditsUsed?: number; creditsLimit?: number }> {
   const ctx = await getSafeAuthContext();
   if (!ctx?.orgId) return { success: false, error: 'Unauthorized' };
+
+  // Sprint D: Credit check before LLM call
+  const creditCheck = await checkCredit(ctx.orgId);
+  if (!creditCheck.ok && creditCheck.reason === 'insufficient_credits') {
+    return { success: false, error: 'credit_limit_reached', creditsUsed: creditCheck.creditsUsed, creditsLimit: creditCheck.creditsLimit };
+  }
 
   const supabase = await createClient();
 
@@ -373,6 +380,10 @@ export async function simulateAIParsing(
   }
 
   revalidatePath('/dashboard/magic-menus');
+
+  // Sprint D: Consume credit after successful LLM operation
+  if (creditCheck.ok) await consumeCredit(ctx.orgId);
+
   return { success: true, menu: updated };
 }
 
@@ -575,9 +586,15 @@ export async function uploadLocalVectorCsv(
  */
 export async function uploadPosExport(
   formData: FormData,
-): Promise<{ success: true; menu: MenuWorkspaceData } | { success: false; error: string }> {
+): Promise<{ success: true; menu: MenuWorkspaceData } | { success: false; error: string; creditsUsed?: number; creditsLimit?: number }> {
   const ctx = await getSafeAuthContext();
   if (!ctx?.orgId) return { success: false, error: 'Unauthorized' };
+
+  // Sprint D: Credit check before LLM call
+  const creditCheck = await checkCredit(ctx.orgId);
+  if (!creditCheck.ok && creditCheck.reason === 'insufficient_credits') {
+    return { success: false, error: 'credit_limit_reached', creditsUsed: creditCheck.creditsUsed, creditsLimit: creditCheck.creditsLimit };
+  }
 
   const file       = formData.get('file') as File | null;
   const locationId = formData.get('locationId') as string | null;
@@ -605,7 +622,12 @@ export async function uploadPosExport(
     };
   }
 
-  return saveExtractedMenu(ctx.orgId, locationId, 'csv-pos', menuData);
+  const result = await saveExtractedMenu(ctx.orgId, locationId, 'csv-pos', menuData);
+
+  // Sprint D: Consume credit after successful LLM operation
+  if (result.success && creditCheck.ok) await consumeCredit(ctx.orgId);
+
+  return result;
 }
 
 // ---------------------------------------------------------------------------
@@ -632,9 +654,15 @@ const MAX_MENU_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
  */
 export async function uploadMenuFile(
   formData: FormData,
-): Promise<{ success: true; menu: MenuWorkspaceData } | { success: false; error: string }> {
+): Promise<{ success: true; menu: MenuWorkspaceData } | { success: false; error: string; creditsUsed?: number; creditsLimit?: number }> {
   const ctx = await getSafeAuthContext();
   if (!ctx?.orgId) return { success: false, error: 'Unauthorized' };
+
+  // Sprint D: Credit check before LLM call
+  const creditCheck = await checkCredit(ctx.orgId);
+  if (!creditCheck.ok && creditCheck.reason === 'insufficient_credits') {
+    return { success: false, error: 'credit_limit_reached', creditsUsed: creditCheck.creditsUsed, creditsLimit: creditCheck.creditsLimit };
+  }
 
   const file       = formData.get('file') as File | null;
   const locationId = formData.get('locationId') as string | null;
@@ -709,7 +737,12 @@ export async function uploadMenuFile(
       })),
     };
 
-    return saveExtractedMenu(ctx.orgId, locationId, 'csv-pos', menuData);
+    const result = await saveExtractedMenu(ctx.orgId, locationId, 'csv-pos', menuData);
+
+    // Sprint D: Consume credit after successful LLM operation
+    if (result.success && creditCheck.ok) await consumeCredit(ctx.orgId);
+
+    return result;
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     console.error('[uploadMenuFile] GPT-4o Vision extraction failed:', msg);

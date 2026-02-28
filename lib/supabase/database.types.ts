@@ -75,6 +75,47 @@ export type Database = {
           },
         ];
       };
+      api_credits: {
+        Row: {
+          id: string;
+          org_id: string;
+          plan: string;
+          credits_used: number;
+          credits_limit: number;
+          reset_date: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          org_id: string;
+          plan: string;
+          credits_used?: number;
+          credits_limit: number;
+          reset_date: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          org_id?: string;
+          plan?: string;
+          credits_used?: number;
+          credits_limit?: number;
+          reset_date?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "api_credits_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: true;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       ai_evaluations: {
         Row: {
           id: string;
@@ -2044,6 +2085,10 @@ export type Database = {
       current_user_org_id: {
         Args: Record<string, never>;
         Returns: string;
+      };
+      increment_credits_used: {
+        Args: { p_org_id: string };
+        Returns: undefined;
       };
     };
     Enums: {

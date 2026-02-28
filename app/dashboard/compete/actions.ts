@@ -19,6 +19,7 @@ import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { createClient } from '@/lib/supabase/server';
 import { getSafeAuthContext } from '@/lib/auth';
+import { checkCredit, consumeCredit } from '@/lib/credits/credit-service';
 import { canRunCompetitorIntercept, maxCompetitors, type PlanTier } from '@/lib/plan-enforcer';
 import { runInterceptForCompetitor } from '@/lib/services/competitor-intercept.service';
 
@@ -181,6 +182,12 @@ export async function runCompetitorIntercept(competitorId: string): Promise<Acti
     return { success: false, error: 'Unauthorized' };
   }
 
+  // Sprint D: Credit check before LLM call
+  const creditCheck = await checkCredit(ctx.orgId);
+  if (!creditCheck.ok && creditCheck.reason === 'insufficient_credits') {
+    return { success: false, error: 'credit_limit_reached' };
+  }
+
   const supabase = await createClient();
 
   // ── Plan gate ─────────────────────────────────────────────────────────────
@@ -237,6 +244,10 @@ export async function runCompetitorIntercept(competitorId: string): Promise<Acti
   }
 
   revalidatePath('/dashboard/compete');
+
+  // Sprint D: Consume credit after successful LLM operation
+  if (creditCheck.ok) await consumeCredit(ctx.orgId);
+
   return { success: true };
 }
 

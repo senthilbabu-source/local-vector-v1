@@ -1,6 +1,7 @@
 'use server';
 
 import { getSafeAuthContext } from '@/lib/auth';
+import { checkCredit, consumeCredit } from '@/lib/credits/credit-service';
 import { createClient } from '@/lib/supabase/server';
 import { buildBriefStructure } from '@/lib/services/content-brief-builder.service';
 import { generateBriefContent } from '@/lib/services/content-brief-generator.service';
@@ -31,6 +32,12 @@ export async function generateContentBrief(
 ): Promise<GenerateBriefResult> {
   const ctx = await getSafeAuthContext();
   if (!ctx?.orgId) return { success: false, error: 'Unauthorized' };
+
+  // Sprint D: Credit check before LLM call
+  const creditCheck = await checkCredit(ctx.orgId);
+  if (!creditCheck.ok && creditCheck.reason === 'insufficient_credits') {
+    return { success: false, error: 'credit_limit_reached' };
+  }
 
   const supabase = await createClient();
 
@@ -163,6 +170,9 @@ export async function generateContentBrief(
 
   revalidatePath('/dashboard/content-drafts');
   revalidatePath('/dashboard/share-of-voice');
+
+  // Sprint D: Consume credit after successful LLM operation
+  if (creditCheck.ok) await consumeCredit(ctx.orgId);
 
   return { success: true, draftId: draft.id };
 }
