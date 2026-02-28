@@ -109,10 +109,14 @@ export default function SeatManagementCard() {
       </div>
 
       {/* Seat cost */}
-      {summary.monthlyCostPerSeat && (
+      {summary.monthlyCostPerSeat !== null ? (
         <p data-testid="seat-cost-display" className="text-xs text-slate-400 text-center">
           <CreditCard className="inline h-3 w-3 mr-1" />
           ${summary.monthlyCostPerSeat}/seat/month
+        </p>
+      ) : (
+        <p data-testid="seat-cost-display" className="text-xs text-slate-500 text-center">
+          Contact us for custom seat pricing
         </p>
       )}
 

@@ -12,6 +12,7 @@ import { getSafeAuthContext } from '@/lib/auth';
 import { createClient } from '@/lib/supabase/server';
 import { updateSeatQuantity } from '@/lib/stripe/seat-manager';
 import { isMultiUserPlan, SEAT_PLANS } from '@/lib/stripe/seat-plans';
+import { getMonthlyCostPerSeat } from '@/lib/stripe/get-monthly-cost-per-seat';
 import type { SeatManagerError } from '@/lib/stripe/seat-manager';
 
 // ---------------------------------------------------------------------------
@@ -187,7 +188,7 @@ export async function getSeatSummary(): Promise<{
     seatOverage: org?.seat_overage_count ?? 0,
     plan,
     subscriptionStatus: org?.plan_status ?? null,
-    monthlyCostPerSeat: null, // TODO: fetch from Stripe price when Agency pricing is configured
+    monthlyCostPerSeat: await getMonthlyCostPerSeat(SEAT_PLANS[plan]?.stripePriceId ?? null),
     isAgencyPlan: isAgency,
   };
 }

@@ -1,20 +1,20 @@
 'use client';
 
 // ---------------------------------------------------------------------------
-// PlatformRow — Sprint 27A: Big 6 + listing URL input
+// PlatformRow — Sprint 27A + Sprint C (C2: Honest Listings State)
 //
 // Renders one row in the Listings table for a single platform.
-// Supports all 6 NAP platforms (google, yelp, apple, facebook, tripadvisor, bing).
-//
-// New in Sprint 27A:
-//   • listingUrl prop + editable URL input (saved on blur via savePlatformUrl)
-//   • Deep Night theme (surface-dark / slate palette) consistent with dashboard
-//   • Platform config expanded to all Big 6
+// Three distinct UI states based on sync type:
+//   real_oauth  (google) — toggle, sync button, URL input
+//   manual_url  (yelp, tripadvisor) — "Manual" badge, URL input, external link
+//   coming_soon (apple, bing, facebook) — "Coming Soon" badge, grayed out
 // ---------------------------------------------------------------------------
 
 import { useState, useTransition, useRef } from 'react';
-import { toggleIntegration, mockSyncIntegration, savePlatformUrl } from '../actions';
+import { Globe, ExternalLink } from 'lucide-react';
+import { toggleIntegration, syncPlatform, savePlatformUrl } from '../actions';
 import { getListingHealth, healthBadge } from '../_utils/health';
+import { PLATFORM_SYNC_CONFIG } from '@/lib/integrations/platform-config';
 import type { Big6Platform } from '@/lib/schemas/integrations';
 
 // ---------------------------------------------------------------------------
@@ -130,13 +130,14 @@ export default function PlatformRow({ locationId, platform, integration }: Props
   const prevUrlRef = useRef(integration?.listing_url ?? '');
 
   const config = PLATFORM_CONFIG[platform];
+  const syncConfig = PLATFORM_SYNC_CONFIG[platform];
   const isConnected = integration?.status === 'connected';
   const statusKey = integration?.status ?? 'disconnected';
   const statusCfg = STATUS_CONFIG[statusKey] ?? STATUS_CONFIG.disconnected;
   const health = getListingHealth(integration);
   const healthCfg = healthBadge(health);
 
-  // ── Toggle connect / disconnect ──────────────────────────────────────────
+  // ── Toggle connect / disconnect (GBP only) ────────────────────────────────
   function handleToggle() {
     setError(null);
     setUrlSaved(false);
@@ -150,12 +151,12 @@ export default function PlatformRow({ locationId, platform, integration }: Props
     });
   }
 
-  // ── Trigger sync ─────────────────────────────────────────────────────────
+  // ── Trigger sync (GBP only) ───────────────────────────────────────────────
   function handleSync() {
     setError(null);
     setUrlSaved(false);
     startTransition(async () => {
-      const result = await mockSyncIntegration({
+      const result = await syncPlatform({
         location_id: locationId,
         platform: platform as 'google' | 'apple' | 'bing',
       });
@@ -182,12 +183,125 @@ export default function PlatformRow({ locationId, platform, integration }: Props
     });
   }
 
+  // ── Coming Soon state ─────────────────────────────────────────────────────
+  if (syncConfig.syncType === 'coming_soon') {
+    return (
+      <div
+        className="px-5 py-4 opacity-60"
+        data-testid={`platform-row-${platform}`}
+      >
+        <div className="flex items-center gap-4">
+          <span
+            className={[
+              'flex h-9 w-9 shrink-0 select-none items-center justify-center rounded-lg text-sm font-bold grayscale',
+              config.badgeClass,
+            ].join(' ')}
+            aria-hidden
+          >
+            {config.badge}
+          </span>
+
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-medium text-white">{config.name}</p>
+            <p className="text-xs text-slate-500">
+              {syncConfig.syncDescription}
+            </p>
+          </div>
+
+          <span
+            className="hidden shrink-0 items-center rounded-full bg-amber-100/10 px-2.5 py-0.5 text-xs font-medium text-amber-400 ring-1 ring-inset ring-amber-400/20 sm:inline-flex"
+            data-testid="coming-soon-badge"
+          >
+            Coming Soon
+          </span>
+        </div>
+      </div>
+    );
+  }
+
+  // ── Manual URL state (yelp, tripadvisor) ──────────────────────────────────
+  if (syncConfig.syncType === 'manual_url') {
+    return (
+      <div
+        className={[
+          'px-5 py-4 transition-opacity',
+          isPending ? 'opacity-50' : '',
+        ].join(' ')}
+        data-testid={`platform-row-${platform}`}
+      >
+        <div className="flex items-center gap-4">
+          <span
+            className={[
+              'flex h-9 w-9 shrink-0 select-none items-center justify-center rounded-lg text-sm font-bold',
+              config.badgeClass,
+            ].join(' ')}
+            aria-hidden
+          >
+            {config.badge}
+          </span>
+
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-medium text-white">{config.name}</p>
+            <p className="text-xs text-slate-500">
+              {syncConfig.syncDescription}
+            </p>
+          </div>
+
+          <span
+            className="hidden shrink-0 items-center gap-1 rounded-full bg-slate-400/10 px-2.5 py-0.5 text-xs font-medium text-slate-400 ring-1 ring-inset ring-slate-500/20 sm:inline-flex"
+            data-testid="manual-badge"
+          >
+            <Globe className="h-3 w-3" />
+            Manual
+          </span>
+
+          {syncConfig.claimUrl && (
+            <a
+              href={syncConfig.claimUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hidden shrink-0 items-center gap-1.5 rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-medium text-slate-300 transition hover:bg-white/10 sm:inline-flex"
+              data-testid="manage-external-link"
+            >
+              Manage on {config.name}
+              <ExternalLink className="h-3 w-3" />
+            </a>
+          )}
+        </div>
+
+        {/* Listing URL input */}
+        <div className="mt-3 pl-13">
+          <div className="flex items-center gap-2">
+            <input
+              type="url"
+              value={urlValue}
+              onChange={(e) => { setUrlValue(e.target.value); setUrlSaved(false); }}
+              onBlur={handleUrlBlur}
+              placeholder={`https://www.${platform}.com/your-business`}
+              disabled={isPending}
+              className="w-full max-w-md rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-xs text-slate-300 placeholder-slate-600 transition focus:border-signal-green/60 focus:outline-none focus:ring-1 focus:ring-signal-green/60 disabled:cursor-not-allowed disabled:opacity-50"
+              aria-label={`${config.name} listing URL`}
+            />
+            {urlSaved && (
+              <span className="shrink-0 text-xs font-medium text-emerald-400">Saved</span>
+            )}
+          </div>
+          {error && (
+            <p className="mt-1.5 text-xs font-medium text-red-400">{error}</p>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // ── Real OAuth state (google) — full functionality ────────────────────────
   return (
     <div
       className={[
         'px-5 py-4 transition-opacity',
         isPending ? 'opacity-50' : '',
       ].join(' ')}
+      data-testid={`platform-row-${platform}`}
     >
       {/* ── Main row (icon + name + status + toggle) ─────────────────── */}
       <div className="flex items-center gap-4">
@@ -239,8 +353,8 @@ export default function PlatformRow({ locationId, platform, integration }: Props
           </span>
         )}
 
-        {/* Sync Now button — only when connected (and toggle supports platform) */}
-        {isConnected && (platform === 'google' || platform === 'apple' || platform === 'bing') && (
+        {/* Sync Now button — only for real_oauth (GBP) when connected */}
+        {isConnected && (
           <button
             onClick={handleSync}
             disabled={isPending}
@@ -265,30 +379,28 @@ export default function PlatformRow({ locationId, platform, integration }: Props
           </button>
         )}
 
-        {/* Connect / Disconnect toggle */}
-        {(platform === 'google' || platform === 'apple' || platform === 'bing') && (
-          <button
-            onClick={handleToggle}
-            disabled={isPending}
-            role="switch"
-            aria-checked={isConnected}
-            aria-label={`${isConnected ? 'Disconnect from' : 'Connect to'} ${config.name}`}
+        {/* Connect / Disconnect toggle — GBP only */}
+        <button
+          onClick={handleToggle}
+          disabled={isPending}
+          role="switch"
+          aria-checked={isConnected}
+          aria-label={`${isConnected ? 'Disconnect from' : 'Connect to'} ${config.name}`}
+          className={[
+            'relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-signal-green focus:ring-offset-2 focus:ring-offset-midnight-slate disabled:cursor-not-allowed disabled:opacity-50',
+            isConnected ? 'bg-signal-green' : 'bg-slate-700',
+          ].join(' ')}
+        >
+          <span
             className={[
-              'relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-signal-green focus:ring-offset-2 focus:ring-offset-midnight-slate disabled:cursor-not-allowed disabled:opacity-50',
-              isConnected ? 'bg-signal-green' : 'bg-slate-700',
+              'inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition-transform',
+              isConnected ? 'translate-x-6' : 'translate-x-1',
             ].join(' ')}
-          >
-            <span
-              className={[
-                'inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition-transform',
-                isConnected ? 'translate-x-6' : 'translate-x-1',
-              ].join(' ')}
-            />
-          </button>
-        )}
+          />
+        </button>
       </div>
 
-      {/* ── Listing URL input (all platforms) ───────────────────────── */}
+      {/* ── Listing URL input ───────────────────────────────────────── */}
       <div className="mt-3 pl-13">
         <div className="flex items-center gap-2">
           <input

@@ -90,5 +90,14 @@ async function runInlineDigest() {
     }
   }
 
+  // Sprint C: log skip count for observability
+  if (skipped > 0) {
+    Sentry.captureMessage(`Weekly digest skipped ${skipped} orgs (no data or disabled)`, {
+      level: 'info',
+      tags: { cron: 'weekly-digest', sprint: 'C' },
+      extra: { sent, skipped, failed },
+    });
+  }
+
   return { sent, skipped, failed, total: (orgs ?? []).length };
 }

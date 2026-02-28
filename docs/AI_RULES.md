@@ -1889,5 +1889,80 @@ Billing page includes a full feature comparison matrix below the tier cards.
 - Current plan column is highlighted with `bg-electric-indigo/5` + "Your Plan" badge
 - `data-testid="plan-comparison-table"` on the table wrapper
 
+## §76. Honest Listings State — Platform Sync Types (Sprint C)
+
+The integrations page MUST distinguish between platforms with real API sync and platforms that only support manual tracking.
+
+**Architecture:**
+- `lib/integrations/platform-config.ts` — SSOT for platform sync types
+- Three sync types: `real_oauth` (google), `manual_url` (yelp, tripadvisor), `coming_soon` (apple, bing, facebook)
+- `PlatformRow.tsx` renders 3 distinct UI states based on sync type
+
+**Rules:**
+- NEVER fake a sync operation for non-Google platforms (no `setTimeout` mock syncs)
+- `syncPlatform()` returns error for non-google platforms — no silent no-op
+- `toggleIntegration()` only allows google platform
+- Coming Soon platforms show eta badge, grayed out, no inputs
+- Manual URL platforms show "Manual" badge + "Manage on {name}" external link
+- `data-testid` attributes: `platform-row-{platform}`, `coming-soon-badge`, `manual-badge`, `manage-external-link`, `listings-info-banner`
+- Migration `20260305000001` clears false 'connected' statuses for non-google/non-wordpress platforms
+
+## §77. Weekly Digest Scan-Data Guard (Sprint C)
+
+`fetchDigestForOrg()` MUST return null for orgs with no scan data. Prevents sending empty digest emails to new users.
+
+**Guard logic:**
+- After primary location check, count `sov_evaluations` rows for the org
+- If count === 0: return null (no scan data yet — SOV cron hasn't run)
+- `sov_evaluations` is the most reliable indicator — created by SOV cron on first successful scan
+
+**Rules:**
+- Guard runs BEFORE parallel data queries (fail-fast, saves DB calls)
+- Cron route logs skipped count via `Sentry.captureMessage()` at `info` level
+- Test mock for `sov_evaluations` must handle two calls: first for count guard, second for SOV wins data
+
+## §78. Stripe Per-Seat Cost Fetch (Sprint C)
+
+`monthlyCostPerSeat` in seat management MUST be fetched from Stripe, not hardcoded as null.
+
+**Architecture:**
+- `lib/stripe/get-monthly-cost-per-seat.ts` — `getMonthlyCostPerSeat(stripePriceId)` returns dollars or null
+- Price ID comes from `SEAT_PLANS[plan]?.stripePriceId` (env var `STRIPE_PRICE_ID_AGENCY_SEAT`)
+- Lazy Stripe client (same pattern as `seat-manager.ts`)
+
+**Rules:**
+- Null input → null output (no Stripe call)
+- Missing `STRIPE_SECRET_KEY` → null (graceful fallback, no crash)
+- Annual prices converted to monthly equivalent (`Math.round((unit_amount / 12) / 100)`)
+- Metered/variable pricing (no `unit_amount`) → null
+- All errors captured via Sentry, function returns null (never throws)
+- `SeatManagementCard` shows "Contact us for custom seat pricing" when null
+
+## §79. Content Draft Origin Tag (Sprint C)
+
+Occasion-triggered content drafts MUST display "Occasion Engine" badge with CalendarDays icon.
+
+**Rules:**
+- Badge label: "Occasion Engine" (not just "Occasion")
+- Badge color: violet (`bg-violet-400/10 text-violet-400 ring-violet-400/20`)
+- Icon: `CalendarDays` from lucide-react
+- `data-testid="draft-origin-tag"` on occasion badges, `data-testid="trigger-badge"` on other trigger types
+- No "View in Calendar" deep link (Calendar page doesn't support `?occasion=` params — deferred)
+
+## §80. Sprint C Test Coverage (Sprint C)
+
+**New unit tests (63 tests, 5 files):**
+- `cron-logger.test.ts` — 16 tests (logCronStart, logCronComplete, logCronFailed)
+- `sov-seed.test.ts` — 23 tests (seedSOVQueries, tier generation, dedup, occasion tags)
+- `weekly-digest-guard.test.ts` — 8 tests (scan-data guard, early null returns)
+- `get-monthly-cost-per-seat.test.ts` — 11 tests (Stripe mock, cents→dollars, annual→monthly)
+- `content-draft-origin.test.ts` — 5 tests (badge label, color, testid)
+
+**New E2E tests (26 tests, 2 files):**
+- `24-listings-honest-state.spec.ts` — 8 tests (info banner, Manual/Coming Soon badges, no fake sync)
+- `25-sprint-c-pages.spec.ts` — 18 tests (6 dashboard pages: source-intelligence, sentiment, agent-readiness, system-health, cluster-map, revenue-impact)
+
+**Regression fix:** `weekly-digest-data.test.ts` updated — mock now tracks `sov_evaluations` calls with index (first=count guard, second=SOV wins data)
+
 ---
 > **End of System Instructions**

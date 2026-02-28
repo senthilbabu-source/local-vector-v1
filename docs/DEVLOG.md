@@ -4,6 +4,57 @@
 
 ---
 
+## 2026-02-27 — Sprint C: Hardening — Honest Listings, Test Coverage, Digest Guard, Seat Cost, Origin Tags (Completed)
+
+**Problems fixed (5 items):**
+1. **C2 — Honest Listings State:** `mockSyncIntegration()` used `setTimeout(2000)` then wrote fake 'connected' status to DB for Apple/Bing. Users saw connected integrations that don't actually exist.
+2. **M1 — Test Coverage for Untested Services:** `cron-logger.ts` and `sov-seed.ts` had zero unit tests. 6 dashboard pages (source-intelligence, sentiment, agent-readiness, system-health, cluster-map, revenue-impact) had zero E2E coverage.
+3. **L2 — Weekly Digest Guard:** `fetchDigestForOrg()` sent digest emails to orgs with no scan data. New users received "Reality Score: —" emails.
+4. **H6 — `monthlyCostPerSeat: null`:** Agency billing showed `null` for per-seat cost instead of fetching from Stripe Price API.
+5. **L3 — Content Draft Origin Tag:** Occasion-triggered drafts showed generic "Occasion" badge without icon or descriptive label.
+
+**Changes:**
+
+*C2 — Honest Listings State:*
+- **`lib/integrations/platform-config.ts`** — NEW. SSOT for platform sync types: `real_oauth` (google), `manual_url` (yelp, tripadvisor), `coming_soon` (apple, bing, facebook). `PLATFORM_SYNC_CONFIG` record with `syncType`, `syncDescription`, optional `claimUrl`/`eta`.
+- **`app/dashboard/integrations/_components/PlatformRow.tsx`** — Rewritten to render 3 distinct UI states. Coming Soon: grayed out with "Coming Soon" badge + eta. Manual URL: "Manual" badge + "Manage on {name}" external link. Real OAuth (google): unchanged toggle/sync behavior.
+- **`app/dashboard/integrations/actions.ts`** — Replaced `mockSyncIntegration` (with `setTimeout(2000)` fake) with `syncPlatform` that returns error for non-google platforms. Updated `toggleIntegration` to reject non-google.
+- **`app/dashboard/integrations/page.tsx`** — Added info banner (`data-testid="listings-info-banner"`) explaining honest platform tracking. Updated footer text.
+- **`supabase/migrations/20260305000001_clear_false_integrations.sql`** — Cleans dirty 'connected' statuses for non-google/non-wordpress platforms.
+
+*M1 — Test Coverage:*
+- **`src/__tests__/unit/cron-logger.test.ts`** — NEW. 16 tests for `logCronStart`, `logCronComplete`, `logCronFailed`. Chainable Supabase mock.
+- **`src/__tests__/unit/sov-seed.test.ts`** — NEW. 23 tests for `seedSOVQueries`, tier generation, deduplication, occasion tags, null handling.
+- **`tests/e2e/24-listings-honest-state.spec.ts`** — NEW. 8 E2E tests for honest listings UI states.
+- **`tests/e2e/25-sprint-c-pages.spec.ts`** — NEW. 18 E2E smoke tests for 6 dashboard pages.
+- Note: `entity-auto-detect.test.ts`, `places-refresh.test.ts`, `gbp-token-refresh.test.ts` already existed — skipped.
+
+*L2 — Weekly Digest Guard:*
+- **`lib/data/weekly-digest.ts`** — Added scan-data guard after primary location check. Counts `sov_evaluations` rows for org — returns null if 0 (no scan data yet).
+- **`app/api/cron/weekly-digest/route.ts`** — Added Sentry info log when skipped > 0 orgs (no data or disabled).
+- **`src/__tests__/unit/weekly-digest-guard.test.ts`** — NEW. 8 tests for guard behavior.
+- **`src/__tests__/unit/weekly-digest-data.test.ts`** — FIXED. Updated mock to track `sov_evaluations` calls with index (first=count guard, second=SOV wins data).
+
+*H6 — Stripe Per-Seat Cost:*
+- **`lib/stripe/get-monthly-cost-per-seat.ts`** — NEW. Fetches monthly per-seat cost from Stripe Price. Handles null input, missing env var, annual→monthly conversion, metered pricing. Sentry capture on errors, returns null.
+- **`app/actions/seat-actions.ts`** — Replaced `monthlyCostPerSeat: null` with `await getMonthlyCostPerSeat(SEAT_PLANS[plan]?.stripePriceId ?? null)`.
+- **`app/dashboard/billing/_components/SeatManagementCard.tsx`** — Added "Contact us for custom seat pricing" fallback when cost is null.
+- **`src/__tests__/unit/get-monthly-cost-per-seat.test.ts`** — NEW. 11 tests (Stripe mock, cents→dollars, annual→monthly, Sentry capture).
+
+*L3 — Content Draft Origin Tag:*
+- **`app/dashboard/content-drafts/_components/ContentDraftCard.tsx`** — Updated occasion badge: label "Occasion Engine", violet color, CalendarDays icon, `data-testid="draft-origin-tag"`.
+- **`src/__tests__/unit/content-draft-origin.test.ts`** — NEW. 5 tests for badge rendering.
+
+**Tests added (89 new tests):**
+- Unit: 63 tests across 5 new files (cron-logger 16, sov-seed 23, weekly-digest-guard 8, get-monthly-cost-per-seat 11, content-draft-origin 5)
+- E2E: 26 tests across 2 new files (listings-honest-state 8, sprint-c-pages 18)
+
+**AI_RULES updates:** Added §76 (Honest Listings), §77 (Digest Guard), §78 (Stripe Seat Cost), §79 (Origin Tag), §80 (Sprint C Tests).
+
+**Result:** 197 test files, 2748 Vitest tests passing (+63). 0 failures. 1 migration added.
+
+---
+
 ## 2026-02-27 — Sprint B: First Impressions — Sample Data, InfoTooltips, Settings Expansion, Plan Comparison (Completed)
 
 **Problems fixed (4 items):**

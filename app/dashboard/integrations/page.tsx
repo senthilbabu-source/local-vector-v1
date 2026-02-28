@@ -188,6 +188,20 @@ export default async function IntegrationsPage() {
         </div>
       </div>
 
+      {/* ── Listings info banner (Sprint C: honest state) ────────────── */}
+      <div
+        className="rounded-lg border border-blue-500/20 bg-blue-500/5 px-4 py-3 text-sm text-blue-300"
+        data-testid="listings-info-banner"
+      >
+        <p className="font-medium text-blue-200">About your listings</p>
+        <p className="mt-1 text-blue-400">
+          <strong>Google Business Profile</strong> syncs automatically when connected.
+          For other platforms, LocalVector tracks your listing URL and monitors what
+          AI says about you across all sources — no API connection required.
+          Bing, Apple Maps, and Facebook automated sync is coming in 2026.
+        </p>
+      </div>
+
       {/* ── Summary strip ──────────────────────────────────────────── */}
       {locations.length > 0 && (
         <div className="flex flex-wrap gap-4">
@@ -361,9 +375,9 @@ export default async function IntegrationsPage() {
       {/* ── Informational footer note ───────────────────────────────── */}
       {locations.length > 0 && (
         <p className="text-center text-xs text-slate-600">
-          Google Business Profile OAuth is live. Yelp, Apple Maps,
-          Facebook, Tripadvisor, and Bing Places OAuth will be wired in future phases. Enter your
-          listing URLs now so AI engines can reference them immediately.
+          Google Business Profile syncs automatically via OAuth. For Yelp and
+          Tripadvisor, enter your listing URLs so AI engines can reference them
+          directly. Bing, Apple Maps, and Facebook automated sync coming 2026.
         </p>
       )}
 

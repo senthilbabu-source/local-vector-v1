@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from 'react';
 import Link from 'next/link';
+import { CalendarDays } from 'lucide-react';
 import { approveDraft, rejectDraft, archiveDraft, publishDraft } from '../actions';
 import type { PublishActionResult } from '../actions';
 
@@ -39,7 +40,7 @@ function triggerBadge(type: string): { label: string; classes: string } {
     case 'competitor_gap':
       return { label: 'Competitor Gap', classes: 'bg-alert-crimson/10 text-alert-crimson ring-alert-crimson/20' };
     case 'occasion':
-      return { label: 'Occasion', classes: 'bg-blue-400/10 text-blue-400 ring-blue-400/20' };
+      return { label: 'Occasion Engine', classes: 'bg-violet-400/10 text-violet-400 ring-violet-400/20' };
     case 'prompt_missing':
       return { label: 'Prompt Gap', classes: 'bg-purple-400/10 text-purple-400 ring-purple-400/20' };
     default:
@@ -193,9 +194,10 @@ export default function ContentDraftCard({ draft }: ContentDraftCardProps) {
       {/* ── Header: badges ─────────────────────────────────────── */}
       <div className="flex flex-wrap items-center gap-2 mb-3">
         <span
-          className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ring-1 ring-inset ${trigger.classes}`}
-          data-testid="trigger-badge"
+          className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ring-1 ring-inset ${trigger.classes}`}
+          data-testid={draft.trigger_type === 'occasion' ? 'draft-origin-tag' : 'trigger-badge'}
         >
+          {draft.trigger_type === 'occasion' && <CalendarDays className="h-2.5 w-2.5" aria-hidden="true" />}
           {trigger.label}
         </span>
         <span className="text-xs text-slate-600">{contentTypeLabel(draft.content_type)}</span>

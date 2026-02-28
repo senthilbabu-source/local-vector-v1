@@ -61,6 +61,19 @@ export async function fetchDigestForOrg(
 
   if (!location) return null;
 
+  // ── 3b. Scan data guard (Sprint C): skip orgs with no SOV evaluations ──
+  // New users who onboarded but haven't had a scan yet would receive a
+  // digest showing "Reality Score: —". Guard by checking for at least one
+  // sov_evaluations row (created by the SOV cron on first successful scan).
+  const { count: evalCount } = await supabase
+    .from('sov_evaluations')
+    .select('id', { count: 'exact', head: true })
+    .eq('org_id', orgId);
+
+  if ((evalCount ?? 0) === 0) {
+    return null; // No scan data yet — skip digest
+  }
+
   // ── 4. Parallel queries for digest content ──
   const oneWeekAgo = new Date();
   oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);

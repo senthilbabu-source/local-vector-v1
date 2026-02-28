@@ -12,7 +12,7 @@ LocalVector is an AEO/GEO SaaS platform that helps local businesses monitor and 
 - **Billing:** Stripe webhooks → `organizations.plan_tier` enum (`trial | starter | growth | agency`)
 - **Email:** Resend + React Email (`emails/`)
 - **Cache:** Upstash Redis (`lib/redis.ts`) — optional, all callers must degrade gracefully
-- **Testing:** Vitest (unit/integration in `src/__tests__/`), Playwright (E2E in `tests/e2e/`, 23 specs). Current: 2685 tests, 192 files.
+- **Testing:** Vitest (unit/integration in `src/__tests__/`), Playwright (E2E in `tests/e2e/`, 25 specs). Current: 2748 tests, 197 files.
 - **Monitoring:** Sentry (client, server, edge configs) — all catch blocks instrumented (Sprint A, AI_RULES §70)
 
 ## Architecture Rules
@@ -59,13 +59,15 @@ lib/plan-display-names.ts — Plan tier display name SSOT (Sprint A, AI_RULES §
 lib/sample-data/          — Sample data mode: sample-dashboard-data.ts + use-sample-mode.ts (Sprint B, §72)
 lib/tooltip-content.tsx   — InfoTooltip content SSOT: 10 metric tooltip entries (Sprint B, §73)
 lib/plan-feature-matrix.ts — Plan feature comparison matrix: 24 rows, 6 categories (Sprint B, §75)
+lib/integrations/platform-config.ts — Platform sync type SSOT: real_oauth/manual_url/coming_soon (Sprint C, §76)
+lib/stripe/get-monthly-cost-per-seat.ts — Stripe per-seat cost fetch (Sprint C, §78)
 lib/mcp/               — MCP server tool registrations
 lib/supabase/database.types.ts — Full Database type (33 tables, 9 enums, Relationships)
 supabase/migrations/   — Applied SQL migrations (36, timestamp-ordered)
 supabase/prod_schema.sql — Full production schema dump
 docs/                  — 50 spec documents (authoritative for planned features)
 src/__tests__/         — Unit + integration tests
-tests/e2e/             — Playwright E2E tests (23 specs)
+tests/e2e/             — Playwright E2E tests (25 specs)
 ```
 
 ## Database Tables (Key Ones)
@@ -129,6 +131,7 @@ tests/e2e/             — Playwright E2E tests (23 specs)
 34. `20260302000002_occasion_snooze_sidebar_badges.sql` — `occasion_snoozes` + `sidebar_badge_state` tables
 35. `20260303000001_memberships_rls.sql` — ENABLE RLS + 4 org isolation policies on `memberships` (FIX-2)
 36. `20260304000001_sprint_b_settings_expansion.sql` — `monitored_ai_models text[]`, `score_drop_threshold integer`, `webhook_url text` on `organizations` (Sprint B)
+37. `20260305000001_clear_false_integrations.sql` — Reset false 'connected' statuses for non-google/non-wordpress platforms to 'disconnected' (Sprint C)
 
 ## Testing Commands
 
@@ -258,6 +261,16 @@ UPSTASH_REDIS_REST_URL, UPSTASH_REDIS_REST_TOKEN
 - Tests: 39 Vitest (sample-data-mode 15, info-tooltip 11, plan-feature-matrix 13).
 - Result: 192 test files, 2685 tests pass. 1 migration.
 
+### Sprint C — Hardening (2026-02-27)
+- **C2 — Honest Listings State:** Replaced `mockSyncIntegration()` (fake `setTimeout(2000)` sync) with honest platform UI. Created `lib/integrations/platform-config.ts` — SSOT for 3 sync types: `real_oauth` (google), `manual_url` (yelp/tripadvisor), `coming_soon` (apple/bing/facebook). PlatformRow.tsx renders 3 distinct states. Migration `20260305000001` clears dirty connected statuses.
+- **M1 — Test Coverage:** Added unit tests for `cron-logger` (16 tests) and `sov-seed` (23 tests). E2E smoke tests for 6 untested dashboard pages (source-intelligence, sentiment, agent-readiness, system-health, cluster-map, revenue-impact). Skipped entity-auto-detect, places-refresh, gbp-token-refresh (already had tests).
+- **L2 — Weekly Digest Guard:** `fetchDigestForOrg()` now checks `sov_evaluations` count — returns null for orgs with 0 evaluations (no scan data). Prevents empty "Reality Score: —" emails to new users. Cron logs skipped count via `Sentry.captureMessage()`.
+- **H6 — Stripe Per-Seat Cost:** Created `lib/stripe/get-monthly-cost-per-seat.ts` — fetches monthly price from Stripe Price API. Handles null input, missing env var, annual→monthly conversion. `seat-actions.ts` now calls `getMonthlyCostPerSeat()` instead of hardcoded null. SeatManagementCard shows "Contact us for custom seat pricing" fallback.
+- **L3 — Content Draft Origin Tag:** ContentDraftCard occasion badge updated: label "Occasion Engine", violet color, CalendarDays icon, `data-testid="draft-origin-tag"`.
+- AI_RULES: added §76 (Honest Listings), §77 (Digest Guard), §78 (Stripe Seat Cost), §79 (Origin Tag), §80 (Sprint C Tests).
+- Tests: 63 Vitest (cron-logger 16, sov-seed 23, weekly-digest-guard 8, get-monthly-cost-per-seat 11, content-draft-origin 5), 26 Playwright (24-listings-honest-state 8, 25-sprint-c-pages 18).
+- Result: 197 test files, 2748 tests pass. 1 migration.
+
 ## Tier Completion Status
 
 | Tier | Sprints | Status | Gate |
@@ -268,6 +281,7 @@ UPSTASH_REDIS_REST_URL, UPSTASH_REDIS_REST_TOKEN
 | Production Fixes | FIX-1 – FIX-6 | Complete | — |
 | Sprint A | Stop the Bleeding | Complete | — |
 | Sprint B | First Impressions | Complete | — |
+| Sprint C | Hardening | Complete | — |
 | Tier 4 | 102–106 | Gated | Sprint 102: Apple BC API approval. Sprint 103: Bing Places API approval. Sprint 104–106: no external gate. |
 | Tier 5 | 107–109 | Gated | 4–8 weeks of SOV baseline data required. SOV cron registered 2026-02-27. Sprint 107 earliest: 2026-03-27. |
 
@@ -285,4 +299,4 @@ No external dependencies. Can begin immediately. See AI_RULES §59.
 
 ## Build History
 
-See `DEVLOG.md` (project root) and `docs/DEVLOG.md` for the complete sprint-by-sprint build log. Current sprint: 101 (+ FIX-1 through FIX-6 + Sprint A + Sprint B). AI_RULES: §1–§75 (75 sections). Production readiness: all audit issues resolved.
+See `DEVLOG.md` (project root) and `docs/DEVLOG.md` for the complete sprint-by-sprint build log. Current sprint: 101 (+ FIX-1 through FIX-6 + Sprint A + Sprint B + Sprint C). AI_RULES: §1–§80 (80 sections). Production readiness: all audit issues resolved.

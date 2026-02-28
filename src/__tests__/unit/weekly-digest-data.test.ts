@@ -112,7 +112,13 @@ function createMockSupabase(config: MockConfig = {}) {
   ];
   let hallCallIndex = 0;
 
-  tableResponses.sov_evaluations = createMockQueryBuilder({ data: config.sovWins ?? [], error: null });
+  // Sprint C: sov_evaluations is called twice — first for count guard, then for SOV wins data
+  const sovEvalCalls: ReturnType<typeof createMockQueryBuilder>[] = [
+    createMockQueryBuilder({ data: null, count: 10, error: null }), // guard: count > 0
+    createMockQueryBuilder({ data: config.sovWins ?? [], error: null }), // parallel: SOV wins
+  ];
+  let sovCallIndex = 0;
+
   tableResponses.crawler_hits_count = createMockQueryBuilder({ data: null, count: config.botVisitCount ?? 0, error: null });
   tableResponses.crawler_hits_blind = createMockQueryBuilder({ data: config.blindSpotData ?? [], error: null });
   tableResponses.target_queries = createMockQueryBuilder({ data: config.sovQueries ?? [], error: null });
@@ -125,6 +131,9 @@ function createMockSupabase(config: MockConfig = {}) {
     }
     if (table === 'ai_hallucinations') {
       return hallucinationCalls[hallCallIndex++] ?? hallucinationCalls[0];
+    }
+    if (table === 'sov_evaluations') {
+      return sovEvalCalls[sovCallIndex++] ?? sovEvalCalls[1];
     }
     if (table === 'crawler_hits') {
       const idx = crawlerCallIndex++;
