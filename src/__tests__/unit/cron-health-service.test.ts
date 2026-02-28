@@ -16,10 +16,10 @@ import {
 import { MOCK_CRON_RUN_SUCCESS, MOCK_CRON_RUN_FAILED } from '@/__fixtures__/golden-tenant';
 
 describe('buildCronHealthSummary', () => {
-  it('returns 5 jobs even with empty input', () => {
+  it('returns 7 jobs even with empty input', () => {
     const result = buildCronHealthSummary([]);
-    expect(result.jobs).toHaveLength(5);
-    expect(result.jobs.map((j) => j.cronName)).toEqual(['audit', 'sov', 'citation', 'content-audit', 'weekly-digest']);
+    expect(result.jobs).toHaveLength(7);
+    expect(result.jobs.map((j) => j.cronName)).toEqual(['audit', 'sov', 'citation', 'content-audit', 'weekly-digest', 'correction-follow-up', 'benchmarks']);
   });
 
   it('returns healthy status with empty input', () => {
@@ -112,8 +112,8 @@ describe('buildCronHealthSummary', () => {
     expect(auditJob.schedule).toBe('Daily 3 AM EST');
   });
 
-  it('CRON_REGISTRY has exactly 5 entries', () => {
-    expect(CRON_REGISTRY).toHaveLength(5);
+  it('CRON_REGISTRY has exactly 7 entries', () => {
+    expect(CRON_REGISTRY).toHaveLength(7);
   });
 
   it('handles timeout status as a failure', () => {

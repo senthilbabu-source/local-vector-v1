@@ -22,6 +22,7 @@ import { fetchHealthScore } from '@/lib/data/ai-health-score';
 import { fetchCrawlerAnalytics, type CrawlerSummary } from '@/lib/data/crawler-analytics';
 import { fetchCronHealth, type CronHealthSummary } from '@/lib/data/cron-health';
 import { fetchFreshnessAlerts, type FreshnessStatus } from '@/lib/data/freshness-alerts';
+import { fetchBenchmark, type BenchmarkData, type OrgLocationContext } from '@/lib/data/benchmarks';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -49,6 +50,7 @@ export type HallucinationRow = {
   first_detected_at: string;
   last_seen_at: string;
   occurrence_count: number;
+  follow_up_result: string | null; // Sprint F (N3): 'fixed' | 'recurring' | null
 };
 
 export interface DashboardData {
@@ -71,6 +73,8 @@ export interface DashboardData {
   hasPublishedMenu: boolean;
   cronHealth: CronHealthSummary | null;
   freshness: FreshnessStatus | null;
+  benchmark: BenchmarkData | null;       // Sprint F (N4)
+  locationContext: OrgLocationContext;    // Sprint F (N4)
 }
 
 // ---------------------------------------------------------------------------
@@ -99,8 +103,9 @@ export async function fetchDashboardData(orgId: string, locationId?: string | nu
   // Build location-scoped queries (Sprint 100: data isolation)
   let openQuery = supabase
     .from('ai_hallucinations')
+    // Cast: follow_up_result is a Sprint F (N3) column not yet in database.types.ts
     .select(
-      'id, severity, category, model_provider, claim_text, expected_truth, correction_status, first_detected_at, last_seen_at, occurrence_count'
+      'id, severity, category, model_provider, claim_text, expected_truth, correction_status, first_detected_at, last_seen_at, occurrence_count, follow_up_result' as 'id, severity, category, model_provider, claim_text, expected_truth, correction_status, first_detected_at, last_seen_at, occurrence_count'
     )
     .eq('correction_status', 'open')
     .order('last_seen_at', { ascending: false })
@@ -311,6 +316,19 @@ export async function fetchDashboardData(orgId: string, locationId?: string | nu
     // Freshness alerts are non-critical — dashboard renders without them.
   }
 
+  // ── Sprint F (N4): Benchmark Comparison ─────────────────────────────────
+  // Non-blocking — if benchmark fetch fails, benchmark is null.
+  let benchmark: BenchmarkData | null = null;
+  let locationContext: OrgLocationContext = { city: null, industry: null };
+  try {
+    const benchResult = await fetchBenchmark(supabase, orgId, locationId);
+    benchmark = benchResult.benchmark;
+    locationContext = benchResult.locationContext;
+  } catch (err) {
+    Sentry.captureException(err, { tags: { file: 'dashboard.ts', sprint: 'F' } });
+    // Benchmark is non-critical — dashboard renders without it.
+  }
+
   return {
     openAlerts,
     fixedCount: fixedResult.count ?? 0,
@@ -336,5 +354,7 @@ export async function fetchDashboardData(orgId: string, locationId?: string | nu
     hasPublishedMenu,
     cronHealth,
     freshness,
+    benchmark,
+    locationContext,
   };
 }

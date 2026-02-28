@@ -56,6 +56,8 @@ export const CRON_REGISTRY: CronRegistryEntry[] = [
   { cronName: 'citation', label: 'Citation Scan', schedule: '1st Sun Monthly' },
   { cronName: 'content-audit', label: 'Content Audit', schedule: '1st of Month 3 AM EST' },
   { cronName: 'weekly-digest', label: 'Weekly Digest', schedule: 'Weekly Mon 8 AM EST' },
+  { cronName: 'correction-follow-up', label: 'Correction Follow-Up', schedule: 'Daily 5 AM EST' },
+  { cronName: 'benchmarks', label: 'Benchmark Aggregation', schedule: 'Weekly Sun 3 AM EST' },
 ];
 
 // ---------------------------------------------------------------------------

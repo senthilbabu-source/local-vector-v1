@@ -42,6 +42,7 @@ import ProofTimelineCard from './_components/ProofTimelineCard';
 import CronHealthCard from './_components/CronHealthCard';
 import ContentFreshnessCard from './_components/ContentFreshnessCard';
 import EntityHealthCard from './_components/EntityHealthCard';
+import BenchmarkComparisonCard from './_components/BenchmarkComparisonCard';
 import OccasionAlertFeed from './_components/OccasionAlertFeed';
 import { getOccasionAlerts } from '@/lib/occasions/occasion-feed';
 import type { DashboardOccasionAlert } from '@/lib/occasions/occasion-feed';
@@ -82,6 +83,7 @@ export default async function DashboardPage() {
     sovTrend, hallucinationsByModel, competitorComparison,
     currentLeak, previousLeak, revenueConfig, revenueSnapshots, orgPlan, orgCreatedAt,
     healthScore, crawlerSummary, hasPublishedMenu, cronHealth, freshness,
+    benchmark, locationContext,
   } = await fetchDashboardData(ctx.orgId ?? '', activeLocationId);
 
   // ── Sprint 77: Proof Timeline summary card (Sprint 100: uses active location)
@@ -274,6 +276,13 @@ export default async function DashboardPage() {
       <ProofTimelineCard timeline={proofTimeline} />
       {/* Sprint 80: Entity Health Card */}
       <EntityHealthCard entityHealth={entityHealth} />
+      {/* Sprint F (N4): Benchmark Comparison Card */}
+      <BenchmarkComparisonCard
+        orgScore={displayScores.realityScore}
+        orgCity={locationContext.city}
+        orgIndustry={locationContext.industry}
+        benchmark={benchmark}
+      />
       {/* Sprint 89: GBP Import Card (Growth+ with GBP connected) */}
       {hasGBPConnection && <GBPImportCard gbpSyncedAt={gbpSyncedAt} />}
       {/* Sprint 76: Content Freshness + Cron Health Cards */}

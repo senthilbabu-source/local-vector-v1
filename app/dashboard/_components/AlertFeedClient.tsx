@@ -174,6 +174,8 @@ function AlertCardInteractive({
             hallucinationId={alert.id}
             canCreateDraft={canCreateDraft}
             onClose={onClose}
+            correctionStatus={alert.correction_status}
+            followUpResult={alert.follow_up_result}
           />
         </div>
       )}

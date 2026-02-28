@@ -64,3 +64,10 @@ export const SAMPLE_HALLUCINATIONS_BY_MODEL: ModelHallucinationData[] = [
 export const SAMPLE_FIXED_COUNT = 5;
 export const SAMPLE_INTERCEPTS_THIS_MONTH = 7;
 export const SAMPLE_OPEN_ALERT_COUNT = 2;
+
+// ── Sprint F (N4): Benchmark Comparison ──────────────────────────────────────
+// Matches BenchmarkData from lib/data/benchmarks.ts
+// In sample mode, show a "collecting" state (below threshold)
+import type { BenchmarkData } from '@/lib/data/benchmarks';
+export const SAMPLE_BENCHMARK: BenchmarkData | null = null; // Not yet available in sample mode
+export const SAMPLE_LOCATION_CONTEXT = { city: 'Alpharetta', industry: 'Restaurant' };

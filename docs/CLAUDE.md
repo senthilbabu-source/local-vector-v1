@@ -12,7 +12,7 @@ LocalVector is an AEO/GEO SaaS platform that helps local businesses monitor and 
 - **Billing:** Stripe webhooks → `organizations.plan_tier` enum (`trial | starter | growth | agency`)
 - **Email:** Resend + React Email (`emails/`)
 - **Cache:** Upstash Redis (`lib/redis.ts`) — optional, all callers must degrade gracefully
-- **Testing:** Vitest (unit/integration in `src/__tests__/`), Playwright (E2E in `tests/e2e/`, 28 specs). Current: 2881 tests, 207 files.
+- **Testing:** Vitest (unit/integration in `src/__tests__/`), Playwright (E2E in `tests/e2e/`, 28 specs). Current: 2922 tests, 211 files.
 - **Monitoring:** Sentry (client, server, edge configs) — all catch blocks instrumented (Sprint A, AI_RULES §70)
 
 ## Architecture Rules
@@ -28,7 +28,7 @@ LocalVector is an AEO/GEO SaaS platform that helps local businesses monitor and 
 ## Key Directories
 
 ```
-app/api/cron/          — Automated pipelines (sov, audit, content-audit, weekly-digest)
+app/api/cron/          — Automated pipelines (sov, audit, content-audit, weekly-digest, correction-follow-up, benchmarks)
 app/(auth)/            — Auth pages (login, register, forgot-password, reset-password)
 app/dashboard/         — Authenticated dashboard pages (each has error.tsx boundary)
 app/dashboard/citations/     — Citation Gap Dashboard (Sprint 58A)
@@ -65,14 +65,20 @@ lib/integrations/platform-config.ts — Platform sync type SSOT: real_oauth/manu
 lib/stripe/get-monthly-cost-per-seat.ts — Stripe per-seat cost fetch (Sprint C, §78)
 lib/credits/credit-limits.ts  — Plan credit limits SSOT: trial=25, starter=100, growth=500, agency=2000 (Sprint D, §82)
 lib/credits/credit-service.ts — Credit check/consume service, fail-open design (Sprint D, §82)
+lib/ai-preview/model-queries.ts — AI Answer Preview query functions: queryOpenAI, queryPerplexity, queryGemini (Sprint F, §90)
+lib/services/correction-verifier.service.ts — Correction follow-up verifier: checkCorrectionStatus, extractKeyPhrases (Sprint F, §91)
+lib/data/benchmarks.ts        — Benchmark data layer: fetchBenchmark for city+industry comparison (Sprint F, §92)
 lib/admin/format-relative-date.ts — Intl.RelativeTimeFormat utility for admin pages (Sprint D, §81)
 lib/mcp/               — MCP server tool registrations
 lib/supabase/database.types.ts — Full Database type (33 tables, 9 enums, Relationships)
-supabase/migrations/   — Applied SQL migrations (39, timestamp-ordered)
+supabase/migrations/   — Applied SQL migrations (40, timestamp-ordered)
 supabase/prod_schema.sql — Full production schema dump
 docs/                  — 50 spec documents (authoritative for planned features)
 src/__tests__/         — Unit + integration tests
 tests/e2e/             — Playwright E2E tests (28 specs)
+app/api/ai-preview/    — AI Answer Preview SSE endpoint (Sprint F, §90)
+app/dashboard/ai-responses/_components/ — AIAnswerPreviewWidget (Sprint F)
+app/dashboard/_components/BenchmarkComparisonCard.tsx — City benchmark comparison (Sprint F, §92)
 ```
 
 ## Database Tables (Key Ones)
@@ -85,7 +91,8 @@ tests/e2e/             — Playwright E2E tests (28 specs)
 | `target_queries` | SOV query library per location. Columns: `query_category` (discovery/comparison/occasion/near_me/custom), `occasion_tag`, `intent_modifier`, `is_active` (soft-disable toggle). UNIQUE on `(location_id, query_text)`. |
 | `sov_evaluations` | Per-query SOV results (engine, rank, competitors, `sentiment_data` JSONB, `source_mentions` JSONB) |
 | `visibility_analytics` | Aggregated SOV scores per snapshot date |
-| `ai_hallucinations` | Detected hallucinations with severity + status tracking |
+| `ai_hallucinations` | Detected hallucinations with severity + status tracking. Sprint F columns: `correction_query`, `verifying_since`, `follow_up_checked_at`, `follow_up_result` |
+| `benchmarks` | Pre-computed city+industry Reality Score averages. UNIQUE(city, industry). RLS: authenticated SELECT. Populated by weekly `compute_benchmarks()` RPC (Sprint F) |
 | `content_drafts` | AI-generated content awaiting human approval |
 | `competitor_intercepts` | Head-to-head competitor analysis results |
 | `local_occasions` | Seasonal event reference table |
@@ -140,6 +147,7 @@ tests/e2e/             — Playwright E2E tests (28 specs)
 37. `20260305000001_clear_false_integrations.sql` — Reset false 'connected' statuses for non-google/non-wordpress platforms to 'disconnected' (Sprint C)
 38. `20260306000001_api_credits.sql` — `api_credits` table for per-org monthly credit tracking + `increment_credits_used()` RPC + RLS (Sprint D)
 39. `20260307000001_orgs_industry.sql` — `industry text DEFAULT 'restaurant'` column on `organizations` for multi-vertical support (Sprint E)
+40. `20260308000001_sprint_f_engagement.sql` — N3: `correction_query`, `verifying_since`, `follow_up_checked_at`, `follow_up_result` on `ai_hallucinations`. N4: `benchmarks` table + RLS + `compute_benchmarks()` RPC (Sprint F)
 
 ## Testing Commands
 
@@ -196,6 +204,9 @@ ADMIN_EMAILS
 | Multi-User Roles | `lib/auth/org-roles.ts` | Role hierarchy (viewer/member=0, admin=1, owner=2) + `roleSatisfies()` + `assertOrgRole()` + `ROLE_PERMISSIONS` matrix. Token-based invitation flow via `pending_invitations` table. Team management at `/dashboard/settings/team`. Invite acceptance at `/invite/[token]`. Agency plan required for multi-user. |
 | Admin Dashboard | `app/admin/` | Operator visibility into customers, API usage, cron health, revenue. Auth guard via `ADMIN_EMAILS` env var. Uses `createServiceRoleClient()` for cross-org queries. 4 pages + shared components. |
 | Credit System | `lib/credits/credit-service.ts` + `lib/credits/credit-limits.ts` | Per-org monthly API credit limits. `checkCredit()` → LLM call → `consumeCredit()` pattern. Fail-open design. Auto-init + auto-reset. 6 credit-gated actions. Credits meter in TopBar. |
+| AI Answer Preview | `lib/ai-preview/model-queries.ts` + `app/api/ai-preview/route.ts` | On-demand query preview across 3 AI models (ChatGPT, Perplexity, Gemini). SSE streaming, credit-gated (1 credit/run). Widget at `/dashboard/ai-responses`. |
+| Correction Verifier | `lib/services/correction-verifier.service.ts` | Re-queries original AI model after 14 days to check if hallucination was corrected. Substring match on key phrases (phone, time, address, dollar). Used by daily correction-follow-up cron. |
+| Benchmark Comparison | `lib/data/benchmarks.ts` + `app/api/cron/benchmarks/route.ts` | Weekly city+industry Reality Score aggregation via `compute_benchmarks()` RPC. Dashboard card shows org vs city average when 10+ businesses exist. |
 
 ## Recent Fix Sprints
 
@@ -291,6 +302,16 @@ ADMIN_EMAILS
 - Tests: 68 Vitest (admin-auth-guard 7, credit-service 20, credit-gated-actions 19, revenue-config-defaults 12, positioning-banner 10), 21 Playwright (26-admin-dashboard 13, 27-credits-system 8).
 - Result: 202 test files, 2816 tests pass. 1 migration.
 
+### Sprint F — Engagement & Retention (2026-02-27)
+- **N2 — AI Answer Preview:** On-demand query preview widget on AI Responses page. 3 model cards (ChatGPT/Perplexity/Gemini) via SSE streaming. Credit-gated (1 credit/run). Model keys: `preview-chatgpt`, `preview-perplexity`, `preview-gemini`. API route: `app/api/ai-preview/route.ts`. Widget: `AIAnswerPreviewWidget.tsx`.
+- **N3 — Correction Follow-Up:** Daily cron re-checks verifying hallucinations after 14 days. `correction-verifier.service.ts` extracts key phrases (phone/time/address/dollar) and substring-matches against fresh AI response. Status transitions: verifying→fixed or verifying→recurring. CorrectionPanel shows follow-up banner.
+- **N4 — Benchmark Comparison:** Weekly cron aggregates city+industry scores via `compute_benchmarks()` RPC. BenchmarkComparisonCard shows "Collecting" (progress bar) or "Ready" (score vs avg, percentile, range bar). Display threshold: 10 orgs.
+- Migration: `20260308000001_sprint_f_engagement.sql` — N3 columns on `ai_hallucinations` + N4 `benchmarks` table + RPC.
+- Crons: 9 total in vercel.json, 7 in CRON_REGISTRY. Kill switches: `STOP_CORRECTION_FOLLOWUP_CRON`, `STOP_BENCHMARK_CRON`.
+- AI_RULES: added §90 (AI Answer Preview), §91 (Correction Follow-Up), §92 (Benchmark Comparison).
+- Tests: 41 Vitest (ai-preview-model-queries 9, correction-verifier 11, benchmark-card 10, sprint-f-registration 11).
+- Result: 211 test files, 2922 tests pass. 1 migration.
+
 ### Sprint E — Grow the Product: Medical/Dental Vertical Extension & Guided Tour Depth (2026-02-27)
 - **M5 — Medical/Dental Vertical Extension:** Industry configuration layer enabling multi-vertical support. `lib/industries/industry-config.ts` — SSOT with 4 verticals (restaurant, medical_dental active; legal, real_estate placeholder). `getIndustryConfig()` with null-safe restaurant fallback. Medical/dental SOV seed queries in `sov-seed.ts`. Schema.org types (Physician, Dentist, MedicalClinic) in `lib/schema-generator/medical-types.ts`. Dynamic sidebar icon/label via `orgIndustry` prop chain (layout.tsx → DashboardShell → Sidebar). Industry-aware Magic Menus page copy. Golden tenant fixture (`ALPHARETTA_FAMILY_DENTAL`).
 - **M2 — Guided Tour Depth:** Expanded GuidedTour from 5 to 8 steps (added Share of Voice, Citations, Revenue Impact). `TOUR_STEPS` exported for testing. Created `components/ui/FirstVisitTooltip.tsx` — one-time per-page informational tooltip using localStorage `lv_visited_pages`. Wired into 5 pages: entity-health, agent-readiness, cluster-map, sentiment, crawler-analytics.
@@ -311,6 +332,7 @@ ADMIN_EMAILS
 | Sprint C | Hardening | Complete | — |
 | Sprint D | Operate & Protect | Complete | — |
 | Sprint E | Grow the Product | Complete | — |
+| Sprint F | Engagement & Retention | Complete | — |
 | Tier 4 | 102–106 | Gated | Sprint 102: Apple BC API approval. Sprint 103: Bing Places API approval. Sprint 104–106: no external gate. |
 | Tier 5 | 107–109 | Gated | 4–8 weeks of SOV baseline data required. SOV cron registered 2026-02-27. Sprint 107 earliest: 2026-03-27. |
 
@@ -328,4 +350,4 @@ No external dependencies. Can begin immediately. See AI_RULES §59.
 
 ## Build History
 
-See `DEVLOG.md` (project root) and `docs/DEVLOG.md` for the complete sprint-by-sprint build log. Current sprint: 101 (+ FIX-1 through FIX-6 + Sprint A + Sprint B + Sprint C + Sprint D + Sprint E). AI_RULES: §1–§89 (89 sections). Production readiness: all audit issues resolved.
+See `DEVLOG.md` (project root) and `docs/DEVLOG.md` for the complete sprint-by-sprint build log. Current sprint: 101 (+ FIX-1 through FIX-6 + Sprint A + Sprint B + Sprint C + Sprint D + Sprint E + Sprint F). AI_RULES: §1–§92 (92 sections). Production readiness: all audit issues resolved.

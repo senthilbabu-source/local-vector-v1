@@ -157,7 +157,7 @@ export async function verifyHallucinationFix(
   // ── Fetch hallucination (RLS-scoped) ──────────────────────────────────────
   const { data: hallucination, error: fetchError } = await supabase
     .from('ai_hallucinations')
-    .select('id, location_id, claim_text, correction_status')
+    .select('id, location_id, claim_text, correction_status, model_provider')
     .eq('id', hallucination_id)
     .single();
 
@@ -177,11 +177,14 @@ export async function verifyHallucinationFix(
   }
 
   // ── Mark as verifying ─────────────────────────────────────────────────────
+  // Sprint F (N3): Set verifying_since + correction_query for the follow-up cron
   await supabase
     .from('ai_hallucinations')
     .update({
       correction_status: 'verifying',
       last_seen_at: new Date().toISOString(),
+      verifying_since: new Date().toISOString(),
+      correction_query: hallucination.claim_text,
     })
     .eq('id', hallucination_id);
 

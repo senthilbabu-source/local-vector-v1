@@ -27,6 +27,14 @@
     {
       "path": "/api/cron/content-audit",
       "schedule": "0 8 1 * *"
+    },
+    {
+      "path": "/api/cron/correction-follow-up",
+      "schedule": "0 10 * * *"
+    },
+    {
+      "path": "/api/cron/benchmarks",
+      "schedule": "0 8 * * 0"
     }
   ]
 }

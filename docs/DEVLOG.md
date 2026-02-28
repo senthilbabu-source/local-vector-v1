@@ -4,6 +4,57 @@
 
 ---
 
+## 2026-02-27 — Sprint F: Engagement & Retention — AI Answer Preview, Correction Follow-Up, Benchmark Comparison (Completed)
+
+**Features implemented (3 items):**
+1. **N2 — On-Demand AI Answer Preview:** Widget on AI Responses page lets users type any query and see live responses from ChatGPT (gpt-4o-mini), Perplexity (sonar), and Gemini (2.0-flash). SSE streaming for real-time model card updates. Credit-gated (1 credit per composite run) via Sprint D credit system.
+2. **N3 — Correction Follow-Up ("Did It Work?" Loop):** Daily cron that re-checks hallucinations 14 days after correction brief generation. Re-queries the original AI model with the stored claim, compares response against extracted key phrases (phone numbers, times, addresses, dollar amounts). Updates status to `fixed` or `recurring`. CorrectionPanel shows follow-up status banner.
+3. **N4 — Benchmark Comparison ("You vs. City Average"):** Weekly cron aggregating city+industry Reality Scores via `compute_benchmarks()` RPC. BenchmarkComparisonCard on dashboard shows two states: "Collecting" (progress bar toward 10-org threshold) and "Ready" (score vs average, percentile label, min/max range bar).
+
+**Changes:**
+
+*N2 — AI Answer Preview:*
+- **`lib/ai/providers.ts`** — MODIFIED. Added 3 model keys: `preview-chatgpt` (gpt-4o-mini), `preview-perplexity` (sonar), `preview-gemini` (gemini-2.0-flash).
+- **`lib/ai-preview/model-queries.ts`** — NEW. `queryOpenAI()`, `queryPerplexity()`, `queryGemini()` functions using Vercel AI SDK `generateText()`. Each checks `hasApiKey()` before calling.
+- **`app/api/ai-preview/route.ts`** — NEW. SSE streaming POST endpoint. Auth via `getSafeAuthContext()`, credit check via `checkCredit()`, query validation (3-200 chars), 3 concurrent model calls via `Promise.allSettled`, consumes 1 credit after completion.
+- **`app/dashboard/ai-responses/_components/AIAnswerPreviewWidget.tsx`** — NEW. Client component with query input, "Run Preview" button, 3 model response cards with loading skeletons.
+- **`app/dashboard/ai-responses/page.tsx`** — MODIFIED. Wired AIAnswerPreviewWidget above stored responses section.
+
+*N3 — Correction Follow-Up:*
+- **`lib/services/correction-verifier.service.ts`** — NEW. `checkCorrectionStatus()` re-queries original model, `extractKeyPhrases()` extracts phone/time/address/dollar patterns for substring matching.
+- **`app/api/cron/correction-follow-up/route.ts`** — NEW. Daily cron (10 UTC). CRON_SECRET auth, STOP_CORRECTION_FOLLOWUP_CRON kill switch. Queries verifying alerts with 14-day cooldown, max 50/run.
+- **`app/dashboard/hallucinations/actions.ts`** — MODIFIED. `verifyHallucinationFix()` now sets `verifying_since` and `correction_query` when transitioning to 'verifying'.
+- **`app/dashboard/_components/CorrectionPanel.tsx`** — MODIFIED. Added follow-up status banner (verifying/fixed/recurring).
+- **`app/dashboard/_components/AlertFeedClient.tsx`** — MODIFIED. Passes `correctionStatus` and `followUpResult` props to CorrectionPanel.
+
+*N4 — Benchmark Comparison:*
+- **`supabase/migrations/20260308000001_sprint_f_engagement.sql`** — NEW. N3 columns on `ai_hallucinations` (`correction_query`, `verifying_since`, `follow_up_checked_at`, `follow_up_result`). N4 `benchmarks` table + RLS + `compute_benchmarks()` RPC.
+- **`app/api/cron/benchmarks/route.ts`** — NEW. Weekly cron (Sunday 8 UTC). Calls `compute_benchmarks()` RPC, upserts into `benchmarks` table.
+- **`lib/data/benchmarks.ts`** — NEW. `fetchBenchmark()` fetches city from `locations`, queries `benchmarks` for matching city+industry.
+- **`app/dashboard/_components/BenchmarkComparisonCard.tsx`** — NEW. Server Component. Collecting/Ready states, PercentileLabel, ScoreRangeBar sub-components.
+- **`lib/data/dashboard.ts`** — MODIFIED. Added `benchmark`, `locationContext`, `follow_up_result` to DashboardData.
+- **`app/dashboard/page.tsx`** — MODIFIED. Wired BenchmarkComparisonCard after EntityHealthCard.
+- **`lib/sample-data/sample-dashboard-data.ts`** — MODIFIED. Added SAMPLE_BENCHMARK and SAMPLE_LOCATION_CONTEXT.
+
+*Registration & Infrastructure:*
+- **`vercel.json`** — MODIFIED. Added 2 cron entries (total: 9).
+- **`lib/services/cron-health.service.ts`** — MODIFIED. Added 2 CRON_REGISTRY entries (total: 7).
+- **`.env.local.example`** — MODIFIED. Added `STOP_CORRECTION_FOLLOWUP_CRON` and `STOP_BENCHMARK_CRON`.
+
+**Tests added:**
+- `ai-preview-model-queries.test.ts` — 9 tests (3 models success/error/missing key + empty response)
+- `correction-verifier.test.ts` — 11 tests (extractKeyPhrases patterns + checkCorrectionStatus scenarios)
+- `benchmark-card.test.tsx` — 10 tests (null city, collecting/ready states, above/below avg, no-score)
+- `sprint-f-registration.test.ts` — 11 tests (vercel.json crons, CRON_REGISTRY, env docs, model keys)
+- Updated: `cron-health-service.test.ts` (5→7 entries), `cron-health-data.test.ts` (5→7 entries)
+- **Total: 41 new tests**
+
+**AI_RULES added:** §90 (AI Answer Preview), §91 (Correction Follow-Up), §92 (Benchmark Comparison)
+
+**Result:** 211 test files, 2922 tests pass. 1 migration. 0 TS errors (Sprint F scope). 0 regressions.
+
+---
+
 ## 2026-02-27 — Sprint E: Grow the Product — Medical/Dental Vertical Extension & Guided Tour Depth (Completed)
 
 **Features implemented (2 items):**

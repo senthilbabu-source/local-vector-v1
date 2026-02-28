@@ -5,6 +5,7 @@ import { fetchAIResponses } from '@/lib/data/ai-responses';
 import { getActiveLocationId } from '@/lib/location/active-location';
 import { canRunSovEvaluation, type PlanTier } from '@/lib/plan-enforcer';
 import ResponseLibrary from './_components/ResponseLibrary';
+import AIAnswerPreviewWidget from './_components/AIAnswerPreviewWidget';
 
 export default async function AIResponsesPage() {
   const ctx = await getSafeAuthContext();
@@ -57,6 +58,9 @@ export default async function AIResponsesPage() {
           The exact words AI engines use when asked about your business. Screenshot these, share them with your team.
         </p>
       </div>
+
+      {/* Sprint F (N2): On-demand AI Answer Preview — query any model live */}
+      <AIAnswerPreviewWidget />
 
       {entries.length === 0 ? (
         <div className="flex flex-col items-center justify-center rounded-xl bg-surface-dark px-6 py-16 text-center border border-white/5">

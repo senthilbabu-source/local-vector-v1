@@ -2076,5 +2076,49 @@ One-time informational banner on first visit to jargon-heavy pages.
 - `data-testid`: `first-visit-tooltip-{pageKey}`, `first-visit-dismiss-{pageKey}`
 - Shows exactly once per page per device — after dismiss, never shown again
 
+## §90. AI Answer Preview (Sprint F, N2)
+
+On-demand query preview that shows how ChatGPT, Perplexity, and Gemini respond to any question about the business.
+
+**Rules:**
+- Model keys: `preview-chatgpt` (gpt-4o-mini), `preview-perplexity` (sonar), `preview-gemini` (gemini-2.0-flash) in `lib/ai/providers.ts`
+- Query functions: `lib/ai-preview/model-queries.ts` — `queryOpenAI()`, `queryPerplexity()`, `queryGemini()`. Returns `{ status, content }`. Uses `hasApiKey()` guard.
+- API route: `app/api/ai-preview/route.ts` — POST, SSE streaming, auth via `getSafeAuthContext()`, credit-gated (1 credit per composite run)
+- Widget: `app/dashboard/ai-responses/_components/AIAnswerPreviewWidget.tsx` — Client Component, 3 model cards
+- Query validation: 3–200 characters
+- `data-testid`: `preview-query-input`, `preview-run-button`, `preview-card-chatgpt`, `preview-card-perplexity`, `preview-card-gemini`
+
+## §91. Correction Follow-Up Cron (Sprint F, N3)
+
+Daily cron that re-checks hallucinations in 'verifying' status after 14 days to determine if they were actually fixed.
+
+**Rules:**
+- Cron route: `app/api/cron/correction-follow-up/route.ts` — daily at 10:00 UTC
+- Kill switch: `STOP_CORRECTION_FOLLOWUP_CRON`
+- Service: `lib/services/correction-verifier.service.ts` — `checkCorrectionStatus()`, `extractKeyPhrases()`
+- Queries `ai_hallucinations` where `correction_status = 'verifying'`, `follow_up_checked_at IS NULL`, `verifying_since < 14 days ago`
+- Status transitions: `verifying` → `fixed` (hallucination gone) or `recurring` (still present)
+- New columns on `ai_hallucinations`: `correction_query`, `verifying_since`, `follow_up_checked_at`, `follow_up_result`
+- Detection strategy: substring match on key phrases (phone numbers, times, addresses, dollar amounts)
+- Max 50 alerts per cron run. On query failure → conservative (stillHallucinating=true)
+- `verifyHallucinationFix()` in `hallucinations/actions.ts` now sets `verifying_since` + `correction_query`
+- CorrectionPanel shows follow-up status banner (verifying/fixed/recurring)
+
+## §92. Benchmark Comparison (Sprint F, N4)
+
+Weekly cron that aggregates city+industry Reality Score benchmarks, displayed on dashboard.
+
+**Rules:**
+- Cron route: `app/api/cron/benchmarks/route.ts` — weekly Sunday at 08:00 UTC
+- Kill switch: `STOP_BENCHMARK_CRON`
+- RPC: `compute_benchmarks()` SQL function — aggregates from organizations + locations + visibility_scores
+- Table: `benchmarks` (city, industry, org_count, avg_score, min_score, max_score, computed_at). UNIQUE(city, industry). RLS: authenticated SELECT.
+- Data layer: `lib/data/benchmarks.ts` — `fetchBenchmark(supabase, orgId, locationId?)`
+- Card: `app/dashboard/_components/BenchmarkComparisonCard.tsx` — Server Component
+- Display threshold: 10 orgs minimum (`MIN_DISPLAY_THRESHOLD`)
+- Two states: "Collecting" (progress bar) and "Ready" (score vs avg, percentile label, range bar)
+- `data-testid`: `benchmark-comparison-card`, `benchmark-collecting-state`, `benchmark-ready-state`, `benchmark-no-score-state`
+- Migration: `20260308000001_sprint_f_engagement.sql`
+
 ---
 > **End of System Instructions**

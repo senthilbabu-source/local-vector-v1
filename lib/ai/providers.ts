@@ -117,6 +117,15 @@ export const MODELS = {
 
   /** Sprint 86 — Content brief generation (cheap, structured output) */
   'content-brief': openai('gpt-4o-mini'),
+
+  /** Sprint F (N2): AI Answer Preview — ChatGPT response */
+  'preview-chatgpt': openai('gpt-4o-mini'),
+
+  /** Sprint F (N2): AI Answer Preview — Perplexity response */
+  'preview-perplexity': perplexity('sonar'),
+
+  /** Sprint F (N2): AI Answer Preview — Gemini response */
+  'preview-gemini': google('gemini-2.0-flash'),
 } as const;
 
 export type ModelKey = keyof typeof MODELS;

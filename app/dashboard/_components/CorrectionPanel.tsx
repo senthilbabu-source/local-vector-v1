@@ -23,12 +23,18 @@ interface CorrectionPanelProps {
   hallucinationId: string;
   canCreateDraft: boolean;
   onClose: () => void;
+  /** Sprint F (N3): current correction_status of the hallucination */
+  correctionStatus?: string | null;
+  /** Sprint F (N3): follow-up cron result — 'fixed' | 'recurring' | null */
+  followUpResult?: string | null;
 }
 
 export default function CorrectionPanel({
   hallucinationId,
   canCreateDraft,
   onClose,
+  correctionStatus,
+  followUpResult,
 }: CorrectionPanelProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -120,6 +126,42 @@ export default function CorrectionPanel({
         <h3 className="text-sm font-semibold text-white">Correction Package</h3>
         <button onClick={onClose} className="text-slate-500 hover:text-white text-sm">✕</button>
       </div>
+
+      {/* Sprint F (N3): Follow-up verification status banner */}
+      {correctionStatus === 'verifying' && (
+        <div className="rounded-lg border border-blue-500/20 bg-blue-500/5 px-3 py-2 text-xs" data-testid="correction-followup-status">
+          {followUpResult === null && (
+            <span className="text-blue-300">
+              <span className="font-medium">Verification in progress.</span>{' '}
+              LocalVector will automatically check if the AI model updated its response in about 2 weeks.
+            </span>
+          )}
+          {followUpResult === 'fixed' && (
+            <span className="text-signal-green font-medium">
+              Verified resolved — the AI model no longer shows incorrect information.
+            </span>
+          )}
+          {followUpResult === 'recurring' && (
+            <span className="text-amber-400 font-medium">
+              Still showing incorrect information. Consider re-distributing your correction across more citation sources.
+            </span>
+          )}
+        </div>
+      )}
+      {correctionStatus === 'fixed' && followUpResult === 'fixed' && (
+        <div className="rounded-lg border border-signal-green/20 bg-signal-green/5 px-3 py-2 text-xs" data-testid="correction-followup-status">
+          <span className="text-signal-green font-medium">
+            Verified resolved — the AI model no longer shows incorrect information.
+          </span>
+        </div>
+      )}
+      {correctionStatus === 'recurring' && followUpResult === 'recurring' && (
+        <div className="rounded-lg border border-amber-500/20 bg-amber-500/5 px-3 py-2 text-xs" data-testid="correction-followup-status">
+          <span className="text-amber-400 font-medium">
+            Still showing incorrect information after follow-up check. Consider re-distributing your correction across more citation sources.
+          </span>
+        </div>
+      )}
 
       {/* Diagnosis */}
       <div>
