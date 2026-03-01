@@ -8,7 +8,7 @@ import { fetchEntityHealth } from '@/lib/data/entity-health';
 import { createClient } from '@/lib/supabase/server';
 import type { ProofTimeline } from '@/lib/services/proof-timeline.service';
 import type { EntityHealthResult } from '@/lib/services/entity-health.service';
-import { canRunAutopilot, canConnectGBP, canExportData, type PlanTier } from '@/lib/plan-enforcer';
+import { canRunAutopilot, canConnectGBP, canExportData, canRunNAPSync, type PlanTier } from '@/lib/plan-enforcer';
 import { createServiceRoleClient } from '@/lib/supabase/server';
 import { nextSundayLabel } from './_components/scan-health-utils';
 import { isSampleMode } from '@/lib/sample-data/use-sample-mode';
@@ -42,6 +42,8 @@ import WrongFactsPanel from './_components/panels/WrongFactsPanel';
 import AIBotAccessPanel from './_components/panels/AIBotAccessPanel';
 import LastScanPanel from './_components/panels/LastScanPanel';
 import TopIssuesPanel from './_components/TopIssuesPanel';
+// Sprint 105: NAP Sync — Listing Health Panel
+import ListingHealthPanel from './_components/ListingHealthPanel';
 
 export type { HallucinationRow } from '@/lib/data/dashboard'; // re-export for AlertFeed.tsx
 
@@ -258,6 +260,9 @@ export default async function DashboardPage() {
           benchmark={benchmark}
         />
       )}
+
+      {/* ── Sprint 105: Listing Health Panel (Growth+ only) ──────────────── */}
+      <ListingHealthPanel isGrowthPlan={canRunNAPSync(planTier)} />
 
       {/* ── Detail Cards ────────────────────────────────────────────────────── */}
       <BotActivityCard crawlerSummary={crawlerSummary} hasPublishedMenu={hasPublishedMenu} />

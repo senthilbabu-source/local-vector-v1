@@ -1003,6 +1003,159 @@ export type Database = {
           },
         ];
       };
+      listing_platform_ids: {
+        Row: {
+          id: string;
+          location_id: string;
+          org_id: string;
+          platform: string;
+          platform_id: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          location_id: string;
+          org_id: string;
+          platform: string;
+          platform_id: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          location_id?: string;
+          org_id?: string;
+          platform?: string;
+          platform_id?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "listing_platform_ids_location_id_fkey";
+            columns: ["location_id"];
+            isOneToOne: false;
+            referencedRelation: "locations";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "listing_platform_ids_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      listing_snapshots: {
+        Row: {
+          id: string;
+          location_id: string;
+          org_id: string;
+          platform: string;
+          fetch_status: string;
+          raw_nap_data: Json | null;
+          fetched_at: string;
+          correction_pushed_at: string | null;
+          correction_fields: string[] | null;
+        };
+        Insert: {
+          id?: string;
+          location_id: string;
+          org_id: string;
+          platform: string;
+          fetch_status: string;
+          raw_nap_data?: Json | null;
+          fetched_at?: string;
+          correction_pushed_at?: string | null;
+          correction_fields?: string[] | null;
+        };
+        Update: {
+          id?: string;
+          location_id?: string;
+          org_id?: string;
+          platform?: string;
+          fetch_status?: string;
+          raw_nap_data?: Json | null;
+          fetched_at?: string;
+          correction_pushed_at?: string | null;
+          correction_fields?: string[] | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "listing_snapshots_location_id_fkey";
+            columns: ["location_id"];
+            isOneToOne: false;
+            referencedRelation: "locations";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "listing_snapshots_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      nap_discrepancies: {
+        Row: {
+          id: string;
+          location_id: string;
+          org_id: string;
+          platform: string;
+          status: string;
+          discrepant_fields: Json;
+          severity: string;
+          auto_correctable: boolean;
+          fix_instructions: string | null;
+          detected_at: string;
+          resolved_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          location_id: string;
+          org_id: string;
+          platform: string;
+          status: string;
+          discrepant_fields?: Json;
+          severity?: string;
+          auto_correctable?: boolean;
+          fix_instructions?: string | null;
+          detected_at?: string;
+          resolved_at?: string | null;
+        };
+        Update: {
+          id?: string;
+          location_id?: string;
+          org_id?: string;
+          platform?: string;
+          status?: string;
+          discrepant_fields?: Json;
+          severity?: string;
+          auto_correctable?: boolean;
+          fix_instructions?: string | null;
+          detected_at?: string;
+          resolved_at?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "nap_discrepancies_location_id_fkey";
+            columns: ["location_id"];
+            isOneToOne: false;
+            referencedRelation: "locations";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "nap_discrepancies_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       locations: {
         Row: {
           id: string;
@@ -1038,6 +1191,8 @@ export type Database = {
           display_name: string | null;
           timezone: string | null;
           location_order: number | null;
+          nap_health_score: number | null;
+          nap_last_checked_at: string | null;
         };
         Insert: {
           id?: string;
@@ -1073,6 +1228,8 @@ export type Database = {
           display_name?: string | null;
           timezone?: string | null;
           location_order?: number | null;
+          nap_health_score?: number | null;
+          nap_last_checked_at?: string | null;
         };
         Update: {
           id?: string;
@@ -1108,6 +1265,8 @@ export type Database = {
           display_name?: string | null;
           timezone?: string | null;
           location_order?: number | null;
+          nap_health_score?: number | null;
+          nap_last_checked_at?: string | null;
         };
         Relationships: [
           {

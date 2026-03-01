@@ -12,7 +12,7 @@ LocalVector is an AEO/GEO SaaS platform that helps local businesses monitor and 
 - **Billing:** Stripe webhooks → `organizations.plan_tier` enum (`trial | starter | growth | agency`)
 - **Email:** Resend + React Email (`emails/`)
 - **Cache:** Upstash Redis (`lib/redis.ts`) — optional, all callers must degrade gracefully
-- **Testing:** Vitest (unit/integration in `src/__tests__/`), Playwright (E2E in `tests/e2e/`, 30 specs). Current: 3415 tests, 248 files.
+- **Testing:** Vitest (unit/integration in `src/__tests__/`), Playwright (E2E in `tests/e2e/`, 30 specs). Current: 3506 tests, 253 files.
 - **Monitoring:** Sentry (client, server, edge configs) — all catch blocks instrumented (Sprint A, AI_RULES §70)
 
 ## Architecture Rules
@@ -23,12 +23,12 @@ LocalVector is an AEO/GEO SaaS platform that helps local businesses monitor and 
 - **Plan display names live in `lib/plan-display-names.ts`.** Never inline plan tier display logic (e.g., `capitalize(plan)`) — always use `getPlanDisplayName()`. Maps: trial→The Audit, starter→Starter, growth→AI Shield, agency→Brand Fortress, null→Free. (AI_RULES §71)
 - **AI providers are centralized.** Never call AI APIs directly — use `getModel(key)` from `lib/ai/providers.ts`. Mock fallbacks activate when API keys are absent.
 - **RLS pattern:** Every tenant-scoped table has `org_isolation_select/insert/update/delete` policies using `org_id = public.current_user_org_id()`.
-- **Cron routes** live in `app/api/cron/` and require `Authorization: Bearer <CRON_SECRET>` header. Each has a kill switch env var.
+- **Cron routes** live in `app/api/cron/` and require `Authorization: Bearer <CRON_SECRET>` header. Each has a kill switch env var. 10 crons registered in `vercel.json`.
 
 ## Key Directories
 
 ```
-app/api/cron/          — Automated pipelines (sov, audit, content-audit, weekly-digest, correction-follow-up, benchmarks)
+app/api/cron/          — Automated pipelines (sov, audit, content-audit, weekly-digest, correction-follow-up, benchmarks, nap-sync)
 app/(auth)/            — Auth pages (login, register, forgot-password, reset-password)
 app/dashboard/         — Authenticated dashboard pages (each has error.tsx boundary)
 app/dashboard/citations/     — Citation Gap Dashboard (Sprint 58A)
@@ -71,9 +71,10 @@ lib/data/benchmarks.ts        — Benchmark data layer: fetchBenchmark for city+
 lib/entity-health/platform-descriptions.ts — Platform jargon→consequence translation layer (Sprint J, §105)
 lib/agent-readiness/scenario-descriptions.ts — Capability jargon→scenario translation layer (Sprint J, §106)
 lib/admin/format-relative-date.ts — Intl.RelativeTimeFormat utility for admin pages (Sprint D, §81)
+lib/nap-sync/          — NAP Sync Engine: adapters (GBP/Yelp/Apple Maps/Bing), discrepancy detector, health score, push corrections, orchestrator (Sprint 105, §124-§126)
 lib/mcp/               — MCP server tool registrations
-lib/supabase/database.types.ts — Full Database type (33 tables, 9 enums, Relationships)
-supabase/migrations/   — Applied SQL migrations (42, timestamp-ordered)
+lib/supabase/database.types.ts — Full Database type (36 tables, 9 enums, Relationships)
+supabase/migrations/   — Applied SQL migrations (43, timestamp-ordered)
 supabase/prod_schema.sql — Full production schema dump
 docs/                  — 50 spec documents (authoritative for planned features)
 src/__tests__/         — Unit + integration tests
@@ -88,7 +89,7 @@ app/dashboard/_components/BenchmarkComparisonCard.tsx — City benchmark compari
 | Table | Purpose |
 |-------|---------|
 | `organizations` | Tenant root — has `plan_tier`, `plan_status`, `industry` (text, default 'restaurant' — Sprint E), notification prefs (`notify_hallucination_alerts`, `notify_weekly_digest`, `notify_sov_alerts`, `notify_score_drop_alert`, `notify_new_competitor` — Sprint B+N), AI monitoring prefs (`monitored_ai_models text[]`, `score_drop_threshold integer`, `webhook_url text`, `scan_day_of_week integer` — Sprint B+N) |
-| `locations` | Business locations per org. Revenue config: `avg_customer_value` (numeric, default 55), `monthly_covers` (integer, default 1800) |
+| `locations` | Business locations per org. Revenue config: `avg_customer_value` (numeric, default 55), `monthly_covers` (integer, default 1800). NAP Sync: `nap_health_score` (integer 0–100), `nap_last_checked_at` (timestamptz) |
 | `api_credits` | Per-org monthly API credit tracking. One active row per org (unique on `org_id`). `credits_used`, `credits_limit`, `reset_date`, `plan`. RLS: users can SELECT own org's credits via memberships join. `increment_credits_used()` RPC for atomic increment. (Sprint D) |
 | `target_queries` | SOV query library per location. Columns: `query_category` (discovery/comparison/occasion/near_me/custom), `occasion_tag`, `intent_modifier`, `is_active` (soft-disable toggle). UNIQUE on `(location_id, query_text)`. |
 | `sov_evaluations` | Per-query SOV results (engine, rank, competitors, `sentiment_data` JSONB, `source_mentions` JSONB) |
@@ -107,6 +108,9 @@ app/dashboard/_components/BenchmarkComparisonCard.tsx — City benchmark compari
 | `cron_run_log` | Cron execution health log (cron_name, duration_ms, status, summary JSONB) — service-role only, no RLS policies |
 | `crawler_hits` | AI bot visit log per magic menu page — bot_type, user_agent, crawled_at. RLS: org_isolation_select + service_role_insert. Columns: org_id, menu_id, location_id, bot_type, user_agent |
 | `entity_checks` | Entity presence across 7 AI knowledge graph platforms per location. 7 status columns (confirmed/missing/unchecked/incomplete), `platform_metadata` JSONB, `entity_score` integer. Full org RLS. |
+| `listing_platform_ids` | Maps locations to platform-specific IDs (GBP location name, Yelp business ID, Apple Maps ID, Bing listing ID). UNIQUE(location_id, platform). Org RLS via memberships join. (Sprint 105) |
+| `listing_snapshots` | Raw NAP data captured from each platform per sync run. Historical record. Org RLS via memberships join. (Sprint 105) |
+| `nap_discrepancies` | Structured discrepancy records with severity, auto_correctable flag, fix instructions, discrepant_fields JSONB. Org RLS via memberships join. (Sprint 105) |
 
 ## Current Migrations (Applied)
 
@@ -152,6 +156,7 @@ app/dashboard/_components/BenchmarkComparisonCard.tsx — City benchmark compari
 40. `20260308000001_sprint_f_engagement.sql` — N3: `correction_query`, `verifying_since`, `follow_up_checked_at`, `follow_up_result` on `ai_hallucinations`. N4: `benchmarks` table + RLS + `compute_benchmarks()` RPC (Sprint F)
 41. `20260309000001_listing_verification.sql` — `verified_at`, `verification_result` (JSONB), `has_discrepancy` (boolean) on `location_integrations` (Sprint L)
 42. `20260310000001_sprint_n_settings.sql` — `scan_day_of_week integer`, `notify_score_drop_alert boolean`, `notify_new_competitor boolean` on `organizations` (Sprint N)
+43. `20260311000001_nap_sync_engine.sql` — `listing_platform_ids`, `listing_snapshots`, `nap_discrepancies` tables + `nap_health_score`/`nap_last_checked_at` columns on `locations` (Sprint 105)
 
 ## Testing Commands
 
@@ -172,6 +177,8 @@ CRON_SECRET, STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET, RESEND_API_KEY
 GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET
 UPSTASH_REDIS_REST_URL, UPSTASH_REDIS_REST_TOKEN
 ADMIN_EMAILS
+YELP_FUSION_API_KEY, BING_SEARCH_API_KEY
+APPLE_MAPS_PRIVATE_KEY, APPLE_MAPS_KEY_ID, APPLE_MAPS_TEAM_ID
 ```
 
 ---
@@ -211,6 +218,7 @@ ADMIN_EMAILS
 | AI Answer Preview | `lib/ai-preview/model-queries.ts` + `app/api/ai-preview/route.ts` | On-demand query preview across 3 AI models (ChatGPT, Perplexity, Gemini). True token-by-token SSE streaming via `streamText()` + async generators (Sprint N enhancement). Credit-gated (1 credit/run). Stop button with AbortController. Widget at `/dashboard/ai-responses`. |
 | Correction Verifier | `lib/services/correction-verifier.service.ts` | Re-queries original AI model after 14 days to check if hallucination was corrected. Substring match on key phrases (phone, time, address, dollar). Used by daily correction-follow-up cron. Sprint N: sends `sendCorrectionFollowUpAlert()` email on fixed/recurring result. |
 | Benchmark Comparison | `lib/data/benchmarks.ts` + `app/api/cron/benchmarks/route.ts` | Weekly city+industry Reality Score aggregation via `compute_benchmarks()` RPC. Dashboard card shows org vs city average when 10+ businesses exist. |
+| NAP Sync Engine | `lib/nap-sync/` + `app/api/nap-sync/` + `app/api/cron/nap-sync/` | Cross-platform listing accuracy layer. 4 adapters (GBP, Yelp, Apple Maps, Bing) fetch live NAP data, compare against Ground Truth, detect discrepancies with severity classification, push auto-corrections to GBP (title/phone/address/website only — hours/status blocked). NAP Health Score (0–100, grade A–F). Weekly cron (Monday 3 AM UTC). Growth+ plan gate. `ListingHealthPanel` + `ListingFixModal` dashboard components. (Sprint 105, §124–§126) |
 
 ## Recent Fix Sprints
 
@@ -424,6 +432,17 @@ ADMIN_EMAILS
 - Tests: `faq-generator.test.ts` (17) + `add-page-audit.test.ts` (13) — 30 new tests.
 - `tests/e2e/14-sidebar-nav.spec.ts` — **MODIFIED.** 24 total nav tests.
 
+### Sprint 105 — NAP Sync Engine (2026-03-01)
+- **Migration:** `20260311000001_nap_sync_engine.sql` — 3 new tables (`listing_platform_ids`, `listing_snapshots`, `nap_discrepancies`) + 2 new columns on `locations`.
+- **NAP types + adapters:** `lib/nap-sync/` — types, 4 platform adapters (GBP, Yelp, Apple Maps, Bing), discrepancy detector, health score, push corrections, orchestrator.
+- **API routes:** `app/api/nap-sync/run/route.ts` (POST), `app/api/nap-sync/status/route.ts` (GET), `app/api/cron/nap-sync/route.ts` (weekly cron).
+- **Dashboard:** `ListingHealthPanel` + `ListingFixModal` — NAP score, per-platform cards, fix instructions modal.
+- **Plan gate:** `canRunNAPSync()` in `lib/plan-enforcer.ts` — Growth+ only.
+- **Cron:** 10th cron in `vercel.json` — `0 3 * * 1` (Monday 3 AM UTC). Kill switch: `STOP_NAP_SYNC_CRON`.
+- AI_RULES: §124 (architecture), §125 (DB tables), §126 (health score algorithm). §60 stub marked COMPLETED.
+- Tests: 91 Vitest (nap-discrepancy-detector 41, nap-health-score 17, nap-push-corrections 7, nap-adapters 17, nap-sync-route 9).
+- Result: 253 test files, 3506 tests pass. 1 migration.
+
 ## Tier Completion Status
 
 | Tier | Sprints | Status | Gate |
@@ -450,15 +469,15 @@ ADMIN_EMAILS
 | Sprint 102 | Database Types Sync + Sidebar Nav Completeness | Complete | — |
 | Sprint 103 | Benchmarks Full Page + Sidebar Entry | Complete | — |
 | Sprint 104 | Content Grader Completion | Complete | — |
-| Tier 4 | 105–106 | Gated | Sprint 105–106: no external gate. |
+| Sprint 105 | NAP Sync Engine | Complete | — |
+| Tier 4 | 106 | Gated | Sprint 106: no external gate. |
 | Tier 5 | 107–109 | Gated | 4–8 weeks of SOV baseline data required. SOV cron registered 2026-02-27. Sprint 107 earliest: 2026-03-27. |
 
-### Next Sprint Ready to Execute: Sprint 105 — Apple Business Connect
-Submit API request at https://developer.apple.com/business-connect/. See AI_RULES §60.
+### Next Sprint Ready to Execute: Sprint 106
+See AI_RULES §61 for Sprint 106 stub.
 
 ### Sprints Pending External Approval:
 - Apple Business Connect Sync (originally §57): Submit API request at https://developer.apple.com/business-connect/
-- Sprint 103 (Bing Places): Submit API request at https://bingplaces.com
 
 ### Sprints Pending Data Accumulation:
 - Sprint 107 (Competitor Prompt Hijacking): Needs 4+ weeks SOV data. Earliest: 2026-03-27.
@@ -467,4 +486,4 @@ Submit API request at https://developer.apple.com/business-connect/. See AI_RULE
 
 ## Build History
 
-See `DEVLOG.md` (project root) and `docs/DEVLOG.md` for the complete sprint-by-sprint build log. Current sprint: 102 (+ FIX-1 through FIX-8 + Sprint A through Sprint O). AI_RULES: §1–§123 (123 sections). Production readiness: all audit issues resolved. **V1 complete.**
+See `DEVLOG.md` (project root) and `docs/DEVLOG.md` for the complete sprint-by-sprint build log. Current sprint: 105 (+ FIX-1 through FIX-8 + Sprint A through Sprint O). AI_RULES: §1–§126 (126 sections). Production readiness: all audit issues resolved. **V1 complete.**

@@ -35,6 +35,10 @@
     {
       "path": "/api/cron/benchmarks",
       "schedule": "0 8 * * 0"
+    },
+    {
+      "path": "/api/cron/nap-sync",
+      "schedule": "0 3 * * 1"
     }
   ]
 }

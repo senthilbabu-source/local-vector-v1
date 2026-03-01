@@ -4,6 +4,35 @@
 
 ---
 
+## 2026-03-01 — Sprint 105: NAP Sync Engine (Completed)
+
+**Goal:** Build the cross-platform listing accuracy layer. Fetches live NAP data from GBP, Yelp, Apple Maps, and Bing; detects discrepancies against Ground Truth; pushes auto-corrections to GBP; surfaces NAP Health Score on the dashboard.
+
+**Changes:**
+- **Migration:** `20260311000001_nap_sync_engine.sql` — 3 new tables (`listing_platform_ids`, `listing_snapshots`, `nap_discrepancies`) + 2 new columns on `locations` (`nap_health_score`, `nap_last_checked_at`)
+- **NAP types:** `lib/nap-sync/types.ts` — `NAPData`, `AdapterResult`, `PlatformDiscrepancy`, `NAPHealthScore`, `GroundTruth`, `NAPSyncResult`
+- **Adapters:** `lib/nap-sync/adapters/` — 4 platform adapters (GBP, Yelp, Apple Maps, Bing) extending abstract `NAPAdapter`
+- **Discrepancy detector:** `lib/nap-sync/nap-discrepancy-detector.ts` — pure functions: `detectDiscrepancies()`, `diffNAPData()`, `normalizePhone()`, `normalizeAddress()`, `computeSeverity()`, `generateFixInstructions()`
+- **Health score:** `lib/nap-sync/nap-health-score.ts` — `calculateNAPHealthScore()` (0–100, grade A–F)
+- **Push corrections:** `lib/nap-sync/nap-push-corrections.ts` — GBP PATCH API write-back (title, phone, address, website only; hours/status blocked)
+- **Orchestrator:** `lib/nap-sync/nap-sync-service.ts` — `runNAPSync()` and `runNAPSyncForAllLocations()`
+- **API routes:** `app/api/nap-sync/run/route.ts` (POST, authenticated), `app/api/nap-sync/status/route.ts` (GET), `app/api/cron/nap-sync/route.ts` (GET, weekly cron)
+- **Dashboard:** `ListingHealthPanel` + `ListingFixModal` — NAP score, per-platform cards, fix instructions modal
+- **Plan gate:** `canRunNAPSync()` in `lib/plan-enforcer.ts` — Growth+ only
+- **Cron:** Registered in `vercel.json` — `0 3 * * 1` (Monday 3 AM UTC)
+- **Seed data:** Golden tenant gets listing_platform_ids + Yelp discrepancy + GBP match + nap_health_score 65
+
+**Tests:** 91 unit tests across 5 files:
+- `nap-discrepancy-detector.test.ts` — 41 tests (pure function: detector, diffNAPData, normalizePhone, normalizeAddress, computeSeverity, generateFixInstructions)
+- `nap-health-score.test.ts` — 17 tests (scoring algorithm, grading, deductions)
+- `nap-push-corrections.test.ts` — 7 tests (buildGBPPatchBody, blocked fields)
+- `nap-adapters.test.ts` — 17 tests (Yelp, Bing, Apple Maps, GBP adapter behavior + scoreAddressSimilarity + normalizeYelpHours)
+- `nap-sync-route.test.ts` — 9 tests (POST /run: auth, plan gate, no-location, success, error; GET /status: auth, plan gate, empty, populated)
+
+**AI_RULES:** §124 (architecture), §125 (DB tables), §126 (health score algorithm)
+
+---
+
 ## 2026-03-01 — Sprint 104: Content Grader Completion (Completed)
 
 **Goal:** Close the 3 remaining Content Grader gaps: AI-powered FAQ generator, on-demand URL submission, and multi-page seed data. Closes Doc 17 audit gap #7 (0% → 100%).

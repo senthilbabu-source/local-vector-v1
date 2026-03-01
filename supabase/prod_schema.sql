@@ -2854,6 +2854,61 @@ ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON TAB
 ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON TABLES TO "service_role";
 
 
+-- ══════════════════════════════════════════════════════════════
+-- Sprint 105: NAP Sync Engine Tables
+-- ══════════════════════════════════════════════════════════════
+
+CREATE TABLE IF NOT EXISTS "public"."listing_platform_ids" (
+    "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
+    "location_id" "uuid" NOT NULL,
+    "org_id" "uuid" NOT NULL,
+    "platform" "text" NOT NULL,
+    "platform_id" "text" NOT NULL,
+    "created_at" timestamp with time zone DEFAULT "now"() NOT NULL,
+    "updated_at" timestamp with time zone DEFAULT "now"() NOT NULL,
+    CONSTRAINT "listing_platform_ids_platform_check" CHECK (("platform" = ANY (ARRAY['google', 'yelp', 'apple_maps', 'bing']))),
+    CONSTRAINT "listing_platform_ids_pkey" PRIMARY KEY ("id"),
+    CONSTRAINT "listing_platform_ids_location_platform_key" UNIQUE ("location_id", "platform")
+);
+
+CREATE TABLE IF NOT EXISTS "public"."listing_snapshots" (
+    "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
+    "location_id" "uuid" NOT NULL,
+    "org_id" "uuid" NOT NULL,
+    "platform" "text" NOT NULL,
+    "fetch_status" "text" NOT NULL,
+    "raw_nap_data" "jsonb",
+    "fetched_at" timestamp with time zone DEFAULT "now"() NOT NULL,
+    "correction_pushed_at" timestamp with time zone,
+    "correction_fields" "text"[],
+    CONSTRAINT "listing_snapshots_platform_check" CHECK (("platform" = ANY (ARRAY['google', 'yelp', 'apple_maps', 'bing']))),
+    CONSTRAINT "listing_snapshots_fetch_status_check" CHECK (("fetch_status" = ANY (ARRAY['ok', 'unconfigured', 'api_error', 'not_found']))),
+    CONSTRAINT "listing_snapshots_pkey" PRIMARY KEY ("id")
+);
+
+CREATE TABLE IF NOT EXISTS "public"."nap_discrepancies" (
+    "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
+    "location_id" "uuid" NOT NULL,
+    "org_id" "uuid" NOT NULL,
+    "platform" "text" NOT NULL,
+    "status" "text" NOT NULL,
+    "discrepant_fields" "jsonb" DEFAULT '[]'::"jsonb" NOT NULL,
+    "severity" "text" DEFAULT 'none' NOT NULL,
+    "auto_correctable" boolean DEFAULT false NOT NULL,
+    "fix_instructions" "text",
+    "detected_at" timestamp with time zone DEFAULT "now"() NOT NULL,
+    "resolved_at" timestamp with time zone,
+    CONSTRAINT "nap_discrepancies_platform_check" CHECK (("platform" = ANY (ARRAY['google', 'yelp', 'apple_maps', 'bing']))),
+    CONSTRAINT "nap_discrepancies_status_check" CHECK (("status" = ANY (ARRAY['match', 'discrepancy', 'unconfigured', 'api_error', 'not_found']))),
+    CONSTRAINT "nap_discrepancies_severity_check" CHECK (("severity" = ANY (ARRAY['none', 'low', 'medium', 'high', 'critical']))),
+    CONSTRAINT "nap_discrepancies_pkey" PRIMARY KEY ("id")
+);
+
+-- NAP health columns on locations
+-- ALTER TABLE "public"."locations" ADD COLUMN IF NOT EXISTS "nap_health_score" integer CHECK ("nap_health_score" BETWEEN 0 AND 100);
+-- ALTER TABLE "public"."locations" ADD COLUMN IF NOT EXISTS "nap_last_checked_at" timestamp with time zone;
+
+
 
 
 

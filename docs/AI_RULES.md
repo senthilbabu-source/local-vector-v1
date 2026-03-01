@@ -1661,17 +1661,12 @@ Sprint 104 closed 3 Content Grader gaps: AI-powered FAQ generator, on-demand URL
 
 ---
 
-## §60. Review Response Engine (PLACEHOLDER — Sprint 105, NOT YET EXECUTED)
+## §60. NAP Sync Engine (Sprint 105 — COMPLETED)
 
-> **Status:** Requires active Agency customers with live review data before meaningful testing.
-> **Gate condition:** At least 3 Agency-tier customers actively using LocalVector with GBP reviews flowing in.
+> **Status:** COMPLETED. Sprint 105 was repurposed from Review Response Engine to NAP Sync Engine.
+> Original Review Response Engine deferred to a future sprint (requires active Agency customers with live review data).
 
-Sprint 105 will generate AI-drafted responses to Google Business Profile reviews, surfaced in a new "Reviews" dashboard section. Responses are drafts only — the business owner approves before publishing.
-
-**Provisional rules:**
-- Review responses are ALWAYS drafts — never auto-publish without explicit user approval.
-- Response generation must respect the kill-switch pattern for cost control.
-- Store draft responses in a new `review_responses` table — never mutate the source review data.
+Sprint 105 built the cross-platform listing accuracy layer. See §124–§126 for full architecture, DB tables, and health score algorithm rules.
 
 ---
 
@@ -2495,6 +2490,44 @@ The GBP OAuth callback must log both success and failure responses from the My B
 - **Log successful responses:** Log `accountsData` JSON on success for debugging account discovery issues.
 - **GBP API quota:** Google My Business APIs default to 0 quota. Must apply for Basic API Access via https://support.google.com/business/contact/api_default before any calls succeed. 429 with `quota_limit_value: "0"` = not yet allowlisted.
 - **Google Cloud project:** OAuth client + GBP APIs must be in the same project. Test users must be added to OAuth consent screen Audience for Testing mode.
+
+## §124. NAP Sync Engine — Architecture (Sprint 105)
+
+The NAP Sync Engine is LocalVector's cross-platform listing accuracy layer. It fetches live NAP (Name, Address, Phone) data from Google Business Profile, Yelp, Apple Maps, and Bing, compares it against the Ground Truth in the `locations` table, detects discrepancies, and pushes auto-corrections to GBP.
+
+**Rules:**
+- **Adapter pattern:** Each platform has a dedicated adapter in `lib/nap-sync/adapters/`. All adapters extend `NAPAdapter` base class and implement `fetchNAP()`. Adapters must NEVER throw — always return `AdapterResult` with status `'unconfigured'` or `'api_error'`.
+- **Pure functions:** `detectDiscrepancies()`, `calculateNAPHealthScore()`, and `buildGBPPatchBody()` are pure functions with zero I/O. Test them without mocks.
+- **Auto-correction scope:** Only GBP supports write API. Only `title`, `phoneNumbers`, `storefrontAddress`, `websiteUri` are auto-patchable. NEVER auto-patch `regularHours` or `openInfo.status` — flag for manual review.
+- **Plan gate:** NAP Sync is Growth+ only. Use `canRunNAPSync()` from `lib/plan-enforcer.ts`.
+- **Cron:** Weekly Monday 3 AM UTC. Kill switch: `STOP_NAP_SYNC_CRON`. Auth: `CRON_SECRET` Bearer header.
+
+## §125. NAP Sync Database Tables (Sprint 105)
+
+Three new tables and two new columns support the NAP Sync Engine.
+
+**Tables:**
+- `listing_platform_ids` — Maps locations to their platform-specific IDs (GBP location name, Yelp business ID, etc). UNIQUE on `(location_id, platform)`.
+- `listing_snapshots` — Raw NAP data captured from each platform per sync run. Historical record.
+- `nap_discrepancies` — Structured discrepancy records with severity, auto_correctable flag, and fix instructions.
+
+**New columns on `locations`:**
+- `nap_health_score` integer (0–100, NULL = never checked)
+- `nap_last_checked_at` timestamptz
+
+**RLS:** All three tables use org-scoped RLS via `memberships` join. Service role has full access for cron context.
+
+## §126. NAP Health Score Algorithm (Sprint 105)
+
+Base score: 100. Deductions (cumulative, floor 0):
+- Critical field (phone/address): -25 per field
+- High field (name/operational_status): -15 per field
+- Medium field (hours): -8 per field
+- Low field (website): -3 per field
+- Unconfigured platform: -5
+- API error platform: -2
+
+Grade: A (90+), B (75-89), C (60-74), D (40-59), F (0-39).
 
 ---
 > **End of System Instructions**

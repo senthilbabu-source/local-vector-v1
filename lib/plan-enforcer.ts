@@ -173,3 +173,12 @@ export function canManageTeamSeats(plan: PlanTier): boolean {
 export function defaultSeatLimit(plan: PlanTier): number {
   return plan === 'agency' ? 5 : 1;
 }
+
+/**
+ * NAP Sync Engine — cross-platform listing accuracy checks (Sprint 105).
+ * Growth and Agency orgs get automated NAP sync + GBP auto-corrections.
+ * Starter/Trial orgs see an upgrade prompt on the Listing Health panel.
+ */
+export function canRunNAPSync(plan: PlanTier): boolean {
+  return plan === 'growth' || plan === 'agency';
+}

@@ -1539,3 +1539,67 @@ export const ALPHARETTA_FAMILY_DENTAL = {
     },
   },
 } as const;
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Sprint 105 — NAP Sync Engine fixtures
+// ═══════════════════════════════════════════════════════════════════════════
+
+/** Ground Truth — matches the golden tenant locations table seed data */
+export const MOCK_GROUND_TRUTH: import('@/lib/nap-sync/types').GroundTruth = {
+  location_id: 'b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+  org_id: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+  name: 'Charcoal N Chill',
+  address: '11950 Jones Bridge Road Ste 103',
+  city: 'Alpharetta',
+  state: 'GA',
+  zip: '30005',
+  phone: '(470) 546-4866',
+  website: 'https://charcoalnchill.com',
+  operational_status: 'open',
+};
+
+/** GBP adapter result — no discrepancies (all fields match ground truth) */
+export const MOCK_GBP_NAP_RESULT: import('@/lib/nap-sync/types').AdapterResult = {
+  status: 'ok',
+  platform: 'google',
+  data: {
+    name: 'Charcoal N Chill',
+    address: '11950 Jones Bridge Road Ste 103',
+    city: 'Alpharetta',
+    state: 'GA',
+    zip: '30005',
+    phone: '(470) 546-4866',
+    website: 'https://charcoalnchill.com',
+    operational_status: 'open',
+  },
+  fetched_at: '2026-03-01T03:00:00.000Z',
+};
+
+/** Yelp adapter result — stale phone number (discrepancy) */
+export const MOCK_YELP_NAP_RESULT: import('@/lib/nap-sync/types').AdapterResult = {
+  status: 'ok',
+  platform: 'yelp',
+  data: {
+    name: 'Charcoal N Chill',
+    address: '11950 Jones Bridge Road Ste 103',
+    city: 'Alpharetta',
+    state: 'GA',
+    zip: '30005',
+    phone: '+14705559999',
+    website: 'https://charcoalnchill.com',
+  },
+  fetched_at: '2026-03-01T03:00:00.000Z',
+};
+
+/** Apple Maps adapter result — unconfigured (no credentials in test env) */
+export const MOCK_APPLE_MAPS_NAP_RESULT: import('@/lib/nap-sync/types').AdapterResult = {
+  status: 'unconfigured',
+  platform: 'apple_maps',
+  reason: 'no_credentials',
+};
+
+/** Bing adapter result — not found (no confident address match) */
+export const MOCK_BING_NAP_RESULT: import('@/lib/nap-sync/types').AdapterResult = {
+  status: 'not_found',
+  platform: 'bing',
+};

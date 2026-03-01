@@ -2083,3 +2083,66 @@ ON CONFLICT (city, industry) DO UPDATE SET
   min_score   = EXCLUDED.min_score,
   max_score   = EXCLUDED.max_score,
   computed_at = EXCLUDED.computed_at;
+
+-- ══════════════════════════════════════════════════════════════
+-- Sprint 105: NAP Sync Engine seed data for golden tenant
+-- ══════════════════════════════════════════════════════════════
+
+DO $$
+DECLARE
+  v_location_id uuid;
+BEGIN
+  SELECT id INTO v_location_id
+    FROM public.locations
+   WHERE org_id = 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11'
+   LIMIT 1;
+
+  IF v_location_id IS NULL THEN
+    RAISE NOTICE 'Sprint 105 seed: no location found for golden tenant, skipping';
+    RETURN;
+  END IF;
+
+  -- listing_platform_ids for Charcoal N Chill
+  INSERT INTO public.listing_platform_ids (location_id, org_id, platform, platform_id)
+  VALUES
+    (v_location_id, 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'google',     'locations/123456789'),
+    (v_location_id, 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'yelp',       'charcoal-n-chill-alpharetta'),
+    (v_location_id, 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'apple_maps', 'I143B4F08CD641C68'),
+    (v_location_id, 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'bing',       'YN873x123456789')
+  ON CONFLICT (location_id, platform) DO NOTHING;
+
+  -- Seed a Yelp discrepancy (stale phone) for dashboard testing
+  INSERT INTO public.nap_discrepancies (
+    location_id, org_id, platform, status, discrepant_fields,
+    severity, auto_correctable, fix_instructions, detected_at
+  ) VALUES (
+    v_location_id,
+    'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+    'yelp',
+    'discrepancy',
+    '[{"field":"phone","ground_truth_value":"(470) 546-4866","platform_value":"+14705559999"}]'::jsonb,
+    'critical',
+    false,
+    E'1. Log into Yelp for Business at https://biz.yelp.com\n2. Find your business listing\n3. Edit the business information\n4. Update phone from "+14705559999" to "(470) 546-4866"\n5. Save your changes',
+    NOW() - INTERVAL '2 days'
+  );
+
+  -- Seed a GBP match (no discrepancy) for dashboard testing
+  INSERT INTO public.nap_discrepancies (
+    location_id, org_id, platform, status, discrepant_fields, severity, auto_correctable, detected_at
+  ) VALUES (
+    v_location_id,
+    'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+    'google',
+    'match',
+    '[]'::jsonb,
+    'none',
+    true,
+    NOW() - INTERVAL '2 days'
+  );
+
+  -- Set nap_health_score on the golden tenant location
+  UPDATE public.locations
+     SET nap_health_score = 65, nap_last_checked_at = NOW() - INTERVAL '2 days'
+   WHERE id = v_location_id;
+END $$;
