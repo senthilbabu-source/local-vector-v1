@@ -1641,21 +1641,23 @@ Sprint 103 will sync business data from Bing Places for Business into LocalVecto
 
 ---
 
-## §59. Dynamic FAQ Auto-Generation (PLACEHOLDER — Sprint 104, NOT YET EXECUTED)
+## §59. Content Grader Completion — AI FAQ + On-Demand Audit (Sprint 104, COMPLETED 2026-03-01)
 
-> **Status:** No external dependencies. Can execute immediately.
-> **Gate condition:** None — ready to run.
+> **Status:** Complete. Doc 17 audit gap #7 closed (0% → 100%).
 
-Sprint 104 will auto-generate FAQ schema markup (`FAQPage` JSON-LD) from location data, GBP Q&A, and AI analysis. Output injected into the location's public page and AEO schema layer.
+Sprint 104 closed 3 Content Grader gaps: AI-powered FAQ generator, on-demand URL submission, multi-page seed data.
 
-**Pre-sprint requirements:**
-- Read `lib/schema-generator/` (Sprint 70/84) before designing FAQ generation — reuse the schema builder pattern
-- FAQ content generated via AI SDK — use `lib/ai/providers.ts` pattern
-
-**Provisional rules:**
-- FAQ generation must be idempotent — running twice produces the same output for the same input data.
-- Generated FAQ items stored in `locations.faq_data` (jsonb) — not hard-coded in schema templates.
-- Maximum 10 FAQ items per location — truncate, do not error, if AI returns more.
+**Rules:**
+- **AI FAQ generator** lives in `lib/page-audit/faq-generator.ts` — separate from the static FAQ generator in `lib/schema-generator/faq-schema.ts`. Do not merge them.
+- **Model key** `'faq-generation'` in `lib/ai/providers.ts` (GPT-4o-mini). Always use `getModel('faq-generation')` — never hardcode the model.
+- **Static fallback:** When `hasApiKey('openai')` is false or AI call fails, `generateAiFaqSet()` returns 5 generic Q&A pairs from `LocationContext` data. Never throw from the generator.
+- **AI FAQ is user-triggered only** (§5). Called via `generateSchemaFixes()` in `schema-actions.ts` when `faqSchemaPresent === false`. Never on page load.
+- **Schema deduplication:** `schema-actions.ts` deduplicates by `schemaType` — AI FAQ (prepended) wins over static FAQ. Both return `schemaType: 'FAQPage'`.
+- **`addPageAudit(rawUrl)`** in `actions.ts` is the on-demand audit entry point. Plan-gated (Growth/Agency via `canRunPageAudit`). Rate-limited (5 min per org+URL, shared Map with `reauditPage`).
+- **URL normalization:** Always prepend `https://` if missing, strip trailing slashes. Normalize before rate-limit check and DB upsert (`onConflict: 'org_id,page_url'`).
+- **Page type inference:** `inferPageType()` replicated locally in `actions.ts` — do not import from the cron route. Matches `/menu`, `/about`, `/faq|/questions`, `/event`, root → `homepage`, else `other`.
+- **`AddPageAuditForm`** is a client component — uses `useTransition`, no `<form>` tags, `data-testid` on wrapper/input/button.
+- **Seed data:** 3 page audit rows for golden tenant: homepage (66), about (58, faq missing), faq (89, faq present). All use `ON CONFLICT DO UPDATE`.
 
 ---
 
