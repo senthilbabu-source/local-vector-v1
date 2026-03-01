@@ -191,3 +191,12 @@ export function canRunNAPSync(plan: PlanTier): boolean {
 export function canRunSchemaExpansion(plan: PlanTier): boolean {
   return plan === 'growth' || plan === 'agency';
 }
+
+/**
+ * Review Intelligence Engine — cross-platform review monitoring + AI responses (Sprint 107).
+ * Growth and Agency orgs get automated review fetch, sentiment analysis, and response drafting.
+ * Starter/Trial orgs see an upgrade prompt on the Review Inbox panel.
+ */
+export function canRunReviewEngine(plan: PlanTier): boolean {
+  return plan === 'growth' || plan === 'agency';
+}

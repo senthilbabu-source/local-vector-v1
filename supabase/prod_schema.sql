@@ -2941,6 +2941,88 @@ CREATE TABLE IF NOT EXISTS "public"."page_schemas" (
 -- ALTER TABLE "public"."locations" ADD COLUMN IF NOT EXISTS "website_slug" text UNIQUE;
 
 
+-- ══════════════════════════════════════════════════════════════
+-- Sprint 107: Review Intelligence Engine
+-- ══════════════════════════════════════════════════════════════
+
+-- brand_voice_profiles — Per-location brand voice config
+CREATE TABLE IF NOT EXISTS "public"."brand_voice_profiles" (
+    "id"                   uuid         NOT NULL DEFAULT gen_random_uuid(),
+    "location_id"          uuid         NOT NULL,
+    "org_id"               uuid         NOT NULL,
+    "tone"                 text         NOT NULL DEFAULT 'warm',
+    "formality"            text         NOT NULL DEFAULT 'semi-formal',
+    "use_emojis"           boolean      NOT NULL DEFAULT false,
+    "sign_off"             text         NOT NULL DEFAULT '— The Team',
+    "owner_name"           text,
+    "highlight_keywords"   text[]       NOT NULL DEFAULT '{}',
+    "avoid_phrases"        text[]       NOT NULL DEFAULT '{}',
+    "custom_instructions"  text,
+    "derived_from"         text         NOT NULL DEFAULT 'website_copy',
+    "last_updated_at"      timestamp with time zone NOT NULL DEFAULT now(),
+    CONSTRAINT "brand_voice_profiles_pkey" PRIMARY KEY ("id"),
+    CONSTRAINT "brand_voice_profiles_location_id_key" UNIQUE ("location_id"),
+    CONSTRAINT "brand_voice_profiles_tone_check" CHECK (("tone" = ANY (ARRAY['warm', 'professional', 'casual', 'playful']))),
+    CONSTRAINT "brand_voice_profiles_formality_check" CHECK (("formality" = ANY (ARRAY['formal', 'semi-formal', 'casual']))),
+    CONSTRAINT "brand_voice_profiles_derived_from_check" CHECK (("derived_from" = ANY (ARRAY['website_copy', 'manual', 'hybrid']))),
+    CONSTRAINT "brand_voice_profiles_location_id_fkey" FOREIGN KEY ("location_id") REFERENCES "public"."locations"("id") ON DELETE CASCADE,
+    CONSTRAINT "brand_voice_profiles_org_id_fkey" FOREIGN KEY ("org_id") REFERENCES "public"."organizations"("id") ON DELETE CASCADE
+);
+
+ALTER TABLE "public"."brand_voice_profiles" ENABLE ROW LEVEL SECURITY;
+
+-- reviews — Fetched + analyzed reviews from all platforms
+CREATE TABLE IF NOT EXISTS "public"."reviews" (
+    "id"                       uuid         NOT NULL DEFAULT gen_random_uuid(),
+    "platform_review_id"       text         NOT NULL,
+    "platform"                 text         NOT NULL,
+    "location_id"              uuid         NOT NULL,
+    "org_id"                   uuid         NOT NULL,
+    "reviewer_name"            text         NOT NULL,
+    "reviewer_photo_url"       text,
+    "rating"                   integer      NOT NULL,
+    "text"                     text         NOT NULL DEFAULT '',
+    "published_at"             timestamp with time zone NOT NULL,
+    "platform_url"             text,
+    "sentiment_label"          text         NOT NULL DEFAULT 'neutral',
+    "sentiment_score"          numeric(3,2),
+    "keywords"                 text[]       NOT NULL DEFAULT '{}',
+    "topics"                   jsonb        NOT NULL DEFAULT '[]'::jsonb,
+    "response_draft"           text,
+    "response_status"          text         NOT NULL DEFAULT 'pending_draft',
+    "response_published_at"    timestamp with time zone,
+    "response_published_text"  text,
+    "response_error"           text,
+    "fetched_at"               timestamp with time zone NOT NULL DEFAULT now(),
+    "last_updated_at"          timestamp with time zone NOT NULL DEFAULT now(),
+    CONSTRAINT "reviews_pkey" PRIMARY KEY ("id"),
+    CONSTRAINT "reviews_platform_location_key" UNIQUE ("platform_review_id", "platform", "location_id"),
+    CONSTRAINT "reviews_platform_check" CHECK (("platform" = ANY (ARRAY['google', 'yelp']))),
+    CONSTRAINT "reviews_rating_check" CHECK (("rating" BETWEEN 1 AND 5)),
+    CONSTRAINT "reviews_sentiment_label_check" CHECK (("sentiment_label" = ANY (ARRAY['positive', 'neutral', 'negative']))),
+    CONSTRAINT "reviews_sentiment_score_check" CHECK (("sentiment_score" BETWEEN -1 AND 1)),
+    CONSTRAINT "reviews_response_status_check" CHECK (("response_status" = ANY (ARRAY['pending_draft', 'draft_ready', 'pending_approval', 'approved', 'published', 'skipped']))),
+    CONSTRAINT "reviews_location_id_fkey" FOREIGN KEY ("location_id") REFERENCES "public"."locations"("id") ON DELETE CASCADE,
+    CONSTRAINT "reviews_org_id_fkey" FOREIGN KEY ("org_id") REFERENCES "public"."organizations"("id") ON DELETE CASCADE
+);
+
+ALTER TABLE "public"."reviews" ENABLE ROW LEVEL SECURITY;
+
+CREATE INDEX IF NOT EXISTS "idx_reviews_location_status" ON "public"."reviews" ("location_id", "response_status");
+CREATE INDEX IF NOT EXISTS "idx_reviews_location_published" ON "public"."reviews" ("location_id", "published_at" DESC);
+CREATE INDEX IF NOT EXISTS "idx_reviews_unanswered" ON "public"."reviews" ("location_id", "rating", "response_status") WHERE ("response_status" = ANY (ARRAY['pending_draft', 'draft_ready', 'pending_approval']));
+CREATE INDEX IF NOT EXISTS "idx_reviews_platform" ON "public"."reviews" ("location_id", "platform", "published_at" DESC);
+
+-- Review health columns on locations
+-- ALTER TABLE "public"."locations" ADD COLUMN IF NOT EXISTS "review_health_score" integer CHECK ("review_health_score" BETWEEN 0 AND 100);
+-- ALTER TABLE "public"."locations" ADD COLUMN IF NOT EXISTS "reviews_last_synced_at" timestamp with time zone;
+-- ALTER TABLE "public"."locations" ADD COLUMN IF NOT EXISTS "total_review_count" integer DEFAULT 0;
+-- ALTER TABLE "public"."locations" ADD COLUMN IF NOT EXISTS "avg_rating" numeric(2,1) CHECK ("avg_rating" BETWEEN 1.0 AND 5.0);
+
+-- account_id on google_oauth_tokens
+-- ALTER TABLE "public"."google_oauth_tokens" ADD COLUMN IF NOT EXISTS "account_id" text;
+
+
 
 
 

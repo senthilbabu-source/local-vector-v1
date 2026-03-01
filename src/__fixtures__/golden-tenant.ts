@@ -1694,3 +1694,78 @@ export const MOCK_EXPECTED_HOMEPAGE_SCHEMA = {
     addressCountry: 'US',
   },
 } as const;
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Sprint 107 — Review Intelligence Engine fixtures
+// ═══════════════════════════════════════════════════════════════════════════
+
+import type { Review, ReviewSentiment, BrandVoiceProfile } from '@/lib/review-engine/types';
+
+export const MOCK_BRAND_VOICE: BrandVoiceProfile = {
+  location_id: 'b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+  tone: 'warm',
+  formality: 'semi-formal',
+  use_emojis: true,
+  sign_off: '\u2014 The Charcoal N Chill Team',
+  owner_name: 'Aruna',
+  highlight_keywords: ['premium hookah', 'Indo-American fusion', 'live entertainment', 'belly dancing', 'Alpharetta'],
+  avoid_phrases: ['unfortunately', 'sadly', 'we apologize for any inconvenience'],
+  derived_from: 'hybrid',
+  last_updated_at: '2026-03-01T00:00:00.000Z',
+};
+
+export const MOCK_POSITIVE_REVIEW: Review = {
+  id: 'gbp_review_001',
+  platform: 'google',
+  location_id: 'b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+  org_id: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+  reviewer_name: 'Marcus J.',
+  rating: 5,
+  text: 'Best hookah lounge in Alpharetta! The belly dancing show on Friday was incredible. Staff was super friendly and the Indo-American fusion food was delicious. Will definitely be back!',
+  published_at: '2026-02-26T20:00:00.000Z',
+};
+
+export const MOCK_NEGATIVE_REVIEW: Review = {
+  id: 'gbp_review_002',
+  platform: 'google',
+  location_id: 'b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+  org_id: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+  reviewer_name: 'Priya K.',
+  rating: 2,
+  text: 'We waited 45 minutes for our hookah even though the place was not that busy. The hookah itself was okay but the service was really slow. Expected better for the price.',
+  published_at: '2026-02-22T15:00:00.000Z',
+};
+
+export const MOCK_YELP_REVIEW: Review = {
+  id: 'yelp_review_001',
+  platform: 'yelp',
+  location_id: 'b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+  org_id: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+  reviewer_name: 'Sarah M.',
+  rating: 4,
+  text: 'Great atmosphere and the hookah flavors were amazing. Loved the Afrobeats night theme. Only complaint is parking can be tough on weekends.',
+  published_at: '2026-02-19T18:00:00.000Z',
+};
+
+export const MOCK_POSITIVE_SENTIMENT: ReviewSentiment = {
+  label: 'positive',
+  score: 0.9,
+  rating_band: 'high',
+  keywords: ['best hookah', 'belly dancing', 'super friendly', 'delicious'],
+  topics: [
+    { category: 'hookah', sentiment: 'positive', mentions: ['best hookah'] },
+    { category: 'events', sentiment: 'positive', mentions: ['belly dancing'] },
+    { category: 'staff', sentiment: 'positive', mentions: ['super friendly'] },
+    { category: 'food', sentiment: 'positive', mentions: ['delicious'] },
+  ],
+};
+
+export const MOCK_NEGATIVE_SENTIMENT: ReviewSentiment = {
+  label: 'negative',
+  score: -0.6,
+  rating_band: 'low',
+  keywords: ['slow service', 'really slow'],
+  topics: [
+    { category: 'service', sentiment: 'negative', mentions: ['slow service', 'really slow'] },
+  ],
+};

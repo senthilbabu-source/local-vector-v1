@@ -8,7 +8,7 @@ import { fetchEntityHealth } from '@/lib/data/entity-health';
 import { createClient } from '@/lib/supabase/server';
 import type { ProofTimeline } from '@/lib/services/proof-timeline.service';
 import type { EntityHealthResult } from '@/lib/services/entity-health.service';
-import { canRunAutopilot, canConnectGBP, canExportData, canRunNAPSync, canRunSchemaExpansion, type PlanTier } from '@/lib/plan-enforcer';
+import { canRunAutopilot, canConnectGBP, canExportData, canRunNAPSync, canRunSchemaExpansion, canRunReviewEngine, type PlanTier } from '@/lib/plan-enforcer';
 import { createServiceRoleClient } from '@/lib/supabase/server';
 import { nextSundayLabel } from './_components/scan-health-utils';
 import { isSampleMode } from '@/lib/sample-data/use-sample-mode';
@@ -46,6 +46,8 @@ import TopIssuesPanel from './_components/TopIssuesPanel';
 import ListingHealthPanel from './_components/ListingHealthPanel';
 // Sprint 106: Schema Expansion — Schema Health Panel
 import SchemaHealthPanel from './_components/SchemaHealthPanel';
+// Sprint 107: Review Intelligence Engine — Review Inbox Panel
+import ReviewInboxPanel from './_components/ReviewInboxPanel';
 
 export type { HallucinationRow } from '@/lib/data/dashboard'; // re-export for AlertFeed.tsx
 
@@ -268,6 +270,9 @@ export default async function DashboardPage() {
 
       {/* ── Sprint 106: Schema Health Panel (Growth+ only) ──────────────── */}
       <SchemaHealthPanel isGrowthPlan={canRunSchemaExpansion(planTier)} />
+
+      {/* ── Sprint 107: Review Intelligence Panel (Growth+ only) ────────── */}
+      <ReviewInboxPanel isGrowthPlan={canRunReviewEngine(planTier)} />
 
       {/* ── Detail Cards ────────────────────────────────────────────────────── */}
       <BotActivityCard crawlerSummary={crawlerSummary} hasPublishedMenu={hasPublishedMenu} />

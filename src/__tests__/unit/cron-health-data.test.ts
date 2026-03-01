@@ -53,7 +53,7 @@ describe('fetchCronHealth', () => {
   it('returns healthy summary when no rows exist', async () => {
     const result = await fetchCronHealth();
     expect(result.overallStatus).toBe('healthy');
-    expect(result.jobs).toHaveLength(7);
+    expect(result.jobs).toHaveLength(9);
     expect(result.recentRuns).toHaveLength(0);
   });
 

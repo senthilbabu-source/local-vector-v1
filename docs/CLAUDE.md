@@ -23,7 +23,7 @@ LocalVector is an AEO/GEO SaaS platform that helps local businesses monitor and 
 - **Plan display names live in `lib/plan-display-names.ts`.** Never inline plan tier display logic (e.g., `capitalize(plan)`) — always use `getPlanDisplayName()`. Maps: trial→The Audit, starter→Starter, growth→AI Shield, agency→Brand Fortress, null→Free. (AI_RULES §71)
 - **AI providers are centralized.** Never call AI APIs directly — use `getModel(key)` from `lib/ai/providers.ts`. Mock fallbacks activate when API keys are absent.
 - **RLS pattern:** Every tenant-scoped table has `org_isolation_select/insert/update/delete` policies using `org_id = public.current_user_org_id()`.
-- **Cron routes** live in `app/api/cron/` and require `Authorization: Bearer <CRON_SECRET>` header. Each has a kill switch env var. 10 crons registered in `vercel.json`.
+- **Cron routes** live in `app/api/cron/` and require `Authorization: Bearer <CRON_SECRET>` header. Each has a kill switch env var. 12 crons registered in `vercel.json`, 9 in `CRON_REGISTRY`.
 
 ## Key Directories
 
@@ -443,6 +443,28 @@ APPLE_MAPS_PRIVATE_KEY, APPLE_MAPS_KEY_ID, APPLE_MAPS_TEAM_ID
 - Tests: 91 Vitest (nap-discrepancy-detector 41, nap-health-score 17, nap-push-corrections 7, nap-adapters 17, nap-sync-route 9).
 - Result: 253 test files, 3506 tests pass. 1 migration.
 
+### Sprint 106 — Schema Expansion Engine (2026-03-01)
+- **Migration:** `20260312000001_schema_expansion.sql` — 1 new table (`page_schemas`) + 3 new columns on `locations`.
+- **Schema types + generators:** `lib/schema-expansion/` — website crawler, 6 schema generators (LocalBusiness, FAQ, Event, BlogPosting, Service, registry), validation, public hosting.
+- **API routes:** `app/api/schema-expansion/run/route.ts` (POST), `app/api/schema-expansion/status/route.ts` (GET), `app/api/cron/schema-drift/route.ts` (monthly cron).
+- **Dashboard:** `SchemaHealthPanel` + `SchemaEmbedModal` — schema health score, per-page cards, embed snippet modal.
+- **Plan gate:** `canRunSchemaExpansion()` in `lib/plan-enforcer.ts` — Growth+ only.
+- **Cron:** 11th cron in `vercel.json` — `0 4 1 * *` (1st of month 4 AM UTC). Kill switch: `STOP_SCHEMA_DRIFT_CRON`.
+- AI_RULES: §127 (architecture), §128 (page_schemas table), §129 (health score algorithm). §61 stub marked COMPLETED.
+- Tests: 102 Vitest (website-crawler 35, schema-generators 47, schema-expansion-service 20).
+- Result: 256 test files, 3608 tests pass. 1 migration.
+
+### Sprint 107 — Review Intelligence Engine (2026-03-01)
+- **Migration:** `20260313000001_review_engine.sql` — 2 new tables (`brand_voice_profiles`, `reviews`) + 4 new columns on `locations` + 1 new column on `google_oauth_tokens`.
+- **Review engine modules:** `lib/review-engine/` — types, sentiment analyzer (pure functions), brand voice profiler, response generator (GPT-4o-mini), GBP/Yelp fetchers, sync orchestrator, GBP reply pusher.
+- **API routes:** `app/api/review-engine/sync/route.ts` (POST), `app/api/review-engine/status/route.ts` (GET), `app/api/review-engine/[id]/generate-draft/route.ts`, `app/api/review-engine/[id]/approve/route.ts`, `app/api/review-engine/[id]/skip/route.ts`, `app/api/cron/review-sync/route.ts` (weekly cron).
+- **Dashboard:** `ReviewInboxPanel` + `ReviewResponseModal` — review list with sentiment badges, response editor with Google publish / Yelp copy-to-clipboard.
+- **Plan gate:** `canRunReviewEngine()` in `lib/plan-enforcer.ts` — Growth+ only. HITL gate on negative reviews (≤2 stars).
+- **Cron:** 12th cron in `vercel.json` — `0 1 * * 0` (Sunday 1 AM UTC). Kill switch: `STOP_REVIEW_SYNC_CRON`.
+- AI_RULES: §130 (architecture), §131 (DB tables), §132 (sentiment rules), §133 (response limits).
+- Tests: 70 Vitest (sentiment-analyzer 26, brand-voice-profiler 13, response-generator 20, review-engine-plan-gate 11).
+- Result: 260 test files, 3678 tests pass. 1 migration.
+
 ## Tier Completion Status
 
 | Tier | Sprints | Status | Gate |
@@ -470,20 +492,17 @@ APPLE_MAPS_PRIVATE_KEY, APPLE_MAPS_KEY_ID, APPLE_MAPS_TEAM_ID
 | Sprint 103 | Benchmarks Full Page + Sidebar Entry | Complete | — |
 | Sprint 104 | Content Grader Completion | Complete | — |
 | Sprint 105 | NAP Sync Engine | Complete | — |
-| Tier 4 | 106 | Gated | Sprint 106: no external gate. |
-| Tier 5 | 107–109 | Gated | 4–8 weeks of SOV baseline data required. SOV cron registered 2026-02-27. Sprint 107 earliest: 2026-03-27. |
-
-### Next Sprint Ready to Execute: Sprint 106
-See AI_RULES §61 for Sprint 106 stub.
+| Sprint 106 | Schema Expansion Engine | Complete | — |
+| Sprint 107 | Review Intelligence Engine | Complete | — |
+| Tier 5 | 108–109 | Gated | 8 weeks of SOV baseline data required. SOV cron registered 2026-02-27. Sprint 108 earliest: 2026-04-24. |
 
 ### Sprints Pending External Approval:
 - Apple Business Connect Sync (originally §57): Submit API request at https://developer.apple.com/business-connect/
 
 ### Sprints Pending Data Accumulation:
-- Sprint 107 (Competitor Prompt Hijacking): Needs 4+ weeks SOV data. Earliest: 2026-03-27.
 - Sprint 108 (Per-Engine Playbooks): Needs 8+ weeks SOV data. Earliest: 2026-04-24.
 - Sprint 109 (Intent Discovery): Needs 8+ weeks Perplexity query data. Earliest: 2026-04-24.
 
 ## Build History
 
-See `DEVLOG.md` (project root) and `docs/DEVLOG.md` for the complete sprint-by-sprint build log. Current sprint: 105 (+ FIX-1 through FIX-8 + Sprint A through Sprint O). AI_RULES: §1–§126 (126 sections). Production readiness: all audit issues resolved. **V1 complete.**
+See `DEVLOG.md` (project root) and `docs/DEVLOG.md` for the complete sprint-by-sprint build log. Current sprint: 107 (+ FIX-1 through FIX-8 + Sprint A through Sprint O). AI_RULES: §1–§133 (133 sections). Production readiness: all audit issues resolved. **V1 complete.**

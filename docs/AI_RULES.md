@@ -2577,4 +2577,95 @@ Base score: 100. Deductions (cumulative, floor 0, cap 100):
 Golden tenant (seed data): homepage published + FAQ pending_review + events failed = score 55.
 
 ---
+
+## §130. Review Intelligence Engine Architecture (Sprint 107)
+
+Sprint 107 adds a Review Intelligence Engine: fetch reviews from Google and Yelp, run rule-based sentiment analysis, generate AI response drafts, and push approved replies to GBP.
+
+**Plan gate:** `canRunReviewEngine(plan)` — Growth+ only. Starter/trial see upgrade prompt.
+
+**HITL gate:** Negative reviews (rating ≤ 2) ALWAYS require human approval before publishing. The response generator sets `response_status = 'pending_approval'` for these instead of `'draft_ready'`.
+
+**Module structure:** All code in `lib/review-engine/`:
+- `types.ts` — shared types (Review, ReviewSentiment, BrandVoiceProfile, ReviewResponseDraft, ReviewSyncResult)
+- `sentiment-analyzer.ts` — pure functions, no LLM, no I/O (analyzeSentiment, extractKeywords, classifyTopic, batchAnalyzeSentiment)
+- `brand-voice-profiler.ts` — derives brand voice from location data + page schemas (deriveOrUpdateBrandVoice, getDefaultBrandVoice, inferHighlightKeywords)
+- `response-generator.ts` — GPT-4o-mini via Vercel AI SDK generateText() (generateResponseDraft, buildResponseSystemPrompt, buildResponseUserMessage, validateResponseDraft)
+- `fetchers/gbp-review-fetcher.ts` — GBP Reviews API v4, paginated (max 200/run), reuses token refresh from Sprint 89
+- `fetchers/yelp-review-fetcher.ts` — Yelp Fusion Reviews API (max 3/request, hard API limit)
+- `review-sync-service.ts` — orchestrator (fetch → analyze → upsert → draft)
+- `gbp-reply-pusher.ts` — PUT /{reviewName}/reply to publish approved responses
+- `index.ts` — barrel export
+
+**Yelp limitation:** Yelp has NO reply API. Yelp reviews show "Copy to Clipboard" + "Open Yelp Business" link. Only Google reviews can be auto-published.
+
+---
+
+## §131. Review Intelligence Database Tables (Sprint 107)
+
+Two new tables and column additions support the Review Intelligence Engine.
+
+**Table: `brand_voice_profiles`**
+- PK: `id` uuid. FK: `location_id` → locations(id) CASCADE, `org_id` → organizations(id) CASCADE.
+- `tone` text CHECK (warm/professional/casual/playful) DEFAULT 'warm'.
+- `formality` text CHECK (formal/semi-formal/casual) DEFAULT 'semi-formal'.
+- `use_emojis` boolean DEFAULT false. `sign_off` text. `owner_name` text.
+- `highlight_keywords` text[]. `avoid_phrases` text[]. `custom_instructions` text.
+- `derived_from` text CHECK (website_copy/manual/hybrid) DEFAULT 'website_copy'.
+- UNIQUE constraint on `location_id` — upsert pattern.
+
+**Table: `reviews`**
+- PK: `id` uuid. FK: `location_id` → locations(id) CASCADE, `org_id` → organizations(id) CASCADE.
+- `platform_review_id` text, `platform` text CHECK (google/yelp).
+- `reviewer_name` text, `rating` integer CHECK (1–5), `text` text, `published_at` timestamptz.
+- `sentiment_label` text CHECK (positive/neutral/negative), `sentiment_score` numeric(3,2), `keywords` text[], `topics` jsonb.
+- `response_draft` text, `response_status` text CHECK (pending_draft/draft_ready/pending_approval/approved/published/skipped).
+- UNIQUE constraint on `(platform_review_id, platform, location_id)` — upsert pattern.
+
+**New columns on `locations`:**
+- `review_health_score` integer (0–100, NULL = never synced)
+- `reviews_last_synced_at` timestamptz
+- `total_review_count` integer DEFAULT 0
+- `avg_rating` numeric(2,1) CHECK (1.0–5.0)
+
+**New column on `google_oauth_tokens`:**
+- `account_id` text (GBP Account ID for Reviews API path, populated on first fetch)
+
+**RLS:** Org members SELECT + UPDATE on reviews, ALL on brand_voice_profiles. Service role ALL for cron.
+
+---
+
+## §132. Review Sentiment Analyzer Rules (Sprint 107)
+
+Sentiment analysis is rule-based — no LLM, no external API.
+
+**Rating bands:** high (4–5★), mid (3★), low (1–2★).
+**Base label:** high → positive, mid → neutral, low → negative.
+**Score:** Normalized -1 to 1 from rating + text modifier.
+
+**Text modifiers (override rating):**
+- 4★ + ≥3 strong negative keywords → override label to neutral.
+- 3★ + majority positive keywords → override label to positive.
+
+**Known keyword lists:** `KNOWN_POSITIVE_KEYWORDS` and `KNOWN_NEGATIVE_KEYWORDS` in `sentiment-analyzer.ts`, categorized by topic (service/food/atmosphere/value/hookah/events/staff/cleanliness).
+
+**Topic classification:** `classifyTopic(keyword)` maps extracted keywords to categories. Unrecognized → 'other'.
+
+**Limits:** `extractKeywords()` returns max 5 keywords. `inferHighlightKeywords()` returns max 8.
+
+---
+
+## §133. Response Generation Limits (Sprint 107)
+
+Monthly draft generation limits per plan tier (via `RESPONSE_GENERATION_LIMITS`):
+- trial: 5, starter: 25, growth: 100, agency: 500.
+
+Response validation (`validateResponseDraft`):
+- Word count: 20–200 words.
+- Must not contain forbidden phrases from brand voice `avoid_phrases`.
+- Fallback: `generateTemplateResponse()` when LLM call fails.
+
+Cron: `review-sync` runs Sunday 1 AM UTC. Kill switch: `STOP_REVIEW_SYNC_CRON` env var.
+
+---
 > **End of System Instructions**

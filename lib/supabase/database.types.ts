@@ -4,7 +4,7 @@
  * To regenerate after schema changes:
  *   npx supabase gen types typescript --project-id <project-id> > lib/supabase/database.types.ts
  *
- * Last manual sync: 2026-03-01 (Sprint 102 — Sprint F + Sprint N + Sprint B additions)
+ * Last manual sync: 2026-03-01 (Sprint 107 — review engine tables + brand_voice_profiles)
  */
 
 export type Json =
@@ -296,6 +296,69 @@ export type Database = {
           computed_at?: string;
         };
         Relationships: [];
+      };
+      brand_voice_profiles: {
+        Row: {
+          id: string;
+          location_id: string;
+          org_id: string;
+          tone: string;
+          formality: string;
+          use_emojis: boolean;
+          sign_off: string;
+          owner_name: string | null;
+          highlight_keywords: string[];
+          avoid_phrases: string[];
+          custom_instructions: string | null;
+          derived_from: string;
+          last_updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          location_id: string;
+          org_id: string;
+          tone?: string;
+          formality?: string;
+          use_emojis?: boolean;
+          sign_off?: string;
+          owner_name?: string | null;
+          highlight_keywords?: string[];
+          avoid_phrases?: string[];
+          custom_instructions?: string | null;
+          derived_from?: string;
+          last_updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          location_id?: string;
+          org_id?: string;
+          tone?: string;
+          formality?: string;
+          use_emojis?: boolean;
+          sign_off?: string;
+          owner_name?: string | null;
+          highlight_keywords?: string[];
+          avoid_phrases?: string[];
+          custom_instructions?: string | null;
+          derived_from?: string;
+          last_updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "brand_voice_profiles_location_id_fkey";
+            columns: ["location_id"];
+            isOneToOne: true;
+            referencedRelation: "locations";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "brand_voice_profiles_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+        ];
       };
       business_info: {
         Row: {
@@ -786,6 +849,7 @@ export type Database = {
           gbp_account_name: string | null;
           google_email: string | null;
           scopes: string | null;
+          account_id: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -799,6 +863,7 @@ export type Database = {
           gbp_account_name?: string | null;
           google_email?: string | null;
           scopes?: string | null;
+          account_id?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -812,6 +877,7 @@ export type Database = {
           gbp_account_name?: string | null;
           google_email?: string | null;
           scopes?: string | null;
+          account_id?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -1274,6 +1340,10 @@ export type Database = {
           schema_health_score: number | null;
           schema_last_run_at: string | null;
           website_slug: string | null;
+          review_health_score: number | null;
+          reviews_last_synced_at: string | null;
+          total_review_count: number | null;
+          avg_rating: number | null;
         };
         Insert: {
           id?: string;
@@ -1314,6 +1384,10 @@ export type Database = {
           schema_health_score?: number | null;
           schema_last_run_at?: string | null;
           website_slug?: string | null;
+          review_health_score?: number | null;
+          reviews_last_synced_at?: string | null;
+          total_review_count?: number | null;
+          avg_rating?: number | null;
         };
         Update: {
           id?: string;
@@ -1354,6 +1428,10 @@ export type Database = {
           schema_health_score?: number | null;
           schema_last_run_at?: string | null;
           website_slug?: string | null;
+          review_health_score?: number | null;
+          reviews_last_synced_at?: string | null;
+          total_review_count?: number | null;
+          avg_rating?: number | null;
         };
         Relationships: [
           {
@@ -1977,6 +2055,96 @@ export type Database = {
             columns: ["location_id"];
             isOneToOne: false;
             referencedRelation: "locations";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      reviews: {
+        Row: {
+          id: string;
+          platform_review_id: string;
+          platform: string;
+          location_id: string;
+          org_id: string;
+          reviewer_name: string;
+          reviewer_photo_url: string | null;
+          rating: number;
+          text: string;
+          published_at: string;
+          platform_url: string | null;
+          sentiment_label: string;
+          sentiment_score: number | null;
+          keywords: string[];
+          topics: Json;
+          response_draft: string | null;
+          response_status: string;
+          response_published_at: string | null;
+          response_published_text: string | null;
+          response_error: string | null;
+          fetched_at: string;
+          last_updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          platform_review_id: string;
+          platform: string;
+          location_id: string;
+          org_id: string;
+          reviewer_name: string;
+          reviewer_photo_url?: string | null;
+          rating: number;
+          text?: string;
+          published_at: string;
+          platform_url?: string | null;
+          sentiment_label?: string;
+          sentiment_score?: number | null;
+          keywords?: string[];
+          topics?: Json;
+          response_draft?: string | null;
+          response_status?: string;
+          response_published_at?: string | null;
+          response_published_text?: string | null;
+          response_error?: string | null;
+          fetched_at?: string;
+          last_updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          platform_review_id?: string;
+          platform?: string;
+          location_id?: string;
+          org_id?: string;
+          reviewer_name?: string;
+          reviewer_photo_url?: string | null;
+          rating?: number;
+          text?: string;
+          published_at?: string;
+          platform_url?: string | null;
+          sentiment_label?: string;
+          sentiment_score?: number | null;
+          keywords?: string[];
+          topics?: Json;
+          response_draft?: string | null;
+          response_status?: string;
+          response_published_at?: string | null;
+          response_published_text?: string | null;
+          response_error?: string | null;
+          fetched_at?: string;
+          last_updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "reviews_location_id_fkey";
+            columns: ["location_id"];
+            isOneToOne: false;
+            referencedRelation: "locations";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "reviews_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
             referencedColumns: ["id"];
           },
         ];

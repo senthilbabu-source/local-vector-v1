@@ -3831,4 +3831,54 @@ npx tsc --noEmit                                                     # 0 Sprint 
 ```
 
 ---
+
+## 2026-03-01 — Sprint 107: Review Intelligence Engine (Completed)
+
+**Goal:** Build a Review Intelligence Engine that fetches reviews from Google Business Profile and Yelp, runs rule-based sentiment analysis, generates AI response drafts via GPT-4o-mini, and pushes approved replies back to GBP. Growth+ plan-gated with HITL gate on negative reviews.
+
+**Changes:**
+- Migration `20260313000001_review_engine.sql` — 2 new tables (`brand_voice_profiles`, `reviews`), 4 new columns on `locations`, 1 new column on `google_oauth_tokens`
+- `lib/review-engine/types.ts` — shared types (Review, ReviewSentiment, BrandVoiceProfile, ReviewResponseDraft, ReviewSyncResult)
+- `lib/review-engine/sentiment-analyzer.ts` — pure function sentiment analysis (no LLM): `analyzeSentiment`, `extractKeywords`, `classifyTopic`, `batchAnalyzeSentiment`
+- `lib/review-engine/brand-voice-profiler.ts` — brand voice derivation from location data: `deriveOrUpdateBrandVoice`, `getDefaultBrandVoice`, `inferHighlightKeywords`
+- `lib/review-engine/response-generator.ts` — GPT-4o-mini response drafts: `generateResponseDraft`, `buildResponseSystemPrompt`, `buildResponseUserMessage`, `validateResponseDraft`
+- `lib/review-engine/fetchers/gbp-review-fetcher.ts` — GBP Reviews API v4 with pagination (max 200/run), token refresh reuse
+- `lib/review-engine/fetchers/yelp-review-fetcher.ts` — Yelp Fusion Reviews API (max 3/request hard limit)
+- `lib/review-engine/review-sync-service.ts` — orchestrator: fetch → analyze → upsert → draft
+- `lib/review-engine/gbp-reply-pusher.ts` — PUT /{reviewName}/reply for approved responses
+- `lib/review-engine/index.ts` — barrel export
+- `lib/plan-enforcer.ts` — added `canRunReviewEngine()` (Growth+ only)
+- 6 API routes:
+  - `app/api/review-engine/sync/route.ts` — on-demand sync
+  - `app/api/review-engine/status/route.ts` — review stats + paginated list
+  - `app/api/review-engine/[id]/generate-draft/route.ts` — generate response draft
+  - `app/api/review-engine/[id]/approve/route.ts` — approve + push to GBP
+  - `app/api/review-engine/[id]/skip/route.ts` — skip review
+  - `app/api/cron/review-sync/route.ts` — weekly cron (Sunday 1 AM UTC)
+- `app/dashboard/_components/ReviewInboxPanel.tsx` — client component with plan gate, review list, sentiment badges
+- `app/dashboard/_components/ReviewResponseModal.tsx` — editable response, negative review warning, Google publish / Yelp copy-to-clipboard
+- `app/dashboard/page.tsx` — added ReviewInboxPanel after SchemaHealthPanel
+- `vercel.json` — added `review-sync` cron (10th cron entry)
+- `src/__fixtures__/golden-tenant.ts` — MOCK_BRAND_VOICE, MOCK_POSITIVE_REVIEW, MOCK_NEGATIVE_REVIEW, MOCK_YELP_REVIEW, MOCK_POSITIVE_SENTIMENT, MOCK_NEGATIVE_SENTIMENT
+- `lib/supabase/database.types.ts` — added `brand_voice_profiles` + `reviews` table types, new columns on `locations` + `google_oauth_tokens`
+- `supabase/prod_schema.sql` — Sprint 107 tables appended
+
+**Tests:** 70 unit tests across 4 files:
+- `sentiment-analyzer.test.ts` — 26 tests (analyzeSentiment 12, extractKeywords 6, classifyTopic 5, batchAnalyzeSentiment 3)
+- `brand-voice-profiler.test.ts` — 13 tests (getDefaultBrandVoice 6, inferHighlightKeywords 7)
+- `response-generator.test.ts` — 20 tests (buildResponseSystemPrompt 4, buildResponseUserMessage 4, validateResponseDraft 6, RESPONSE_GENERATION_LIMITS 6)
+- `review-engine-plan-gate.test.ts` — 11 tests (canRunReviewEngine 6, mapGBPStarRating 5)
+
+**AI_RULES:** §130 (Review Engine architecture), §131 (review tables), §132 (sentiment analyzer rules), §133 (response generation limits)
+
+```bash
+npx vitest run src/__tests__/unit/sentiment-analyzer.test.ts        # 26 tests
+npx vitest run src/__tests__/unit/brand-voice-profiler.test.ts      # 13 tests
+npx vitest run src/__tests__/unit/response-generator.test.ts        # 20 tests
+npx vitest run src/__tests__/unit/review-engine-plan-gate.test.ts   # 11 tests
+npx vitest run                                                       # all — no regressions
+npx tsc --noEmit                                                     # 0 Sprint 107 type errors
+```
+
+---
 > **End of Development Log**
