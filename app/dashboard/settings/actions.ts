@@ -161,7 +161,7 @@ export async function updateNotificationPrefs(formData: FormData): Promise<Actio
   const supabase = await createClient();
   const { error } = await supabase
     .from('organizations')
-    .update(parsed.data as never)
+    .update(parsed.data)
     .eq('id', ctx.orgId);
 
   if (error) {
@@ -204,7 +204,7 @@ export async function updateAIMonitoringPrefs(formData: FormData): Promise<Actio
     .update({
       monitored_ai_models: parsed.data.monitored_ai_models,
       scan_day_of_week: parsed.data.scan_day_of_week,
-    } as never)
+    })
     .eq('id', ctx.orgId);
 
   if (error) {

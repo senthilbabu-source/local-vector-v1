@@ -16,14 +16,33 @@ test.use({ storageState: DEV_USER_STATE });
 test.describe('14 — Sidebar navigation', () => {
 
   const navTests = [
+    // ── Overview ─────────────────────────────────────────────────────────
     { testId: 'nav-dashboard', url: '/dashboard', heading: /Dashboard/i },
     { testId: 'nav-alerts', url: '/dashboard/hallucinations', heading: /Alerts|Hallucination/i },
-    { testId: 'nav-menu', url: '/dashboard/magic-menus', heading: /Menu/i },
+    // ── AI Visibility ─────────────────────────────────────────────────────
     { testId: 'nav-share-of-voice', url: '/dashboard/share-of-voice', heading: /Share of Voice/i },
+    { testId: 'nav-cluster-map', url: '/dashboard/cluster-map', heading: /Cluster/i },
+    { testId: 'nav-ai-says', url: '/dashboard/ai-responses', heading: /AI Says|Responses/i },
+    { testId: 'nav-ai-sentiment', url: '/dashboard/sentiment', heading: /Sentiment/i },
+    { testId: 'nav-ai-sources', url: '/dashboard/source-intelligence', heading: /Sources|Intelligence/i },
+    { testId: 'nav-bot-activity', url: '/dashboard/crawler-analytics', heading: /Bot|Crawler/i },
+    // ── Content & Menu ────────────────────────────────────────────────────
+    { testId: 'nav-menu', url: '/dashboard/magic-menus', heading: /Menu/i },
     { testId: 'nav-content', url: '/dashboard/content-drafts', heading: /Content/i },
-    { testId: 'nav-listings', url: '/dashboard/integrations', heading: /Listings/i },
-    { testId: 'nav-citations', url: '/dashboard/citations', heading: /Citation/i },
+    { testId: 'nav-content-calendar', url: '/dashboard/content-calendar', heading: /Calendar/i },
     { testId: 'nav-page-audits', url: '/dashboard/page-audits', heading: /Page Audits/i },
+    { testId: 'nav-citations', url: '/dashboard/citations', heading: /Citation/i },
+    { testId: 'nav-proof-timeline', url: '/dashboard/proof-timeline', heading: /Proof|Timeline/i },
+    // ── Intelligence ──────────────────────────────────────────────────────
+    { testId: 'nav-compete', url: '/dashboard/compete', heading: /Compete/i },
+    { testId: 'nav-revenue-impact', url: '/dashboard/revenue-impact', heading: /Revenue/i },
+    { testId: 'nav-agent-readiness', url: '/dashboard/agent-readiness', heading: /Agent/i },
+    { testId: 'nav-entity-health', url: '/dashboard/entity-health', heading: /Entity/i },
+    // ── Admin ─────────────────────────────────────────────────────────────
+    { testId: 'nav-ai-assistant', url: '/dashboard/ai-assistant', heading: /Assistant/i },
+    { testId: 'nav-listings', url: '/dashboard/integrations', heading: /Listings/i },
+    { testId: 'nav-locations', url: '/dashboard/settings/locations', heading: /Locations/i },
+    { testId: 'nav-settings', url: '/dashboard/settings', heading: /Settings/i },
     { testId: 'nav-billing', url: '/dashboard/billing', heading: /Billing|Plan/i },
   ];
 

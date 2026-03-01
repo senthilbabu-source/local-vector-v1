@@ -4,7 +4,7 @@
  * To regenerate after schema changes:
  *   npx supabase gen types typescript --project-id <project-id> > lib/supabase/database.types.ts
  *
- * Last manual sync: 2026-02-27 (Sprint FIX-1 — Sprint 99-101 additions)
+ * Last manual sync: 2026-03-01 (Sprint 102 — Sprint F + Sprint N + Sprint B additions)
  */
 
 export type Json =
@@ -187,6 +187,10 @@ export type Database = {
           propagation_events: Json | null;
           detected_at: string | null;
           created_at: string | null;
+          correction_query: string | null;
+          verifying_since: string | null;
+          follow_up_checked_at: string | null;
+          follow_up_result: string | null;
         };
         Insert: {
           id?: string;
@@ -207,6 +211,10 @@ export type Database = {
           propagation_events?: Json | null;
           detected_at?: string | null;
           created_at?: string | null;
+          correction_query?: string | null;
+          verifying_since?: string | null;
+          follow_up_checked_at?: string | null;
+          follow_up_result?: string | null;
         };
         Update: {
           id?: string;
@@ -227,6 +235,10 @@ export type Database = {
           propagation_events?: Json | null;
           detected_at?: string | null;
           created_at?: string | null;
+          correction_query?: string | null;
+          verifying_since?: string | null;
+          follow_up_checked_at?: string | null;
+          follow_up_result?: string | null;
         };
         Relationships: [
           {
@@ -251,6 +263,39 @@ export type Database = {
             referencedColumns: ["id"];
           },
         ];
+      };
+      benchmarks: {
+        Row: {
+          id: string;
+          city: string;
+          industry: string;
+          org_count: number;
+          avg_score: number;
+          min_score: number;
+          max_score: number;
+          computed_at: string;
+        };
+        Insert: {
+          id?: string;
+          city: string;
+          industry?: string;
+          org_count: number;
+          avg_score: number;
+          min_score: number;
+          max_score: number;
+          computed_at?: string;
+        };
+        Update: {
+          id?: string;
+          city?: string;
+          industry?: string;
+          org_count?: number;
+          avg_score?: number;
+          min_score?: number;
+          max_score?: number;
+          computed_at?: string;
+        };
+        Relationships: [];
       };
       business_info: {
         Row: {
@@ -1350,6 +1395,13 @@ export type Database = {
           seats_updated_at: string | null;
           seat_overage_count: number | null;
           seat_overage_since: string | null;
+          monitored_ai_models: string[] | null;
+          score_drop_threshold: number | null;
+          webhook_url: string | null;
+          industry: string | null;
+          scan_day_of_week: number | null;
+          notify_score_drop_alert: boolean | null;
+          notify_new_competitor: boolean | null;
         };
         Insert: {
           id?: string;
@@ -1375,6 +1427,13 @@ export type Database = {
           seats_updated_at?: string | null;
           seat_overage_count?: number | null;
           seat_overage_since?: string | null;
+          monitored_ai_models?: string[] | null;
+          score_drop_threshold?: number | null;
+          webhook_url?: string | null;
+          industry?: string | null;
+          scan_day_of_week?: number | null;
+          notify_score_drop_alert?: boolean | null;
+          notify_new_competitor?: boolean | null;
         };
         Update: {
           id?: string;
@@ -1400,6 +1459,13 @@ export type Database = {
           seats_updated_at?: string | null;
           seat_overage_count?: number | null;
           seat_overage_since?: string | null;
+          monitored_ai_models?: string[] | null;
+          score_drop_threshold?: number | null;
+          webhook_url?: string | null;
+          industry?: string | null;
+          scan_day_of_week?: number | null;
+          notify_score_drop_alert?: boolean | null;
+          notify_new_competitor?: boolean | null;
         };
         Relationships: [];
       };
@@ -2098,6 +2164,17 @@ export type Database = {
       increment_credits_used: {
         Args: { p_org_id: string };
         Returns: undefined;
+      };
+      compute_benchmarks: {
+        Args: Record<PropertyKey, never>;
+        Returns: {
+          city: string;
+          industry: string;
+          org_count: number;
+          avg_score: number;
+          min_score: number;
+          max_score: number;
+        }[];
       };
     };
     Enums: {

@@ -40,3 +40,40 @@ describe('Sidebar NAV_ITEMS', () => {
     expect(aiIndex).toBeGreaterThan(pageAuditsIndex);
   });
 });
+
+// ---------------------------------------------------------------------------
+// Sprint 102 — Locations nav entry
+// ---------------------------------------------------------------------------
+
+describe('Sidebar NAV_ITEMS — Locations entry (Sprint 102)', () => {
+  const locations = NAV_ITEMS.find((item) => item.label === 'Locations');
+
+  it('includes Locations entry with href /dashboard/settings/locations', () => {
+    expect(locations).toBeDefined();
+    expect(locations?.href).toBe('/dashboard/settings/locations');
+  });
+
+  it('Locations label is "Locations"', () => {
+    expect(locations?.label).toBe('Locations');
+  });
+
+  it('Locations has active=true', () => {
+    expect(locations?.active).toBe(true);
+  });
+
+  it('Locations is positioned after Listings (integrations)', () => {
+    const locationsIndex = NAV_ITEMS.findIndex((item) => item.label === 'Locations');
+    const listingsIndex = NAV_ITEMS.findIndex((item) => item.label === 'Listings');
+    expect(locationsIndex).toBeGreaterThan(-1);
+    expect(listingsIndex).toBeGreaterThan(-1);
+    expect(locationsIndex).toBeGreaterThan(listingsIndex);
+  });
+
+  it('Locations is positioned before System Health', () => {
+    const locationsIndex = NAV_ITEMS.findIndex((item) => item.label === 'Locations');
+    const systemHealthIndex = NAV_ITEMS.findIndex((item) => item.label === 'System Health');
+    expect(locationsIndex).toBeGreaterThan(-1);
+    expect(systemHealthIndex).toBeGreaterThan(-1);
+    expect(locationsIndex).toBeLessThan(systemHealthIndex);
+  });
+});

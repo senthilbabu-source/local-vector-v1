@@ -76,12 +76,12 @@ export async function fetchBenchmark(
     const industry = categories?.[0] || 'Restaurant';
 
     // Fetch the benchmark for this city + industry
-    // Cast: benchmarks table is from Sprint F migration, not yet in database.types.ts
-    const { data: benchmarkRow } = await (supabase.from as Function)('benchmarks')
+    const { data: benchmarkRow } = await supabase
+      .from('benchmarks')
       .select('city, industry, org_count, avg_score, min_score, max_score, computed_at')
       .eq('city', city)
       .eq('industry', industry)
-      .maybeSingle() as { data: { city: string; industry: string; org_count: number; avg_score: number; min_score: number; max_score: number; computed_at: string | null } | null };
+      .maybeSingle();
 
     // Sprint O: Staleness check — don't show benchmarks older than 14 days
     if (benchmarkRow?.computed_at) {

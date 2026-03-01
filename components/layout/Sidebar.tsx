@@ -26,6 +26,7 @@ import {
   Settings,
   CreditCard,
   ScatterChart,
+  MapPinned,
   X,
 } from 'lucide-react';
 import LogoutButton from '@/app/dashboard/_components/LogoutButton';
@@ -98,6 +99,13 @@ export const NAV_ITEMS = [
     href: '/dashboard/integrations',
     label: 'Listings',
     icon: MapPin,
+    exact: false,
+    active: true,
+  },
+  {
+    href: '/dashboard/settings/locations',
+    label: 'Locations',
+    icon: MapPinned,
     exact: false,
     active: true,
   },
@@ -257,6 +265,7 @@ export const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
       [
         '/dashboard/ai-assistant',
         '/dashboard/integrations',
+        '/dashboard/settings/locations',
         '/dashboard/system-health',
         '/dashboard/settings',
         '/dashboard/billing',

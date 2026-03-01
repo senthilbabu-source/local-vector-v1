@@ -12,7 +12,7 @@ LocalVector is an AEO/GEO SaaS platform that helps local businesses monitor and 
 - **Billing:** Stripe webhooks → `organizations.plan_tier` enum (`trial | starter | growth | agency`)
 - **Email:** Resend + React Email (`emails/`)
 - **Cache:** Upstash Redis (`lib/redis.ts`) — optional, all callers must degrade gracefully
-- **Testing:** Vitest (unit/integration in `src/__tests__/`), Playwright (E2E in `tests/e2e/`, 30 specs). Current: 3318 tests, 242 files.
+- **Testing:** Vitest (unit/integration in `src/__tests__/`), Playwright (E2E in `tests/e2e/`, 30 specs). Current: 3366 tests, 245 files.
 - **Monitoring:** Sentry (client, server, edge configs) — all catch blocks instrumented (Sprint A, AI_RULES §70)
 
 ## Architecture Rules
@@ -396,6 +396,16 @@ ADMIN_EMAILS
 - Result: 245 test files, 3346 tests pass. No migrations.
 - **This is the final sprint. LocalVector V1 is complete.**
 
+### Sprint 102 — Database Types Sync + Sidebar Nav Completeness (2026-03-01)
+- `lib/supabase/database.types.ts` — **MODIFIED.** Added `benchmarks` table; Sprint F columns on `ai_hallucinations`; Sprint N columns on `organizations`; `compute_benchmarks` RPC.
+- `lib/data/benchmarks.ts` / `app/api/cron/benchmarks/route.ts` — **MODIFIED.** Removed `as Function` casts (3 total).
+- `app/api/cron/correction-follow-up/route.ts` / `app/dashboard/settings/actions.ts` — **MODIFIED.** Removed `as never` casts (4 total).
+- `components/layout/Sidebar.tsx` — **MODIFIED.** Added Locations nav item pointing to `/dashboard/settings/locations`. Added to Admin NAV_GROUP.
+- `tests/e2e/14-sidebar-nav.spec.ts` — **MODIFIED.** Expanded to 23 nav tests (was 9).
+- `src/__tests__/unit/database-types-completeness.test.ts` — **MODIFIED.** Extended to 27 tests (was 12).
+- `src/__tests__/unit/sidebar-nav-items.test.ts` — **MODIFIED.** Extended to 10 tests (was 4).
+- Tests: 21 new Vitest (15 types + 6 sidebar), 14 new E2E. Total: 3366 Vitest, 23 E2E sidebar tests.
+
 ## Tier Completion Status
 
 | Tier | Sprints | Status | Gate |
@@ -436,4 +446,4 @@ No external dependencies. Can begin immediately. See AI_RULES §59.
 
 ## Build History
 
-See `DEVLOG.md` (project root) and `docs/DEVLOG.md` for the complete sprint-by-sprint build log. Current sprint: 101 (+ FIX-1 through FIX-6 + Sprint A through Sprint O). AI_RULES: §1–§121 (121 sections). Production readiness: all audit issues resolved. **V1 complete.**
+See `DEVLOG.md` (project root) and `docs/DEVLOG.md` for the complete sprint-by-sprint build log. Current sprint: 102 (+ FIX-1 through FIX-8 + Sprint A through Sprint O). AI_RULES: §1–§123 (123 sections). Production readiness: all audit issues resolved. **V1 complete.**

@@ -14,8 +14,6 @@
 // Auth: Bearer CRON_SECRET
 // Kill switch: STOP_CORRECTION_FOLLOWUP_CRON
 //
-// NOTE: Uses type casts for new columns (correction_query, verifying_since,
-// follow_up_checked_at, follow_up_result) not yet in database.types.ts.
 // ---------------------------------------------------------------------------
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -23,6 +21,7 @@ import { createServiceRoleClient } from '@/lib/supabase/server';
 import { logCronStart, logCronComplete, logCronFailed } from '@/lib/services/cron-logger';
 import { checkCorrectionStatus, type FollowUpAlert } from '@/lib/services/correction-verifier.service';
 import { sendCorrectionFollowUpAlert } from '@/lib/email';
+import type { Database } from '@/lib/supabase/database.types';
 import * as Sentry from '@sentry/nextjs';
 
 interface VerifyingAlert {
@@ -93,7 +92,7 @@ export async function POST(request: NextRequest) {
         const result = await checkCorrectionStatus(followUpAlert);
         const newStatus = result.stillHallucinating ? 'recurring' : 'fixed';
 
-        const updatePayload: Record<string, unknown> = {
+        const updatePayload: Database['public']['Tables']['ai_hallucinations']['Update'] = {
           correction_status: newStatus,
           follow_up_result: newStatus,
           follow_up_checked_at: new Date().toISOString(),
@@ -104,7 +103,7 @@ export async function POST(request: NextRequest) {
 
         await supabase
           .from('ai_hallucinations')
-          .update(updatePayload as never)
+          .update(updatePayload)
           .eq('id', alert.id);
 
         checkedCount++;
@@ -127,7 +126,7 @@ export async function POST(request: NextRequest) {
         // Mark as checked so we don't retry endlessly on permanent failures
         await supabase
           .from('ai_hallucinations')
-          .update({ follow_up_checked_at: new Date().toISOString() } as never)
+          .update({ follow_up_checked_at: new Date().toISOString() })
           .eq('id', alert.id);
       }
     }

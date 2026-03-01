@@ -1207,6 +1207,10 @@ export const MOCK_HALLUCINATION_ROWS: HallucinationAuditRow[] = [
     propagation_events: null,
     detected_at: '2026-02-25T14:30:00Z',
     created_at: '2026-02-25T14:30:00Z',
+    correction_query: null,
+    verifying_since: null,
+    follow_up_checked_at: null,
+    follow_up_result: null,
   },
   {
     id: 'h1eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
@@ -1227,6 +1231,10 @@ export const MOCK_HALLUCINATION_ROWS: HallucinationAuditRow[] = [
     propagation_events: null,
     detected_at: '2026-02-24T10:00:00Z',
     created_at: '2026-02-24T10:00:00Z',
+    correction_query: null,
+    verifying_since: null,
+    follow_up_checked_at: null,
+    follow_up_result: null,
   },
   {
     id: 'h2eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
@@ -1247,6 +1255,10 @@ export const MOCK_HALLUCINATION_ROWS: HallucinationAuditRow[] = [
     propagation_events: null,
     detected_at: '2026-02-23T09:00:00Z',
     created_at: '2026-02-23T09:00:00Z',
+    correction_query: null,
+    verifying_since: null,
+    follow_up_checked_at: null,
+    follow_up_result: null,
   },
   {
     id: 'h3eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
@@ -1267,6 +1279,10 @@ export const MOCK_HALLUCINATION_ROWS: HallucinationAuditRow[] = [
     propagation_events: null,
     detected_at: '2026-02-22T11:00:00Z',
     created_at: '2026-02-22T11:00:00Z',
+    correction_query: null,
+    verifying_since: null,
+    follow_up_checked_at: null,
+    follow_up_result: null,
   },
   {
     id: 'h4eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
@@ -1287,6 +1303,10 @@ export const MOCK_HALLUCINATION_ROWS: HallucinationAuditRow[] = [
     propagation_events: null,
     detected_at: '2026-02-21T16:00:00Z',
     created_at: '2026-02-21T16:00:00Z',
+    correction_query: null,
+    verifying_since: null,
+    follow_up_checked_at: null,
+    follow_up_result: null,
   },
   {
     id: 'h5eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
@@ -1307,6 +1327,10 @@ export const MOCK_HALLUCINATION_ROWS: HallucinationAuditRow[] = [
     propagation_events: null,
     detected_at: '2026-02-20T08:00:00Z',
     created_at: '2026-02-20T08:00:00Z',
+    correction_query: null,
+    verifying_since: null,
+    follow_up_checked_at: null,
+    follow_up_result: null,
   },
 ];
 

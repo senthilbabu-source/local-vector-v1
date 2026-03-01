@@ -4,6 +4,42 @@
 
 ---
 
+## 2026-03-01 — Sprint 102: Database Types Sync + Sidebar Nav Completeness (Completed)
+
+**Goal:** Eliminate all `as Function` and `as never` escape-hatch casts introduced by 3 sprints of schema drift (Sprint F, Sprint N) and surface the Locations Management page in the sidebar.
+
+**Scope:**
+- `lib/supabase/database.types.ts` — **MODIFIED.** Added `benchmarks` table (Row/Insert/Update/Relationships). Added 4 Sprint F columns to `ai_hallucinations` (correction_query, verifying_since, follow_up_checked_at, follow_up_result: all `string | null`). Added 3 Sprint N columns to `organizations` (scan_day_of_week: `number | null`, notify_score_drop_alert: `boolean | null`, notify_new_competitor: `boolean | null`). Added `compute_benchmarks` to Functions.
+- `lib/data/benchmarks.ts` — **MODIFIED.** Removed `(supabase.from as Function)('benchmarks')` cast. Now uses strongly-typed `.from('benchmarks')`. Removed redundant manual type cast on `.maybeSingle()` result.
+- `app/api/cron/benchmarks/route.ts` — **MODIFIED.** Removed `(supabase.rpc as Function)('compute_benchmarks')` cast and `(supabase.from as Function)('benchmarks')` cast.
+- `app/api/cron/correction-follow-up/route.ts` — **MODIFIED.** Removed `.update(updatePayload as never)` and `.update({ follow_up_checked_at: ... } as never)`. Typed `updatePayload` explicitly as `Database['public']['Tables']['ai_hallucinations']['Update']`.
+- `app/dashboard/settings/actions.ts` — **MODIFIED.** Removed `.update(parsed.data as never)` and `.update({ monitored_ai_models, scan_day_of_week } as never)`.
+- `components/layout/Sidebar.tsx` — **MODIFIED.** Imported `MapPinned` from lucide-react. Added Locations entry to `NAV_ITEMS` (`href: '/dashboard/settings/locations'`, label: 'Locations', icon: MapPinned). Added `/dashboard/settings/locations` to Admin group filter in `NAV_GROUPS`.
+- `tests/e2e/14-sidebar-nav.spec.ts` — **MODIFIED.** Expanded `navTests` from 9 entries to 23 — full coverage of all sidebar nav items including new `nav-locations` entry.
+- `src/__tests__/unit/database-types-completeness.test.ts` — **MODIFIED.** Added 15 new tests (Sprint F + Sprint N + benchmarks + cast removal guards). Total: 27 tests (was 12).
+- `src/__tests__/unit/sidebar-nav-items.test.ts` — **MODIFIED.** Added 6 new tests for Locations nav entry. Total: 10 tests (was 4).
+- `src/__fixtures__/golden-tenant.ts` — **MODIFIED.** Added 4 Sprint F follow-up columns to all 6 mock hallucination rows.
+
+**Tests:**
+- `src/__tests__/unit/database-types-completeness.test.ts` — 27 tests (was 12)
+- `src/__tests__/unit/sidebar-nav-items.test.ts` — 10 tests (was 4)
+- `src/__tests__/unit/sidebar-groups.test.ts` — 7 tests (no regressions)
+- `npx vitest run` — 3366 tests passing (245 files, zero regressions)
+- `tests/e2e/14-sidebar-nav.spec.ts` — 23 Playwright tests (was 9)
+- `npx tsc --noEmit` — 10 pre-existing errors (0 new, 1 removed by types fix)
+
+**Run commands:**
+```bash
+npx tsc --noEmit
+npx vitest run src/__tests__/unit/database-types-completeness.test.ts   # 27 tests
+npx vitest run src/__tests__/unit/sidebar-nav-items.test.ts             # 10 tests
+npx vitest run src/__tests__/unit/sidebar-groups.test.ts                # 7 tests
+npx vitest run                                                           # 3366 tests
+npx playwright test tests/e2e/14-sidebar-nav.spec.ts                    # 23 tests
+```
+
+---
+
 ## 2026-02-28 — Hotfix FIX-8: GBP OAuth Callback Diagnostic Logging (Completed)
 
 **Objective:** Add diagnostic logging to GBP OAuth callback to debug "No GBP accounts found" errors.

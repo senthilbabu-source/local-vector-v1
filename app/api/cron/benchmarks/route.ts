@@ -8,8 +8,6 @@
 // Auth: Bearer CRON_SECRET
 // Kill switch: STOP_BENCHMARK_CRON
 //
-// NOTE: Uses type casts because benchmarks table + compute_benchmarks RPC
-// are not in database.types.ts until types are regenerated post-migration.
 // ---------------------------------------------------------------------------
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -45,17 +43,15 @@ export async function POST(request: NextRequest) {
 
   try {
     // Aggregate benchmarks via RPC (uses service-role — bypasses RLS)
-    const { data, error } = await (supabase.rpc as Function)(
-      'compute_benchmarks',
-    ) as { data: BenchmarkRow[] | null; error: { message: string } | null };
+    const { data, error } = await supabase.rpc('compute_benchmarks');
 
     if (error) throw new Error(`Benchmark aggregation failed: ${error.message}`);
 
     let upsertCount = 0;
     for (const row of data ?? []) {
-      const { error: upsertErr } = await (supabase.from as Function)(
-        'benchmarks',
-      ).upsert(
+      const { error: upsertErr } = await supabase
+        .from('benchmarks')
+        .upsert(
         {
           city: row.city,
           industry: row.industry,
