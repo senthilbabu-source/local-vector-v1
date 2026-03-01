@@ -65,7 +65,7 @@ export async function crawlWebsite(
 
   try {
     baseUrl = normalizeBaseUrl(websiteUrl);
-  } catch {
+  } catch (_e) {
     return { pages: [], sitemap_found: false, robots_respected: false };
   }
 
@@ -191,7 +191,7 @@ export function classifyByHeuristic(
   let path: string;
   try {
     path = new URL(url).pathname.toLowerCase();
-  } catch {
+  } catch (_e) {
     return { type: 'other', confidence: 0.3 };
   }
 
@@ -393,7 +393,7 @@ export async function fetchRobotsTxt(baseUrl: string): Promise<string[]> {
     }
 
     return disallowed;
-  } catch {
+  } catch (_e) {
     return [];
   }
 }
@@ -446,7 +446,7 @@ export async function parseSitemap(
 
     // Deduplicate
     return [...new Set(urls)];
-  } catch {
+  } catch (_e) {
     return [];
   }
 }
@@ -531,7 +531,7 @@ function cleanUrl(raw: string, origin: string): string | null {
     if (parsed.origin !== origin) return null;
     // Strip query and fragment
     return `${parsed.origin}${parsed.pathname}`.replace(/\/+$/, '') || origin;
-  } catch {
+  } catch (_e) {
     return null;
   }
 }
@@ -540,7 +540,7 @@ function isDisallowed(url: string, origin: string, disallowed: string[]): boolea
   try {
     const path = new URL(url).pathname;
     return disallowed.some((d) => path.startsWith(d));
-  } catch {
+  } catch (_e) {
     return false;
   }
 }

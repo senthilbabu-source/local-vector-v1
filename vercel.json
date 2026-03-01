@@ -51,6 +51,10 @@
     {
       "path": "/api/cron/autopilot",
       "schedule": "0 2 * * 3"
+    },
+    {
+      "path": "/api/cron/authority-mapping",
+      "schedule": "0 5 1 * *"
     }
   ]
 }

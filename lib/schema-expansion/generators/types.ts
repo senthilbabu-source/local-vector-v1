@@ -37,7 +37,7 @@ export abstract class SchemaGenerator {
   protected getPathname(url: string): string {
     try {
       return new URL(url).pathname;
-    } catch {
+    } catch (_e) {
       return '/';
     }
   }
@@ -46,7 +46,7 @@ export abstract class SchemaGenerator {
   protected getOrigin(url: string): string {
     try {
       return new URL(url).origin;
-    } catch {
+    } catch (_e) {
       return url;
     }
   }

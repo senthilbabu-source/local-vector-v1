@@ -3042,6 +3042,80 @@ CREATE INDEX IF NOT EXISTS "idx_reviews_platform" ON "public"."reviews" ("locati
 -- account_id on google_oauth_tokens
 -- ALTER TABLE "public"."google_oauth_tokens" ADD COLUMN IF NOT EXISTS "account_id" text;
 
+-- ══════════════════════════════════════════════════════════════
+-- Sprint 108: Semantic Authority Mapping
+-- ══════════════════════════════════════════════════════════════
+
+-- entity_authority_citations — per-tenant citation tracking
+CREATE TABLE IF NOT EXISTS "public"."entity_authority_citations" (
+  "id" uuid NOT NULL DEFAULT gen_random_uuid(),
+  "location_id" uuid NOT NULL,
+  "org_id" uuid NOT NULL,
+  "url" text NOT NULL,
+  "domain" text NOT NULL,
+  "tier" text NOT NULL CHECK (tier IN ('tier1','tier2','tier3','unknown')),
+  "source_type" text NOT NULL,
+  "snippet" text,
+  "sentiment" text CHECK (sentiment IN ('positive','neutral','negative','unknown')) DEFAULT 'unknown',
+  "is_sameas_candidate" boolean NOT NULL DEFAULT false,
+  "detected_at" timestamp with time zone NOT NULL DEFAULT now(),
+  "run_month" text NOT NULL,
+  CONSTRAINT "entity_authority_citations_pkey" PRIMARY KEY ("id"),
+  CONSTRAINT "entity_authority_citations_location_id_fkey" FOREIGN KEY ("location_id") REFERENCES "public"."locations"("id") ON DELETE CASCADE,
+  CONSTRAINT "entity_authority_citations_org_id_fkey" FOREIGN KEY ("org_id") REFERENCES "public"."organizations"("id") ON DELETE CASCADE,
+  CONSTRAINT "entity_authority_citations_location_id_url_run_month_key" UNIQUE ("location_id", "url", "run_month")
+);
+
+-- entity_authority_profiles — current authority state per location
+CREATE TABLE IF NOT EXISTS "public"."entity_authority_profiles" (
+  "id" uuid NOT NULL DEFAULT gen_random_uuid(),
+  "location_id" uuid NOT NULL,
+  "org_id" uuid NOT NULL,
+  "entity_authority_score" integer NOT NULL CHECK (entity_authority_score BETWEEN 0 AND 100),
+  "tier1_citation_score" integer NOT NULL DEFAULT 0,
+  "tier2_coverage_score" integer NOT NULL DEFAULT 0,
+  "platform_breadth_score" integer NOT NULL DEFAULT 0,
+  "sameas_score" integer NOT NULL DEFAULT 0,
+  "velocity_score" integer NOT NULL DEFAULT 5,
+  "tier1_count" integer NOT NULL DEFAULT 0,
+  "tier2_count" integer NOT NULL DEFAULT 0,
+  "tier3_count" integer NOT NULL DEFAULT 0,
+  "sameas_gaps" jsonb NOT NULL DEFAULT '[]'::jsonb,
+  "sameas_count" integer NOT NULL DEFAULT 0,
+  "citation_velocity" numeric(6,2),
+  "velocity_label" text CHECK (velocity_label IN ('growing','stable','declining','unknown')) DEFAULT 'unknown',
+  "recommendations" jsonb NOT NULL DEFAULT '[]'::jsonb,
+  "snapshot_at" timestamp with time zone NOT NULL DEFAULT now(),
+  "last_run_at" timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT "entity_authority_profiles_pkey" PRIMARY KEY ("id"),
+  CONSTRAINT "entity_authority_profiles_location_id_fkey" FOREIGN KEY ("location_id") REFERENCES "public"."locations"("id") ON DELETE CASCADE,
+  CONSTRAINT "entity_authority_profiles_org_id_fkey" FOREIGN KEY ("org_id") REFERENCES "public"."organizations"("id") ON DELETE CASCADE,
+  CONSTRAINT "entity_authority_profiles_location_id_key" UNIQUE ("location_id")
+);
+
+-- entity_authority_snapshots — monthly history for velocity
+CREATE TABLE IF NOT EXISTS "public"."entity_authority_snapshots" (
+  "id" uuid NOT NULL DEFAULT gen_random_uuid(),
+  "location_id" uuid NOT NULL,
+  "org_id" uuid NOT NULL,
+  "entity_authority_score" integer NOT NULL,
+  "tier1_count" integer NOT NULL DEFAULT 0,
+  "tier2_count" integer NOT NULL DEFAULT 0,
+  "tier3_count" integer NOT NULL DEFAULT 0,
+  "total_citations" integer NOT NULL DEFAULT 0,
+  "sameas_count" integer NOT NULL DEFAULT 0,
+  "snapshot_month" text NOT NULL,
+  "created_at" timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT "entity_authority_snapshots_pkey" PRIMARY KEY ("id"),
+  CONSTRAINT "entity_authority_snapshots_location_id_fkey" FOREIGN KEY ("location_id") REFERENCES "public"."locations"("id") ON DELETE CASCADE,
+  CONSTRAINT "entity_authority_snapshots_org_id_fkey" FOREIGN KEY ("org_id") REFERENCES "public"."organizations"("id") ON DELETE CASCADE,
+  CONSTRAINT "entity_authority_snapshots_location_id_snapshot_month_key" UNIQUE ("location_id", "snapshot_month")
+);
+
+-- Authority columns on locations
+-- ALTER TABLE "public"."locations" ADD COLUMN IF NOT EXISTS "authority_score" integer CHECK ("authority_score" BETWEEN 0 AND 100);
+-- ALTER TABLE "public"."locations" ADD COLUMN IF NOT EXISTS "authority_last_run_at" timestamp with time zone;
+
 
 
 

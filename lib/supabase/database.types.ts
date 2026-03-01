@@ -905,6 +905,204 @@ export type Database = {
           },
         ];
       };
+      entity_authority_citations: {
+        Row: {
+          id: string;
+          location_id: string;
+          org_id: string;
+          url: string;
+          domain: string;
+          tier: string;
+          source_type: string;
+          snippet: string | null;
+          sentiment: string | null;
+          is_sameas_candidate: boolean;
+          detected_at: string;
+          run_month: string;
+        };
+        Insert: {
+          id?: string;
+          location_id: string;
+          org_id: string;
+          url: string;
+          domain: string;
+          tier: string;
+          source_type: string;
+          snippet?: string | null;
+          sentiment?: string | null;
+          is_sameas_candidate?: boolean;
+          detected_at?: string;
+          run_month: string;
+        };
+        Update: {
+          id?: string;
+          location_id?: string;
+          org_id?: string;
+          url?: string;
+          domain?: string;
+          tier?: string;
+          source_type?: string;
+          snippet?: string | null;
+          sentiment?: string | null;
+          is_sameas_candidate?: boolean;
+          detected_at?: string;
+          run_month?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "entity_authority_citations_location_id_fkey";
+            columns: ["location_id"];
+            isOneToOne: false;
+            referencedRelation: "locations";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "entity_authority_citations_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      entity_authority_profiles: {
+        Row: {
+          id: string;
+          location_id: string;
+          org_id: string;
+          entity_authority_score: number;
+          tier1_citation_score: number;
+          tier2_coverage_score: number;
+          platform_breadth_score: number;
+          sameas_score: number;
+          velocity_score: number;
+          tier1_count: number;
+          tier2_count: number;
+          tier3_count: number;
+          sameas_gaps: Json;
+          sameas_count: number;
+          citation_velocity: number | null;
+          velocity_label: string | null;
+          recommendations: Json;
+          snapshot_at: string;
+          last_run_at: string;
+        };
+        Insert: {
+          id?: string;
+          location_id: string;
+          org_id: string;
+          entity_authority_score: number;
+          tier1_citation_score?: number;
+          tier2_coverage_score?: number;
+          platform_breadth_score?: number;
+          sameas_score?: number;
+          velocity_score?: number;
+          tier1_count?: number;
+          tier2_count?: number;
+          tier3_count?: number;
+          sameas_gaps?: Json;
+          sameas_count?: number;
+          citation_velocity?: number | null;
+          velocity_label?: string | null;
+          recommendations?: Json;
+          snapshot_at?: string;
+          last_run_at?: string;
+        };
+        Update: {
+          id?: string;
+          location_id?: string;
+          org_id?: string;
+          entity_authority_score?: number;
+          tier1_citation_score?: number;
+          tier2_coverage_score?: number;
+          platform_breadth_score?: number;
+          sameas_score?: number;
+          velocity_score?: number;
+          tier1_count?: number;
+          tier2_count?: number;
+          tier3_count?: number;
+          sameas_gaps?: Json;
+          sameas_count?: number;
+          citation_velocity?: number | null;
+          velocity_label?: string | null;
+          recommendations?: Json;
+          snapshot_at?: string;
+          last_run_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "entity_authority_profiles_location_id_fkey";
+            columns: ["location_id"];
+            isOneToOne: true;
+            referencedRelation: "locations";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "entity_authority_profiles_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      entity_authority_snapshots: {
+        Row: {
+          id: string;
+          location_id: string;
+          org_id: string;
+          entity_authority_score: number;
+          tier1_count: number;
+          tier2_count: number;
+          tier3_count: number;
+          total_citations: number;
+          sameas_count: number;
+          snapshot_month: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          location_id: string;
+          org_id: string;
+          entity_authority_score: number;
+          tier1_count?: number;
+          tier2_count?: number;
+          tier3_count?: number;
+          total_citations?: number;
+          sameas_count?: number;
+          snapshot_month: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          location_id?: string;
+          org_id?: string;
+          entity_authority_score?: number;
+          tier1_count?: number;
+          tier2_count?: number;
+          tier3_count?: number;
+          total_citations?: number;
+          sameas_count?: number;
+          snapshot_month?: string;
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "entity_authority_snapshots_location_id_fkey";
+            columns: ["location_id"];
+            isOneToOne: false;
+            referencedRelation: "locations";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "entity_authority_snapshots_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       google_oauth_tokens: {
         Row: {
           id: string;
@@ -1413,6 +1611,8 @@ export type Database = {
           avg_rating: number | null;
           autopilot_last_run_at: string | null;
           drafts_pending_count: number | null;
+          authority_score: number | null;
+          authority_last_run_at: string | null;
         };
         Insert: {
           id?: string;
@@ -1459,6 +1659,8 @@ export type Database = {
           avg_rating?: number | null;
           autopilot_last_run_at?: string | null;
           drafts_pending_count?: number | null;
+          authority_score?: number | null;
+          authority_last_run_at?: string | null;
         };
         Update: {
           id?: string;
@@ -1505,6 +1707,8 @@ export type Database = {
           avg_rating?: number | null;
           autopilot_last_run_at?: string | null;
           drafts_pending_count?: number | null;
+          authority_score?: number | null;
+          authority_last_run_at?: string | null;
         };
         Relationships: [
           {

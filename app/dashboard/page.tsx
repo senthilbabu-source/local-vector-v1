@@ -8,7 +8,7 @@ import { fetchEntityHealth } from '@/lib/data/entity-health';
 import { createClient } from '@/lib/supabase/server';
 import type { ProofTimeline } from '@/lib/services/proof-timeline.service';
 import type { EntityHealthResult } from '@/lib/services/entity-health.service';
-import { canRunAutopilot, canConnectGBP, canExportData, canRunNAPSync, canRunSchemaExpansion, canRunReviewEngine, type PlanTier } from '@/lib/plan-enforcer';
+import { canRunAutopilot, canConnectGBP, canExportData, canRunNAPSync, canRunSchemaExpansion, canRunReviewEngine, canRunSemanticAuthority, type PlanTier } from '@/lib/plan-enforcer';
 import { createServiceRoleClient } from '@/lib/supabase/server';
 import { nextSundayLabel } from './_components/scan-health-utils';
 import { isSampleMode } from '@/lib/sample-data/use-sample-mode';
@@ -50,6 +50,8 @@ import ListingHealthPanel from './_components/ListingHealthPanel';
 import SchemaHealthPanel from './_components/SchemaHealthPanel';
 // Sprint 107: Review Intelligence Engine — Review Inbox Panel
 import ReviewInboxPanel from './_components/ReviewInboxPanel';
+// Sprint 108: Semantic Authority — Entity Authority Panel
+import AuthorityPanel from './_components/AuthorityPanel';
 
 export type { HallucinationRow } from '@/lib/data/dashboard'; // re-export for AlertFeed.tsx
 
@@ -286,6 +288,9 @@ export default async function DashboardPage() {
 
       {/* ── Sprint 107: Review Intelligence Panel (Growth+ only) ────────── */}
       <ReviewInboxPanel isGrowthPlan={canRunReviewEngine(planTier)} />
+
+      {/* ── Sprint 108: Entity Authority Panel (Growth+ only) ──────────── */}
+      <AuthorityPanel isGrowthPlan={canRunSemanticAuthority(planTier)} />
 
       {/* ── Detail Cards ────────────────────────────────────────────────────── */}
       <BotActivityCard crawlerSummary={crawlerSummary} hasPublishedMenu={hasPublishedMenu} />

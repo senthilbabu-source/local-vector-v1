@@ -3913,3 +3913,61 @@ npx tsc --noEmit                                                     # 0 Sprint 
 
 ---
 > **End of Development Log**
+
+## 2026-03-01 — Sprint 108: Semantic Authority Mapping Engine (Completed)
+
+**Goal:** Build a Semantic Authority Mapping Engine that detects citation sources via Perplexity Sonar, scores entity authority (0–100) across 5 dimensions, discovers sameAs URL gaps, tracks citation velocity month-over-month, generates prioritized recommendations, and surfaces everything in a dashboard panel.
+
+**Changes:**
+- Migration `20260315000001_semantic_authority.sql` — 3 new tables (`entity_authority_citations`, `entity_authority_profiles`, `entity_authority_snapshots`), 2 new columns on `locations` (`authority_score`, `authority_last_run_at`)
+- `lib/authority/types.ts` — shared types (AuthorityTier, CitationSource, AuthorityDimensions, EntityAuthorityProfile, SameAsGap, AuthorityRecommendation, AuthoritySnapshot, AuthorityMappingResult, AuthorityStatusResponse)
+- `lib/authority/citation-source-detector.ts` — Perplexity Sonar queries (5 per location), tier classification (Tier 1/2/3), domain matching: `detectCitationSources`, `classifySourceTier`, `extractDomain`, `buildCitationQueries`, `isSameAsCandidate`
+- `lib/authority/entity-authority-scorer.ts` — pure scoring (0–100 from 5 dimensions): `computeAuthorityScore`, `getVelocityLabel`, `getAuthorityGrade`, `countActivePlatforms`, `countSameAsUrls`
+- `lib/authority/sameas-enricher.ts` — gap detection + Wikidata API check: `detectSameAsGaps`, `fetchExistingSameAs`, `checkWikidataEntity`, `generateSameAsInstructions`
+- `lib/authority/citation-velocity-monitor.ts` — monthly snapshots + velocity: `saveAuthoritySnapshot`, `computeCitationVelocity`, `shouldAlertDecay`, `getAuthorityHistory`
+- `lib/authority/authority-recommendations.ts` — prioritized recommendations (max 5): `generateRecommendations`, `buildTier1CitationRecommendation`, `buildVelocityDecayRecommendation`
+- `lib/authority/authority-service.ts` — orchestrator: `runAuthorityMapping` (full pipeline), `runAuthorityMappingForAllLocations` (batch cron)
+- `lib/authority/index.ts` — barrel export
+- `lib/plan-enforcer.ts` — added `canRunSemanticAuthority()` (Growth+ only)
+- `lib/ai/providers.ts` — added `'authority-citation': perplexity('sonar')` model key
+- 4 API routes:
+  - `app/api/authority/run/route.ts` — POST on-demand authority mapping
+  - `app/api/authority/status/route.ts` — GET profile + history
+  - `app/api/authority/sameas/route.ts` — GET/POST sameAs URL management
+  - `app/api/cron/authority-mapping/route.ts` — monthly cron (1st of month 5 AM UTC)
+- `app/dashboard/_components/AuthorityPanel.tsx` — client component with score badge, tier breakdown bars, velocity indicator, sameAs gaps, recommendations
+- `app/dashboard/page.tsx` — added AuthorityPanel after ReviewInboxPanel
+- `vercel.json` — added `authority-mapping` cron (14th entry)
+- `src/__fixtures__/golden-tenant.ts` — MOCK_CITATION_SOURCES, MOCK_SAMEAS_GAPS, MOCK_AUTHORITY_DIMENSIONS, MOCK_AUTHORITY_PROFILE (score 58), MOCK_AUTHORITY_SNAPSHOTS
+- `supabase/seed.sql` — Section 18: authority profile, 2 snapshots, 5 citations, location update
+- `lib/supabase/database.types.ts` — added 3 new table types + 2 new columns on locations
+- `supabase/prod_schema.sql` — Sprint 108 tables appended
+- `.env.local.example` — added `STOP_AUTHORITY_CRON`
+- Fixed 21 bare `catch {}` blocks across Sprint 108 + pre-existing Sprint 105/106 files (Sentry sweep guard)
+- Updated cron count assertions from 13 → 14 in sprint-f-registration.test.ts, sprint-n-registration.test.ts
+
+**Tests:** 137 unit tests across 8 files:
+- `citation-source-detector.test.ts` — 35 tests (extractDomain 5, classifySourceTier 15, isSameAsCandidate 10, buildCitationQueries 5)
+- `entity-authority-scorer.test.ts` — 26 tests (computeAuthorityScore 12, getVelocityLabel 5, getAuthorityGrade 5, countActivePlatforms 2, countSameAsUrls 2)
+- `sameas-enricher.test.ts` — 20 tests (detectSameAsGaps 8, fetchExistingSameAs 4, checkWikidataEntity 4, generateSameAsInstructions 4)
+- `citation-velocity-monitor.test.ts` — 15 tests (saveAuthoritySnapshot 5, computeCitationVelocity 6, shouldAlertDecay 3, getAuthorityHistory 1)
+- `authority-recommendations.test.ts` — 15 tests (buildTier1CitationRecommendation 3, buildVelocityDecayRecommendation 3, generateRecommendations 9)
+- `authority-service.test.ts` — 10 tests (runAuthorityMapping 7, runAuthorityMappingForAllLocations 3)
+- `authority-panel.test.tsx` — 10 tests (plan gate 1, loading 1, data display 8)
+- `authority-routes.test.ts` — 6 tests (auth 1, plan gate 1, no location 1, success 1, cron auth 1, kill switch 1)
+
+**AI_RULES:** §135 (Authority Engine architecture), §136 (Authority tables), §137 (Authority score dimensions)
+
+```bash
+npx vitest run src/__tests__/unit/citation-source-detector.test.ts    # 35 tests
+npx vitest run src/__tests__/unit/entity-authority-scorer.test.ts     # 26 tests
+npx vitest run src/__tests__/unit/sameas-enricher.test.ts             # 20 tests
+npx vitest run src/__tests__/unit/citation-velocity-monitor.test.ts   # 15 tests
+npx vitest run src/__tests__/unit/authority-recommendations.test.ts   # 15 tests
+npx vitest run src/__tests__/unit/authority-service.test.ts           # 10 tests
+npx vitest run src/__tests__/unit/authority-panel.test.tsx            # 10 tests
+npx vitest run src/__tests__/unit/authority-routes.test.ts            #  6 tests
+npx vitest run                                                         # all — no regressions
+```
+
+---

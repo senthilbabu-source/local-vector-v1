@@ -200,3 +200,13 @@ export function canRunSchemaExpansion(plan: PlanTier): boolean {
 export function canRunReviewEngine(plan: PlanTier): boolean {
   return plan === 'growth' || plan === 'agency';
 }
+
+/**
+ * Semantic Authority Mapping — entity authority score + citation velocity (Sprint 108).
+ * Growth and Agency orgs get automated authority mapping (citation detection,
+ * sameAs enrichment, velocity monitoring, recommendations).
+ * Starter/Trial orgs see an upgrade prompt on the Authority panel.
+ */
+export function canRunSemanticAuthority(plan: PlanTier): boolean {
+  return plan === 'growth' || plan === 'agency';
+}

@@ -2704,3 +2704,85 @@ Sprint 86 extends the content brief generator (§49) with automated trigger dete
 
 ---
 > **End of System Instructions**
+## §135. Semantic Authority Mapping Engine — Architecture (Sprint 108)
+
+Sprint 108 builds a Semantic Authority Mapping Engine that measures, tracks, and improves a business's standing as a recognized, authoritative entity in the AI knowledge ecosystem.
+
+**Pipeline** (`lib/authority/authority-service.ts`):
+1. Fetch Ground Truth from `locations` table
+2. Detect citation sources via Perplexity Sonar (`lib/authority/citation-source-detector.ts`) — 5 queries per location
+3. Count active platforms + existing sameAs URLs
+4. Compute citation velocity vs. previous month
+5. Score entity authority (0–100) from 5 dimensions
+6. Detect sameAs gaps against 9 high-value platforms
+7. Generate prioritized recommendations (max 5)
+8. Persist: upsert citations, profile, snapshot; update `locations.authority_score`
+
+**Tier classification** (`classifySourceTier`):
+- Tier 1: `.gov`, `.edu`, known news patterns (nytimes, wsj, etc.), brand website
+- Tier 2: Major platforms — `KNOWN_TIER2_DOMAINS` (yelp, tripadvisor, google, reddit, eater, wikipedia, foursquare, opentable, doordash, grubhub, ubereats)
+- Tier 3: Everything else (blogs, aggregators)
+
+**sameAs gap detection** (`lib/authority/sameas-enricher.ts`):
+- 9 `HIGH_VALUE_SAMEAS_PLATFORMS`: wikidata, wikipedia, yelp, tripadvisor, google_maps, apple_maps, facebook, foursquare, opentable
+- Compares existing sameAs in homepage schema + listing_platform_ids vs. ideal set
+- Wikidata API check (free, no key, 5s timeout)
+- Platform-specific instructions for each gap
+
+**Plan gate:** `canRunSemanticAuthority()` — Growth+ only.
+**Model key:** `'authority-citation': perplexity('sonar')` in `lib/ai/providers.ts`.
+**Cron:** `app/api/cron/authority-mapping/route.ts` — 1st of month, 5 AM UTC. Kill switch: `STOP_AUTHORITY_CRON`.
+**Dashboard:** `AuthorityPanel` client component in `app/dashboard/_components/`. `data-testid` attributes: `authority-panel`, `authority-score`, `authority-run-button`, `authority-last-run`, `authority-tier-breakdown`, `authority-velocity`, `authority-sameas-gaps`, `authority-recommendations`.
+
+---
+
+## §136. Semantic Authority Database Tables (Sprint 108)
+
+Migration: `20260315000001_semantic_authority.sql`.
+
+**`entity_authority_citations`** — individual citation sources detected per location per month:
+- PK: `id` (uuid). Unique: `(location_id, url, run_month)`.
+- Columns: `location_id`, `org_id`, `url`, `domain`, `tier` (tier1/tier2/tier3/unknown), `source_type`, `snippet`, `sentiment` (positive/neutral/negative), `is_sameas_candidate`, `detected_at`, `run_month`.
+- RLS: org member read, service_role full access.
+
+**`entity_authority_profiles`** — latest authority profile per location:
+- PK: `id` (uuid). Unique: `(location_id)`.
+- Columns: `location_id`, `org_id`, `entity_authority_score` (0–100), 5 dimension scores (`tier1_citation_score`, `tier2_coverage_score`, `platform_breadth_score`, `sameas_score`, `velocity_score`), tier counts, `sameas_gaps` (jsonb), `sameas_count`, `citation_velocity`, `velocity_label`, `recommendations` (jsonb), `snapshot_at`, `last_run_at`.
+- RLS: org member read, service_role full access.
+
+**`entity_authority_snapshots`** — monthly snapshots for velocity tracking:
+- PK: `id` (uuid). Unique: `(location_id, snapshot_month)`.
+- Columns: `location_id`, `org_id`, `entity_authority_score`, `tier1_count`, `tier2_count`, `tier3_count`, `total_citations`, `sameas_count`, `snapshot_month` (text YYYY-MM).
+- RLS: org member read, service_role full access.
+
+**`locations` columns added:** `authority_score` (integer 0–100), `authority_last_run_at` (timestamptz).
+
+---
+
+## §137. Entity Authority Score — 5 Dimensions (Sprint 108)
+
+Composite score 0–100, computed in `lib/authority/entity-authority-scorer.ts`:
+
+| Dimension | Max | Formula |
+|-----------|-----|---------|
+| Tier 1 Citations | 30 | `min(tier1Count * 10, 30)` |
+| Tier 2 Coverage | 25 | `min(tier2Count * 5, 25)` |
+| Platform Breadth | 20 | `min(platformCount * 4, 20)` |
+| sameAs Links | 15 | `min(sameAsCount * 3, 15)` |
+| Velocity | 10 | `velocity > 0 ? min(velocity, 10) : max(velocity / 2, 0)` |
+
+**Velocity** (`computeCitationVelocity`): `(currentTotal - previousTotal) / previousTotal × 100`. Returns `null` on first run.
+
+**Velocity labels** (`getVelocityLabel`): `null → 'unknown'`, `> 5% → 'growing'`, `< -5% → 'declining'`, else `'stable'`.
+
+**Grade** (`getAuthorityGrade`): A (80+), B (60+), C (40+), D (20+), F (<20).
+
+**Decay alert** (`shouldAlertDecay`): `velocity < -20%` triggers Sentry warning.
+
+**Recommendations** (`lib/authority/authority-recommendations.ts`):
+- Priority 1: No Tier 1 citations (est. +22 pts), velocity decay < -20% (est. +10 pts)
+- Priority 2: High-impact sameAs gaps (+5–8 pts), low platform breadth < 12 (+5 pts)
+- Priority 3: Low Tier 2 count < 3 (+3 pts), low sameAs score < 9 (+5 pts)
+- Sorted: priority ASC, then estimated_score_gain DESC. Capped at 5.
+
+---

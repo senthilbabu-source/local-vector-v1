@@ -86,7 +86,7 @@ export default function ListingHealthPanel({ isGrowthPlan }: ListingHealthPanelP
         const json = await res.json();
         setData(json);
       }
-    } catch {
+    } catch (_e) {
       // Non-critical — panel renders empty state
     } finally {
       setLoading(false);
@@ -108,7 +108,7 @@ export default function ListingHealthPanel({ isGrowthPlan }: ListingHealthPanelP
       if (res.ok) {
         await fetchStatus();
       }
-    } catch {
+    } catch (_e) {
       // Handled silently
     } finally {
       setSyncing(false);

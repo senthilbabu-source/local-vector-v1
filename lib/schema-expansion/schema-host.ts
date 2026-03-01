@@ -89,7 +89,7 @@ export function validateSchemaBeforePublish(
     if (schema.url && typeof schema.url === 'string') {
       try {
         new URL(schema.url);
-      } catch {
+      } catch (_e) {
         errors.push(`Invalid URL: ${schema.url}`);
       }
     }

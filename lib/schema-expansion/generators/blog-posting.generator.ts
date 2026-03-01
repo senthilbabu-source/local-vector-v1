@@ -91,7 +91,7 @@ export class BlogPostingGenerator extends SchemaGenerator {
         if (!isNaN(date.getTime())) {
           return date.toISOString().split('T')[0];
         }
-      } catch {
+      } catch (_e) {
         // Invalid date — skip
       }
     }

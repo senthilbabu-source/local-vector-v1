@@ -2298,3 +2298,93 @@ BEGIN
   )
   ON CONFLICT (location_id, page_url) DO NOTHING;
 END $$;
+
+-- ═══════════════════════════════════════════════════════════════════════════
+-- Section 18: Sprint 108 — Semantic Authority Mapping seed data
+-- ═══════════════════════════════════════════════════════════════════════════
+DO $$
+DECLARE
+  v_location_id uuid;
+  v_org_id      uuid := 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11';
+BEGIN
+  SELECT id INTO v_location_id FROM public.locations WHERE org_id = v_org_id LIMIT 1;
+
+  IF v_location_id IS NULL THEN
+    RAISE NOTICE 'Sprint 108 seed: no location found, skipping';
+    RETURN;
+  END IF;
+
+  -- Seed authority profile (realistic starting state for Charcoal N Chill)
+  INSERT INTO public.entity_authority_profiles (
+    location_id, org_id,
+    entity_authority_score,
+    tier1_citation_score, tier2_coverage_score, platform_breadth_score,
+    sameas_score, velocity_score,
+    tier1_count, tier2_count, tier3_count,
+    sameas_count, citation_velocity, velocity_label,
+    sameas_gaps, recommendations
+  ) VALUES (
+    v_location_id, v_org_id,
+    58,
+    0, 15, 12, 9, 5,
+    0, 3, 4,
+    3, NULL, 'unknown',
+    '[
+      {"url":"","platform":"wikidata","tier":"tier2","estimated_impact":"high","action_label":"Create a Wikidata entity for Charcoal N Chill","action_instructions":"Go to wikidata.org, create a free account, and create a new item for Charcoal N Chill.","already_in_schema":false},
+      {"url":"","platform":"tripadvisor","tier":"tier2","estimated_impact":"high","action_label":"Claim your TripAdvisor listing","action_instructions":"Visit tripadvisor.com/owners and search for Charcoal N Chill to claim your listing.","already_in_schema":false}
+    ]'::jsonb,
+    '[
+      {"priority":1,"category":"tier1_citation","title":"Get featured in Atlanta local press","description":"No Tier 1 press citations found. A single mention in AJC, Eater Atlanta, or a local news blog would add 15-30 points to your authority score.","estimated_score_gain":22,"effort":"high","action_type":"outreach","autopilot_trigger":true},
+      {"priority":2,"category":"sameas","title":"Add Wikidata entity link to your schema","description":"Wikidata is the #1 Knowledge Graph source used by Google AI. Creating an entity and linking it adds a strong Tier 2 authority signal.","estimated_score_gain":8,"effort":"medium","action_type":"add_sameas","autopilot_trigger":false}
+    ]'::jsonb
+  )
+  ON CONFLICT (location_id) DO NOTHING;
+
+  -- Seed 2 months of historical snapshots
+  INSERT INTO public.entity_authority_snapshots (
+    location_id, org_id, entity_authority_score,
+    tier1_count, tier2_count, tier3_count,
+    total_citations, sameas_count, snapshot_month
+  ) VALUES
+    (v_location_id, v_org_id, 52, 0, 2, 3, 5, 2, '2026-01'),
+    (v_location_id, v_org_id, 55, 0, 3, 3, 6, 3, '2026-02')
+  ON CONFLICT (location_id, snapshot_month) DO NOTHING;
+
+  -- Seed 5 detected citation sources
+  INSERT INTO public.entity_authority_citations (
+    location_id, org_id, url, domain, tier, source_type,
+    snippet, sentiment, is_sameas_candidate, run_month
+  ) VALUES
+    (v_location_id, v_org_id,
+     'https://www.yelp.com/biz/charcoal-n-chill-alpharetta', 'yelp.com',
+     'tier2', 'yelp',
+     'Charcoal N Chill: Premium hookah lounge in Alpharetta, GA. 163 reviews',
+     'positive', true, '2026-03'),
+    (v_location_id, v_org_id,
+     'https://www.facebook.com/charcoalnchill', 'facebook.com',
+     'tier2', 'facebook',
+     'Charcoal N Chill hookah lounge and Indo-American fusion restaurant in Alpharetta',
+     'neutral', true, '2026-03'),
+    (v_location_id, v_org_id,
+     'https://maps.google.com/?cid=527487414899304357', 'google.com',
+     'tier2', 'google_maps',
+     'Charcoal N Chill · Hookah bar · 11950 Jones Bridge Rd, Alpharetta',
+     'positive', true, '2026-03'),
+    (v_location_id, v_org_id,
+     'https://www.bestrestaurantsalpharetta.com/hookah', 'bestrestaurantsalpharetta.com',
+     'tier3', 'aggregator_blog',
+     'Top 5 Hookah Lounges in Alpharetta — #2: Charcoal N Chill',
+     'positive', false, '2026-03'),
+    (v_location_id, v_org_id,
+     'https://www.reddit.com/r/atlanta/comments/hookah_alpharetta/', 'reddit.com',
+     'tier2', 'reddit',
+     'r/Atlanta: Best hookah spots near Alpharetta? Charcoal N Chill mentioned 3 times',
+     'positive', false, '2026-03')
+  ON CONFLICT (location_id, url, run_month) DO NOTHING;
+
+  -- Update location authority state
+  UPDATE public.locations
+     SET authority_score       = 58,
+         authority_last_run_at = NOW() - INTERVAL '1 day'
+   WHERE id = v_location_id;
+END $$;

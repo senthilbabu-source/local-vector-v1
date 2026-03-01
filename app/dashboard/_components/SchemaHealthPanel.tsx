@@ -70,7 +70,7 @@ export default function SchemaHealthPanel({ isGrowthPlan }: SchemaHealthPanelPro
         const json = await res.json();
         setData(json);
       }
-    } catch {
+    } catch (_e) {
       // Non-critical
     } finally {
       setLoading(false);
@@ -92,7 +92,7 @@ export default function SchemaHealthPanel({ isGrowthPlan }: SchemaHealthPanelPro
       if (res.ok) {
         await fetchStatus();
       }
-    } catch {
+    } catch (_e) {
       // Handled silently
     } finally {
       setScanning(false);
@@ -106,7 +106,7 @@ export default function SchemaHealthPanel({ isGrowthPlan }: SchemaHealthPanelPro
       if (res.ok) {
         await fetchStatus();
       }
-    } catch {
+    } catch (_e) {
       // Handled silently
     } finally {
       setApproving(null);

@@ -129,6 +129,9 @@ export const MODELS = {
 
   /** Sprint 104: AI FAQ auto-generator (Doc 17 §4) — cost-efficient */
   'faq-generation': openai('gpt-4o-mini'),
+
+  /** Sprint 108: Authority citation detection (live web search via Perplexity) */
+  'authority-citation': perplexity('sonar'),
 } as const;
 
 export type ModelKey = keyof typeof MODELS;

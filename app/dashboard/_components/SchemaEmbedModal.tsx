@@ -33,7 +33,7 @@ export default function SchemaEmbedModal({
       await navigator.clipboard.writeText(text);
       setCopied(type);
       setTimeout(() => setCopied(null), 2000);
-    } catch {
+    } catch (_e) {
       // Fallback for older browsers
     }
   };

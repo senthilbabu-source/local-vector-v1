@@ -1898,3 +1898,136 @@ export const MOCK_CONTENT_DRAFT_SCHEMA_GAP: ContentDraftRow = {
   rejection_reason: null,
   generation_notes: null,
 };
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Sprint 108 — Semantic Authority Mapping fixtures
+// ═══════════════════════════════════════════════════════════════════════════
+
+import type {
+  CitationSource,
+  SameAsGap,
+  AuthorityDimensions,
+  EntityAuthorityProfile,
+  AuthoritySnapshot,
+} from '@/lib/authority/types';
+
+export const MOCK_CITATION_SOURCES: CitationSource[] = [
+  {
+    url: 'https://www.yelp.com/biz/charcoal-n-chill-alpharetta',
+    domain: 'yelp.com',
+    tier: 'tier2',
+    source_type: 'yelp',
+    snippet: 'Charcoal N Chill: Premium hookah lounge in Alpharetta, GA. 163 reviews.',
+    detected_at: '2026-03-01T05:00:00.000Z',
+    sentiment: 'positive',
+    is_sameas_candidate: true,
+  },
+  {
+    url: 'https://www.reddit.com/r/atlanta/comments/hookah_alpharetta',
+    domain: 'reddit.com',
+    tier: 'tier2',
+    source_type: 'reddit',
+    snippet: 'Best hookah spots near Alpharetta? Charcoal N Chill mentioned 3 times.',
+    detected_at: '2026-03-01T05:00:00.000Z',
+    sentiment: 'positive',
+    is_sameas_candidate: false,
+  },
+  {
+    url: 'https://www.bestrestaurantsalpharetta.com/hookah',
+    domain: 'bestrestaurantsalpharetta.com',
+    tier: 'tier3',
+    source_type: 'aggregator_blog',
+    snippet: 'Top 5 Hookah Lounges in Alpharetta — #2: Charcoal N Chill.',
+    detected_at: '2026-03-01T05:00:00.000Z',
+    sentiment: 'positive',
+    is_sameas_candidate: false,
+  },
+  {
+    url: 'https://www.facebook.com/charcoalnchill',
+    domain: 'facebook.com',
+    tier: 'tier2',
+    source_type: 'facebook',
+    snippet: 'Charcoal N Chill hookah lounge and Indo-American fusion restaurant in Alpharetta',
+    detected_at: '2026-03-01T05:00:00.000Z',
+    sentiment: 'neutral',
+    is_sameas_candidate: true,
+  },
+  {
+    url: 'https://maps.google.com/?cid=527487414899304357',
+    domain: 'google.com',
+    tier: 'tier2',
+    source_type: 'google_maps',
+    snippet: 'Charcoal N Chill · Hookah bar · 11950 Jones Bridge Rd, Alpharetta',
+    detected_at: '2026-03-01T05:00:00.000Z',
+    sentiment: 'positive',
+    is_sameas_candidate: true,
+  },
+];
+
+export const MOCK_SAMEAS_GAPS: SameAsGap[] = [
+  {
+    url: '',
+    platform: 'wikidata',
+    tier: 'tier2',
+    estimated_impact: 'high',
+    action_label: 'Create a Wikidata entity for Charcoal N Chill',
+    action_instructions: 'Go to wikidata.org and create a new item for Charcoal N Chill as a hookah lounge.',
+    already_in_schema: false,
+  },
+  {
+    url: '',
+    platform: 'tripadvisor',
+    tier: 'tier2',
+    estimated_impact: 'high',
+    action_label: 'Claim your TripAdvisor listing',
+    action_instructions: 'Visit tripadvisor.com/owners and search for Charcoal N Chill to claim your listing.',
+    already_in_schema: false,
+  },
+];
+
+export const MOCK_AUTHORITY_DIMENSIONS: AuthorityDimensions = {
+  tier1_citation_score: 0,
+  tier2_coverage_score: 15,
+  platform_breadth_score: 12,
+  sameas_score: 9,
+  velocity_score: 5,
+};
+
+export const MOCK_AUTHORITY_PROFILE: EntityAuthorityProfile = {
+  location_id: 'b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+  org_id: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+  entity_authority_score: 58,
+  dimensions: MOCK_AUTHORITY_DIMENSIONS,
+  tier_breakdown: { tier1: 0, tier2: 3, tier3: 4, unknown: 0 },
+  top_citations: MOCK_CITATION_SOURCES.slice(0, 3),
+  sameas_gaps: MOCK_SAMEAS_GAPS,
+  citation_velocity: null,
+  velocity_label: 'unknown',
+  recommendations: [],
+  snapshot_at: '2026-03-01T05:00:00.000Z',
+};
+
+export const MOCK_AUTHORITY_SNAPSHOTS: AuthoritySnapshot[] = [
+  {
+    id: 'snap-001',
+    location_id: 'b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+    org_id: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+    entity_authority_score: 52,
+    tier_breakdown: { tier1: 0, tier2: 2, tier3: 3 },
+    total_citations: 5,
+    sameas_count: 2,
+    snapshot_month: '2026-01',
+    created_at: '2026-01-01T05:00:00Z',
+  },
+  {
+    id: 'snap-002',
+    location_id: 'b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+    org_id: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+    entity_authority_score: 55,
+    tier_breakdown: { tier1: 0, tier2: 3, tier3: 3 },
+    total_citations: 6,
+    sameas_count: 3,
+    snapshot_month: '2026-02',
+    created_at: '2026-02-01T05:00:00Z',
+  },
+];
