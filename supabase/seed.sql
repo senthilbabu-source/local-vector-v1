@@ -1990,3 +1990,36 @@ SET
   gbp_synced_at = NOW() - INTERVAL '3 days'
 WHERE org_id = 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11'
   AND slug = 'alpharetta';
+
+-- ══════════════════════════════════════════════════════════════
+-- Sprint 103: Benchmark seed row for golden tenant city
+-- Alpharetta, Restaurant industry benchmark
+-- org_count >= 10 so the "ready" state renders in development
+-- ══════════════════════════════════════════════════════════════
+
+INSERT INTO public.benchmarks (
+  id,
+  city,
+  industry,
+  org_count,
+  avg_score,
+  min_score,
+  max_score,
+  computed_at
+)
+VALUES (
+  'b1234567-89ab-cdef-0123-456789abcdef',
+  'Alpharetta',
+  'Restaurant',
+  14,
+  51.20,
+  22.50,
+  88.00,
+  NOW() - INTERVAL '2 days'
+)
+ON CONFLICT (city, industry) DO UPDATE SET
+  org_count   = EXCLUDED.org_count,
+  avg_score   = EXCLUDED.avg_score,
+  min_score   = EXCLUDED.min_score,
+  max_score   = EXCLUDED.max_score,
+  computed_at = EXCLUDED.computed_at;

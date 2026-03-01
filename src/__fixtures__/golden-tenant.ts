@@ -1442,6 +1442,34 @@ export const MOCK_ARCHIVED_LOCATION = {
 // Used for M5 vertical extension tests
 // ---------------------------------------------------------------------------
 
+/**
+ * Sprint 103 — Benchmark row for Alpharetta (ready state: org_count >= 10).
+ * Use this in tests that exercise the "ready" benchmark comparison state.
+ */
+export const MOCK_BENCHMARK_READY: import('@/lib/data/benchmarks').BenchmarkData = {
+  city: 'Alpharetta',
+  industry: 'Restaurant',
+  org_count: 14,
+  avg_score: 51.2,
+  min_score: 22.5,
+  max_score: 88.0,
+  computed_at: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+};
+
+/**
+ * Sprint 103 — Benchmark row for Alpharetta (collecting state: org_count < 10).
+ * Use this in tests that exercise the "collecting" / not-enough-data state.
+ */
+export const MOCK_BENCHMARK_COLLECTING: import('@/lib/data/benchmarks').BenchmarkData = {
+  city: 'Alpharetta',
+  industry: 'Restaurant',
+  org_count: 6,
+  avg_score: 55.0,
+  min_score: 30.0,
+  max_score: 80.0,
+  computed_at: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
+};
+
 export const ALPHARETTA_FAMILY_DENTAL = {
   org: {
     id: 'fixture-org-dental-001',

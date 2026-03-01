@@ -4,6 +4,34 @@
 
 ---
 
+## 2026-03-01 — Sprint 103: Benchmarks Full Page + Sidebar Entry (Completed)
+
+**Goal:** Promote benchmark comparison from a buried dashboard card to a first-class route. Add dedicated page, sidebar nav entry, seed data, and full test coverage.
+
+**Scope:**
+- `app/dashboard/benchmarks/page.tsx` — **NEW.** Server Component. Auth guard → parallel data fetch (fetchBenchmark + latest visibility_scores). 4 render states: no-city (onboarding nudge + Settings link), collecting (org_count < 10), ready with score (full comparison + About section + How to Improve action block), ready without score (benchmark ready but no scan yet). All states have data-testid attributes. Literal Tailwind classes throughout (AI_RULES §12).
+- `components/layout/Sidebar.tsx` — **MODIFIED.** Imported `Trophy` icon. Added Benchmarks entry to `NAV_ITEMS` (`href: '/dashboard/benchmarks'`). Added `/dashboard/benchmarks` to Intelligence NAV_GROUP filter.
+- `supabase/seed.sql` — **MODIFIED.** Added Alpharetta benchmark seed row (org_count: 14, avg_score: 51.20, min: 22.50, max: 88.00, computed 2 days ago). ON CONFLICT DO UPDATE so re-runs are idempotent.
+- `src/__fixtures__/golden-tenant.ts` — **MODIFIED.** Added `MOCK_BENCHMARK_READY` (org_count: 14, Alpharetta) and `MOCK_BENCHMARK_COLLECTING` (org_count: 6) exports.
+- `src/__tests__/unit/benchmarks-page.test.tsx` — **NEW.** 19 Vitest tests. Covers: auth redirects (2), no-city state (3), collecting state (4), ready+score state (7), ready+no-score state (3).
+- `tests/e2e/14-sidebar-nav.spec.ts` — **MODIFIED.** Added `nav-benchmarks` entry. Total: 24 tests (was 23).
+
+**Tests added:**
+- `src/__tests__/unit/benchmarks-page.test.tsx` — **19 tests** (all states)
+- `tests/e2e/14-sidebar-nav.spec.ts` — **24 tests total** (1 new: nav-benchmarks)
+
+**Run commands:**
+```bash
+npx tsc --noEmit                                                           # 0 new errors
+npx vitest run src/__tests__/unit/benchmarks-page.test.tsx                 # 19 tests PASS
+npx vitest run src/__tests__/unit/sprint-o-benchmark.test.ts               # 9 tests PASS (no regression)
+npx vitest run src/__tests__/unit/sidebar-groups.test.ts                   # all passing
+npx vitest run                                                              # all passing
+npx playwright test tests/e2e/14-sidebar-nav.spec.ts                       # 24 tests
+```
+
+---
+
 ## 2026-03-01 — Sprint 102: Database Types Sync + Sidebar Nav Completeness (Completed)
 
 **Goal:** Eliminate all `as Function` and `as never` escape-hatch casts introduced by 3 sprints of schema drift (Sprint F, Sprint N) and surface the Locations Management page in the sidebar.

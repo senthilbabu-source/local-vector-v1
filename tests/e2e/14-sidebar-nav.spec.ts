@@ -36,6 +36,7 @@ test.describe('14 — Sidebar navigation', () => {
     // ── Intelligence ──────────────────────────────────────────────────────
     { testId: 'nav-compete', url: '/dashboard/compete', heading: /Competitor Intercept/i },
     { testId: 'nav-revenue-impact', url: '/dashboard/revenue-impact', heading: /Revenue/i },
+    { testId: 'nav-benchmarks', url: '/dashboard/benchmarks', heading: /Benchmark/i },
     { testId: 'nav-agent-readiness', url: '/dashboard/agent-readiness', heading: /Take Action|Agent Readiness/i },
     { testId: 'nav-entity-health', url: '/dashboard/entity-health', heading: /Know Your Business|Entity Health/i },
     // ── Admin ─────────────────────────────────────────────────────────────

@@ -406,6 +406,14 @@ ADMIN_EMAILS
 - `src/__tests__/unit/sidebar-nav-items.test.ts` — **MODIFIED.** Extended to 10 tests (was 4).
 - Tests: 21 new Vitest (15 types + 6 sidebar), 14 new E2E. Total: 3366 Vitest, 23 E2E sidebar tests.
 
+### Sprint 103 — Benchmarks Full Page + Sidebar Entry (2026-03-01)
+- `app/dashboard/benchmarks/page.tsx` — **NEW.** Full-page benchmark view. 4 states: no-city, collecting, ready+score, ready+no-score. Reuses BenchmarkComparisonCard as hero. About section + How to Improve action block.
+- `components/layout/Sidebar.tsx` — **MODIFIED.** Added Benchmarks (Trophy icon) to NAV_ITEMS + Intelligence NAV_GROUP.
+- `supabase/seed.sql` — **MODIFIED.** Alpharetta benchmark row (org_count: 14).
+- `src/__fixtures__/golden-tenant.ts` — **MODIFIED.** MOCK_BENCHMARK_READY + MOCK_BENCHMARK_COLLECTING.
+- `src/__tests__/unit/benchmarks-page.test.tsx` — **NEW.** 19 Vitest tests.
+- `tests/e2e/14-sidebar-nav.spec.ts` — **MODIFIED.** 24 total nav tests.
+
 ## Tier Completion Status
 
 | Tier | Sprints | Status | Gate |
@@ -430,7 +438,8 @@ ADMIN_EMAILS
 | Sprint N | New Capability (Settings Delta, Streaming Preview, Correction Email) | Complete | — |
 | Sprint O | V1 Complete (Revenue Defaults, Content Flow, Benchmark Enhancement) | Complete | — |
 | Sprint 102 | Database Types Sync + Sidebar Nav Completeness | Complete | — |
-| Tier 4 | 103–106 | Gated | Sprint 103: Bing Places API approval. Sprint 104–106: no external gate. |
+| Sprint 103 | Benchmarks Full Page + Sidebar Entry | Complete | — |
+| Tier 4 | 104–106 | Gated | Sprint 104–106: no external gate. |
 | Tier 5 | 107–109 | Gated | 4–8 weeks of SOV baseline data required. SOV cron registered 2026-02-27. Sprint 107 earliest: 2026-03-27. |
 
 ### Next Sprint Ready to Execute: Sprint 104 — Dynamic FAQ Auto-Generation

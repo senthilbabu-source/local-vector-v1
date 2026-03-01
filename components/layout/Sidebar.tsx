@@ -27,6 +27,7 @@ import {
   CreditCard,
   ScatterChart,
   MapPinned,
+  Trophy,
   X,
 } from 'lucide-react';
 import LogoutButton from '@/app/dashboard/_components/LogoutButton';
@@ -159,6 +160,13 @@ export const NAV_ITEMS = [
     active: true,
   },
   {
+    href: '/dashboard/benchmarks',
+    label: 'Benchmarks',
+    icon: Trophy,
+    exact: false,
+    active: true,
+  },
+  {
     href: '/dashboard/ai-assistant',
     label: 'AI Assistant',
     icon: MessageSquare,
@@ -254,6 +262,7 @@ export const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
       [
         '/dashboard/compete',
         '/dashboard/revenue-impact',
+        '/dashboard/benchmarks',
         '/dashboard/agent-readiness',
         '/dashboard/entity-health',
       ].includes(i.href),

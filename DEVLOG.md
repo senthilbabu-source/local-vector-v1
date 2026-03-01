@@ -4,6 +4,10 @@
 > This root file was maintained separately for early sprints (0–42). Both are now kept in sync.
 
 ---
+## 2026-03-01 — Sprint 103: Benchmarks Full Page + Sidebar Entry (Completed)
+**Goal:** Promote benchmark comparison to first-class route. New /dashboard/benchmarks page (4 states), sidebar entry (Intelligence group, Trophy icon), seed data for Alpharetta (org_count: 14), MOCK_BENCHMARK_READY + MOCK_BENCHMARK_COLLECTING fixtures. 19 unit tests + 24 E2E tests passing.
+
+---
 ## 2026-03-01 — Sprint 102: Database Types Sync + Sidebar Nav Completeness (Completed)
 **Goal:** Sync database.types.ts with 3 sprints of schema drift (Sprint F + Sprint N: benchmarks table, 7 new columns). Remove all `as Function`/`as never` casts (5 files). Add Locations to sidebar nav. 27 unit tests + 23 E2E tests.
 
