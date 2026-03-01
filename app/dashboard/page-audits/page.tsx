@@ -1,7 +1,8 @@
 // ---------------------------------------------------------------------------
-// app/dashboard/page-audits/page.tsx — Sprint 58B: Page Audit Dashboard
+// app/dashboard/page-audits/page.tsx — Sprint 58B + Sprint 104: Page Audit Dashboard
 //
 // Server component. Reads page_audits table for the tenant's org.
+// Sprint 104: Added AddPageAuditForm for on-demand URL submission.
 // Plan gate: Growth/Agency only.
 // ---------------------------------------------------------------------------
 
@@ -11,6 +12,7 @@ import { createClient } from '@/lib/supabase/server';
 import { PlanGate } from '@/components/plan-gate/PlanGate';
 import AuditScoreOverview from './_components/AuditScoreOverview';
 import PageAuditCardWrapper from './_components/PageAuditCardWrapper';
+import AddPageAuditForm from './_components/AddPageAuditForm';
 import type { PageAuditRecommendation } from '@/lib/page-audit/auditor';
 
 // ---------------------------------------------------------------------------
@@ -78,22 +80,26 @@ export default async function PageAuditsPage() {
             Score your pages on 5 AEO dimensions to maximize AI visibility.
           </p>
         </div>
-        <div className="flex flex-col items-center justify-center rounded-2xl bg-surface-dark border border-white/5 px-6 py-16 text-center">
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            className="mx-auto h-10 w-10 text-slate-500"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-            strokeWidth={1.5}
-          >
-            <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-          </svg>
-          <p className="mt-3 text-sm font-medium text-slate-300">No page audits yet</p>
-          <p className="mt-1 max-w-sm text-xs text-slate-500">
-            Page audits run automatically as part of the weekly content audit cron. Your first results will appear after the next scan cycle.
-          </p>
-        </div>
+        <PlanGate requiredPlan="growth" currentPlan={plan} feature="Page Audit">
+          <div data-testid="page-audits-empty" className="rounded-2xl bg-surface-dark border border-white/5 p-8">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="h-10 w-10 text-slate-500"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={1.5}
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+            <p className="mt-3 text-sm font-medium text-slate-300">Audit your first page</p>
+            <p className="mt-1 max-w-sm text-xs text-slate-500 mb-6">
+              Enter any public URL from your website to score it on Answer-First Structure,
+              Schema Completeness, FAQ Schema, Keyword Density, and Entity Clarity.
+            </p>
+            <AddPageAuditForm />
+          </div>
+        </PlanGate>
       </div>
     );
   }
@@ -119,6 +125,16 @@ export default async function PageAuditsPage() {
 
       {/* ── Plan-gated content (blur teaser for Starter/Trial) ─────── */}
       <PlanGate requiredPlan="growth" currentPlan={plan} feature="Page Audit">
+        {/* ── Audit New Page — collapsible form (Sprint 104) ──────── */}
+        <details className="rounded-xl bg-surface-dark border border-white/5 p-4">
+          <summary className="cursor-pointer text-sm font-medium text-slate-300 hover:text-white transition-colors list-none flex items-center gap-2">
+            <span className="text-electric-indigo">+</span> Audit a new page
+          </summary>
+          <div className="mt-4">
+            <AddPageAuditForm />
+          </div>
+        </details>
+
         {/* ── Score Overview ────────────────────────────────────────── */}
         <AuditScoreOverview
           overallScore={avgScore}

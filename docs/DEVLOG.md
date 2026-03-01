@@ -4,6 +4,37 @@
 
 ---
 
+## 2026-03-01 — Sprint 104: Content Grader Completion (Completed)
+
+**Goal:** Close the 3 remaining Content Grader gaps: AI-powered FAQ generator, on-demand URL submission, and multi-page seed data. Closes Doc 17 audit gap #7 (0% → 100%).
+
+**Scope:**
+- `lib/page-audit/faq-generator.ts` — **NEW.** AI FAQ auto-generator (Doc 17 §4). Uses GPT-4o-mini ('faq-generation' model) to generate 5 business-specific Q&A pairs. Static fallback when no API key. Returns `GeneratedSchema` so it renders in `SchemaFixPanel` without UI changes. `buildFaqSchema()` outputs ready-to-paste FAQPage JSON-LD.
+- `lib/ai/providers.ts` — **MODIFIED.** Added `'faq-generation': openai('gpt-4o-mini')` to `ModelKey` union and `MODELS` map.
+- `app/dashboard/page-audits/schema-actions.ts` — **MODIFIED.** `generateSchemaFixes()` now checks most recent audit's `faq_schema_present`. When false, calls `generateAiFaqSet()` and prepends result. Deduplicates schemas by `schemaType` (AI FAQ wins over static FAQ).
+- `app/dashboard/page-audits/actions.ts` — **MODIFIED.** Added `addPageAudit(rawUrl)` export. Plan gate (canRunPageAudit, Growth/Agency). URL normalization. Rate limit (5 min, same Map as reauditPage). Local page type inference. Primary location fetch. Calls auditPage(), upserts to page_audits. revalidatePath('/dashboard/page-audits').
+- `app/dashboard/page-audits/_components/AddPageAuditForm.tsx` — **NEW.** Client Component. URL input + Audit Page button. useTransition for pending state. Success clears input. Error inline. data-testid on all interactive elements. No <form> tags.
+- `app/dashboard/page-audits/page.tsx` — **MODIFIED.** Empty state: passive copy replaced with AddPageAuditForm + explainer. Main state: <details> collapsible "Audit a new page" section prepended before AuditScoreOverview.
+- `supabase/seed.sql` — **MODIFIED.** Added about page audit (score: 58, faq missing) and faq page audit (score: 89, faq present) for golden tenant. ON CONFLICT DO UPDATE. Dev now shows 3-page multi-audit view.
+- `src/__tests__/unit/faq-generator.test.ts` — **NEW.** 17 Vitest tests: AI path, fallback, JSON-LD structure, error handling.
+- `src/__tests__/unit/add-page-audit.test.ts` — **NEW.** 13 Vitest tests: auth, plan gate, URL validation/normalization, rate limit, page type inference, DB persistence.
+
+**Tests added:**
+- `faq-generator.test.ts` — **17 tests** (AI path + fallback + JSON-LD + errors)
+- `add-page-audit.test.ts` — **13 tests** (auth + plan + URL + rate limit + persistence)
+
+**Run commands:**
+```bash
+npx tsc --noEmit                                                           # 0 new errors
+npx vitest run src/__tests__/unit/faq-generator.test.ts                    # 17 tests PASS
+npx vitest run src/__tests__/unit/add-page-audit.test.ts                   # 13 tests PASS
+npx vitest run src/__tests__/unit/page-auditor.test.ts                     # PASS (no regression)
+npx vitest run src/__tests__/unit/reaudit-action.test.ts                   # PASS (no regression)
+npx vitest run                                                              # 3415 tests, 248 files, all passing
+```
+
+---
+
 ## 2026-03-01 — Sprint 103: Benchmarks Full Page + Sidebar Entry (Completed)
 
 **Goal:** Promote benchmark comparison from a buried dashboard card to a first-class route. Add dedicated page, sidebar nav entry, seed data, and full test coverage.

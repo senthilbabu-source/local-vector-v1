@@ -126,6 +126,9 @@ export const MODELS = {
 
   /** Sprint F (N2): AI Answer Preview — Gemini response */
   'preview-gemini': google('gemini-2.0-flash'),
+
+  /** Sprint 104: AI FAQ auto-generator (Doc 17 §4) — cost-efficient */
+  'faq-generation': openai('gpt-4o-mini'),
 } as const;
 
 export type ModelKey = keyof typeof MODELS;

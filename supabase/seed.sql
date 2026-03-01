@@ -1425,6 +1425,66 @@ ON CONFLICT (id) DO UPDATE SET
   entity_clarity_score = EXCLUDED.entity_clarity_score,
   recommendations = EXCLUDED.recommendations;
 
+-- Sprint 104: About page audit for golden tenant
+INSERT INTO public.page_audits (
+  id, org_id, location_id,
+  page_url, page_type,
+  aeo_readability_score, answer_first_score, schema_completeness_score,
+  faq_schema_present, faq_schema_score, entity_clarity_score,
+  overall_score, recommendations, last_audited_at, created_at
+)
+SELECT
+  'b3eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+  'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+  l.id,
+  'https://charcoalnchill.com/about',
+  'about',
+  82,   -- aeo_readability_score (keyword density)
+  72,   -- answer_first_score
+  45,   -- schema_completeness_score (has some schema but missing required props)
+  FALSE, -- faq_schema_present
+  0,    -- faq_schema_score
+  75,   -- entity_clarity_score (name + address present)
+  58,   -- overall_score
+  '[{"issue":"No FAQPage schema found — this is the #1 driver of AI citations","fix":"Add FAQPage schema with at least 5 Q&A pairs about Charcoal N Chill.","impactPoints":20,"dimensionKey":"faqSchema","schemaType":"FAQPage"},{"issue":"Missing required JSON-LD schema for about page","fix":"Add LocalBusiness schema with foundingDate and description properties.","impactPoints":15,"dimensionKey":"schemaCompleteness","schemaType":"LocalBusiness"}]'::jsonb,
+  NOW() - INTERVAL '2 hours',
+  NOW() - INTERVAL '2 hours'
+FROM public.locations l
+WHERE l.org_id = 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11'
+  AND l.slug   = 'alpharetta'
+LIMIT 1
+ON CONFLICT (id) DO UPDATE SET recommendations = EXCLUDED.recommendations;
+
+-- Sprint 104: FAQ page audit for golden tenant (high-scoring reference)
+INSERT INTO public.page_audits (
+  id, org_id, location_id,
+  page_url, page_type,
+  aeo_readability_score, answer_first_score, schema_completeness_score,
+  faq_schema_present, faq_schema_score, entity_clarity_score,
+  overall_score, recommendations, last_audited_at, created_at
+)
+SELECT
+  'b4eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+  'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+  l.id,
+  'https://charcoalnchill.com/faq',
+  'faq',
+  90,   -- aeo_readability_score
+  85,   -- answer_first_score (FAQ pages naturally answer-first)
+  88,   -- schema_completeness_score
+  TRUE, -- faq_schema_present
+  100,  -- faq_schema_score (≥5 Q&A pairs)
+  80,   -- entity_clarity_score
+  89,   -- overall_score
+  '[]'::jsonb,
+  NOW() - INTERVAL '1 hour',
+  NOW() - INTERVAL '1 hour'
+FROM public.locations l
+WHERE l.org_id = 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11'
+  AND l.slug   = 'alpharetta'
+LIMIT 1
+ON CONFLICT (id) DO UPDATE SET overall_score = EXCLUDED.overall_score;
+
 -- ── 14d. citation_source_intelligence (aggregate market data) ─────────────────
 -- Hookah lounge / Alpharetta market — which platforms AI cites most.
 INSERT INTO public.citation_source_intelligence (

@@ -12,7 +12,7 @@ LocalVector is an AEO/GEO SaaS platform that helps local businesses monitor and 
 - **Billing:** Stripe webhooks → `organizations.plan_tier` enum (`trial | starter | growth | agency`)
 - **Email:** Resend + React Email (`emails/`)
 - **Cache:** Upstash Redis (`lib/redis.ts`) — optional, all callers must degrade gracefully
-- **Testing:** Vitest (unit/integration in `src/__tests__/`), Playwright (E2E in `tests/e2e/`, 30 specs). Current: 3366 tests, 245 files.
+- **Testing:** Vitest (unit/integration in `src/__tests__/`), Playwright (E2E in `tests/e2e/`, 30 specs). Current: 3415 tests, 248 files.
 - **Monitoring:** Sentry (client, server, edge configs) — all catch blocks instrumented (Sprint A, AI_RULES §70)
 
 ## Architecture Rules
@@ -412,6 +412,16 @@ ADMIN_EMAILS
 - `supabase/seed.sql` — **MODIFIED.** Alpharetta benchmark row (org_count: 14).
 - `src/__fixtures__/golden-tenant.ts` — **MODIFIED.** MOCK_BENCHMARK_READY + MOCK_BENCHMARK_COLLECTING.
 - `src/__tests__/unit/benchmarks-page.test.tsx` — **NEW.** 19 Vitest tests.
+
+### Sprint 104 — Content Grader Completion (2026-03-01)
+- `lib/page-audit/faq-generator.ts` — **NEW.** AI-powered FAQ auto-generator (Doc 17 §4). GPT-4o-mini. Static fallback. Returns GeneratedSchema.
+- `lib/ai/providers.ts` — **MODIFIED.** Added 'faq-generation' model key.
+- `app/dashboard/page-audits/schema-actions.ts` — **MODIFIED.** Wires AI FAQ when faqSchemaPresent=false. Deduplicates by schemaType.
+- `app/dashboard/page-audits/actions.ts` — **MODIFIED.** addPageAudit() — on-demand audit for new URLs. Plan gate + URL normalization + rate limit + page type inference.
+- `app/dashboard/page-audits/_components/AddPageAuditForm.tsx` — **NEW.** URL input client component.
+- `app/dashboard/page-audits/page.tsx` — **MODIFIED.** Empty state: AddPageAuditForm. Main state: collapsible Audit New Page section.
+- `supabase/seed.sql` — **MODIFIED.** About + FAQ page audit rows for golden tenant.
+- Tests: `faq-generator.test.ts` (17) + `add-page-audit.test.ts` (13) — 30 new tests.
 - `tests/e2e/14-sidebar-nav.spec.ts` — **MODIFIED.** 24 total nav tests.
 
 ## Tier Completion Status
@@ -439,11 +449,12 @@ ADMIN_EMAILS
 | Sprint O | V1 Complete (Revenue Defaults, Content Flow, Benchmark Enhancement) | Complete | — |
 | Sprint 102 | Database Types Sync + Sidebar Nav Completeness | Complete | — |
 | Sprint 103 | Benchmarks Full Page + Sidebar Entry | Complete | — |
-| Tier 4 | 104–106 | Gated | Sprint 104–106: no external gate. |
+| Sprint 104 | Content Grader Completion | Complete | — |
+| Tier 4 | 105–106 | Gated | Sprint 105–106: no external gate. |
 | Tier 5 | 107–109 | Gated | 4–8 weeks of SOV baseline data required. SOV cron registered 2026-02-27. Sprint 107 earliest: 2026-03-27. |
 
-### Next Sprint Ready to Execute: Sprint 104 — Dynamic FAQ Auto-Generation
-No external dependencies. Can begin immediately. See AI_RULES §59.
+### Next Sprint Ready to Execute: Sprint 105 — Apple Business Connect
+Submit API request at https://developer.apple.com/business-connect/. See AI_RULES §60.
 
 ### Sprints Pending External Approval:
 - Apple Business Connect Sync (originally §57): Submit API request at https://developer.apple.com/business-connect/
