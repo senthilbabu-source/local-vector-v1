@@ -2483,5 +2483,15 @@ All hand-crafted UUIDs in `supabase/seed.sql` must be valid hex (0-9, a-f only).
 - **Supabase error serialization:** Supabase `PostgrestError` objects log as `{}` with `console.error(error)`. Always use `JSON.stringify(error, null, 2)` for diagnostic logging.
 - **Regression guard:** Run `npx supabase db reset` after any seed.sql change — it must complete without errors.
 
+## §123. GBP OAuth Callback Logging (FIX-8)
+
+The GBP OAuth callback must log both success and failure responses from the My Business Account Management API.
+
+**Rules:**
+- **Always log non-200 responses:** When `accountsRes.ok` is false, log `accountsRes.status` and full error body text. Silent failures make debugging impossible.
+- **Log successful responses:** Log `accountsData` JSON on success for debugging account discovery issues.
+- **GBP API quota:** Google My Business APIs default to 0 quota. Must apply for Basic API Access via https://support.google.com/business/contact/api_default before any calls succeed. 429 with `quota_limit_value: "0"` = not yet allowlisted.
+- **Google Cloud project:** OAuth client + GBP APIs must be in the same project. Test users must be added to OAuth consent screen Audience for Testing mode.
+
 ---
 > **End of System Instructions**

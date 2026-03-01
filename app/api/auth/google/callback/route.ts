@@ -220,7 +220,11 @@ export async function GET(request: NextRequest) {
 
     if (accountsRes.ok) {
       accountsData = await accountsRes.json();
+      console.log('[google-oauth] Accounts response:', JSON.stringify(accountsData, null, 2));
       gbpAccountName = accountsData.accounts?.[0]?.name ?? null;
+    } else {
+      const errText = await accountsRes.text();
+      console.error('[google-oauth] Accounts API failed:', accountsRes.status, errText);
     }
   } catch (err) {
     Sentry.captureException(err, { tags: { file: 'google/callback/route.ts', sprint: 'A' } });

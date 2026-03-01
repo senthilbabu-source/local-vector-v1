@@ -4,6 +4,24 @@
 
 ---
 
+## 2026-02-28 — Hotfix FIX-8: GBP OAuth Callback Diagnostic Logging (Completed)
+
+**Objective:** Add diagnostic logging to GBP OAuth callback to debug "No GBP accounts found" errors.
+
+**Fix 1 — GBP Accounts API silent failure:**
+- `app/api/auth/google/callback/route.ts` — **MODIFIED.** When the My Business Account Management API returns a non-200 response, the callback now logs the HTTP status and full error body. Previously it silently continued with empty accounts. Also logs successful accounts response JSON for debugging.
+
+**Root cause identified:** Google's My Business APIs require explicit allowlisting (Basic API Access application). Default quota is 0 requests/minute. The API returns 429 with `quota_limit_value: "0"` until Google approves access. Application submitted via https://support.google.com/business/contact/api_default — estimated 5 business days.
+
+**Google Cloud setup documented:**
+- Project: LocalVector-app (project number `813141120403`, itecbrains.com org)
+- OAuth consent screen: External, Testing mode
+- Required APIs: My Business Account Management API, My Business Business Information API
+- Test users must be added in OAuth consent screen Audience section
+- GBP API access requires separate allowlisting via Google support form
+
+---
+
 ## 2026-02-28 — Hotfix FIX-7: Seed UUID Violations, SQL Syntax, Integrations Error Logging (Completed)
 
 **Objective:** Fix seed.sql failures that prevented `npx supabase db reset` from completing, and improve integrations page error diagnostics.
