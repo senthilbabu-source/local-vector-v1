@@ -1608,12 +1608,13 @@ After any migration that adds tables or columns, the following three files must 
 
 ---
 
-## §57. Apple Business Connect Sync (PLACEHOLDER — Sprint 102, NOT YET EXECUTED)
+## §57. Apple Business Connect Sync (PLACEHOLDER — NOT YET EXECUTED)
 
 > **Status:** Awaiting Apple Business Connect API approval. Do not implement until API access is confirmed.
 > **Gate condition:** Apple Business Connect API credentials approved and accessible.
+> **Note:** Originally planned as Sprint 102, but that sprint number was used for Database Types Sync + Sidebar Nav Completeness. Apple BC sync will be assigned a future sprint number when API approval is received.
 
-Sprint 102 will sync business profile data from Apple Business Connect (ABC) into LocalVector's `locations` table via a new `abc_connections` table and `/api/cron/abc-sync` route.
+A future sprint will sync business profile data from Apple Business Connect (ABC) into LocalVector's `locations` table via a new `abc_connections` table and `/api/cron/abc-sync` route.
 
 **Pre-sprint requirements:**
 - Submit Apple Business Connect API access request at https://developer.apple.com/business-connect/

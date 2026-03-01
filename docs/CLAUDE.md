@@ -429,14 +429,15 @@ ADMIN_EMAILS
 | Sprint M | Conversion & Reliability (Plan Matrix Refactor, Bing Verification, Banner Copy) | Complete | — |
 | Sprint N | New Capability (Settings Delta, Streaming Preview, Correction Email) | Complete | — |
 | Sprint O | V1 Complete (Revenue Defaults, Content Flow, Benchmark Enhancement) | Complete | — |
-| Tier 4 | 102–106 | Gated | Sprint 102: Apple BC API approval. Sprint 103: Bing Places API approval. Sprint 104–106: no external gate. |
+| Sprint 102 | Database Types Sync + Sidebar Nav Completeness | Complete | — |
+| Tier 4 | 103–106 | Gated | Sprint 103: Bing Places API approval. Sprint 104–106: no external gate. |
 | Tier 5 | 107–109 | Gated | 4–8 weeks of SOV baseline data required. SOV cron registered 2026-02-27. Sprint 107 earliest: 2026-03-27. |
 
 ### Next Sprint Ready to Execute: Sprint 104 — Dynamic FAQ Auto-Generation
 No external dependencies. Can begin immediately. See AI_RULES §59.
 
 ### Sprints Pending External Approval:
-- Sprint 102 (Apple Business Connect): Submit API request at https://developer.apple.com/business-connect/
+- Apple Business Connect Sync (originally §57): Submit API request at https://developer.apple.com/business-connect/
 - Sprint 103 (Bing Places): Submit API request at https://bingplaces.com
 
 ### Sprints Pending Data Accumulation:
