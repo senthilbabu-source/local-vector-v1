@@ -1156,6 +1156,84 @@ export type Database = {
           },
         ];
       };
+      page_schemas: {
+        Row: {
+          id: string;
+          location_id: string;
+          org_id: string;
+          page_url: string;
+          page_type: string;
+          schema_types: string[];
+          json_ld: Json;
+          embed_snippet: string | null;
+          public_url: string | null;
+          content_hash: string | null;
+          status: string;
+          human_approved: boolean;
+          confidence: number | null;
+          missing_fields: string[];
+          validation_errors: string[];
+          generated_at: string;
+          published_at: string | null;
+          last_crawled_at: string;
+        };
+        Insert: {
+          id?: string;
+          location_id: string;
+          org_id: string;
+          page_url: string;
+          page_type: string;
+          schema_types?: string[];
+          json_ld?: Json;
+          embed_snippet?: string | null;
+          public_url?: string | null;
+          content_hash?: string | null;
+          status?: string;
+          human_approved?: boolean;
+          confidence?: number | null;
+          missing_fields?: string[];
+          validation_errors?: string[];
+          generated_at?: string;
+          published_at?: string | null;
+          last_crawled_at?: string;
+        };
+        Update: {
+          id?: string;
+          location_id?: string;
+          org_id?: string;
+          page_url?: string;
+          page_type?: string;
+          schema_types?: string[];
+          json_ld?: Json;
+          embed_snippet?: string | null;
+          public_url?: string | null;
+          content_hash?: string | null;
+          status?: string;
+          human_approved?: boolean;
+          confidence?: number | null;
+          missing_fields?: string[];
+          validation_errors?: string[];
+          generated_at?: string;
+          published_at?: string | null;
+          last_crawled_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "page_schemas_location_id_fkey";
+            columns: ["location_id"];
+            isOneToOne: false;
+            referencedRelation: "locations";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "page_schemas_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       locations: {
         Row: {
           id: string;
@@ -1193,6 +1271,9 @@ export type Database = {
           location_order: number | null;
           nap_health_score: number | null;
           nap_last_checked_at: string | null;
+          schema_health_score: number | null;
+          schema_last_run_at: string | null;
+          website_slug: string | null;
         };
         Insert: {
           id?: string;
@@ -1230,6 +1311,9 @@ export type Database = {
           location_order?: number | null;
           nap_health_score?: number | null;
           nap_last_checked_at?: string | null;
+          schema_health_score?: number | null;
+          schema_last_run_at?: string | null;
+          website_slug?: string | null;
         };
         Update: {
           id?: string;
@@ -1267,6 +1351,9 @@ export type Database = {
           location_order?: number | null;
           nap_health_score?: number | null;
           nap_last_checked_at?: string | null;
+          schema_health_score?: number | null;
+          schema_last_run_at?: string | null;
+          website_slug?: string | null;
         };
         Relationships: [
           {

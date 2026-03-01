@@ -39,6 +39,10 @@
     {
       "path": "/api/cron/nap-sync",
       "schedule": "0 3 * * 1"
+    },
+    {
+      "path": "/api/cron/schema-drift",
+      "schedule": "0 4 1 * *"
     }
   ]
 }

@@ -1603,3 +1603,94 @@ export const MOCK_BING_NAP_RESULT: import('@/lib/nap-sync/types').AdapterResult 
   status: 'not_found',
   platform: 'bing',
 };
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Sprint 106 — Schema Expansion fixtures
+// ═══════════════════════════════════════════════════════════════════════════
+
+/** Ground Truth fixture for schema generators (reuses NAP Sync GroundTruth) */
+export const MOCK_SCHEMA_GROUND_TRUTH: import('@/lib/nap-sync/types').GroundTruth = {
+  location_id: 'b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+  org_id: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+  name: 'Charcoal N Chill',
+  address: '11950 Jones Bridge Road Ste 103',
+  city: 'Alpharetta',
+  state: 'GA',
+  zip: '30005',
+  phone: '(470) 546-4866',
+  website: 'https://charcoalnchill.com',
+  hours_data: {
+    monday: { open: '00:00', close: '00:00', closed: true },
+    tuesday: { open: '17:00', close: '01:00', closed: false },
+    wednesday: { open: '17:00', close: '01:00', closed: false },
+    thursday: { open: '17:00', close: '01:00', closed: false },
+    friday: { open: '17:00', close: '02:00', closed: false },
+    saturday: { open: '17:00', close: '02:00', closed: false },
+    sunday: { open: '17:00', close: '01:00', closed: false },
+  },
+};
+
+/** Mock CrawledPage for homepage */
+export const MOCK_CRAWLED_HOMEPAGE: import('@/lib/schema-expansion/types').CrawledPage = {
+  url: 'https://charcoalnchill.com',
+  page_type: 'homepage',
+  title: 'Charcoal N Chill — Premium Hookah Lounge & Indo-American Restaurant | Alpharetta, GA',
+  meta_description: 'Charcoal N Chill is Alpharetta\'s premier hookah lounge and Indo-American fusion restaurant.',
+  h1: 'Alpharetta\'s #1 Hookah Lounge & Restaurant',
+  body_excerpt: 'Welcome to Charcoal N Chill — the premier hookah lounge and Indo-American fusion restaurant in Alpharetta, Georgia. We offer premium shisha service with over 50 flavors, authentic Indian cuisine, and live entertainment including belly dancing shows every weekend.',
+  detected_faqs: [],
+  detected_events: [],
+  crawled_at: '2026-03-01T04:00:00.000Z',
+  http_status: 200,
+};
+
+/** Mock CrawledPage for FAQ page */
+export const MOCK_CRAWLED_FAQ: import('@/lib/schema-expansion/types').CrawledPage = {
+  url: 'https://charcoalnchill.com/faq',
+  page_type: 'faq',
+  title: 'Frequently Asked Questions | Charcoal N Chill',
+  meta_description: 'Find answers to common questions about Charcoal N Chill hookah lounge.',
+  h1: 'Frequently Asked Questions',
+  body_excerpt: 'Q: What are your hookah flavors?\nA: We offer over 50 premium hookah flavors including fruit, mint, and specialty blends.\nQ: Do you take reservations?\nA: Yes, reservations are available via our website or by calling (470) 546-4866.',
+  detected_faqs: [
+    { question: 'What are your hookah flavors?', answer: 'We offer over 50 premium hookah flavors including fruit, mint, and specialty blends.' },
+    { question: 'Do you take reservations?', answer: 'Yes, reservations are available via our website or by calling (470) 546-4866.' },
+  ],
+  detected_events: [],
+  crawled_at: '2026-03-01T04:00:00.000Z',
+  http_status: 200,
+};
+
+/** Mock CrawledPage for events page */
+export const MOCK_CRAWLED_EVENTS: import('@/lib/schema-expansion/types').CrawledPage = {
+  url: 'https://charcoalnchill.com/events',
+  page_type: 'event',
+  title: 'Events | Charcoal N Chill',
+  meta_description: 'Live entertainment, themed nights, and belly dancing at Charcoal N Chill.',
+  h1: 'Upcoming Events',
+  body_excerpt: 'Every Friday: Belly Dancing Show at 9PM. Every Saturday: Afrobeats Night.',
+  detected_faqs: [],
+  detected_events: [
+    { name: 'Belly Dancing Show', description: 'Live belly dancing performance every Friday at 9PM' },
+    { name: 'Afrobeats Night', description: 'Saturday night Afrobeats themed DJ event' },
+  ],
+  crawled_at: '2026-03-01T04:00:00.000Z',
+  http_status: 200,
+};
+
+/** Expected LocalBusiness schema output for homepage */
+export const MOCK_EXPECTED_HOMEPAGE_SCHEMA = {
+  '@context': 'https://schema.org',
+  '@type': 'BarOrPub',
+  name: 'Charcoal N Chill',
+  url: 'https://charcoalnchill.com',
+  telephone: '(470) 546-4866',
+  address: {
+    '@type': 'PostalAddress',
+    streetAddress: '11950 Jones Bridge Road Ste 103',
+    addressLocality: 'Alpharetta',
+    addressRegion: 'GA',
+    postalCode: '30005',
+    addressCountry: 'US',
+  },
+} as const;

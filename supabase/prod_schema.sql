@@ -2908,6 +2908,38 @@ CREATE TABLE IF NOT EXISTS "public"."nap_discrepancies" (
 -- ALTER TABLE "public"."locations" ADD COLUMN IF NOT EXISTS "nap_health_score" integer CHECK ("nap_health_score" BETWEEN 0 AND 100);
 -- ALTER TABLE "public"."locations" ADD COLUMN IF NOT EXISTS "nap_last_checked_at" timestamp with time zone;
 
+-- Sprint 106: Schema Expansion Engine
+CREATE TABLE IF NOT EXISTS "public"."page_schemas" (
+    "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
+    "location_id" "uuid" NOT NULL,
+    "org_id" "uuid" NOT NULL,
+    "page_url" "text" NOT NULL,
+    "page_type" "text" NOT NULL,
+    "schema_types" "text"[] DEFAULT '{}' NOT NULL,
+    "json_ld" "jsonb" DEFAULT '[]'::"jsonb" NOT NULL,
+    "embed_snippet" "text",
+    "public_url" "text",
+    "content_hash" "text",
+    "status" "text" DEFAULT 'draft' NOT NULL,
+    "human_approved" boolean DEFAULT false NOT NULL,
+    "confidence" numeric(3,2),
+    "missing_fields" "text"[] DEFAULT '{}' NOT NULL,
+    "validation_errors" "text"[] DEFAULT '{}' NOT NULL,
+    "generated_at" timestamp with time zone DEFAULT "now"() NOT NULL,
+    "published_at" timestamp with time zone,
+    "last_crawled_at" timestamp with time zone DEFAULT "now"() NOT NULL,
+    CONSTRAINT "page_schemas_page_type_check" CHECK (("page_type" = ANY (ARRAY['homepage', 'about', 'faq', 'event', 'blog_post', 'service', 'other']))),
+    CONSTRAINT "page_schemas_status_check" CHECK (("status" = ANY (ARRAY['draft', 'pending_review', 'published', 'failed', 'stale']))),
+    CONSTRAINT "page_schemas_confidence_check" CHECK (("confidence" BETWEEN 0 AND 1)),
+    CONSTRAINT "page_schemas_pkey" PRIMARY KEY ("id"),
+    CONSTRAINT "page_schemas_location_url_key" UNIQUE ("location_id", "page_url")
+);
+
+-- Schema health columns on locations
+-- ALTER TABLE "public"."locations" ADD COLUMN IF NOT EXISTS "schema_health_score" integer CHECK ("schema_health_score" BETWEEN 0 AND 100);
+-- ALTER TABLE "public"."locations" ADD COLUMN IF NOT EXISTS "schema_last_run_at" timestamp with time zone;
+-- ALTER TABLE "public"."locations" ADD COLUMN IF NOT EXISTS "website_slug" text UNIQUE;
+
 
 
 

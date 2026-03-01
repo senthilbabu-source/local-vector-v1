@@ -58,6 +58,7 @@ export const CRON_REGISTRY: CronRegistryEntry[] = [
   { cronName: 'weekly-digest', label: 'Weekly Digest', schedule: 'Weekly Mon 8 AM EST' },
   { cronName: 'correction-follow-up', label: 'Correction Follow-Up', schedule: 'Daily 5 AM EST' },
   { cronName: 'benchmarks', label: 'Benchmark Aggregation', schedule: 'Weekly Sun 3 AM EST' },
+  { cronName: 'schema-drift', label: 'Schema Drift Check', schedule: '1st of Month 4 AM UTC' },
 ];
 
 // ---------------------------------------------------------------------------

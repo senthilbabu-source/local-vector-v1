@@ -2146,3 +2146,85 @@ BEGIN
      SET nap_health_score = 65, nap_last_checked_at = NOW() - INTERVAL '2 days'
    WHERE id = v_location_id;
 END $$;
+
+-- ═══════════════════════════════════════════════════════════════════
+-- Section 17: Sprint 106 — Schema Expansion seed data
+-- ═══════════════════════════════════════════════════════════════════
+DO $$
+DECLARE
+  v_location_id uuid;
+BEGIN
+  SELECT id INTO v_location_id
+    FROM public.locations
+   WHERE org_id = 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11'
+   LIMIT 1;
+
+  IF v_location_id IS NULL THEN
+    RAISE NOTICE 'Sprint 106 seed: no location found for golden tenant, skipping';
+    RETURN;
+  END IF;
+
+  -- Set website_slug and schema_health_score on golden tenant location
+  UPDATE public.locations
+     SET website_slug = 'charcoal-n-chill',
+         schema_health_score = 55,
+         schema_last_run_at = NOW() - INTERVAL '5 days'
+   WHERE id = v_location_id;
+
+  -- Seed page_schemas for Charcoal N Chill
+  INSERT INTO public.page_schemas (
+    location_id, org_id, page_url, page_type, schema_types,
+    json_ld, embed_snippet, public_url, content_hash,
+    status, human_approved, confidence,
+    published_at, last_crawled_at
+  ) VALUES
+  (
+    v_location_id,
+    'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+    'https://charcoalnchill.com',
+    'homepage',
+    ARRAY['BarOrPub', 'BreadcrumbList'],
+    '[{"@context":"https://schema.org","@type":"BarOrPub","name":"Charcoal N Chill","telephone":"(470) 546-4866","url":"https://charcoalnchill.com","address":{"@type":"PostalAddress","streetAddress":"11950 Jones Bridge Road Ste 103","addressLocality":"Alpharetta","addressRegion":"GA","postalCode":"30005","addressCountry":"US"}}]'::jsonb,
+    '<!-- LocalVector Schema — homepage — Generated 2026-02-24 -->\n<script type="application/ld+json">\n{"@context":"https://schema.org","@type":"BarOrPub","name":"Charcoal N Chill"}\n</script>',
+    'https://schema.localvector.ai/charcoal-n-chill/homepage/embed.html',
+    'abc123hash',
+    'published',
+    true,
+    0.95,
+    NOW() - INTERVAL '5 days',
+    NOW() - INTERVAL '5 days'
+  ),
+  (
+    v_location_id,
+    'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+    'https://charcoalnchill.com/faq',
+    'faq',
+    ARRAY['FAQPage', 'BreadcrumbList'],
+    '[{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"What are your hookah flavors?","acceptedAnswer":{"@type":"Answer","text":"We offer over 50 premium hookah flavors."}}]}]'::jsonb,
+    NULL,
+    NULL,
+    'def456hash',
+    'pending_review',
+    false,
+    0.78,
+    NULL,
+    NOW() - INTERVAL '5 days'
+  ),
+  (
+    v_location_id,
+    'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+    'https://charcoalnchill.com/events',
+    'event',
+    ARRAY['Event', 'BreadcrumbList'],
+    '[]'::jsonb,
+    NULL,
+    NULL,
+    'ghi789hash',
+    'failed',
+    false,
+    0.45,
+    NULL,
+    NOW() - INTERVAL '5 days'
+  )
+  ON CONFLICT (location_id, page_url) DO NOTHING;
+END $$;

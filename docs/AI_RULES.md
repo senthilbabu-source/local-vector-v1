@@ -2529,5 +2529,52 @@ Base score: 100. Deductions (cumulative, floor 0):
 
 Grade: A (90+), B (75-89), C (60-74), D (40-59), F (0-39).
 
+## §127. Schema Expansion Engine — Architecture (Sprint 106)
+
+The Schema Expansion Engine crawls a client's website, classifies pages by type, generates JSON-LD for 7 page types (homepage, about, FAQ, event, blog_post, service, other), hosts embeddable snippets, and pings IndexNow after every publish.
+
+**Rules:**
+- **Generator pattern:** Each page type has a dedicated generator in `lib/schema-expansion/generators/`. All extend `SchemaGenerator` abstract base class and implement `generate()`. Generators must NEVER throw — always return `GeneratedSchema` with validation errors in `missing_fields`.
+- **Menu skip:** Generator registry returns null for `'menu'` page type. Magic Engine handles menus. Never generate schema for menu pages.
+- **Human-in-the-loop:** AI-generated FAQs (LLM fallback) get `pending_review` status with `confidence: 0.7`. Only a human approve action publishes them. Auto-publish only for directly extracted content.
+- **Content hashing:** SHA-256 hash of `json_ld` stored in `content_hash` column. Used for drift detection by the monthly cron.
+- **IndexNow:** `lib/indexnow.ts` pings IndexNow after every publish. Fire-and-forget — never blocks the response. Returns false if `INDEXNOW_API_KEY` not set.
+- **Plan gate:** Schema Expansion is Growth+ only. Use `canRunSchemaExpansion()` from `lib/plan-enforcer.ts`.
+- **Cron:** Monthly 1st-of-month 4 AM UTC. Kill switch: `STOP_SCHEMA_DRIFT_CRON`. Auth: `CRON_SECRET` Bearer header.
+- **Regression guard:** `src/__tests__/unit/website-crawler.test.ts` (35 tests), `src/__tests__/unit/schema-generators.test.ts` (47 tests), `src/__tests__/unit/schema-expansion-service.test.ts` (20 tests).
+
+## §128. Schema Expansion Database Table (Sprint 106)
+
+One new table and three new columns support the Schema Expansion Engine.
+
+**Table: `page_schemas`**
+- PK: `id` uuid. FK: `location_id` → locations(id) CASCADE, `org_id` → organizations(id) CASCADE.
+- `page_url` text NOT NULL, `page_type` text CHECK (homepage/about/faq/event/blog_post/service/other).
+- `schema_types` text[], `json_ld` jsonb, `embed_snippet` text, `public_url` text, `content_hash` text.
+- `status` text CHECK (draft/pending_review/published/failed/stale). `human_approved` boolean.
+- `confidence` numeric(3,2) CHECK 0-1. `missing_fields` text[], `validation_errors` text[].
+- UNIQUE constraint on `(location_id, page_url)` — upsert pattern.
+
+**New columns on `locations`:**
+- `schema_health_score` integer (0–100, NULL = never checked)
+- `schema_last_run_at` timestamptz
+- `website_slug` text UNIQUE (used for public schema URLs)
+
+**RLS:** Org members SELECT + UPDATE (for approve). Service role ALL for cron context.
+
+## §129. Schema Health Score Algorithm (Sprint 106)
+
+Base score: 100. Deductions (cumulative, floor 0, cap 100):
+- Missing homepage: -30 (critical)
+- Missing FAQ: -25
+- Missing about: -15
+- Missing event (only if events exist on site): -10
+- Missing blog (only if blog pages exist): -10
+- Missing service (only if service pages exist): -10
+- Per pending_review page: -5
+- Bonus: +5 if homepage published with sameAs links (LocalBusiness/Restaurant/BarOrPub schema type)
+
+Golden tenant (seed data): homepage published + FAQ pending_review + events failed = score 55.
+
 ---
 > **End of System Instructions**

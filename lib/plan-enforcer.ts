@@ -182,3 +182,12 @@ export function defaultSeatLimit(plan: PlanTier): number {
 export function canRunNAPSync(plan: PlanTier): boolean {
   return plan === 'growth' || plan === 'agency';
 }
+
+/**
+ * Schema Expansion — website-wide JSON-LD generation (Sprint 106).
+ * Growth and Agency orgs get automated schema crawl + generation.
+ * Starter/Trial orgs see an upgrade prompt on the Schema Health panel.
+ */
+export function canRunSchemaExpansion(plan: PlanTier): boolean {
+  return plan === 'growth' || plan === 'agency';
+}

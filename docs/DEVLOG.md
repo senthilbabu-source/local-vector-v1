@@ -3784,4 +3784,51 @@ npx tsc --noEmit                                                             # 0
 ```
 
 ---
+
+## 2026-03-01 — Sprint 106: Schema Expansion — Beyond Menus (Completed)
+
+**Goal:** Extend JSON-LD schema generation beyond menus to cover every high-value page type on a client's website. Crawls the website, classifies pages by type, generates JSON-LD for 7 page types, hosts embeddable snippets, and provides a dashboard panel for monitoring schema coverage.
+
+**Changes:**
+- **Migration:** `20260312000001_schema_expansion.sql` — 1 new table (`page_schemas`) + 3 new columns on `locations` (`schema_health_score`, `schema_last_run_at`, `website_slug`)
+- **Types:** `lib/schema-expansion/types.ts` — `PageType`, `CrawledPage`, `FAQ`, `EventData`, `SchemaGeneratorInput`, `GeneratedSchema`, `SchemaExpansionResult`, `PageSchemaResult`, `SchemaStatusResponse`. Re-exports `GroundTruth` from nap-sync.
+- **IndexNow utility:** `lib/indexnow.ts` — **NEW.** Fire-and-forget `pingIndexNow()`. Reads `INDEXNOW_API_KEY` env var.
+- **Website crawler:** `lib/schema-expansion/website-crawler.ts` — `crawlWebsite()`, `classifyPageType()` (heuristic + GPT-4o-mini fallback), `extractFAQs()`, `extractEventData()`, `fetchRobotsTxt()`, `parseSitemap()`. Reuses `parsePage()` from `lib/page-audit/html-parser.ts`.
+- **Generators:** `lib/schema-expansion/generators/` — 6 generator files + types + index barrel:
+  - `local-business.generator.ts` — homepage/about → LocalBusiness/Restaurant/BarOrPub + BreadcrumbList. Reuses `inferSchemaOrgType()` and `generateOpeningHoursSchema()`.
+  - `faq-page.generator.ts` — faq → FAQPage + BreadcrumbList. Extracted FAQs or LLM fallback (sets `pending_review`).
+  - `event.generator.ts` — event → Event + BreadcrumbList. EventSchedule for recurring events.
+  - `blog-posting.generator.ts` — blog_post → BlogPosting + BreadcrumbList. Never fabricates datePublished.
+  - `service.generator.ts` — service → Service + BreadcrumbList. Provider, areaServed, serviceType.
+  - `types.ts` — Abstract `SchemaGenerator` base class with `buildBreadcrumb()`, `getPathname()`, `getOrigin()` helpers.
+  - `index.ts` — Registry: `getGeneratorForPageType()`. Returns null for 'menu'.
+- **Schema host:** `lib/schema-expansion/schema-host.ts` — `generateEmbedSnippet()`, `validateSchemaBeforePublish()`, `publishSchema()`. Pings IndexNow after publish.
+- **Orchestrator:** `lib/schema-expansion/schema-expansion-service.ts` — `runSchemaExpansion()`, `calculateSchemaHealthScore()`, `runSchemaExpansionForAllLocations()`. Content hashing (SHA-256) for drift detection.
+- **API routes:**
+  - `app/api/schema-expansion/run/route.ts` — POST, session + Growth+ plan gate
+  - `app/api/schema-expansion/[id]/approve/route.ts` — POST, session + ownership (human-in-the-loop)
+  - `app/api/schema-expansion/status/route.ts` — GET, session + Growth+ plan gate
+  - `app/api/cron/schema-drift/route.ts` — GET, CRON_SECRET, monthly 1st-of-month 4 AM UTC
+- **Dashboard:** `SchemaHealthPanel` + `SchemaEmbedModal` — schema score, per-page-type status table, approve/scan/embed buttons
+- **Plan gate:** `canRunSchemaExpansion()` in `lib/plan-enforcer.ts` — Growth+ only
+- **Cron:** Registered in `vercel.json` — `0 4 1 * *` (1st of month, 4 AM UTC). Kill switch: `STOP_SCHEMA_DRIFT_CRON`.
+- **Seed data:** Golden tenant gets 3 page_schemas (homepage published, FAQ pending_review, events failed), `website_slug='charcoal-n-chill'`, `schema_health_score=55`.
+- **Registry:** `vercel.json` (11th cron), `cron-health.service.ts`, `prod_schema.sql`, `database.types.ts`, `.env.local.example` (INDEXNOW_API_KEY, STOP_SCHEMA_DRIFT_CRON)
+
+**Tests:** 102 unit tests across 3 files:
+- `website-crawler.test.ts` — 35 tests (crawlWebsite, classifyPageType, extractFAQs, extractEventData, fetchRobotsTxt, parseSitemap)
+- `schema-generators.test.ts` — 47 tests (LocalBusinessGenerator 12, FAQPageGenerator 7, EventGenerator 6, BlogPostingGenerator 6, ServiceGenerator 5, validateSchemaBeforePublish 5, generateEmbedSnippet 4, registry 2)
+- `schema-expansion-service.test.ts` — 20 tests (runSchemaExpansion 8, calculateSchemaHealthScore 7, API routes 5)
+
+**AI_RULES:** §127 (Schema Expansion architecture), §128 (page_schemas table), §129 (Schema Health Score algorithm)
+
+```bash
+npx vitest run src/__tests__/unit/website-crawler.test.ts           # 35 tests
+npx vitest run src/__tests__/unit/schema-generators.test.ts         # 47 tests
+npx vitest run src/__tests__/unit/schema-expansion-service.test.ts  # 20 tests
+npx vitest run                                                       # all — no regressions
+npx tsc --noEmit                                                     # 0 Sprint 106 type errors
+```
+
+---
 > **End of Development Log**
