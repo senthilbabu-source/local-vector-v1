@@ -4,6 +4,37 @@
 
 ---
 
+## 2026-03-01 — Sprint 86: Autopilot Engine — Trigger Detection + Orchestration (Completed)
+
+**Goal:** Add automated trigger detection, orchestration, and a weekly cron to the Autopilot Engine. Transforms LocalVector from a monitoring tool into an action tool by automatically detecting visibility gaps and creating content drafts.
+
+**Changes:**
+- **Migration:** `20260314000001_autopilot_triggers.sql` — extends `content_drafts` CHECK constraint (`review_gap`, `schema_gap`), adds `target_keywords`, `rejection_reason`, `generation_notes` columns; adds `autopilot_last_run_at`, `drafts_pending_count` to `locations`; creates `post_publish_audits` table with RLS
+- **Types:** `lib/types/autopilot.ts` — `review_gap`/`schema_gap` in `DraftTriggerType`, extended `DraftContext` fields, `AutopilotRunResult` interface
+- **Trigger detectors** (`lib/autopilot/triggers/`): 4 new files + barrel export — competitor gap (14-day high-magnitude intercepts), prompt missing (zero-citation query clusters), review gap (3+ reviews sharing keyword), schema gap (health score < 60)
+- **Context blocks:** `generate-brief.ts` — added `review_gap` and `schema_gap` context cases
+- **Content type mapping:** `create-draft.ts` — `review_gap → blog_post`, `schema_gap → faq_page`
+- **Draft deduplicator:** `lib/autopilot/draft-deduplicator.ts` — per-type cooldowns (14d/30d/60d/30d), exact trigger_id match, same query match, type+location cooldown
+- **Draft limits:** `lib/autopilot/draft-limits.ts` — trial=2, starter=5, growth=20, agency=100 drafts/month
+- **Orchestrator:** `lib/autopilot/autopilot-service.ts` — `runAutopilotForLocation()` (check limits → 4 triggers parallel → priority sort → dedup → create drafts → update tracking), `runAutopilotForAllOrgs()` (sequential Growth+ org processing)
+- **Cron:** `app/api/cron/autopilot/route.ts` — Wednesday 2 AM UTC, `STOP_AUTOPILOT_CRON` kill switch, registered in `vercel.json`
+- **API routes:** `app/api/autopilot/run/route.ts` (POST, Growth+ plan gated), `app/api/autopilot/status/route.ts` (GET, draft counts + usage)
+- **Dashboard panel:** `ContentDraftsPanel.tsx` — pending count, approved count, monthly usage bar, links to /dashboard/content-drafts
+- **Existing file updates:** `actions.ts` (rejection_reason, expanded trigger_type enum), `ContentDraftCard.tsx` (review_gap/schema_gap badges), `dashboard.ts` (draft count fetching), `page.tsx` (ContentDraftsPanel integration)
+- **Seed data:** 2 new content drafts (review_gap + schema_gap), location autopilot tracking
+
+**Tests:** ~80 unit tests across 6 files:
+- `autopilot-competitor-gap-trigger.test.ts` — 15 tests (detector, dedup, field mapping)
+- `autopilot-prompt-missing-trigger.test.ts` — 15 tests (cluster detection, category grouping, thresholds)
+- `autopilot-review-gap-trigger.test.ts` — 12 tests (keyword counting, frequency thresholds, unanswered count)
+- `autopilot-schema-gap-trigger.test.ts` — 10 tests (score threshold, missing page types, impact ordering)
+- `autopilot-deduplicator.test.ts` — 12 tests (cooldown logic, exact match, fail-open)
+- `autopilot-service.test.ts` — 16 tests (orchestration flow, priority sorting, limit enforcement)
+
+**AI_RULES:** §134 added.
+
+---
+
 ## 2026-03-01 — Sprint 105: NAP Sync Engine (Completed)
 
 **Goal:** Build the cross-platform listing accuracy layer. Fetches live NAP data from GBP, Yelp, Apple Maps, and Bing; detects discrepancies against Ground Truth; pushes auto-corrections to GBP; surfaces NAP Health Score on the dashboard.

@@ -1390,6 +1390,76 @@ WHERE l.org_id = 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11'
 LIMIT 1
 ON CONFLICT (id) DO NOTHING;
 
+-- ── 14b3. Sprint 86 — Autopilot Engine drafts (review_gap + schema_gap) ───────
+-- Review gap draft (pending review)
+INSERT INTO public.content_drafts (
+  id, org_id, location_id,
+  trigger_type, trigger_id,
+  draft_title, draft_content, target_prompt, content_type,
+  aeo_score, status, human_approved,
+  target_keywords,
+  created_at, updated_at
+)
+SELECT
+  'f7eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+  'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+  l.id,
+  'review_gap',
+  NULL,
+  'Addressing Service Speed: Our Commitment to Better Dining Experience',
+  'We have heard your feedback about wait times and are taking action. Our team is now implementing a new table management system to reduce wait times during peak hours.',
+  'slow service restaurant response',
+  'blog_post',
+  72,
+  'draft',
+  FALSE,
+  ARRAY['slow service', 'wait time'],
+  NOW() - INTERVAL '1 hour',
+  NOW() - INTERVAL '1 hour'
+FROM public.locations l
+WHERE l.org_id = 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11'
+  AND l.slug   = 'alpharetta'
+LIMIT 1
+ON CONFLICT (id) DO NOTHING;
+
+-- Schema gap draft (pending review)
+INSERT INTO public.content_drafts (
+  id, org_id, location_id,
+  trigger_type, trigger_id,
+  draft_title, draft_content, target_prompt, content_type,
+  aeo_score, status, human_approved,
+  target_keywords,
+  created_at, updated_at
+)
+SELECT
+  'f8eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+  'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+  l.id,
+  'schema_gap',
+  NULL,
+  'Frequently Asked Questions — Charcoal N Chill',
+  'Find answers to common questions about Charcoal N Chill, including hours, reservations, menu options, and our hookah lounge experience.',
+  'charcoal n chill faq',
+  'faq_page',
+  85,
+  'draft',
+  FALSE,
+  ARRAY['faq', 'schema'],
+  NOW() - INTERVAL '45 minutes',
+  NOW() - INTERVAL '45 minutes'
+FROM public.locations l
+WHERE l.org_id = 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11'
+  AND l.slug   = 'alpharetta'
+LIMIT 1
+ON CONFLICT (id) DO NOTHING;
+
+-- Update location with autopilot tracking columns
+UPDATE public.locations
+SET autopilot_last_run_at = NOW() - INTERVAL '1 hour',
+    drafts_pending_count = 4
+WHERE org_id = 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11'
+  AND slug = 'alpharetta';
+
 -- ── 14c. page_audits (golden tenant — homepage audit) ─────────────────────────
 INSERT INTO public.page_audits (
   id, org_id, location_id,

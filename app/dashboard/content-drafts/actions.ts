@@ -31,7 +31,7 @@ const CreateDraftSchema = z.object({
   draft_title: z.string().min(3, 'Title must be at least 3 characters').max(200),
   draft_content: z.string().min(10, 'Content must be at least 10 characters').max(10000),
   content_type: z.enum(['faq_page', 'occasion_page', 'blog_post', 'landing_page', 'gbp_post']),
-  trigger_type: z.enum(['manual', 'occasion', 'first_mover', 'prompt_missing']).optional(),
+  trigger_type: z.enum(['manual', 'occasion', 'first_mover', 'prompt_missing', 'competitor_gap', 'review_gap', 'schema_gap', 'hallucination_correction']).optional(),
   trigger_id: z.string().uuid().optional(),
 });
 
@@ -105,9 +105,14 @@ export async function rejectDraft(formData: FormData): Promise<ActionResult> {
   const supabase = await createClient();
 
   // Doc 19 §4.2: rejection returns draft to editable state (not terminal)
+  const rejectionReason = formData.get('rejection_reason') as string | null;
   const { error } = await supabase
     .from('content_drafts')
-    .update({ status: 'draft', human_approved: false })
+    .update({
+      status: 'draft',
+      human_approved: false,
+      ...(rejectionReason ? { rejection_reason: rejectionReason } : {}),
+    })
     .eq('id', parsed.data.draft_id)
     .eq('org_id', ctx.orgId);
 

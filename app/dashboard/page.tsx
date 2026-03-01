@@ -42,6 +42,8 @@ import WrongFactsPanel from './_components/panels/WrongFactsPanel';
 import AIBotAccessPanel from './_components/panels/AIBotAccessPanel';
 import LastScanPanel from './_components/panels/LastScanPanel';
 import TopIssuesPanel from './_components/TopIssuesPanel';
+// Sprint 86: Autopilot Engine — Content Drafts Panel
+import ContentDraftsPanel from './_components/panels/ContentDraftsPanel';
 // Sprint 105: NAP Sync — Listing Health Panel
 import ListingHealthPanel from './_components/ListingHealthPanel';
 // Sprint 106: Schema Expansion — Schema Health Panel
@@ -86,6 +88,7 @@ export default async function DashboardPage() {
     currentLeak, previousLeak, revenueConfig, revenueSnapshots, orgPlan, orgCreatedAt,
     healthScore, crawlerSummary, hasPublishedMenu, cronHealth, freshness,
     benchmark, locationContext,
+    draftsPending, draftsApproved, draftsMonthlyUsed, draftsMonthlyLimit,
   } = await fetchDashboardData(ctx.orgId ?? '', activeLocationId);
 
   // ── Sprint 77: Proof Timeline summary card (Sprint 100: uses active location)
@@ -246,6 +249,16 @@ export default async function DashboardPage() {
         crawlerSummary={crawlerSummary}
         sampleMode={sampleMode}
       />
+
+      {/* ── Sprint 86: Content Drafts Panel (Growth+ only) ──────────────── */}
+      {draftGated && (
+        <ContentDraftsPanel
+          pendingCount={draftsPending}
+          approvedCount={draftsApproved}
+          monthlyUsed={draftsMonthlyUsed}
+          monthlyLimit={draftsMonthlyLimit}
+        />
+      )}
 
       {/* ── Revenue Leak Scorecard ──────────────────────────────────────────── */}
       <RevenueLeakCard leak={currentLeak} previousLeak={previousLeak} config={revenueConfig} plan={orgPlan} />

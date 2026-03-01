@@ -14,7 +14,9 @@ export type DraftTriggerType =
   | 'occasion'
   | 'prompt_missing'
   | 'first_mover'
-  | 'manual';
+  | 'manual'
+  | 'review_gap'
+  | 'schema_gap';
 
 export type DraftContentType =
   | 'faq_page'
@@ -49,9 +51,18 @@ export interface DraftContext {
   occasionName?: string;
   daysUntilPeak?: number;
   zeroCitationQueries?: string[];
+  consecutiveZeroWeeks?: number;
   pageRecommendations?: PageAuditRecommendation[];
   additionalContext?: string;
   contentType?: DraftContentType; // for manual drafts where user picks
+  // Sprint 86: review_gap
+  topNegativeKeywords?: string[];
+  negativeReviewCount?: number;
+  unansweredNegativeCount?: number;
+  // Sprint 86: schema_gap
+  schemaHealthScore?: number;
+  missingPageTypes?: string[];
+  topMissingImpact?: string;
 }
 
 // ── Database Row Shape ───────────────────────────────────────────────────────
@@ -74,6 +85,21 @@ export interface ContentDraftRow {
   approved_at: string | null;
   created_at: string;
   updated_at: string;
+  target_keywords: string[];
+  rejection_reason: string | null;
+  generation_notes: string | null;
+}
+
+// ── Sprint 86: Autopilot Run Result ────────────────────────────────────────────
+
+export interface AutopilotRunResult {
+  orgId: string;
+  locationId: string;
+  draftsCreated: number;
+  draftsSkippedDedup: number;
+  draftsSkippedLimit: number;
+  errors: string[];
+  runAt: string;
 }
 
 // ── Publish ──────────────────────────────────────────────────────────────────

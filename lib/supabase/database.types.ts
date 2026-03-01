@@ -589,6 +589,9 @@ export type Database = {
           approved_at: string | null;
           created_at: string;
           updated_at: string;
+          target_keywords: string[];
+          rejection_reason: string | null;
+          generation_notes: string | null;
         };
         Insert: {
           id?: string;
@@ -608,6 +611,9 @@ export type Database = {
           approved_at?: string | null;
           created_at?: string;
           updated_at?: string;
+          target_keywords?: string[];
+          rejection_reason?: string | null;
+          generation_notes?: string | null;
         };
         Update: {
           id?: string;
@@ -627,6 +633,9 @@ export type Database = {
           approved_at?: string | null;
           created_at?: string;
           updated_at?: string;
+          target_keywords?: string[];
+          rejection_reason?: string | null;
+          generation_notes?: string | null;
         };
         Relationships: [
           {
@@ -638,6 +647,64 @@ export type Database = {
           },
           {
             foreignKeyName: "content_drafts_location_id_fkey";
+            columns: ["location_id"];
+            isOneToOne: false;
+            referencedRelation: "locations";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      post_publish_audits: {
+        Row: {
+          id: string;
+          org_id: string;
+          draft_id: string;
+          location_id: string | null;
+          target_query: string | null;
+          baseline_score: number | null;
+          post_publish_score: number | null;
+          improvement_delta: number | null;
+          checked_at: string;
+        };
+        Insert: {
+          id?: string;
+          org_id: string;
+          draft_id: string;
+          location_id?: string | null;
+          target_query?: string | null;
+          baseline_score?: number | null;
+          post_publish_score?: number | null;
+          improvement_delta?: number | null;
+          checked_at?: string;
+        };
+        Update: {
+          id?: string;
+          org_id?: string;
+          draft_id?: string;
+          location_id?: string | null;
+          target_query?: string | null;
+          baseline_score?: number | null;
+          post_publish_score?: number | null;
+          improvement_delta?: number | null;
+          checked_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "post_publish_audits_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "post_publish_audits_draft_id_fkey";
+            columns: ["draft_id"];
+            isOneToOne: true;
+            referencedRelation: "content_drafts";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "post_publish_audits_location_id_fkey";
             columns: ["location_id"];
             isOneToOne: false;
             referencedRelation: "locations";
@@ -1344,6 +1411,8 @@ export type Database = {
           reviews_last_synced_at: string | null;
           total_review_count: number | null;
           avg_rating: number | null;
+          autopilot_last_run_at: string | null;
+          drafts_pending_count: number | null;
         };
         Insert: {
           id?: string;
@@ -1388,6 +1457,8 @@ export type Database = {
           reviews_last_synced_at?: string | null;
           total_review_count?: number | null;
           avg_rating?: number | null;
+          autopilot_last_run_at?: string | null;
+          drafts_pending_count?: number | null;
         };
         Update: {
           id?: string;
@@ -1432,6 +1503,8 @@ export type Database = {
           reviews_last_synced_at?: string | null;
           total_review_count?: number | null;
           avg_rating?: number | null;
+          autopilot_last_run_at?: string | null;
+          drafts_pending_count?: number | null;
         };
         Relationships: [
           {

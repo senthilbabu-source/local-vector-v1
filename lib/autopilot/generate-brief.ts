@@ -126,6 +126,50 @@ export function buildContextBlock(
         .filter(Boolean)
         .join('\n');
 
+    case 'review_gap': {
+      const keywords = trigger.context.topNegativeKeywords;
+      const lines = [
+        `TRIGGER: Review Gap — Recurring Negative Theme`,
+        `Business: "${businessName}" in ${city} (${category})`,
+        trigger.context.negativeReviewCount != null
+          ? `${trigger.context.negativeReviewCount} negative reviews in the last 90 days`
+          : '',
+      ];
+      if (keywords && keywords.length > 0) {
+        lines.push(`Top negative themes:`);
+        for (const k of keywords.slice(0, 5)) {
+          lines.push(`  - "${k}"`);
+        }
+      }
+      lines.push(
+        `Create content that proactively addresses these concerns and showcases improvements.`,
+      );
+      return lines.filter(Boolean).join('\n');
+    }
+
+    case 'schema_gap': {
+      const schemaLines = [
+        `TRIGGER: Schema Gap — Low Schema Health`,
+        `Business: "${businessName}" in ${city} (${category})`,
+        trigger.context.schemaHealthScore != null
+          ? `Current schema health: ${trigger.context.schemaHealthScore}/100`
+          : '',
+      ];
+      if (trigger.context.missingPageTypes && trigger.context.missingPageTypes.length > 0) {
+        schemaLines.push(`Missing page types:`);
+        for (const pt of trigger.context.missingPageTypes.slice(0, 5)) {
+          schemaLines.push(`  - ${pt}`);
+        }
+      }
+      if (trigger.context.topMissingImpact) {
+        schemaLines.push(`Highest impact: ${trigger.context.topMissingImpact}`);
+      }
+      schemaLines.push(
+        `Create structured content (FAQ, About, etc.) to fill these gaps and improve schema coverage.`,
+      );
+      return schemaLines.filter(Boolean).join('\n');
+    }
+
     default:
       return `Business: "${businessName}" in ${city} (${category})`;
   }

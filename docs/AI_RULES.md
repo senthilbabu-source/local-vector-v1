@@ -2668,4 +2668,39 @@ Response validation (`validateResponseDraft`):
 Cron: `review-sync` runs Sunday 1 AM UTC. Kill switch: `STOP_REVIEW_SYNC_CRON` env var.
 
 ---
+
+## §134. Autopilot Engine — Trigger Detection + Orchestration (Sprint 86)
+
+Sprint 86 extends the content brief generator (§49) with automated trigger detection, an orchestration service, a weekly cron, and a dashboard panel.
+
+**Trigger detectors** (`lib/autopilot/triggers/`):
+- `competitor-gap-trigger.ts` — `competitor_intercepts` with `gap_magnitude='high'`, last 14 days. Priority 1.
+- `prompt-missing-trigger.ts` — `target_queries` + `sov_evaluations` with zero citations, grouped by `query_category`. Min cluster size = 2. Priority 2.
+- `review-gap-trigger.ts` — `reviews` with `sentiment_label='negative'`, last 90 days. Requires 3+ reviews sharing a keyword. At most 1 trigger per location. Priority 3.
+- `schema-gap-trigger.ts` — `locations.schema_health_score < 60`. Checks `page_schemas` for missing required types (homepage, faq, about). Priority 4.
+
+**Content type mapping** (`create-draft.ts`): `review_gap → blog_post`, `schema_gap → faq_page`.
+
+**Draft deduplicator** (`lib/autopilot/draft-deduplicator.ts`):
+- Per-type cooldowns: competitor_gap 14d, prompt_missing 30d, review_gap 60d, schema_gap 30d.
+- Three dedup rules: exact trigger_id match, same target query within cooldown, same type+location within cooldown (review_gap/schema_gap only).
+- Fail-open: on DB error, all triggers pass through.
+
+**Draft limits** (`lib/autopilot/draft-limits.ts`): trial=2, starter=5, growth=20, agency=100 drafts/month.
+
+**Orchestrator** (`lib/autopilot/autopilot-service.ts`):
+- `runAutopilotForLocation()`: check limits → Promise.allSettled 4 detectors → sort by priority → dedup → create drafts → update location tracking.
+- `runAutopilotForAllOrgs()`: fetch Growth+ orgs → iterate locations sequentially.
+
+**Cron** (`app/api/cron/autopilot/route.ts`): Wednesday 2 AM UTC. Kill switch: `STOP_AUTOPILOT_CRON`. Registered in `vercel.json`.
+
+**API routes**:
+- `POST /api/autopilot/run` — on-demand scan, Growth+ plan gated.
+- `GET /api/autopilot/status` — draft counts + monthly usage + last run.
+
+**Dashboard panel** (`app/dashboard/_components/panels/ContentDraftsPanel.tsx`): pending count, approved count, monthly usage bar. Growth+ only. Links to `/dashboard/content-drafts`.
+
+**Migration**: `20260314000001_autopilot_triggers.sql` — adds `target_keywords`, `rejection_reason`, `generation_notes` to `content_drafts`; `autopilot_last_run_at`, `drafts_pending_count` to `locations`; creates `post_publish_audits` table.
+
+---
 > **End of System Instructions**

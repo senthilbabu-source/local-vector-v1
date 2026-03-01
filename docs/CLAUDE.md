@@ -12,7 +12,7 @@ LocalVector is an AEO/GEO SaaS platform that helps local businesses monitor and 
 - **Billing:** Stripe webhooks → `organizations.plan_tier` enum (`trial | starter | growth | agency`)
 - **Email:** Resend + React Email (`emails/`)
 - **Cache:** Upstash Redis (`lib/redis.ts`) — optional, all callers must degrade gracefully
-- **Testing:** Vitest (unit/integration in `src/__tests__/`), Playwright (E2E in `tests/e2e/`, 30 specs). Current: 3506 tests, 253 files.
+- **Testing:** Vitest (unit/integration in `src/__tests__/`), Playwright (E2E in `tests/e2e/`, 30 specs). Current: 3758 tests, 266 files.
 - **Monitoring:** Sentry (client, server, edge configs) — all catch blocks instrumented (Sprint A, AI_RULES §70)
 
 ## Architecture Rules
@@ -23,12 +23,12 @@ LocalVector is an AEO/GEO SaaS platform that helps local businesses monitor and 
 - **Plan display names live in `lib/plan-display-names.ts`.** Never inline plan tier display logic (e.g., `capitalize(plan)`) — always use `getPlanDisplayName()`. Maps: trial→The Audit, starter→Starter, growth→AI Shield, agency→Brand Fortress, null→Free. (AI_RULES §71)
 - **AI providers are centralized.** Never call AI APIs directly — use `getModel(key)` from `lib/ai/providers.ts`. Mock fallbacks activate when API keys are absent.
 - **RLS pattern:** Every tenant-scoped table has `org_isolation_select/insert/update/delete` policies using `org_id = public.current_user_org_id()`.
-- **Cron routes** live in `app/api/cron/` and require `Authorization: Bearer <CRON_SECRET>` header. Each has a kill switch env var. 12 crons registered in `vercel.json`, 9 in `CRON_REGISTRY`.
+- **Cron routes** live in `app/api/cron/` and require `Authorization: Bearer <CRON_SECRET>` header. Each has a kill switch env var. 13 crons registered in `vercel.json`, 9 in `CRON_REGISTRY`.
 
 ## Key Directories
 
 ```
-app/api/cron/          — Automated pipelines (sov, audit, content-audit, weekly-digest, correction-follow-up, benchmarks, nap-sync)
+app/api/cron/          — Automated pipelines (sov, audit, content-audit, weekly-digest, correction-follow-up, benchmarks, nap-sync, schema-drift, review-sync, autopilot)
 app/(auth)/            — Auth pages (login, register, forgot-password, reset-password)
 app/dashboard/         — Authenticated dashboard pages (each has error.tsx boundary)
 app/dashboard/citations/     — Citation Gap Dashboard (Sprint 58A)
@@ -53,7 +53,7 @@ lib/industries/              — Industry config SSOT: getIndustryConfig(), 4 ve
 lib/schema-generator/        — Pure JSON-LD generators: FAQ, Hours, LocalBusiness, ReserveAction, OrderAction, Medical/Dental (Sprint 70/84/E)
 lib/ai/                — AI provider config, schemas, actions
 lib/services/          — Pure business logic services
-lib/autopilot/         — Content draft generation and publish pipeline
+lib/autopilot/         — Content draft generation, publish pipeline, trigger detection + orchestration (Sprint 86)
 lib/page-audit/        — HTML parser + AEO auditor
 lib/tools/             — AI chat tool definitions
 lib/auth/              — Role enforcement (org-roles.ts: roleSatisfies, assertOrgRole, ROLE_PERMISSIONS)
@@ -74,7 +74,7 @@ lib/admin/format-relative-date.ts — Intl.RelativeTimeFormat utility for admin 
 lib/nap-sync/          — NAP Sync Engine: adapters (GBP/Yelp/Apple Maps/Bing), discrepancy detector, health score, push corrections, orchestrator (Sprint 105, §124-§126)
 lib/mcp/               — MCP server tool registrations
 lib/supabase/database.types.ts — Full Database type (36 tables, 9 enums, Relationships)
-supabase/migrations/   — Applied SQL migrations (43, timestamp-ordered)
+supabase/migrations/   — Applied SQL migrations (44, timestamp-ordered)
 supabase/prod_schema.sql — Full production schema dump
 docs/                  — 50 spec documents (authoritative for planned features)
 src/__tests__/         — Unit + integration tests
@@ -111,6 +111,7 @@ app/dashboard/_components/BenchmarkComparisonCard.tsx — City benchmark compari
 | `listing_platform_ids` | Maps locations to platform-specific IDs (GBP location name, Yelp business ID, Apple Maps ID, Bing listing ID). UNIQUE(location_id, platform). Org RLS via memberships join. (Sprint 105) |
 | `listing_snapshots` | Raw NAP data captured from each platform per sync run. Historical record. Org RLS via memberships join. (Sprint 105) |
 | `nap_discrepancies` | Structured discrepancy records with severity, auto_correctable flag, fix instructions, discrepant_fields JSONB. Org RLS via memberships join. (Sprint 105) |
+| `post_publish_audits` | Autopilot post-publish audit trail: draft_id, target_query, baseline/post_publish scores, improvement_delta. Org RLS. (Sprint 86) |
 
 ## Current Migrations (Applied)
 
@@ -157,6 +158,7 @@ app/dashboard/_components/BenchmarkComparisonCard.tsx — City benchmark compari
 41. `20260309000001_listing_verification.sql` — `verified_at`, `verification_result` (JSONB), `has_discrepancy` (boolean) on `location_integrations` (Sprint L)
 42. `20260310000001_sprint_n_settings.sql` — `scan_day_of_week integer`, `notify_score_drop_alert boolean`, `notify_new_competitor boolean` on `organizations` (Sprint N)
 43. `20260311000001_nap_sync_engine.sql` — `listing_platform_ids`, `listing_snapshots`, `nap_discrepancies` tables + `nap_health_score`/`nap_last_checked_at` columns on `locations` (Sprint 105)
+44. `20260314000001_autopilot_triggers.sql` — Extends `content_drafts` CHECK constraint (`review_gap`, `schema_gap`), adds `target_keywords`/`rejection_reason`/`generation_notes` to `content_drafts`, `autopilot_last_run_at`/`drafts_pending_count` to `locations`, creates `post_publish_audits` table (Sprint 86)
 
 ## Testing Commands
 
@@ -219,6 +221,7 @@ APPLE_MAPS_PRIVATE_KEY, APPLE_MAPS_KEY_ID, APPLE_MAPS_TEAM_ID
 | Correction Verifier | `lib/services/correction-verifier.service.ts` | Re-queries original AI model after 14 days to check if hallucination was corrected. Substring match on key phrases (phone, time, address, dollar). Used by daily correction-follow-up cron. Sprint N: sends `sendCorrectionFollowUpAlert()` email on fixed/recurring result. |
 | Benchmark Comparison | `lib/data/benchmarks.ts` + `app/api/cron/benchmarks/route.ts` | Weekly city+industry Reality Score aggregation via `compute_benchmarks()` RPC. Dashboard card shows org vs city average when 10+ businesses exist. |
 | NAP Sync Engine | `lib/nap-sync/` + `app/api/nap-sync/` + `app/api/cron/nap-sync/` | Cross-platform listing accuracy layer. 4 adapters (GBP, Yelp, Apple Maps, Bing) fetch live NAP data, compare against Ground Truth, detect discrepancies with severity classification, push auto-corrections to GBP (title/phone/address/website only — hours/status blocked). NAP Health Score (0–100, grade A–F). Weekly cron (Monday 3 AM UTC). Growth+ plan gate. `ListingHealthPanel` + `ListingFixModal` dashboard components. (Sprint 105, §124–§126) |
+| Autopilot Engine (Triggers) | `lib/autopilot/triggers/` + `lib/autopilot/autopilot-service.ts` + `app/api/cron/autopilot/` | Automated trigger detection + orchestration. 4 gap detectors (competitor_gap, prompt_missing, review_gap, schema_gap) with priority-based sorting. Draft deduplicator with per-type cooldowns (14d/30d/60d/30d). Plan-based draft limits (trial=2→agency=100). Weekly cron (Wednesday 2 AM UTC). Growth+ plan gate. `ContentDraftsPanel` dashboard component. (Sprint 86, §134) |
 
 ## Recent Fix Sprints
 

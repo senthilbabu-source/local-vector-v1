@@ -30,6 +30,9 @@ function makeDraft(overrides?: Partial<ContentDraftRow>): ContentDraftRow {
     approved_at: '2026-02-25T00:00:00Z',
     created_at: '2026-02-24T00:00:00Z',
     updated_at: '2026-02-25T00:00:00Z',
+    target_keywords: [],
+    rejection_reason: null,
+    generation_notes: null,
     ...overrides,
   };
 }

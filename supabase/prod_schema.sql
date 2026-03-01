@@ -438,13 +438,31 @@ CREATE TABLE IF NOT EXISTS "public"."content_drafts" (
     "approved_at" timestamp with time zone,
     "created_at" timestamp with time zone DEFAULT "now"() NOT NULL,
     "updated_at" timestamp with time zone DEFAULT "now"() NOT NULL,
+    "target_keywords" "text"[] NOT NULL DEFAULT '{}',
+    "rejection_reason" "text",
+    "generation_notes" "text",
     CONSTRAINT "content_drafts_content_type_check" CHECK ((("content_type")::"text" = ANY ((ARRAY['faq_page'::character varying, 'occasion_page'::character varying, 'blog_post'::character varying, 'landing_page'::character varying, 'gbp_post'::character varying])::"text"[]))),
     CONSTRAINT "content_drafts_status_check" CHECK ((("status")::"text" = ANY ((ARRAY['draft'::character varying, 'approved'::character varying, 'published'::character varying, 'rejected'::character varying, 'archived'::character varying])::"text"[]))),
-    CONSTRAINT "content_drafts_trigger_type_check" CHECK ((("trigger_type")::"text" = ANY ((ARRAY['competitor_gap'::character varying, 'occasion'::character varying, 'prompt_missing'::character varying, 'first_mover'::character varying, 'manual'::character varying, 'hallucination_correction'::character varying])::"text"[])))
+    CONSTRAINT "content_drafts_trigger_type_check" CHECK ((("trigger_type")::"text" = ANY ((ARRAY['competitor_gap'::character varying, 'occasion'::character varying, 'prompt_missing'::character varying, 'first_mover'::character varying, 'manual'::character varying, 'hallucination_correction'::character varying, 'review_gap'::character varying, 'schema_gap'::character varying])::"text"[])))
 );
 
 
 ALTER TABLE "public"."content_drafts" OWNER TO "postgres";
+
+
+CREATE TABLE IF NOT EXISTS "public"."post_publish_audits" (
+    "id" "uuid" DEFAULT gen_random_uuid() NOT NULL,
+    "org_id" "uuid" NOT NULL,
+    "draft_id" "uuid" NOT NULL,
+    "location_id" "uuid",
+    "target_query" "text",
+    "baseline_score" integer,
+    "post_publish_score" integer,
+    "improvement_delta" integer,
+    "checked_at" timestamp with time zone DEFAULT "now"() NOT NULL
+);
+
+ALTER TABLE "public"."post_publish_audits" OWNER TO "postgres";
 
 
 CREATE TABLE IF NOT EXISTS "public"."crawler_hits" (
@@ -615,7 +633,9 @@ CREATE TABLE IF NOT EXISTS "public"."locations" (
     "is_archived" boolean DEFAULT false NOT NULL,
     "display_name" character varying(100),
     "timezone" character varying(50) DEFAULT 'America/New_York'::character varying,
-    "location_order" integer DEFAULT 0
+    "location_order" integer DEFAULT 0,
+    "autopilot_last_run_at" timestamp with time zone,
+    "drafts_pending_count" integer DEFAULT 0
 );
 
 

@@ -23,6 +23,7 @@ import { fetchCrawlerAnalytics, type CrawlerSummary } from '@/lib/data/crawler-a
 import { fetchCronHealth, type CronHealthSummary } from '@/lib/data/cron-health';
 import { fetchFreshnessAlerts, type FreshnessStatus } from '@/lib/data/freshness-alerts';
 import { fetchBenchmark, type BenchmarkData, type OrgLocationContext } from '@/lib/data/benchmarks';
+import { getDraftLimit } from '@/lib/autopilot/draft-limits';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -75,6 +76,11 @@ export interface DashboardData {
   freshness: FreshnessStatus | null;
   benchmark: BenchmarkData | null;       // Sprint F (N4)
   locationContext: OrgLocationContext;    // Sprint F (N4)
+  // Sprint 86: Autopilot Engine — draft counts for ContentDraftsPanel
+  draftsPending: number;
+  draftsApproved: number;
+  draftsMonthlyUsed: number;
+  draftsMonthlyLimit: number;
 }
 
 // ---------------------------------------------------------------------------
@@ -329,6 +335,35 @@ export async function fetchDashboardData(orgId: string, locationId?: string | nu
     // Benchmark is non-critical — dashboard renders without it.
   }
 
+  // ── Sprint 86: Autopilot Engine — Draft counts for ContentDraftsPanel ──
+  let draftsPending = 0;
+  let draftsApproved = 0;
+  let draftsMonthlyUsed = 0;
+  try {
+    const { data: draftRows } = await supabase
+      .from('content_drafts')
+      .select('id, status, created_at')
+      .eq('org_id', orgId)
+      .in('status', ['draft', 'approved'])
+      .limit(200);
+
+    const drafts = draftRows ?? [];
+    draftsPending = drafts.filter((d) => d.status === 'draft').length;
+    draftsApproved = drafts.filter((d) => d.status === 'approved').length;
+
+    // Monthly usage: count all drafts created this month (any status)
+    const { count: monthlyCount } = await supabase
+      .from('content_drafts')
+      .select('*', { count: 'exact', head: true })
+      .eq('org_id', orgId)
+      .gte('created_at', monthStart);
+    draftsMonthlyUsed = monthlyCount ?? 0;
+  } catch (err) {
+    Sentry.captureException(err, { tags: { file: 'dashboard.ts', sprint: '86' } });
+    // Draft counts are non-critical — dashboard renders without them.
+  }
+  const draftsMonthlyLimit = getDraftLimit(orgPlan);
+
   return {
     openAlerts,
     fixedCount: fixedResult.count ?? 0,
@@ -356,5 +391,9 @@ export async function fetchDashboardData(orgId: string, locationId?: string | nu
     freshness,
     benchmark,
     locationContext,
+    draftsPending,
+    draftsApproved,
+    draftsMonthlyUsed,
+    draftsMonthlyLimit,
   };
 }

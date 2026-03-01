@@ -1154,6 +1154,9 @@ export const MOCK_CONTENT_DRAFT_WP: ContentDraftRow = {
   approved_at: '2026-02-27T10:00:00Z',
   created_at: '2026-02-25T08:00:00Z',
   updated_at: '2026-02-27T10:00:00Z',
+  target_keywords: [],
+  rejection_reason: null,
+  generation_notes: null,
 };
 
 /** Approved content draft targeting GBP Post publish. */
@@ -1176,6 +1179,9 @@ export const MOCK_CONTENT_DRAFT_GBP: ContentDraftRow = {
   approved_at: '2026-02-27T12:00:00Z',
   created_at: '2026-02-26T09:00:00Z',
   updated_at: '2026-02-27T12:00:00Z',
+  target_keywords: [],
+  rejection_reason: null,
+  generation_notes: null,
 };
 
 // ---------------------------------------------------------------------------
@@ -1768,4 +1774,127 @@ export const MOCK_NEGATIVE_SENTIMENT: ReviewSentiment = {
   topics: [
     { category: 'service', sentiment: 'negative', mentions: ['slow service', 'really slow'] },
   ],
+};
+
+// ---------------------------------------------------------------------------
+// Sprint 86 — Autopilot Engine trigger fixtures
+// ---------------------------------------------------------------------------
+
+import type { DraftTrigger, AutopilotRunResult } from '@/lib/types/autopilot';
+
+/** Competitor gap trigger — high-magnitude competitor intercept detected. */
+export const MOCK_AUTOPILOT_TRIGGER_COMPETITOR_GAP: DraftTrigger = {
+  triggerType: 'competitor_gap',
+  triggerId: 'a2eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+  orgId: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+  locationId: 'b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+  context: {
+    targetQuery: 'Best hookah bar in Alpharetta GA',
+    competitorName: 'Cloud 9 Lounge',
+    winningFactor: '15 more review mentions of "late night" atmosphere',
+  },
+};
+
+/** Prompt missing trigger — zero-citation cluster in "food" category. */
+export const MOCK_AUTOPILOT_TRIGGER_PROMPT_MISSING: DraftTrigger = {
+  triggerType: 'prompt_missing',
+  triggerId: null,
+  orgId: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+  locationId: 'b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+  context: {
+    targetQuery: 'food — 3 zero-citation queries',
+    zeroCitationQueries: [
+      'best indian food alpharetta',
+      'fusion restaurant near me alpharetta',
+      'indian cuisine alpharetta ga',
+    ],
+    consecutiveZeroWeeks: 4,
+  },
+};
+
+/** Review gap trigger — recurring negative keyword "slow service". */
+export const MOCK_AUTOPILOT_TRIGGER_REVIEW_GAP: DraftTrigger = {
+  triggerType: 'review_gap',
+  triggerId: null,
+  orgId: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+  locationId: 'b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+  context: {
+    topNegativeKeywords: ['slow service', 'wait time', 'took forever'],
+    negativeReviewCount: 5,
+    unansweredNegativeCount: 3,
+  },
+};
+
+/** Schema gap trigger — low schema health score with missing page types. */
+export const MOCK_AUTOPILOT_TRIGGER_SCHEMA_GAP: DraftTrigger = {
+  triggerType: 'schema_gap',
+  triggerId: null,
+  orgId: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+  locationId: 'b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+  context: {
+    schemaHealthScore: 45,
+    missingPageTypes: ['faq', 'about'],
+    topMissingImpact: 'FAQ page missing — 30% of AI models check FAQ for business details',
+  },
+};
+
+/** Successful autopilot run result fixture. */
+export const MOCK_AUTOPILOT_RUN_RESULT: AutopilotRunResult = {
+  orgId: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+  locationId: 'b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+  draftsCreated: 3,
+  draftsSkippedDedup: 1,
+  draftsSkippedLimit: 0,
+  errors: [],
+  runAt: '2026-02-28T02:00:00Z',
+};
+
+/** Content draft with review_gap trigger for autopilot tests. */
+export const MOCK_CONTENT_DRAFT_REVIEW_GAP: ContentDraftRow = {
+  id: 'f7eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+  org_id: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+  location_id: 'b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+  trigger_type: 'review_gap',
+  trigger_id: null,
+  draft_title: 'Addressing Service Speed: Our Commitment to Better Dining Experience',
+  draft_content:
+    'We have heard your feedback about wait times and are taking action. Our team is now implementing a new table management system to reduce wait times during peak hours.',
+  target_prompt: 'slow service restaurant response',
+  content_type: 'blog_post',
+  aeo_score: 72,
+  status: 'draft',
+  human_approved: false,
+  published_url: null,
+  published_at: null,
+  approved_at: null,
+  created_at: '2026-02-28T09:00:00Z',
+  updated_at: '2026-02-28T09:00:00Z',
+  target_keywords: ['slow service', 'wait time'],
+  rejection_reason: null,
+  generation_notes: null,
+};
+
+/** Content draft with schema_gap trigger for autopilot tests. */
+export const MOCK_CONTENT_DRAFT_SCHEMA_GAP: ContentDraftRow = {
+  id: 'f8eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+  org_id: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+  location_id: 'b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+  trigger_type: 'schema_gap',
+  trigger_id: null,
+  draft_title: 'Frequently Asked Questions — Charcoal N Chill',
+  draft_content:
+    'Find answers to common questions about Charcoal N Chill, including hours, reservations, menu options, and our hookah lounge experience.',
+  target_prompt: 'charcoal n chill faq',
+  content_type: 'faq_page',
+  aeo_score: 85,
+  status: 'draft',
+  human_approved: false,
+  published_url: null,
+  published_at: null,
+  approved_at: null,
+  created_at: '2026-02-28T09:30:00Z',
+  updated_at: '2026-02-28T09:30:00Z',
+  target_keywords: ['faq', 'schema'],
+  rejection_reason: null,
+  generation_notes: null,
 };

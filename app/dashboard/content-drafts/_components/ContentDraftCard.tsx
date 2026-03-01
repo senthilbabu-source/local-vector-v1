@@ -47,6 +47,10 @@ function triggerBadge(type: string): { label: string; classes: string } {
       return { label: 'Occasion Engine', classes: 'bg-violet-400/10 text-violet-400 ring-violet-400/20' };
     case 'prompt_missing':
       return { label: 'Prompt Gap', classes: 'bg-purple-400/10 text-purple-400 ring-purple-400/20' };
+    case 'review_gap':
+      return { label: 'Review Gap', classes: 'bg-orange-400/10 text-orange-400 ring-orange-400/20' };
+    case 'schema_gap':
+      return { label: 'Schema Gap', classes: 'bg-cyan-400/10 text-cyan-400 ring-cyan-400/20' };
     default:
       return { label: 'Manual', classes: 'bg-slate-400/10 text-slate-400 ring-slate-400/20' };
   }
