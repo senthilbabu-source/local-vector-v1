@@ -2241,6 +2241,50 @@ CREATE POLICY "sidebar_badge_state_all" ON "public"."sidebar_badge_state" FOR AL
 
 
 
+-- Sprint 116: draft_locks table
+CREATE TABLE IF NOT EXISTS "public"."draft_locks" (
+    "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
+    "draft_id" "uuid" NOT NULL,
+    "org_id" "uuid" NOT NULL,
+    "user_id" "uuid" NOT NULL,
+    "user_email" "text" NOT NULL,
+    "user_name" "text",
+    "locked_at" timestamp with time zone DEFAULT "now"() NOT NULL,
+    "expires_at" timestamp with time zone DEFAULT ("now"() + '00:01:30'::interval) NOT NULL,
+    CONSTRAINT "draft_locks_pkey" PRIMARY KEY ("id"),
+    CONSTRAINT "draft_locks_draft_id_user_id_key" UNIQUE ("draft_id", "user_id")
+);
+
+ALTER TABLE "public"."draft_locks" OWNER TO "postgres";
+
+CREATE INDEX "idx_draft_locks_draft_id" ON "public"."draft_locks" USING "btree" ("draft_id", "expires_at");
+CREATE INDEX "idx_draft_locks_org_id" ON "public"."draft_locks" USING "btree" ("org_id");
+
+ALTER TABLE ONLY "public"."draft_locks"
+    ADD CONSTRAINT "draft_locks_draft_id_fkey" FOREIGN KEY ("draft_id") REFERENCES "public"."content_drafts"("id") ON DELETE CASCADE;
+ALTER TABLE ONLY "public"."draft_locks"
+    ADD CONSTRAINT "draft_locks_org_id_fkey" FOREIGN KEY ("org_id") REFERENCES "public"."organizations"("id") ON DELETE CASCADE;
+ALTER TABLE ONLY "public"."draft_locks"
+    ADD CONSTRAINT "draft_locks_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "auth"."users"("id") ON DELETE CASCADE;
+
+ALTER TABLE "public"."draft_locks" ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "draft_locks_org_read" ON "public"."draft_locks" FOR SELECT
+    USING (("org_id" = "public"."current_user_org_id"()));
+CREATE POLICY "draft_locks_user_insert" ON "public"."draft_locks" FOR INSERT
+    WITH CHECK (("org_id" = "public"."current_user_org_id"() AND "user_id" = "auth"."uid"()));
+CREATE POLICY "draft_locks_user_update" ON "public"."draft_locks" FOR UPDATE
+    USING (("org_id" = "public"."current_user_org_id"() AND "user_id" = "auth"."uid"()));
+CREATE POLICY "draft_locks_user_or_admin_delete" ON "public"."draft_locks" FOR DELETE
+    USING (("org_id" = "public"."current_user_org_id"() AND ("user_id" = "auth"."uid"() OR EXISTS (
+        SELECT 1 FROM "public"."memberships" "m"
+        JOIN "public"."users" "u" ON "u"."id" = "m"."user_id"
+        WHERE "m"."org_id" = "public"."current_user_org_id"()
+          AND "u"."auth_provider_id" = "auth"."uid"()
+          AND "m"."role" IN ('owner', 'admin')))));
+CREATE POLICY "draft_locks_service_role" ON "public"."draft_locks"
+    USING (("auth"."role"() = 'service_role'));
+
 ALTER PUBLICATION "supabase_realtime" OWNER TO "postgres";
 
 

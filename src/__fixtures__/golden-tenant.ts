@@ -2624,3 +2624,58 @@ export const MOCK_ORG_THEME_DEFAULT: OrgTheme = {
   created_at: '2026-03-01T00:00:00.000Z',
   updated_at: '2026-03-01T00:00:00.000Z',
 };
+
+// ---------------------------------------------------------------------------
+// Sprint 116 — Supabase Realtime Fixtures
+// ---------------------------------------------------------------------------
+
+import type { PresenceUser, DraftLock, RealtimeNotification } from '@/lib/realtime/types';
+
+export const MOCK_PRESENCE_USER_OWNER: PresenceUser = {
+  user_id: 'golden-user-id',
+  email: 'aruna@charcoalnchill.com',
+  full_name: 'Aruna Babu',
+  role: 'owner',
+  current_page: '/dashboard',
+  online_at: '2026-03-01T10:00:00.000Z',
+};
+
+export const MOCK_PRESENCE_USER_ADMIN: PresenceUser = {
+  user_id: 'mock-admin-user-id',
+  email: 'admin@charcoalnchill.com',
+  full_name: 'Test Admin',
+  role: 'admin',
+  current_page: '/dashboard/content',
+  online_at: '2026-03-01T10:05:00.000Z',
+};
+
+export const MOCK_DRAFT_LOCK: DraftLock = {
+  id: 'lock-001',
+  draft_id: 'draft-golden-001',
+  org_id: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+  user_id: 'mock-admin-user-id',
+  user_email: 'admin@charcoalnchill.com',
+  user_name: 'Test Admin',
+  locked_at: '2026-03-01T10:05:00.000Z',
+  expires_at: '2026-03-01T10:06:30.000Z',
+};
+
+export const MOCK_NOTIFICATION_SOV_COMPLETE: RealtimeNotification = {
+  id: 'notif-001',
+  event: 'cron_sov_complete',
+  message: 'AI visibility scan complete. Your scores have been updated.',
+  refresh_keys: ['sov', 'visibility_analytics'],
+  action_url: '/dashboard/visibility',
+  action_label: 'View Scores',
+  sent_at: '2026-03-01T10:10:00.000Z',
+  received_at: '2026-03-01T10:10:01.000Z',
+};
+
+export const MOCK_NOTIFICATION_MEMBER_JOINED: RealtimeNotification = {
+  id: 'notif-002',
+  event: 'member_joined',
+  message: 'newmember@example.com has joined your organization.',
+  refresh_keys: ['team'],
+  sent_at: '2026-03-01T09:00:00.000Z',
+  received_at: '2026-03-01T09:00:01.000Z',
+};

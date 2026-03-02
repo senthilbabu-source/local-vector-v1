@@ -1490,3 +1490,23 @@ This table has an **asymmetric access model** (Sprint 57B, migration `2026022600
 * **SELECT** → `authenticated` via `org_isolation_select` (org-membership check)
 * **INSERT/UPDATE/DELETE** → `service_role` only (no grants to `authenticated`)
 * Rationale: The integrations page reads `google_email` + `gbp_account_name` (needs SELECT). Token writes happen exclusively in the OAuth callback handler and token refresh code, which run as service-role.
+
+#### `draft_locks` — Soft co-editing lock registry (Sprint 116)
+
+Heartbeat-based advisory locks for `content_drafts`. Client writes lock on draft open, refreshes every 30s, removes on unmount. Expired locks (expires_at < NOW()) are filtered by query pattern — no cleanup cron needed.
+
+| Column | Type | Notes |
+|--------|------|-------|
+| `id` | uuid PK | gen_random_uuid() |
+| `draft_id` | uuid FK → content_drafts(id) | ON DELETE CASCADE |
+| `org_id` | uuid FK → organizations(id) | ON DELETE CASCADE |
+| `user_id` | uuid FK → auth.users(id) | ON DELETE CASCADE |
+| `user_email` | text | Denormalized for display |
+| `user_name` | text | Nullable |
+| `locked_at` | timestamptz | Default NOW() |
+| `expires_at` | timestamptz | Default NOW() + 90 seconds |
+
+* UNIQUE (draft_id, user_id) — one lock per draft per user
+* RLS: 5 policies (org read, user insert, user update, user/admin delete, service_role full)
+* Realtime: Added to `supabase_realtime` publication for Postgres Changes listeners
+* Migration: `20260315000002_draft_locks.sql`

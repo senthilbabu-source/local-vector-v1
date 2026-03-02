@@ -3032,3 +3032,25 @@ Per-org brand configuration with CSS custom property injection, themed emails, b
 * **Tests:** 27 theme-utils + 11 email-wrapper + 16 theme-service + 22 theme-routes = 76 Vitest + 9 Playwright.
 
 ---
+
+## §150. Supabase Realtime in `lib/realtime/` + `hooks/` (Sprint 116)
+
+* **One channel per org per tab:** `acquireOrgChannel()` / `releaseOrgChannel()`
+  from `channel-manager.ts`. Never call `supabase.channel()` directly in hooks.
+* **Three channel features:**
+  - Presence: `usePresence()` — who is online
+  - Broadcast: `useRealtimeNotifications()` — server → client notifications
+  - Postgres Changes: `useDraftLock()` — live lock state
+* **`notifyOrg()` never throws.** `void notifyOrg(...)` in all call sites.
+  Never await in a response path.
+* **Draft locks are advisory.** Never block edits or saves on `hasConflict`.
+  `useDraftLock()` failures are silent warnings.
+* **`deduplicatePresenceUsers()` excludes self.** Export this for testing.
+* **`useAutoRefresh` pattern:** `localvector:refresh` CustomEvent with
+  `detail.keys`. Dashboard sections listen independently. Decoupled.
+* **Client-only hooks:** `usePresence`, `useDraftLock`, `useRealtimeNotifications`,
+  `useAutoRefresh` must only appear in `'use client'` components.
+* **Migration:** `20260315000002_draft_locks.sql`.
+* **Tests:** 8 realtime-types + 8 notify-org + 10 use-presence + 10 use-draft-lock + 10 use-realtime-notifications + 5 use-auto-refresh = 51 Vitest + 9 Playwright.
+
+---

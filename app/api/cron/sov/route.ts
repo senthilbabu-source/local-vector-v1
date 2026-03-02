@@ -38,6 +38,7 @@ import { createDraft, archiveExpiredOccasionDrafts } from '@/lib/autopilot/creat
 import { getPendingRechecks, completeRecheck } from '@/lib/autopilot/post-publish';
 import { inngest } from '@/lib/inngest/client';
 import { logCronStart, logCronComplete, logCronFailed } from '@/lib/services/cron-logger';
+import { notifyOrg, buildCronNotification } from '@/lib/realtime/notify-org';
 
 // Force dynamic so Vercel never caches this route between cron invocations.
 export const dynamic = 'force-dynamic';
@@ -366,6 +367,13 @@ async function _runInlineSOVImpl(handle: { logId: string | null; startedAt: numb
           console.error(`[cron-sov] Prompt intelligence failed for org ${orgId}:`, gapMsg);
         }
       }
+
+      // Sprint 116: Notify org of SOV completion (fire-and-forget)
+      void notifyOrg(orgId, buildCronNotification(
+        'cron_sov_complete',
+        'AI visibility scan complete. Your scores have been updated.',
+        ['sov', 'visibility_analytics'],
+      ));
 
       summary.orgs_processed++;
     } catch (err) {

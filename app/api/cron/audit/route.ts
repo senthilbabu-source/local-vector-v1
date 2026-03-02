@@ -26,6 +26,7 @@ import { sendHallucinationAlert } from '@/lib/email';
 import { snapshotRevenueLeak } from '@/lib/services/revenue-leak.service';
 import { inngest } from '@/lib/inngest/client';
 import { logCronStart, logCronComplete, logCronFailed } from '@/lib/services/cron-logger';
+import { notifyOrg, buildCronNotification } from '@/lib/realtime/notify-org';
 
 // Force dynamic so Vercel never caches this route between cron invocations.
 export const dynamic = 'force-dynamic';
@@ -201,6 +202,13 @@ async function _runInlineAuditImpl(handle: { logId: string | null; startedAt: nu
           );
         }
       }
+
+      // Sprint 116: Notify org of audit completion (fire-and-forget)
+      void notifyOrg(org.id, buildCronNotification(
+        'cron_audit_complete',
+        'Hallucination audit complete. New results are ready.',
+        ['hallucinations'],
+      ));
 
       summary.processed++;
     } catch (err) {

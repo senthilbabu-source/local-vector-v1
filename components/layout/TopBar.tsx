@@ -12,6 +12,7 @@ interface TopBarProps {
   displayName: string;
   plan: string | null;
   credits?: { credits_used: number; credits_limit: number; reset_date: string } | null;
+  presenceSlot?: React.ReactNode;
 }
 
 // ---------------------------------------------------------------------------
@@ -43,7 +44,7 @@ function CreditsMeterBar({ used, limit }: { used: number; limit: number }) {
 // TopBar
 // ---------------------------------------------------------------------------
 
-export default function TopBar({ onMenuToggle, orgName, plan, credits }: TopBarProps) {
+export default function TopBar({ onMenuToggle, orgName, plan, credits, presenceSlot }: TopBarProps) {
   return (
     <header className="flex h-14 shrink-0 items-center justify-between border-b border-white/5 bg-surface-dark/80 backdrop-blur-md px-4 lg:px-6">
 
@@ -82,8 +83,10 @@ export default function TopBar({ onMenuToggle, orgName, plan, credits }: TopBarP
         )}
       </div>
 
-      {/* Right: Credits meter + Help + User */}
+      {/* Right: Presence + Credits meter + Help + User */}
       <div className="flex items-center gap-1">
+        {/* Sprint 116: Presence avatars */}
+        {presenceSlot && <div className="mr-2">{presenceSlot}</div>}
         {/* Sprint D: Credits meter */}
         {credits && (
           <div className="flex items-center gap-2 mr-2" data-testid="credits-meter">

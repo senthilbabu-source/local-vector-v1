@@ -1,10 +1,14 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import Sidebar from './Sidebar';
 import TopBar from './TopBar';
 import GuidedTour from '@/app/dashboard/_components/GuidedTour';
+import PresenceAvatars from '@/app/dashboard/_components/PresenceAvatars';
+import RealtimeNotificationToast from '@/app/dashboard/_components/RealtimeNotificationToast';
 import type { LocationOption } from './LocationSwitcher';
+import type { PresenceUser } from '@/lib/realtime/types';
+import type { MemberRole } from '@/lib/membership/types';
 
 // ---------------------------------------------------------------------------
 // Props
@@ -20,6 +24,11 @@ interface DashboardShellProps {
   badgeCounts?: Record<string, string | null>;
   credits?: { credits_used: number; credits_limit: number; reset_date: string } | null;
   orgIndustry?: string | null;
+  // Sprint 116: Realtime presence props
+  orgId?: string | null;
+  userId?: string | null;
+  userEmail?: string | null;
+  userRole?: MemberRole | null;
 }
 
 // ---------------------------------------------------------------------------
@@ -41,8 +50,25 @@ export default function DashboardShell({
   badgeCounts,
   credits,
   orgIndustry,
+  orgId,
+  userId,
+  userEmail,
+  userRole,
 }: DashboardShellProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  // Sprint 116: Build presence user object for realtime
+  const presenceUser = useMemo<PresenceUser | null>(() => {
+    if (!userId || !userEmail || !userRole) return null;
+    return {
+      user_id: userId,
+      email: userEmail,
+      full_name: displayName !== userEmail.split('@')[0] ? displayName : null,
+      role: userRole,
+      current_page: '/dashboard',
+      online_at: new Date().toISOString(),
+    };
+  }, [userId, userEmail, userRole, displayName]);
 
   return (
     <div className="flex h-screen overflow-hidden bg-midnight-slate">
@@ -79,6 +105,11 @@ export default function DashboardShell({
           displayName={displayName}
           plan={plan}
           credits={credits}
+          presenceSlot={
+            orgId && presenceUser ? (
+              <PresenceAvatars orgId={orgId} currentUser={presenceUser} />
+            ) : null
+          }
         />
 
         {/* Main content area */}
@@ -89,6 +120,9 @@ export default function DashboardShell({
 
       {/* Post-onboarding guided tour (Sprint 62B) */}
       <GuidedTour />
+
+      {/* Sprint 116: Realtime notification toasts */}
+      {orgId && <RealtimeNotificationToast orgId={orgId} />}
     </div>
   );
 }

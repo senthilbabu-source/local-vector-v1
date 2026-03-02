@@ -570,6 +570,54 @@ export type Database = {
           },
         ];
       };
+      draft_locks: {
+        Row: {
+          id: string;
+          draft_id: string;
+          org_id: string;
+          user_id: string;
+          user_email: string;
+          user_name: string | null;
+          locked_at: string;
+          expires_at: string;
+        };
+        Insert: {
+          id?: string;
+          draft_id: string;
+          org_id: string;
+          user_id: string;
+          user_email: string;
+          user_name?: string | null;
+          locked_at?: string;
+          expires_at?: string;
+        };
+        Update: {
+          id?: string;
+          draft_id?: string;
+          org_id?: string;
+          user_id?: string;
+          user_email?: string;
+          user_name?: string | null;
+          locked_at?: string;
+          expires_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "draft_locks_draft_id_fkey";
+            columns: ["draft_id"];
+            isOneToOne: false;
+            referencedRelation: "content_drafts";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "draft_locks_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       content_drafts: {
         Row: {
           id: string;

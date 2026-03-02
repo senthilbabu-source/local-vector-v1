@@ -19,6 +19,7 @@ import { createServiceRoleClient } from '@/lib/supabase/server';
 import { auditPage, type PageType } from '@/lib/page-audit/auditor';
 import { inngest } from '@/lib/inngest/client';
 import { logCronStart, logCronComplete, logCronFailed } from '@/lib/services/cron-logger';
+import { notifyOrg, buildCronNotification } from '@/lib/realtime/notify-org';
 import type { Json } from '@/lib/supabase/database.types';
 
 // Force dynamic so Vercel never caches this route between cron invocations.
@@ -202,6 +203,13 @@ async function _runInlineContentAuditImpl(handle: { logId: string | null; starte
           summary.pages_failed++;
         }
       }
+
+      // Sprint 116: Notify org of content audit completion (fire-and-forget)
+      void notifyOrg(loc.org_id, buildCronNotification(
+        'cron_content_audit_complete',
+        'Content audit complete. Review the latest recommendations.',
+        ['content_drafts', 'page_audits'],
+      ));
 
       summary.locations_audited++;
     } catch (err) {

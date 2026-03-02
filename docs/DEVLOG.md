@@ -4305,3 +4305,69 @@ npx vitest run                                                 # all 4254 — no
 ```
 
 ---
+
+## Sprint 116 — Supabase Realtime (2026-03-01)
+
+**Objective:** Build the Supabase Realtime layer — presence tracking, draft co-editing locks, cross-user notification toasts, and automatic dashboard refresh when background cron jobs complete.
+
+**What this sprint delivers:**
+- `usePresence()` hook — tracks which org members are currently online via Supabase Realtime Presence
+- Team presence indicator in dashboard header (PresenceAvatars) — avatars/initials of online teammates
+- `useDraftLock()` hook — soft co-editing lock on `content_drafts` rows with 30s heartbeat
+- `draft_locks` table — lightweight lock registry with 90s TTL
+- `useRealtimeNotifications()` hook — subscribes to org-scoped Broadcast channel for toast notifications
+- `notifyOrg()` server utility — called by cron routes to broadcast completion notifications
+- Auto-refresh: SOV, audit, and content-audit crons call `notifyOrg()` which triggers dashboard data refresh via `localvector:refresh` CustomEvent
+- `useOrgChannel()` — base hook managing Supabase Realtime channel lifecycle
+- `useAutoRefresh()` — DOM event → data refetch bridge
+- Channel manager singleton — one channel per org per browser tab via ref counting
+
+**Files created:**
+- `lib/realtime/types.ts` — PresenceUser, DraftLock, NotificationPayload, RealtimeNotification, 7 event types, 5 constants
+- `lib/realtime/channel-manager.ts` — acquireOrgChannel/releaseOrgChannel singleton with ref counting
+- `lib/realtime/notify-org.ts` — notifyOrg() (server-side, never throws), buildCronNotification() (pure)
+- `lib/realtime/index.ts` — barrel export
+- `hooks/useOrgChannel.ts` — base channel lifecycle hook
+- `hooks/usePresence.ts` — presence tracking + deduplicatePresenceUsers() (exported for testing)
+- `hooks/useDraftLock.ts` — soft lock: UPSERT + heartbeat + Postgres Changes listener
+- `hooks/useRealtimeNotifications.ts` — broadcast listener + auto-dismiss + dedup + CustomEvent dispatch
+- `hooks/useAutoRefresh.ts` — DOM event listener with key matching
+- `app/dashboard/_components/PresenceAvatars.tsx` — online teammate avatars (max 5 + overflow)
+- `app/dashboard/_components/DraftLockBanner.tsx` — co-editing warning banner (amber)
+- `app/dashboard/_components/RealtimeNotificationToast.tsx` — fixed bottom-right toast stack (max 3 visible)
+- `supabase/migrations/20260315000002_draft_locks.sql` — table + 5 RLS policies + realtime publication
+
+**Files modified:**
+- `components/layout/DashboardShell.tsx` — added PresenceAvatars (via TopBar presenceSlot) + RealtimeNotificationToast
+- `components/layout/TopBar.tsx` — added presenceSlot prop
+- `app/dashboard/layout.tsx` — passes orgId, userId, userEmail, userRole to DashboardShell
+- `app/api/cron/sov/route.ts` — `void notifyOrg()` at org completion
+- `app/api/cron/audit/route.ts` — `void notifyOrg()` at org completion
+- `app/api/cron/content-audit/route.ts` — `void notifyOrg()` at location completion
+- `supabase/prod_schema.sql` — draft_locks table + RLS
+- `lib/supabase/database.types.ts` — draft_locks types
+- `src/__fixtures__/golden-tenant.ts` — 5 realtime fixtures
+
+**Tests:** 51 unit tests across 6 files:
+- `realtime-types.test.ts` — 8 tests (buildOrgChannelName 2, deduplicatePresenceUsers 6)
+- `notify-org.test.ts` — 8 tests (buildCronNotification 3, notifyOrg 5)
+- `use-presence.test.ts` — 10 tests (pure logic 3, channel interaction 7)
+- `use-draft-lock.test.ts` — 10 tests (UPSERT/DELETE/heartbeat/conflict/expiry/advisory)
+- `use-realtime-notifications.test.ts` — 10 tests (add/dedup/cap/dismiss/clear/autorefresh/autodismiss)
+- `use-auto-refresh.test.ts` — 5 tests (match/nomatch/anymatch/cleanup/stable)
+
+**Playwright E2E:** 9 tests in `tests/e2e/sprint-116-realtime.spec.ts`
+
+**AI_RULES:** §150 (realtime architecture)
+
+```bash
+npx vitest run src/__tests__/unit/realtime-types.test.ts               # 8 tests
+npx vitest run src/__tests__/unit/notify-org.test.ts                   # 8 tests
+npx vitest run src/__tests__/unit/use-presence.test.ts                 # 10 tests
+npx vitest run src/__tests__/unit/use-draft-lock.test.ts               # 10 tests
+npx vitest run src/__tests__/unit/use-realtime-notifications.test.ts   # 10 tests
+npx vitest run src/__tests__/unit/use-auto-refresh.test.ts             # 5 tests
+npx vitest run                                                          # all — no regressions
+```
+
+---

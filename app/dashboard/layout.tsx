@@ -160,6 +160,10 @@ export default async function DashboardLayout({
       badgeCounts={badgeCounts}
       credits={credits}
       orgIndustry={orgIndustry}
+      orgId={ctx.orgId ?? null}
+      userId={ctx.userId}
+      userEmail={ctx.email}
+      userRole={(ctx.role ?? null) as import('@/lib/membership/types').MemberRole | null}
     >
       {children}
       <DashboardFooter />
