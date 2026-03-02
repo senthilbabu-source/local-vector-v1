@@ -28,6 +28,11 @@ vi.mock('@/lib/auth', () => ({
   getSafeAuthContext: () => mockGetSafeAuthContext(),
 }));
 
+// Sprint 119: Mock embedding service
+vi.mock('@/lib/services/embedding-service', () => ({
+  generateAndSaveEmbedding: vi.fn().mockResolvedValue({ ok: true }),
+}));
+
 // Mock autopilot modules to avoid import chain issues
 vi.mock('@/lib/autopilot/score-content', () => ({
   scoreContentHeuristic: vi.fn(() => 72),
@@ -76,8 +81,13 @@ function makeSupabaseMock(opts: {
   const updateFirstEq = vi.fn().mockReturnValue({ eq: updateSecondEq });
   const update = vi.fn().mockReturnValue({ eq: updateFirstEq });
 
-  // Insert chain: from('content_drafts').insert({})
-  const insert = vi.fn().mockResolvedValue({ error: insertError });
+  // Insert chain: from('content_drafts').insert({}).select().single()
+  const insertSingle = vi.fn().mockResolvedValue({
+    data: { id: 'mock-draft-id', draft_title: 'Test Title', target_prompt: null },
+    error: insertError,
+  });
+  const insertSelect = vi.fn().mockReturnValue({ single: insertSingle });
+  const insert = vi.fn().mockReturnValue({ select: insertSelect });
 
   // Select chain for plan fetch: from('organizations').select('plan').eq('id', x).single()
   const planSingle = vi.fn().mockResolvedValue({ data: planData });

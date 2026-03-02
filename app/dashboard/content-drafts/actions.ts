@@ -12,6 +12,7 @@ import { publishToWordPress } from '@/lib/autopilot/publish-wordpress';
 import { schedulePostPublishRecheck } from '@/lib/autopilot/post-publish';
 import type { AutopilotLocationContext } from '@/lib/types/autopilot';
 import { z } from 'zod';
+import { generateAndSaveEmbedding } from '@/lib/services/embedding-service';
 
 // ---------------------------------------------------------------------------
 // Shared result type
@@ -165,7 +166,7 @@ export async function createManualDraft(formData: FormData): Promise<ActionResul
   }
 
   // ── Insert ─────────────────────────────────────────────────────────────────
-  const { error } = await supabase.from('content_drafts').insert({
+  const { data: insertedDraft, error } = await supabase.from('content_drafts').insert({
     org_id: ctx.orgId,
     trigger_type: parsed.data.trigger_type ?? 'manual',
     trigger_id: parsed.data.trigger_id ?? null,
@@ -173,10 +174,15 @@ export async function createManualDraft(formData: FormData): Promise<ActionResul
     draft_content: parsed.data.draft_content,
     content_type: parsed.data.content_type,
     status: 'draft',
-  });
+  }).select('id, draft_title, target_prompt').single();
 
   if (error) {
     return { success: false, error: error.message };
+  }
+
+  // Sprint 119: Generate embedding for new content draft (fire-and-forget)
+  if (insertedDraft) {
+    void generateAndSaveEmbedding(supabase, 'content_drafts', insertedDraft);
   }
 
   revalidatePath('/dashboard/content-drafts');

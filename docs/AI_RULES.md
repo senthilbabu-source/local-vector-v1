@@ -3089,3 +3089,24 @@ Per-org brand configuration with CSS custom property injection, themed emails, b
 * **Tests:** 19 rate-limiter + 15 slack-alerts + 7 revalidate-route + 13 middleware-rate-limit = 54 Vitest. 5 Playwright E2E (infrastructure.spec.ts).
 
 ---
+
+## §153. pgvector Semantic Search + Embedding Pipeline (Sprint 119)
+
+* **Extension & columns:** `extensions.vector` enabled. 5 tables get `embedding extensions.vector(1536)`: `menu_items`, `ai_hallucinations`, `target_queries`, `content_drafts`, `locations`. Migrations `20260321000001`–`20260321000004`.
+* **HNSW indexes:** All 5 columns have partial HNSW index (`WHERE embedding IS NOT NULL`, `m=16`, `ef_construction=64`, `vector_cosine_ops`). Distance: `1 - (a <=> b)`, clamped via `LEAST(1.0, ...)`.
+* **RPC match functions:** 4 SECURITY DEFINER functions with `SET search_path = public`: `match_menu_items` (threshold 0.65, joins menu_categories for category name), `match_hallucinations` (threshold 0.92, filters by org_id + correction_status IN open/verifying/recurring), `match_target_queries` (threshold 0.80, filters by location_id), `match_content_drafts` (threshold 0.85, filters by org_id). All GRANTed to anon/authenticated/service_role.
+* **Embedding model:** `text-embedding-3-small` (1536 dimensions) via Vercel AI SDK `embed()`/`embedMany()`. Model exported as `embeddingModel` from `lib/ai/providers.ts` — kept separate from MODELS registry to preserve `LanguageModelV1` union type. Constants: `EMBEDDING_MODEL`, `EMBEDDING_DIMENSIONS`.
+* **Embedding service:** `lib/services/embedding-service.ts` — `prepareTextForTable()` (pure, handles jsonb categories for locations), `generateEmbedding()`, `generateEmbeddingsBatch()` (max 20), `backfillTable()`, `saveEmbeddingForRow()`, `generateAndSaveEmbedding()` (never throws — fire-and-forget safe). pgvector columns accept `JSON.stringify(embedding)` via Supabase.
+* **Hallucination dedup:** `lib/services/hallucination-dedup.ts` — `isDuplicateHallucination()` with threshold 0.92. Returns `{ isDuplicate: true, existingId, similarity }` or `{ isDuplicate: false }`. Fail-open on all errors.
+* **Draft dedup:** `lib/services/draft-dedup.ts` — `findSimilarDrafts()` with threshold 0.85, `hasSimilarDraft()` convenience wrapper. Fail-open.
+* **Inline embeddings (fire-and-forget):** `void generateAndSaveEmbedding(supabase, table, row)` wired into: `createMenuItem()` (magic-menus actions), `createManualDraft()` (content-drafts actions), audit cron (new hallucinations). Never awaited in response path.
+* **Audit cron dedup:** `app/api/cron/audit/route.ts` — before inserting hallucinations, each claim checked via `isDuplicateHallucination()`. Only unique claims inserted. Insert chain now uses `.select('id, claim_text')` to get rows for embedding generation.
+* **Embed-backfill cron:** `app/api/cron/embed-backfill/route.ts` — nightly 3 AM UTC, processes all 5 tables sequentially (menu_items, ai_hallucinations, target_queries, content_drafts, locations), batchSize=20. 16th cron registered in `vercel.json`.
+* **Public menu search:** `GET /api/public/menu/search` — no auth, validates slug/q/limit, looks up menu by `public_slug`, calls `match_menu_items` RPC. `Cache-Control: public, max-age=60, stale-while-revalidate=300`.
+* **Similar queries API:** `POST /api/sov/similar-queries` — authenticated via `getSafeAuthContext()`, calls `match_target_queries` RPC with threshold 0.80.
+* **MenuSearch component:** `app/m/[slug]/_components/MenuSearch.tsx` — client component, 5 states (idle/loading/results/empty/error), renders conditionally when `totalItems > 0` on public menu page.
+* **SimilarQueriesWidget:** `app/dashboard/share-of-voice/_components/SimilarQueriesWidget.tsx` — client component, fetches on queryId change, skeleton loading, filters out source query.
+* **Database types:** 4 RPC function signatures added to `database.types.ts` Functions section. `embedding: number[] | null` added to Row/Insert/Update for all 5 tables.
+* **Tests:** 22 embedding-service + 8 hallucination-dedup + 6 draft-dedup + 10 menu-search-route + 6 embed-backfill-cron = 52 Vitest. 6 Playwright E2E (sprint-119-pgvector.spec.ts).
+
+---

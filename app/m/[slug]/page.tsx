@@ -21,6 +21,7 @@ import type {
   DayHours,
   Amenities,
 } from '@/lib/types/ground-truth';
+import MenuSearch from './_components/MenuSearch';
 
 // ---------------------------------------------------------------------------
 // Constants (literal strings — Tailwind JIT must see these as-is)
@@ -507,6 +508,11 @@ export default async function PublicMenuPage({
               </p>
             )}
           </div>
+
+          {/* ── Sprint 119: Semantic menu search ─────────────────────── */}
+          {totalItems > 0 && (
+            <MenuSearch menuSlug={menu.public_slug} />
+          )}
 
           {/* ── Empty state ──────────────────────────────────────────── */}
           {categories.length === 0 && (

@@ -135,7 +135,13 @@ export const MODELS = {
 
   /** Sprint 110: Sandbox AI simulation (Claude Sonnet for content analysis) */
   'sandbox-simulation': anthropic('claude-sonnet-4-20250514'),
+
 } as const;
+
+/** Sprint 119: Embedding model — kept separate from MODELS to preserve LanguageModelV1 union */
+export const embeddingModel = openai.embedding('text-embedding-3-small');
+export const EMBEDDING_MODEL = 'text-embedding-3-small' as const;
+export const EMBEDDING_DIMENSIONS = 1536 as const;
 
 export type ModelKey = keyof typeof MODELS;
 

@@ -1219,6 +1219,7 @@ export const MOCK_HALLUCINATION_ROWS: HallucinationAuditRow[] = [
     verifying_since: null,
     follow_up_checked_at: null,
     follow_up_result: null,
+    embedding: null,
   },
   {
     id: 'h1eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
@@ -1243,6 +1244,7 @@ export const MOCK_HALLUCINATION_ROWS: HallucinationAuditRow[] = [
     verifying_since: null,
     follow_up_checked_at: null,
     follow_up_result: null,
+    embedding: null,
   },
   {
     id: 'h2eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
@@ -1267,6 +1269,7 @@ export const MOCK_HALLUCINATION_ROWS: HallucinationAuditRow[] = [
     verifying_since: null,
     follow_up_checked_at: null,
     follow_up_result: null,
+    embedding: null,
   },
   {
     id: 'h3eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
@@ -1291,6 +1294,7 @@ export const MOCK_HALLUCINATION_ROWS: HallucinationAuditRow[] = [
     verifying_since: null,
     follow_up_checked_at: null,
     follow_up_result: null,
+    embedding: null,
   },
   {
     id: 'h4eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
@@ -1315,6 +1319,7 @@ export const MOCK_HALLUCINATION_ROWS: HallucinationAuditRow[] = [
     verifying_since: null,
     follow_up_checked_at: null,
     follow_up_result: null,
+    embedding: null,
   },
   {
     id: 'h5eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
@@ -1339,6 +1344,7 @@ export const MOCK_HALLUCINATION_ROWS: HallucinationAuditRow[] = [
     verifying_since: null,
     follow_up_checked_at: null,
     follow_up_result: null,
+    embedding: null,
   },
 ];
 
@@ -2778,4 +2784,72 @@ export const MOCK_SOV_DROP_ALERT_PARAMS: SOVDropAlertParams = {
   previous_score: 42,
   delta: -12,
   week_of: '2026-03-01T00:00:00.000Z',
+};
+
+// ---------------------------------------------------------------------------
+// Sprint 119 — pgvector / Embedding Fixtures
+// ---------------------------------------------------------------------------
+
+/** Mock 1536-dim embedding vector. Sparse for test brevity — real embeddings are dense. */
+export const MOCK_EMBEDDING_1536: number[] = new Array(1536).fill(0).map(
+  (_, i) => (i === 0 ? 0.1 : i === 1 ? 0.2 : 0.0),
+);
+
+export type MenuSearchResult = {
+  id: string;
+  name: string;
+  description: string | null;
+  price: number | null;
+  category: string | null;
+  similarity: number;
+};
+
+export const MOCK_MENU_SEARCH_RESULTS: MenuSearchResult[] = [
+  {
+    id: 'menu-item-001',
+    name: 'Spicy Hookah Chicken Wings',
+    description: 'Crispy wings tossed in our signature hookah sauce',
+    price: 14.0,
+    category: 'Small Plates',
+    similarity: 0.87,
+  },
+  {
+    id: 'menu-item-002',
+    name: 'Indo-Fusion Lamb Chops',
+    description: 'Marinated lamb with aromatic Indian spices',
+    price: 24.0,
+    category: 'Main Course',
+    similarity: 0.72,
+  },
+];
+
+export const MOCK_SIMILAR_QUERIES = [
+  {
+    id: 'query-002',
+    query_text: 'hookah bar near me',
+    similarity: 0.94,
+  },
+  {
+    id: 'query-003',
+    query_text: 'best shisha lounge Alpharetta',
+    similarity: 0.88,
+  },
+];
+
+export const MOCK_HALLUCINATION_DEDUP_RESULT = {
+  isDuplicate: true as const,
+  existingId: 'hallucination-001',
+  similarity: 0.95,
+};
+
+export const MOCK_BACKFILL_RESULT = {
+  ok: true,
+  results: {
+    menu_items: { processed: 12, errors: 0 },
+    ai_hallucinations: { processed: 5, errors: 0 },
+    target_queries: { processed: 8, errors: 0 },
+    content_drafts: { processed: 3, errors: 0 },
+    locations: { processed: 1, errors: 0 },
+  },
+  duration_ms: 4200,
 };

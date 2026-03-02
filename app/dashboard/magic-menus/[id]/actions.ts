@@ -11,6 +11,7 @@ import {
   type CreateCategoryInput,
   type CreateMenuItemInput,
 } from '@/lib/schemas/menu-items';
+import { generateAndSaveEmbedding } from '@/lib/services/embedding-service';
 
 // ---------------------------------------------------------------------------
 // Shared result type
@@ -134,7 +135,7 @@ export async function createMenuItem(
 
   const supabase = await createClient();
 
-  const { error } = await supabase.from('menu_items').insert({
+  const { data: insertedRow, error } = await supabase.from('menu_items').insert({
     org_id: ctx.orgId, // ALWAYS server-derived — never from client
     menu_id,
     category_id,
@@ -142,10 +143,15 @@ export async function createMenuItem(
     description: description || null,
     price,
     currency: 'USD',
-  });
+  }).select('id, name, description').single();
 
   if (error) {
     return { success: false, error: error.message };
+  }
+
+  // Sprint 119: Generate embedding for new menu item (fire-and-forget)
+  if (insertedRow) {
+    void generateAndSaveEmbedding(supabase, 'menu_items', insertedRow);
   }
 
   // Revalidate the dashboard editor page so the new item appears immediately

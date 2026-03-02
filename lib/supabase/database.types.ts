@@ -191,6 +191,7 @@ export type Database = {
           verifying_since: string | null;
           follow_up_checked_at: string | null;
           follow_up_result: string | null;
+          embedding: number[] | null;
         };
         Insert: {
           id?: string;
@@ -215,6 +216,7 @@ export type Database = {
           verifying_since?: string | null;
           follow_up_checked_at?: string | null;
           follow_up_result?: string | null;
+          embedding?: number[] | null;
         };
         Update: {
           id?: string;
@@ -239,6 +241,7 @@ export type Database = {
           verifying_since?: string | null;
           follow_up_checked_at?: string | null;
           follow_up_result?: string | null;
+          embedding?: number[] | null;
         };
         Relationships: [
           {
@@ -640,6 +643,7 @@ export type Database = {
           target_keywords: string[];
           rejection_reason: string | null;
           generation_notes: string | null;
+          embedding: number[] | null;
         };
         Insert: {
           id?: string;
@@ -662,6 +666,7 @@ export type Database = {
           target_keywords?: string[];
           rejection_reason?: string | null;
           generation_notes?: string | null;
+          embedding?: number[] | null;
         };
         Update: {
           id?: string;
@@ -684,6 +689,7 @@ export type Database = {
           target_keywords?: string[];
           rejection_reason?: string | null;
           generation_notes?: string | null;
+          embedding?: number[] | null;
         };
         Relationships: [
           {
@@ -1665,6 +1671,7 @@ export type Database = {
           vaio_last_run_at: string | null;
           last_simulation_score: number | null;
           simulation_last_run_at: string | null;
+          embedding: number[] | null;
         };
         Insert: {
           id?: string;
@@ -1717,6 +1724,7 @@ export type Database = {
           vaio_last_run_at?: string | null;
           last_simulation_score?: number | null;
           simulation_last_run_at?: string | null;
+          embedding?: number[] | null;
         };
         Update: {
           id?: string;
@@ -1769,6 +1777,7 @@ export type Database = {
           vaio_last_run_at?: string | null;
           last_simulation_score?: number | null;
           simulation_last_run_at?: string | null;
+          embedding?: number[] | null;
         };
         Relationships: [
           {
@@ -1974,6 +1983,7 @@ export type Database = {
           created_at: string | null;
           updated_at: string | null;
           category_id: string | null;
+          embedding: number[] | null;
         };
         Insert: {
           id?: string;
@@ -1990,6 +2000,7 @@ export type Database = {
           created_at?: string | null;
           updated_at?: string | null;
           category_id?: string | null;
+          embedding?: number[] | null;
         };
         Update: {
           id?: string;
@@ -2006,6 +2017,7 @@ export type Database = {
           created_at?: string | null;
           updated_at?: string | null;
           category_id?: string | null;
+          embedding?: number[] | null;
         };
         Relationships: [
           {
@@ -2671,6 +2683,7 @@ export type Database = {
           citation_rate: number | null;
           last_run_at: string | null;
           is_system_seeded: boolean;
+          embedding: number[] | null;
         };
         Insert: {
           id?: string;
@@ -2686,6 +2699,7 @@ export type Database = {
           citation_rate?: number | null;
           last_run_at?: string | null;
           is_system_seeded?: boolean;
+          embedding?: number[] | null;
         };
         Update: {
           id?: string;
@@ -2701,6 +2715,7 @@ export type Database = {
           citation_rate?: number | null;
           last_run_at?: string | null;
           is_system_seeded?: boolean;
+          embedding?: number[] | null;
         };
         Relationships: [
           {
@@ -3250,6 +3265,67 @@ export type Database = {
           avg_score: number;
           min_score: number;
           max_score: number;
+        }[];
+      };
+      /** Sprint 119: Semantic search on menu_items via pgvector cosine similarity */
+      match_menu_items: {
+        Args: {
+          query_embedding: string;
+          filter_menu_id: string;
+          match_count: number;
+          similarity_threshold: number;
+        };
+        Returns: {
+          id: string;
+          name: string;
+          description: string | null;
+          price: number | null;
+          category: string | null;
+          similarity: number;
+        }[];
+      };
+      /** Sprint 119: Dedup hallucinations via pgvector cosine similarity */
+      match_hallucinations: {
+        Args: {
+          query_embedding: string;
+          filter_org_id: string;
+          match_count: number;
+          similarity_threshold: number;
+        };
+        Returns: {
+          id: string;
+          claim_text: string;
+          correction_status: string;
+          similarity: number;
+        }[];
+      };
+      /** Sprint 119: Find similar target_queries via pgvector cosine similarity */
+      match_target_queries: {
+        Args: {
+          query_embedding: string;
+          filter_location_id: string;
+          match_count: number;
+          similarity_threshold: number;
+        };
+        Returns: {
+          id: string;
+          query_text: string;
+          similarity: number;
+        }[];
+      };
+      /** Sprint 119: Dedup content_drafts via pgvector cosine similarity */
+      match_content_drafts: {
+        Args: {
+          query_embedding: string;
+          filter_org_id: string;
+          match_count: number;
+          similarity_threshold: number;
+        };
+        Returns: {
+          id: string;
+          draft_title: string;
+          status: string;
+          similarity: number;
         }[];
       };
     };

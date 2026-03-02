@@ -3324,6 +3324,26 @@ CREATE TABLE IF NOT EXISTS public.org_themes (
 
 ALTER TABLE public.org_themes ENABLE ROW LEVEL SECURITY;
 
+-- ═══════════════════════════════════════════════════════════════════════════
+-- Sprint 119: pgvector Integration — semantic search + embedding pipeline
+-- ═══════════════════════════════════════════════════════════════════════════
+
+CREATE EXTENSION IF NOT EXISTS vector WITH SCHEMA extensions;
+
+-- Embedding columns (1536-dim, text-embedding-3-small)
+ALTER TABLE public.menu_items ADD COLUMN IF NOT EXISTS embedding extensions.vector(1536);
+ALTER TABLE public.ai_hallucinations ADD COLUMN IF NOT EXISTS embedding extensions.vector(1536);
+ALTER TABLE public.target_queries ADD COLUMN IF NOT EXISTS embedding extensions.vector(1536);
+ALTER TABLE public.content_drafts ADD COLUMN IF NOT EXISTS embedding extensions.vector(1536);
+ALTER TABLE public.locations ADD COLUMN IF NOT EXISTS embedding extensions.vector(1536);
+
+-- HNSW indexes (cosine distance, m=16, ef_construction=64, partial)
+CREATE INDEX IF NOT EXISTS idx_menu_items_embedding ON public.menu_items USING hnsw (embedding extensions.vector_cosine_ops) WITH (m = 16, ef_construction = 64) WHERE embedding IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_hallucinations_embedding ON public.ai_hallucinations USING hnsw (embedding extensions.vector_cosine_ops) WITH (m = 16, ef_construction = 64) WHERE embedding IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_target_queries_embedding ON public.target_queries USING hnsw (embedding extensions.vector_cosine_ops) WITH (m = 16, ef_construction = 64) WHERE embedding IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_content_drafts_embedding ON public.content_drafts USING hnsw (embedding extensions.vector_cosine_ops) WITH (m = 16, ef_construction = 64) WHERE embedding IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_locations_embedding ON public.locations USING hnsw (embedding extensions.vector_cosine_ops) WITH (m = 16, ef_construction = 64) WHERE embedding IS NOT NULL;
+
 
 
 

@@ -12,7 +12,7 @@ LocalVector is an AEO/GEO SaaS platform that helps local businesses monitor and 
 - **Billing:** Stripe webhooks → `organizations.plan_tier` enum (`trial | starter | growth | agency`)
 - **Email:** Resend + React Email (`emails/`)
 - **Cache:** Upstash Redis (`lib/redis.ts`) — optional, all callers must degrade gracefully
-- **Testing:** Vitest (unit/integration in `src/__tests__/`), Playwright (E2E in `tests/e2e/`, 40 specs). Current: 4454 tests, 303 files.
+- **Testing:** Vitest (unit/integration in `src/__tests__/`), Playwright (E2E in `tests/e2e/`, 40 specs). Current: 4677 tests, 322 files.
 - **Monitoring:** Sentry (client, server, edge configs) — all catch blocks instrumented (Sprint A, AI_RULES §70)
 
 ## Architecture Rules
@@ -174,6 +174,11 @@ app/dashboard/_components/BenchmarkComparisonCard.tsx — City benchmark compari
 52. `20260315000001_activity_log.sql` — `activity_log` table + `stripe_subscription_item_id`/`seat_overage_flagged` on organizations (Sprint 113)
 53. `20260318000002_org_domains.sql` — `org_domains` table + indexes + RLS + subdomain seed (Sprint 114)
 54. `20260319000001_org_themes.sql` — `org_themes` table + `org-logos` storage bucket + RLS (Sprint 115)
+55. `20260315000002_draft_locks.sql` — Draft locking for realtime collaboration (Sprint 116)
+56. `20260321000001_enable_pgvector.sql` — Enable `vector` extension (Sprint 119)
+57. `20260321000002_add_embedding_columns.sql` — `embedding vector(1536)` on 5 tables (Sprint 119)
+58. `20260321000003_create_hnsw_indexes.sql` — 5 HNSW indexes with cosine ops (Sprint 119)
+59. `20260321000004_vector_match_functions.sql` — 4 SECURITY DEFINER match RPCs (Sprint 119)
 
 ## Testing Commands
 
@@ -561,6 +566,19 @@ APPLE_MAPS_PRIVATE_KEY, APPLE_MAPS_KEY_ID, APPLE_MAPS_TEAM_ID
 - Tests: 76 Vitest (theme-utils 27, email-theme-wrapper 11, theme-service 16, theme-routes 22) + 9 E2E.
 - Result: 303 test files, 4454 tests pass. 1 migration.
 
+### Sprint 119 — pgvector Semantic Search + Embedding Pipeline (2026-03-02)
+- **Migrations:** 4 files — `20260321000001` (enable vector extension), `20260321000002` (embedding columns on 5 tables), `20260321000003` (5 HNSW indexes, m=16, ef_construction=64, cosine ops), `20260321000004` (4 SECURITY DEFINER match RPCs with GRANT).
+- **Embedding pipeline:** `lib/services/embedding-service.ts` — prepareTextForTable (pure), generateEmbedding, generateEmbeddingsBatch (max 20), backfillTable, saveEmbeddingForRow, generateAndSaveEmbedding (fire-and-forget safe). Uses `embeddingModel` from providers.ts (text-embedding-3-small, 1536d).
+- **Dedup services:** `lib/services/hallucination-dedup.ts` (threshold 0.92, fail-open), `lib/services/draft-dedup.ts` (threshold 0.85, fail-open).
+- **Inline embeddings:** `void generateAndSaveEmbedding()` wired into createMenuItem, createManualDraft, audit cron (new hallucinations). Fire-and-forget.
+- **Backfill cron:** `app/api/cron/embed-backfill/route.ts` — nightly 3 AM UTC, 5 tables, batchSize=20. 16th cron.
+- **Public menu search:** `GET /api/public/menu/search` — no auth, match_menu_items RPC, Cache-Control headers.
+- **Similar queries API:** `POST /api/sov/similar-queries` — authenticated, match_target_queries RPC.
+- **Components:** `MenuSearch.tsx` (5-state client), `SimilarQueriesWidget.tsx` (skeleton loading).
+- AI_RULES: §153 (pgvector Integration).
+- Tests: 52 Vitest (embedding-service 22, hallucination-dedup 8, draft-dedup 6, menu-search-route 10, embed-backfill-cron 6) + 6 E2E.
+- Result: 322 test files, 4677 tests pass. 4 migrations.
+
 ## Tier Completion Status
 
 | Tier | Sprints | Status | Gate |
@@ -598,10 +616,14 @@ APPLE_MAPS_PRIVATE_KEY, APPLE_MAPS_KEY_ID, APPLE_MAPS_TEAM_ID
 | Sprint 113 | Seat-Based Billing + Audit Log | Complete | — |
 | Sprint 114 | White-Label Domains + Routing | Complete | — |
 | Sprint 115 | White-Label Theming + Emails | Complete | — |
+| Sprint 116 | Supabase Realtime | Complete | — |
+| Sprint 117 | Retention & Onboarding + Digest | Complete | — |
+| Sprint 118 | Conversion & Reliability Infrastructure | Complete | — |
+| Sprint 119 | pgvector Semantic Search + Embedding Pipeline | Complete | — |
 
 ### Sprints Pending External Approval:
 - Apple Business Connect Sync (originally §57): Submit API request at https://developer.apple.com/business-connect/
 
 ## Build History
 
-See `DEVLOG.md` (project root) and `docs/DEVLOG.md` for the complete sprint-by-sprint build log. Current sprint: 115 (+ FIX-1 through FIX-8 + Sprint A through Sprint O). AI_RULES: §1–§149 (149 sections). Production readiness: all audit issues resolved. **V1 complete.**
+See `DEVLOG.md` (project root) and `docs/DEVLOG.md` for the complete sprint-by-sprint build log. Current sprint: 119 (+ FIX-1 through FIX-8 + Sprint A through Sprint O). AI_RULES: §1–§153 (153 sections). Production readiness: all audit issues resolved. **V1 complete.**

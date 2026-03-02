@@ -52,6 +52,14 @@ vi.mock('@/lib/inngest/client', () => ({
   inngest: { send: (...args: unknown[]) => mockInngestSend(...args) },
 }));
 
+// ── Mock Sprint 119: hallucination dedup + embedding service ────────────
+vi.mock('@/lib/services/hallucination-dedup', () => ({
+  isDuplicateHallucination: vi.fn().mockResolvedValue({ isDuplicate: false }),
+}));
+vi.mock('@/lib/services/embedding-service', () => ({
+  generateAndSaveEmbedding: vi.fn().mockResolvedValue({ ok: true }),
+}));
+
 // ── Import handler and mocks after vi.mock declarations ──────────────────
 import { GET } from '@/app/api/cron/audit/route';
 import { createServiceRoleClient } from '@/lib/supabase/server';
@@ -135,7 +143,9 @@ function mockSupabaseWithOrgAndLocation(
   ownerEmail = 'owner@crontest.com',
   competitors: Array<{ id: string; competitor_name: string }> = [],
 ) {
-  const mockInsert = vi.fn().mockResolvedValue({ data: null, error: null });
+  const mockInsert = vi.fn().mockReturnValue({
+    select: vi.fn().mockResolvedValue({ data: [{ id: 'hal-uuid-001', claim_text: 'This restaurant is permanently closed.' }], error: null }),
+  });
   const mockLocationMaybeSingle = vi
     .fn()
     .mockResolvedValue({ data: location, error: null });

@@ -27,6 +27,8 @@ import { snapshotRevenueLeak } from '@/lib/services/revenue-leak.service';
 import { inngest } from '@/lib/inngest/client';
 import { logCronStart, logCronComplete, logCronFailed } from '@/lib/services/cron-logger';
 import { notifyOrg, buildCronNotification } from '@/lib/realtime/notify-org';
+import { isDuplicateHallucination } from '@/lib/services/hallucination-dedup';
+import { generateAndSaveEmbedding } from '@/lib/services/embedding-service';
 
 // Force dynamic so Vercel never caches this route between cron invocations.
 export const dynamic = 'force-dynamic';
@@ -157,26 +159,47 @@ async function _runInlineAuditImpl(handle: { logId: string | null; startedAt: nu
       }
 
       if (hallucinations.length > 0) {
-        const hallRows = hallucinations.map((h) => ({
-          org_id: location.org_id,
-          location_id: location.id,
-          audit_id: auditId,
-          model_provider: h.model_provider as Database['public']['Enums']['model_provider'],
-          severity: h.severity as Database['public']['Enums']['hallucination_severity'],
-          category: h.category,
-          claim_text: h.claim_text,
-          expected_truth: h.expected_truth,
-          correction_status: 'open' as Database['public']['Enums']['correction_status'],
-        }));
-        const { error: insertError } = await supabase
-          .from('ai_hallucinations')
-          .insert(hallRows);
-
-        if (insertError) {
-          throw new Error(`Insert failed: ${insertError.message}`);
+        // Sprint 119: Deduplicate hallucinations using vector similarity
+        const uniqueHallucinations: DetectedHallucination[] = [];
+        for (const h of hallucinations) {
+          const { isDuplicate } = await isDuplicateHallucination(
+            supabase,
+            location.org_id,
+            h.claim_text,
+          );
+          if (!isDuplicate) {
+            uniqueHallucinations.push(h);
+          }
         }
 
-        summary.hallucinations_inserted += hallucinations.length;
+        if (uniqueHallucinations.length > 0) {
+          const hallRows = uniqueHallucinations.map((h) => ({
+            org_id: location.org_id,
+            location_id: location.id,
+            audit_id: auditId,
+            model_provider: h.model_provider as Database['public']['Enums']['model_provider'],
+            severity: h.severity as Database['public']['Enums']['hallucination_severity'],
+            category: h.category,
+            claim_text: h.claim_text,
+            expected_truth: h.expected_truth,
+            correction_status: 'open' as Database['public']['Enums']['correction_status'],
+          }));
+          const { data: insertedRows, error: insertError } = await supabase
+            .from('ai_hallucinations')
+            .insert(hallRows)
+            .select('id, claim_text');
+
+          if (insertError) {
+            throw new Error(`Insert failed: ${insertError.message}`);
+          }
+
+          // Sprint 119: Generate embeddings for newly inserted hallucinations (fire-and-forget)
+          for (const row of insertedRows ?? []) {
+            void generateAndSaveEmbedding(supabase, 'ai_hallucinations', row);
+          }
+        }
+
+        summary.hallucinations_inserted += uniqueHallucinations.length;
 
         const { data: membershipRow } = await supabase
           .from('memberships')

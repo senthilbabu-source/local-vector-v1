@@ -4,6 +4,51 @@
 
 ---
 
+## 2026-03-02 — Sprint 119: pgvector Semantic Search + Embedding Pipeline (Completed)
+
+**Goal:** Enable vector similarity search across 5 tables (menu_items, ai_hallucinations, target_queries, content_drafts, locations) using pgvector extension with text-embedding-3-small (1536d). Build semantic menu search for public pages, similar-queries widget for SOV dashboard, hallucination dedup in audit cron, draft dedup service, and nightly embedding backfill.
+
+**Key Decision:** Embedding model exported as `embeddingModel` constant (separate from `MODELS` registry) to preserve `LanguageModelV1` union type in `getModel()`. HNSW indexes chosen over IVFFlat for better recall at scale without training. Similarity thresholds tuned per use-case: menu search 0.65 (permissive), queries 0.80, drafts 0.85, hallucinations 0.92 (strict near-duplicate only). All dedup services fail-open — never block insertion on embedding errors.
+
+**Changes:**
+- **Migrations:** `20260321000001_enable_pgvector.sql` (CREATE EXTENSION vector), `20260321000002_add_embedding_columns.sql` (5 ALTER TABLE ADD COLUMN), `20260321000003_create_hnsw_indexes.sql` (5 partial HNSW indexes, m=16, ef_construction=64), `20260321000004_vector_match_functions.sql` (4 SECURITY DEFINER RPCs with GRANT)
+- **Providers:** `lib/ai/providers.ts` — `embeddingModel` export (text-embedding-3-small), `EMBEDDING_MODEL`, `EMBEDDING_DIMENSIONS` constants
+- **Embedding service:** `lib/services/embedding-service.ts` — `prepareTextForTable()`, `generateEmbedding()`, `generateEmbeddingsBatch()` (max 20), `backfillTable()`, `saveEmbeddingForRow()`, `generateAndSaveEmbedding()` (fire-and-forget safe)
+- **Hallucination dedup:** `lib/services/hallucination-dedup.ts` — `isDuplicateHallucination()` (threshold 0.92, fail-open)
+- **Draft dedup:** `lib/services/draft-dedup.ts` — `findSimilarDrafts()` (threshold 0.85), `hasSimilarDraft()` (fail-open)
+- **Backfill cron:** `app/api/cron/embed-backfill/route.ts` — nightly 3 AM UTC, 5 tables, batchSize=20. 16th cron in vercel.json
+- **Menu search API:** `GET /api/public/menu/search` — public, validates slug/q/limit, cosine search via `match_menu_items` RPC, Cache-Control headers
+- **Similar queries API:** `POST /api/sov/similar-queries` — authenticated, `match_target_queries` RPC, threshold 0.80
+- **MenuSearch component:** `app/m/[slug]/_components/MenuSearch.tsx` — 5-state client component, wired into public menu page when totalItems > 0
+- **SimilarQueriesWidget:** `app/dashboard/share-of-voice/_components/SimilarQueriesWidget.tsx` — fetches on queryId change, skeleton loader
+- **Audit cron modified:** `app/api/cron/audit/route.ts` — dedup loop via `isDuplicateHallucination()` before insert, `.select('id, claim_text')` chain, fire-and-forget embedding for new rows
+- **Inline embeddings:** `createMenuItem()` and `createManualDraft()` now use `.select().single()` return + `void generateAndSaveEmbedding()`
+- **Schema:** `supabase/prod_schema.sql` — Sprint 119 section with extension + 5 columns + 5 indexes
+- **Types:** `lib/supabase/database.types.ts` — `embedding` field on 5 tables + 4 RPC function signatures in Functions section
+- **Fixtures:** `src/__fixtures__/golden-tenant.ts` — `MOCK_EMBEDDING_1536`, `MOCK_MENU_SEARCH_RESULTS`, `MOCK_SIMILAR_QUERIES`, `MOCK_HALLUCINATION_DEDUP_RESULT`, `MOCK_BACKFILL_RESULT`, `embedding: null` on 6 hallucination fixtures
+
+**Tests:** 52 unit tests + 6 E2E tests:
+- `embedding-service.test.ts` — 22 tests (prepareTextForTable 10, generateEmbedding 3, generateEmbeddingsBatch 3, backfillTable 5, generateAndSaveEmbedding 1)
+- `hallucination-dedup.test.ts` — 8 tests (isDuplicate true/false, RPC args, fail-open 3, never-throw)
+- `draft-dedup.test.ts` — 6 tests (combined text, RPC args, results, fail-open 2, hasSimilarDraft)
+- `menu-search-route.test.ts` — 10 tests (validation 3, 404, RPC args, response shape, error handling, limit, cache-control)
+- `embed-backfill-cron.test.ts` — 6 tests (auth, kill switch, processes tables, returns summary, error resilience, service role)
+- `sprint-119-pgvector.spec.ts` — 6 Playwright E2E (menu search 4, similar queries widget 2)
+
+**Regression fixes:** Updated `cron-audit.test.ts` (mock dedup+embedding), `content-drafts-actions.test.ts` (mock `.select().single()` chain + embedding), `sprint-f-registration.test.ts` (15→16 crons), `sprint-n-registration.test.ts` (15→16 crons), bare `catch {}` blocks fixed in 4 Sprint 119 files per Sentry sweep.
+
+**AI_RULES:** §153 (pgvector — extension, HNSW indexes, 4 match RPCs, embedding pipeline, dedup services, fire-and-forget pattern, backfill cron, menu search, similar queries widget)
+
+```bash
+npx vitest run src/__tests__/unit/embedding-service.test.ts        # 22 tests
+npx vitest run src/__tests__/unit/hallucination-dedup.test.ts      # 8 tests
+npx vitest run src/__tests__/unit/draft-dedup.test.ts              # 6 tests
+npx vitest run src/__tests__/unit/menu-search-route.test.ts        # 10 tests
+npx vitest run src/__tests__/unit/embed-backfill-cron.test.ts      # 6 tests
+```
+
+---
+
 ## 2026-03-01 — Sprint 115: White-Label Theming + Emails (Completed)
 
 **Goal:** Build per-org visual theming (logo, colors, fonts, "powered by" toggle) stored in `org_themes`, inject CSS custom properties at root layout for branded experiences, wrap emails in org branding, and provide a visual theme editor for Agency plan customers.
