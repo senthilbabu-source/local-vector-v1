@@ -2437,3 +2437,76 @@ export const MOCK_INVITATION_VALIDATION_EXPIRED: InvitationValidation = {
   error: 'expired',
   existing_user: false,
 };
+
+// ---------------------------------------------------------------------------
+// Sprint 113 — Billing + Audit Log Fixtures
+// ---------------------------------------------------------------------------
+
+import type { SeatState, ActivityLogEntry, ActivityLogPage } from '@/lib/billing/types';
+
+export const MOCK_SEAT_STATE_AGENCY: SeatState = {
+  org_id: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+  plan_tier: 'agency',
+  current_seat_count: 3,
+  max_seats: 10,
+  usage_percent: 30,
+  stripe_subscription_id: 'sub_mock_agency_001',
+  stripe_quantity: 3,
+  in_sync: true,
+  monthly_seat_cost_cents: 3000,
+  per_seat_price_cents: 1500,
+};
+
+export const MOCK_SEAT_STATE_OUT_OF_SYNC: SeatState = {
+  ...MOCK_SEAT_STATE_AGENCY,
+  stripe_quantity: 2,
+  in_sync: false,
+};
+
+export const MOCK_SEAT_STATE_GROWTH: SeatState = {
+  org_id: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+  plan_tier: 'growth',
+  current_seat_count: 1,
+  max_seats: 1,
+  usage_percent: 100,
+  stripe_subscription_id: null,
+  stripe_quantity: null,
+  in_sync: true,
+  monthly_seat_cost_cents: 0,
+  per_seat_price_cents: 0,
+};
+
+export const MOCK_ACTIVITY_LOG_ENTRIES: ActivityLogEntry[] = [
+  {
+    id: 'log-001',
+    org_id: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+    event_type: 'member_invited',
+    actor_user_id: 'golden-user-id',
+    actor_email: 'aruna@charcoalnchill.com',
+    target_user_id: null,
+    target_email: 'newmember@example.com',
+    target_role: 'analyst',
+    metadata: { invitation_id: 'inv-seed-001' },
+    created_at: '2026-03-01T23:00:00.000Z',
+  },
+  {
+    id: 'log-002',
+    org_id: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+    event_type: 'seat_sync',
+    actor_user_id: null,
+    actor_email: null,
+    target_user_id: null,
+    target_email: 'system',
+    target_role: null,
+    metadata: { success: true, source: 'seed', previous_count: 0, new_count: 1 },
+    created_at: '2026-01-01T00:00:00.000Z',
+  },
+];
+
+export const MOCK_ACTIVITY_LOG_PAGE: ActivityLogPage = {
+  entries: MOCK_ACTIVITY_LOG_ENTRIES,
+  total: 2,
+  page: 1,
+  per_page: 20,
+  has_more: false,
+};

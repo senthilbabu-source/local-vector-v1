@@ -2016,6 +2016,8 @@ export type Database = {
           scan_day_of_week: number | null;
           notify_score_drop_alert: boolean | null;
           notify_new_competitor: boolean | null;
+          stripe_subscription_item_id: string | null;
+          seat_overage_flagged: boolean;
         };
         Insert: {
           id?: string;
@@ -2049,6 +2051,8 @@ export type Database = {
           scan_day_of_week?: number | null;
           notify_score_drop_alert?: boolean | null;
           notify_new_competitor?: boolean | null;
+          stripe_subscription_item_id?: string | null;
+          seat_overage_flagged?: boolean;
         };
         Update: {
           id?: string;
@@ -2082,6 +2086,8 @@ export type Database = {
           scan_day_of_week?: number | null;
           notify_score_drop_alert?: boolean | null;
           notify_new_competitor?: boolean | null;
+          stripe_subscription_item_id?: string | null;
+          seat_overage_flagged?: boolean;
         };
         Relationships: [];
       };
@@ -3023,6 +3029,53 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "stripe_webhook_events_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      activity_log: {
+        Row: {
+          id: string;
+          org_id: string;
+          event_type: string;
+          actor_user_id: string | null;
+          actor_email: string | null;
+          target_user_id: string | null;
+          target_email: string;
+          target_role: Database["public"]["Enums"]["membership_role"] | null;
+          metadata: Record<string, unknown> | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          org_id: string;
+          event_type: string;
+          actor_user_id?: string | null;
+          actor_email?: string | null;
+          target_user_id?: string | null;
+          target_email: string;
+          target_role?: Database["public"]["Enums"]["membership_role"] | null;
+          metadata?: Record<string, unknown>;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          org_id?: string;
+          event_type?: string;
+          actor_user_id?: string | null;
+          actor_email?: string | null;
+          target_user_id?: string | null;
+          target_email?: string;
+          target_role?: Database["public"]["Enums"]["membership_role"] | null;
+          metadata?: Record<string, unknown>;
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "activity_log_org_id_fkey";
             columns: ["org_id"];
             isOneToOne: false;
             referencedRelation: "organizations";

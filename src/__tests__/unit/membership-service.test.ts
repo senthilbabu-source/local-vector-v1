@@ -293,17 +293,23 @@ describe('removeMember — Supabase mocked', () => {
     });
 
     const chain = buildChainMock({
-      data: { id: 'mem-2', role: 'admin', org_id: 'org-1' },
+      data: { id: 'mem-2', role: 'admin', org_id: 'org-1', user_id: 'user-2', users: { email: 'admin@test.com' } },
       error: null,
     });
 
-    // First call to from() for the SELECT, second for the DELETE
+    const orgChain = buildChainMock({
+      data: { seat_count: 1 },
+      error: null,
+    });
+
+    // Calls: 1=memberships SELECT, 2=memberships DELETE, 3=organizations SELECT
     let callCount = 0;
     const supabase = {
       from: vi.fn(() => {
         callCount++;
-        if (callCount === 1) return chain; // SELECT
-        return { delete: mockDelete }; // DELETE
+        if (callCount === 1) return chain; // SELECT member
+        if (callCount === 2) return { delete: mockDelete }; // DELETE
+        return orgChain; // SELECT organizations seat_count
       }),
     } as unknown as SupabaseClient<Database>;
 
@@ -315,7 +321,7 @@ describe('removeMember — Supabase mocked', () => {
   it('returns { success: true } on successful removal', async () => {
     let callCount = 0;
     const chain = buildChainMock({
-      data: { id: 'mem-3', role: 'viewer', org_id: 'org-1' },
+      data: { id: 'mem-3', role: 'viewer', org_id: 'org-1', user_id: 'user-3', users: { email: 'viewer@test.com' } },
       error: null,
     });
     const deleteChain = {
@@ -323,12 +329,17 @@ describe('removeMember — Supabase mocked', () => {
         eq: vi.fn().mockResolvedValue({ data: null, error: null }),
       }),
     };
+    const orgChain = buildChainMock({
+      data: { seat_count: 1 },
+      error: null,
+    });
 
     const supabase = {
       from: vi.fn(() => {
         callCount++;
-        if (callCount === 1) return chain;
-        return deleteChain;
+        if (callCount === 1) return chain; // SELECT member
+        if (callCount === 2) return deleteChain; // DELETE
+        return orgChain; // SELECT organizations seat_count
       }),
     } as unknown as SupabaseClient<Database>;
 

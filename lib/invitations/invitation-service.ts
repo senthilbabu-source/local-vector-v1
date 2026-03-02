@@ -19,6 +19,9 @@ import type {
 } from './types';
 import { INVITATION_EXPIRY_DAYS, INVITATION_TOKEN_BYTES } from './types';
 import { MembershipError } from '@/lib/membership/membership-service';
+import { logInviteSent, logInviteAccepted, logInviteRevoked } from '@/lib/billing/activity-log-service';
+import { syncSeatsToStripe } from '@/lib/billing/seat-billing-service';
+import type { MemberRole } from '@/lib/membership/types';
 import * as Sentry from '@sentry/nextjs';
 
 // ---------------------------------------------------------------------------
@@ -186,6 +189,23 @@ export async function sendInvitation(
     created_at: invitation.created_at,
   };
 
+  // Sprint 113: fire-and-forget audit log
+  // Fetch inviter email for denormalized log entry
+  const { data: inviterUser } = await supabase
+    .from('users')
+    .select('email')
+    .eq('id', invitedByUserId)
+    .maybeSingle();
+
+  void logInviteSent(supabase, {
+    orgId,
+    actorUserId: invitedByUserId,
+    actorEmail: inviterUser?.email ?? '',
+    targetEmail: email,
+    targetRole: payload.role as MemberRole,
+    invitationId: invitation.id,
+  });
+
   return { invitation: safe, token };
 }
 
@@ -256,6 +276,13 @@ export async function revokeInvitation(
     );
   }
 
+  // Fetch invitation details for the log before revoking
+  const { data: invDetail } = await supabase
+    .from('pending_invitations')
+    .select('email')
+    .eq('id', invitationId)
+    .maybeSingle();
+
   const { error: updateError } = await supabase
     .from('pending_invitations')
     .update({ status: 'revoked' })
@@ -264,6 +291,15 @@ export async function revokeInvitation(
   if (updateError) {
     throw new MembershipError('update_failed', updateError.message);
   }
+
+  // Sprint 113: fire-and-forget audit log
+  void logInviteRevoked(supabase, {
+    orgId,
+    actorUserId: '', // caller must set via route
+    actorEmail: '',
+    targetEmail: invDetail?.email ?? '',
+    invitationId,
+  });
 
   return { success: true };
 }
@@ -491,6 +527,23 @@ export async function acceptInvitation(
     .from('pending_invitations')
     .update({ status: 'accepted', accepted_at: new Date().toISOString() })
     .eq('token', token);
+
+  // Sprint 113: fire-and-forget audit log + seat sync
+  // Fetch new seat count for Stripe sync
+  const { data: updatedOrg } = await supabase
+    .from('organizations')
+    .select('seat_count')
+    .eq('id', invitation.org_id)
+    .single();
+
+  void syncSeatsToStripe(supabase, invitation.org_id, updatedOrg?.seat_count ?? 1);
+  void logInviteAccepted(supabase, {
+    orgId: invitation.org_id,
+    targetUserId: userId,
+    targetEmail: invitation.email,
+    targetRole: invitation.role as MemberRole,
+    invitationId: invitation.id,
+  });
 
   return {
     success: true,

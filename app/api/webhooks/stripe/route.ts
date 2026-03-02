@@ -37,6 +37,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import { createServiceRoleClient } from '@/lib/supabase/server';
+import { syncSeatsFromStripe } from '@/lib/billing/seat-billing-service';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Database } from '@/lib/supabase/database.types';
 
@@ -178,6 +179,19 @@ async function handleSubscriptionUpdated(
     planStatus,
     seatQuantity ?? 'unchanged'
   );
+
+  // Sprint 113: sync seat_count via billing service + activity log
+  if (seatQuantity !== undefined && seatQuantity > 0) {
+    const { data: org } = await supabase
+      .from('organizations')
+      .select('id')
+      .eq('stripe_customer_id', stripeCustomerId)
+      .maybeSingle();
+
+    if (org) {
+      void syncSeatsFromStripe(supabase, org.id, seatQuantity);
+    }
+  }
 }
 
 async function handleSubscriptionDeleted(

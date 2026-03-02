@@ -28,7 +28,9 @@ import {
   type CurrentPlanInfo,
 } from './actions';
 import SeatManagementCard from './_components/SeatManagementCard';
+import SeatUsageCard from './_components/SeatUsageCard';
 import PlanComparisonTable from './_components/PlanComparisonTable';
+import ActivityLogTable from '@/app/dashboard/team/_components/ActivityLogTable';
 import { getPlanDisplayName } from '@/lib/plan-display-names';
 
 // ---------------------------------------------------------------------------
@@ -353,6 +355,13 @@ export default function BillingPage() {
         <CurrentPlanBadge planInfo={planInfo} />
       </div>
 
+      {/* Sprint 113: Seat Usage Card — above tiers */}
+      <div className="flex justify-center">
+        <div className="w-full max-w-md">
+          <SeatUsageCard />
+        </div>
+      </div>
+
       {/* Tier grid */}
       <div className="grid gap-6 sm:grid-cols-3">
         {TIERS.map((tier) => (
@@ -382,6 +391,9 @@ export default function BillingPage() {
         </p>
         <PlanComparisonTable currentPlan={planInfo?.plan ?? null} />
       </section>
+
+      {/* Sprint 113: Activity Log — Agency owners/admins only */}
+      {planInfo?.plan === 'agency' && <ActivityLogTable />}
 
       {/* Footer note */}
       <p className="text-center text-xs text-slate-600">

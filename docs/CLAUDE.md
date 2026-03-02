@@ -512,6 +512,17 @@ APPLE_MAPS_PRIVATE_KEY, APPLE_MAPS_KEY_ID, APPLE_MAPS_TEAM_ID
 - Tests: 61 Vitest (invitation-service 28, invitation-routes 26, invitation-email 7).
 - Result: 292 test files, 4254 tests pass. No migration.
 
+### Sprint 113 — Seat-Based Billing + Audit Log (2026-03-01)
+- **Migration:** `20260315000001_activity_log.sql` — `activity_log` table (append-only, 7 event types), `stripe_subscription_item_id` + `seat_overage_flagged` on organizations.
+- **Billing modules:** `lib/billing/` — types (SeatState, ActivityLogEntry, SEAT_PRICE_CENTS), seat-billing-service (getSeatState, syncSeatsToStripe, syncSeatsFromStripe), activity-log-service (logActivity, getActivityLog, 5 convenience wrappers).
+- **API routes:** `GET /api/billing/seats` (any org member), `POST /api/billing/seats/sync` (owner + Agency), `GET /api/team/activity` (admin+, paginated).
+- **Webhook:** `app/api/webhooks/stripe/route.ts` — added `syncSeatsFromStripe` call in `handleSubscriptionUpdated`.
+- **Wiring:** Fire-and-forget `void syncSeatsToStripe(...)` + `void logActivity(...)` in invitation-service.ts and membership-service.ts. Billing/logging failures NEVER block membership ops.
+- **Components:** `SeatUsageCard.tsx` (seat count + bar + cost + sync + force sync + overage), `ActivityLogTable.tsx` (paginated audit log).
+- AI_RULES: §147 (Seat-Based Billing + Audit Log).
+- Tests: 59 Vitest (seat-billing-service 21, activity-log-service 20, billing-routes 18) + 7 E2E.
+- Result: 295 test files, 4313 tests pass. 1 migration.
+
 ## Tier Completion Status
 
 | Tier | Sprints | Status | Gate |
@@ -546,10 +557,11 @@ APPLE_MAPS_PRIVATE_KEY, APPLE_MAPS_KEY_ID, APPLE_MAPS_TEAM_ID
 | Sprint 110 | AI Answer Simulation Sandbox (Capstone) | Complete | — |
 | Sprint 111 | Org Membership Foundation | Complete | — |
 | Sprint 112 | Team Invitations + Permissions | Complete | — |
+| Sprint 113 | Seat-Based Billing + Audit Log | Complete | — |
 
 ### Sprints Pending External Approval:
 - Apple Business Connect Sync (originally §57): Submit API request at https://developer.apple.com/business-connect/
 
 ## Build History
 
-See `DEVLOG.md` (project root) and `docs/DEVLOG.md` for the complete sprint-by-sprint build log. Current sprint: 112 (+ FIX-1 through FIX-8 + Sprint A through Sprint O). AI_RULES: §1–§146 (146 sections). Production readiness: all audit issues resolved. **V1 complete.**
+See `DEVLOG.md` (project root) and `docs/DEVLOG.md` for the complete sprint-by-sprint build log. Current sprint: 113 (+ FIX-1 through FIX-8 + Sprint A through Sprint O). AI_RULES: §1–§147 (147 sections). Production readiness: all audit issues resolved. **V1 complete.**

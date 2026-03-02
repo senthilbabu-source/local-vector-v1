@@ -46,6 +46,11 @@ vi.mock('@/lib/email/send-overage', () => ({
   sendSeatOverageEmail: vi.fn().mockResolvedValue(undefined),
 }));
 
+// Sprint 113: Mock seat billing service (imported by webhook handler)
+vi.mock('@/lib/billing/seat-billing-service', () => ({
+  syncSeatsFromStripe: vi.fn().mockResolvedValue(undefined),
+}));
+
 // ---------------------------------------------------------------------------
 // Import under test (after mocks)
 // ---------------------------------------------------------------------------
@@ -80,6 +85,12 @@ function mockUpdateSuccess() {
   const chain = {
     update: vi.fn().mockReturnThis(),
     eq: vi.fn().mockResolvedValue({ data: null, error: null }),
+    // Sprint 113: handleSubscriptionUpdated now calls .from('organizations').select('id').eq(...).maybeSingle()
+    select: vi.fn().mockReturnValue({
+      eq: vi.fn().mockReturnValue({
+        maybeSingle: vi.fn().mockResolvedValue({ data: { id: 'org-from-webhook' }, error: null }),
+      }),
+    }),
   };
   mockFrom.mockReturnValue(chain);
   return chain;

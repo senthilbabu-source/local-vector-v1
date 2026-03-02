@@ -770,6 +770,8 @@ CREATE TABLE IF NOT EXISTS "public"."organizations" (
     "notify_score_drop_alert" boolean DEFAULT true,
     "notify_new_competitor" boolean DEFAULT false,
     "seat_count" integer DEFAULT 1 NOT NULL,
+    "stripe_subscription_item_id" "text",
+    "seat_overage_flagged" boolean DEFAULT false NOT NULL,
     CONSTRAINT "organizations_scan_day_of_week_check" CHECK (("scan_day_of_week" >= 0 AND "scan_day_of_week" <= 6))
 );
 
@@ -3206,6 +3208,24 @@ CREATE TABLE IF NOT EXISTS public.simulation_runs (
 -- Sandbox columns on locations
 -- ALTER TABLE "public"."locations" ADD COLUMN IF NOT EXISTS "last_simulation_score" integer CHECK ("last_simulation_score" BETWEEN 0 AND 100);
 -- ALTER TABLE "public"."locations" ADD COLUMN IF NOT EXISTS "simulation_last_run_at" timestamp with time zone;
+
+-- Sprint 113: Activity Log (append-only audit trail)
+CREATE TABLE IF NOT EXISTS public.activity_log (
+  id              uuid                PRIMARY KEY DEFAULT gen_random_uuid(),
+  org_id          uuid                NOT NULL REFERENCES public.organizations(id) ON DELETE CASCADE,
+  event_type      text                NOT NULL
+                                      CHECK (event_type IN (
+                                        'member_invited', 'member_joined', 'member_removed',
+                                        'invitation_revoked', 'role_changed', 'seat_sync', 'member_left'
+                                      )),
+  actor_user_id   uuid                REFERENCES auth.users(id) ON DELETE SET NULL,
+  actor_email     text,
+  target_user_id  uuid                REFERENCES auth.users(id) ON DELETE SET NULL,
+  target_email    text                NOT NULL,
+  target_role     public.membership_role,
+  metadata        jsonb               NOT NULL DEFAULT '{}'::jsonb,
+  created_at      timestamptz         NOT NULL DEFAULT NOW()
+);
 
 
 

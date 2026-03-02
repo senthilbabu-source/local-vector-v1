@@ -18,6 +18,8 @@ import {
   type OrgMember,
   type MembershipContext,
 } from './types';
+import { logMemberRemoved } from '@/lib/billing/activity-log-service';
+import { syncSeatsToStripe } from '@/lib/billing/seat-billing-service';
 
 // ---------------------------------------------------------------------------
 // getOrgMembers
@@ -180,12 +182,13 @@ export class MembershipError extends Error {
 export async function removeMember(
   supabase: SupabaseClient<Database>,
   memberId: string,
-  callerOrgId: string
+  callerOrgId: string,
+  callerContext?: { userId: string; email: string }
 ): Promise<{ success: true }> {
-  // 1. Fetch the target member
+  // 1. Fetch the target member (including user info for audit log)
   const { data: member, error: fetchError } = await supabase
     .from('memberships')
-    .select('id, role, org_id')
+    .select('id, role, org_id, user_id, users ( email )')
     .eq('id', memberId)
     .eq('org_id', callerOrgId)
     .maybeSingle();
@@ -208,6 +211,24 @@ export async function removeMember(
   if (deleteError) {
     throw new MembershipError('delete_failed', deleteError.message);
   }
+
+  // Sprint 113: fire-and-forget audit log + seat sync
+  const targetUser = member.users as { email: string } | null;
+  const { data: updatedOrg } = await supabase
+    .from('organizations')
+    .select('seat_count')
+    .eq('id', callerOrgId)
+    .single();
+
+  void syncSeatsToStripe(supabase, callerOrgId, updatedOrg?.seat_count ?? 1);
+  void logMemberRemoved(supabase, {
+    orgId: callerOrgId,
+    actorUserId: callerContext?.userId ?? '',
+    actorEmail: callerContext?.email ?? '',
+    targetUserId: member.user_id,
+    targetEmail: targetUser?.email ?? '',
+    targetRole: (member.role ?? 'viewer') as MemberRole,
+  });
 
   return { success: true };
 }

@@ -4,6 +4,47 @@
 
 ---
 
+## 2026-03-01 — Sprint 113: Seat-Based Billing + Audit Log (Completed)
+
+**Goal:** Wire Stripe seat-quantity metering to membership lifecycle events, add an append-only activity log for audit trail, and expose seat usage + sync status in the billing dashboard.
+
+**Key Decision:** Organizations already had `stripe_subscription_id`, `stripe_customer_id`, `seat_count`, and `seat_limit`. Sprint 113 adds `stripe_subscription_item_id` (lazy-populated from Stripe on first sync) and `seat_overage_flagged` (advisory boolean). The `activity_log` table is append-only with INSERT-only RLS for service_role and SELECT for org members.
+
+**Changes:**
+- **Migration:** `20260315000001_activity_log.sql` — creates `activity_log` table (CHECK constraint on 7 event_types), RLS (SELECT for org members, INSERT for service_role only), indexes, adds `stripe_subscription_item_id text` and `seat_overage_flagged boolean` to organizations
+- **Types:** `lib/billing/types.ts` — `ActivityEventType` (7 values), `ActivityLogEntry`, `SeatState`, `ActivityLogPage`, `SEAT_PRICE_CENTS` (agency=1500 cents, others=0)
+- **Service:** `lib/billing/seat-billing-service.ts` — `getSeatState()` (org + Stripe subscription data, in_sync check, monthly cost), `syncSeatsToStripe()` (NEVER throws, lazy item ID, proration, overage flag), `syncSeatsFromStripe()` (webhook-called, updates seat_count)
+- **Activity log:** `lib/billing/activity-log-service.ts` — `logActivity()` (NEVER throws), `getActivityLog()` (paginated, max 50/page), convenience wrappers: `logInviteSent`, `logInviteAccepted`, `logInviteRevoked`, `logMemberRemoved`, `logSeatSync`
+- **Barrel:** `lib/billing/index.ts`
+- **API routes:** `GET /api/billing/seats` (any org member), `POST /api/billing/seats/sync` (owner + Agency gated), `GET /api/team/activity` (admin+ gated, paginated)
+- **Webhook:** `app/api/webhooks/stripe/route.ts` — added `syncSeatsFromStripe` call in `handleSubscriptionUpdated` (looks up org by stripe_customer_id)
+- **Invitation wiring:** `lib/invitations/invitation-service.ts` — fire-and-forget `logInviteSent`, `logInviteAccepted`, `logInviteRevoked` + `syncSeatsToStripe` on accept
+- **Membership wiring:** `lib/membership/membership-service.ts` — `removeMember()` now fetches user email for audit, calls `logMemberRemoved` + `syncSeatsToStripe` after DELETE
+- **Components:** `SeatUsageCard.tsx` (seat count/bar/cost/sync status/force sync/overage banner), `ActivityLogTable.tsx` (paginated event table with sync badges)
+- **Billing page:** `app/dashboard/billing/page.tsx` — added SeatUsageCard + ActivityLogTable
+- **Schema:** `supabase/prod_schema.sql` — `activity_log` table, 2 new org columns
+- **Types:** `lib/supabase/database.types.ts` — `activity_log` table type, org column additions
+- **Seed:** `supabase/seed.sql` Section 22 — 2 activity_log entries (member_invited + seat_sync)
+- **Fixtures:** `src/__fixtures__/golden-tenant.ts` — 4 billing fixtures (agency/out-of-sync/growth seat states, activity log page)
+
+**Tests:** 59 unit tests + 7 E2E tests:
+- `seat-billing-service.test.ts` — 21 tests (getSeatState 9, syncSeatsToStripe 8, syncSeatsFromStripe 4)
+- `activity-log-service.test.ts` — 20 tests (logActivity 3, convenience wrappers 12, getActivityLog 5)
+- `billing-routes.test.ts` — 18 tests (GET seats 3, POST sync 5, GET activity 6, webhook regression 4)
+- `sprint-113-seat-billing.spec.ts` — 7 Playwright E2E tests (seat card, sync status, force sync, overage banner, activity table, pagination, non-agency)
+
+**Regression fixes:** Updated `membership-service.test.ts` (removeMember mock now handles 3rd from() call), `stripe-webhook-seats.test.ts` (added seat-billing-service mock + select chain), `sentry-sweep-verification.test.ts` (3 bare catch blocks → Sentry.captureException)
+
+**AI_RULES:** §147 (Seat-Based Billing + Audit Log — architecture, fire-and-forget pattern, activity_log RLS)
+
+```bash
+npx vitest run src/__tests__/unit/seat-billing-service.test.ts   # 21 tests
+npx vitest run src/__tests__/unit/activity-log-service.test.ts   # 20 tests
+npx vitest run src/__tests__/unit/billing-routes.test.ts         # 18 tests
+```
+
+---
+
 ## 2026-03-01 — Sprint 111: Org Membership Foundation (Completed)
 
 **Goal:** Build structured org membership infrastructure — `analyst` role, dedicated service module, API routes, seat tracking, and a top-level Team Members page. Enhances the existing membership system (Sprints 98-99) rather than creating parallel infrastructure.

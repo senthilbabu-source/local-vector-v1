@@ -2968,3 +2968,24 @@ Token-based invitation flow via `lib/invitations/`.
 * **Public page:** `/invitations/accept/[token]` — standalone (no dashboard chrome). 4 states: loading, invalid, new user form, existing user prompt.
 
 ---
+
+## §147. Seat-Based Billing + Audit Log (Sprint 113)
+
+Stripe seat metering + append-only activity log via `lib/billing/`.
+
+* **New table:** `activity_log` — append-only audit trail. 7 event types: `member_invited`, `member_accepted`, `member_removed`, `invite_revoked`, `role_changed`, `seat_sync`, `plan_changed`. INSERT-only RLS for service_role, SELECT for org members. No UPDATE or DELETE policies.
+* **New org columns:** `stripe_subscription_item_id` (text, lazy-populated from Stripe on first sync), `seat_overage_flagged` (boolean, advisory only — never blocks access).
+* **Fire-and-forget pattern:** `void syncSeatsToStripe(...)` and `void logActivity(...)` — billing/logging failures NEVER block membership operations. Both functions catch all errors internally.
+* **`syncSeatsToStripe()`** in `seat-billing-service.ts`: NEVER throws. Lazy-populates `stripe_subscription_item_id` if null. Uses `proration_behavior: 'create_prorations'`. Flags overage if seat_count > max_seats.
+* **`syncSeatsFromStripe()`** in `seat-billing-service.ts`: Called by webhook handler. Updates `seat_count` in DB when Stripe quantity changes.
+* **`getSeatState()`** in `seat-billing-service.ts`: Returns `SeatState` with in_sync check (compares DB seat_count vs Stripe quantity), monthly cost calculation (first seat free: `max(0, count - 1) × SEAT_PRICE_CENTS[tier]`).
+* **Activity log service:** `logActivity()` core INSERT (NEVER throws), `getActivityLog()` paginated (max 50/page), 5 convenience wrappers.
+* **API routes:** `GET /api/billing/seats` (any org member), `POST /api/billing/seats/sync` (owner + Agency), `GET /api/team/activity` (admin+, paginated).
+* **Webhook integration:** `handleSubscriptionUpdated` in `app/api/webhooks/stripe/route.ts` now calls `syncSeatsFromStripe` after plan_status update.
+* **Invitation wiring:** `sendInvitation` → `logInviteSent`, `acceptInvitation` → `logInviteAccepted` + `syncSeatsToStripe`, `revokeInvitation` → `logInviteRevoked`.
+* **Membership wiring:** `removeMember` → `logMemberRemoved` + `syncSeatsToStripe` (with decremented seat count).
+* **UI:** `SeatUsageCard` (seat count + progress bar + cost breakdown + sync status + force sync button + overage banner), `ActivityLogTable` (paginated with event labels + sync badges).
+* **SEAT_PRICE_CENTS:** agency=1500 (i.e., $15/seat/mo), all others=0.
+* **Migration:** `20260315000001_activity_log.sql`.
+
+---

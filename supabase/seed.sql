@@ -2481,4 +2481,27 @@ BEGIN
   -- Sync seat_count
   UPDATE public.organizations SET seat_count = 1 WHERE id = v_org_id;
 
+  -- ══════════════════════════════════════════════════════════════════════════
+  -- Section 22: Sprint 113 — Activity Log seed data
+  -- Two sample audit log entries for the golden tenant.
+  -- ══════════════════════════════════════════════════════════════════════════
+
+  INSERT INTO public.activity_log (
+    org_id, event_type, actor_user_id, actor_email,
+    target_user_id, target_email, target_role, metadata, created_at
+  ) VALUES
+  (
+    v_org_id, 'member_invited', v_user_id, 'aruna@charcoalnchill.com',
+    NULL, 'newmember@example.com', 'analyst',
+    '{"invitation_id": "inv-seed-001"}'::jsonb,
+    NOW() - INTERVAL '1 hour'
+  ),
+  (
+    v_org_id, 'seat_sync', NULL, NULL,
+    NULL, 'system', NULL,
+    '{"success": true, "source": "seed", "previous_count": 0, "new_count": 1}'::jsonb,
+    NOW() - INTERVAL '60 days'
+  )
+  ON CONFLICT DO NOTHING;
+
 END $$;
