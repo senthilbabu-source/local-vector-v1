@@ -61,6 +61,8 @@ import AuthorityPanel from './_components/AuthorityPanel';
 import VAIOPanel from './_components/VAIOPanel';
 // Sprint 110: AI Answer Simulation Sandbox
 import SandboxPanel from './_components/SandboxPanel';
+// Sprint 122: Benchmark Comparisons — Percentile-based
+import BenchmarkCard from './_components/BenchmarkCard';
 
 export type { HallucinationRow } from '@/lib/data/dashboard'; // re-export for AlertFeed.tsx
 
@@ -320,6 +322,11 @@ export default async function DashboardPage() {
       {/* ── Alert Feed (detail view — for users who want to see all alerts) ── */}
       {hasOpenAlerts && (
         <AlertFeed alerts={openAlerts} canCreateDraft={draftGated} />
+      )}
+
+      {/* ── Sprint 122: Benchmark Comparisons — Percentile-based ────────── */}
+      {!sampleMode && ctx.orgId && (
+        <BenchmarkCard orgId={ctx.orgId} orgName={firstName} />
       )}
 
       {/* ── Benchmark Comparison (hidden in sample mode — Sprint O N4) ───── */}

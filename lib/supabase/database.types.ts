@@ -303,6 +303,101 @@ export type Database = {
         };
         Relationships: [];
       };
+      /** Sprint 122: Anonymized weekly SOV aggregate stats per category+location */
+      benchmark_snapshots: {
+        Row: {
+          id: string;
+          category_key: string;
+          location_key: string;
+          category_label: string;
+          location_label: string;
+          sample_count: number;
+          score_median: number;
+          score_p25: number;
+          score_p75: number;
+          score_p90: number;
+          week_of: string;
+          computed_at: string;
+        };
+        Insert: {
+          id?: string;
+          category_key: string;
+          location_key: string;
+          category_label: string;
+          location_label: string;
+          sample_count: number;
+          score_median: number;
+          score_p25: number;
+          score_p75: number;
+          score_p90: number;
+          week_of: string;
+          computed_at?: string;
+        };
+        Update: {
+          id?: string;
+          category_key?: string;
+          location_key?: string;
+          category_label?: string;
+          location_label?: string;
+          sample_count?: number;
+          score_median?: number;
+          score_p25?: number;
+          score_p75?: number;
+          score_p90?: number;
+          week_of?: string;
+          computed_at?: string;
+        };
+        Relationships: [];
+      };
+      /** Sprint 122: Cached percentile rank per org per week */
+      org_benchmark_cache: {
+        Row: {
+          id: string;
+          org_id: string;
+          snapshot_id: string;
+          week_of: string;
+          org_sov_score: number;
+          percentile_rank: number;
+          category_key: string;
+          location_key: string;
+        };
+        Insert: {
+          id?: string;
+          org_id: string;
+          snapshot_id: string;
+          week_of: string;
+          org_sov_score: number;
+          percentile_rank: number;
+          category_key: string;
+          location_key: string;
+        };
+        Update: {
+          id?: string;
+          org_id?: string;
+          snapshot_id?: string;
+          week_of?: string;
+          org_sov_score?: number;
+          percentile_rank?: number;
+          category_key?: string;
+          location_key?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "org_benchmark_cache_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "org_benchmark_cache_snapshot_id_fkey";
+            columns: ["snapshot_id"];
+            isOneToOne: false;
+            referencedRelation: "benchmark_snapshots";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       brand_voice_profiles: {
         Row: {
           id: string;

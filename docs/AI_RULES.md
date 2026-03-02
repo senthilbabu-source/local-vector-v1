@@ -3147,3 +3147,27 @@ Corrections in `lib/corrections/`, settings in `lib/settings/`.
 * **Tests:** 16 correction-service + 12 settings-service + 10 api-key-service + 14 correction-settings-routes = 52 Vitest.
 
 ---
+
+## §156. Benchmark Comparisons (Sprint 122)
+
+Percentile-based benchmark system in `lib/services/benchmark-service.ts`.
+
+* **MIN_BENCHMARK_SAMPLE_SIZE=5.** Never compute or expose benchmarks for <5 orgs.
+* **benchmark_snapshots stores ONLY aggregates.** Never org_ids or individual scores. Open authenticated-read RLS is intentional — anonymous aggregates with no org linkage.
+* **Benchmark cron `"0 6 * * 0"`** runs 4 hours AFTER SOV cron `"0 7 * * 0"`. POST `/api/cron/benchmarks`. Runs both Sprint F city-avg benchmarks and Sprint 122 percentile snapshots.
+* **Source score: `visibility_analytics.share_of_voice`** with `snapshot_date`. NOT `sov_evaluations` (which has no score column).
+* **computePercentileRank is strict less-than.** Display: `Math.max(1, 100 − rank)`. `percentile_rank=0` → "bottom tier". `percentile_rank=100` → "top 1%". Never "top 0%" or "top 100%".
+* **getOrgBenchmark() reads org_benchmark_cache only.** Never recomputes on the fly.
+* **Exclude trial/free plan orgs from benchmark pool.** Paid plans only: 'starter', 'growth', 'agency'.
+* **Missing data returns 200 `{ insufficient_data: true }`, never 404.**
+* **getOrgBenchmarkHistory orders ASC (oldest first).** Trend direction depends on this.
+* **"Most recent Sunday":** Walk back from today until `getDay() === 0`. Never use `date-fns startOf('week')` (returns Monday).
+* **Application-side grouping, not SQL.** `runBenchmarkComputation` groups by `(category_key, location_key)` in TypeScript — not SQL GROUP BY. Raw per-org scores needed for `computePercentileRank`.
+* **UPSERT on re-run is safe.** `UNIQUE (category_key, location_key, week_of)` + `UNIQUE (org_id, week_of)` with `ON CONFLICT DO UPDATE`.
+* **Membership check in GET `/api/benchmarks/[orgId]`.** 403 if user is not a member of requested org.
+* **Location category:** `locations.categories` (jsonb array), primary = `[0]`. Location city: `locations.city`.
+* **Components:** `BenchmarkCard` (client, fetches `/api/benchmarks/{orgId}`), `BenchmarkPercentileBar` (pure display, 5 color tiers), `BenchmarkTrendChart` (recharts LineChart, trend: last > first → green).
+* **Migration:** `20260322000001_benchmark_snapshots.sql`. Tables: `benchmark_snapshots`, `org_benchmark_cache`.
+* **Tests:** 20 benchmark-service + 10 benchmark-route + 9 benchmark-cron + 10 benchmark-components = 49 Vitest. 5 Playwright E2E.
+
+---

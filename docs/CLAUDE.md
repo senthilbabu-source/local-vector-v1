@@ -78,6 +78,11 @@ lib/whitelabel/            — White-label: domain resolver, theme service, emai
 lib/streaming/             — SSE streaming: types (SSEChunk, StreamingState), sse-utils (createSSEResponse, formatSSEChunk), barrel export (Sprint 120, §154)
 lib/corrections/           — Correction follow-up: brief prompt, correction-service (mark corrected, rescan, effectiveness score), types (Sprint 121, §155)
 lib/settings/              — Org settings: settings-service (get/update/shouldScanOrg), api-key-service (SHA-256 hash, generate/list/revoke), types (Sprint 121, §155)
+lib/services/benchmark-service.ts — Benchmark percentile computation: normalizeBucketKey, computePercentileRank (strict <), computePercentiles (linear interpolation), runBenchmarkComputation, getOrgBenchmark/History (cache readers), getMostRecentSunday (Sprint 122, §156)
+app/api/benchmarks/[orgId]/       — GET benchmark percentile + history for org (membership check, ?weeks=1-52) (Sprint 122, §156)
+app/dashboard/_components/BenchmarkCard.tsx — Client: "top X%" headline, fetches /api/benchmarks/{orgId} (Sprint 122, §156)
+app/dashboard/_components/BenchmarkPercentileBar.tsx — 5-tier color bar with median + top-quartile reference lines (Sprint 122, §156)
+app/dashboard/_components/BenchmarkTrendChart.tsx — recharts 8-week sparkline, trend direction (Sprint 122, §156)
 hooks/useStreamingResponse.ts — POST-based SSE consumer: fetch + getReader(), line buffering, 50ms flush, cancel/reset (Sprint 120, §154)
 components/StreamingTextDisplay.tsx — Animated streaming text: 6 status states, blinking cursor, whitespace-pre-wrap (Sprint 120, §154)
 app/api/content/preview-stream/ — SSE content preview generation with Claude Haiku (Sprint 120, §154)
@@ -85,8 +90,8 @@ app/api/sov/simulate-stream/   — SSE SOV query simulation with neutral prompt 
 app/api/settings/              — Org settings CRUD + API key management + danger zone (Sprint 121, §155)
 app/api/hallucinations/[id]/correct/ — Mark hallucination corrected + schedule rescan (Sprint 121, §155)
 app/api/cron/correction-rescan/     — Daily re-scan of pending corrections (Sprint 121, §155)
-lib/supabase/database.types.ts — Full Database type (49 tables, 9 enums, Relationships)
-supabase/migrations/   — Applied SQL migrations (54, timestamp-ordered)
+lib/supabase/database.types.ts — Full Database type (51 tables, 9 enums, Relationships)
+supabase/migrations/   — Applied SQL migrations (55, timestamp-ordered)
 supabase/prod_schema.sql — Full production schema dump
 docs/                  — 50 spec documents (authoritative for planned features)
 src/__tests__/         — Unit + integration tests
@@ -601,6 +606,18 @@ APPLE_MAPS_PRIVATE_KEY, APPLE_MAPS_KEY_ID, APPLE_MAPS_TEAM_ID
 - Tests: 52 Vitest (correction-service 16, settings-service 12, api-key-service 10, correction-settings-routes 14).
 - Result: 330 test files, ~4780 tests pass. 1 migration.
 
+### Sprint 122 — Benchmark Comparisons (2026-03-02)
+- **Migration:** `20260322000001_benchmark_snapshots.sql` — 2 new tables (`benchmark_snapshots`, `org_benchmark_cache`), RLS policies (open authenticated-read on snapshots — intentional, anonymous aggregates), indexes, FK cascades.
+- **Benchmark service:** `lib/services/benchmark-service.ts` — `normalizeBucketKey` (pure, lowercase + strip non-alphanum), `computePercentileRank` (strict less-than, empty→50), `computePercentiles` (linear interpolation, single-element all equal), `runBenchmarkComputation` (fetches `visibility_analytics.share_of_voice` for paid orgs, groups by category+city in TypeScript, UPSERT snapshots + cache), `getOrgBenchmark` / `getOrgBenchmarkHistory` (cache-only readers, ASC order), `getMostRecentSunday` (walks backward, never date-fns startOf).
+- **Cron route:** `app/api/cron/benchmarks/route.ts` — extended to run both Sprint F city-avg and Sprint 122 percentile computation. Schedule updated to `"0 6 * * 0"` (4h after SOV cron).
+- **API route:** `GET /api/benchmarks/[orgId]` — org membership check (403 if not member), `?weeks` param (1-52, default 8), returns 200 `{ insufficient_data: true }` (never 404).
+- **Dashboard components:** `BenchmarkCard.tsx` (client fetch, "top X%" headline, edge cases: top 1%, bottom tier, skeleton, insufficient), `BenchmarkPercentileBar.tsx` (5 color tiers, reference lines at median + top-quartile), `BenchmarkTrendChart.tsx` (recharts LineChart, trend: last > first → green/improving).
+- **Dashboard page:** `BenchmarkCard` added above existing `BenchmarkComparisonCard` (hidden in sample mode).
+- **Key constraints:** MIN_BENCHMARK_SAMPLE_SIZE=5 (never show benchmarks for <5 orgs), paid plans only (starter, growth, agency), percentile_rank=0→"bottom tier" / =100→"top 1%" (never "top 0%" or "top 100%").
+- AI_RULES: §156 (Benchmark Comparisons).
+- Tests: 49 Vitest (benchmark-service 25, benchmark-route 10, benchmark-cron 9, benchmark-components 10). 5 Playwright E2E (sprint-122-benchmarks.spec.ts).
+- Result: 334 test files, ~4830 tests pass. 1 migration.
+
 ## Tier Completion Status
 
 | Tier | Sprints | Status | Gate |
@@ -644,10 +661,11 @@ APPLE_MAPS_PRIVATE_KEY, APPLE_MAPS_KEY_ID, APPLE_MAPS_TEAM_ID
 | Sprint 119 | pgvector Semantic Search + Embedding Pipeline | Complete | — |
 | Sprint 120 | AI Preview Streaming (SSE) | Complete | — |
 | Sprint 121 | Correction Follow-up + Settings Expansion | Complete | — |
+| Sprint 122 | Benchmark Comparisons | Complete | — |
 
 ### Sprints Pending External Approval:
 - Apple Business Connect Sync (originally §57): Submit API request at https://developer.apple.com/business-connect/
 
 ## Build History
 
-See `DEVLOG.md` (project root) and `docs/DEVLOG.md` for the complete sprint-by-sprint build log. Current sprint: 121 (+ FIX-1 through FIX-8 + Sprint A through Sprint O). AI_RULES: §1–§155 (155 sections). Production readiness: all audit issues resolved. **V1 complete.**
+See `DEVLOG.md` (project root) and `docs/DEVLOG.md` for the complete sprint-by-sprint build log. Current sprint: 122 (+ FIX-1 through FIX-8 + Sprint A through Sprint O). AI_RULES: §1–§156 (156 sections). Production readiness: all audit issues resolved. **V1 complete.**

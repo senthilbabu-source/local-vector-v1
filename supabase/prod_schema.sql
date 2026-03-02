@@ -3344,6 +3344,70 @@ CREATE INDEX IF NOT EXISTS idx_target_queries_embedding ON public.target_queries
 CREATE INDEX IF NOT EXISTS idx_content_drafts_embedding ON public.content_drafts USING hnsw (embedding extensions.vector_cosine_ops) WITH (m = 16, ef_construction = 64) WHERE embedding IS NOT NULL;
 CREATE INDEX IF NOT EXISTS idx_locations_embedding ON public.locations USING hnsw (embedding extensions.vector_cosine_ops) WITH (m = 16, ef_construction = 64) WHERE embedding IS NOT NULL;
 
+-- Sprint 122: Benchmark Comparisons
+CREATE TABLE IF NOT EXISTS "public"."benchmark_snapshots" (
+    "id" "uuid" DEFAULT gen_random_uuid() NOT NULL,
+    "category_key" "text" NOT NULL,
+    "location_key" "text" NOT NULL,
+    "category_label" "text" NOT NULL,
+    "location_label" "text" NOT NULL,
+    "sample_count" integer NOT NULL,
+    "score_median" numeric(5,1) NOT NULL,
+    "score_p25" numeric(5,1) NOT NULL,
+    "score_p75" numeric(5,1) NOT NULL,
+    "score_p90" numeric(5,1) NOT NULL,
+    "week_of" "date" NOT NULL,
+    "computed_at" timestamp with time zone DEFAULT "now"() NOT NULL
+);
+
+ALTER TABLE "public"."benchmark_snapshots" OWNER TO "postgres";
+
+ALTER TABLE ONLY "public"."benchmark_snapshots"
+    ADD CONSTRAINT "benchmark_snapshots_pkey" PRIMARY KEY ("id");
+
+ALTER TABLE ONLY "public"."benchmark_snapshots"
+    ADD CONSTRAINT "benchmark_snapshots_category_key_location_key_week_of_key" UNIQUE ("category_key", "location_key", "week_of");
+
+CREATE INDEX "idx_benchmark_snapshots_bucket" ON "public"."benchmark_snapshots" USING "btree" ("category_key", "location_key", "week_of" DESC);
+CREATE INDEX "idx_benchmark_snapshots_week" ON "public"."benchmark_snapshots" USING "btree" ("week_of" DESC);
+
+ALTER TABLE "public"."benchmark_snapshots" ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "benchmark_snapshots: authenticated can read" ON "public"."benchmark_snapshots" FOR SELECT USING (("auth"."role"() IN ('authenticated', 'service_role')));
+CREATE POLICY "benchmark_snapshots: service role full access" ON "public"."benchmark_snapshots" FOR ALL USING (("auth"."role"() = 'service_role'));
+
+CREATE TABLE IF NOT EXISTS "public"."org_benchmark_cache" (
+    "id" "uuid" DEFAULT gen_random_uuid() NOT NULL,
+    "org_id" "uuid" NOT NULL,
+    "snapshot_id" "uuid" NOT NULL,
+    "week_of" "date" NOT NULL,
+    "org_sov_score" numeric(5,1) NOT NULL,
+    "percentile_rank" numeric(5,1) NOT NULL,
+    "category_key" "text" NOT NULL,
+    "location_key" "text" NOT NULL
+);
+
+ALTER TABLE "public"."org_benchmark_cache" OWNER TO "postgres";
+
+ALTER TABLE ONLY "public"."org_benchmark_cache"
+    ADD CONSTRAINT "org_benchmark_cache_pkey" PRIMARY KEY ("id");
+
+ALTER TABLE ONLY "public"."org_benchmark_cache"
+    ADD CONSTRAINT "org_benchmark_cache_org_id_week_of_key" UNIQUE ("org_id", "week_of");
+
+ALTER TABLE ONLY "public"."org_benchmark_cache"
+    ADD CONSTRAINT "org_benchmark_cache_org_id_fkey" FOREIGN KEY ("org_id") REFERENCES "public"."organizations"("id") ON DELETE CASCADE;
+
+ALTER TABLE ONLY "public"."org_benchmark_cache"
+    ADD CONSTRAINT "org_benchmark_cache_snapshot_id_fkey" FOREIGN KEY ("snapshot_id") REFERENCES "public"."benchmark_snapshots"("id") ON DELETE CASCADE;
+
+CREATE INDEX "idx_org_benchmark_cache_org_week" ON "public"."org_benchmark_cache" USING "btree" ("org_id", "week_of" DESC);
+
+ALTER TABLE "public"."org_benchmark_cache" ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "org_benchmark_cache: members can read own" ON "public"."org_benchmark_cache" FOR SELECT USING (("org_id" = "public"."current_user_org_id"()));
+CREATE POLICY "org_benchmark_cache: service role full access" ON "public"."org_benchmark_cache" FOR ALL USING (("auth"."role"() = 'service_role'));
+
 
 
 

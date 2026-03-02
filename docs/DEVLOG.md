@@ -4,6 +4,35 @@
 
 ---
 
+## 2026-03-02 — Sprint 122: Benchmark Comparisons (Completed)
+
+**Goal:** Show each org how their AI visibility score compares to other businesses in the same industry category and location. "You're in the top 23% of hookah lounges in Alpharetta" turns a raw SOV score into competitive context.
+
+**Key Decision:** Used `visibility_analytics.share_of_voice` as the source score (not `sov_evaluations` which has no score column). Grouping is done in TypeScript (not SQL GROUP BY) because raw per-org scores are needed for percentile computation. Kept Sprint F city-avg benchmarks running alongside new percentile system.
+
+**Changes:**
+- **Migration:** `20260322000001_benchmark_snapshots.sql` — 2 new tables (benchmark_snapshots, org_benchmark_cache), RLS policies (open authenticated-read on snapshots — intentional, anonymous aggregates), indexes
+- **Benchmark service:** `lib/services/benchmark-service.ts` — normalizeBucketKey, computePercentileRank (strict less-than), computePercentiles (linear interpolation), runBenchmarkComputation (groups in TypeScript, UPSERT both tables), getOrgBenchmark (cache reader), getOrgBenchmarkHistory (ASC order), getMostRecentSunday (walks back, not date-fns)
+- **Cron route:** `app/api/cron/benchmarks/route.ts` — extended to run both Sprint F city-avg and Sprint 122 percentile computation, schedule updated to "0 6 * * 0"
+- **API route:** `app/api/benchmarks/[orgId]/route.ts` — GET with org membership check, ?weeks param (1-52), returns 200 + insufficient_data:true (never 404)
+- **Dashboard components:** `BenchmarkCard.tsx` (client fetch + percentile headline + edge cases: top 1%, bottom tier), `BenchmarkPercentileBar.tsx` (5 color tiers + reference lines), `BenchmarkTrendChart.tsx` (recharts LineChart, trend direction: last > first → green)
+- **Dashboard page:** Added BenchmarkCard above existing BenchmarkComparisonCard
+- **vercel.json:** Benchmark cron schedule updated from "0 8 * * 0" to "0 6 * * 0"
+- **database.types.ts:** Added benchmark_snapshots + org_benchmark_cache table types
+- **prod_schema.sql:** Added table definitions, constraints, indexes, RLS policies
+- **Golden tenant:** 4 fixtures (MOCK_BENCHMARK_SNAPSHOT, MOCK_ORG_BENCHMARK_RESULT, MOCK_BENCHMARK_HISTORY, MOCK_BENCHMARK_INSUFFICIENT)
+
+**Tests:** 49 Vitest + 5 Playwright E2E:
+- `benchmark-service.test.ts` — 20 tests (normalizeBucketKey 6, computePercentileRank 5, computePercentiles 4, runBenchmarkComputation 5)
+- `benchmark-route.test.ts` — 10 tests (auth 2, insufficient_data 1, data responses 7)
+- `benchmark-cron.test.ts` — 9 tests (auth 2, computation 5, idempotency 2)
+- `benchmark-components.test.tsx` — 10 tests (BenchmarkCard 7, BenchmarkTrendChart 3)
+- `sprint-122-benchmarks.spec.ts` — 5 E2E tests
+
+**AI_RULES:** §156 (Benchmark Comparisons)
+
+---
+
 ## 2026-03-02 — Sprint 121: Correction Follow-up + Settings Expansion (Completed)
 
 **Goal:** When a hallucination is marked corrected, auto-generate a correction brief content draft, track correction effectiveness by re-running the hallucinated query after 14 days, and expand the settings page with notification preferences, AI scan frequency controls, and API key management for white-label Agency orgs.

@@ -2952,3 +2952,50 @@ export const MOCK_ORG_API_KEY = {
   is_active: true,
   created_at: '2026-03-01T10:00:00.000Z',
 };
+
+// ---------------------------------------------------------------------------
+// Sprint 122: Benchmark Comparisons
+// ---------------------------------------------------------------------------
+
+export const MOCK_BENCHMARK_SNAPSHOT = {
+  id: 'snap-001',
+  category_key: 'hookah_lounge',
+  location_key: 'alpharetta_ga',
+  category_label: 'Hookah Lounge',
+  location_label: 'Alpharetta, GA',
+  sample_count: 8,
+  score_median: 52.0,
+  score_p25: 38.0,
+  score_p75: 71.0,
+  score_p90: 85.0,
+  week_of: '2026-03-01',
+  computed_at: '2026-03-01T06:00:00.000Z',
+};
+
+export const MOCK_ORG_BENCHMARK_RESULT = {
+  percentile_rank: 77,
+  org_sov_score: 67,
+  industry_median: 52,
+  top_quartile_threshold: 71,
+  top_10pct_threshold: 85,
+  sample_count: 8,
+  category_label: 'Hookah Lounge',
+  location_label: 'Alpharetta, GA',
+  week_of: '2026-03-01',
+};
+
+export const MOCK_BENCHMARK_HISTORY = [
+  { ...MOCK_ORG_BENCHMARK_RESULT, week_of: '2026-01-12', percentile_rank: 55 },
+  { ...MOCK_ORG_BENCHMARK_RESULT, week_of: '2026-01-19', percentile_rank: 58 },
+  { ...MOCK_ORG_BENCHMARK_RESULT, week_of: '2026-01-26', percentile_rank: 61 },
+  { ...MOCK_ORG_BENCHMARK_RESULT, week_of: '2026-02-02', percentile_rank: 63 },
+  { ...MOCK_ORG_BENCHMARK_RESULT, week_of: '2026-02-09', percentile_rank: 68 },
+  { ...MOCK_ORG_BENCHMARK_RESULT, week_of: '2026-02-16', percentile_rank: 70 },
+  { ...MOCK_ORG_BENCHMARK_RESULT, week_of: '2026-02-23', percentile_rank: 73 },
+  { ...MOCK_ORG_BENCHMARK_RESULT, week_of: '2026-03-01', percentile_rank: 77 },
+];
+
+export const MOCK_BENCHMARK_INSUFFICIENT = {
+  insufficient_data: true,
+  reason: 'no_benchmark_data',
+};
