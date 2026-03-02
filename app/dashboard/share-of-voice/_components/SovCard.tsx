@@ -5,6 +5,7 @@ import { addTargetQuery, runSovEvaluation, deleteTargetQuery, toggleQueryActive 
 import { canRunSovEvaluation } from '@/lib/plan-enforcer';
 import type { SovEngine } from '@/lib/schemas/sov';
 import GenerateBriefButton from './GenerateBriefButton';
+import StreamingSimulatePanel from './StreamingSimulatePanel';
 
 // ---------------------------------------------------------------------------
 // Types (exported so the page Server Component can construct them)
@@ -33,6 +34,10 @@ interface Props {
   plan: string;
   /** Sprint 86: Query IDs that already have a content brief draft */
   briefDraftQueryIds?: string[];
+  /** Sprint 120: Org name for simulation mention detection */
+  orgName?: string;
+  /** Sprint 120: Location city for simulation context */
+  locationCity?: string;
 }
 
 // ---------------------------------------------------------------------------
@@ -198,6 +203,8 @@ function QueryRow({
   onPause,
   isPausePending,
   hasBriefDraft,
+  orgName,
+  locationCity,
 }: {
   query: QueryWithEvals;
   isRunPending: boolean;
@@ -209,6 +216,8 @@ function QueryRow({
   onPause: (queryId: string, isActive: boolean) => void;
   isPausePending: boolean;
   hasBriefDraft: boolean;
+  orgName?: string;
+  locationCity?: string;
 }) {
   // Aggregate competitors across both engines (deduplicated)
   const allCompetitors = Array.from(
@@ -323,6 +332,15 @@ function QueryRow({
           No evaluations yet — click Run to check this query.
         </p>
       )}
+
+      {/* Sprint 120: AI Response Simulation */}
+      <div className="mt-2.5 pl-1">
+        <StreamingSimulatePanel
+          queryText={query.query_text}
+          locationCity={locationCity}
+          orgName={orgName}
+        />
+      </div>
     </div>
   );
 }
@@ -331,7 +349,7 @@ function QueryRow({
 // SovCard
 // ---------------------------------------------------------------------------
 
-export default function SovCard({ locationId, locationLabel, queries, plan, briefDraftQueryIds = [] }: Props) {
+export default function SovCard({ locationId, locationLabel, queries, plan, briefDraftQueryIds = [], orgName, locationCity }: Props) {
   const briefDraftSet = new Set(briefDraftQueryIds);
   const canRun = canRunSovEvaluation(plan as 'trial' | 'starter' | 'growth' | 'agency');
 
@@ -425,6 +443,8 @@ export default function SovCard({ locationId, locationLabel, queries, plan, brie
               onPause={handlePause}
               isPausePending={isPausePending}
               hasBriefDraft={briefDraftSet.has(query.id)}
+              orgName={orgName}
+              locationCity={locationCity}
             />
           ))}
         </div>

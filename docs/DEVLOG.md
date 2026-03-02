@@ -4527,3 +4527,58 @@ npx vitest run                                                    # all — no r
 ```
 
 ---
+
+## Sprint 120 — AI Preview Streaming (SSE) (2026-03-02)
+
+**Objective:** Real-time streaming AI previews for content drafts and SOV query simulation using Server-Sent Events over POST (fetch + ReadableStream, NOT EventSource). Claude Haiku for speed + cost.
+
+**What this sprint delivers:**
+- Reusable SSE library (`lib/streaming/`) with types, chunk formatters, and ReadableStream response builder
+- `useStreamingResponse()` hook: POST-based SSE consumer with line buffering, 50ms flush throttling, AbortController cancellation
+- `StreamingTextDisplay` component: 6 status states (idle/connecting/streaming/complete/error/cancelled), animated blinking cursor
+- `POST /api/content/preview-stream` — SSE route for content preview generation (Haiku, maxDuration 30s)
+- `POST /api/sov/simulate-stream` — SSE route for SOV query simulation (neutral prompt, no org name mention)
+- `StreamingPreviewPanel` wired into DraftEditor (Generate/Stop/Regenerate/Use This Content)
+- `StreamingSimulatePanel` wired into SovCard QueryRow (Simulate/Stop, org mention detection)
+
+### New Files Created
+- `lib/streaming/types.ts` — SSEEventType, SSEChunk, StreamingStatus, StreamingState, UseStreamingOptions, parseSSELine()
+- `lib/streaming/sse-utils.ts` — SSE_HEADERS, formatSSEChunk(), createSSEResponse() (AsyncGenerator → ReadableStream)
+- `lib/streaming/index.ts` — Barrel export
+- `hooks/useStreamingResponse.ts` — fetch + getReader(), SSE line buffering, 50ms flush interval, cancel/reset
+- `components/StreamingTextDisplay.tsx` — Animated streaming text with blinking cursor, whitespace-pre-wrap
+- `app/api/content/preview-stream/route.ts` — POST SSE, auth, Haiku via Vercel AI SDK streamText()
+- `app/api/sov/simulate-stream/route.ts` — POST SSE, auth, neutral prompt, location_city context
+- `app/dashboard/content-drafts/[id]/_components/StreamingPreviewPanel.tsx` — Generate/Stop/Regenerate/Use buttons
+- `app/dashboard/share-of-voice/_components/StreamingSimulatePanel.tsx` — Simulate, org mention indicator
+- `src/__tests__/unit/sse-utils.test.ts` — 12 tests
+- `src/__tests__/unit/streaming-routes.test.ts` — 16 tests
+- `src/__tests__/unit/use-streaming-response.test.ts` — 15 tests
+- `src/__tests__/unit/streaming-text-display.test.tsx` — 8 tests
+- `tests/e2e/sprint-120-streaming.spec.ts` — 8 Playwright E2E tests
+
+### Modified Files
+- `lib/ai/providers.ts` — Added `streaming-preview` and `streaming-sov-simulate` model entries (claude-3-5-haiku-20241022)
+- `app/dashboard/content-drafts/[id]/_components/DraftEditor.tsx` — Imported and wired StreamingPreviewPanel (visible when isEditable && targetPrompt)
+- `app/dashboard/share-of-voice/_components/SovCard.tsx` — Added orgName/locationCity props, wired StreamingSimulatePanel into QueryRow
+- `app/dashboard/share-of-voice/page.tsx` — Fetch org name, pass orgName/locationCity to SovCard
+- `src/__fixtures__/golden-tenant.ts` — 5 new fixtures: MOCK_STREAMING_STATE_IDLE, _STREAMING, _COMPLETE, _ERROR, MOCK_SSE_CHUNKS
+
+### Tests
+- `sse-utils.test.ts` — 12 tests (formatSSEChunk 5, parseSSELine 4, SSE_HEADERS 2, createSSEResponse 1)
+- `streaming-routes.test.ts` — 16 tests (content/preview-stream 8, sov/simulate-stream 8)
+- `use-streaming-response.test.ts` — 15 tests (initial state, connecting, streaming, text accumulation, done, total_tokens, onChunk, onComplete, error chunk, onError, cancel, reset, line buffering, multi-event chunks, 400 response)
+- `streaming-text-display.test.tsx` — 8 tests (idle placeholder, connecting, text render, cursor visible, cursor hidden, error suffix, cancelled suffix, whitespace-pre-wrap)
+- `sprint-120-streaming.spec.ts` — 8 Playwright E2E tests (5 content preview, 3 SOV simulate)
+
+**AI_RULES:** §154 (SSE streaming architecture)
+
+```bash
+npx vitest run src/__tests__/unit/sse-utils.test.ts                 # 12 tests
+npx vitest run src/__tests__/unit/streaming-routes.test.ts          # 16 tests
+npx vitest run src/__tests__/unit/use-streaming-response.test.ts    # 15 tests
+npx vitest run src/__tests__/unit/streaming-text-display.test.tsx   # 8 tests
+npx vitest run                                                       # all — no regressions
+```
+
+---

@@ -12,7 +12,7 @@ LocalVector is an AEO/GEO SaaS platform that helps local businesses monitor and 
 - **Billing:** Stripe webhooks → `organizations.plan_tier` enum (`trial | starter | growth | agency`)
 - **Email:** Resend + React Email (`emails/`)
 - **Cache:** Upstash Redis (`lib/redis.ts`) — optional, all callers must degrade gracefully
-- **Testing:** Vitest (unit/integration in `src/__tests__/`), Playwright (E2E in `tests/e2e/`, 40 specs). Current: 4677 tests, 322 files.
+- **Testing:** Vitest (unit/integration in `src/__tests__/`), Playwright (E2E in `tests/e2e/`, 41 specs). Current: 4728 tests, 326 files.
 - **Monitoring:** Sentry (client, server, edge configs) — all catch blocks instrumented (Sprint A, AI_RULES §70)
 
 ## Architecture Rules
@@ -75,12 +75,17 @@ lib/nap-sync/          — NAP Sync Engine: adapters (GBP/Yelp/Apple Maps/Bing),
 lib/invitations/       — Token-based invitation flow: types, service, email builder (Sprint 112, §146)
 lib/mcp/               — MCP server tool registrations
 lib/whitelabel/            — White-label: domain resolver, theme service, email wrapper, CSS props (Sprint 114-115, §148-§149)
+lib/streaming/             — SSE streaming: types (SSEChunk, StreamingState), sse-utils (createSSEResponse, formatSSEChunk), barrel export (Sprint 120, §154)
+hooks/useStreamingResponse.ts — POST-based SSE consumer: fetch + getReader(), line buffering, 50ms flush, cancel/reset (Sprint 120, §154)
+components/StreamingTextDisplay.tsx — Animated streaming text: 6 status states, blinking cursor, whitespace-pre-wrap (Sprint 120, §154)
+app/api/content/preview-stream/ — SSE content preview generation with Claude Haiku (Sprint 120, §154)
+app/api/sov/simulate-stream/   — SSE SOV query simulation with neutral prompt (Sprint 120, §154)
 lib/supabase/database.types.ts — Full Database type (49 tables, 9 enums, Relationships)
 supabase/migrations/   — Applied SQL migrations (54, timestamp-ordered)
 supabase/prod_schema.sql — Full production schema dump
 docs/                  — 50 spec documents (authoritative for planned features)
 src/__tests__/         — Unit + integration tests
-tests/e2e/             — Playwright E2E tests (40 specs)
+tests/e2e/             — Playwright E2E tests (41 specs)
 app/api/ai-preview/    — AI Answer Preview SSE endpoint (Sprint F, §90)
 app/dashboard/ai-responses/_components/ — AIAnswerPreviewWidget (Sprint F)
 app/dashboard/_components/BenchmarkComparisonCard.tsx — City benchmark comparison (Sprint F, §92)
@@ -620,10 +625,11 @@ APPLE_MAPS_PRIVATE_KEY, APPLE_MAPS_KEY_ID, APPLE_MAPS_TEAM_ID
 | Sprint 117 | Retention & Onboarding + Digest | Complete | — |
 | Sprint 118 | Conversion & Reliability Infrastructure | Complete | — |
 | Sprint 119 | pgvector Semantic Search + Embedding Pipeline | Complete | — |
+| Sprint 120 | AI Preview Streaming (SSE) | Complete | — |
 
 ### Sprints Pending External Approval:
 - Apple Business Connect Sync (originally §57): Submit API request at https://developer.apple.com/business-connect/
 
 ## Build History
 
-See `DEVLOG.md` (project root) and `docs/DEVLOG.md` for the complete sprint-by-sprint build log. Current sprint: 119 (+ FIX-1 through FIX-8 + Sprint A through Sprint O). AI_RULES: §1–§153 (153 sections). Production readiness: all audit issues resolved. **V1 complete.**
+See `DEVLOG.md` (project root) and `docs/DEVLOG.md` for the complete sprint-by-sprint build log. Current sprint: 120 (+ FIX-1 through FIX-8 + Sprint A through Sprint O). AI_RULES: §1–§154 (154 sections). Production readiness: all audit issues resolved. **V1 complete.**

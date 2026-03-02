@@ -136,6 +136,12 @@ export const MODELS = {
   /** Sprint 110: Sandbox AI simulation (Claude Sonnet for content analysis) */
   'sandbox-simulation': anthropic('claude-sonnet-4-20250514'),
 
+  /** Sprint 120: Streaming content preview (Haiku for speed + cost) */
+  'streaming-preview': anthropic('claude-3-5-haiku-20241022'),
+
+  /** Sprint 120: Streaming SOV query simulation (Haiku for speed + cost) */
+  'streaming-sov-simulate': anthropic('claude-3-5-haiku-20241022'),
+
 } as const;
 
 /** Sprint 119: Embedding model — kept separate from MODELS to preserve LanguageModelV1 union */

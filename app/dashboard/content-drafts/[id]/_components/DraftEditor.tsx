@@ -3,6 +3,7 @@
 import { useState, useTransition, useCallback } from 'react';
 import { editDraft, approveDraft, rejectDraft, archiveDraft } from '../../actions';
 import { scoreContentHeuristic } from '@/lib/autopilot/score-content';
+import StreamingPreviewPanel from './StreamingPreviewPanel';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -182,6 +183,18 @@ export default function DraftEditor({
         <div className="text-xs text-slate-500">
           <span className="font-medium">Target query:</span> &ldquo;{targetPrompt}&rdquo;
         </div>
+      )}
+
+      {/* AI Content Preview — Sprint 120 */}
+      {isEditable && targetPrompt && (
+        <StreamingPreviewPanel
+          targetPrompt={targetPrompt}
+          draftTitle={title}
+          onAccept={(previewContent) => {
+            setContent(previewContent);
+            recalcScore(previewContent, title);
+          }}
+        />
       )}
 
       {/* Messages */}

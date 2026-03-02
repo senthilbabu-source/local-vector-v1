@@ -3110,3 +3110,21 @@ Per-org brand configuration with CSS custom property injection, themed emails, b
 * **Tests:** 22 embedding-service + 8 hallucination-dedup + 6 draft-dedup + 10 menu-search-route + 6 embed-backfill-cron = 52 Vitest. 6 Playwright E2E (sprint-119-pgvector.spec.ts).
 
 ---
+
+## §154. AI Preview Streaming — SSE Architecture (Sprint 120)
+
+* **SSE over POST (NOT EventSource):** `EventSource` is GET-only. All streaming endpoints use `POST` with `Content-Type: text/event-stream`. Client consumes via `fetch()` + `response.body.getReader()`.
+* **SSE format:** `data: {JSON}\n\n` per chunk. Types: `text` (content token), `error` (error info), `done` (completion + total_tokens), `metadata` (optional). Library: `lib/streaming/` (types, sse-utils, index).
+* **Server pattern (App Router):** `createSSEResponse(asyncGenerator)` wraps an `AsyncGenerator<SSEChunk>` in `new Response(new ReadableStream({...}), { headers: SSE_HEADERS })`. Headers include `Cache-Control: no-cache`, `Connection: keep-alive`, `X-Accel-Buffering: no` (nginx proxy buffer disable). AbortError from client disconnect is caught silently.
+* **Vercel AI SDK streaming:** Use `streamText()` from `ai` package with `getModel('streaming-preview')` or `getModel('streaming-sov-simulate')`. Consume `result.textStream` async iterable. Model: `claude-3-5-haiku-20241022` for speed + cost. `maxDuration = 30`.
+* **Client hook:** `useStreamingResponse(url, options?)` returns `{ state, start, cancel, reset }`. State: `{ status, text, error, total_tokens }`. Status lifecycle: `idle → connecting → streaming → complete|error|cancelled`.
+* **SSE line buffering:** Chunks from `getReader()` don't align with `\n\n` boundaries. Buffer via `split('\n\n')` and keep `lines.pop()` (last partial line) for next iteration. `parseSSELine()` strips `data: ` prefix and JSON-parses.
+* **State flush throttling:** Don't `setState` on every token — causes React render jank. Buffer text in `useRef`, flush to state every 50ms via `setInterval`. Clear interval on done/error/cancel/unmount.
+* **AbortController cancellation:** `cancel()` calls `abortController.abort()`. Server catches `AbortError` (stream cancelled mid-response) — treat as non-error. Client catches `AbortError` → sets `status: 'cancelled'`.
+* **StreamingTextDisplay:** 6 visual states: idle (placeholder text), connecting (animated dots), streaming (text + blinking cursor via CSS `step-end` animation), complete (text only), error (text + red "(Error)"), cancelled (text + grey "(Cancelled)"). `data-testid="streaming-text-display"`, `streaming-cursor`, `streaming-placeholder`.
+* **Content preview route:** `POST /api/content/preview-stream` — requires `target_prompt` (max 500 chars), optional `current_content` + `tone`. System prompt: "write restaurant/hospitality marketing content". Auth via `getSafeAuthContext()`.
+* **SOV simulate route:** `POST /api/sov/simulate-stream` — requires `query_text` (max 300 chars), optional `location_city`. **Neutral system prompt** (does NOT mention org name) — measures organic AI visibility. Org mention detection is client-side post-completion: `text.toLowerCase().includes(orgName.toLowerCase())`.
+* **Panel integration:** `StreamingPreviewPanel` in DraftEditor (visible when `isEditable && targetPrompt`), `StreamingSimulatePanel` in SovCard QueryRow. Both use `useStreamingResponse` hook.
+* **Tests:** 12 sse-utils + 16 streaming-routes + 15 use-streaming-response + 8 streaming-text-display = 51 Vitest. 8 Playwright E2E.
+
+---

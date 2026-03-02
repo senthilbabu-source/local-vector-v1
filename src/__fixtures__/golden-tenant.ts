@@ -2853,3 +2853,45 @@ export const MOCK_BACKFILL_RESULT = {
   },
   duration_ms: 4200,
 };
+
+// ---------------------------------------------------------------------------
+// Sprint 120 — SSE Streaming fixtures
+// ---------------------------------------------------------------------------
+
+import type { StreamingState, SSEChunk } from '@/lib/streaming/types';
+
+export const MOCK_STREAMING_STATE_IDLE: StreamingState = {
+  status: 'idle',
+  text: '',
+  error: null,
+  total_tokens: null,
+};
+
+export const MOCK_STREAMING_STATE_STREAMING: StreamingState = {
+  status: 'streaming',
+  text: 'Charcoal N Chill is a premium hookah lounge and Indo-American fusion restaurant',
+  error: null,
+  total_tokens: null,
+};
+
+export const MOCK_STREAMING_STATE_COMPLETE: StreamingState = {
+  status: 'complete',
+  text: 'Charcoal N Chill is a premium hookah lounge and Indo-American fusion restaurant in Alpharetta, Georgia. Known for their extensive hookah menu with over 50 flavors, live entertainment including belly dancing, and late-night hours until 2 AM on weekends.',
+  error: null,
+  total_tokens: 142,
+};
+
+export const MOCK_STREAMING_STATE_ERROR: StreamingState = {
+  status: 'error',
+  text: '',
+  error: 'stream_error',
+  total_tokens: null,
+};
+
+export const MOCK_SSE_CHUNKS: SSEChunk[] = [
+  { type: 'metadata', metadata: { model: 'claude-3-5-haiku-20241022' } },
+  { type: 'text', text: 'Charcoal N Chill' },
+  { type: 'text', text: ' is a premium' },
+  { type: 'text', text: ' hookah lounge' },
+  { type: 'done', total_tokens: 42 },
+];

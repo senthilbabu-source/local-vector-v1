@@ -100,10 +100,10 @@ async function fetchPageData(orgId: string) {
         .order('created_at', { ascending: false })
         .limit(5),
 
-      // Org plan for feature gating
+      // Org plan for feature gating + name for Sprint 120 simulation
       supabase
         .from('organizations')
-        .select('plan')
+        .select('plan, name')
         .eq('id', orgId)
         .single(),
 
@@ -137,6 +137,7 @@ async function fetchPageData(orgId: string) {
     visibilitySnapshots: (visResult.data as VisibilityRow[]) ?? [],
     firstMoverOpps: (firstMoverResult.data as FirstMoverRow[]) ?? [],
     plan: (orgResult.data?.plan as string) ?? 'trial',
+    orgName: (orgResult.data?.name as string) ?? '',
     briefDraftTriggerIds,
     pausedCount: pausedCountResult.count ?? 0,
   };
@@ -156,7 +157,7 @@ export default async function ShareOfVoicePage() {
   const badgeSupa = await createClient();
   await markSectionSeen(badgeSupa, ctx.orgId, ctx.userId, 'visibility');
 
-  const { locations, queries, evaluations, visibilitySnapshots, firstMoverOpps, plan, briefDraftTriggerIds, pausedCount } =
+  const { locations, queries, evaluations, visibilitySnapshots, firstMoverOpps, plan, orgName, briefDraftTriggerIds, pausedCount } =
     await fetchPageData(ctx.orgId);
 
   // ── Derive SOV metrics from visibility_analytics ─────────────────────────
@@ -414,6 +415,8 @@ export default async function ShareOfVoicePage() {
                   queries={queriesWithEvals}
                   plan={plan}
                   briefDraftQueryIds={[...briefDraftTriggerIds]}
+                  orgName={orgName}
+                  locationCity={location.city ? `${location.city}, ${location.state}` : undefined}
                 />
               );
             })}
