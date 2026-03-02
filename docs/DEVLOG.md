@@ -4,6 +4,50 @@
 
 ---
 
+## 2026-03-01 — Sprint 115: White-Label Theming + Emails (Completed)
+
+**Goal:** Build per-org visual theming (logo, colors, fonts, "powered by" toggle) stored in `org_themes`, inject CSS custom properties at root layout for branded experiences, wrap emails in org branding, and provide a visual theme editor for Agency plan customers.
+
+**Key Decision:** CSS custom properties (`--brand-primary`, `--brand-accent`, `--brand-text-on-primary`, `--brand-font-family`) injected on `<html style>` in root layout when accessed via subdomain/custom domain (OrgContext present). No arbitrary CSS — only validated hex colors and whitelisted Google Fonts. `text_on_primary` auto-computed via WCAG 2.1 relative luminance formula, never accepted from client. Logo stored in Supabase Storage `org-logos` bucket with 2MB limit.
+
+**Changes:**
+- **Migration:** `20260319000001_org_themes.sql` — creates `org_themes` table (hex CHECK constraints, `font_family` CHECK against 10-font allowlist), RLS (members SELECT, owner INSERT/UPDATE/DELETE, service_role full), `org-logos` storage bucket (public read, 2MB limit, image MIME types), storage RLS policies
+- **Types:** `lib/whitelabel/types.ts` — `FontFamily` (10-value union), `GOOGLE_FONT_FAMILIES`, `buildGoogleFontUrl()`, `OrgTheme`, `OrgThemeSave`, `ThemeCssProps`, `DEFAULT_THEME` (indigo/violet, Inter, show_powered_by=true)
+- **Pure utilities:** `lib/whitelabel/theme-utils.ts` — `validateHexColor()`, `sanitizeHexColor()`, `computeTextOnPrimary()` (WCAG luminance), `buildThemeCssProps()`, `cssPropsToStyleString()`, `cssPropsToObject()`, `lightenColor()`, `buildLogoStoragePath()`, `isValidFontFamily()`
+- **Theme service:** `lib/whitelabel/theme-service.ts` — `getOrgTheme()`, `getOrgThemeOrDefault()` (never null), `upsertOrgTheme()` (validates + auto-computes text_on_primary), `updateLogoUrl()`, `removeLogo()`, `ThemeError` class (code: invalid_color/invalid_font/not_found/update_failed)
+- **Email wrapper:** `lib/whitelabel/email-theme-wrapper.ts` — `buildThemedEmailWrapper()` (pure, wraps HTML body with branded header/footer)
+- **Plan gate:** `canCustomizeTheme()` in `lib/plan-enforcer.ts` — Agency only
+- **API routes:** `GET/POST /api/whitelabel/theme` (GET returns upgrade_required for non-Agency, POST validates + upserts), `POST/DELETE /api/whitelabel/theme/logo` (upload with MIME/size validation, idempotent delete)
+- **Root layout:** `app/layout.tsx` — async, reads OrgContext → fetches theme via service role → injects CSS props on `<html style>` + conditional Google Fonts `<link>`
+- **Branded login:** `app/login/[slug]/page.tsx` (server) + `BrandedLoginForm.tsx` (client) — org-branded email+password only, no registration
+- **Dashboard footer:** `app/dashboard/_components/DashboardFooter.tsx` — server component, show/hide "Powered by LocalVector" based on theme, wired into `app/dashboard/layout.tsx`
+- **Theme editor:** `app/dashboard/settings/theme/page.tsx` (server, plan gate) + 4 client components: `ThemeEditorForm.tsx` (color pickers + hex inputs, font dropdown, dirty state), `ThemePreview.tsx` (live preview), `LogoUploader.tsx` (upload/remove), `PoweredByToggle.tsx` (immediate save on toggle)
+- **Email branding:** `emails/InvitationEmail.tsx` — optional `theme` prop for branded header/CTA/footer. `lib/invitations/invitation-email.ts` — `InvitationEmailTheme` interface. `app/api/team/invitations/route.ts` — fetches org theme before sending
+- **Barrel:** `lib/whitelabel/index.ts` — all Sprint 115 exports
+- **Schema:** `supabase/prod_schema.sql` — `org_themes` table + RLS
+- **Types:** `lib/supabase/database.types.ts` — `org_themes` table type
+- **Seed:** `supabase/seed.sql` Section 24 — theme seed for golden tenant (deep navy #1a1a2e + red accent #e94560, Poppins font)
+- **Fixtures:** `src/__fixtures__/golden-tenant.ts` — 4 theme fixtures (MOCK_ORG_THEME, MOCK_ORG_THEME_WITH_LOGO, MOCK_THEME_CSS_PROPS, MOCK_ORG_THEME_DEFAULT)
+- **Sidebar:** Added "Theme" nav item (Palette icon) in Admin group
+
+**Tests:** 76 unit tests + 9 E2E tests:
+- `theme-utils.test.ts` — 27 tests (validateHexColor 5, sanitizeHexColor 4, computeTextOnPrimary 5, buildThemeCssProps 3, cssPropsToStyleString 2, cssPropsToObject 2, lightenColor 3, buildLogoStoragePath 2, isValidFontFamily 1)
+- `email-theme-wrapper.test.ts` — 11 tests (subject prefix 2, logo inclusion 2, colors 2, powered-by 2, text fallback 2, empty theme 1)
+- `theme-service.test.ts` — 16 tests (getOrgTheme 2, getOrgThemeOrDefault 3, upsertOrgTheme 6, updateLogoUrl 2, removeLogo 3)
+- `theme-routes.test.ts` — 22 tests (GET theme 5, POST theme 8, POST logo 5, DELETE logo 4)
+- `theme-settings.spec.ts` — 9 Playwright E2E tests (agency/non-agency views, color pickers, font dropdown, logo upload/remove, powered-by toggle, preview, save/cancel)
+
+**AI_RULES:** §149 (White-Label Theming — CSS custom properties, WCAG text contrast, font allowlist, email wrapper, logo storage)
+
+```bash
+npx vitest run src/__tests__/unit/theme-utils.test.ts          # 27 tests
+npx vitest run src/__tests__/unit/email-theme-wrapper.test.ts  # 11 tests
+npx vitest run src/__tests__/unit/theme-service.test.ts        # 16 tests
+npx vitest run src/__tests__/unit/theme-routes.test.ts         # 22 tests
+```
+
+---
+
 ## 2026-03-01 — Sprint 114: White-Label Domains + Routing (Completed)
 
 **Goal:** Build per-org custom domain + subdomain infrastructure so Agency plan customers can serve LocalVector under their own domain, with edge middleware hostname resolution and DNS verification.

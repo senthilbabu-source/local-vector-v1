@@ -3256,6 +3256,30 @@ CREATE INDEX IF NOT EXISTS idx_org_domains_domain_value
 CREATE INDEX IF NOT EXISTS idx_org_domains_org_id
   ON public.org_domains (org_id);
 
+-- ══════════════════════════════════════════════════════════════════════════════
+-- Sprint 115 — org_themes: Per-org brand theme config for white-label
+-- ══════════════════════════════════════════════════════════════════════════════
+
+CREATE TABLE IF NOT EXISTS public.org_themes (
+  id                    uuid          PRIMARY KEY DEFAULT gen_random_uuid(),
+  org_id                uuid          NOT NULL UNIQUE
+                                      REFERENCES public.organizations(id) ON DELETE CASCADE,
+  primary_color         text          NOT NULL DEFAULT '#6366f1'
+                                      CHECK (primary_color ~ '^#[0-9a-fA-F]{6}$'),
+  accent_color          text          NOT NULL DEFAULT '#8b5cf6'
+                                      CHECK (accent_color ~ '^#[0-9a-fA-F]{6}$'),
+  text_on_primary       text          NOT NULL DEFAULT '#ffffff'
+                                      CHECK (text_on_primary IN ('#ffffff', '#000000')),
+  font_family           text          NOT NULL DEFAULT 'Inter',
+  logo_url              text,
+  logo_storage_path     text,
+  show_powered_by       boolean       NOT NULL DEFAULT true,
+  created_at            timestamptz   NOT NULL DEFAULT NOW(),
+  updated_at            timestamptz   NOT NULL DEFAULT NOW()
+);
+
+ALTER TABLE public.org_themes ENABLE ROW LEVEL SECURITY;
+
 
 
 

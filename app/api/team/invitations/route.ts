@@ -23,6 +23,7 @@ import { sendInvitationEmail } from '@/lib/email';
 import { MembershipError } from '@/lib/membership/membership-service';
 import type { MemberRole } from '@/lib/membership/types';
 import type { PlanTier } from '@/lib/plan-enforcer';
+import { getOrgTheme } from '@/lib/whitelabel/theme-service';
 import * as Sentry from '@sentry/nextjs';
 
 export const dynamic = 'force-dynamic';
@@ -143,9 +144,18 @@ export async function POST(req: NextRequest) {
       org?.name ?? 'your organization'
     );
 
+    // Sprint 115: Fetch org theme for branded email
+    const orgTheme = await getOrgTheme(supabase, ctx.orgId);
+    const emailTheme = orgTheme ? {
+      primary_color: orgTheme.primary_color,
+      text_on_primary: orgTheme.text_on_primary,
+      logo_url: orgTheme.logo_url,
+      show_powered_by: orgTheme.show_powered_by,
+    } : undefined;
+
     let emailWarning: string | undefined;
     try {
-      await sendInvitationEmail({ ...emailProps, to: email, subject });
+      await sendInvitationEmail({ ...emailProps, to: email, subject, theme: emailTheme });
     } catch (emailErr) {
       Sentry.captureException(emailErr, { tags: { sprint: '112', action: 'sendInviteEmail' } });
       emailWarning = 'Invitation created but email failed to send.';

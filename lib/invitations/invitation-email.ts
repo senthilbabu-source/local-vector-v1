@@ -33,6 +33,14 @@ export interface InvitationEmailParams {
   expiresAt: string; // ISO string
 }
 
+// Sprint 115: Theme shape for branded emails
+export interface InvitationEmailTheme {
+  primary_color: string;
+  text_on_primary: string;
+  logo_url: string | null;
+  show_powered_by: boolean;
+}
+
 export interface InvitationEmailProps {
   inviterName: string;
   orgName: string;
@@ -40,6 +48,7 @@ export interface InvitationEmailProps {
   roleDescription: string;
   inviteUrl: string;
   expiresIn: string;
+  theme?: InvitationEmailTheme;
 }
 
 /**

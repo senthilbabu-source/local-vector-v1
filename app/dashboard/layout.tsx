@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server';
 import DashboardShell from '@/components/layout/DashboardShell';
 import { resolveActiveLocation } from '@/lib/location/active-location';
 import { getSidebarBadgeCounts, formatBadgeCount } from '@/lib/badges/badge-counts';
+import DashboardFooter from './_components/DashboardFooter';
 import * as Sentry from '@sentry/nextjs';
 
 // Sprint D: Credits meter type
@@ -161,6 +162,7 @@ export default async function DashboardLayout({
       orgIndustry={orgIndustry}
     >
       {children}
+      <DashboardFooter />
     </DashboardShell>
   );
 }

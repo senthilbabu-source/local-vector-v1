@@ -22,6 +22,7 @@ import { MembershipError } from '@/lib/membership/membership-service';
 import { logInviteSent, logInviteAccepted, logInviteRevoked } from '@/lib/billing/activity-log-service';
 import { syncSeatsToStripe } from '@/lib/billing/seat-billing-service';
 import type { MemberRole } from '@/lib/membership/types';
+import { getOrgTheme } from '@/lib/whitelabel/theme-service';
 import * as Sentry from '@sentry/nextjs';
 
 // ---------------------------------------------------------------------------

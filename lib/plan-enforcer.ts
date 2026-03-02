@@ -230,6 +230,15 @@ export function canRunSandbox(plan: PlanTier): boolean {
   return plan === 'growth' || plan === 'agency';
 }
 
+/**
+ * White-Label Theme Customization — per-org brand config (Sprint 115).
+ * Agency orgs can set custom colors, fonts, logo, and "powered by" toggle.
+ * All other tiers see default LocalVector branding.
+ */
+export function canCustomizeTheme(plan: PlanTier): boolean {
+  return plan === 'agency';
+}
+
 // ---------------------------------------------------------------------------
 // Sprint 111 — Org Membership Foundation
 // ---------------------------------------------------------------------------

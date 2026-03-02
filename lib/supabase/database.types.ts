@@ -3083,6 +3083,56 @@ export type Database = {
           },
         ];
       };
+      org_themes: {
+        Row: {
+          id: string;
+          org_id: string;
+          primary_color: string;
+          accent_color: string;
+          text_on_primary: string;
+          font_family: string;
+          logo_url: string | null;
+          logo_storage_path: string | null;
+          show_powered_by: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          org_id: string;
+          primary_color?: string;
+          accent_color?: string;
+          text_on_primary?: string;
+          font_family?: string;
+          logo_url?: string | null;
+          logo_storage_path?: string | null;
+          show_powered_by?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          org_id?: string;
+          primary_color?: string;
+          accent_color?: string;
+          text_on_primary?: string;
+          font_family?: string;
+          logo_url?: string | null;
+          logo_storage_path?: string | null;
+          show_powered_by?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "org_themes_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: true;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       activity_log: {
         Row: {
           id: string;

@@ -3009,3 +3009,26 @@ Per-org custom domain + subdomain infrastructure via `lib/whitelabel/`.
 * **Migration:** `20260318000002_org_domains.sql`.
 
 ---
+
+## §149. White-Label Theming + Emails (Sprint 115)
+
+Per-org brand configuration with CSS custom property injection, themed emails, branded login page.
+
+* **`org_themes` table:** One row per org (UNIQUE org_id). Colors validated as hex `^#[0-9a-fA-F]{6}$`. `text_on_primary` auto-computed via WCAG luminance formula, never accepted from client. RLS: members read, owner insert/update, service role full access.
+* **Supabase Storage bucket:** `org-logos` — public read, org owner upload/delete. 2MB max. Allowed MIME: png, jpeg, webp, svg+xml. Path pattern: `{org_id}/logo.{ext}`.
+* **Theme service:** `lib/whitelabel/theme-service.ts` — `getOrgTheme()`, `getOrgThemeOrDefault()` (never null), `upsertOrgTheme()` (validates + computes text_on_primary), `updateLogoUrl()`, `removeLogo()`. All pure — caller passes Supabase client.
+* **Theme utilities:** `lib/whitelabel/theme-utils.ts` — `validateHexColor()`, `sanitizeHexColor()`, `computeTextOnPrimary()` (WCAG 2.1), `buildThemeCssProps()`, `cssPropsToObject()`, `buildLogoStoragePath()`, `isValidFontFamily()`. Zero API calls.
+* **CSS custom properties:** `--brand-primary`, `--brand-accent`, `--brand-text-on-primary`, `--brand-font-family`. Injected into `<html>` via `app/layout.tsx` when OrgContext present. Only via subdomain/custom domain — direct access uses LocalVector defaults.
+* **Google Fonts only:** 10 whitelisted font families in `GOOGLE_FONT_FAMILIES`. No custom font file uploads. `buildGoogleFontUrl()` returns null for Inter (already loaded).
+* **NO arbitrary CSS injection** — only validated hex colors and whitelisted fonts. XSS prevention requirement.
+* **Email theme wrapper:** `lib/whitelabel/email-theme-wrapper.ts` — `buildThemedEmailWrapper()` pure function wrapping email body with org logo, colors, powered-by footer.
+* **`InvitationEmail.tsx` updated:** Optional `theme` prop for logo, primary_color, text_on_primary, show_powered_by. Falls back to LocalVector defaults when null.
+* **Branded login page:** `/login/[slug]` — resolves org by slug, applies theme, shows email+password only (no registration, invite-only). Redirects to `/login` if slug not found.
+* **Theme editor:** `/dashboard/settings/theme` — Agency plan gate, two-column layout with live preview. Color picker + hex input synced. Font dropdown. Logo upload. Powered-by toggle saves immediately.
+* **Dashboard footer:** `DashboardFooter.tsx` server component — reads OrgContext, shows/hides "Powered by LocalVector" based on `show_powered_by`.
+* **Plan gate:** `canCustomizeTheme()` — Agency only. Non-Agency users see upgrade prompt.
+* **API routes:** `GET/POST /api/whitelabel/theme` (owner + Agency for POST), `POST/DELETE /api/whitelabel/theme/logo` (owner + Agency).
+* **Migration:** `20260319000001_org_themes.sql`.
+* **Tests:** 27 theme-utils + 11 email-wrapper + 16 theme-service + 22 theme-routes = 76 Vitest + 9 Playwright.
+
+---

@@ -9,7 +9,16 @@ import {
   Hr,
   Heading,
   Preview,
+  Img,
 } from '@react-email/components';
+
+// Sprint 115: Theme prop for org branding
+interface InvitationEmailTheme {
+  primary_color: string;
+  text_on_primary: string;
+  logo_url: string | null;
+  show_powered_by: boolean;
+}
 
 interface InvitationEmailProps {
   inviterName: string;
@@ -18,6 +27,7 @@ interface InvitationEmailProps {
   roleDescription: string;
   inviteUrl: string;
   expiresIn: string;
+  theme?: InvitationEmailTheme | null;
 }
 
 export default function InvitationEmail({
@@ -27,8 +37,13 @@ export default function InvitationEmail({
   roleDescription = 'You can view dashboards, reports, and download exports.',
   inviteUrl = 'https://app.localvector.ai/invite/token',
   expiresIn = 'in 7 days',
+  theme = null,
 }: InvitationEmailProps) {
   const subject = `${inviterName} invited you to join ${orgName} on LocalVector`;
+  const brandPrimary = theme?.primary_color ?? '#6366f1';
+  const brandTextOnPrimary = theme?.text_on_primary ?? '#ffffff';
+  const brandLogoUrl = theme?.logo_url ?? null;
+  const showPoweredBy = theme?.show_powered_by !== false;
 
   return (
     <Html>
@@ -36,10 +51,23 @@ export default function InvitationEmail({
       <Preview>{subject}</Preview>
       <Body style={main}>
         <Container style={container}>
-          {/* Header */}
-          <Section style={header}>
-            <Heading style={h1}>You&apos;re Invited</Heading>
-            <Text style={subtitle}>Join {orgName} on LocalVector</Text>
+          {/* Sprint 115: Org logo */}
+          {brandLogoUrl && (
+            <Section style={{ textAlign: 'center' as const, margin: '0 0 16px' }}>
+              <Img
+                src={brandLogoUrl}
+                alt={orgName}
+                width={150}
+                height={60}
+                style={{ maxWidth: '150px', maxHeight: '60px', objectFit: 'contain' as const, margin: '0 auto' }}
+              />
+            </Section>
+          )}
+
+          {/* Header — Sprint 115: use brand colors */}
+          <Section style={{ ...header, backgroundColor: brandPrimary, borderRadius: '8px', padding: '20px' }}>
+            <Heading style={{ ...h1, color: brandTextOnPrimary }}>You&apos;re Invited</Heading>
+            <Text style={{ ...subtitle, color: brandTextOnPrimary, opacity: 0.8 }}>Join {orgName}</Text>
           </Section>
 
           {/* Invitation details */}
@@ -51,16 +79,16 @@ export default function InvitationEmail({
             <Text style={roleText}>{roleDescription}</Text>
           </Section>
 
-          {/* Role badge */}
+          {/* Role badge — Sprint 115: use brand color */}
           <Section style={badgeSection}>
-            <Text style={roleBadge}>{role}</Text>
+            <Text style={{ ...roleBadge, backgroundColor: brandPrimary, color: brandTextOnPrimary }}>{role}</Text>
           </Section>
 
           <Hr style={divider} />
 
-          {/* CTA */}
+          {/* CTA — Sprint 115: use brand color */}
           <Section style={ctaSection}>
-            <Link href={inviteUrl} style={primaryCta}>
+            <Link href={inviteUrl} style={{ ...primaryCta, backgroundColor: brandPrimary, color: brandTextOnPrimary }}>
               Accept Invitation
             </Link>
           </Section>
@@ -74,11 +102,17 @@ export default function InvitationEmail({
 
           <Hr style={divider} />
 
-          {/* Footer */}
+          {/* Footer — Sprint 115: respect show_powered_by */}
           <Section style={footer}>
-            <Text style={footerText}>
-              LocalVector — AI Visibility for Local Businesses
-            </Text>
+            {showPoweredBy ? (
+              <Text style={footerText}>
+                Powered by LocalVector — AI Visibility for Local Businesses
+              </Text>
+            ) : (
+              <Text style={footerText}>
+                {orgName}
+              </Text>
+            )}
             <Text style={footerTextLight}>
               If you weren&apos;t expecting this invitation, you can safely ignore
               this email.

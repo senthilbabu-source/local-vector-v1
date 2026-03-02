@@ -2528,4 +2528,30 @@ BEGIN
     'unverified'
   ) ON CONFLICT (org_id, domain_type) DO NOTHING;
 
+  -- ══════════════════════════════════════════════════════════════════════════
+  -- Section 24: Sprint 115 — Org Theme seed data
+  -- Brand theme for Charcoal N Chill: deep navy + red accent, Poppins font.
+  -- ══════════════════════════════════════════════════════════════════════════
+
+  INSERT INTO public.org_themes (
+    org_id,
+    primary_color,
+    accent_color,
+    text_on_primary,
+    font_family,
+    logo_url,
+    logo_storage_path,
+    show_powered_by
+  ) VALUES (
+    v_org_id,
+    '#1a1a2e',
+    '#e94560',
+    '#ffffff',
+    'Poppins',
+    NULL,
+    NULL,
+    true
+  )
+  ON CONFLICT (org_id) DO NOTHING;
+
 END $$;

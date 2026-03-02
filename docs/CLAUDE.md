@@ -12,7 +12,7 @@ LocalVector is an AEO/GEO SaaS platform that helps local businesses monitor and 
 - **Billing:** Stripe webhooks → `organizations.plan_tier` enum (`trial | starter | growth | agency`)
 - **Email:** Resend + React Email (`emails/`)
 - **Cache:** Upstash Redis (`lib/redis.ts`) — optional, all callers must degrade gracefully
-- **Testing:** Vitest (unit/integration in `src/__tests__/`), Playwright (E2E in `tests/e2e/`, 31 specs). Current: 4254 tests, 292 files.
+- **Testing:** Vitest (unit/integration in `src/__tests__/`), Playwright (E2E in `tests/e2e/`, 40 specs). Current: 4454 tests, 303 files.
 - **Monitoring:** Sentry (client, server, edge configs) — all catch blocks instrumented (Sprint A, AI_RULES §70)
 
 ## Architecture Rules
@@ -74,12 +74,13 @@ lib/admin/format-relative-date.ts — Intl.RelativeTimeFormat utility for admin 
 lib/nap-sync/          — NAP Sync Engine: adapters (GBP/Yelp/Apple Maps/Bing), discrepancy detector, health score, push corrections, orchestrator (Sprint 105, §124-§126)
 lib/invitations/       — Token-based invitation flow: types, service, email builder (Sprint 112, §146)
 lib/mcp/               — MCP server tool registrations
-lib/supabase/database.types.ts — Full Database type (36 tables, 9 enums, Relationships)
-supabase/migrations/   — Applied SQL migrations (44, timestamp-ordered)
+lib/whitelabel/            — White-label: domain resolver, theme service, email wrapper, CSS props (Sprint 114-115, §148-§149)
+lib/supabase/database.types.ts — Full Database type (49 tables, 9 enums, Relationships)
+supabase/migrations/   — Applied SQL migrations (54, timestamp-ordered)
 supabase/prod_schema.sql — Full production schema dump
 docs/                  — 50 spec documents (authoritative for planned features)
 src/__tests__/         — Unit + integration tests
-tests/e2e/             — Playwright E2E tests (30 specs)
+tests/e2e/             — Playwright E2E tests (40 specs)
 app/api/ai-preview/    — AI Answer Preview SSE endpoint (Sprint F, §90)
 app/dashboard/ai-responses/_components/ — AIAnswerPreviewWidget (Sprint F)
 app/dashboard/_components/BenchmarkComparisonCard.tsx — City benchmark comparison (Sprint F, §92)
@@ -113,6 +114,9 @@ app/dashboard/_components/BenchmarkComparisonCard.tsx — City benchmark compari
 | `listing_snapshots` | Raw NAP data captured from each platform per sync run. Historical record. Org RLS via memberships join. (Sprint 105) |
 | `nap_discrepancies` | Structured discrepancy records with severity, auto_correctable flag, fix instructions, discrepant_fields JSONB. Org RLS via memberships join. (Sprint 105) |
 | `post_publish_audits` | Autopilot post-publish audit trail: draft_id, target_query, baseline/post_publish scores, improvement_delta. Org RLS. (Sprint 86) |
+| `activity_log` | Append-only audit trail — 7 event types (member_invited/accepted/removed, invite_revoked, seat_sync, role_changed, settings_updated). INSERT-only RLS for service_role, SELECT for org members. (Sprint 113) |
+| `org_domains` | Per-org custom domain + subdomain config. UNIQUE(org_id, domain_type). Verified domain index for O(1) hot-path lookup. RLS: members read, owner write. (Sprint 114) |
+| `org_themes` | Per-org visual branding — primary/accent colors (hex CHECK), font_family (10-font allowlist), logo_url, show_powered_by. text_on_primary auto-computed via WCAG luminance. RLS: members read, owner write. (Sprint 115) |
 
 ## Current Migrations (Applied)
 
@@ -160,6 +164,16 @@ app/dashboard/_components/BenchmarkComparisonCard.tsx — City benchmark compari
 42. `20260310000001_sprint_n_settings.sql` — `scan_day_of_week integer`, `notify_score_drop_alert boolean`, `notify_new_competitor boolean` on `organizations` (Sprint N)
 43. `20260311000001_nap_sync_engine.sql` — `listing_platform_ids`, `listing_snapshots`, `nap_discrepancies` tables + `nap_health_score`/`nap_last_checked_at` columns on `locations` (Sprint 105)
 44. `20260314000001_autopilot_triggers.sql` — Extends `content_drafts` CHECK constraint (`review_gap`, `schema_gap`), adds `target_keywords`/`rejection_reason`/`generation_notes` to `content_drafts`, `autopilot_last_run_at`/`drafts_pending_count` to `locations`, creates `post_publish_audits` table (Sprint 86)
+45. `20260312000001_schema_expansion.sql` — `generated_schemas` table + `schema_health_score`/`schema_last_run_at`/`website_slug` on locations (Sprint 106)
+46. `20260313000001_review_engine.sql` — `brand_voice_profiles` + `reviews` tables + location/token columns (Sprint 107)
+47. `20260315000001_semantic_authority.sql` — `entity_authority_citations`/`profiles`/`snapshots` + `authority_score`/`authority_last_run_at` on locations (Sprint 108)
+48. `20260316000001_vaio.sql` — `vaio_profiles` table + `voice_readiness_score`/`vaio_last_run_at` on locations (Sprint 109)
+49. `20260317000001_sandbox.sql` — `simulation_runs` table + `last_simulation_score`/`simulation_last_run_at` on locations (Sprint 110)
+50. `20260318000001_org_membership_foundation.sql` — `analyst` role in `membership_role` enum + `seat_count` trigger on organizations (Sprint 111)
+51. `20260301000002_multi_user_foundation.sql` — `pending_invitations` table + `invited_by`/`joined_at` on memberships (Sprint 112)
+52. `20260315000001_activity_log.sql` — `activity_log` table + `stripe_subscription_item_id`/`seat_overage_flagged` on organizations (Sprint 113)
+53. `20260318000002_org_domains.sql` — `org_domains` table + indexes + RLS + subdomain seed (Sprint 114)
+54. `20260319000001_org_themes.sql` — `org_themes` table + `org-logos` storage bucket + RLS (Sprint 115)
 
 ## Testing Commands
 
@@ -510,7 +524,7 @@ APPLE_MAPS_PRIVATE_KEY, APPLE_MAPS_KEY_ID, APPLE_MAPS_TEAM_ID
 - **Existing table reused:** `pending_invitations` — no migration needed.
 - AI_RULES: §146 (Team Invitations).
 - Tests: 61 Vitest (invitation-service 28, invitation-routes 26, invitation-email 7).
-- Result: 292 test files, 4254 tests pass. No migration.
+- Result: 303 test files, 4454 tests pass. No migration.
 
 ### Sprint 113 — Seat-Based Billing + Audit Log (2026-03-01)
 - **Migration:** `20260315000001_activity_log.sql` — `activity_log` table (append-only, 7 event types), `stripe_subscription_item_id` + `seat_overage_flagged` on organizations.
@@ -522,6 +536,30 @@ APPLE_MAPS_PRIVATE_KEY, APPLE_MAPS_KEY_ID, APPLE_MAPS_TEAM_ID
 - AI_RULES: §147 (Seat-Based Billing + Audit Log).
 - Tests: 59 Vitest (seat-billing-service 21, activity-log-service 20, billing-routes 18) + 7 E2E.
 - Result: 295 test files, 4313 tests pass. 1 migration.
+
+### Sprint 114 — White-Label Domains + Routing (2026-03-01)
+- **Migration:** `20260318000002_org_domains.sql` — `org_domains` table (UNIQUE org_id+domain_type), 3 indexes, RLS (members read, owner write, service_role full), seeds subdomain rows for existing orgs.
+- **Domain modules:** `lib/whitelabel/` — types (OrgContext, OrgDomain, DomainConfig, VerificationStatus), domain-service (generateOrgSlug, getDomainConfig, upsertCustomDomain, removeCustomDomain), domain-resolver (extractSubdomain, resolveOrgFromHostname — Redis cache 5min TTL), dns-verifier (Cloudflare DoH, TXT record verification), get-org-context-from-headers.
+- **Middleware:** `proxy.ts` — hostname→org resolution, sets 5 `x-org-*` headers on response.
+- **API routes:** `GET/POST/DELETE /api/whitelabel/domain` (owner + Agency), `POST /api/whitelabel/domain/verify` (DNS check + cache invalidation).
+- **Dashboard:** `app/dashboard/settings/domain/` — DomainConfigForm, DnsInstructions, VerificationStatus components.
+- AI_RULES: §148 (White-Label Domain Routing).
+- Tests: 65 Vitest (domain-service 22, domain-resolver 14, dns-verifier 8, domain-routes 21) + 7 E2E.
+- Result: 299 test files, 4378 tests pass. 1 migration.
+
+### Sprint 115 — White-Label Theming + Emails (2026-03-01)
+- **Migration:** `20260319000001_org_themes.sql` — `org_themes` table (hex CHECK constraints, 10-font allowlist), RLS (members read, owner write), `org-logos` storage bucket (public read, 2MB limit).
+- **Theme modules:** `lib/whitelabel/` (added to existing barrel) — theme-utils (validateHexColor, computeTextOnPrimary WCAG, buildThemeCssProps, lightenColor), theme-service (getOrgTheme, getOrgThemeOrDefault, upsertOrgTheme, updateLogoUrl, removeLogo, ThemeError), email-theme-wrapper (buildThemedEmailWrapper — pure).
+- **CSS injection:** `app/layout.tsx` — async, reads OrgContext → fetches theme via service role → injects `--brand-primary/accent/text-on-primary/font-family` on `<html style>` + Google Fonts `<link>`.
+- **API routes:** `GET/POST /api/whitelabel/theme`, `POST/DELETE /api/whitelabel/theme/logo`.
+- **Branded login:** `app/login/[slug]/` — server page + BrandedLoginForm client component.
+- **Theme editor:** `app/dashboard/settings/theme/` — ThemeEditorForm (color pickers + font), ThemePreview (live), LogoUploader, PoweredByToggle.
+- **Dashboard footer:** `DashboardFooter.tsx` — "Powered by LocalVector" toggle based on theme.
+- **Email branding:** `InvitationEmail.tsx` updated with optional theme prop for branded header/CTA/footer.
+- **Plan gate:** `canCustomizeTheme()` — Agency only.
+- AI_RULES: §149 (White-Label Theming + Emails).
+- Tests: 76 Vitest (theme-utils 27, email-theme-wrapper 11, theme-service 16, theme-routes 22) + 9 E2E.
+- Result: 303 test files, 4454 tests pass. 1 migration.
 
 ## Tier Completion Status
 
@@ -558,10 +596,12 @@ APPLE_MAPS_PRIVATE_KEY, APPLE_MAPS_KEY_ID, APPLE_MAPS_TEAM_ID
 | Sprint 111 | Org Membership Foundation | Complete | — |
 | Sprint 112 | Team Invitations + Permissions | Complete | — |
 | Sprint 113 | Seat-Based Billing + Audit Log | Complete | — |
+| Sprint 114 | White-Label Domains + Routing | Complete | — |
+| Sprint 115 | White-Label Theming + Emails | Complete | — |
 
 ### Sprints Pending External Approval:
 - Apple Business Connect Sync (originally §57): Submit API request at https://developer.apple.com/business-connect/
 
 ## Build History
 
-See `DEVLOG.md` (project root) and `docs/DEVLOG.md` for the complete sprint-by-sprint build log. Current sprint: 113 (+ FIX-1 through FIX-8 + Sprint A through Sprint O). AI_RULES: §1–§147 (147 sections). Production readiness: all audit issues resolved. **V1 complete.**
+See `DEVLOG.md` (project root) and `docs/DEVLOG.md` for the complete sprint-by-sprint build log. Current sprint: 115 (+ FIX-1 through FIX-8 + Sprint A through Sprint O). AI_RULES: §1–§149 (149 sections). Production readiness: all audit issues resolved. **V1 complete.**

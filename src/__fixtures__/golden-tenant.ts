@@ -2577,3 +2577,50 @@ export const MOCK_ORG_CONTEXT_CUSTOM: WhitelabelOrgContext = {
   resolved_hostname: 'app.charcoalnchill.com',
   is_custom_domain: true,
 };
+
+// ---------------------------------------------------------------------------
+// Sprint 115 — White-Label Theme Fixtures
+// ---------------------------------------------------------------------------
+
+import type { OrgTheme, ThemeCssProps } from '@/lib/whitelabel/types';
+
+export const MOCK_ORG_THEME: OrgTheme = {
+  id: 'theme-golden-001',
+  org_id: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+  primary_color: '#1a1a2e',
+  accent_color: '#e94560',
+  text_on_primary: '#ffffff',
+  font_family: 'Poppins',
+  logo_url: null,
+  logo_storage_path: null,
+  show_powered_by: true,
+  created_at: '2026-03-01T00:00:00.000Z',
+  updated_at: '2026-03-01T00:00:00.000Z',
+};
+
+export const MOCK_ORG_THEME_WITH_LOGO: OrgTheme = {
+  ...MOCK_ORG_THEME,
+  logo_url: 'https://supabase.example.com/storage/v1/object/public/org-logos/a0eebc99/logo.png',
+  logo_storage_path: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11/logo.png',
+};
+
+export const MOCK_THEME_CSS_PROPS: ThemeCssProps = {
+  '--brand-primary': '#1a1a2e',
+  '--brand-accent': '#e94560',
+  '--brand-text-on-primary': '#ffffff',
+  '--brand-font-family': "'Poppins', Inter, system-ui, sans-serif",
+};
+
+export const MOCK_ORG_THEME_DEFAULT: OrgTheme = {
+  id: 'default',
+  org_id: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+  primary_color: '#6366f1',
+  accent_color: '#8b5cf6',
+  text_on_primary: '#ffffff',
+  font_family: 'Inter',
+  logo_url: null,
+  logo_storage_path: null,
+  show_powered_by: true,
+  created_at: '2026-03-01T00:00:00.000Z',
+  updated_at: '2026-03-01T00:00:00.000Z',
+};

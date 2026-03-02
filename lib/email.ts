@@ -376,6 +376,7 @@ export interface InvitationEmailPayload extends InvitationEmailProps {
 
 /**
  * Sends a team invitation email using the InvitationEmail React Email template.
+ * Sprint 115: passes optional theme for org branding.
  *
  * No-ops silently when RESEND_API_KEY is not configured.
  * Errors ARE thrown — callers should catch if email failure is non-fatal.
