@@ -4,6 +4,38 @@
 
 ---
 
+## 2026-03-02 — Sprint 123: Multi-Model SOV Expansion (Completed)
+
+**Goal:** Extend the SOV engine to query multiple AI models (Perplexity Sonar, GPT-4o-mini, Gemini Flash) per target query, record per-model citation results in a new `sov_model_results` table, and surface model-level breakdowns in the dashboard via a "Which AI mentions you?" disclosure panel.
+
+**Key Decision:** Purely additive — existing `sov_evaluations` logic untouched. Model enablement is plan-gated (Starter=1, Growth=2, Agency=3 models). Multi-model calls are sequential with configurable delay (rate-limit discipline, never parallel). Fire-and-forget from SOV cron (main cron write path unaffected).
+
+**Changes:**
+- **Migration:** `20260322000002_sov_model_results.sql` — new table with CHECK constraints on model_provider/confidence, UNIQUE on (org_id, query_id, model_provider, week_of) for dedup, 3 indexes, 2 RLS policies (org member read + service role write)
+- **Model config:** `lib/config/sov-models.ts` — SOV_MODEL_CONFIGS (3 models), PLAN_SOV_MODELS tier mapping, getEnabledModels(planTier) function. Models: perplexity-sonar, gpt-4o-mini, gemini-flash
+- **Citation normalizer:** `lib/services/sov-model-normalizer.ts` — pure detectCitation() function, normalize() helper (handles &/N→and, punctuation stripping), countOccurrences() non-overlapping, 3 confidence levels (high/medium/low), excerpt truncation to 1000 chars
+- **Orchestrator:** `lib/services/multi-model-sov.ts` — runMultiModelQuery() sequential model calls with sleep(call_delay_ms), same prompt as existing SOV engine, upsert to sov_model_results, never throws (per-model error isolation)
+- **API routes:** GET /api/sov/model-breakdown/[queryId] (per-query model results + summary), GET /api/sov/model-scores (per-model aggregate SOV% across all queries)
+- **Dashboard components:** `ModelBreakdownPanel.tsx` (disclosure toggle, 4 states, "View AI Response" per model), `ModelCitationBadge.tsx` (3 visual states: green/amber/gray)
+- **SovCard wiring:** ModelBreakdownPanel inserted in QueryRow when orgName available
+- **SOV cron modified:** fire-and-forget runMultiModelQuery loop after main SOV write
+- **providers.ts:** Added `sov-query-gpt` (gpt-4o-mini) and `sov-query-gemini` (gemini-2.0-flash) model keys
+- **database.types.ts:** Added sov_model_results table type
+- **prod_schema.sql:** Added table, indexes, FK constraints, RLS policies
+- **Golden tenant:** 3 fixtures (MOCK_SOV_MODEL_RESULTS, MOCK_MODEL_BREAKDOWN_RESPONSE, MOCK_MODEL_SCORES)
+- **Regression fixes:** 8 bare `} catch {` blocks → `} catch (_err) {` (sentry sweep), cron count 16→17 in registration tests
+
+**Tests:** 46 Vitest + 5 Playwright E2E:
+- `sov-model-normalizer.test.ts` — 14 tests (verbatim matching, case variations, &/N normalization, excerpt truncation, null/empty handling, false positive prevention)
+- `multi-model-sov.test.ts` — 14 tests (sequential execution, plan-tier gating, upsert, error isolation, consensus, rate-limit delay)
+- `model-breakdown-route.test.ts` — 10 tests (auth, org validation, week_of default, query ownership, model display_name mapping, summary computation)
+- `model-breakdown-component.test.tsx` — 8 tests (disclosure toggle, loading skeleton, data rendering, error state, badge colors, response toggle)
+- `sprint-123-multi-model-sov.spec.ts` — 5 E2E tests (toggle presence, expand/collapse, cited badge, not-cited badge, response excerpt toggle)
+
+**AI_RULES:** §157 (Multi-Model SOV Expansion)
+
+---
+
 ## 2026-03-02 — Sprint 122: Benchmark Comparisons (Completed)
 
 **Goal:** Show each org how their AI visibility score compares to other businesses in the same industry category and location. "You're in the top 23% of hookah lounges in Alpharetta" turns a raw SOV score into competitive context.

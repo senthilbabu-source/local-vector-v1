@@ -2999,3 +2999,76 @@ export const MOCK_BENCHMARK_INSUFFICIENT = {
   insufficient_data: true,
   reason: 'no_benchmark_data',
 };
+
+// ---------------------------------------------------------------------------
+// Sprint 123 — Multi-Model SOV Expansion
+// ---------------------------------------------------------------------------
+
+import type { SOVModelId } from '@/lib/config/sov-models';
+
+export const MOCK_SOV_MODEL_RESULTS = [
+  {
+    id: 'a1b2c3d4-0001-4000-8000-000000000001',
+    org_id: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+    location_id: null,
+    query_id: 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+    query_text: 'best hookah lounge Alpharetta',
+    model_provider: 'perplexity_sonar' as SOVModelId,
+    cited: true,
+    citation_count: 3,
+    ai_response: 'Charcoal N Chill is a popular hookah lounge in Alpharetta...',
+    confidence: 'high' as const,
+    week_of: '2026-03-01',
+    run_at: '2026-03-02T02:15:00.000Z',
+  },
+  {
+    id: 'a1b2c3d4-0002-4000-8000-000000000002',
+    org_id: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+    location_id: null,
+    query_id: 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+    query_text: 'best hookah lounge Alpharetta',
+    model_provider: 'openai_gpt4o_mini' as SOVModelId,
+    cited: false,
+    citation_count: 0,
+    ai_response: 'There are several hookah lounges in the Alpharetta area...',
+    confidence: 'high' as const,
+    week_of: '2026-03-01',
+    run_at: '2026-03-02T02:16:00.000Z',
+  },
+  {
+    id: 'a1b2c3d4-0003-4000-8000-000000000003',
+    org_id: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+    location_id: null,
+    query_id: 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+    query_text: 'best hookah lounge Alpharetta',
+    model_provider: 'gemini_flash' as SOVModelId,
+    cited: true,
+    citation_count: 1,
+    ai_response: 'Charcoal N Chill offers premium hookah experiences...',
+    confidence: 'high' as const,
+    week_of: '2026-03-01',
+    run_at: '2026-03-02T02:17:00.000Z',
+  },
+];
+
+export const MOCK_MODEL_BREAKDOWN_RESPONSE = {
+  query_id: 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+  query_text: 'best hookah lounge Alpharetta',
+  week_of: '2026-03-01',
+  models: [
+    { model_provider: 'perplexity_sonar' as SOVModelId, display_name: 'Perplexity',
+      cited: true, citation_count: 3, confidence: 'high' as const, ai_response_excerpt: 'Charcoal N Chill is a popular hookah lounge...' },
+    { model_provider: 'openai_gpt4o_mini' as SOVModelId, display_name: 'ChatGPT',
+      cited: false, citation_count: 0, confidence: 'high' as const, ai_response_excerpt: 'There are several hookah lounges...' },
+    { model_provider: 'gemini_flash' as SOVModelId, display_name: 'Gemini',
+      cited: true, citation_count: 1, confidence: 'high' as const, ai_response_excerpt: 'Charcoal N Chill offers premium...' },
+  ],
+  summary: { cited_by_count: 2, total_models_run: 3, all_models_agree: false },
+};
+
+export const MOCK_MODEL_SCORES = [
+  { model_provider: 'perplexity_sonar' as SOVModelId, display_name: 'Perplexity',
+    sov_percent: 67, cited_count: 8, total_queries: 12 },
+  { model_provider: 'openai_gpt4o_mini' as SOVModelId, display_name: 'ChatGPT',
+    sov_percent: 42, cited_count: 5, total_queries: 12 },
+];

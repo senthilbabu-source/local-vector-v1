@@ -52,12 +52,6 @@ vi.mock('@/lib/supabase/server', () => ({
   createServiceRoleClient: vi.fn(),
 }));
 
-// ── Mock the email helper ────────────────────────────────────────────────
-vi.mock('@/lib/email', () => ({
-  sendSOVReport: vi.fn().mockResolvedValue(undefined),
-  sendWeeklyDigest: vi.fn().mockResolvedValue(undefined),
-}));
-
 // ── Mock the Occasion Engine ─────────────────────────────────────────────
 vi.mock('@/lib/services/occasion-engine.service', () => ({
   runOccasionScheduler: vi.fn().mockResolvedValue({
@@ -81,6 +75,17 @@ vi.mock('@/lib/plan-enforcer', () => ({
   canRunMultiModelSOV: vi.fn().mockReturnValue(false),
 }));
 
+// ── Mock the Multi-Model SOV (Sprint 123) ────────────────────────────────
+vi.mock('@/lib/services/multi-model-sov', () => ({
+  runMultiModelQuery: vi.fn().mockResolvedValue({
+    models_run: ['perplexity_sonar'],
+    results: {},
+    cited_by_any: false,
+    cited_by_all: false,
+    consensus_citation_count: 0,
+  }),
+}));
+
 // ── Mock the Autopilot Create Draft ──────────────────────────────────────
 vi.mock('@/lib/autopilot/create-draft', () => ({
   createDraft: vi.fn().mockResolvedValue(null),
@@ -98,6 +103,54 @@ vi.mock('@/lib/autopilot/post-publish', () => ({
 const mockInngestSend = vi.fn().mockRejectedValue(new Error('Inngest unavailable'));
 vi.mock('@/lib/inngest/client', () => ({
   inngest: { send: (...args: unknown[]) => mockInngestSend(...args) },
+}));
+
+// ── Mock modules imported by the cron route but not directly tested ──────
+vi.mock('@sentry/nextjs', () => ({
+  captureException: vi.fn(),
+  captureMessage: vi.fn(),
+}));
+
+vi.mock('@/lib/services/cron-logger', () => ({
+  logCronStart: vi.fn().mockResolvedValue({ logId: null, startedAt: Date.now() }),
+  logCronComplete: vi.fn().mockResolvedValue(undefined),
+  logCronFailed: vi.fn().mockResolvedValue(undefined),
+}));
+
+vi.mock('@/lib/realtime/notify-org', () => ({
+  notifyOrg: vi.fn().mockResolvedValue(undefined),
+  buildCronNotification: vi.fn().mockReturnValue({}),
+}));
+
+vi.mock('@/lib/settings', () => ({
+  getOrCreateOrgSettings: vi.fn().mockResolvedValue({ scan_frequency: 'weekly' }),
+  shouldScanOrg: vi.fn().mockResolvedValue(true),
+}));
+
+vi.mock('@/lib/alerts', () => ({
+  sendSlackAlert: vi.fn().mockResolvedValue(undefined),
+  buildSOVDropAlert: vi.fn().mockReturnValue({}),
+  SOV_DROP_THRESHOLD: 0.1,
+}));
+
+vi.mock('@/lib/data/freshness-alerts', () => ({
+  fetchFreshnessAlerts: vi.fn().mockResolvedValue({ alerts: [] }),
+}));
+
+vi.mock('@/lib/digest', () => ({
+  buildWeeklyDigestPayload: vi.fn().mockResolvedValue({}),
+  getDigestRecipients: vi.fn().mockResolvedValue([]),
+}));
+
+vi.mock('@/lib/digest/send-gate', () => ({
+  isFirstDigest: vi.fn().mockResolvedValue(false),
+}));
+
+vi.mock('@/lib/email', () => ({
+  sendSOVReport: vi.fn().mockResolvedValue(undefined),
+  sendWeeklyDigest: vi.fn().mockResolvedValue(undefined),
+  sendFreshnessAlert: vi.fn().mockResolvedValue(undefined),
+  sendEnhancedDigest: vi.fn().mockResolvedValue({ sent: false }),
 }));
 
 // ── Import handler and mocks after vi.mock declarations ──────────────────

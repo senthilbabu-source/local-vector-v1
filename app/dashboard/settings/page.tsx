@@ -48,7 +48,7 @@ export default async function SettingsPage() {
   if (ctx.orgId) {
     try {
       orgSettings = await getOrCreateOrgSettings(supabase, ctx.orgId);
-    } catch {
+    } catch (_err) {
       // Non-critical — show defaults in components
     }
   }

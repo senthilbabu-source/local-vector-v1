@@ -3171,3 +3171,27 @@ Percentile-based benchmark system in `lib/services/benchmark-service.ts`.
 * **Tests:** 20 benchmark-service + 10 benchmark-route + 9 benchmark-cron + 10 benchmark-components = 49 Vitest. 5 Playwright E2E.
 
 ---
+
+## §157. Multi-Model SOV Expansion (Sprint 123)
+
+Multi-model SOV in `lib/services/multi-model-sov.ts`, config in `lib/config/sov-models.ts`, citation normalizer in `lib/services/sov-model-normalizer.ts`.
+
+* **Purely additive to existing SOV.** `sov_evaluations` write path and `runSOVQuery()` untouched. `sov_model_results` is a separate table. If multi-model fails, main SOV results are already written.
+* **Sequential model calls, never parallel.** `runMultiModelQuery()` loops through enabled models one-by-one with `sleep(config.call_delay_ms)` between each. Prevents rate-limit cascades.
+* **Plan-tier model enablement.** `PLAN_SOV_MODELS`: trial=[] (none), starter=['perplexity-sonar'], growth=['perplexity-sonar','gpt-4o-mini'], agency=['perplexity-sonar','gpt-4o-mini','gemini-flash']. Use `getEnabledModels(planTier)`.
+* **`detectCitation()` is a pure function.** No DB access, no side effects. Three confidence levels: 'high' (verbatim case-insensitive match), 'medium' (normalized match after &/N→and, punctuation strip), 'low' (no match). `ai_response_excerpt` truncated to 1000 chars.
+* **Normalize handles "N" ↔ "&" ↔ "and".** `normalize()` replaces `&` → `and`, standalone `\bN\b` → `and`, strips all non-alphanumeric (except spaces). Prevents false negatives for business names like "Charcoal N Chill".
+* **`runMultiModelQuery()` never throws.** Per-model errors caught individually — `ai_response_excerpt` set to `[error: message]`, `cited=false`, `confidence='low'`. Returns aggregate result with `cited_by_any`, `cited_by_all`, `consensus_citation_count`.
+* **Upsert on UNIQUE(org_id, query_id, model_provider, week_of).** Safe for re-runs. `onConflict` clause updates all mutable columns.
+* **Fire-and-forget from SOV cron.** `void runMultiModelQuery(...)` in a loop after main SOV write + notifyOrg. Main cron latency unaffected. Errors contained.
+* **CHECK constraints on model_provider.** Values: 'perplexity-sonar', 'gpt-4o-mini', 'gemini-flash'. CHECK on confidence: 'high', 'medium', 'low'.
+* **Model breakdown API defaults to latest week.** GET `/api/sov/model-breakdown/[queryId]` — if no `?week_of`, queries most recent week_of for that query. Returns `models[]` with `display_name` from `SOV_MODEL_CONFIGS` and `summary` with `cited_by_count`, `total_models_run`, `all_models_agree`.
+* **Model scores API aggregates across all queries.** GET `/api/sov/model-scores` — groups by model_provider, computes `sov_percent = Math.round((cited/total) * 1000) / 10` (one decimal).
+* **ModelBreakdownPanel: disclosure toggle pattern.** Collapsed by default ("Which AI mentions you?"). Fetches on first open only. 4 states: loading (skeleton), no data ("Run a scan"), error, populated. data-testid: `model-breakdown-toggle`, `model-breakdown-panel`, `model-breakdown-summary`.
+* **ModelCitationBadge: 3 visual states.** cited+high → green "Mentioned Nx", cited+medium → amber "Possibly mentioned", not cited → gray "Not mentioned". data-testid: `model-badge-{provider}`.
+* **Provider keys:** `sov-query-gpt` → openai('gpt-4o-mini'), `sov-query-gemini` → google('gemini-2.0-flash'). Existing `sov-query-copilot` → perplexity('sonar') reused.
+* **RLS:** org member read (via memberships join), service role write. Same pattern as sov_evaluations.
+* **Migration:** `20260322000002_sov_model_results.sql`. FK to organizations, locations, target_queries.
+* **Tests:** 14 sov-model-normalizer + 14 multi-model-sov + 10 model-breakdown-route + 8 model-breakdown-component = 46 Vitest. 5 Playwright E2E.
+
+---

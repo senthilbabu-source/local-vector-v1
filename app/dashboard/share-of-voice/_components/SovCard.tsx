@@ -6,6 +6,7 @@ import { canRunSovEvaluation } from '@/lib/plan-enforcer';
 import type { SovEngine } from '@/lib/schemas/sov';
 import GenerateBriefButton from './GenerateBriefButton';
 import StreamingSimulatePanel from './StreamingSimulatePanel';
+import ModelBreakdownPanel from './ModelBreakdownPanel';
 
 // ---------------------------------------------------------------------------
 // Types (exported so the page Server Component can construct them)
@@ -331,6 +332,17 @@ function QueryRow({
         <p className="mt-2 pl-1 text-xs text-slate-400">
           No evaluations yet — click Run to check this query.
         </p>
+      )}
+
+      {/* Sprint 123: Multi-Model SOV Breakdown */}
+      {orgName && (
+        <div className="mt-2.5 pl-1">
+          <ModelBreakdownPanel
+            queryId={query.id}
+            queryText={query.query_text}
+            orgName={orgName}
+          />
+        </div>
       )}
 
       {/* Sprint 120: AI Response Simulation */}

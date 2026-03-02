@@ -48,7 +48,7 @@ export default function BenchmarkCard({ orgId, orgName }: BenchmarkCardProps) {
         }
         const json = await res.json();
         if (!cancelled) setData(json);
-      } catch {
+      } catch (_err) {
         if (!cancelled) setError(true);
       } finally {
         if (!cancelled) setLoading(false);

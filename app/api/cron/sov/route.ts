@@ -43,6 +43,7 @@ import { inngest } from '@/lib/inngest/client';
 import { logCronStart, logCronComplete, logCronFailed } from '@/lib/services/cron-logger';
 import { notifyOrg, buildCronNotification } from '@/lib/realtime/notify-org';
 import { getOrCreateOrgSettings, shouldScanOrg } from '@/lib/settings';
+import { runMultiModelQuery } from '@/lib/services/multi-model-sov';
 
 // Force dynamic so Vercel never caches this route between cron invocations.
 export const dynamic = 'force-dynamic';
@@ -424,12 +425,28 @@ async function _runInlineSOVImpl(handle: { logId: string | null; startedAt: numb
         }
       }
 
-      // Sprint 116: Notify org of SOV completion (fire-and-forget)
+      // ── Sprint 116–123: Fire-and-forget calls per org ────────────────────
+      // 1. Sprint 116: Notify org of SOV completion
       void notifyOrg(orgId, buildCronNotification(
         'cron_sov_complete',
         'AI visibility scan complete. Your scores have been updated.',
         ['sov', 'visibility_analytics'],
       ));
+
+      // 2. Sprint 123: Multi-model SOV citation tracking (additive to sov_evaluations)
+      for (const query of batch) {
+        const q = query as SOVQueryInput;
+        void runMultiModelQuery({
+          supabase,
+          queryText: q.query_text,
+          queryId: q.id,
+          orgId,
+          orgName: q.locations.business_name,
+          locationId: q.location_id,
+          planTier: plan,
+          weekOf: new Date(),
+        });
+      }
 
       summary.orgs_processed++;
     } catch (err) {

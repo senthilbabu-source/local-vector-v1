@@ -29,7 +29,7 @@ export async function POST(
   let body: { notes?: string } = {};
   try {
     body = await request.json();
-  } catch {
+  } catch (_err) {
     // No body is fine — notes are optional
   }
 

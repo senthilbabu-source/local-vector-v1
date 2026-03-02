@@ -12,7 +12,7 @@ LocalVector is an AEO/GEO SaaS platform that helps local businesses monitor and 
 - **Billing:** Stripe webhooks → `organizations.plan_tier` enum (`trial | starter | growth | agency`)
 - **Email:** Resend + React Email (`emails/`)
 - **Cache:** Upstash Redis (`lib/redis.ts`) — optional, all callers must degrade gracefully
-- **Testing:** Vitest (unit/integration in `src/__tests__/`), Playwright (E2E in `tests/e2e/`, 41 specs). Current: 4780 tests, 330 files.
+- **Testing:** Vitest (unit/integration in `src/__tests__/`), Playwright (E2E in `tests/e2e/`, 41 specs). Current: 4880 tests, 338 files.
 - **Monitoring:** Sentry (client, server, edge configs) — all catch blocks instrumented (Sprint A, AI_RULES §70)
 
 ## Architecture Rules
@@ -79,6 +79,11 @@ lib/streaming/             — SSE streaming: types (SSEChunk, StreamingState), 
 lib/corrections/           — Correction follow-up: brief prompt, correction-service (mark corrected, rescan, effectiveness score), types (Sprint 121, §155)
 lib/settings/              — Org settings: settings-service (get/update/shouldScanOrg), api-key-service (SHA-256 hash, generate/list/revoke), types (Sprint 121, §155)
 lib/services/benchmark-service.ts — Benchmark percentile computation: normalizeBucketKey, computePercentileRank (strict <), computePercentiles (linear interpolation), runBenchmarkComputation, getOrgBenchmark/History (cache readers), getMostRecentSunday (Sprint 122, §156)
+lib/config/sov-models.ts           — Multi-model SOV config: SOV_MODEL_CONFIGS (3 models), PLAN_SOV_MODELS tier mapping, getEnabledModels() (Sprint 123, §157)
+lib/services/sov-model-normalizer.ts — Citation detection: detectCitation() pure function, normalize() &/N→and, 3 confidence levels (Sprint 123, §157)
+lib/services/multi-model-sov.ts    — Multi-model SOV orchestrator: runMultiModelQuery() sequential calls, per-model error isolation, upsert (Sprint 123, §157)
+app/api/sov/model-breakdown/[queryId]/ — GET per-query model citation results + summary (Sprint 123, §157)
+app/api/sov/model-scores/          — GET per-model aggregate SOV% across all queries (Sprint 123, §157)
 app/api/benchmarks/[orgId]/       — GET benchmark percentile + history for org (membership check, ?weeks=1-52) (Sprint 122, §156)
 app/dashboard/_components/BenchmarkCard.tsx — Client: "top X%" headline, fetches /api/benchmarks/{orgId} (Sprint 122, §156)
 app/dashboard/_components/BenchmarkPercentileBar.tsx — 5-tier color bar with median + top-quartile reference lines (Sprint 122, §156)
@@ -90,7 +95,7 @@ app/api/sov/simulate-stream/   — SSE SOV query simulation with neutral prompt 
 app/api/settings/              — Org settings CRUD + API key management + danger zone (Sprint 121, §155)
 app/api/hallucinations/[id]/correct/ — Mark hallucination corrected + schedule rescan (Sprint 121, §155)
 app/api/cron/correction-rescan/     — Daily re-scan of pending corrections (Sprint 121, §155)
-lib/supabase/database.types.ts — Full Database type (51 tables, 9 enums, Relationships)
+lib/supabase/database.types.ts — Full Database type (59 tables, 9 enums, Relationships)
 supabase/migrations/   — Applied SQL migrations (55, timestamp-ordered)
 supabase/prod_schema.sql — Full production schema dump
 docs/                  — 50 spec documents (authoritative for planned features)
@@ -618,6 +623,19 @@ APPLE_MAPS_PRIVATE_KEY, APPLE_MAPS_KEY_ID, APPLE_MAPS_TEAM_ID
 - Tests: 49 Vitest (benchmark-service 25, benchmark-route 10, benchmark-cron 9, benchmark-components 10). 5 Playwright E2E (sprint-122-benchmarks.spec.ts).
 - Result: 334 test files, ~4830 tests pass. 1 migration.
 
+### Sprint 123 — Multi-Model SOV Expansion (2026-03-02)
+- **Migration:** `20260322000002_sov_model_results.sql` — new table with CHECK constraints on model_provider/confidence, UNIQUE on (org_id, query_id, model_provider, week_of), 3 indexes, 2 RLS policies.
+- **Model config:** `lib/config/sov-models.ts` — SOV_MODEL_CONFIGS (perplexity-sonar, gpt-4o-mini, gemini-flash), PLAN_SOV_MODELS (trial=0, starter=1, growth=2, agency=3), `getEnabledModels()`.
+- **Citation normalizer:** `lib/services/sov-model-normalizer.ts` — pure `detectCitation()`, normalize() handles &/N→and + punctuation, 3 confidence levels (high/medium/low), excerpt truncation.
+- **Orchestrator:** `lib/services/multi-model-sov.ts` — `runMultiModelQuery()` sequential with configurable delay, per-model error isolation, upsert, never throws.
+- **API routes:** GET `/api/sov/model-breakdown/[queryId]` (per-query results + summary), GET `/api/sov/model-scores` (per-model aggregate SOV%).
+- **Dashboard:** `ModelBreakdownPanel.tsx` (disclosure toggle "Which AI mentions you?", 4 states, fetch-on-first-open), `ModelCitationBadge.tsx` (green/amber/gray).
+- **SOV cron:** Fire-and-forget `runMultiModelQuery` loop after main write.
+- **Providers:** `sov-query-gpt` (gpt-4o-mini), `sov-query-gemini` (gemini-2.0-flash) added.
+- AI_RULES: §157 (Multi-Model SOV Expansion).
+- Tests: 46 Vitest (sov-model-normalizer 14, multi-model-sov 14, model-breakdown-route 10, model-breakdown-component 8). 5 Playwright E2E (sprint-123-multi-model-sov.spec.ts).
+- Result: 338 test files, 4880 tests pass. 1 migration.
+
 ## Tier Completion Status
 
 | Tier | Sprints | Status | Gate |
@@ -662,10 +680,11 @@ APPLE_MAPS_PRIVATE_KEY, APPLE_MAPS_KEY_ID, APPLE_MAPS_TEAM_ID
 | Sprint 120 | AI Preview Streaming (SSE) | Complete | — |
 | Sprint 121 | Correction Follow-up + Settings Expansion | Complete | — |
 | Sprint 122 | Benchmark Comparisons | Complete | — |
+| Sprint 123 | Multi-Model SOV Expansion | Complete | — |
 
 ### Sprints Pending External Approval:
 - Apple Business Connect Sync (originally §57): Submit API request at https://developer.apple.com/business-connect/
 
 ## Build History
 
-See `DEVLOG.md` (project root) and `docs/DEVLOG.md` for the complete sprint-by-sprint build log. Current sprint: 122 (+ FIX-1 through FIX-8 + Sprint A through Sprint O). AI_RULES: §1–§156 (156 sections). Production readiness: all audit issues resolved. **V1 complete.**
+See `DEVLOG.md` (project root) and `docs/DEVLOG.md` for the complete sprint-by-sprint build log. Current sprint: 123 (+ FIX-1 through FIX-8 + Sprint A through Sprint O). AI_RULES: §1–§157 (157 sections). Production readiness: all audit issues resolved. **V1 complete.**

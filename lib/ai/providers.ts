@@ -142,6 +142,12 @@ export const MODELS = {
   /** Sprint 120: Streaming SOV query simulation (Haiku for speed + cost) */
   'streaming-sov-simulate': anthropic('claude-3-5-haiku-20241022'),
 
+  /** Sprint 123: Multi-Model SOV — GPT-4o-mini (cost-efficient citation detection) */
+  'sov-query-gpt': openai('gpt-4o-mini'),
+
+  /** Sprint 123: Multi-Model SOV — Gemini Flash (no search grounding, pure citation) */
+  'sov-query-gemini': google('gemini-2.0-flash'),
+
 } as const;
 
 /** Sprint 119: Embedding model — kept separate from MODELS to preserve LanguageModelV1 union */

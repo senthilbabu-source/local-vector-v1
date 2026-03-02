@@ -2699,6 +2699,73 @@ export type Database = {
           },
         ];
       };
+      sov_model_results: {
+        Row: {
+          id: string;
+          org_id: string;
+          location_id: string | null;
+          query_id: string | null;
+          query_text: string;
+          model_provider: string;
+          cited: boolean;
+          citation_count: number;
+          ai_response: string | null;
+          confidence: string;
+          week_of: string;
+          run_at: string;
+        };
+        Insert: {
+          id?: string;
+          org_id: string;
+          location_id?: string | null;
+          query_id?: string | null;
+          query_text: string;
+          model_provider: string;
+          cited: boolean;
+          citation_count?: number;
+          ai_response?: string | null;
+          confidence?: string;
+          week_of: string;
+          run_at?: string;
+        };
+        Update: {
+          id?: string;
+          org_id?: string;
+          location_id?: string | null;
+          query_id?: string | null;
+          query_text?: string;
+          model_provider?: string;
+          cited?: boolean;
+          citation_count?: number;
+          ai_response?: string | null;
+          confidence?: string;
+          week_of?: string;
+          run_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "sov_model_results_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "sov_model_results_location_id_fkey";
+            columns: ["location_id"];
+            isOneToOne: false;
+            referencedRelation: "locations";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "sov_model_results_query_id_fkey";
+            columns: ["query_id"];
+            isOneToOne: false;
+            referencedRelation: "target_queries";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       sov_evaluations: {
         Row: {
           id: string;

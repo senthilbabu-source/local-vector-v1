@@ -816,6 +816,25 @@ CREATE TABLE IF NOT EXISTS "public"."pending_gbp_imports" (
 ALTER TABLE "public"."pending_gbp_imports" OWNER TO "postgres";
 
 
+CREATE TABLE IF NOT EXISTS "public"."sov_model_results" (
+    "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
+    "org_id" "uuid" NOT NULL,
+    "location_id" "uuid",
+    "query_id" "uuid",
+    "query_text" "text" NOT NULL,
+    "model_provider" "text" NOT NULL,
+    "cited" boolean NOT NULL,
+    "citation_count" integer DEFAULT 0 NOT NULL,
+    "ai_response" "text",
+    "confidence" "text" DEFAULT 'high'::"text" NOT NULL,
+    "week_of" "date" NOT NULL,
+    "run_at" timestamp with time zone DEFAULT "now"() NOT NULL,
+    CONSTRAINT "sov_model_results_model_provider_check" CHECK (("model_provider" = ANY (ARRAY['perplexity_sonar'::"text", 'openai_gpt4o_mini'::"text", 'gemini_flash'::"text"]))),
+    CONSTRAINT "sov_model_results_confidence_check" CHECK (("confidence" = ANY (ARRAY['high'::"text", 'medium'::"text", 'low'::"text"])))
+);
+
+ALTER TABLE "public"."sov_model_results" OWNER TO "postgres";
+
 CREATE TABLE IF NOT EXISTS "public"."sov_evaluations" (
     "id" "uuid" DEFAULT "extensions"."uuid_generate_v4"() NOT NULL,
     "org_id" "uuid" NOT NULL,
@@ -1157,6 +1176,12 @@ ALTER TABLE ONLY "public"."pending_gbp_imports"
 
 
 
+ALTER TABLE ONLY "public"."sov_model_results"
+    ADD CONSTRAINT "sov_model_results_pkey" PRIMARY KEY ("id");
+
+ALTER TABLE ONLY "public"."sov_model_results"
+    ADD CONSTRAINT "sov_model_results_org_query_model_week_key" UNIQUE ("org_id", "query_id", "model_provider", "week_of");
+
 ALTER TABLE ONLY "public"."sov_evaluations"
     ADD CONSTRAINT "sov_evaluations_pkey" PRIMARY KEY ("id");
 
@@ -1367,6 +1392,12 @@ CREATE UNIQUE INDEX "idx_page_audits_org_url_unique" ON "public"."page_audits" U
 CREATE INDEX "idx_pending_gbp_imports_org" ON "public"."pending_gbp_imports" USING "btree" ("org_id");
 
 
+
+CREATE INDEX "idx_sov_model_results_org_week" ON "public"."sov_model_results" USING "btree" ("org_id", "week_of" DESC);
+
+CREATE INDEX "idx_sov_model_results_query" ON "public"."sov_model_results" USING "btree" ("query_id", "week_of" DESC) WHERE ("query_id" IS NOT NULL);
+
+CREATE INDEX "idx_sov_model_results_model" ON "public"."sov_model_results" USING "btree" ("org_id", "model_provider", "week_of" DESC);
 
 CREATE INDEX "idx_sov_evaluations_location" ON "public"."sov_evaluations" USING "btree" ("location_id");
 
@@ -1687,6 +1718,15 @@ ALTER TABLE ONLY "public"."pending_gbp_imports"
     ADD CONSTRAINT "pending_gbp_imports_org_id_fkey" FOREIGN KEY ("org_id") REFERENCES "public"."organizations"("id") ON DELETE CASCADE;
 
 
+
+ALTER TABLE ONLY "public"."sov_model_results"
+    ADD CONSTRAINT "sov_model_results_org_id_fkey" FOREIGN KEY ("org_id") REFERENCES "public"."organizations"("id") ON DELETE CASCADE;
+
+ALTER TABLE ONLY "public"."sov_model_results"
+    ADD CONSTRAINT "sov_model_results_location_id_fkey" FOREIGN KEY ("location_id") REFERENCES "public"."locations"("id") ON DELETE SET NULL;
+
+ALTER TABLE ONLY "public"."sov_model_results"
+    ADD CONSTRAINT "sov_model_results_query_id_fkey" FOREIGN KEY ("query_id") REFERENCES "public"."target_queries"("id") ON DELETE SET NULL;
 
 ALTER TABLE ONLY "public"."sov_evaluations"
     ADD CONSTRAINT "sov_evaluations_location_id_fkey" FOREIGN KEY ("location_id") REFERENCES "public"."locations"("id") ON DELETE CASCADE;
@@ -3407,6 +3447,12 @@ ALTER TABLE "public"."org_benchmark_cache" ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "org_benchmark_cache: members can read own" ON "public"."org_benchmark_cache" FOR SELECT USING (("org_id" = "public"."current_user_org_id"()));
 CREATE POLICY "org_benchmark_cache: service role full access" ON "public"."org_benchmark_cache" FOR ALL USING (("auth"."role"() = 'service_role'));
+
+-- Sprint 123: sov_model_results RLS
+ALTER TABLE "public"."sov_model_results" ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "sov_model_results: members can read" ON "public"."sov_model_results" FOR SELECT USING (("org_id" IN (SELECT "m"."org_id" FROM "public"."memberships" "m" WHERE ("m"."user_id" = "auth"."uid"()))));
+CREATE POLICY "sov_model_results: service role full access" ON "public"."sov_model_results" FOR ALL USING (("auth"."role"() = 'service_role'));
 
 
 
