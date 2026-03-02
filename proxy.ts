@@ -1,6 +1,7 @@
 import { type NextRequest, NextResponse } from 'next/server';
 import { createMiddlewareClient } from '@/lib/supabase/middleware';
 import { detectAIBot } from '@/lib/crawler/bot-detector';
+import { resolveOrgFromHostname } from '@/lib/whitelabel/domain-resolver';
 
 const PROTECTED_PREFIXES = ['/dashboard'];
 const AUTH_PREFIXES = ['/login', '/register', '/signup'];
@@ -54,6 +55,23 @@ async function handleProxy(request: NextRequest) {
 
   // app. subdomain or bare domain → standard routing with auth
   const { supabase, response } = createMiddlewareClient(request);
+
+  // ── Sprint 114: White-Label domain resolution ─────────────────────────────
+  // Resolve incoming hostname → org context BEFORE auth guard.
+  // If a match is found, inject x-org-* headers for server components.
+  // On failure: continue normally (never block requests due to domain resolution).
+  try {
+    const orgContext = await resolveOrgFromHostname(hostname, supabase);
+    if (orgContext) {
+      response.headers.set('x-org-id', orgContext.org_id);
+      response.headers.set('x-org-name', orgContext.org_name);
+      response.headers.set('x-org-plan', orgContext.plan_tier);
+      response.headers.set('x-resolved-hostname', orgContext.resolved_hostname);
+      response.headers.set('x-is-custom-domain', String(orgContext.is_custom_domain));
+    }
+  } catch {
+    // Domain resolution failure must never block the request — degrade silently
+  }
 
   // IMPORTANT: Use getUser(), NOT getSession().
   // getSession() reads from the cookie without server-side verification and can

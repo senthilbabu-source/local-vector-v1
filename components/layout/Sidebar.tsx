@@ -31,6 +31,7 @@ import {
   Mic,
   Users,
   X,
+  Link2,
 } from 'lucide-react';
 import LogoutButton from '@/app/dashboard/_components/LogoutButton';
 import LocationSwitcher, { type LocationOption } from './LocationSwitcher';
@@ -225,6 +226,13 @@ export const NAV_ITEMS = [
     active: true,
   },
   {
+    href: '/dashboard/settings/domain',
+    label: 'Domain',
+    icon: Link2,
+    exact: false,
+    active: true,
+  },
+  {
     href: '/dashboard/billing',
     label: 'Billing',
     icon: CreditCard,
@@ -295,6 +303,7 @@ export const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
         '/dashboard/system-health',
         '/dashboard/settings',
         '/dashboard/team',
+        '/dashboard/settings/domain',
         '/dashboard/billing',
       ].includes(i.href),
     ),

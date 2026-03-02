@@ -3227,6 +3227,35 @@ CREATE TABLE IF NOT EXISTS public.activity_log (
   created_at      timestamptz         NOT NULL DEFAULT NOW()
 );
 
+-- Sprint 114: White-Label Domain Routing
+CREATE TABLE IF NOT EXISTS public.org_domains (
+  id                    uuid               PRIMARY KEY DEFAULT gen_random_uuid(),
+  org_id                uuid               NOT NULL REFERENCES public.organizations(id) ON DELETE CASCADE,
+  domain_type           text               NOT NULL CHECK (domain_type IN ('subdomain', 'custom')),
+  domain_value          text               NOT NULL,
+  verification_token    text               NOT NULL UNIQUE DEFAULT (
+    'localvector-verify=' || encode(gen_random_bytes(16), 'hex')
+  ),
+  verification_status   text               NOT NULL DEFAULT 'unverified'
+                                           CHECK (verification_status IN
+                                             ('unverified', 'pending', 'verified', 'failed')),
+  verified_at           timestamptz,
+  last_checked_at       timestamptz,
+  created_at            timestamptz        NOT NULL DEFAULT NOW(),
+  updated_at            timestamptz        NOT NULL DEFAULT NOW(),
+  UNIQUE (org_id, domain_type)
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_org_domains_value_verified
+  ON public.org_domains (domain_value)
+  WHERE verification_status = 'verified';
+
+CREATE INDEX IF NOT EXISTS idx_org_domains_domain_value
+  ON public.org_domains (domain_value);
+
+CREATE INDEX IF NOT EXISTS idx_org_domains_org_id
+  ON public.org_domains (org_id);
+
 
 
 

@@ -3036,6 +3036,53 @@ export type Database = {
           },
         ];
       };
+      org_domains: {
+        Row: {
+          id: string;
+          org_id: string;
+          domain_type: string;
+          domain_value: string;
+          verification_token: string;
+          verification_status: string;
+          verified_at: string | null;
+          last_checked_at: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          org_id: string;
+          domain_type: string;
+          domain_value: string;
+          verification_token?: string;
+          verification_status?: string;
+          verified_at?: string | null;
+          last_checked_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          org_id?: string;
+          domain_type?: string;
+          domain_value?: string;
+          verification_token?: string;
+          verification_status?: string;
+          verified_at?: string | null;
+          last_checked_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "org_domains_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       activity_log: {
         Row: {
           id: string;

@@ -2504,4 +2504,28 @@ BEGIN
   )
   ON CONFLICT DO NOTHING;
 
+  -- ══════════════════════════════════════════════════════════════════════════
+  -- Section 23: Sprint 114 — White-Label Domain Config seed data
+  -- Subdomain (auto-verified) + custom domain (unverified for testing).
+  -- ══════════════════════════════════════════════════════════════════════════
+
+  -- Subdomain row (auto-verified — we control *.localvector.ai)
+  INSERT INTO public.org_domains (
+    org_id, domain_type, domain_value,
+    verification_status, verified_at
+  ) VALUES (
+    v_org_id, 'subdomain', 'charcoal-n-chill.localvector.ai',
+    'verified', NOW() - INTERVAL '30 days'
+  ) ON CONFLICT (org_id, domain_type) DO NOTHING;
+
+  -- Custom domain row (unverified — for testing the unverified state)
+  INSERT INTO public.org_domains (
+    org_id, domain_type, domain_value,
+    verification_token, verification_status
+  ) VALUES (
+    v_org_id, 'custom', 'app.charcoalnchill.com',
+    'localvector-verify=seed1234567890abcdef1234567890ab',
+    'unverified'
+  ) ON CONFLICT (org_id, domain_type) DO NOTHING;
+
 END $$;

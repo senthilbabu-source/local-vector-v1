@@ -2510,3 +2510,70 @@ export const MOCK_ACTIVITY_LOG_PAGE: ActivityLogPage = {
   per_page: 20,
   has_more: false,
 };
+
+// ---------------------------------------------------------------------------
+// Sprint 114 — White-Label Domain Fixtures
+// ---------------------------------------------------------------------------
+
+import type { OrgDomain, DomainConfig, OrgContext as WhitelabelOrgContext } from '@/lib/whitelabel/types';
+
+export const MOCK_ORG_DOMAIN_SUBDOMAIN: OrgDomain = {
+  id: 'domain-sub-001',
+  org_id: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+  domain_type: 'subdomain',
+  domain_value: 'charcoal-n-chill.localvector.ai',
+  verification_token: 'localvector-verify=subdomain-auto-verified',
+  verification_status: 'verified',
+  verified_at: '2026-01-01T00:00:00.000Z',
+  last_checked_at: null,
+  created_at: '2026-01-01T00:00:00.000Z',
+  updated_at: '2026-01-01T00:00:00.000Z',
+};
+
+export const MOCK_ORG_DOMAIN_CUSTOM_UNVERIFIED: OrgDomain = {
+  id: 'domain-cust-001',
+  org_id: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+  domain_type: 'custom',
+  domain_value: 'app.charcoalnchill.com',
+  verification_token: 'localvector-verify=seed1234567890abcdef1234567890ab',
+  verification_status: 'unverified',
+  verified_at: null,
+  last_checked_at: null,
+  created_at: '2026-03-01T00:00:00.000Z',
+  updated_at: '2026-03-01T00:00:00.000Z',
+};
+
+export const MOCK_ORG_DOMAIN_CUSTOM_VERIFIED: OrgDomain = {
+  ...MOCK_ORG_DOMAIN_CUSTOM_UNVERIFIED,
+  verification_status: 'verified',
+  verified_at: '2026-03-01T12:00:00.000Z',
+  last_checked_at: '2026-03-01T12:00:00.000Z',
+};
+
+export const MOCK_DOMAIN_CONFIG_UNVERIFIED: DomainConfig = {
+  effective_domain: 'charcoal-n-chill.localvector.ai',
+  subdomain: 'charcoal-n-chill',
+  custom_domain: MOCK_ORG_DOMAIN_CUSTOM_UNVERIFIED,
+  subdomain_domain: MOCK_ORG_DOMAIN_SUBDOMAIN,
+};
+
+export const MOCK_DOMAIN_CONFIG_VERIFIED: DomainConfig = {
+  effective_domain: 'app.charcoalnchill.com',
+  subdomain: 'charcoal-n-chill',
+  custom_domain: MOCK_ORG_DOMAIN_CUSTOM_VERIFIED,
+  subdomain_domain: MOCK_ORG_DOMAIN_SUBDOMAIN,
+};
+
+export const MOCK_ORG_CONTEXT_SUBDOMAIN: WhitelabelOrgContext = {
+  org_id: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+  org_name: 'Charcoal N Chill',
+  plan_tier: 'agency',
+  resolved_hostname: 'charcoal-n-chill.localvector.ai',
+  is_custom_domain: false,
+};
+
+export const MOCK_ORG_CONTEXT_CUSTOM: WhitelabelOrgContext = {
+  ...MOCK_ORG_CONTEXT_SUBDOMAIN,
+  resolved_hostname: 'app.charcoalnchill.com',
+  is_custom_domain: true,
+};

@@ -2989,3 +2989,23 @@ Stripe seat metering + append-only activity log via `lib/billing/`.
 * **Migration:** `20260315000001_activity_log.sql`.
 
 ---
+
+## §148. White-Label Domain Routing (Sprint 114)
+
+Per-org custom domain + subdomain infrastructure via `lib/whitelabel/`.
+
+* **Edge-only resolver:** `domain-resolver.ts` runs in Vercel Edge Runtime (proxy.ts). NO Node.js built-ins (no `dns`, no `fs`). Uses `@supabase/ssr` for DB and `lib/redis.ts` for cache. All lookups use `fetch()` or Supabase queries.
+* **Redis cache:** hostname → OrgContext cached with 5 min TTL. Cache prefix: `domain_ctx:`. On Redis error: fall through to DB silently. Invalidate cache on: domain save, domain delete, verification success.
+* **DNS verification:** Cloudflare DNS-over-HTTPS (`cloudflare-dns.com/dns-query`). TXT record match with quote stripping. 5-second AbortController timeout. `verifyCustomDomain()` NEVER throws.
+* **Middleware headers:** proxy.ts sets `x-org-id`, `x-org-name`, `x-org-plan`, `x-resolved-hostname`, `x-is-custom-domain` on domain match. Wrapped in try/catch — never blocks requests.
+* **OrgContext from headers:** `getOrgContextFromHeaders()` in server components reads x-org-* headers. Returns null for direct access.
+* **Resolution order:** (1) Redis cache → (2) verified custom domain match (org_domains) → (3) subdomain slug match (organizations.slug) → (4) null.
+* **`org_domains` table:** UNIQUE(org_id, domain_type). Two domain types: 'subdomain' (auto-verified) and 'custom' (requires DNS TXT verification). `idx_org_domains_value_verified` powers O(1) hot-path lookup.
+* **Validation guards in `upsertCustomDomain()`:** (1) HOSTNAME_REGEX format check, (2) block *.localvector.ai, (3) conflict check against verified domains on other orgs.
+* **Subdomains auto-verified:** We control *.localvector.ai DNS. Subdomain rows get `verification_status='verified'` on creation.
+* **Custom domains require DNS proof:** Org adds TXT record `localvector-verify={token}`, then clicks Verify. The verify endpoint sets status='pending', runs DoH check, updates result.
+* **API routes:** `GET/POST/DELETE /api/whitelabel/domain` (owner + Agency), `POST /api/whitelabel/domain/verify` (owner + Agency).
+* **Plan gate:** Agency-only feature. `canManageTeamSeats()` reused as plan gate.
+* **Migration:** `20260318000002_org_domains.sql`.
+
+---
