@@ -2443,4 +2443,27 @@ BEGIN
      SET voice_readiness_score = 48,
          vaio_last_run_at      = NOW() - INTERVAL '1 day'
    WHERE id = v_location_id;
+
+  -- ── Section 20: Sprint 110 — AI Answer Simulation Sandbox ──────────
+  INSERT INTO public.simulation_runs
+    (location_id, org_id, content_source, content_text, content_word_count,
+     modes_run, ingestion_result, query_results, gap_analysis,
+     simulation_score, ingestion_accuracy, query_coverage_rate,
+     hallucination_risk, claude_model, input_tokens_used, output_tokens_used,
+     status, errors, run_at)
+  VALUES
+    (v_location_id, v_org_id, 'freeform',
+     'Charcoal N Chill is a hookah lounge and Mediterranean restaurant located at 11950 Jones Bridge Road Ste 103, Alpharetta, GA 30005. We serve premium hookah, Mediterranean small plates, and craft cocktails. Open Tuesday through Thursday 5 PM to 1 AM, Friday and Saturday 5 PM to 2 AM. Call us at (470) 546-4866.',
+     52, ARRAY['ingestion','query','gap_analysis'],
+     '{"extracted_facts":[{"field":"name","extracted_value":"Charcoal N Chill","ground_truth_value":"Charcoal N Chill","match_status":"exact","confidence":"high"},{"field":"phone","extracted_value":"(470) 546-4866","ground_truth_value":"(470) 546-4866","match_status":"exact","confidence":"high"},{"field":"address","extracted_value":"11950 Jones Bridge Road Ste 103","ground_truth_value":"11950 Jones Bridge Road Ste 103","match_status":"exact","confidence":"high"},{"field":"city","extracted_value":"Alpharetta","ground_truth_value":"Alpharetta","match_status":"exact","confidence":"high"},{"field":"category","extracted_value":"hookah lounge","ground_truth_value":"hookah lounge","match_status":"exact","confidence":"high"},{"field":"hours","extracted_value":"Tue-Thu 5PM-1AM, Fri-Sat 5PM-2AM","ground_truth_value":"Tue-Thu 5PM-1AM, Fri-Sat 5PM-2AM","match_status":"exact","confidence":"high"}],"accuracy_score":82,"facts_correct":6,"facts_incorrect":0,"facts_missing":2,"critical_errors":[],"warnings":[{"field":"website","severity":"warning","extracted":"","expected":"charcoalnchill.com","message":"website not found in content"}]}',
+     '[{"query_id":"00000000-0000-0000-0000-000000000001","query_text":"Best hookah lounge in Alpharetta?","query_category":"discovery","simulated_answer":"Based on the provided information, Charcoal N Chill is a hookah lounge in Alpharetta offering premium hookah and Mediterranean cuisine.","answer_quality":"complete","cites_business":true,"facts_present":["name","city","category"],"facts_hallucinated":[],"word_count":22,"ground_truth_alignment":85},{"query_id":"00000000-0000-0000-0000-000000000002","query_text":"How to book a private event at CNC?","query_category":"action","simulated_answer":"The content does not provide information about private events or booking. You may want to call them at (470) 546-4866.","answer_quality":"no_answer","cites_business":false,"facts_present":["phone"],"facts_hallucinated":[],"word_count":23,"ground_truth_alignment":40}]',
+     '{"total_queries_tested":2,"queries_with_no_answer":1,"queries_with_partial_answer":0,"queries_with_complete_answer":1,"gap_clusters":[{"category":"action","total_queries":1,"answered_queries":0,"unanswered_queries":1,"gap_severity":"critical","example_unanswered":"How to book a private event at CNC?"}],"highest_risk_queries":["How to book a private event at CNC?"],"recommended_additions":[{"priority":2,"field":"general","suggestion":"Add booking or reservation instructions (phone number, online form, or walk-in policy).","closes_queries":["How to book a private event at CNC?"]}]}',
+     68, 82, 0.500, 'medium', 'claude-sonnet-4-20250514',
+     1250, 480, 'completed', '{}', NOW() - INTERVAL '2 hours');
+
+  -- 20b: Update location sandbox columns
+  UPDATE public.locations
+     SET last_simulation_score   = 68,
+         simulation_last_run_at  = NOW() - INTERVAL '2 hours'
+   WHERE id = v_location_id;
 END $$;

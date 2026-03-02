@@ -2847,3 +2847,87 @@ Composite score 0–100, computed in `lib/vaio/vaio-service.ts` via `computeVoic
 **Known AI Crawlers** (`KNOWN_AI_CRAWLERS`): GPTBot, PerplexityBot, Google-Extended, ClaudeBot, anthropic-ai, ChatGPT-User, OAI-SearchBot, Applebot-Extended, Amazonbot, Bytespider.
 
 ---
+
+## §141. AI Answer Simulation Sandbox — Architecture (Sprint 110)
+
+The Sandbox is the capstone feature — the only **prospective** tool in LocalVector. It tests content *before* publication by simulating how AI models would interpret and cite it.
+
+**Three Simulation Modes:**
+1. **Content Ingestion Test** — Can AI extract correct business facts from this content?
+2. **Query Response Simulation** — How would AI answer tracked queries given this content?
+3. **Hallucination Gap Analysis** — Where will AI hallucinate because content doesn't answer?
+
+**Module Layout:**
+- `lib/sandbox/types.ts` — All shared types + SANDBOX_LIMITS const
+- `lib/sandbox/ground-truth-diffuser.ts` — Pure text↔GT comparison (no API, no DB)
+- `lib/sandbox/hallucination-gap-scorer.ts` — Pure scoring/gap analysis (no API, no DB)
+- `lib/sandbox/content-ingestion-analyzer.ts` — Claude extraction + GT diff (uses Vercel AI SDK)
+- `lib/sandbox/query-simulation-engine.ts` — Claude query simulation + answer evaluation
+- `lib/sandbox/simulation-orchestrator.ts` — Coordinates all modes, DB persistence
+- `lib/sandbox/index.ts` — Barrel export
+
+**Key Rules:**
+- Ground Truth lives on `locations` table columns (NOT a separate table)
+- Target queries come from `target_queries` table (NOT `sov_target_queries`)
+- Uses Vercel AI SDK (`generateText` from `ai`), model key `'sandbox-simulation'`
+- API routes: `app/api/sandbox/{run,status,draft/[draftId]}`
+- Dashboard: `SandboxPanel.tsx` + `SimulationResultsModal.tsx`
+- Plan gate: `canRunSandbox()` — Growth/Agency only
+
+---
+
+## §142. Sandbox Database — simulation_runs Table (Sprint 110)
+
+```sql
+simulation_runs (
+  id uuid PK, location_id uuid FK, org_id uuid FK,
+  content_source text CHECK ('freeform','draft','llms_txt','published_faq','published_homepage'),
+  draft_id uuid FK nullable, content_text text, content_word_count int,
+  modes_run text[], ingestion_result jsonb, query_results jsonb, gap_analysis jsonb,
+  simulation_score int 0-100, ingestion_accuracy int 0-100,
+  query_coverage_rate numeric(4,3), hallucination_risk text CHECK ('low','medium','high','critical'),
+  claude_model text, input_tokens_used int, output_tokens_used int,
+  status text CHECK ('completed','partial','failed'), errors text[], run_at timestamptz
+)
+```
+
+**Locations columns added:** `last_simulation_score` (int 0-100), `simulation_last_run_at` (timestamptz).
+
+**RLS:** SELECT via memberships lookup, ALL for service_role.
+
+---
+
+## §143. Simulation Score Formula (Sprint 110)
+
+Composite score 0-100, computed in `lib/sandbox/hallucination-gap-scorer.ts` via `computeSimulationScore()`:
+
+| Component | Weight | Input |
+|-----------|--------|-------|
+| Ingestion Accuracy | 40% | `ingestionAccuracy / 100 × 40` |
+| Query Coverage | 40% | `queryCoverageRate × 40` |
+| Risk Penalty | 20% | low=20, medium=12, high=6, critical=0 |
+
+**Hallucination Risk Thresholds** (`computeHallucinationRisk`):
+- `no_answer_rate < 0.20` → low
+- `0.20 ≤ rate < 0.40` → medium
+- `0.40 ≤ rate < 0.60` → high
+- `rate ≥ 0.60` → critical
+
+**Ingestion Accuracy** — weighted field comparison. FIELD_WEIGHTS sum to 100:
+name=20, phone=15, address=15, city=10, category=10, hours=15, website=5, state=5, description=5, zip=0, amenities=0.
+
+---
+
+## §144. Sandbox Rate Limits & Cost Guards (Sprint 110)
+
+| Limit | Value | Enforcement |
+|-------|-------|-------------|
+| MAX_CONTENT_WORDS | 1500 | Content truncated before API call |
+| MAX_QUERIES_PER_RUN | 10 | Query selection capped |
+| MAX_RUNS_PER_DAY_PER_ORG | 20 | Checked via `checkDailyRateLimit()` |
+| MAX_CONTENT_CHARS_STORED | 5000 | Content truncated before DB write |
+| CLAUDE_MODEL | claude-sonnet-4-20250514 | Fixed model for consistent cost |
+
+API calls: sequential with 200ms delay between queries. Short-circuit: content < 20 words skips Claude call. No API key → graceful fallback (no error).
+
+---

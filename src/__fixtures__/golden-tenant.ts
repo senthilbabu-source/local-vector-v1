@@ -2215,3 +2215,119 @@ export const MOCK_VAIO_PROFILE: VAIOProfile = {
   created_at: '2026-03-01T06:00:00Z',
   updated_at: '2026-03-01T06:00:00Z',
 };
+
+// ── Sprint 110: AI Answer Simulation Sandbox ──────────────────────────────
+
+import type {
+  SandboxGroundTruth,
+  SimulationRun,
+  IngestionResult,
+  QuerySimulationResult,
+  GapAnalysisResult,
+} from '@/lib/sandbox/types';
+
+export const MOCK_SANDBOX_GROUND_TRUTH: SandboxGroundTruth = {
+  location_id: 'b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+  org_id: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+  name: 'Charcoal N Chill',
+  phone: '(470) 546-4866',
+  address: '11950 Jones Bridge Road Ste 103',
+  city: 'Alpharetta',
+  state: 'GA',
+  zip: '30005',
+  website: 'https://charcoalnchill.com',
+  category: 'hookah lounge',
+  hours: 'tuesday: 17:00-01:00, wednesday: 17:00-01:00, thursday: 17:00-01:00, friday: 17:00-02:00, saturday: 17:00-02:00',
+  hours_data: {
+    tuesday: { open: '17:00', close: '01:00' },
+    wednesday: { open: '17:00', close: '01:00' },
+    thursday: { open: '17:00', close: '01:00' },
+    friday: { open: '17:00', close: '02:00' },
+    saturday: { open: '17:00', close: '02:00' },
+  },
+  description: null,
+  amenities: ['outdoor seating', 'alcohol', 'hookah', 'live music', 'private rooms'],
+};
+
+export const MOCK_INGESTION_RESULT: IngestionResult = {
+  extracted_facts: [
+    { field: 'name', extracted_value: 'Charcoal N Chill', ground_truth_value: 'Charcoal N Chill', match_status: 'exact', confidence: 'high' },
+    { field: 'phone', extracted_value: '(470) 546-4866', ground_truth_value: '(470) 546-4866', match_status: 'exact', confidence: 'high' },
+    { field: 'address', extracted_value: '11950 Jones Bridge Road Ste 103', ground_truth_value: '11950 Jones Bridge Road Ste 103', match_status: 'exact', confidence: 'high' },
+    { field: 'city', extracted_value: 'Alpharetta', ground_truth_value: 'Alpharetta', match_status: 'exact', confidence: 'high' },
+    { field: 'category', extracted_value: 'hookah lounge', ground_truth_value: 'hookah lounge', match_status: 'exact', confidence: 'high' },
+    { field: 'hours', extracted_value: 'Tue-Thu 5PM-1AM, Fri-Sat 5PM-2AM', ground_truth_value: 'Tue-Thu 5PM-1AM, Fri-Sat 5PM-2AM', match_status: 'exact', confidence: 'high' },
+    { field: 'website', extracted_value: '', ground_truth_value: 'https://charcoalnchill.com', match_status: 'missing', confidence: 'low' },
+  ],
+  accuracy_score: 82,
+  facts_correct: 6,
+  facts_incorrect: 0,
+  facts_missing: 1,
+  critical_errors: [],
+  warnings: [{ field: 'website', severity: 'warning', extracted: '', expected: 'https://charcoalnchill.com', message: 'website not found in content' }],
+};
+
+export const MOCK_QUERY_SIMULATION_RESULTS: QuerySimulationResult[] = [
+  {
+    query_id: 'q-001',
+    query_text: 'Best hookah lounge in Alpharetta?',
+    query_category: 'discovery',
+    simulated_answer: 'Charcoal N Chill is a hookah lounge in Alpharetta offering premium hookah and Mediterranean cuisine.',
+    answer_quality: 'complete',
+    cites_business: true,
+    facts_present: ['name', 'city', 'category'],
+    facts_hallucinated: [],
+    word_count: 17,
+    ground_truth_alignment: 85,
+  },
+  {
+    query_id: 'q-002',
+    query_text: 'How to book a private event at CNC?',
+    query_category: 'action',
+    simulated_answer: 'The content does not provide information about private events.',
+    answer_quality: 'no_answer',
+    cites_business: false,
+    facts_present: [],
+    facts_hallucinated: [],
+    word_count: 10,
+    ground_truth_alignment: 0,
+  },
+];
+
+export const MOCK_GAP_ANALYSIS: GapAnalysisResult = {
+  total_queries_tested: 2,
+  queries_with_no_answer: 1,
+  queries_with_partial_answer: 0,
+  queries_with_complete_answer: 1,
+  gap_clusters: [
+    { category: 'action', total_queries: 1, answered_queries: 0, unanswered_queries: 1, gap_severity: 'critical', example_unanswered: 'How to book a private event at CNC?' },
+  ],
+  highest_risk_queries: ['How to book a private event at CNC?'],
+  recommended_additions: [
+    { priority: 2, field: 'general', suggestion: 'Add booking or reservation instructions.', closes_queries: ['How to book a private event at CNC?'] },
+  ],
+};
+
+export const MOCK_SIMULATION_RUN: SimulationRun = {
+  id: 'sim-001',
+  location_id: 'b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+  org_id: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+  content_source: 'freeform',
+  draft_id: null,
+  content_text: 'Charcoal N Chill is a hookah lounge in Alpharetta, GA...',
+  content_word_count: 52,
+  modes_run: ['ingestion', 'query', 'gap_analysis'],
+  ingestion_result: MOCK_INGESTION_RESULT,
+  query_results: MOCK_QUERY_SIMULATION_RESULTS,
+  gap_analysis: MOCK_GAP_ANALYSIS,
+  simulation_score: 68,
+  ingestion_accuracy: 82,
+  query_coverage_rate: 0.5,
+  hallucination_risk: 'medium',
+  run_at: '2026-03-01T10:00:00Z',
+  claude_model: 'claude-sonnet-4-20250514',
+  input_tokens_used: 1250,
+  output_tokens_used: 480,
+  status: 'completed',
+  errors: [],
+};

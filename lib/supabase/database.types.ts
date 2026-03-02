@@ -1615,6 +1615,8 @@ export type Database = {
           authority_last_run_at: string | null;
           voice_readiness_score: number | null;
           vaio_last_run_at: string | null;
+          last_simulation_score: number | null;
+          simulation_last_run_at: string | null;
         };
         Insert: {
           id?: string;
@@ -1665,6 +1667,8 @@ export type Database = {
           authority_last_run_at?: string | null;
           voice_readiness_score?: number | null;
           vaio_last_run_at?: string | null;
+          last_simulation_score?: number | null;
+          simulation_last_run_at?: string | null;
         };
         Update: {
           id?: string;
@@ -1715,6 +1719,8 @@ export type Database = {
           authority_last_run_at?: string | null;
           voice_readiness_score?: number | null;
           vaio_last_run_at?: string | null;
+          last_simulation_score?: number | null;
+          simulation_last_run_at?: string | null;
         };
         Relationships: [
           {
@@ -2428,6 +2434,100 @@ export type Database = {
             columns: ["org_id"];
             isOneToOne: false;
             referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      simulation_runs: {
+        Row: {
+          id: string;
+          location_id: string;
+          org_id: string;
+          content_source: string;
+          draft_id: string | null;
+          content_text: string;
+          content_word_count: number;
+          modes_run: string[];
+          ingestion_result: Json | null;
+          query_results: Json;
+          gap_analysis: Json | null;
+          simulation_score: number;
+          ingestion_accuracy: number;
+          query_coverage_rate: number;
+          hallucination_risk: string;
+          claude_model: string;
+          input_tokens_used: number;
+          output_tokens_used: number;
+          status: string;
+          errors: string[];
+          run_at: string;
+        };
+        Insert: {
+          id?: string;
+          location_id: string;
+          org_id: string;
+          content_source: string;
+          draft_id?: string | null;
+          content_text: string;
+          content_word_count?: number;
+          modes_run?: string[];
+          ingestion_result?: Json | null;
+          query_results?: Json;
+          gap_analysis?: Json | null;
+          simulation_score?: number;
+          ingestion_accuracy?: number;
+          query_coverage_rate?: number;
+          hallucination_risk?: string;
+          claude_model?: string;
+          input_tokens_used?: number;
+          output_tokens_used?: number;
+          status?: string;
+          errors?: string[];
+          run_at?: string;
+        };
+        Update: {
+          id?: string;
+          location_id?: string;
+          org_id?: string;
+          content_source?: string;
+          draft_id?: string | null;
+          content_text?: string;
+          content_word_count?: number;
+          modes_run?: string[];
+          ingestion_result?: Json | null;
+          query_results?: Json;
+          gap_analysis?: Json | null;
+          simulation_score?: number;
+          ingestion_accuracy?: number;
+          query_coverage_rate?: number;
+          hallucination_risk?: string;
+          claude_model?: string;
+          input_tokens_used?: number;
+          output_tokens_used?: number;
+          status?: string;
+          errors?: string[];
+          run_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "simulation_runs_location_id_fkey";
+            columns: ["location_id"];
+            isOneToOne: false;
+            referencedRelation: "locations";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "simulation_runs_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "simulation_runs_draft_id_fkey";
+            columns: ["draft_id"];
+            isOneToOne: false;
+            referencedRelation: "content_drafts";
             referencedColumns: ["id"];
           },
         ];

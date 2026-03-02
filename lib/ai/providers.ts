@@ -132,6 +132,9 @@ export const MODELS = {
 
   /** Sprint 108: Authority citation detection (live web search via Perplexity) */
   'authority-citation': perplexity('sonar'),
+
+  /** Sprint 110: Sandbox AI simulation (Claude Sonnet for content analysis) */
+  'sandbox-simulation': anthropic('claude-sonnet-4-20250514'),
 } as const;
 
 export type ModelKey = keyof typeof MODELS;

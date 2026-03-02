@@ -8,7 +8,7 @@ import { fetchEntityHealth } from '@/lib/data/entity-health';
 import { createClient } from '@/lib/supabase/server';
 import type { ProofTimeline } from '@/lib/services/proof-timeline.service';
 import type { EntityHealthResult } from '@/lib/services/entity-health.service';
-import { canRunAutopilot, canConnectGBP, canExportData, canRunNAPSync, canRunSchemaExpansion, canRunReviewEngine, canRunSemanticAuthority, canRunVAIO, type PlanTier } from '@/lib/plan-enforcer';
+import { canRunAutopilot, canConnectGBP, canExportData, canRunNAPSync, canRunSchemaExpansion, canRunReviewEngine, canRunSemanticAuthority, canRunVAIO, canRunSandbox, type PlanTier } from '@/lib/plan-enforcer';
 import { createServiceRoleClient } from '@/lib/supabase/server';
 import { nextSundayLabel } from './_components/scan-health-utils';
 import { isSampleMode } from '@/lib/sample-data/use-sample-mode';
@@ -54,6 +54,8 @@ import ReviewInboxPanel from './_components/ReviewInboxPanel';
 import AuthorityPanel from './_components/AuthorityPanel';
 // Sprint 109: VAIO — Voice Readiness Panel
 import VAIOPanel from './_components/VAIOPanel';
+// Sprint 110: AI Answer Simulation Sandbox
+import SandboxPanel from './_components/SandboxPanel';
 
 export type { HallucinationRow } from '@/lib/data/dashboard'; // re-export for AlertFeed.tsx
 
@@ -62,12 +64,16 @@ export type { HallucinationRow } from '@/lib/data/dashboard'; // re-export for A
 // Visibility: live from visibility_analytics.share_of_voice (Phase 5 SOV cron)
 // Accuracy:   100 with 0 open alerts; −15 per open alert, floor 40
 // Data Health: 100 — user cleared the onboarding guard (ground truth exists)
+// Sprint 110: When simulationScore is available, DataHealth = (100 × 0.5) + (simulationScore × 0.5)
 export function deriveRealityScore(
   openAlertCount: number,
   visibilityScore: number | null,
+  simulationScore?: number | null,
 ) {
   const accuracy = openAlertCount === 0 ? 100 : Math.max(40, 100 - openAlertCount * 15);
-  const dataHealth = 100;
+  const dataHealth = simulationScore != null
+    ? Math.round(100 * 0.5 + simulationScore * 0.5)
+    : 100;
   if (visibilityScore === null) {
     return { visibility: null, accuracy, dataHealth, realityScore: null };
   }
@@ -93,6 +99,7 @@ export default async function DashboardPage() {
     healthScore, crawlerSummary, hasPublishedMenu, cronHealth, freshness,
     benchmark, locationContext,
     draftsPending, draftsApproved, draftsMonthlyUsed, draftsMonthlyLimit,
+    simulationScore,
   } = await fetchDashboardData(ctx.orgId ?? '', activeLocationId);
 
   // ── Sprint 77: Proof Timeline summary card (Sprint 100: uses active location)
@@ -163,7 +170,7 @@ export default async function DashboardPage() {
     }
   }
 
-  const scores = deriveRealityScore(openAlerts.length, visibilityScore);
+  const scores = deriveRealityScore(openAlerts.length, visibilityScore, simulationScore);
   const firstName = ctx.fullName?.split(' ')[0] ?? ctx.email.split('@')[0];
   const hasOpenAlerts = openAlerts.length > 0;
   const draftGated = canRunAutopilot(planTier);
@@ -296,6 +303,9 @@ export default async function DashboardPage() {
 
       {/* ── Sprint 109: Voice Readiness Panel (Growth+ only) ──────────── */}
       <VAIOPanel isGrowthPlan={canRunVAIO(planTier)} />
+
+      {/* ── Sprint 110: AI Simulation Sandbox (Growth+ only) ──────────── */}
+      <SandboxPanel isGrowthPlan={canRunSandbox(planTier)} />
 
       {/* ── Detail Cards ────────────────────────────────────────────────────── */}
       <BotActivityCard crawlerSummary={crawlerSummary} hasPublishedMenu={hasPublishedMenu} />

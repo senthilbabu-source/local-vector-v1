@@ -4,6 +4,45 @@
 
 ---
 
+## 2026-03-01 — Sprint 110: AI Answer Simulation Sandbox — Capstone (Completed)
+
+**Goal:** Build the only *prospective* tool in LocalVector — the AI Answer Simulation Sandbox. Tests content before publishing by simulating how AI models would interpret it. Three modes: Content Ingestion Test, Query Response Simulation, and Hallucination Gap Analysis.
+
+**Changes:**
+- **Migration:** `20260317000001_sandbox.sql` — `simulation_runs` table with RLS + 2 new columns on `locations` (`last_simulation_score`, `simulation_last_run_at`)
+- **Types:** `lib/sandbox/types.ts` — 16 types + SANDBOX_LIMITS const (SimulationMode, ContentSource, SimulationRun, SandboxGroundTruth, IngestionResult, ExtractedFact, QuerySimulationResult, GapAnalysisResult, etc.)
+- **Pure modules:** `lib/sandbox/ground-truth-diffuser.ts` (diffTextAgainstGroundTruth, normalizePhone, extractPhonePatterns), `lib/sandbox/hallucination-gap-scorer.ts` (computeHallucinationRisk, buildGapClusters, computeSimulationScore, buildGapAnalysis, mapQueryToContentSuggestion)
+- **AI modules:** `lib/sandbox/content-ingestion-analyzer.ts` (analyzeContentIngestion, compareFactValue, FIELD_WEIGHTS, CRITICAL_FIELDS), `lib/sandbox/query-simulation-engine.ts` (simulateQueriesAgainstContent, selectQueriesForSimulation, evaluateSimulatedAnswer, detectHallucinatedFacts)
+- **Orchestrator:** `lib/sandbox/simulation-orchestrator.ts` (runSimulation, getSimulationHistory, getLatestSimulationRun, checkDailyRateLimit, fetchGroundTruth)
+- **Barrel:** `lib/sandbox/index.ts`
+- **AI model:** `lib/ai/providers.ts` — added `'sandbox-simulation'` model key
+- **Plan gate:** `lib/plan-enforcer.ts` — `canRunSandbox()` (Growth/Agency)
+- **API routes:** `app/api/sandbox/run/route.ts` (POST, maxDuration=60), `app/api/sandbox/status/route.ts` (GET), `app/api/sandbox/draft/[draftId]/route.ts` (GET)
+- **Dashboard:** `SandboxPanel.tsx` (content input + mode selector + results summary + history), `SimulationResultsModal.tsx` (ingestion + query + gap analysis detail view)
+- **Dashboard integration:** `app/dashboard/page.tsx` — SandboxPanel after VAIOPanel
+- **Seed data:** `supabase/seed.sql` Section 20 — simulation_runs seed + locations columns
+- **Fixtures:** `src/__fixtures__/golden-tenant.ts` — MOCK_SANDBOX_GROUND_TRUTH, MOCK_INGESTION_RESULT, MOCK_QUERY_SIMULATION_RESULTS, MOCK_GAP_ANALYSIS, MOCK_SIMULATION_RUN
+- **Schema:** `supabase/prod_schema.sql` — simulation_runs table definition
+
+**Tests:** 127 unit tests across 5 files:
+- `sandbox-ground-truth-diffuser.test.ts` — 26 tests (normalizePhone, extractPhonePatterns, groundTruthValuePresentInText, findContradictingValue, diffTextAgainstGroundTruth)
+- `sandbox-hallucination-gap-scorer.test.ts` — 30 tests (computeHallucinationRisk, buildGapClusters, generateContentAdditions, computeSimulationScore, findHighestRiskQueries, mapQueryToContentSuggestion, buildGapAnalysis)
+- `sandbox-query-simulation.test.ts` — 21 tests (prompts, checkFactsPresent, detectHallucinatedFacts, evaluateSimulatedAnswer, selectQueriesForSimulation, simulateQueriesAgainstContent)
+- `sandbox-content-ingestion.test.ts` — 18 tests (FIELD_WEIGHTS, CRITICAL_FIELDS, normalizeForComparison, compareFactValue, prompts, analyzeContentIngestion)
+- `sandbox-orchestrator.test.ts` — 20 tests (checkDailyRateLimit, runSimulation, getSimulationHistory, getLatestSimulationRun) + 12 runSimulation sub-tests
+
+**AI_RULES:** §141 (architecture), §142 (DB table), §143 (score formula), §144 (rate limits)
+
+```bash
+npx vitest run src/__tests__/unit/sandbox-ground-truth-diffuser.test.ts   # 26 tests
+npx vitest run src/__tests__/unit/sandbox-hallucination-gap-scorer.test.ts # 30 tests
+npx vitest run src/__tests__/unit/sandbox-query-simulation.test.ts         # 21 tests
+npx vitest run src/__tests__/unit/sandbox-content-ingestion.test.ts        # 18 tests
+npx vitest run src/__tests__/unit/sandbox-orchestrator.test.ts             # 20 tests (+ 12 sub)
+```
+
+---
+
 ## 2026-03-01 — Sprint 86: Autopilot Engine — Trigger Detection + Orchestration (Completed)
 
 **Goal:** Add automated trigger detection, orchestration, and a weekly cron to the Autopilot Engine. Transforms LocalVector from a monitoring tool into an action tool by automatically detecting visibility gaps and creating content drafts.

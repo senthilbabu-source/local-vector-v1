@@ -81,6 +81,8 @@ export interface DashboardData {
   draftsApproved: number;
   draftsMonthlyUsed: number;
   draftsMonthlyLimit: number;
+  // Sprint 110: Sandbox simulation score for Reality Score DataHealth factor
+  simulationScore: number | null;
 }
 
 // ---------------------------------------------------------------------------
@@ -364,6 +366,21 @@ export async function fetchDashboardData(orgId: string, locationId?: string | nu
   }
   const draftsMonthlyLimit = getDraftLimit(orgPlan);
 
+  // Sprint 110: Fetch sandbox simulation score for Reality Score DataHealth factor
+  let simulationScore: number | null = null;
+  try {
+    if (locationId) {
+      const { data: simLoc } = await supabase
+        .from('locations')
+        .select('last_simulation_score')
+        .eq('id', locationId)
+        .maybeSingle();
+      simulationScore = simLoc?.last_simulation_score ?? null;
+    }
+  } catch (err) {
+    Sentry.captureException(err, { tags: { file: 'dashboard.ts', sprint: '110' } });
+  }
+
   return {
     openAlerts,
     fixedCount: fixedResult.count ?? 0,
@@ -395,5 +412,6 @@ export async function fetchDashboardData(orgId: string, locationId?: string | nu
     draftsApproved,
     draftsMonthlyUsed,
     draftsMonthlyLimit,
+    simulationScore,
   };
 }

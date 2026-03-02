@@ -3150,7 +3150,37 @@ CREATE TABLE IF NOT EXISTS "public"."vaio_profiles" (
 -- ALTER TABLE "public"."locations" ADD COLUMN IF NOT EXISTS "voice_readiness_score" integer CHECK ("voice_readiness_score" BETWEEN 0 AND 100);
 -- ALTER TABLE "public"."locations" ADD COLUMN IF NOT EXISTS "vaio_last_run_at" timestamp with time zone;
 
+-- ══════════════════════════════════════════════════════════════
+-- Sprint 110: AI Answer Simulation Sandbox (Capstone)
+-- ══════════════════════════════════════════════════════════════
 
+CREATE TABLE IF NOT EXISTS public.simulation_runs (
+  id                       uuid        PRIMARY KEY DEFAULT gen_random_uuid(),
+  location_id              uuid        NOT NULL REFERENCES public.locations(id) ON DELETE CASCADE,
+  org_id                   uuid        NOT NULL REFERENCES public.organizations(id) ON DELETE CASCADE,
+  content_source           text        NOT NULL CHECK (content_source IN ('freeform','draft','llms_txt','published_faq','published_homepage')),
+  draft_id                 uuid        REFERENCES public.content_drafts(id) ON DELETE SET NULL,
+  content_text             text        NOT NULL,
+  content_word_count       integer     NOT NULL DEFAULT 0,
+  modes_run                text[]      NOT NULL DEFAULT '{}',
+  ingestion_result         jsonb,
+  query_results            jsonb       NOT NULL DEFAULT '[]'::jsonb,
+  gap_analysis             jsonb,
+  simulation_score         integer     NOT NULL DEFAULT 0 CHECK (simulation_score BETWEEN 0 AND 100),
+  ingestion_accuracy       integer     NOT NULL DEFAULT 0 CHECK (ingestion_accuracy BETWEEN 0 AND 100),
+  query_coverage_rate      numeric(4,3) NOT NULL DEFAULT 0,
+  hallucination_risk       text        NOT NULL DEFAULT 'high' CHECK (hallucination_risk IN ('low','medium','high','critical')),
+  claude_model             text        NOT NULL DEFAULT 'claude-sonnet-4-20250514',
+  input_tokens_used        integer     NOT NULL DEFAULT 0,
+  output_tokens_used       integer     NOT NULL DEFAULT 0,
+  status                   text        NOT NULL DEFAULT 'completed' CHECK (status IN ('completed','partial','failed')),
+  errors                   text[]      NOT NULL DEFAULT '{}',
+  run_at                   timestamptz NOT NULL DEFAULT NOW()
+);
+
+-- Sandbox columns on locations
+-- ALTER TABLE "public"."locations" ADD COLUMN IF NOT EXISTS "last_simulation_score" integer CHECK ("last_simulation_score" BETWEEN 0 AND 100);
+-- ALTER TABLE "public"."locations" ADD COLUMN IF NOT EXISTS "simulation_last_run_at" timestamp with time zone;
 
 
 

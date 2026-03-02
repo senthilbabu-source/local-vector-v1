@@ -220,3 +220,12 @@ export function canRunSemanticAuthority(plan: PlanTier): boolean {
 export function canRunVAIO(plan: PlanTier): boolean {
   return plan === 'growth' || plan === 'agency';
 }
+
+/**
+ * AI Answer Simulation Sandbox — test content before publishing (Sprint 110).
+ * Growth and Agency orgs get on-demand sandbox simulations.
+ * Starter/Trial orgs see an upgrade prompt on the Sandbox panel.
+ */
+export function canRunSandbox(plan: PlanTier): boolean {
+  return plan === 'growth' || plan === 'agency';
+}
