@@ -42,6 +42,7 @@ import { getPendingRechecks, completeRecheck } from '@/lib/autopilot/post-publis
 import { inngest } from '@/lib/inngest/client';
 import { logCronStart, logCronComplete, logCronFailed } from '@/lib/services/cron-logger';
 import { notifyOrg, buildCronNotification } from '@/lib/realtime/notify-org';
+import { getOrCreateOrgSettings, shouldScanOrg } from '@/lib/settings';
 
 // Force dynamic so Vercel never caches this route between cron invocations.
 export const dynamic = 'force-dynamic';
@@ -160,6 +161,14 @@ async function _runInlineSOVImpl(handle: { logId: string | null; startedAt: numb
 
   for (const [orgId, orgQueries] of Object.entries(byOrg)) {
     try {
+      // Sprint 121: Scan frequency gate
+      const orgSettings = await getOrCreateOrgSettings(supabase, orgId);
+      const shouldRun = await shouldScanOrg(supabase, orgId, orgSettings);
+      if (!shouldRun) {
+        console.log(`[cron-sov] Skipping org ${orgId}: scan_frequency=${orgSettings.scan_frequency}`);
+        continue;
+      }
+
       const plan = orgQueries[0].organizations?.plan ?? 'starter';
       const queryCap = getQueryCap(plan);
       const batch = orgQueries.slice(0, queryCap);

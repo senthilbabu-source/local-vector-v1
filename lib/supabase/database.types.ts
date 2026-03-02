@@ -192,6 +192,7 @@ export type Database = {
           follow_up_checked_at: string | null;
           follow_up_result: string | null;
           embedding: number[] | null;
+          corrected_at: string | null;
         };
         Insert: {
           id?: string;
@@ -217,6 +218,7 @@ export type Database = {
           follow_up_checked_at?: string | null;
           follow_up_result?: string | null;
           embedding?: number[] | null;
+          corrected_at?: string | null;
         };
         Update: {
           id?: string;
@@ -242,6 +244,7 @@ export type Database = {
           follow_up_checked_at?: string | null;
           follow_up_result?: string | null;
           embedding?: number[] | null;
+          corrected_at?: string | null;
         };
         Relationships: [
           {
@@ -3341,7 +3344,8 @@ export type Database = {
         | "verifying"
         | "fixed"
         | "dismissed"
-        | "recurring";
+        | "recurring"
+        | "corrected";
       hallucination_severity: "critical" | "high" | "medium" | "low";
       membership_role: "owner" | "admin" | "member" | "analyst" | "viewer";
       menu_processing_status:

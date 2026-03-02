@@ -288,7 +288,7 @@ export default async function HallucinationsPage() {
         const fixNowAlerts = triageAlerts
           .filter((a) => a.correction_status === 'open')
           .sort((a, b) => (SEVERITY_ORDER[a.severity] ?? 9) - (SEVERITY_ORDER[b.severity] ?? 9));
-        const inProgressAlerts = triageAlerts.filter((a) => a.correction_status === 'verifying');
+        const inProgressAlerts = triageAlerts.filter((a) => a.correction_status === 'verifying' || a.correction_status === 'corrected');
         const resolvedAlerts = triageAlerts
           .filter((a) => a.correction_status === 'fixed' || a.correction_status === 'dismissed' || a.correction_status === 'recurring')
           .slice(0, 10);

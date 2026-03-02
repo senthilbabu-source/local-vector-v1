@@ -2,12 +2,19 @@ import { redirect } from 'next/navigation';
 import { getSafeAuthContext } from '@/lib/auth';
 import { createClient } from '@/lib/supabase/server';
 import SettingsForm from './_components/SettingsForm';
+import NotificationSettings from './_components/NotificationSettings';
+import ScanFrequencySettings from './_components/ScanFrequencySettings';
+import ApiKeySettings from './_components/ApiKeySettings';
+import DangerZoneSettings from './_components/DangerZoneSettings';
+import { getOrCreateOrgSettings } from '@/lib/settings';
+import type { OrgSettings } from '@/lib/settings/types';
 
 // ---------------------------------------------------------------------------
-// SettingsPage — Server Component (Sprint 24B + Sprint 62 notification prefs)
+// SettingsPage — Server Component (Sprint 24B + Sprint 62 + Sprint 121)
 //
 // Fetches user identity from getSafeAuthContext() and notification prefs
 // from the organizations table. Pre-fills the form with both.
+// Sprint 121: Added org_settings fetch + 4 new sections.
 // ---------------------------------------------------------------------------
 
 export default async function SettingsPage() {
@@ -23,7 +30,7 @@ export default async function SettingsPage() {
   const { data: org } = ctx.orgId
     ? await supabase
         .from('organizations')
-        .select('notify_hallucination_alerts, notify_weekly_digest, notify_sov_alerts, monitored_ai_models, score_drop_threshold, webhook_url, scan_day_of_week, notify_score_drop_alert, notify_new_competitor' as '*')
+        .select('notify_hallucination_alerts, notify_weekly_digest, notify_sov_alerts, monitored_ai_models, score_drop_threshold, webhook_url, scan_day_of_week, notify_score_drop_alert, notify_new_competitor, slug' as '*')
         .eq('id', ctx.orgId)
         .maybeSingle()
     : { data: null };
@@ -36,7 +43,18 @@ export default async function SettingsPage() {
         .eq('org_id', ctx.orgId)).count ?? 0)
     : 0;
 
+  // Sprint 121: Fetch org_settings
+  let orgSettings: OrgSettings | null = null;
+  if (ctx.orgId) {
+    try {
+      orgSettings = await getOrCreateOrgSettings(supabase, ctx.orgId);
+    } catch {
+      // Non-critical — show defaults in components
+    }
+  }
+
   const orgData = org as Record<string, unknown> | null;
+  const orgSlug = (orgData?.slug as string) ?? '';
 
   const notifyPrefs = {
     notify_hallucination_alerts: (orgData?.notify_hallucination_alerts as boolean | null) ?? true,
@@ -73,6 +91,30 @@ export default async function SettingsPage() {
         expandedPrefs={expandedPrefs}
         competitorCount={competitorCount}
       />
+
+      {/* ── Sprint 121: New Settings Sections ─────────────────────── */}
+      {orgSettings && (
+        <>
+          <div className="border-t border-white/5 pt-5">
+            <NotificationSettings settings={orgSettings} />
+          </div>
+
+          <div className="border-t border-white/5 pt-5">
+            <ScanFrequencySettings currentFrequency={orgSettings.scan_frequency} />
+          </div>
+
+          <div className="border-t border-white/5 pt-5">
+            <ApiKeySettings isAgencyPlan={ctx.plan === 'agency'} />
+          </div>
+        </>
+      )}
+
+      <div className="border-t border-white/5 pt-5">
+        <DangerZoneSettings
+          orgSlug={orgSlug}
+          isOwner={ctx.role === 'owner'}
+        />
+      </div>
 
     </div>
   );

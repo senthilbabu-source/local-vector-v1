@@ -24,7 +24,8 @@ export type CorrectionStatus =
   | 'verifying'
   | 'fixed'
   | 'dismissed'
-  | 'recurring';
+  | 'recurring'
+  | 'corrected';
 
 // ---------------------------------------------------------------------------
 // createLocation

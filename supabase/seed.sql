@@ -2574,4 +2574,9 @@ BEGIN
   VALUES (v_auth_user_id, v_org_id)
   ON CONFLICT (user_id, org_id) DO NOTHING;
 
+  -- Sprint 121: org_settings for golden tenant
+  INSERT INTO public.org_settings (org_id)
+  VALUES (v_org_id)
+  ON CONFLICT (org_id) DO NOTHING;
+
 END $$;

@@ -47,7 +47,7 @@ export type HallucinationRow = {
   | 'microsoft-copilot';
   claim_text: string;
   expected_truth: string | null;
-  correction_status: 'open' | 'verifying' | 'fixed' | 'dismissed' | 'recurring';
+  correction_status: 'open' | 'verifying' | 'fixed' | 'dismissed' | 'recurring' | 'corrected';
   first_detected_at: string;
   last_seen_at: string;
   occurrence_count: number;

@@ -2895,3 +2895,60 @@ export const MOCK_SSE_CHUNKS: SSEChunk[] = [
   { type: 'text', text: ' hookah lounge' },
   { type: 'done', total_tokens: 42 },
 ];
+
+// ---------------------------------------------------------------------------
+// Sprint 121 — Correction Follow-up + Settings Expansion Fixtures
+// ---------------------------------------------------------------------------
+
+export const MOCK_CORRECTION_FOLLOW_UP_PENDING = {
+  id: 'cfu-001',
+  hallucination_id: 'hall-001',
+  org_id: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+  correction_brief_id: 'draft-correction-001',
+  rescan_due_at: '2026-03-15T00:00:00.000Z',
+  rescan_completed_at: null,
+  rescan_status: 'pending' as const,
+  rescan_ai_response: null,
+  created_at: '2026-03-01T10:00:00.000Z',
+  updated_at: '2026-03-01T10:00:00.000Z',
+};
+
+export const MOCK_CORRECTION_FOLLOW_UP_CLEARED = {
+  ...MOCK_CORRECTION_FOLLOW_UP_PENDING,
+  id: 'cfu-002',
+  rescan_completed_at: '2026-03-15T04:00:00.000Z',
+  rescan_status: 'cleared' as const,
+  rescan_ai_response: 'This statement is no longer accurate according to current data.',
+};
+
+export const MOCK_CORRECTION_FOLLOW_UP_PERSISTS = {
+  ...MOCK_CORRECTION_FOLLOW_UP_PENDING,
+  id: 'cfu-003',
+  rescan_completed_at: '2026-03-15T04:00:00.000Z',
+  rescan_status: 'persists' as const,
+  rescan_ai_response: 'Yes, this statement appears to be accurate based on available sources.',
+};
+
+export const MOCK_ORG_SETTINGS = {
+  id: 'settings-001',
+  org_id: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+  notify_email_digest: true,
+  notify_slack_webhook_url: null,
+  notify_in_app: true,
+  notify_sov_drop_threshold: 5,
+  scan_frequency: 'weekly' as const,
+  created_at: '2026-01-01T00:00:00.000Z',
+  updated_at: '2026-03-01T00:00:00.000Z',
+};
+
+export const MOCK_ORG_API_KEY = {
+  id: 'key-001',
+  org_id: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+  name: 'Production Key',
+  key_prefix: 'lv_live_3a',
+  created_by: 'golden-user-id',
+  last_used_at: null,
+  expires_at: null,
+  is_active: true,
+  created_at: '2026-03-01T10:00:00.000Z',
+};

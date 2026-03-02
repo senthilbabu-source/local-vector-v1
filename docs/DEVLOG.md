@@ -4,6 +4,34 @@
 
 ---
 
+## 2026-03-02 — Sprint 121: Correction Follow-up + Settings Expansion (Completed)
+
+**Goal:** When a hallucination is marked corrected, auto-generate a correction brief content draft, track correction effectiveness by re-running the hallucinated query after 14 days, and expand the settings page with notification preferences, AI scan frequency controls, and API key management for white-label Agency orgs.
+
+**Key Decision:** Used existing `correction_status` enum (added `'corrected'` value) rather than a separate status CHECK constraint. Reused `'hallucination_correction'` trigger_type for content drafts. Scan frequency gates the SOV cron per-org — default weekly behavior unchanged.
+
+**Changes:**
+- **Migration:** `20260321000002_corrections_settings.sql` — ALTER TYPE correction_status ADD VALUE 'corrected', corrected_at column, 3 new tables (correction_follow_ups, org_settings, org_api_keys), 8 RLS policies, org_settings backfill
+- **Correction service:** `lib/corrections/` — markHallucinationCorrected, generateCorrectionBrief (fire-and-forget, never throws), runCorrectionRescan (3-way: cleared/persists/inconclusive), getCorrectionEffectivenessScore
+- **Settings service:** `lib/settings/` — getOrCreateOrgSettings, updateOrgSettings (validation: scan_frequency enum, threshold 1-20, Slack webhook prefix), shouldScanOrg (weekly=7d, bi-weekly=14d, monthly=28d)
+- **API key service:** `lib/settings/api-key-service.ts` — generateApiKey (SHA-256 hash, lv_live_ prefix, raw_key returned ONCE), listApiKeys (key_hash NEVER selected), revokeApiKey (soft delete)
+- **API routes:** POST /api/hallucinations/[id]/correct, POST /api/cron/correction-rescan (daily 4 AM, LIMIT 20), GET+PUT /api/settings, GET+POST /api/settings/api-keys, DELETE /api/settings/api-keys/[keyId], DELETE /api/settings/danger/delete-scan-data, DELETE /api/settings/danger/delete-org
+- **Dashboard:** CorrectButton (inline form + confirm), CorrectionStatusBadge (4 states), NotificationSettings, ScanFrequencySettings (auto-save radio), ApiKeySettings (Agency gate + raw key modal), DangerZoneSettings (5s countdown + exact text confirmation)
+- **SOV cron modified:** scan frequency gate at start of per-org processing
+- **vercel.json:** correction-rescan cron at "0 4 * * *" (17th cron)
+- **CorrectionStatus type updated:** added 'corrected' to union in dashboard/actions.ts
+- **Hallucinations page:** 'corrected' status shows in In Progress swimlane
+
+**Tests:** 52 Vitest tests:
+- `correction-service.test.ts` — 16 tests (markCorrected 5, generateBrief 5, rescan 5, effectiveness 1)
+- `settings-service.test.ts` — 12 tests (updateSettings 6, shouldScanOrg 6)
+- `api-key-service.test.ts` — 10 tests (generate 6, list 2, revoke 2)
+- `correction-settings-routes.test.ts` — 14 tests (correct 5, settings 4, danger 3, api-keys 2)
+
+**AI_RULES:** §155 (Correction Follow-up + Settings Expansion)
+
+---
+
 ## 2026-03-02 — Sprint 119: pgvector Semantic Search + Embedding Pipeline (Completed)
 
 **Goal:** Enable vector similarity search across 5 tables (menu_items, ai_hallucinations, target_queries, content_drafts, locations) using pgvector extension with text-embedding-3-small (1536d). Build semantic menu search for public pages, similar-queries widget for SOV dashboard, hallucination dedup in audit cron, draft dedup service, and nightly embedding backfill.

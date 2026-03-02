@@ -12,7 +12,7 @@ LocalVector is an AEO/GEO SaaS platform that helps local businesses monitor and 
 - **Billing:** Stripe webhooks → `organizations.plan_tier` enum (`trial | starter | growth | agency`)
 - **Email:** Resend + React Email (`emails/`)
 - **Cache:** Upstash Redis (`lib/redis.ts`) — optional, all callers must degrade gracefully
-- **Testing:** Vitest (unit/integration in `src/__tests__/`), Playwright (E2E in `tests/e2e/`, 41 specs). Current: 4728 tests, 326 files.
+- **Testing:** Vitest (unit/integration in `src/__tests__/`), Playwright (E2E in `tests/e2e/`, 41 specs). Current: 4780 tests, 330 files.
 - **Monitoring:** Sentry (client, server, edge configs) — all catch blocks instrumented (Sprint A, AI_RULES §70)
 
 ## Architecture Rules
@@ -23,12 +23,12 @@ LocalVector is an AEO/GEO SaaS platform that helps local businesses monitor and 
 - **Plan display names live in `lib/plan-display-names.ts`.** Never inline plan tier display logic (e.g., `capitalize(plan)`) — always use `getPlanDisplayName()`. Maps: trial→The Audit, starter→Starter, growth→AI Shield, agency→Brand Fortress, null→Free. (AI_RULES §71)
 - **AI providers are centralized.** Never call AI APIs directly — use `getModel(key)` from `lib/ai/providers.ts`. Mock fallbacks activate when API keys are absent.
 - **RLS pattern:** Every tenant-scoped table has `org_isolation_select/insert/update/delete` policies using `org_id = public.current_user_org_id()`.
-- **Cron routes** live in `app/api/cron/` and require `Authorization: Bearer <CRON_SECRET>` header. Each has a kill switch env var. 15 crons registered in `vercel.json`, 9 in `CRON_REGISTRY`.
+- **Cron routes** live in `app/api/cron/` and require `Authorization: Bearer <CRON_SECRET>` header. Each has a kill switch env var. 17 crons registered in `vercel.json`, 9 in `CRON_REGISTRY`.
 
 ## Key Directories
 
 ```
-app/api/cron/          — Automated pipelines (sov, audit, content-audit, weekly-digest, correction-follow-up, benchmarks, nap-sync, schema-drift, review-sync, autopilot)
+app/api/cron/          — Automated pipelines (sov, audit, content-audit, weekly-digest, correction-follow-up, correction-rescan, benchmarks, nap-sync, schema-drift, review-sync, autopilot)
 app/(auth)/            — Auth pages (login, register, forgot-password, reset-password)
 app/dashboard/         — Authenticated dashboard pages (each has error.tsx boundary)
 app/dashboard/citations/     — Citation Gap Dashboard (Sprint 58A)
@@ -76,10 +76,15 @@ lib/invitations/       — Token-based invitation flow: types, service, email bu
 lib/mcp/               — MCP server tool registrations
 lib/whitelabel/            — White-label: domain resolver, theme service, email wrapper, CSS props (Sprint 114-115, §148-§149)
 lib/streaming/             — SSE streaming: types (SSEChunk, StreamingState), sse-utils (createSSEResponse, formatSSEChunk), barrel export (Sprint 120, §154)
+lib/corrections/           — Correction follow-up: brief prompt, correction-service (mark corrected, rescan, effectiveness score), types (Sprint 121, §155)
+lib/settings/              — Org settings: settings-service (get/update/shouldScanOrg), api-key-service (SHA-256 hash, generate/list/revoke), types (Sprint 121, §155)
 hooks/useStreamingResponse.ts — POST-based SSE consumer: fetch + getReader(), line buffering, 50ms flush, cancel/reset (Sprint 120, §154)
 components/StreamingTextDisplay.tsx — Animated streaming text: 6 status states, blinking cursor, whitespace-pre-wrap (Sprint 120, §154)
 app/api/content/preview-stream/ — SSE content preview generation with Claude Haiku (Sprint 120, §154)
 app/api/sov/simulate-stream/   — SSE SOV query simulation with neutral prompt (Sprint 120, §154)
+app/api/settings/              — Org settings CRUD + API key management + danger zone (Sprint 121, §155)
+app/api/hallucinations/[id]/correct/ — Mark hallucination corrected + schedule rescan (Sprint 121, §155)
+app/api/cron/correction-rescan/     — Daily re-scan of pending corrections (Sprint 121, §155)
 lib/supabase/database.types.ts — Full Database type (49 tables, 9 enums, Relationships)
 supabase/migrations/   — Applied SQL migrations (54, timestamp-ordered)
 supabase/prod_schema.sql — Full production schema dump
@@ -584,6 +589,18 @@ APPLE_MAPS_PRIVATE_KEY, APPLE_MAPS_KEY_ID, APPLE_MAPS_TEAM_ID
 - Tests: 52 Vitest (embedding-service 22, hallucination-dedup 8, draft-dedup 6, menu-search-route 10, embed-backfill-cron 6) + 6 E2E.
 - Result: 322 test files, 4677 tests pass. 4 migrations.
 
+### Sprint 121 — Correction Follow-up + Settings Expansion (2026-03-02)
+- **Migration:** `20260321000002_corrections_settings.sql` — ALTER TYPE correction_status ADD VALUE 'corrected', `corrected_at` column on ai_hallucinations, 3 new tables (correction_follow_ups, org_settings, org_api_keys), 8 RLS policies, backfill org_settings.
+- **Correction service:** `lib/corrections/` — types (CorrectionReScanStatus, CorrectionFollowUp, CorrectionResult), correction-brief-prompt (buildCorrectionBriefPrompt, buildCorrectionDraftTitle — pure), correction-service (markHallucinationCorrected, generateCorrectionBrief — fire-and-forget/never throws, runCorrectionRescan — 3-way heuristic, getCorrectionEffectivenessScore).
+- **Settings service:** `lib/settings/` — types (ScanFrequency, OrgSettings, OrgApiKey, CreateApiKeyResult), settings-service (getOrCreateOrgSettings upsert, updateOrgSettings validation, shouldScanOrg frequency gate), api-key-service (generateApiKey SHA-256 hash, listApiKeys — key_hash NEVER exposed, revokeApiKey soft delete).
+- **SOV cron integration:** `shouldScanOrg()` gate at start of per-org loop — weekly=7d, bi-weekly=14d, monthly=28d.
+- **API routes:** 8 new — `POST /api/hallucinations/[id]/correct` (admin+), `POST /api/cron/correction-rescan` (daily 4 AM UTC, LIMIT 20), `GET/PUT /api/settings`, `GET/POST /api/settings/api-keys`, `DELETE /api/settings/api-keys/[keyId]`, `DELETE /api/settings/danger/delete-scan-data` (owner, confirmation='DELETE', service role), `DELETE /api/settings/danger/delete-org` (owner, confirmation=slug, service role, Stripe cancel).
+- **Dashboard components:** CorrectButton (inline form with notes), CorrectionStatusBadge (4-state), NotificationSettings (email digest, in-app, threshold, Slack webhook), ScanFrequencySettings (auto-save radio), ApiKeySettings (Agency gate, raw key modal), DangerZoneSettings (5s countdown + exact text confirmation, owner-only).
+- **Cron:** 17th cron — `0 4 * * *` (daily 4 AM UTC). Kill switch: `STOP_CORRECTION_RESCAN_CRON`.
+- AI_RULES: §155 (Correction Follow-up + Settings Expansion).
+- Tests: 52 Vitest (correction-service 16, settings-service 12, api-key-service 10, correction-settings-routes 14).
+- Result: 330 test files, ~4780 tests pass. 1 migration.
+
 ## Tier Completion Status
 
 | Tier | Sprints | Status | Gate |
@@ -626,10 +643,11 @@ APPLE_MAPS_PRIVATE_KEY, APPLE_MAPS_KEY_ID, APPLE_MAPS_TEAM_ID
 | Sprint 118 | Conversion & Reliability Infrastructure | Complete | — |
 | Sprint 119 | pgvector Semantic Search + Embedding Pipeline | Complete | — |
 | Sprint 120 | AI Preview Streaming (SSE) | Complete | — |
+| Sprint 121 | Correction Follow-up + Settings Expansion | Complete | — |
 
 ### Sprints Pending External Approval:
 - Apple Business Connect Sync (originally §57): Submit API request at https://developer.apple.com/business-connect/
 
 ## Build History
 
-See `DEVLOG.md` (project root) and `docs/DEVLOG.md` for the complete sprint-by-sprint build log. Current sprint: 120 (+ FIX-1 through FIX-8 + Sprint A through Sprint O). AI_RULES: §1–§154 (154 sections). Production readiness: all audit issues resolved. **V1 complete.**
+See `DEVLOG.md` (project root) and `docs/DEVLOG.md` for the complete sprint-by-sprint build log. Current sprint: 121 (+ FIX-1 through FIX-8 + Sprint A through Sprint O). AI_RULES: §1–§155 (155 sections). Production readiness: all audit issues resolved. **V1 complete.**

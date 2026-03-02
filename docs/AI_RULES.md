@@ -3128,3 +3128,22 @@ Per-org brand configuration with CSS custom property injection, themed emails, b
 * **Tests:** 12 sse-utils + 16 streaming-routes + 15 use-streaming-response + 8 streaming-text-display = 51 Vitest. 8 Playwright E2E.
 
 ---
+
+## §155. Correction Follow-up + Settings Expansion (Sprint 121)
+
+Corrections in `lib/corrections/`, settings in `lib/settings/`.
+
+* **`generateCorrectionBrief()` never throws.** Always void fire-and-forget. On any error: `Sentry.captureException` + `console.warn`, return. Uses `getModel('streaming-preview')` (Haiku) for cost.
+* **API keys: SHA-256 hash only stored.** `raw_key` returned ONCE via `CreateApiKeyResult`, never in `OrgApiKey` type. `listApiKeys()` uses explicit column SELECT — `key_hash` never included. Prefix `lv_live_` + `randomBytes(32).toString('hex')`.
+* **`shouldScanOrg()` gates the SOV cron.** weekly=7d, bi-weekly=14d, monthly=28d (from `SCAN_FREQUENCY_DAYS`). New orgs with no `sov_evaluations` always scan regardless of frequency setting.
+* **Danger Zone: service role + owner only.** Auth check (`roleSatisfies('owner')`) runs first, then `createServiceRoleClient()` for destructive DELETE. Two actions: delete scan data (confirmation='DELETE'), delete org (confirmation=org.slug). Both require 5-second countdown + exact text match in UI.
+* **Correction rescan: LIMIT 20 per cron run.** 3-way result via heuristic on AI response: `cleared` (contains 'not accurate'/'false'/'incorrect'/'not true'/'no longer'), `persists` (contains 'yes'/'accurate'/'true'/'correct'), `inconclusive` (else). Cron at daily 4 AM UTC.
+* **Settings validation (server-side):** `scan_frequency` must be in enum, `notify_sov_drop_threshold` 1-20, Slack webhook must start with `https://hooks.slack.com/` or be null. Throws `invalid_*` errors caught by route as 400.
+* **`correction_status` enum extended:** Added `'corrected'` value. Corrected hallucinations show in "In Progress" triage swimlane. `CorrectionStatus` type in `app/dashboard/actions.ts` updated.
+* **`correction_follow_ups` table:** UNIQUE on hallucination_id. RLS: org read + service role full access. `rescan_due_at` defaults to NOW() + 14 days. Partial index on (rescan_due_at, rescan_status) WHERE pending.
+* **`org_settings` table:** UNIQUE on org_id. Backfilled for existing orgs on migration. RLS: org read + admin/owner update + service role full. Default: weekly scan, threshold 5, email digest on, in-app on.
+* **`org_api_keys` table:** Agency plan only. UNIQUE(org_id, key_hash). Partial index on org_id WHERE active. Soft-delete via `is_active=false` (not hard DELETE).
+* **Migration:** `20260321000002_corrections_settings.sql`. 17th cron in vercel.json.
+* **Tests:** 16 correction-service + 12 settings-service + 10 api-key-service + 14 correction-settings-routes = 52 Vitest.
+
+---

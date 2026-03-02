@@ -15,6 +15,7 @@ import { Sparkles } from 'lucide-react';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
 import DismissAlertButton from './DismissAlertButton';
+import CorrectButton from './CorrectButton';
 
 const SEVERITY_STYLES = {
   critical: {
@@ -120,8 +121,14 @@ export default function AlertCard({ alert }: AlertCardProps) {
               <Sparkles className="h-3 w-3" aria-hidden="true" />
               Fix with AI
             </Link>
+            <CorrectButton hallucinationId={alert.id} claimText={alert.claim_text} />
             <DismissAlertButton alertId={alert.id} />
           </>
+        )}
+        {status === 'corrected' && (
+          <span className="text-xs font-medium text-signal-green">
+            Corrected — rescan scheduled to verify
+          </span>
         )}
         {status === 'fixed' && (
           <span className="text-xs font-medium text-signal-green">
