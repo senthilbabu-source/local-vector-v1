@@ -37,8 +37,8 @@ making it clear what hallucinations cost your business. LocalVector also exposes
 | Job Queue | Inngest (event-driven fan-out for cron pipelines) |
 | Billing | Stripe (webhooks → `plan_tier` enum) |
 | Email | Resend + React Email |
-| Cache | Upstash Redis (optional, graceful degradation) |
-| Testing | Vitest (61 unit/integration test files), Playwright (18 E2E specs) |
+| Cache / Rate Limiting | Upstash Redis (sliding window rate limiting, graceful degradation) |
+| Testing | Vitest (300+ test files), Playwright (33 E2E specs) |
 | Monitoring | Sentry (client, server, edge) |
 | Styling | Tailwind CSS v4, Tremor Raw charts, Recharts |
 
@@ -129,6 +129,9 @@ Below is a summary grouped by service.
 | Google OAuth | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | Needed for Google Business Profile integration |
 | Upstash Redis | `UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN` | All callers degrade gracefully when unavailable |
 | Sentry | `NEXT_PUBLIC_SENTRY_DSN`, `SENTRY_AUTH_TOKEN`, `SENTRY_ORG`, `SENTRY_PROJECT` | Error monitoring and performance tracking |
+| Alerts | `SLACK_WEBHOOK_URL`, `SLACK_SOV_DROP_THRESHOLD` | Operational Slack alerts; threshold defaults to 5 |
+| Cache | `REVALIDATE_SECRET` | Server-to-server secret for on-demand menu page revalidation |
+| Listings | `YELP_API_KEY`, `BING_MAPS_KEY` | Listing verification (Yelp Fusion, Bing Local Search) |
 | MCP | `MCP_API_KEY` | Bearer token for MCP endpoint; fails closed when absent |
 | Kill Switches | `STOP_GOOGLE_REFRESH` | Set to `true` to instantly halt Google API spending |
 
@@ -173,7 +176,15 @@ npx playwright test       # Run E2E tests
   development without paid API credentials.
 
 - **Middleware** lives in `proxy.ts` at the project root (not `middleware.ts`).
-  Handles subdomain routing (app vs. menu vs. marketing) and auth session management.
+  Handles subdomain routing (app vs. menu vs. marketing), auth session management,
+  white-label domain resolution, and API rate limiting (Redis sliding window, fail-open).
+
+- **Rate limiting** uses a Redis sorted set sliding window in middleware for all `/api/` routes.
+  Tiered by plan (anonymous 20/min, trial 60, starter 120, growth 300, agency 600).
+  Webhooks, crons, email, and revalidation routes bypass rate limiting.
+
+- **ISR caching** on `/m/[slug]` menu pages (1-hour revalidation) with cache tags for
+  on-demand purge via `POST /api/revalidate` (REVALIDATE_SECRET auth).
 
 - **Cron routes** in `app/api/cron/` require `Authorization: Bearer <CRON_SECRET>`.
   Each has a kill switch env var. Execution is logged to the `cron_run_log` table

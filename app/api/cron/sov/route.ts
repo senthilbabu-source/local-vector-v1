@@ -30,6 +30,7 @@ import {
   type SOVQueryResult,
 } from '@/lib/services/sov-engine.service';
 import { sendWeeklyDigest, sendFreshnessAlert, sendEnhancedDigest } from '@/lib/email';
+import { sendSlackAlert, buildSOVDropAlert, SOV_DROP_THRESHOLD } from '@/lib/alerts';
 import { fetchFreshnessAlerts } from '@/lib/data/freshness-alerts';
 import { buildWeeklyDigestPayload, getDigestRecipients } from '@/lib/digest';
 import { isFirstDigest } from '@/lib/digest/send-gate';
@@ -286,6 +287,18 @@ async function _runInlineSOVImpl(handle: { logId: string | null; startedAt: numb
           }).catch((err: unknown) =>
             console.error('[cron-sov] Email send failed:', err),
           );
+
+          // Sprint 118: Slack alert on SOV drop (fire-and-forget, conditional)
+          if (sovDelta !== null && sovDelta <= -SOV_DROP_THRESHOLD) {
+            void sendSlackAlert(buildSOVDropAlert({
+              org_name: businessName,
+              org_id: orgId,
+              current_score: visRows[0]?.share_of_voice ?? 0,
+              previous_score: visRows[1]?.share_of_voice ?? 0,
+              delta: sovDelta,
+              week_of: new Date().toISOString(),
+            }));
+          }
         }
 
         // Sprint 117: Enhanced digest to all non-unsubscribed org members

@@ -12,6 +12,8 @@
 import type { GBPAccount, GBPLocation } from '@/lib/types/gbp';
 import type { HallucinationAuditRow } from '@/lib/exports/csv-builder';
 import type { AuditReportData } from '@/lib/exports/pdf-assembler';
+import type { RateLimitResult } from '@/lib/rate-limit/types';
+import type { SOVDropAlertParams } from '@/lib/alerts/slack';
 
 export const GOLDEN_TENANT = {
   org: {
@@ -2748,4 +2750,32 @@ export const MOCK_WEEKLY_DIGEST_PAYLOAD: WeeklyDigestPayload = {
   org_logo_url: null,
   org_primary_color: '#1a1a2e',
   org_text_on_primary: '#ffffff',
+};
+
+// ---------------------------------------------------------------------------
+// Sprint 118 — Rate Limiting + Slack Alerts Fixtures
+// ---------------------------------------------------------------------------
+
+export const MOCK_RATE_LIMIT_ALLOWED: RateLimitResult = {
+  allowed: true,
+  remaining: 59,
+  reset_at: Math.floor(Date.now() / 1000) + 60,
+  limit: 60,
+};
+
+export const MOCK_RATE_LIMIT_BLOCKED: RateLimitResult = {
+  allowed: false,
+  remaining: 0,
+  reset_at: Math.floor(Date.now() / 1000) + 45,
+  limit: 60,
+  retry_after: 45,
+};
+
+export const MOCK_SOV_DROP_ALERT_PARAMS: SOVDropAlertParams = {
+  org_name: 'Charcoal N Chill',
+  org_id: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+  current_score: 30,
+  previous_score: 42,
+  delta: -12,
+  week_of: '2026-03-01T00:00:00.000Z',
 };

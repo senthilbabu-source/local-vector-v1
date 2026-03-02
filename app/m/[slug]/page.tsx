@@ -5,14 +5,16 @@
 // Doc 03 §15 Agent Rule: all JSONB types imported from lib/types/ground-truth.ts.
 // AI_RULES §1: column names verified against supabase/migrations/.
 
-// Revalidate public menu pages every 24 hours (Next.js App Router ISR).
-// Satisfies Phase 2 acceptance criterion: "< 200ms edge cached".
-export const revalidate = 86400;
+// Sprint 118: ISR revalidation every 1 hour + cache tags for on-demand revalidation.
+export const revalidate = 3600;
+export const dynamicParams = true;
 
 import { notFound } from 'next/navigation';
 import { cache } from 'react';
+import { unstable_cache } from 'next/cache';
 import type { Metadata } from 'next';
 import { createClient } from '@/lib/supabase/server';
+import { createServiceRoleClient } from '@/lib/supabase/server';
 import type {
   HoursData,
   DayOfWeek,
@@ -232,41 +234,66 @@ function buildMenuSchema(
 }
 
 // ---------------------------------------------------------------------------
-// Data fetching — React cache() deduplicates across generateMetadata + Page
+// Static params — pre-render known published menu slugs at build time
 // ---------------------------------------------------------------------------
 
+export async function generateStaticParams() {
+  const supabase = createServiceRoleClient();
+  const { data } = await supabase
+    .from('magic_menus')
+    .select('public_slug')
+    .eq('is_published', true);
+  return (data ?? []).map((menu) => ({ slug: menu.public_slug }));
+}
+
+// ---------------------------------------------------------------------------
+// Data fetching — unstable_cache for ISR + React cache for request dedup
+// ---------------------------------------------------------------------------
+
+/**
+ * Fetches public menu data with caching.
+ * unstable_cache: ISR cache with tag `menu-{slug}` for on-demand revalidation.
+ * React.cache: deduplicates calls within a single request (generateMetadata + Page).
+ */
 const fetchPublicMenuPage = cache(
   async (slug: string): Promise<{ menu: PublicMenuData | null; categories: CategoryData[] }> => {
-    const supabase = await createClient();
+    return unstable_cache(
+      async (): Promise<{ menu: PublicMenuData | null; categories: CategoryData[] }> => {
+        // Use service role client inside cache — cookies may not be available.
+        // This page only shows PUBLIC data (is_published=true), so service role is safe.
+        const supabase = createServiceRoleClient();
 
-    // Fetch menu header + full location data (incl. hours_data and amenities).
-    // Double-gated: anon RLS policy + application-level .eq('is_published', true).
-    const { data: menu } = (await supabase
-      .from('magic_menus')
-      .select(
-        'id, public_slug, location_id, locations(id, business_name, address_line1, address_line2, city, state, zip, phone, website_url, hours_data, amenities)'
-      )
-      .eq('public_slug', slug)
-      .eq('is_published', true)
-      .single()) as { data: PublicMenuData | null; error: unknown };
+        // Fetch menu header + full location data (incl. hours_data and amenities).
+        const { data: menu } = (await supabase
+          .from('magic_menus')
+          .select(
+            'id, public_slug, location_id, locations(id, business_name, address_line1, address_line2, city, state, zip, phone, website_url, hours_data, amenities)'
+          )
+          .eq('public_slug', slug)
+          .eq('is_published', true)
+          .single()) as { data: PublicMenuData | null; error: unknown };
 
-    if (!menu) return { menu: null, categories: [] };
+        if (!menu) return { menu: null, categories: [] };
 
-    // Fetch categories with their items.
-    const { data: categoriesRaw } = (await supabase
-      .from('menu_categories')
-      .select(
-        'id, name, sort_order, menu_items(id, name, description, price, currency, is_available, sort_order)'
-      )
-      .eq('menu_id', menu.id)
-      .order('sort_order', { ascending: true })) as { data: CategoryData[] | null; error: unknown };
+        // Fetch categories with their items.
+        const { data: categoriesRaw } = (await supabase
+          .from('menu_categories')
+          .select(
+            'id, name, sort_order, menu_items(id, name, description, price, currency, is_available, sort_order)'
+          )
+          .eq('menu_id', menu.id)
+          .order('sort_order', { ascending: true })) as { data: CategoryData[] | null; error: unknown };
 
-    const categories: CategoryData[] = (categoriesRaw ?? []).map((cat) => ({
-      ...cat,
-      menu_items: (cat.menu_items ?? []).sort((a, b) => a.sort_order - b.sort_order),
-    }));
+        const categories: CategoryData[] = (categoriesRaw ?? []).map((cat) => ({
+          ...cat,
+          menu_items: (cat.menu_items ?? []).sort((a, b) => a.sort_order - b.sort_order),
+        }));
 
-    return { menu, categories };
+        return { menu, categories };
+      },
+      [`menu-data-${slug}`],
+      { revalidate: 3600, tags: [`menu-${slug}`] },
+    )();
   }
 );
 

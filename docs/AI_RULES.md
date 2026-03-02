@@ -3074,3 +3074,18 @@ Per-org brand configuration with CSS custom property injection, themed emails, b
 * **Tests:** 17 onboarding-service + 20 digest-service + 16 digest-email + 13 onboarding-routes = 66 Vitest.
 
 ---
+
+## §152. Conversion & Reliability Infrastructure (Sprint 118)
+
+* **Rate limiting:** `lib/rate-limit/` (types, rate-limiter, index). Redis sliding window via `@upstash/redis` pipeline (ZREMRANGEBYSCORE + ZADD + ZCARD + EXPIRE). Fail-open on Redis errors (AI_RULES §17 pattern). 5 tiers: anonymous 20/min, trial 60, starter 120, growth 300, agency 600. Tiered by `x-org-plan` header (set by proxy). Key format: `{prefix}:{identifier}`.
+* **Rate limit headers:** `X-RateLimit-Limit`, `X-RateLimit-Remaining`, `X-RateLimit-Reset` on every API response. 429 JSON body: `{ error: 'rate_limited', retry_after, limit }`.
+* **Middleware integration:** `proxy.ts` — `/api/` routes hit rate limiter before auth guard. Bypass prefixes: `/api/webhooks/`, `/api/cron/`, `/api/email/`, `/api/revalidate`. Identifier: `org:{org_id}` if headers present, else `ip:{x-forwarded-for}`. Matcher updated to include API routes (removed `api|` from exclusion).
+* **Slack alerts:** `lib/alerts/` (slack, index). `sendSlackAlert(payload)` — POST to `SLACK_WEBHOOK_URL`, 5s AbortController timeout, never throws. `buildSOVDropAlert()` and `buildFirstMoverAlert()` are pure payload builders. `SOV_DROP_THRESHOLD` from env (default 5).
+* **SOV cron wiring:** `app/api/cron/sov/route.ts` — fire-and-forget `sendSlackAlert(buildSOVDropAlert(...))` when `sovDelta <= -SOV_DROP_THRESHOLD`. Inside `if (ownerEmail)` block where `sovDelta` and `visRows` are in scope.
+* **ISR caching:** `app/m/[slug]/page.tsx` — `unstable_cache` with tag `menu-{slug}`, revalidate 3600s. `generateStaticParams()` pre-renders all org slugs. `dynamicParams = true`.
+* **Revalidation endpoint:** `POST /api/revalidate` — secret-authenticated (`REVALIDATE_SECRET`), accepts `{ slug }` or `{ org_id }` (resolves slug from organizations table). Calls `revalidateTag(\`menu-{slug}\`, { expire: 0 })`. Returns `{ ok, revalidated, timestamp }`.
+* **Sentry client config:** `sentry.client.config.ts` — browser-side init, `enabled: production`, 10% traces, localhost filter. Completes Sentry instrumentation (server + edge + client + global-error + next.config wrapper).
+* **Env vars:** `SLACK_WEBHOOK_URL`, `SLACK_SOV_DROP_THRESHOLD` (default 5), `REVALIDATE_SECRET`. All documented in `.env.local.example`.
+* **Tests:** 19 rate-limiter + 15 slack-alerts + 7 revalidate-route + 13 middleware-rate-limit = 54 Vitest. 5 Playwright E2E (infrastructure.spec.ts).
+
+---

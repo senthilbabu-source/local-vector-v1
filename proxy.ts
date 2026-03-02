@@ -2,6 +2,8 @@ import { type NextRequest, NextResponse } from 'next/server';
 import { createMiddlewareClient } from '@/lib/supabase/middleware';
 import { detectAIBot } from '@/lib/crawler/bot-detector';
 import { resolveOrgFromHostname } from '@/lib/whitelabel/domain-resolver';
+import { checkRateLimit, getRateLimitHeaders } from '@/lib/rate-limit/rate-limiter';
+import { PLAN_RATE_LIMITS, RATE_LIMIT_BYPASS_PREFIXES } from '@/lib/rate-limit/types';
 
 const PROTECTED_PREFIXES = ['/dashboard'];
 const AUTH_PREFIXES = ['/login', '/register', '/signup'];
@@ -53,6 +55,51 @@ async function handleProxy(request: NextRequest) {
     return NextResponse.next();
   }
 
+  // ── Sprint 118: Rate limiting for /api/ routes ────────────────────────────
+  // Runs BEFORE auth guard. API routes handle auth internally.
+  // Uses x-org-plan header (Sprint 114 white-label) or falls back to IP-based.
+  const { pathname } = request.nextUrl;
+
+  if (pathname.startsWith('/api/')) {
+    // Bypass protected routes (webhooks, cron, email, revalidate)
+    if (RATE_LIMIT_BYPASS_PREFIXES.some((p) => pathname.startsWith(p))) {
+      return NextResponse.next();
+    }
+
+    const ip =
+      request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ??
+      'unknown';
+    const planHeader = request.headers.get('x-org-plan');
+    const orgId = request.headers.get('x-org-id');
+
+    let config = PLAN_RATE_LIMITS['anonymous'];
+    let identifier = ip;
+
+    if (planHeader && orgId && PLAN_RATE_LIMITS[planHeader]) {
+      config = PLAN_RATE_LIMITS[planHeader];
+      identifier = orgId;
+    }
+
+    const rlResult = await checkRateLimit(config, identifier);
+    if (!rlResult.allowed) {
+      return NextResponse.json(
+        {
+          error: 'rate_limited',
+          message: 'Too many requests',
+          retry_after: rlResult.retry_after,
+        },
+        { status: 429, headers: getRateLimitHeaders(rlResult) },
+      );
+    }
+
+    const apiResponse = NextResponse.next();
+    const rlHeaders = getRateLimitHeaders(rlResult);
+    for (const [key, value] of Object.entries(rlHeaders)) {
+      apiResponse.headers.set(key, value);
+    }
+    return apiResponse;
+  }
+
   // app. subdomain or bare domain → standard routing with auth
   const { supabase, response } = createMiddlewareClient(request);
 
@@ -79,8 +126,6 @@ async function handleProxy(request: NextRequest) {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-
-  const { pathname } = request.nextUrl;
 
   const isProtected = PROTECTED_PREFIXES.some((p) => pathname.startsWith(p));
   const isAuthPage = AUTH_PREFIXES.some((p) => pathname.startsWith(p));
@@ -109,9 +154,11 @@ export const config = {
      * - _next/static  (Next.js build artifacts)
      * - _next/image   (image optimisation)
      * - favicon.ico
-     * - api/*         (our own Route Handlers handle auth internally)
      * - static assets (svg, png, jpg, etc.)
+     *
+     * Sprint 118: api/* now included for rate limiting.
+     * API routes return early after rate limit check (no auth guard).
      */
-    '/((?!_next/static|_next/image|favicon.ico|api|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
   ],
 };

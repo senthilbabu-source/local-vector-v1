@@ -4440,3 +4440,45 @@ npx vitest run                                                  # all — no reg
 ```
 
 ---
+
+## Sprint 118 — Conversion & Reliability + Infrastructure (2026-03-02)
+
+**Objective:** Build the operational layer that keeps LocalVector healthy in production: Slack alerts for SOV drops, Redis-based API rate limiting, edge caching for public menu pages, Sentry client config, and complete documentation.
+
+### New Files Created
+- `lib/rate-limit/types.ts` — RateLimitConfig, RateLimitResult, PLAN_RATE_LIMITS (5 tiers), bypass prefixes
+- `lib/rate-limit/rate-limiter.ts` — Redis sliding window implementation using @upstash/redis pipeline
+- `lib/rate-limit/index.ts` — Barrel export
+- `lib/alerts/slack.ts` — Slack webhook sender, buildSOVDropAlert, buildFirstMoverAlert, SOV_DROP_THRESHOLD
+- `lib/alerts/index.ts` — Barrel export
+- `app/api/revalidate/route.ts` — POST on-demand cache revalidation (REVALIDATE_SECRET auth)
+- `sentry.client.config.ts` — Browser-side Sentry init (production-only, 10% traces, localhost filter)
+- `.env.example` — Complete env var template for new developers
+- `tests/e2e/infrastructure.spec.ts` — 5 Playwright tests for menu pages, rate limiting, revalidation
+
+### Modified Files
+- `proxy.ts` — Sprint 118 edit #3: rate limiting for /api/ routes (bypass list, IP or org-based identifier, 429 responses with headers), matcher updated to include API routes
+- `app/m/[slug]/page.tsx` — ISR revalidate changed from 86400→3600, added dynamicParams, generateStaticParams, unstable_cache with tag `menu-{slug}`, switched to createServiceRoleClient inside cache
+- `app/api/cron/sov/route.ts` — Added conditional Slack SOV drop alert inside `if (ownerEmail)` block (fire-and-forget)
+- `README.md` — Updated architecture notes with rate limiting, ISR caching, and new env vars
+- `.env.local.example` — Added SLACK_WEBHOOK_URL, SLACK_SOV_DROP_THRESHOLD, REVALIDATE_SECRET
+- `src/__fixtures__/golden-tenant.ts` — 3 new fixtures: MOCK_RATE_LIMIT_ALLOWED, MOCK_RATE_LIMIT_BLOCKED, MOCK_SOV_DROP_ALERT_PARAMS
+
+### Tests
+- `rate-limiter.test.ts` — 19 tests (checkRateLimit 10, getRateLimitHeaders 5, PLAN_RATE_LIMITS 3, extra 1)
+- `slack-alerts.test.ts` — 15 tests (buildSOVDropAlert 4, buildFirstMoverAlert 1, sendSlackAlert 6, SOV_DROP_THRESHOLD 4)
+- `revalidate-route.test.ts` — 7 tests (auth 2, validation 1, revalidation 4)
+- `middleware-rate-limit.test.ts` — 13 tests (bypass 5, plan limits 2, 429 behavior 2, headers 1, identifiers 2, fail-open 1)
+- `infrastructure.spec.ts` — 5 Playwright E2E tests
+
+**AI_RULES:** §152 (rate limiting + alerts + infrastructure)
+
+```bash
+npx vitest run src/__tests__/unit/rate-limiter.test.ts           # 19 tests
+npx vitest run src/__tests__/unit/slack-alerts.test.ts           # 15 tests
+npx vitest run src/__tests__/unit/revalidate-route.test.ts       # 7 tests
+npx vitest run src/__tests__/unit/middleware-rate-limit.test.ts   # 13 tests
+npx vitest run                                                    # all — no regressions
+```
+
+---
