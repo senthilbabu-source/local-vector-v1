@@ -52,6 +52,8 @@ export function determineContentType(trigger: DraftTrigger): DraftContentType {
       return 'blog_post';
     case 'schema_gap':
       return 'faq_page';
+    case 'voice_gap':
+      return 'faq_page';
     case 'manual':
       return trigger.context.contentType ?? 'blog_post';
     default:

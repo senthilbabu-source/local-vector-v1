@@ -210,3 +210,13 @@ export function canRunReviewEngine(plan: PlanTier): boolean {
 export function canRunSemanticAuthority(plan: PlanTier): boolean {
   return plan === 'growth' || plan === 'agency';
 }
+
+/**
+ * VAIO — Voice & Conversational AI Optimization (Sprint 109).
+ * Growth and Agency orgs get voice search readiness analysis, llms.txt generation,
+ * AI crawler audits, and voice gap detection with autopilot triggers.
+ * Starter/Trial orgs see an upgrade prompt on the Voice Readiness panel.
+ */
+export function canRunVAIO(plan: PlanTier): boolean {
+  return plan === 'growth' || plan === 'agency';
+}

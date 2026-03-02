@@ -3971,3 +3971,85 @@ npx vitest run                                                         # all —
 ```
 
 ---
+
+## Sprint 109 — VAIO (Voice & Conversational AI Optimization)
+
+**Date:** 2026-03-01
+**Gap closed:** Voice Search Optimization 0% → 100%
+
+Voice queries are structurally different from typed search — conversational, action-oriented, and hyper-local. This sprint builds a parallel voice optimization system: voice query taxonomy, content scoring, spoken answer simulation, llms.txt generation, AI crawler auditing, voice gap detection, and autopilot draft triggering.
+
+### Schema Changes
+
+- **Migration:** `supabase/migrations/20260316000001_vaio.sql`
+- ALTER `target_queries`: added `query_mode` (typed/voice), `citation_rate`, `last_run_at`, `is_system_seeded`
+- Updated `target_queries_category_check` to include `action`, `information`
+- CREATE TABLE `vaio_profiles`: voice readiness score, llms.txt content, crawler audit, voice query stats, gaps, issues
+- ALTER `locations`: added `voice_readiness_score`, `vaio_last_run_at`
+- Updated `content_drafts_trigger_type_check` to include `voice_gap`
+
+### Files Changed/Created (34 total)
+
+**Core Library — `lib/vaio/` (9 files):**
+- `types.ts` — VoiceQuery, VoiceContentScore, VoiceGap, VAIOProfile, VAIORunResult, VOICE_SCORE_WEIGHTS, GroundTruthForVAIO
+- `voice-content-scorer.ts` — scoreVoiceContent (4 dimensions: direct_answer 0-30, local_specificity 0-25, action_language 0-25, spoken_length 0-20), countActionVerbs, avgSentenceWords, fleschKincaidGrade, containsMarkdown, containsRawUrls
+- `spoken-answer-previewer.ts` — generateSpokenPreview, cleanForVoice (6-step pipeline), estimateSpokenSeconds (150 WPM)
+- `voice-query-library.ts` — 24 VOICE_QUERY_TEMPLATES (4 categories × 3 priorities), instantiateVoiceTemplate, seedVoiceQueriesForLocation, getVoiceQueriesForLocation
+- `llms-txt-generator.ts` — generateLlmsTxt, buildStandardLlmsTxt (~300-500 words), buildFullLlmsTxt (~800-1200 words), formatHoursForVoice
+- `ai-crawler-auditor.ts` — auditAICrawlerAccess (10 KNOWN_AI_CRAWLERS), parseRobotsTxtForAgent, generateRobotsTxtFix
+- `voice-gap-detector.ts` — detectVoiceGaps (3+ zero-citation, 14+ days), triggerVoiceGapDrafts, buildSuggestedAnswer
+- `vaio-service.ts` — runVAIO (12-step orchestrator), computeVoiceReadinessScore (weighted: llms_txt 25, crawler 25, citation 30, content 20), runVAIOForAllLocations
+- `index.ts` — barrel export
+
+**Integration updates:**
+- `lib/plan-enforcer.ts` — added `canRunVAIO()` (Growth+ only)
+- `lib/types/autopilot.ts` — added `voice_gap` to DraftTriggerType, voice context fields to DraftContext
+- `lib/autopilot/create-draft.ts` — added `voice_gap → faq_page` case
+
+**API routes (5 files):**
+- `app/api/vaio/run/route.ts` — POST on-demand VAIO scan (Growth+ gated)
+- `app/api/vaio/status/route.ts` — GET current profile + voice queries
+- `app/api/vaio/llms-txt/route.ts` — GET/POST llms.txt content
+- `app/api/vaio/preview/route.ts` — POST spoken answer preview (no plan gate)
+- `app/api/cron/vaio/route.ts` — GET monthly cron (1st of month 6 AM UTC), STOP_VAIO_CRON kill switch
+
+**Dashboard UI (3 files):**
+- `app/dashboard/_components/VAIOPanel.tsx` — client component: score gauge, crawler health badge, voice query stats, issues, run/re-scan button
+- `app/dashboard/vaio/page.tsx` — server component with plan gate
+- `app/dashboard/vaio/VAIOPageClient.tsx` — full page: score breakdown, crawler audit table, voice queries, gaps, llms.txt preview with copy
+
+**Config & data:**
+- `components/layout/Sidebar.tsx` — added Voice Readiness nav item (Mic icon) to AI Visibility group
+- `app/dashboard/page.tsx` — added VAIOPanel after AuthorityPanel
+- `vercel.json` — added 15th cron (`/api/cron/vaio`)
+- `supabase/seed.sql` — Section 19: 8 voice queries + vaio_profiles row (score 48)
+- `src/__fixtures__/golden-tenant.ts` — MOCK_VOICE_QUERIES, MOCK_VOICE_CONTENT_SCORE, MOCK_SPOKEN_PREVIEW, MOCK_LLMS_TXT, MOCK_CRAWLER_AUDIT, MOCK_VAIO_PROFILE
+- `.env.local.example` — added `STOP_VAIO_CRON`
+- `supabase/prod_schema.sql` — Sprint 109 tables appended
+- `lib/supabase/database.types.ts` — added vaio_profiles type + new columns on target_queries and locations
+- Fixed 4 bare `catch {}` blocks (Sentry sweep guard)
+- Updated cron count assertions from 14 → 15 in sprint-f-registration.test.ts, sprint-n-registration.test.ts
+
+**Tests:** 125 unit tests across 7 files:
+- `vaio-voice-content-scorer.test.ts` — 29 tests (scoreVoiceContent 11, countActionVerbs 3, avgSentenceWords 3, fleschKincaidGrade 3, containsMarkdown 4, containsRawUrls 3, ACTION_VERBS 2)
+- `vaio-spoken-answer-previewer.test.ts` — 14 tests (cleanForVoice 8, estimateSpokenSeconds 3, generateSpokenPreview 2, constants 1)
+- `vaio-llms-txt-generator.test.ts` — 24 tests (generateLlmsTxt 2, buildStandardLlmsTxt 10, buildFullLlmsTxt 6, formatHoursForVoice 6)
+- `vaio-ai-crawler-auditor.test.ts` — 19 tests (parseRobotsTxtForAgent 10, KNOWN_AI_CRAWLERS 3, generateRobotsTxtFix 2, auditAICrawlerAccess 4)
+- `vaio-voice-query-library.test.ts` — 13 tests (VOICE_QUERY_TEMPLATES 5, instantiateVoiceTemplate 3, seedVoiceQueriesForLocation 3, getVoiceQueriesForLocation 2)
+- `vaio-voice-gap-detector.test.ts` — 13 tests (detectVoiceGaps 8, buildSuggestedAnswer 5)
+- `vaio-service.test.ts` — 13 tests (computeVoiceReadinessScore 11, VOICE_SCORE_WEIGHTS 2)
+
+**AI_RULES:** §138 (VAIO architecture), §139 (vaio_profiles table), §140 (voice readiness score)
+
+```bash
+npx vitest run src/__tests__/unit/vaio-voice-content-scorer.test.ts    # 29 tests
+npx vitest run src/__tests__/unit/vaio-spoken-answer-previewer.test.ts # 14 tests
+npx vitest run src/__tests__/unit/vaio-llms-txt-generator.test.ts      # 24 tests
+npx vitest run src/__tests__/unit/vaio-ai-crawler-auditor.test.ts      # 19 tests
+npx vitest run src/__tests__/unit/vaio-voice-query-library.test.ts     # 13 tests
+npx vitest run src/__tests__/unit/vaio-voice-gap-detector.test.ts      # 13 tests
+npx vitest run src/__tests__/unit/vaio-service.test.ts                 # 13 tests
+npx vitest run                                                          # all 4020 — no regressions
+```
+
+---

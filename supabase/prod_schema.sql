@@ -3116,6 +3116,40 @@ CREATE TABLE IF NOT EXISTS "public"."entity_authority_snapshots" (
 -- ALTER TABLE "public"."locations" ADD COLUMN IF NOT EXISTS "authority_score" integer CHECK ("authority_score" BETWEEN 0 AND 100);
 -- ALTER TABLE "public"."locations" ADD COLUMN IF NOT EXISTS "authority_last_run_at" timestamp with time zone;
 
+-- ══════════════════════════════════════════════════════════════
+-- Sprint 109: VAIO — Voice & Conversational AI Optimization
+-- ══════════════════════════════════════════════════════════════
+
+-- Voice support columns on target_queries
+-- ALTER TABLE "public"."target_queries" ADD COLUMN IF NOT EXISTS "query_mode" varchar(10) NOT NULL DEFAULT 'typed' CHECK (query_mode IN ('typed', 'voice'));
+-- ALTER TABLE "public"."target_queries" ADD COLUMN IF NOT EXISTS "citation_rate" double precision;
+-- ALTER TABLE "public"."target_queries" ADD COLUMN IF NOT EXISTS "last_run_at" timestamp with time zone;
+-- ALTER TABLE "public"."target_queries" ADD COLUMN IF NOT EXISTS "is_system_seeded" boolean NOT NULL DEFAULT false;
+
+CREATE TABLE IF NOT EXISTS "public"."vaio_profiles" (
+  "id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  "location_id" uuid NOT NULL,
+  "org_id" uuid NOT NULL,
+  "voice_readiness_score" integer NOT NULL DEFAULT 0 CHECK (voice_readiness_score BETWEEN 0 AND 100),
+  "llms_txt_standard" text,
+  "llms_txt_full" text,
+  "llms_txt_generated_at" timestamp with time zone,
+  "llms_txt_status" text NOT NULL DEFAULT 'not_generated' CHECK (llms_txt_status IN ('generated', 'stale', 'not_generated')),
+  "crawler_audit" jsonb,
+  "voice_queries_tracked" integer NOT NULL DEFAULT 0,
+  "voice_citation_rate" numeric(4,3) NOT NULL DEFAULT 0,
+  "voice_gaps" jsonb NOT NULL DEFAULT '[]'::jsonb,
+  "top_content_issues" jsonb NOT NULL DEFAULT '[]'::jsonb,
+  "last_run_at" timestamp with time zone,
+  CONSTRAINT "vaio_profiles_location_id_fkey" FOREIGN KEY ("location_id") REFERENCES "public"."locations"("id") ON DELETE CASCADE,
+  CONSTRAINT "vaio_profiles_org_id_fkey" FOREIGN KEY ("org_id") REFERENCES "public"."organizations"("id") ON DELETE CASCADE,
+  CONSTRAINT "vaio_profiles_location_id_key" UNIQUE ("location_id")
+);
+
+-- Voice readiness columns on locations
+-- ALTER TABLE "public"."locations" ADD COLUMN IF NOT EXISTS "voice_readiness_score" integer CHECK ("voice_readiness_score" BETWEEN 0 AND 100);
+-- ALTER TABLE "public"."locations" ADD COLUMN IF NOT EXISTS "vaio_last_run_at" timestamp with time zone;
+
 
 
 

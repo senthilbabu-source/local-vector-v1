@@ -2786,3 +2786,64 @@ Composite score 0–100, computed in `lib/authority/entity-authority-scorer.ts`:
 - Sorted: priority ASC, then estimated_score_gain DESC. Capped at 5.
 
 ---
+
+## §138. VAIO Engine — Architecture (Sprint 109)
+
+**VAIO** (Voice & Conversational AI Optimization) adds voice search optimization to LocalVector.ai. Voice queries are conversational, action-oriented, and hyper-local — structurally different from typed search.
+
+**Core library:** `lib/vaio/` (9 files):
+- `types.ts` — All shared types: VoiceQuery, VoiceContentScore, VoiceGap, VAIOProfile, VAIORunResult, VOICE_SCORE_WEIGHTS
+- `voice-content-scorer.ts` — Pure scoring: 4 dimensions (direct_answer 0-30, local_specificity 0-25, action_language 0-25, spoken_length 0-20)
+- `spoken-answer-previewer.ts` — TTS simulation: cleanForVoice (6-step pipeline), estimateSpokenSeconds (150 WPM)
+- `voice-query-library.ts` — 24 templates across 4 categories (discovery, action, comparison, information). seedVoiceQueriesForLocation uses ON CONFLICT DO NOTHING
+- `llms-txt-generator.ts` — Ground Truth-based llms.txt: standard (~300-500 words) + full (~800-1200 words). formatHoursForVoice groups consecutive same-hours days
+- `ai-crawler-auditor.ts` — 10 KNOWN_AI_CRAWLERS, robots.txt parsing, never throws. generateRobotsTxtFix for blocked bots
+- `voice-gap-detector.ts` — 3+ zero-citation queries in a category for 14+ days triggers gap. triggerVoiceGapDrafts only for action/discovery gaps
+- `vaio-service.ts` — 12-step orchestrator. computeVoiceReadinessScore (weighted formula). runVAIOForAllLocations for cron (Growth+ filter, 1s sleep between locations)
+- `index.ts` — barrel export
+
+**API routes:** 5 routes under `app/api/vaio/` (run, status, llms-txt, preview) + `app/api/cron/vaio/` (monthly 1st 6 AM UTC)
+**Dashboard:** VAIOPanel (client component), /dashboard/vaio full page, Sidebar "Voice Readiness" (Mic icon) in AI Visibility group
+**Plan gate:** `canRunVAIO()` in `lib/plan-enforcer.ts` — Growth+ only
+**Autopilot integration:** `voice_gap` trigger type in `lib/types/autopilot.ts`, maps to `faq_page` content type in `lib/autopilot/create-draft.ts`
+**Cron:** `vercel.json` entry 15, schedule `0 6 1 * *`, kill switch `STOP_VAIO_CRON`
+**Migration:** `supabase/migrations/20260316000001_vaio.sql`
+
+---
+
+## §139. VAIO Database — vaio_profiles Table (Sprint 109)
+
+**`vaio_profiles`** — one row per location, upserted on each VAIO run:
+- PK: `id` (uuid). Unique: `location_id`.
+- Columns: `location_id`, `org_id`, `voice_readiness_score` (int 0-100), `llms_txt_standard` (text), `llms_txt_full` (text), `llms_txt_generated_at` (timestamptz), `llms_txt_status` CHECK ('generated','stale','not_generated'), `crawler_audit` (jsonb), `voice_queries_tracked` (int), `voice_citation_rate` (float), `voice_gaps` (jsonb), `top_content_issues` (jsonb), `last_run_at` (timestamptz).
+- RLS: org member read, service_role full access.
+
+**`target_queries` columns added:** `query_mode` (varchar 'typed'/'voice', default 'typed'), `citation_rate` (double), `last_run_at` (timestamptz), `is_system_seeded` (boolean, default false).
+**`target_queries_category_check`** updated to include `action`, `information` alongside existing values.
+**`locations` columns added:** `voice_readiness_score` (integer 0-100), `vaio_last_run_at` (timestamptz).
+**`content_drafts_trigger_type_check`** updated to include `voice_gap`.
+
+---
+
+## §140. Voice Readiness Score — 4 Dimensions (Sprint 109)
+
+Composite score 0–100, computed in `lib/vaio/vaio-service.ts` via `computeVoiceReadinessScore()`:
+
+| Dimension | Max | Formula |
+|-----------|-----|---------|
+| llms.txt | 25 | generated=25, stale=12, not_generated=0 |
+| Crawler Access | 25 | healthy=25, partial=12, unknown=10, blocked=0 |
+| Voice Citation | 30 | `round(avgCitationRate × 30)` |
+| Content Quality | 20 | `round((avgContentScore / 100) × 20)` |
+
+**Voice Content Score** (`scoreVoiceContent`): 4 sub-dimensions:
+- `direct_answer_score` (0-30): First sentence contains business name/city = 30, starts with "We" = 15, filler opening = 0
+- `local_specificity_score` (0-25): Name+city in first 50 words = 25, one of them = 15, elsewhere = 5, missing = 0
+- `action_language_score` (0-25): 3+ action verbs = 25, 1-2 = 15, 0 = 0
+- `spoken_length_score` (0-20): 50-200 words = 20, 201-300 = 10, <30 = 5, >300 = 0
+
+**Voice Gap Detection** (`detectVoiceGaps`): Category has 3+ voice queries with zero citation rate, oldest run ≥ 14 days ago, data not older than 60 days.
+
+**Known AI Crawlers** (`KNOWN_AI_CRAWLERS`): GPTBot, PerplexityBot, Google-Extended, ClaudeBot, anthropic-ai, ChatGPT-User, OAI-SearchBot, Applebot-Extended, Amazonbot, Bytespider.
+
+---

@@ -28,6 +28,7 @@ import {
   ScatterChart,
   MapPinned,
   Trophy,
+  Mic,
   X,
 } from 'lucide-react';
 import LogoutButton from '@/app/dashboard/_components/LogoutButton';
@@ -195,6 +196,13 @@ export const NAV_ITEMS = [
     active: true,
   },
   {
+    href: '/dashboard/vaio',
+    label: 'Voice Readiness',
+    icon: Mic,
+    exact: false,
+    active: true,
+  },
+  {
     href: '/dashboard/system-health',
     label: 'System Health',
     icon: Activity,
@@ -240,6 +248,7 @@ export const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
         '/dashboard/sentiment',
         '/dashboard/source-intelligence',
         '/dashboard/crawler-analytics',
+        '/dashboard/vaio',
       ].includes(i.href),
     ),
   },

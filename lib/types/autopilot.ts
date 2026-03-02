@@ -16,7 +16,8 @@ export type DraftTriggerType =
   | 'first_mover'
   | 'manual'
   | 'review_gap'
-  | 'schema_gap';
+  | 'schema_gap'
+  | 'voice_gap';
 
 export type DraftContentType =
   | 'faq_page'
@@ -63,6 +64,10 @@ export interface DraftContext {
   schemaHealthScore?: number;
   missingPageTypes?: string[];
   topMissingImpact?: string;
+  // Sprint 109: voice_gap
+  voiceQueryCategory?: string;
+  zeroCitationVoiceQueries?: string[];
+  voiceConsecutiveZeroWeeks?: number;
 }
 
 // ── Database Row Shape ───────────────────────────────────────────────────────

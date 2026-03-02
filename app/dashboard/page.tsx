@@ -8,7 +8,7 @@ import { fetchEntityHealth } from '@/lib/data/entity-health';
 import { createClient } from '@/lib/supabase/server';
 import type { ProofTimeline } from '@/lib/services/proof-timeline.service';
 import type { EntityHealthResult } from '@/lib/services/entity-health.service';
-import { canRunAutopilot, canConnectGBP, canExportData, canRunNAPSync, canRunSchemaExpansion, canRunReviewEngine, canRunSemanticAuthority, type PlanTier } from '@/lib/plan-enforcer';
+import { canRunAutopilot, canConnectGBP, canExportData, canRunNAPSync, canRunSchemaExpansion, canRunReviewEngine, canRunSemanticAuthority, canRunVAIO, type PlanTier } from '@/lib/plan-enforcer';
 import { createServiceRoleClient } from '@/lib/supabase/server';
 import { nextSundayLabel } from './_components/scan-health-utils';
 import { isSampleMode } from '@/lib/sample-data/use-sample-mode';
@@ -52,6 +52,8 @@ import SchemaHealthPanel from './_components/SchemaHealthPanel';
 import ReviewInboxPanel from './_components/ReviewInboxPanel';
 // Sprint 108: Semantic Authority — Entity Authority Panel
 import AuthorityPanel from './_components/AuthorityPanel';
+// Sprint 109: VAIO — Voice Readiness Panel
+import VAIOPanel from './_components/VAIOPanel';
 
 export type { HallucinationRow } from '@/lib/data/dashboard'; // re-export for AlertFeed.tsx
 
@@ -291,6 +293,9 @@ export default async function DashboardPage() {
 
       {/* ── Sprint 108: Entity Authority Panel (Growth+ only) ──────────── */}
       <AuthorityPanel isGrowthPlan={canRunSemanticAuthority(planTier)} />
+
+      {/* ── Sprint 109: Voice Readiness Panel (Growth+ only) ──────────── */}
+      <VAIOPanel isGrowthPlan={canRunVAIO(planTier)} />
 
       {/* ── Detail Cards ────────────────────────────────────────────────────── */}
       <BotActivityCard crawlerSummary={crawlerSummary} hasPublishedMenu={hasPublishedMenu} />

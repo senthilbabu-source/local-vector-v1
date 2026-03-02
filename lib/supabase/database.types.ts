@@ -1613,6 +1613,8 @@ export type Database = {
           drafts_pending_count: number | null;
           authority_score: number | null;
           authority_last_run_at: string | null;
+          voice_readiness_score: number | null;
+          vaio_last_run_at: string | null;
         };
         Insert: {
           id?: string;
@@ -1661,6 +1663,8 @@ export type Database = {
           drafts_pending_count?: number | null;
           authority_score?: number | null;
           authority_last_run_at?: string | null;
+          voice_readiness_score?: number | null;
+          vaio_last_run_at?: string | null;
         };
         Update: {
           id?: string;
@@ -1709,6 +1713,8 @@ export type Database = {
           drafts_pending_count?: number | null;
           authority_score?: number | null;
           authority_last_run_at?: string | null;
+          voice_readiness_score?: number | null;
+          vaio_last_run_at?: string | null;
         };
         Relationships: [
           {
@@ -2504,6 +2510,10 @@ export type Database = {
           intent_modifier: string | null;
           is_active: boolean;
           created_at: string;
+          query_mode: string;
+          citation_rate: number | null;
+          last_run_at: string | null;
+          is_system_seeded: boolean;
         };
         Insert: {
           id?: string;
@@ -2515,6 +2525,10 @@ export type Database = {
           intent_modifier?: string | null;
           is_active?: boolean;
           created_at?: string;
+          query_mode?: string;
+          citation_rate?: number | null;
+          last_run_at?: string | null;
+          is_system_seeded?: boolean;
         };
         Update: {
           id?: string;
@@ -2526,6 +2540,10 @@ export type Database = {
           intent_modifier?: string | null;
           is_active?: boolean;
           created_at?: string;
+          query_mode?: string;
+          citation_rate?: number | null;
+          last_run_at?: string | null;
+          is_system_seeded?: boolean;
         };
         Relationships: [
           {
@@ -2540,6 +2558,72 @@ export type Database = {
             columns: ["location_id"];
             isOneToOne: false;
             referencedRelation: "locations";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      vaio_profiles: {
+        Row: {
+          id: string;
+          location_id: string;
+          org_id: string;
+          voice_readiness_score: number;
+          llms_txt_standard: string | null;
+          llms_txt_full: string | null;
+          llms_txt_generated_at: string | null;
+          llms_txt_status: string;
+          crawler_audit: Json | null;
+          voice_queries_tracked: number;
+          voice_citation_rate: number;
+          voice_gaps: Json;
+          top_content_issues: Json;
+          last_run_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          location_id: string;
+          org_id: string;
+          voice_readiness_score?: number;
+          llms_txt_standard?: string | null;
+          llms_txt_full?: string | null;
+          llms_txt_generated_at?: string | null;
+          llms_txt_status?: string;
+          crawler_audit?: Json | null;
+          voice_queries_tracked?: number;
+          voice_citation_rate?: number;
+          voice_gaps?: Json;
+          top_content_issues?: Json;
+          last_run_at?: string | null;
+        };
+        Update: {
+          id?: string;
+          location_id?: string;
+          org_id?: string;
+          voice_readiness_score?: number;
+          llms_txt_standard?: string | null;
+          llms_txt_full?: string | null;
+          llms_txt_generated_at?: string | null;
+          llms_txt_status?: string;
+          crawler_audit?: Json | null;
+          voice_queries_tracked?: number;
+          voice_citation_rate?: number;
+          voice_gaps?: Json;
+          top_content_issues?: Json;
+          last_run_at?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "vaio_profiles_location_id_fkey";
+            columns: ["location_id"];
+            isOneToOne: true;
+            referencedRelation: "locations";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "vaio_profiles_org_id_fkey";
+            columns: ["org_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
             referencedColumns: ["id"];
           },
         ];

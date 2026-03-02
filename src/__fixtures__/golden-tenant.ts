@@ -2031,3 +2031,187 @@ export const MOCK_AUTHORITY_SNAPSHOTS: AuthoritySnapshot[] = [
     created_at: '2026-02-01T05:00:00Z',
   },
 ];
+
+// ── Sprint 109: VAIO — Voice & Conversational AI Optimization ──────────────
+
+import type {
+  VoiceQuery,
+  VoiceContentScore,
+  SpokenAnswerPreview,
+  LlmsTxtContent,
+  AICrawlerAuditResult,
+  VAIOProfile,
+} from '@/lib/vaio/types';
+
+export const MOCK_VOICE_QUERIES: VoiceQuery[] = [
+  {
+    id: 'vq-001',
+    location_id: 'b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+    org_id: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+    query_text: 'Hey Google, where can I get hookah near me?',
+    query_category: 'near_me',
+    query_mode: 'voice',
+    is_system_seeded: true,
+    is_active: true,
+    citation_rate: 0.45,
+    last_run_at: '2026-03-01T06:00:00Z',
+  },
+  {
+    id: 'vq-002',
+    location_id: 'b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+    org_id: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+    query_text: 'What are the best hookah lounges in Alpharetta?',
+    query_category: 'discovery',
+    query_mode: 'voice',
+    is_system_seeded: true,
+    is_active: true,
+    citation_rate: 0.6,
+    last_run_at: '2026-03-01T06:00:00Z',
+  },
+  {
+    id: 'vq-003',
+    location_id: 'b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+    org_id: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+    query_text: 'Is Charcoal N Chill open right now?',
+    query_category: 'action',
+    query_mode: 'voice',
+    is_system_seeded: true,
+    is_active: true,
+    citation_rate: 0.0,
+    last_run_at: '2026-03-01T06:00:00Z',
+  },
+  {
+    id: 'vq-004',
+    location_id: 'b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+    org_id: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+    query_text: 'Book a table at Charcoal N Chill',
+    query_category: 'action',
+    query_mode: 'voice',
+    is_system_seeded: true,
+    is_active: true,
+    citation_rate: 0.0,
+    last_run_at: '2026-03-01T06:00:00Z',
+  },
+  {
+    id: 'vq-005',
+    location_id: 'b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+    org_id: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+    query_text: 'Compare hookah places in Alpharetta',
+    query_category: 'comparison',
+    query_mode: 'voice',
+    is_system_seeded: true,
+    is_active: true,
+    citation_rate: 0.3,
+    last_run_at: '2026-03-01T06:00:00Z',
+  },
+  {
+    id: 'vq-006',
+    location_id: 'b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+    org_id: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+    query_text: 'What flavors does Charcoal N Chill have?',
+    query_category: 'information',
+    query_mode: 'voice',
+    is_system_seeded: true,
+    is_active: true,
+    citation_rate: 0.0,
+    last_run_at: '2026-03-01T06:00:00Z',
+  },
+  {
+    id: 'vq-007',
+    location_id: 'b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+    org_id: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+    query_text: 'Does Charcoal N Chill have outdoor seating?',
+    query_category: 'information',
+    query_mode: 'voice',
+    is_system_seeded: true,
+    is_active: true,
+    citation_rate: 0.0,
+    last_run_at: '2026-03-01T06:00:00Z',
+  },
+  {
+    id: 'vq-008',
+    location_id: 'b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+    org_id: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+    query_text: 'How much is hookah at Charcoal N Chill?',
+    query_category: 'information',
+    query_mode: 'voice',
+    is_system_seeded: true,
+    is_active: true,
+    citation_rate: 0.15,
+    last_run_at: '2026-03-01T06:00:00Z',
+  },
+];
+
+export const MOCK_VOICE_CONTENT_SCORE: VoiceContentScore = {
+  total: 68,
+  direct_answer: 22,
+  local_specificity: 18,
+  action_language: 15,
+  spoken_length: 13,
+  issues: [
+    { type: 'low_action_language', severity: 'warning', message: 'Content lacks action verbs for voice commands' },
+    { type: 'too_long', severity: 'info', message: 'Content exceeds ideal spoken length (150 words)' },
+  ],
+};
+
+export const MOCK_SPOKEN_PREVIEW: SpokenAnswerPreview = {
+  cleaned_text: 'Charcoal N Chill is a hookah lounge and Mediterranean restaurant located at 11950 Jones Bridge Road Suite 103 in Alpharetta Georgia. They offer specialty hookahs, Mediterranean small plates, and craft cocktails. Open Monday through Thursday from 4 PM to midnight, and Friday through Sunday from 2 PM to 2 AM. Call them at 678-555-0199 to reserve a table.',
+  word_count: 55,
+  estimated_seconds: 22,
+  voice_ready: true,
+  score: MOCK_VOICE_CONTENT_SCORE,
+};
+
+export const MOCK_LLMS_TXT: LlmsTxtContent = {
+  standard: '# Charcoal N Chill\n> Hookah lounge and Mediterranean restaurant in Alpharetta, GA\n\n## Location\n11950 Jones Bridge Road Ste 103, Alpharetta, GA 30005\n\n## Hours\nMonday–Thursday: 4 PM – 12 AM\nFriday–Sunday: 2 PM – 2 AM\n\n## Contact\nPhone: (678) 555-0199',
+  full: '# Charcoal N Chill\n> Hookah lounge and Mediterranean restaurant in Alpharetta, GA\n\n## Location\n11950 Jones Bridge Road Ste 103, Alpharetta, GA 30005\n\n## Hours\nMonday–Thursday: 4 PM – 12 AM\nFriday–Sunday: 2 PM – 2 AM\n\n## Contact\nPhone: (678) 555-0199\n\n## Menu Highlights\nSpecialty hookahs, Mediterranean small plates, craft cocktails\n\n## What Customers Say\nGreat atmosphere, excellent hookah selection, friendly staff',
+  generated_at: '2026-03-01T06:00:00Z',
+  version: '1.0',
+};
+
+export const MOCK_CRAWLER_AUDIT: AICrawlerAuditResult = {
+  crawlers_checked: 10,
+  allowed: 6,
+  blocked: 2,
+  not_specified: 2,
+  health_pct: 60,
+  details: [
+    { name: 'GPTBot', user_agent: 'GPTBot', used_by: 'ChatGPT + SearchGPT', impact: 'critical', status: 'allowed' },
+    { name: 'PerplexityBot', user_agent: 'PerplexityBot', used_by: 'Perplexity AI', impact: 'critical', status: 'allowed' },
+    { name: 'Google-Extended', user_agent: 'Google-Extended', used_by: 'Gemini + AI Overviews', impact: 'critical', status: 'allowed' },
+    { name: 'ClaudeBot', user_agent: 'ClaudeBot', used_by: 'Claude.ai', impact: 'high', status: 'allowed' },
+    { name: 'anthropic-ai', user_agent: 'anthropic-ai', used_by: 'Claude API training', impact: 'medium', status: 'blocked' },
+    { name: 'ChatGPT-User', user_agent: 'ChatGPT-User', used_by: 'ChatGPT live browsing', impact: 'high', status: 'allowed' },
+    { name: 'OAI-SearchBot', user_agent: 'OAI-SearchBot', used_by: 'SearchGPT', impact: 'high', status: 'allowed' },
+    { name: 'Applebot-Extended', user_agent: 'Applebot-Extended', used_by: 'Apple Intelligence + Siri', impact: 'high', status: 'not_specified' },
+    { name: 'Amazonbot', user_agent: 'Amazonbot', used_by: 'Alexa Answers', impact: 'medium', status: 'not_specified' },
+    { name: 'Bytespider', user_agent: 'Bytespider', used_by: 'TikTok AI features', impact: 'low', status: 'blocked' },
+  ],
+};
+
+export const MOCK_VAIO_PROFILE: VAIOProfile = {
+  id: 'vaio-001',
+  location_id: 'b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+  org_id: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+  voice_readiness_score: 48,
+  llms_txt_standard: MOCK_LLMS_TXT.standard,
+  llms_txt_full: MOCK_LLMS_TXT.full,
+  llms_txt_generated_at: '2026-03-01T06:00:00Z',
+  llms_txt_status: 'generated',
+  crawler_audit: MOCK_CRAWLER_AUDIT,
+  voice_query_stats: {
+    total_voice_queries: 8,
+    with_citation: 3,
+    zero_citation: 5,
+    avg_citation_rate: 0.375,
+  },
+  gaps: [
+    { category: 'action', query_count: 2, zero_citation_count: 2, consecutive_zero_weeks: 3 },
+  ],
+  issues: [
+    { type: 'low_action_language', severity: 'warning', message: 'Content lacks action verbs for voice commands' },
+  ],
+  last_run_at: '2026-03-01T06:00:00Z',
+  created_at: '2026-03-01T06:00:00Z',
+  updated_at: '2026-03-01T06:00:00Z',
+};

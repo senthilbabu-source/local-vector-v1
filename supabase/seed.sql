@@ -2388,3 +2388,59 @@ BEGIN
          authority_last_run_at = NOW() - INTERVAL '1 day'
    WHERE id = v_location_id;
 END $$;
+
+-- ═══════════════════════════════════════════════════════════════════════════
+-- Section 19: Sprint 109 — VAIO (Voice & Conversational AI Optimization)
+-- ═══════════════════════════════════════════════════════════════════════════
+DO $$
+DECLARE
+  v_org_id      uuid := 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11';
+  v_location_id uuid;
+BEGIN
+  SELECT id INTO v_location_id
+    FROM public.locations
+   WHERE org_id = v_org_id
+   LIMIT 1;
+
+  IF v_location_id IS NULL THEN
+    RAISE NOTICE 'Section 19 (VAIO): no location found — skipping.';
+    RETURN;
+  END IF;
+
+  -- 19a: Seed voice queries for golden tenant
+  INSERT INTO public.target_queries
+    (location_id, org_id, query_text, query_category, query_mode, is_system_seeded, is_active)
+  VALUES
+    (v_location_id, v_org_id, 'Hey Google, where can I get hookah near me?', 'near_me', 'voice', true, true),
+    (v_location_id, v_org_id, 'What are the best hookah lounges in Alpharetta?', 'discovery', 'voice', true, true),
+    (v_location_id, v_org_id, 'Is Charcoal N Chill open right now?', 'action', 'voice', true, true),
+    (v_location_id, v_org_id, 'Book a table at Charcoal N Chill', 'action', 'voice', true, true),
+    (v_location_id, v_org_id, 'Compare hookah places in Alpharetta', 'comparison', 'voice', true, true),
+    (v_location_id, v_org_id, 'What flavors does Charcoal N Chill have?', 'information', 'voice', true, true),
+    (v_location_id, v_org_id, 'Does Charcoal N Chill have outdoor seating?', 'information', 'voice', true, true),
+    (v_location_id, v_org_id, 'How much is hookah at Charcoal N Chill?', 'information', 'voice', true, true)
+  ON CONFLICT DO NOTHING;
+
+  -- 19b: Seed VAIO profile for golden tenant
+  INSERT INTO public.vaio_profiles
+    (location_id, org_id, voice_readiness_score,
+     llms_txt_standard, llms_txt_full, llms_txt_generated_at, llms_txt_status,
+     crawler_audit, voice_query_stats, gaps, issues, last_run_at)
+  VALUES
+    (v_location_id, v_org_id, 48,
+     '# Charcoal N Chill' || E'\n' || '> Hookah lounge and Mediterranean restaurant in Alpharetta, GA' || E'\n' || '## Location' || E'\n' || '11950 Jones Bridge Road Ste 103, Alpharetta, GA 30005',
+     '# Charcoal N Chill' || E'\n' || '> Hookah lounge and Mediterranean restaurant in Alpharetta, GA' || E'\n' || '## Location' || E'\n' || '11950 Jones Bridge Road Ste 103, Alpharetta, GA 30005' || E'\n' || '## Menu Highlights' || E'\n' || 'Specialty hookahs, Mediterranean small plates, craft cocktails',
+     NOW() - INTERVAL '3 days', 'generated',
+     '{"crawlers_checked": 10, "allowed": 6, "blocked": 2, "not_specified": 2, "health_pct": 60, "details": []}',
+     '{"total_voice_queries": 8, "with_citation": 3, "zero_citation": 5, "avg_citation_rate": 0.375}',
+     '[{"category": "action", "query_count": 2, "zero_citation_count": 2, "consecutive_zero_weeks": 3}]',
+     '[{"type": "low_action_language", "severity": "warning", "message": "Content lacks action verbs for voice commands"}]',
+     NOW() - INTERVAL '1 day')
+  ON CONFLICT (location_id) DO NOTHING;
+
+  -- 19c: Update location voice readiness state
+  UPDATE public.locations
+     SET voice_readiness_score = 48,
+         vaio_last_run_at      = NOW() - INTERVAL '1 day'
+   WHERE id = v_location_id;
+END $$;
