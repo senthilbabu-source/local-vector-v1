@@ -12,7 +12,7 @@ LocalVector is an AEO/GEO SaaS platform that helps local businesses monitor and 
 - **Billing:** Stripe webhooks → `organizations.plan_tier` enum (`trial | starter | growth | agency`)
 - **Email:** Resend + React Email (`emails/`)
 - **Cache:** Upstash Redis (`lib/redis.ts`) — optional, all callers must degrade gracefully
-- **Testing:** Vitest (unit/integration in `src/__tests__/`), Playwright (E2E in `tests/e2e/`, 30 specs). Current: 3758 tests, 266 files.
+- **Testing:** Vitest (unit/integration in `src/__tests__/`), Playwright (E2E in `tests/e2e/`, 31 specs). Current: 4254 tests, 292 files.
 - **Monitoring:** Sentry (client, server, edge configs) — all catch blocks instrumented (Sprint A, AI_RULES §70)
 
 ## Architecture Rules
@@ -23,7 +23,7 @@ LocalVector is an AEO/GEO SaaS platform that helps local businesses monitor and 
 - **Plan display names live in `lib/plan-display-names.ts`.** Never inline plan tier display logic (e.g., `capitalize(plan)`) — always use `getPlanDisplayName()`. Maps: trial→The Audit, starter→Starter, growth→AI Shield, agency→Brand Fortress, null→Free. (AI_RULES §71)
 - **AI providers are centralized.** Never call AI APIs directly — use `getModel(key)` from `lib/ai/providers.ts`. Mock fallbacks activate when API keys are absent.
 - **RLS pattern:** Every tenant-scoped table has `org_isolation_select/insert/update/delete` policies using `org_id = public.current_user_org_id()`.
-- **Cron routes** live in `app/api/cron/` and require `Authorization: Bearer <CRON_SECRET>` header. Each has a kill switch env var. 13 crons registered in `vercel.json`, 9 in `CRON_REGISTRY`.
+- **Cron routes** live in `app/api/cron/` and require `Authorization: Bearer <CRON_SECRET>` header. Each has a kill switch env var. 15 crons registered in `vercel.json`, 9 in `CRON_REGISTRY`.
 
 ## Key Directories
 
@@ -72,6 +72,7 @@ lib/entity-health/platform-descriptions.ts — Platform jargon→consequence tra
 lib/agent-readiness/scenario-descriptions.ts — Capability jargon→scenario translation layer (Sprint J, §106)
 lib/admin/format-relative-date.ts — Intl.RelativeTimeFormat utility for admin pages (Sprint D, §81)
 lib/nap-sync/          — NAP Sync Engine: adapters (GBP/Yelp/Apple Maps/Bing), discrepancy detector, health score, push corrections, orchestrator (Sprint 105, §124-§126)
+lib/invitations/       — Token-based invitation flow: types, service, email builder (Sprint 112, §146)
 lib/mcp/               — MCP server tool registrations
 lib/supabase/database.types.ts — Full Database type (36 tables, 9 enums, Relationships)
 supabase/migrations/   — Applied SQL migrations (44, timestamp-ordered)
@@ -468,6 +469,49 @@ APPLE_MAPS_PRIVATE_KEY, APPLE_MAPS_KEY_ID, APPLE_MAPS_TEAM_ID
 - Tests: 70 Vitest (sentiment-analyzer 26, brand-voice-profiler 13, response-generator 20, review-engine-plan-gate 11).
 - Result: 260 test files, 3678 tests pass. 1 migration.
 
+### Sprint 108 — Semantic Authority Mapping Engine (2026-03-01)
+- **Migration:** `20260315000001_semantic_authority.sql` — 3 new tables (`entity_authority_citations`, `entity_authority_profiles`, `entity_authority_snapshots`) + 2 new columns on `locations`.
+- **Authority modules:** `lib/authority/` — citation source detector (Perplexity Sonar), entity authority scorer (5 dimensions, 0-100), sameAs enricher (9 platforms), citation velocity monitor, recommendations engine, orchestrator.
+- **Dashboard:** `AuthorityPanel` in `app/dashboard/_components/`. Plan gate: `canRunSemanticAuthority()` — Growth+ only.
+- **Cron:** 14th cron — `0 5 1 * *` (monthly). Kill switch: `STOP_AUTHORITY_CRON`.
+- AI_RULES: §135 (architecture), §136 (DB tables), §137 (score dimensions).
+- Tests: 137 Vitest. Result: 271 test files, 3815 tests pass. 1 migration.
+
+### Sprint 109 — VAIO (Voice & Conversational AI Optimization) (2026-03-01)
+- **Migration:** `20260316000001_vaio.sql` — 1 new table (`vaio_profiles`) + 2 new columns on `locations`.
+- **VAIO modules:** `lib/vaio/` — voice content scorer (pure), spoken answer previewer (150 WPM, 6-step clean), voice query library (24 templates), llms.txt generator, AI crawler auditor (10 bots), voice gap detector, orchestrator (12-step pipeline).
+- **Dashboard:** `VAIOPanel` + full page at `/dashboard/vaio`. Plan gate: `canRunVAIO()` — Growth+ only.
+- **Cron:** 15th cron — `0 6 1 * *` (monthly). Kill switch: `STOP_VAIO_CRON`.
+- AI_RULES: §138 (architecture), §139 (vaio_profiles table), §140 (voice readiness score).
+- Tests: 125 Vitest. Result: 281 test files, 4020 tests pass. 1 migration.
+
+### Sprint 110 — AI Answer Simulation Sandbox (Capstone) (2026-03-01)
+- **Migration:** `20260317000001_sandbox.sql` — 1 new table (`simulation_runs`) + 2 new columns on `locations`.
+- **Sandbox modules:** `lib/sandbox/` — ground truth diffuser (pure), hallucination gap scorer (pure), content ingestion analyzer (Claude), query simulation engine (Claude), orchestrator.
+- **Dashboard:** `SandboxPanel` + `SimulationResultsModal`. Plan gate: `canRunSandbox()` — Growth+ only.
+- AI_RULES: §141 (architecture), §142 (DB table), §143 (score formula), §144 (rate limits).
+- Tests: 127 Vitest. Result: 286 test files, 4147 tests pass. 1 migration.
+
+### Sprint 111 — Org Membership Foundation (2026-03-01)
+- **Migration:** `20260318000001_org_membership_foundation.sql` — analyst role added to enum, `seat_count` trigger-maintained column.
+- **Membership modules:** `lib/membership/` — types (ROLE_PERMISSIONS, SEAT_LIMITS), membership-service (getOrgMembers, getCallerMembership, removeMember).
+- **API routes:** `app/api/team/members/` (GET list, DELETE [memberId]).
+- **Team page:** `/dashboard/team` — Agency: full table + seat progress bar. Non-Agency: upgrade prompt.
+- AI_RULES: §145 (Org Membership Foundation).
+- Tests: 46 Vitest. Result: 289 test files, 4193 tests pass. 1 migration.
+
+### Sprint 112 — Team Invitations + Permissions (2026-03-01)
+- **Invitation modules:** `lib/invitations/` — types, invitation-service (generateSecureToken, sendInvitation, getOrgInvitations, revokeInvitation, validateToken, acceptInvitation), email builder.
+- **API routes (authenticated):** `POST/GET /api/team/invitations` (send/list), `DELETE /api/team/invitations/[invitationId]` (revoke). Agency + owner/admin gated.
+- **API routes (public):** `GET/POST /api/invitations/accept/[token]` (validate/accept). Token IS the auth mechanism. Uses `createServiceRoleClient()`.
+- **Accept page:** `/invitations/accept/[token]` — public, 4 states (loading, invalid, new user form, existing user prompt).
+- **Team page updates:** InviteMemberModal, PendingInvitationsTable, TeamPageClient wrapper. Remove Member button activated.
+- **Email:** `sendInvitationEmail()` in `lib/email.ts` reuses existing `InvitationEmail.tsx` template.
+- **Existing table reused:** `pending_invitations` — no migration needed.
+- AI_RULES: §146 (Team Invitations).
+- Tests: 61 Vitest (invitation-service 28, invitation-routes 26, invitation-email 7).
+- Result: 292 test files, 4254 tests pass. No migration.
+
 ## Tier Completion Status
 
 | Tier | Sprints | Status | Gate |
@@ -497,15 +541,15 @@ APPLE_MAPS_PRIVATE_KEY, APPLE_MAPS_KEY_ID, APPLE_MAPS_TEAM_ID
 | Sprint 105 | NAP Sync Engine | Complete | — |
 | Sprint 106 | Schema Expansion Engine | Complete | — |
 | Sprint 107 | Review Intelligence Engine | Complete | — |
-| Tier 5 | 108–109 | Gated | 8 weeks of SOV baseline data required. SOV cron registered 2026-02-27. Sprint 108 earliest: 2026-04-24. |
+| Sprint 108 | Semantic Authority Mapping Engine | Complete | — |
+| Sprint 109 | VAIO (Voice & Conversational AI Optimization) | Complete | — |
+| Sprint 110 | AI Answer Simulation Sandbox (Capstone) | Complete | — |
+| Sprint 111 | Org Membership Foundation | Complete | — |
+| Sprint 112 | Team Invitations + Permissions | Complete | — |
 
 ### Sprints Pending External Approval:
 - Apple Business Connect Sync (originally §57): Submit API request at https://developer.apple.com/business-connect/
 
-### Sprints Pending Data Accumulation:
-- Sprint 108 (Per-Engine Playbooks): Needs 8+ weeks SOV data. Earliest: 2026-04-24.
-- Sprint 109 (Intent Discovery): Needs 8+ weeks Perplexity query data. Earliest: 2026-04-24.
-
 ## Build History
 
-See `DEVLOG.md` (project root) and `docs/DEVLOG.md` for the complete sprint-by-sprint build log. Current sprint: 107 (+ FIX-1 through FIX-8 + Sprint A through Sprint O). AI_RULES: §1–§133 (133 sections). Production readiness: all audit issues resolved. **V1 complete.**
+See `DEVLOG.md` (project root) and `docs/DEVLOG.md` for the complete sprint-by-sprint build log. Current sprint: 112 (+ FIX-1 through FIX-8 + Sprint A through Sprint O). AI_RULES: §1–§146 (146 sections). Production readiness: all audit issues resolved. **V1 complete.**

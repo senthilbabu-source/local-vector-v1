@@ -2948,3 +2948,23 @@ Multi-user org membership enhanced via `lib/membership/`.
 * **Adding a new role:** Update MemberRole union in types.ts, ROLE_PERMISSIONS, ROLE_ORDER, ROLE_HIERARCHY in org-roles.ts, RoleBadge ROLE_COLORS, and DB enum migration.
 
 ---
+
+## §146. Team Invitations (Sprint 112)
+
+Token-based invitation flow via `lib/invitations/`.
+
+* **Existing table:** `pending_invitations` (already in prod_schema.sql). No migration needed.
+* **Token security:** `crypto.getRandomValues()` for 32-byte tokens. Token never in API responses — only in invite email URL.
+* **Soft-expire pattern:** `softExpireInvitations()` called at top of reads/validates. No separate cron.
+* **Service module:** `lib/invitations/invitation-service.ts` — generateSecureToken(), sendInvitation(), getOrgInvitations(), revokeInvitation(), validateToken(), acceptInvitation().
+* **Email:** `sendInvitationEmail()` in `lib/email.ts` uses existing `InvitationEmail.tsx` React Email template via Resend.
+* **API routes (authenticated):** `POST/GET /api/team/invitations` (send/list), `DELETE /api/team/invitations/[invitationId]` (revoke). Agency + owner/admin gated.
+* **API routes (public):** `GET/POST /api/invitations/accept/[token]` (validate/accept). Token IS the auth mechanism. Uses `createServiceRoleClient()`.
+* **Accept flow — new user:** Creates auth user via `admin.createUser()`, polls for trigger, cleans up auto-created org/membership, enrolls in invited org.
+* **Accept flow — existing user:** Looks up by email, enrolls in invited org (skip if already member).
+* **Role assignment:** Admin, Analyst, or Viewer at invite time. Never Owner.
+* **Guards:** Email normalization, seat limit check, already-a-member check, pending-invite dedup, unique constraint race condition handling.
+* **UI:** InviteMemberModal (email + role selector), PendingInvitationsTable (with revoke), AcceptInviteForm (new user signup), JoinOrgPrompt (existing user).
+* **Public page:** `/invitations/accept/[token]` — standalone (no dashboard chrome). 4 states: loading, invalid, new user form, existing user prompt.
+
+---

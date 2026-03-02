@@ -4130,3 +4130,52 @@ npx vitest run                                                          # all 40
 ```
 
 ---
+
+## Sprint 112 — Team Invitations + Permissions (2026-03-01)
+
+**What:** Secure token-based invitation flow for multi-user team management. Owners/admins (Agency plan) can invite members by email with role assignment. Invitees receive branded email with accept link. New users create account inline; existing users join with one click.
+
+**Key decisions:**
+- Reused existing `pending_invitations` table — no migration needed
+- Reused existing `InvitationEmail.tsx` React Email template
+- Token = authentication mechanism (never exposed in API responses)
+- `crypto.getRandomValues()` for 32-byte secure tokens (AI_RULES §146)
+- Soft-expire pattern: UPDATE expired invitations at top of reads/validates (no cron needed)
+- Server/Client component split: `TeamPageClient` wrapper for interactive elements
+
+**Files created:**
+- `lib/invitations/types.ts` — OrgInvitationSafe, OrgInvitationDisplay, InvitePayload, AcceptInvitePayload, InvitationValidation
+- `lib/invitations/invitation-service.ts` — generateSecureToken, sendInvitation, getOrgInvitations, revokeInvitation, validateToken, acceptInvitation
+- `lib/invitations/invitation-email.ts` — buildInvitationEmailProps, buildInvitationSubject (pure functions)
+- `lib/invitations/index.ts` — barrel export
+- `app/api/team/invitations/route.ts` — GET (list pending) + POST (send invite, Agency+admin gate)
+- `app/api/team/invitations/[invitationId]/route.ts` — DELETE (revoke, Agency+admin gate)
+- `app/api/invitations/accept/[token]/route.ts` — GET (validate, public) + POST (accept, public)
+- `app/invitations/accept/[token]/page.tsx` — public accept page (4 states: loading, invalid, new user form, existing user prompt)
+- `app/invitations/accept/[token]/_components/AcceptInviteForm.tsx` — new user signup form
+- `app/invitations/accept/[token]/_components/JoinOrgPrompt.tsx` — existing user join confirmation
+- `app/dashboard/team/_components/InviteMemberModal.tsx` — invite modal (email + role selector)
+- `app/dashboard/team/_components/PendingInvitationsTable.tsx` — pending invitations list with revoke
+- `app/dashboard/team/_components/TeamPageClient.tsx` — client wrapper for interactive team elements
+
+**Files modified:**
+- `lib/email.ts` — added `sendInvitationEmail()` using existing InvitationEmail template
+- `app/dashboard/team/_components/TeamMembersTable.tsx` — activated Remove button with confirmation + API call
+- `app/dashboard/team/page.tsx` — wired invite button, pending invitations table, TeamPageClient wrapper
+- `src/__fixtures__/golden-tenant.ts` — MOCK_INVITATION_TOKEN, MOCK_ORG_INVITATION_SAFE, MOCK_ORG_INVITATION_DISPLAY, validation fixtures
+
+**Tests:** 61 unit tests across 3 files:
+- `invitation-service.test.ts` — 28 tests (generateSecureToken 3, sendInvitation 8, getOrgInvitations 4, revokeInvitation 4, validateToken 5, acceptInvitation 4)
+- `invitation-routes.test.ts` — 26 tests (POST invitations 9, GET invitations 5, DELETE invitations 5, GET accept 4, POST accept 3)
+- `invitation-email.test.ts` — 7 tests (buildInvitationSubject 3, buildInvitationEmailProps 4)
+
+**AI_RULES:** §146 (invitation architecture)
+
+```bash
+npx vitest run src/__tests__/unit/invitation-service.test.ts  # 28 tests
+npx vitest run src/__tests__/unit/invitation-routes.test.ts   # 26 tests
+npx vitest run src/__tests__/unit/invitation-email.test.ts    # 7 tests
+npx vitest run                                                 # all 4254 — no regressions
+```
+
+---

@@ -13,6 +13,8 @@
 
 import { Resend } from 'resend';
 import WeeklyDigest, { type WeeklyDigestProps } from '@/emails/WeeklyDigest';
+import InvitationEmail from '@/emails/InvitationEmail';
+import type { InvitationEmailProps } from '@/lib/invitations/invitation-email';
 
 // Lazily initialised — only created when sendHallucinationAlert() is actually
 // called with a valid RESEND_API_KEY. Avoids build-time crash during static
@@ -361,4 +363,41 @@ export async function sendCorrectionFollowUpAlert(
       </div>
     `,
   });
+}
+
+// ---------------------------------------------------------------------------
+// Team Invitation Email (Sprint 112) — React Email template
+// ---------------------------------------------------------------------------
+
+export interface InvitationEmailPayload extends InvitationEmailProps {
+  to: string;
+  subject: string;
+}
+
+/**
+ * Sends a team invitation email using the InvitationEmail React Email template.
+ *
+ * No-ops silently when RESEND_API_KEY is not configured.
+ * Errors ARE thrown — callers should catch if email failure is non-fatal.
+ */
+export async function sendInvitationEmail(
+  payload: InvitationEmailPayload
+): Promise<void> {
+  if (!process.env.RESEND_API_KEY) {
+    console.log(
+      `[email] RESEND_API_KEY absent — skipping invitation email to ${payload.to}`
+    );
+    return;
+  }
+
+  const { to, subject, ...templateProps } = payload;
+
+  await getResend().emails.send({
+    from: 'LocalVector Team <team@localvector.ai>',
+    to,
+    subject,
+    react: InvitationEmail(templateProps),
+  });
+
+  console.log(`[email] Invitation email sent to ${to} for org ${payload.orgName}`);
 }

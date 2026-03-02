@@ -1,12 +1,13 @@
 'use client';
 
 /**
- * TeamMembersTable — Sprint 111
+ * TeamMembersTable — Sprint 111 → Sprint 112
  *
  * Displays org members in a table with role badges and action buttons.
- * Remove button renders but is disabled in Sprint 111 — Sprint 112 activates.
+ * Sprint 112: Remove button activated with confirmation + API call.
  */
 
+import { useState } from 'react';
 import type { OrgMember } from '@/lib/membership/types';
 import RoleBadge from './RoleBadge';
 import * as Sentry from '@sentry/nextjs';
@@ -24,16 +25,43 @@ function formatDate(dateStr: string): string {
       year: 'numeric',
     });
   } catch (err) {
-    Sentry.captureException(err, { tags: { file: 'TeamMembersTable.tsx', sprint: '111' } });
+    Sentry.captureException(err, { tags: { file: 'TeamMembersTable.tsx', sprint: '112' } });
     return '—';
   }
 }
 
 export default function TeamMembersTable({
-  members,
+  members: initialMembers,
   canRemove,
   currentUserId,
 }: TeamMembersTableProps) {
+  const [members, setMembers] = useState(initialMembers);
+  const [removing, setRemoving] = useState<string | null>(null);
+
+  async function handleRemove(member: OrgMember) {
+    const displayName = member.full_name ?? member.email;
+    const confirmed = window.confirm(
+      `Remove ${displayName} from the organization? They will lose access immediately.`
+    );
+    if (!confirmed) return;
+
+    setRemoving(member.id);
+    try {
+      const res = await fetch(`/api/team/members/${member.id}`, {
+        method: 'DELETE',
+      });
+
+      if (res.ok) {
+        // Optimistic update — remove row
+        setMembers((prev) => prev.filter((m) => m.id !== member.id));
+      }
+    } catch (err) {
+      Sentry.captureException(err, { tags: { action: 'removeMember', sprint: '112' } });
+    } finally {
+      setRemoving(null);
+    }
+  }
+
   return (
     <div
       data-testid="team-members-table"
@@ -86,10 +114,11 @@ export default function TeamMembersTable({
                   {showRemove && (
                     <button
                       data-testid={`remove-member-${m.user_id}`}
-                      onClick={() => alert('Remove member coming in next update')}
-                      className="text-xs text-red-400 hover:text-red-300 transition-colors"
+                      onClick={() => handleRemove(m)}
+                      disabled={removing === m.id}
+                      className="text-xs text-red-400 hover:text-red-300 transition-colors disabled:opacity-50"
                     >
-                      Remove
+                      {removing === m.id ? 'Removing...' : 'Remove'}
                     </button>
                   )}
                 </div>

@@ -2385,3 +2385,55 @@ export const MOCK_MEMBERS_LIST: OrgMember[] = [
   MOCK_ORG_MEMBER_ADMIN,
   MOCK_ORG_MEMBER_ANALYST,
 ];
+
+// ---------------------------------------------------------------------------
+// Sprint 112 — Invitation Fixtures
+// ---------------------------------------------------------------------------
+
+import type {
+  OrgInvitationSafe,
+  OrgInvitationDisplay,
+  InvitationValidation,
+} from '@/lib/invitations/types';
+
+export const MOCK_INVITATION_TOKEN =
+  'aaaa1111bbbb2222cccc3333dddd4444eeee5555ffff6666aaaa1111bbbb2222';
+
+export const MOCK_ORG_INVITATION_SAFE: OrgInvitationSafe = {
+  id: 'f0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+  org_id: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+  email: 'newmember@example.com',
+  role: 'analyst',
+  invited_by: '00000000-0000-0000-0000-000000000002',
+  status: 'pending',
+  expires_at: '2026-03-08T00:00:00.000Z',
+  accepted_at: null,
+  created_at: '2026-03-01T00:00:00.000Z',
+};
+
+export const MOCK_ORG_INVITATION_DISPLAY: OrgInvitationDisplay = {
+  ...MOCK_ORG_INVITATION_SAFE,
+  org_name: 'Charcoal N Chill',
+  invited_by_name: 'Dev User',
+};
+
+export const MOCK_INVITATION_VALIDATION_NEW_USER: InvitationValidation = {
+  valid: true,
+  invitation: MOCK_ORG_INVITATION_DISPLAY,
+  error: null,
+  existing_user: false,
+};
+
+export const MOCK_INVITATION_VALIDATION_EXISTING_USER: InvitationValidation = {
+  valid: true,
+  invitation: MOCK_ORG_INVITATION_DISPLAY,
+  error: null,
+  existing_user: true,
+};
+
+export const MOCK_INVITATION_VALIDATION_EXPIRED: InvitationValidation = {
+  valid: false,
+  invitation: null,
+  error: 'expired',
+  existing_user: false,
+};

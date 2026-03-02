@@ -7,14 +7,16 @@ import { getOrgMembers } from '@/lib/membership/membership-service';
 import { getMaxSeats, canAddMember, canManageTeamSeats } from '@/lib/plan-enforcer';
 import { roleSatisfies } from '@/lib/auth/org-roles';
 import { getPlanDisplayName } from '@/lib/plan-display-names';
+import { getOrgInvitations } from '@/lib/invitations/invitation-service';
 import TeamMembersTable from './_components/TeamMembersTable';
+import TeamPageClient from './_components/TeamPageClient';
 import type { PlanTier } from '@/lib/plan-enforcer';
 
 /**
- * Team Members Page — Sprint 111
+ * Team Members Page — Sprint 111 → Sprint 112
  *
  * Server Component.
- * Agency plan: full table + seat progress bar + disabled invite button.
+ * Agency plan: full table + seat progress bar + invite button + pending invitations.
  * Non-Agency: upgrade prompt.
  */
 export default async function TeamPage() {
@@ -74,6 +76,12 @@ export default async function TeamPage() {
   const maxSeats = getMaxSeats(planTier) ?? 10;
   const canAdd = canAddMember(planTier, seatCount);
   const canRemove = roleSatisfies(ctx.role, 'admin');
+  const isAdminOrOwner = roleSatisfies(ctx.role, 'admin');
+
+  // Fetch pending invitations for owner/admin
+  const pendingInvitations = isAdminOrOwner
+    ? await getOrgInvitations(supabase, ctx.orgId)
+    : [];
 
   // Seat progress color
   const seatPercent = maxSeats > 0 ? (seatCount / maxSeats) * 100 : 0;
@@ -88,58 +96,32 @@ export default async function TeamPage() {
 
   return (
     <div data-testid="team-page" className="max-w-3xl space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-xl font-semibold text-white tracking-tight">Team Members</h1>
-          <p className="mt-0.5 text-sm text-slate-400">
-            Manage team members and roles.
-          </p>
-        </div>
-        <button
-          data-testid="invite-member-btn"
-          aria-disabled="true"
-          disabled
-          title="Invite flow coming soon"
-          className="inline-flex items-center gap-2 rounded-lg bg-electric-indigo px-4 py-2 text-sm font-medium text-white opacity-50 cursor-not-allowed"
-        >
-          Invite Member
-        </button>
-      </div>
-
-      {/* Seat progress bar */}
-      <div data-testid="seat-progress-bar" className="space-y-1.5">
-        <div className="flex items-center justify-between text-xs text-slate-400">
-          <span>Seats</span>
-          <span>
-            {seatCount} / {maxSeats}
-          </span>
-        </div>
-        <div className="h-2 w-full rounded-full bg-slate-700">
-          <div
-            className={`h-full rounded-full transition-all ${barColor}`}
-            style={{ width: `${Math.min(seatPercent, 100)}%` }}
+      <TeamPageClient
+        canAdd={canAdd}
+        isAdminOrOwner={isAdminOrOwner}
+        seatCount={seatCount}
+        maxSeats={maxSeats}
+        barColor={barColor}
+        seatPercent={seatPercent}
+        pendingInvitations={pendingInvitations}
+      >
+        {isEmpty ? (
+          <div className="rounded-xl border border-white/5 bg-surface-dark p-8 text-center space-y-3">
+            <p className="text-sm text-slate-300">
+              Your team is just you right now.
+            </p>
+            <p className="text-sm text-slate-400">
+              Invite teammates to collaborate on content, review AI answers, and manage locations.
+            </p>
+          </div>
+        ) : (
+          <TeamMembersTable
+            members={members}
+            canRemove={canRemove}
+            currentUserId={ctx.userId}
           />
-        </div>
-      </div>
-
-      {/* Empty state or member table */}
-      {isEmpty ? (
-        <div className="rounded-xl border border-white/5 bg-surface-dark p-8 text-center space-y-3">
-          <p className="text-sm text-slate-300">
-            Your team is just you right now.
-          </p>
-          <p className="text-sm text-slate-400">
-            Invite teammates to collaborate on content, review AI answers, and manage locations.
-          </p>
-        </div>
-      ) : (
-        <TeamMembersTable
-          members={members}
-          canRemove={canRemove}
-          currentUserId={ctx.userId}
-        />
-      )}
+        )}
+      </TeamPageClient>
     </div>
   );
 }
