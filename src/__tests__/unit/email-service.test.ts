@@ -199,28 +199,24 @@ describe('sendSOVReport', () => {
 // sendWeeklyDigest
 // ---------------------------------------------------------------------------
 
-describe('sendWeeklyDigest', () => {
+describe('sendWeeklyDigest (deprecated — Sprint 117)', () => {
   it('no-ops silently when RESEND_API_KEY is absent', async () => {
     delete process.env.RESEND_API_KEY;
     await sendWeeklyDigest(DIGEST_PAYLOAD);
     expect(mockSend).not.toHaveBeenCalled();
   });
 
-  it('passes react: property (not html:) to emails.send', async () => {
+  it('no-ops even when RESEND_API_KEY is present (deprecated)', async () => {
     process.env.RESEND_API_KEY = 're_test_key';
     await sendWeeklyDigest(DIGEST_PAYLOAD);
 
-    expect(mockSend).toHaveBeenCalledOnce();
-    const args = mockSend.mock.calls[0][0];
-    expect(args.react).toBeDefined();
-    expect(args.html).toBeUndefined();
+    // Sprint 117: sendWeeklyDigest is deprecated, replaced by sendEnhancedDigest
+    expect(mockSend).not.toHaveBeenCalled();
   });
 
-  it('uses reports@localvector.ai as from address', async () => {
+  it('returns void without throwing', async () => {
     process.env.RESEND_API_KEY = 're_test_key';
-    await sendWeeklyDigest(DIGEST_PAYLOAD);
-
-    const args = mockSend.mock.calls[0][0];
-    expect(args.from).toBe('LocalVector Reports <reports@localvector.ai>');
+    // Should not throw even though it's a no-op
+    await expect(sendWeeklyDigest(DIGEST_PAYLOAD)).resolves.toBeUndefined();
   });
 });

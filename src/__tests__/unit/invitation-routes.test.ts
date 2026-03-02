@@ -61,6 +61,10 @@ vi.mock('@/lib/email', () => ({
   sendInvitationEmail: (...args: unknown[]) => mockSendInvitationEmail(...args),
 }));
 
+vi.mock('@/lib/whitelabel/theme-service', () => ({
+  getOrgTheme: vi.fn().mockResolvedValue(null),
+}));
+
 vi.mock('@sentry/nextjs', () => ({
   captureException: vi.fn(),
 }));

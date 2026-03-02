@@ -4371,3 +4371,72 @@ npx vitest run                                                          # all �
 ```
 
 ---
+
+## Sprint 117 — Retention & Onboarding + Weekly Digest Email (2026-03-02)
+
+**Objective:** New users see onboarding checklist and sample data instead of an empty dashboard; returning users receive a gated weekly digest email with SOV trends, citations, missed queries, and first mover alerts; one-click unsubscribe flow.
+
+**What this sprint delivers:**
+- Per-org onboarding step tracking (5 steps: business_profile, first_scan, first_draft, invite_teammate, connect_domain) with auto-completion from real DB state
+- OnboardingChecklist widget with progress bar, polling, and localStorage dismiss
+- OnboardingInterstitial full-screen welcome modal for new orgs (< 7 days, < 2 steps)
+- SampleDataBanner + SampleDashboard for empty dashboards (before first scan)
+- Enhanced WeeklyDigest email template with org branding, SOV score block, citations list, missed queries, first mover alert, and unsubscribe footer
+- Send gate: only sends when first digest OR |SOV delta| >= 2 OR first mover alert exists
+- Multi-recipient digest delivery (all non-unsubscribed org members)
+- Email preferences table with cryptographic unsubscribe tokens
+- Public one-click unsubscribe endpoint + confirmation page
+
+**Files created:**
+- `supabase/migrations/20260320000001_onboarding_digest.sql` — onboarding_steps + email_preferences tables, RLS, digest_last_sent_at column, backfills
+- `lib/onboarding/types.ts` — OnboardingStepId, OnboardingStep, ONBOARDING_STEPS, OnboardingStepState, OnboardingState
+- `lib/onboarding/onboarding-service.ts` — getOnboardingState, initOnboardingSteps, autoCompleteSteps, markStepComplete
+- `lib/onboarding/sample-data.ts` — sample SOV, citations, missed queries, content drafts, first mover alerts with _is_sample sentinel
+- `lib/onboarding/index.ts` — barrel export
+- `lib/digest/types.ts` — DigestSovTrend, DigestCitation, DigestMissedQuery, DigestFirstMoverAlert, WeeklyDigestPayload, DigestSendResult
+- `lib/digest/digest-service.ts` — buildWeeklyDigestPayload, getDigestRecipients
+- `lib/digest/send-gate.ts` — shouldSendDigest, isFirstDigest
+- `lib/digest/index.ts` — barrel export
+- `emails/components/DigestHeader.tsx` — branded header with org logo and primary color
+- `emails/components/SovScoreBlock.tsx` — SOV score display with trend arrow
+- `emails/components/CitationList.tsx` — "Where AI recommended you" section
+- `emails/components/MissedQueryList.tsx` — "Where you're missing" section with CTA
+- `emails/components/FirstMoverAlert.tsx` — conditional amber first mover block
+- `app/api/onboarding/state/route.ts` — GET onboarding state (auth required)
+- `app/api/onboarding/state/[step]/route.ts` — POST mark step complete (auth required)
+- `app/api/email/unsubscribe/route.ts` — GET public unsubscribe endpoint
+- `app/unsubscribe/page.tsx` — public unsubscribe confirmation page
+- `app/dashboard/_components/OnboardingChecklist.tsx` — step list with progress bar and polling
+- `app/dashboard/_components/OnboardingInterstitial.tsx` — full-screen modal via createPortal
+- `app/dashboard/_components/SampleDataBanner.tsx` — amber "viewing sample data" banner
+- `app/dashboard/_components/SampleDashboard.tsx` — sample data sections for empty dashboards
+- `src/__tests__/unit/onboarding-service.test.ts` — 17 tests
+- `src/__tests__/unit/digest-service.test.ts` — 20 tests
+- `src/__tests__/unit/digest-email.test.ts` — 16 tests
+- `src/__tests__/unit/onboarding-routes.test.ts` — 13 tests
+
+**Files modified:**
+- `emails/WeeklyDigest.tsx` — complete rewrite with new Sprint 117 template using WeeklyDigestPayload props
+- `lib/email.ts` — deprecated old sendWeeklyDigest, added sendEnhancedDigest with send gate
+- `app/api/cron/sov/route.ts` — added multi-recipient enhanced digest sending after existing SOV processing
+- `app/dashboard/page.tsx` — onboarding state fetch, sample data early return, checklist for real data path
+- `supabase/seed.sql` — Section 25: onboarding_steps + email_preferences for golden tenant
+- `src/__fixtures__/golden-tenant.ts` — MOCK_ONBOARDING_STATE_IN_PROGRESS, MOCK_ONBOARDING_STATE_NEW_USER, MOCK_WEEKLY_DIGEST_PAYLOAD
+
+**Tests:** 66 unit tests across 4 files:
+- `onboarding-service.test.ts` — 17 tests (getOnboardingState 8, autoCompleteSteps 6, markStepComplete 3)
+- `digest-service.test.ts` — 20 tests (shouldSendDigest 6, buildWeeklyDigestPayload 11, getDigestRecipients 3)
+- `digest-email.test.ts` — 16 tests (WeeklyDigest render 13, formatWeekOf 3)
+- `onboarding-routes.test.ts` — 13 tests (GET state 2, POST step 4, GET unsubscribe 7)
+
+**AI_RULES:** §151 (retention & onboarding + digest email)
+
+```bash
+npx vitest run src/__tests__/unit/onboarding-service.test.ts  # 17 tests
+npx vitest run src/__tests__/unit/digest-service.test.ts       # 20 tests
+npx vitest run src/__tests__/unit/digest-email.test.ts         # 16 tests
+npx vitest run src/__tests__/unit/onboarding-routes.test.ts    # 13 tests
+npx vitest run                                                  # all — no regressions
+```
+
+---

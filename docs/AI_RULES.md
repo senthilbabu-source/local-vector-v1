@@ -3054,3 +3054,23 @@ Per-org brand configuration with CSS custom property injection, themed emails, b
 * **Tests:** 8 realtime-types + 8 notify-org + 10 use-presence + 10 use-draft-lock + 10 use-realtime-notifications + 5 use-auto-refresh = 51 Vitest + 9 Playwright.
 
 ---
+
+## §151. Retention & Onboarding + Weekly Digest Email (Sprint 117)
+
+* **Onboarding steps table:** `onboarding_steps` (org_id, step_id CHECK, completed, completed_at, completed_by_user_id, UNIQUE(org_id, step_id)). RLS via `current_user_org_id()`. 5 steps: `business_profile`, `first_scan`, `first_draft`, `invite_teammate`, `connect_domain`.
+* **Email preferences table:** `email_preferences` (user_id FK auth.users, org_id, digest_unsubscribed, unsubscribe_token DEFAULT random hex, UNIQUE(user_id, org_id), token UNIQUE). user_id references `auth.users(id)` NOT `public.users.id`.
+* **Onboarding service:** `lib/onboarding/onboarding-service.ts` — `getOnboardingState()` lazy-inits rows, runs `autoCompleteSteps()`, computes `is_complete`, `show_interstitial` (< 2 steps AND org < 7 days), `has_real_data` (first_scan complete).
+* **Auto-complete logic:** Checks real DB state: `first_scan` → sov_evaluations exists, `first_draft` → content_drafts exists, `invite_teammate` → memberships > 1, `connect_domain` → org_domains verified custom, `business_profile` → name + locations > 0.
+* **Sample data:** `lib/onboarding/sample-data.ts` — `SAMPLE_SOV_DATA`, `SAMPLE_CITATION_EXAMPLES`, `SAMPLE_MISSING_QUERIES`, `SAMPLE_CONTENT_DRAFT`, `SAMPLE_FIRST_MOVER_ALERT`. Sentinel `_is_sample: true`. `isSampleData()` checker.
+* **Digest service:** `lib/digest/digest-service.ts` — `buildWeeklyDigestPayload()` assembles org branding, SOV trend (0-1 float × 100), citations, missed queries, first mover alert, unsubscribe token. `getDigestRecipients()` excludes unsubscribed via `auth_provider_id` mapping.
+* **Send gate:** `lib/digest/send-gate.ts` — `shouldSendDigest()` pure OR predicate: `is_first_digest || |delta| >= 2 || has_first_mover_alert`. `isFirstDigest()` checks `organizations.digest_last_sent_at IS NULL`.
+* **Enhanced email template:** `emails/WeeklyDigest.tsx` rewritten. Sub-components: `DigestHeader`, `SovScoreBlock`, `CitationList`, `MissedQueryList`, `FirstMoverAlert`. `formatWeekOf()` exported. Dark theme. Unsubscribe footer.
+* **Email integration:** `lib/email.ts` — old `sendWeeklyDigest()` deprecated (no-op). New `sendEnhancedDigest()` checks send gate, renders template, returns `DigestSendResult`. Updates `digest_last_sent_at` on success.
+* **SOV cron wiring:** `app/api/cron/sov/route.ts` — after existing sendWeeklyDigest, adds multi-recipient loop: `getDigestRecipients()` → `buildWeeklyDigestPayload()` per recipient → fire-and-forget `sendEnhancedDigest()`.
+* **Unsubscribe:** `GET /api/email/unsubscribe?token=` — public, validates 64 hex char token, sets `digest_unsubscribed=true`, redirects to `/unsubscribe`. One-click, no auth required.
+* **Dashboard onboarding:** `OnboardingChecklist` (polls /api/onboarding/state, progress bar, dismiss via localStorage `lv_onboarding_dismissed`), `OnboardingInterstitial` (createPortal modal, dismiss via `lv_interstitial_dismissed`), `SampleDataBanner` (amber), `SampleDashboard` (sample data sections).
+* **Dashboard page:** Early return when `!has_real_data` renders sample data + onboarding. Real data path includes checklist (self-hides when complete).
+* **Migration:** `20260320000001_onboarding_digest.sql`.
+* **Tests:** 17 onboarding-service + 20 digest-service + 16 digest-email + 13 onboarding-routes = 66 Vitest.
+
+---

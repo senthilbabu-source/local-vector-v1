@@ -2554,4 +2554,24 @@ BEGIN
   )
   ON CONFLICT (org_id) DO NOTHING;
 
+  -- ══════════════════════════════════════════════════════════════════════════
+  -- Section 25: Sprint 117 — Onboarding State + Email Preferences
+  -- ══════════════════════════════════════════════════════════════════════════
+
+  -- Mark first 3 onboarding steps complete for golden tenant (established org)
+  INSERT INTO public.onboarding_steps (
+    org_id, step_id, completed, completed_at, completed_by_user_id
+  ) VALUES
+  (v_org_id, 'business_profile', true, NOW() - INTERVAL '30 days', v_public_user_id),
+  (v_org_id, 'first_scan',       true, NOW() - INTERVAL '29 days', null),
+  (v_org_id, 'first_draft',      true, NOW() - INTERVAL '28 days', null),
+  (v_org_id, 'invite_teammate',  false, null, null),
+  (v_org_id, 'connect_domain',   false, null, null)
+  ON CONFLICT (org_id, step_id) DO NOTHING;
+
+  -- Email preferences with auto-generated unsubscribe token
+  INSERT INTO public.email_preferences (user_id, org_id)
+  VALUES (v_auth_user_id, v_org_id)
+  ON CONFLICT (user_id, org_id) DO NOTHING;
+
 END $$;

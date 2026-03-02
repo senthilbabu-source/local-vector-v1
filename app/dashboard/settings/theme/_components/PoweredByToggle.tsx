@@ -8,6 +8,7 @@
 'use client';
 
 import { useState } from 'react';
+import * as Sentry from '@sentry/nextjs';
 
 interface PoweredByToggleProps {
   initialValue: boolean;
@@ -30,7 +31,8 @@ export default function PoweredByToggle({ initialValue, onChange }: PoweredByTog
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ show_powered_by: newValue }),
       });
-    } catch {
+    } catch (err) {
+      Sentry.captureException(err);
       // Revert on failure
       setChecked(!newValue);
       onChange(!newValue);

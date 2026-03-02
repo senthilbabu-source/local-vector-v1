@@ -7,6 +7,7 @@
 'use client';
 
 import { useState, useRef } from 'react';
+import * as Sentry from '@sentry/nextjs';
 
 interface LogoUploaderProps {
   currentLogoUrl: string | null;
@@ -54,7 +55,8 @@ export default function LogoUploader({ currentLogoUrl, onLogoChange }: LogoUploa
       }
 
       onLogoChange(data.logo_url);
-    } catch {
+    } catch (err) {
+      Sentry.captureException(err);
       setError('Network error. Please try again.');
     } finally {
       setUploading(false);
@@ -77,7 +79,8 @@ export default function LogoUploader({ currentLogoUrl, onLogoChange }: LogoUploa
         return;
       }
       onLogoChange(null);
-    } catch {
+    } catch (err) {
+      Sentry.captureException(err);
       setError('Network error. Please try again.');
     }
   }

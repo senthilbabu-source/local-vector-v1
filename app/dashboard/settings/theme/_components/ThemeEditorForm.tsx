@@ -8,6 +8,7 @@
 'use client';
 
 import { useState, useCallback } from 'react';
+import * as Sentry from '@sentry/nextjs';
 import type { OrgTheme, FontFamily } from '@/lib/whitelabel/types';
 import { GOOGLE_FONT_FAMILIES } from '@/lib/whitelabel/types';
 import { validateHexColor, computeTextOnPrimary } from '@/lib/whitelabel/theme-utils';
@@ -78,7 +79,8 @@ export default function ThemeEditorForm({ initialTheme, orgName }: ThemeEditorFo
 
       setToast('Theme saved');
       setTimeout(() => setToast(null), 3000);
-    } catch {
+    } catch (err) {
+      Sentry.captureException(err);
       setError('Network error. Please try again.');
     } finally {
       setSaving(false);

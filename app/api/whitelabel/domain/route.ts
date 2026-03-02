@@ -68,7 +68,7 @@ export async function POST(request: NextRequest) {
   let body: { custom_domain?: string };
   try {
     body = await request.json();
-  } catch {
+  } catch (_parseErr) {
     return NextResponse.json({ error: 'invalid_json' }, { status: 400 });
   }
 

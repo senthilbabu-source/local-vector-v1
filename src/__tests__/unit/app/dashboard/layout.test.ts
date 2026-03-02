@@ -68,6 +68,10 @@ vi.mock('@/components/layout/DashboardShell', () => ({
     ),
 }));
 
+vi.mock('@/app/dashboard/_components/DashboardFooter', () => ({
+  default: () => React.createElement('footer', { 'data-testid': 'dashboard-footer' }),
+}));
+
 // ---------------------------------------------------------------------------
 // Import component AFTER mocks
 // ---------------------------------------------------------------------------
@@ -285,6 +289,8 @@ describe('DashboardLayout — Render Props', () => {
     mockGetSafeAuthContext.mockResolvedValue(BASE_CTX);
     const child = React.createElement('p', { 'data-testid': 'page-content' }, 'Dashboard');
     const el = (await DashboardLayout({ children: child })) as React.ReactElement<ShellProps>;
-    expect(el.props.children).toBe(child);
+    // Layout renders [children, <DashboardFooter />] inside DashboardShell
+    const kids = Array.isArray(el.props.children) ? el.props.children : [el.props.children];
+    expect(kids[0]).toBe(child);
   });
 });

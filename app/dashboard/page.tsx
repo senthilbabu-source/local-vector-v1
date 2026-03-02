@@ -12,6 +12,11 @@ import { canRunAutopilot, canConnectGBP, canExportData, canRunNAPSync, canRunSch
 import { createServiceRoleClient } from '@/lib/supabase/server';
 import { nextSundayLabel } from './_components/scan-health-utils';
 import { isSampleMode } from '@/lib/sample-data/use-sample-mode';
+import { getOnboardingState } from '@/lib/onboarding/onboarding-service';
+import OnboardingChecklist from './_components/OnboardingChecklist';
+import OnboardingInterstitial from './_components/OnboardingInterstitial';
+import SampleDataBannerSprintB from './_components/SampleDataBanner';
+import SampleDashboard from './_components/SampleDashboard';
 import {
   SAMPLE_VISIBILITY_SCORE,
   SAMPLE_OPEN_ALERT_COUNT,
@@ -187,6 +192,41 @@ export default async function DashboardPage() {
   const isNewOrg = orgCreatedAt
     ? Date.now() - new Date(orgCreatedAt).getTime() < 30 * 24 * 60 * 60 * 1000
     : false;
+
+  // Sprint 117: Onboarding state
+  let onboardingState = null;
+  try {
+    if (ctx.orgId) {
+      const serviceClient = createServiceRoleClient();
+      onboardingState = await getOnboardingState(serviceClient, ctx.orgId, orgCreatedAt);
+    }
+  } catch (err) {
+    Sentry.captureException(err, { tags: { component: 'onboarding', sprint: '117' }, extra: { orgId: ctx.orgId } });
+    // Onboarding is non-critical
+  }
+
+  // Sprint 117: If no real data, show sample dashboard with onboarding
+  if (onboardingState && !onboardingState.has_real_data) {
+    return (
+      <div className="space-y-5">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h1 className="text-xl font-semibold text-white tracking-tight">
+              Welcome, {firstName}
+            </h1>
+            <p className="mt-0.5 text-sm text-slate-400">
+              Your dashboard will populate with real data after your first AI visibility scan.
+            </p>
+          </div>
+        </div>
+        <SampleDataBannerSprintB />
+        <OnboardingChecklist initialState={onboardingState} />
+        <SampleDashboard />
+        <OnboardingInterstitial show={onboardingState.show_interstitial} />
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-5">
       {/* ── Header ──────────────────────────────────────────────────────────── */}
@@ -203,6 +243,9 @@ export default async function DashboardPage() {
         </div>
         <ExportButtons canExport={exportGated} showCSV={false} showPDF />
       </div>
+
+      {/* ── Sprint 117: Onboarding Checklist (real data path) ─────────────── */}
+      {onboardingState && <OnboardingChecklist initialState={onboardingState} />}
 
       {/* ── Banners ─────────────────────────────────────────────────────────── */}
       {sampleMode && (

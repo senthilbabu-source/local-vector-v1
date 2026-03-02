@@ -24,7 +24,7 @@ function CopyButton({ value, testId }: { value: string; testId: string }) {
       await navigator.clipboard.writeText(value);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
-    } catch {
+    } catch (_err) {
       // Clipboard API not available — silently ignore
     }
   }

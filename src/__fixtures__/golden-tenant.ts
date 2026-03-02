@@ -2679,3 +2679,73 @@ export const MOCK_NOTIFICATION_MEMBER_JOINED: RealtimeNotification = {
   sent_at: '2026-03-01T09:00:00.000Z',
   received_at: '2026-03-01T09:00:01.000Z',
 };
+
+// ── Sprint 117: Onboarding + Digest ─────────────────────────────────────────
+
+import type { OnboardingState, OnboardingStepState } from '@/lib/onboarding/types';
+import type { WeeklyDigestPayload } from '@/lib/digest/types';
+
+export const MOCK_ONBOARDING_STATE_IN_PROGRESS: OnboardingState = {
+  org_id: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+  steps: [
+    { step_id: 'business_profile', completed: true,  completed_at: '2026-01-01T00:00:00Z', completed_by_user_id: '00000000-0000-0000-0000-000000000002' },
+    { step_id: 'first_scan',       completed: true,  completed_at: '2026-01-02T00:00:00Z', completed_by_user_id: null },
+    { step_id: 'first_draft',      completed: true,  completed_at: '2026-01-03T00:00:00Z', completed_by_user_id: null },
+    { step_id: 'invite_teammate',  completed: false, completed_at: null, completed_by_user_id: null },
+    { step_id: 'connect_domain',   completed: false, completed_at: null, completed_by_user_id: null },
+  ] as OnboardingStepState[],
+  total_steps: 5,
+  completed_steps: 3,
+  is_complete: false,
+  show_interstitial: false,
+  has_real_data: true,
+};
+
+export const MOCK_ONBOARDING_STATE_NEW_USER: OnboardingState = {
+  org_id: 'new-org-id',
+  steps: [
+    { step_id: 'business_profile', completed: false, completed_at: null, completed_by_user_id: null },
+    { step_id: 'first_scan',       completed: false, completed_at: null, completed_by_user_id: null },
+    { step_id: 'first_draft',      completed: false, completed_at: null, completed_by_user_id: null },
+    { step_id: 'invite_teammate',  completed: false, completed_at: null, completed_by_user_id: null },
+    { step_id: 'connect_domain',   completed: false, completed_at: null, completed_by_user_id: null },
+  ] as OnboardingStepState[],
+  total_steps: 5,
+  completed_steps: 0,
+  is_complete: false,
+  show_interstitial: true,
+  has_real_data: false,
+};
+
+export const MOCK_WEEKLY_DIGEST_PAYLOAD: WeeklyDigestPayload = {
+  org_id: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+  org_name: 'Charcoal N Chill',
+  recipient_email: 'aruna@charcoalnchill.com',
+  recipient_name: 'Aruna Babu',
+  unsubscribe_token: 'abc123def456abc123def456abc123def456abc123def456abc123def456ab12',
+  week_of: '2026-03-02',
+  sov_trend: {
+    current_sov: 42,
+    previous_sov: 37,
+    delta: 5,
+    trend: 'up',
+    total_queries: 12,
+    cited_count: 5,
+  },
+  citations: [
+    { query_text: 'best hookah lounge near Alpharetta', cited_at: '2026-03-01T00:00:00Z' },
+    { query_text: 'upscale hookah bar Atlanta', cited_at: '2026-03-01T00:00:00Z' },
+  ],
+  missed_queries: [
+    { query_text: 'hookah bar with private events', competitor_cited: null },
+    { query_text: 'Indian fusion restaurant Alpharetta', competitor_cited: 'Zyka Restaurant' },
+  ],
+  first_mover_alert: {
+    query_text: 'hookah lounge open late night',
+    detected_at: '2026-03-01T10:00:00Z',
+    action_url: '/dashboard/content/new?query=hookah+lounge+open+late+night',
+  },
+  org_logo_url: null,
+  org_primary_color: '#1a1a2e',
+  org_text_on_primary: '#ffffff',
+};

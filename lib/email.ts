@@ -12,9 +12,11 @@
 // ---------------------------------------------------------------------------
 
 import { Resend } from 'resend';
-import WeeklyDigest, { type WeeklyDigestProps } from '@/emails/WeeklyDigest';
 import InvitationEmail from '@/emails/InvitationEmail';
 import type { InvitationEmailProps } from '@/lib/invitations/invitation-email';
+import WeeklyDigestTemplate, { formatWeekOf } from '@/emails/WeeklyDigest';
+import type { WeeklyDigestPayload as EnhancedDigestPayload, DigestSendResult } from '@/lib/digest/types';
+import { shouldSendDigest } from '@/lib/digest/send-gate';
 
 // Lazily initialised — only created when sendHallucinationAlert() is actually
 // called with a valid RESEND_API_KEY. Avoids build-time crash during static
@@ -187,45 +189,101 @@ export async function sendSOVReport(
 }
 
 // ---------------------------------------------------------------------------
-// Weekly Digest — React Email template (Sprint 59C)
+// Weekly Digest — Legacy (Sprint 59C) — DEPRECATED, use sendEnhancedDigest
 // ---------------------------------------------------------------------------
 
-export interface WeeklyDigestPayload extends WeeklyDigestProps {
+export interface WeeklyDigestPayload {
   to: string;
+  businessName: string;
+  shareOfVoice: number;
+  queriesRun: number;
+  queriesCited: number;
+  firstMoverCount: number;
+  dashboardUrl: string;
+  sovDelta?: number | null;
+  topCompetitor?: string | null;
+  citationRate?: number | null;
 }
 
 /**
- * Sends the weekly digest email using the React Email template.
- * Uses Resend's `react:` property for server-side rendering.
- *
- * Replaces sendSOVReport() in the SOV cron paths.
+ * @deprecated Use `sendEnhancedDigest()` instead (Sprint 117).
+ * Kept for backward compatibility with existing SOV cron inline path.
  *
  * No-ops silently when RESEND_API_KEY is not configured.
  * Errors are NOT swallowed — callers should wrap with .catch().
  */
 export async function sendWeeklyDigest(
-  payload: WeeklyDigestPayload
+  _payload: WeeklyDigestPayload
 ): Promise<void> {
+  // Sprint 117: Deprecated. The SOV cron now uses sendEnhancedDigest().
+  // This function is kept as a no-op to prevent import errors in tests.
+  console.log(
+    `[email] sendWeeklyDigest is deprecated — use sendEnhancedDigest()`
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Enhanced Weekly Digest — Sprint 117
+// ---------------------------------------------------------------------------
+
+/**
+ * Sends the enhanced weekly digest email using the Sprint 117 React Email
+ * template with org branding, citations, missed queries, and unsubscribe.
+ *
+ * Checks send gate before sending. Returns DigestSendResult.
+ *
+ * No-ops silently when RESEND_API_KEY is not configured.
+ * Errors are NOT swallowed — callers should wrap with .catch().
+ */
+export async function sendEnhancedDigest(
+  payload: EnhancedDigestPayload,
+  options?: { is_first_digest?: boolean },
+): Promise<DigestSendResult> {
   if (!process.env.RESEND_API_KEY) {
     console.log(
-      `[email] RESEND_API_KEY absent — skipping weekly digest for ${payload.businessName}`
+      `[email] RESEND_API_KEY absent — skipping enhanced digest for ${payload.org_name}`
     );
-    return;
+    return { sent: false, skipped: true, skip_reason: 'resend_error' };
   }
 
-  const subject = `Your AI Visibility Report — ${payload.businessName}`;
-
-  const { to, ...templateProps } = payload;
-
-  await getResend().emails.send({
-    from: 'LocalVector Reports <reports@localvector.ai>',
-    to,
-    subject,
-    react: WeeklyDigest(templateProps),
+  // Check send gate
+  const gate = shouldSendDigest({
+    sov_delta: payload.sov_trend.delta,
+    has_first_mover_alert: payload.first_mover_alert !== null,
+    is_first_digest: options?.is_first_digest ?? false,
   });
 
-  console.log(`[email] Weekly digest sent to ${to} for ${payload.businessName}`);
+  if (!gate.should_send) {
+    return { sent: false, skipped: true, skip_reason: 'send_gate_not_met' };
+  }
+
+  const weekOfFormatted = formatWeekOf(payload.week_of);
+  const subject = `Your AI Visibility Report — Week of ${weekOfFormatted}`;
+
+  try {
+    const { data, error } = await getResend().emails.send({
+      from: 'LocalVector Reports <reports@localvector.ai>',
+      to: payload.recipient_email,
+      subject,
+      react: WeeklyDigestTemplate({ payload }),
+    });
+
+    if (error) {
+      console.error('[email] Enhanced digest Resend error:', error);
+      return { sent: false, skipped: false, skip_reason: 'resend_error' };
+    }
+
+    console.log(
+      `[email] Enhanced digest sent to ${payload.recipient_email} for ${payload.org_name}`
+    );
+    return { sent: true, skipped: false, message_id: data?.id };
+  } catch (err) {
+    console.error('[email] Enhanced digest send failed:', err);
+    return { sent: false, skipped: false, skip_reason: 'resend_error' };
+  }
 }
+
+export { formatWeekOf } from '@/emails/WeeklyDigest';
 
 // ---------------------------------------------------------------------------
 // Content Freshness Decay Alert (Sprint 76)

@@ -173,7 +173,7 @@ async function getCachedContext(hostname: string): Promise<OrgContext | null | u
     const parsed = typeof raw === 'string' ? JSON.parse(raw) : raw;
     if (parsed === null) return null; // cached miss
     return parsed as OrgContext;
-  } catch {
+  } catch (_err) {
     // Redis unavailable — fall through to DB
     return undefined;
   }
@@ -184,7 +184,7 @@ async function cacheContext(hostname: string, ctx: OrgContext | null): Promise<v
     const { getRedis } = await import('@/lib/redis');
     const redis = getRedis();
     await redis.set(`${CACHE_PREFIX}${hostname}`, JSON.stringify(ctx), { ex: CACHE_TTL_SECONDS });
-  } catch {
+  } catch (_err) {
     // Redis unavailable — silently skip caching
   }
 }
@@ -197,7 +197,7 @@ export async function invalidateDomainCache(hostname: string): Promise<void> {
     const { getRedis } = await import('@/lib/redis');
     const redis = getRedis();
     await redis.del(`${CACHE_PREFIX}${hostname}`);
-  } catch {
+  } catch (_err) {
     // Redis unavailable — skip
   }
 }

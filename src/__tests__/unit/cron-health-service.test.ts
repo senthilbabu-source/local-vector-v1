@@ -86,10 +86,13 @@ describe('buildCronHealthSummary', () => {
   });
 
   it('sets overallStatus to failing with 3+ total recent failures', () => {
+    // Use dates relative to now so the 7-day window never drifts
+    const now = Date.now();
+    const oneDay = 24 * 60 * 60 * 1000;
     const failures: CronRunRow[] = [
-      { ...MOCK_CRON_RUN_FAILED, id: 'f9eebc99-9c0b-4ef8-bb6d-6bb9bd380a11' },
-      { ...MOCK_CRON_RUN_FAILED, id: 'f8eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', started_at: '2026-02-24T07:00:00.000Z' },
-      { ...MOCK_CRON_RUN_FAILED, id: 'f7eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', started_at: '2026-02-23T07:00:00.000Z' },
+      { ...MOCK_CRON_RUN_FAILED, id: 'f9eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', started_at: new Date(now - 1 * oneDay).toISOString() },
+      { ...MOCK_CRON_RUN_FAILED, id: 'f8eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', started_at: new Date(now - 2 * oneDay).toISOString() },
+      { ...MOCK_CRON_RUN_FAILED, id: 'f7eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', started_at: new Date(now - 3 * oneDay).toISOString() },
     ];
     const result = buildCronHealthSummary(failures);
     expect(result.overallStatus).toBe('failing');

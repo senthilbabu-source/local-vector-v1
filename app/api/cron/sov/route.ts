@@ -29,8 +29,10 @@ import {
   type SOVQueryInput,
   type SOVQueryResult,
 } from '@/lib/services/sov-engine.service';
-import { sendWeeklyDigest, sendFreshnessAlert } from '@/lib/email';
+import { sendWeeklyDigest, sendFreshnessAlert, sendEnhancedDigest } from '@/lib/email';
 import { fetchFreshnessAlerts } from '@/lib/data/freshness-alerts';
+import { buildWeeklyDigestPayload, getDigestRecipients } from '@/lib/digest';
+import { isFirstDigest } from '@/lib/digest/send-gate';
 import { runOccasionScheduler } from '@/lib/services/occasion-engine.service';
 import { detectQueryGaps } from '@/lib/services/prompt-intelligence.service';
 import { canRunAutopilot, canRunMultiModelSOV, type PlanTier } from '@/lib/plan-enforcer';
@@ -284,6 +286,38 @@ async function _runInlineSOVImpl(handle: { logId: string | null; startedAt: numb
           }).catch((err: unknown) =>
             console.error('[cron-sov] Email send failed:', err),
           );
+        }
+
+        // Sprint 117: Enhanced digest to all non-unsubscribed org members
+        try {
+          const recipients = await getDigestRecipients(supabase, orgId);
+          const isFirst = await isFirstDigest(supabase, orgId);
+
+          for (const recipient of recipients) {
+            try {
+              const digestPayload = await buildWeeklyDigestPayload(
+                supabase, orgId, recipient.user_id,
+              );
+              void sendEnhancedDigest(digestPayload, { is_first_digest: isFirst })
+                .then((result) => {
+                  if (result.sent) {
+                    // Update digest_last_sent_at (fire-and-forget)
+                    void supabase
+                      .from('organizations')
+                      .update({ digest_last_sent_at: new Date().toISOString() })
+                      .eq('id', orgId);
+                  }
+                })
+                .catch((err: unknown) =>
+                  console.error(`[cron-sov] Enhanced digest failed for ${recipient.email}:`, err),
+                );
+            } catch (err) {
+              console.error(`[cron-sov] Digest payload build failed for ${recipient.email}:`, err);
+            }
+          }
+        } catch (err) {
+          Sentry.captureException(err, { tags: { cron: 'sov', phase: 'enhanced-digest', sprint: '117' }, extra: { orgId } });
+          // Enhanced digest is non-critical
         }
 
         // Content Freshness Decay check (non-critical, Sprint 76)
