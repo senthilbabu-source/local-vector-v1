@@ -29,6 +29,7 @@ import {
   MapPinned,
   Trophy,
   Mic,
+  Users,
   X,
 } from 'lucide-react';
 import LogoutButton from '@/app/dashboard/_components/LogoutButton';
@@ -217,6 +218,13 @@ export const NAV_ITEMS = [
     active: true,
   },
   {
+    href: '/dashboard/team',
+    label: 'Team',
+    icon: Users,
+    exact: false,
+    active: true,
+  },
+  {
     href: '/dashboard/billing',
     label: 'Billing',
     icon: CreditCard,
@@ -286,6 +294,7 @@ export const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
         '/dashboard/settings/locations',
         '/dashboard/system-health',
         '/dashboard/settings',
+        '/dashboard/team',
         '/dashboard/billing',
       ].includes(i.href),
     ),

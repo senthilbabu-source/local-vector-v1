@@ -33,6 +33,7 @@ import type { Database } from '@/lib/supabase/database.types';
 export const ROLE_HIERARCHY: Record<string, number> = {
   viewer: 0,
   member: 0, // legacy — treated as viewer
+  analyst: 0, // Sprint 111 — read-only with data access
   admin: 1,
   owner: 2,
 };

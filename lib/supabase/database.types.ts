@@ -2008,6 +2008,7 @@ export type Database = {
           seats_updated_at: string | null;
           seat_overage_count: number | null;
           seat_overage_since: string | null;
+          seat_count: number;
           monitored_ai_models: string[] | null;
           score_drop_threshold: number | null;
           webhook_url: string | null;
@@ -2040,6 +2041,7 @@ export type Database = {
           seats_updated_at?: string | null;
           seat_overage_count?: number | null;
           seat_overage_since?: string | null;
+          seat_count?: number;
           monitored_ai_models?: string[] | null;
           score_drop_threshold?: number | null;
           webhook_url?: string | null;
@@ -2072,6 +2074,7 @@ export type Database = {
           seats_updated_at?: string | null;
           seat_overage_count?: number | null;
           seat_overage_since?: string | null;
+          seat_count?: number;
           monitored_ai_models?: string[] | null;
           score_drop_threshold?: number | null;
           webhook_url?: string | null;
@@ -3066,7 +3069,7 @@ export type Database = {
         | "dismissed"
         | "recurring";
       hallucination_severity: "critical" | "high" | "medium" | "low";
-      membership_role: "owner" | "admin" | "member" | "viewer";
+      membership_role: "owner" | "admin" | "member" | "analyst" | "viewer";
       menu_processing_status:
         | "uploading"
         | "processing"

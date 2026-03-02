@@ -2931,3 +2931,20 @@ name=20, phone=15, address=15, city=10, category=10, hours=15, website=5, state=
 API calls: sequential with 200ms delay between queries. Short-circuit: content < 20 words skips Claude call. No API key → graceful fallback (no error).
 
 ---
+
+## §145. Org Membership Foundation (Sprint 111)
+
+Multi-user org membership enhanced via `lib/membership/`.
+
+* **Existing table:** `memberships` (Sprint 98). No new table created.
+* **Five roles in enum:** `owner | admin | member | analyst | viewer`. `member` is legacy (treated as viewer). `analyst` added Sprint 111.
+* **SEAT_LIMITS:** trial=1, starter=1, growth=1, agency=10. Multi-seat = Agency only.
+* **`seat_count` column** on organizations: trigger-maintained count (distinct from `seat_limit` which is Stripe-managed).
+* **`current_user_org_id()`** remains unchanged — already queries `memberships`.
+* **Service module:** `lib/membership/membership-service.ts` — getOrgMembers(), getCallerMembership(), getMemberById(), removeMember(), canAddMemberCheck().
+* **API routes:** `GET /api/team/members` (list), `DELETE /api/team/members/[memberId]` (remove). Supplement existing server actions in `app/actions/invitations.ts`.
+* **Team page:** `/dashboard/team` (top-level). Agency: full table + seat progress bar. Non-Agency: upgrade prompt.
+* **`canAddMember()`** in plan-enforcer.ts is the pure function for seat limits. Always call before invite flow.
+* **Adding a new role:** Update MemberRole union in types.ts, ROLE_PERMISSIONS, ROLE_ORDER, ROLE_HIERARCHY in org-roles.ts, RoleBadge ROLE_COLORS, and DB enum migration.
+
+---

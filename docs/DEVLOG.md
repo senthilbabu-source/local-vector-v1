@@ -4,6 +4,44 @@
 
 ---
 
+## 2026-03-01 — Sprint 111: Org Membership Foundation (Completed)
+
+**Goal:** Build structured org membership infrastructure — `analyst` role, dedicated service module, API routes, seat tracking, and a top-level Team Members page. Enhances the existing membership system (Sprints 98-99) rather than creating parallel infrastructure.
+
+**Key Decision:** Sprint 111 prompt assumed no membership system existed. Codebase exploration revealed Sprints 98-99 had already built `memberships` table, `membership_role` enum, 4 RLS policies, `current_user_org_id()`, seat management, and a team page at `/dashboard/settings/team`. Chose to enhance existing infrastructure: add the `analyst` role, create a structured `lib/membership/` module, add dedicated API routes, and build a new top-level `/dashboard/team` page with seat progress bar.
+
+**Changes:**
+- **Migration:** `20260318000001_org_membership_foundation.sql` — adds `analyst` to `membership_role` enum, `seat_count` integer column on `organizations` (trigger-maintained, distinct from Stripe-managed `seat_limit`), `sync_org_seat_count()` trigger function, backfill query
+- **Types:** `lib/membership/types.ts` — `MemberRole` (owner|admin|analyst|viewer), `ROLE_PERMISSIONS` (4 roles × 8 permission keys), `SEAT_LIMITS` (trial/starter/growth=1, agency=10), `ROLE_ORDER`, `OrgMember`, `MembershipContext` interfaces
+- **Service:** `lib/membership/membership-service.ts` — `getOrgMembers()` (sorted owner-first), `getCallerMembership()`, `getMemberById()`, `removeMember()` (with `MembershipError`), `canAddMemberCheck()` (returns {allowed, current, max})
+- **Barrel:** `lib/membership/index.ts`
+- **Plan enforcer:** `lib/plan-enforcer.ts` — added `getMaxSeats()` + `canAddMember()` using `SEAT_LIMITS`
+- **Role hierarchy:** `lib/auth/org-roles.ts` — added `analyst: 0` (same level as viewer/member — read-only)
+- **API routes:** `app/api/team/members/route.ts` (GET — members + seat info), `app/api/team/members/[memberId]/route.ts` (DELETE — 5 guards: unauth, insufficient_role, member_not_found, cannot_remove_owner, last_owner)
+- **Components:** `RoleBadge.tsx` (static color lookup: owner=indigo, admin=blue, analyst=green, viewer=slate), `TeamMembersTable.tsx` (client component, name/email/role/joined/actions columns)
+- **Team page:** `app/dashboard/team/page.tsx` — server component. Agency: full table + seat progress bar (green/amber/red) + disabled invite button. Non-Agency: upgrade prompt linking to billing.
+- **Sidebar:** Added Team nav item (Users icon) between Settings and Billing; added to Admin group filter
+- **Schema:** `supabase/prod_schema.sql` — analyst enum, seat_count column, trigger
+- **Types:** `lib/supabase/database.types.ts` — analyst in membership_role, seat_count on organizations
+- **Fixtures:** `src/__fixtures__/golden-tenant.ts` — 5 membership fixtures (owner, admin, analyst, context, list)
+- **Seed:** `supabase/seed.sql` Section 21 — golden tenant membership + seat_count sync
+
+**Tests:** 46 unit tests + 7 E2E tests:
+- `membership-service.test.ts` — 29 tests (getMaxSeats, canAddMember, ROLE_PERMISSIONS, getOrgMembers, getCallerMembership, getMemberById, removeMember, canAddMemberCheck)
+- `membership-routes.test.ts` — 12 tests (GET members 5 tests, DELETE member 7 tests with all guard paths)
+- `role-badge.test.tsx` — 5 tests (4 role colors + capitalized text)
+- `team-page.spec.ts` — 7 Playwright E2E tests (agency table, seat bar, invite disabled, growth upgrade, sidebar nav, empty state, no owner remove)
+
+**AI_RULES:** §145 (Org Membership Foundation — architecture, seat_count vs seat_limit, analyst role)
+
+```bash
+npx vitest run src/__tests__/unit/membership-service.test.ts   # 29 tests
+npx vitest run src/__tests__/unit/membership-routes.test.ts    # 12 tests
+npx vitest run src/__tests__/unit/role-badge.test.tsx           # 5 tests
+```
+
+---
+
 ## 2026-03-01 — Sprint 110: AI Answer Simulation Sandbox — Capstone (Completed)
 
 **Goal:** Build the only *prospective* tool in LocalVector — the AI Answer Simulation Sandbox. Tests content before publishing by simulating how AI models would interpret it. Three modes: Content Ingestion Test, Query Response Simulation, and Hallucination Gap Analysis.

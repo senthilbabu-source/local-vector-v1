@@ -2331,3 +2331,57 @@ export const MOCK_SIMULATION_RUN: SimulationRun = {
   status: 'completed',
   errors: [],
 };
+
+// ---------------------------------------------------------------------------
+// Sprint 111 — Membership Fixtures
+// ---------------------------------------------------------------------------
+
+import type { OrgMember, MembershipContext, MemberRole } from '@/lib/membership/types';
+import { ROLE_PERMISSIONS } from '@/lib/membership/types';
+
+export const GOLDEN_MEMBER_ID = 'e0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11';
+export const GOLDEN_MEMBER_ROLE: MemberRole = 'owner';
+
+export const MOCK_ORG_MEMBER_OWNER: OrgMember = {
+  id: GOLDEN_MEMBER_ID,
+  org_id: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+  user_id: '00000000-0000-0000-0000-000000000002',
+  role: 'owner',
+  joined_at: '2026-01-01T00:00:00.000Z',
+  email: 'dev@localvector.ai',
+  full_name: 'Dev User',
+};
+
+export const MOCK_ORG_MEMBER_ADMIN: OrgMember = {
+  id: 'e1eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+  org_id: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+  user_id: 'e2eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+  role: 'admin',
+  joined_at: '2026-02-01T00:00:00.000Z',
+  email: 'admin@charcoalnchill.com',
+  full_name: 'Test Admin',
+};
+
+export const MOCK_ORG_MEMBER_ANALYST: OrgMember = {
+  id: 'e3eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+  org_id: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+  user_id: 'e4eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+  role: 'analyst',
+  joined_at: '2026-02-15T00:00:00.000Z',
+  email: 'analyst@charcoalnchill.com',
+  full_name: 'Test Analyst',
+};
+
+export const MOCK_MEMBERSHIP_CONTEXT_OWNER: MembershipContext = {
+  member_id: GOLDEN_MEMBER_ID,
+  user_id: '00000000-0000-0000-0000-000000000002',
+  org_id: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+  role: 'owner',
+  permissions: ROLE_PERMISSIONS.owner,
+};
+
+export const MOCK_MEMBERS_LIST: OrgMember[] = [
+  MOCK_ORG_MEMBER_OWNER,
+  MOCK_ORG_MEMBER_ADMIN,
+  MOCK_ORG_MEMBER_ANALYST,
+];

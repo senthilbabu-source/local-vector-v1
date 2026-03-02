@@ -229,3 +229,27 @@ export function canRunVAIO(plan: PlanTier): boolean {
 export function canRunSandbox(plan: PlanTier): boolean {
   return plan === 'growth' || plan === 'agency';
 }
+
+// ---------------------------------------------------------------------------
+// Sprint 111 — Org Membership Foundation
+// ---------------------------------------------------------------------------
+
+import { SEAT_LIMITS } from '@/lib/membership/types';
+
+/**
+ * Returns the maximum number of seats for the given plan tier.
+ * null = unlimited (future).
+ */
+export function getMaxSeats(planTier: string): number | null {
+  return SEAT_LIMITS[planTier] ?? 1;
+}
+
+/**
+ * Returns true if the org can add another member given its current plan.
+ * Pure function — currentSeatCount is passed in, not fetched.
+ */
+export function canAddMember(planTier: string, currentSeatCount: number): boolean {
+  const max = getMaxSeats(planTier);
+  if (max === null) return true;
+  return currentSeatCount < max;
+}

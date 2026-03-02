@@ -2466,4 +2466,19 @@ BEGIN
      SET last_simulation_score   = 68,
          simulation_last_run_at  = NOW() - INTERVAL '2 hours'
    WHERE id = v_location_id;
+
+  -- ══════════════════════════════════════════════════════════════════════════
+  -- Section 21: Sprint 111 — Org Membership Foundation
+  -- Verify golden tenant owner exists in memberships (should already be there
+  -- from Section 3 seed or on_user_created trigger). Update seat_count.
+  -- ══════════════════════════════════════════════════════════════════════════
+
+  -- Ensure golden tenant owner membership exists
+  INSERT INTO public.memberships (user_id, org_id, role)
+  VALUES (v_user_id, v_org_id, 'owner')
+  ON CONFLICT (user_id, org_id) DO NOTHING;
+
+  -- Sync seat_count
+  UPDATE public.organizations SET seat_count = 1 WHERE id = v_org_id;
+
 END $$;

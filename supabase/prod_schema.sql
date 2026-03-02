@@ -105,6 +105,7 @@ CREATE TYPE "public"."membership_role" AS ENUM (
     'owner',
     'admin',
     'member',
+    'analyst',
     'viewer'
 );
 
@@ -235,6 +236,25 @@ $$;
 
 
 ALTER FUNCTION "public"."handle_new_user"() OWNER TO "postgres";
+
+
+-- Sprint 111: Keep organizations.seat_count in sync with memberships
+CREATE OR REPLACE FUNCTION "public"."sync_org_seat_count"() RETURNS "trigger"
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    AS $$
+BEGIN
+  UPDATE public.organizations
+     SET seat_count = (
+       SELECT COUNT(*) FROM public.memberships
+       WHERE org_id = COALESCE(NEW.org_id, OLD.org_id)
+     )
+   WHERE id = COALESCE(NEW.org_id, OLD.org_id);
+  RETURN NULL;
+END;
+$$;
+
+
+ALTER FUNCTION "public"."sync_org_seat_count"() OWNER TO "postgres";
 
 
 CREATE OR REPLACE FUNCTION "public"."reset_monthly_audit_counter"() RETURNS "trigger"
@@ -749,6 +769,7 @@ CREATE TABLE IF NOT EXISTS "public"."organizations" (
     "scan_day_of_week" integer DEFAULT 0,
     "notify_score_drop_alert" boolean DEFAULT true,
     "notify_new_competitor" boolean DEFAULT false,
+    "seat_count" integer DEFAULT 1 NOT NULL,
     CONSTRAINT "organizations_scan_day_of_week_check" CHECK (("scan_day_of_week" >= 0 AND "scan_day_of_week" <= 6))
 );
 
@@ -1419,6 +1440,10 @@ CREATE INDEX IF NOT EXISTS "idx_locations_not_archived" ON "public"."locations" 
 
 
 CREATE OR REPLACE TRIGGER "on_user_created" AFTER INSERT ON "public"."users" FOR EACH ROW EXECUTE FUNCTION "public"."handle_new_user"();
+
+
+-- Sprint 111: seat_count sync trigger
+CREATE TRIGGER "trg_sync_seat_count" AFTER INSERT OR DELETE ON "public"."memberships" FOR EACH ROW EXECUTE FUNCTION "public"."sync_org_seat_count"();
 
 
 
