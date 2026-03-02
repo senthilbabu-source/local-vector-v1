@@ -124,7 +124,8 @@ describe('fetchBenchmark staleness check', () => {
 
   it('returns benchmark at exactly 14 days boundary (not stale)', async () => {
     const now = new Date();
-    const fourteenDaysAgo = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
+    // Subtract 1 second buffer so execution-time drift doesn't push age past 14.0 days
+    const fourteenDaysAgo = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000 + 1000);
     const supabase = createMockSupabase({
       locationCity: 'Alpharetta',
       benchmarkRow: {
