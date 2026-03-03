@@ -57,7 +57,7 @@ export function SourceHealthSummaryPanel({
                 These are websites that AI models read to learn about your business. High-citation sources have the most influence over what AI says.
               </p>
               <p className="text-xs text-slate-400">
-                Increase your first-party citation rate by improving your website content and structured data.
+                Improve your website content to help AI cite your business directly.
               </p>
             </div>
           }
@@ -150,7 +150,7 @@ export function SourceHealthSummaryPanel({
 
       {/* First-party rate */}
       <div className="flex items-center gap-3">
-        <span className="text-xs text-slate-500">First-party citation rate:</span>
+        <span className="text-xs text-slate-500">How often AI cites your website:</span>
         <span className={`text-sm font-bold font-mono ${firstPartyColor}`}>
           {firstPartyRate}%
         </span>
@@ -190,24 +190,24 @@ export function SourceHealthSummaryPanel({
           data-testid="source-verdict-minor"
         >
           {totalAlerts} alert{totalAlerts !== 1 ? 's' : ''} detected, but none
-          are high priority. Fix your hallucination alerts first, then return to
-          address these source-level issues.
+          are high priority. Fix your AI mistake alerts first, then come back to
+          address these.
         </p>
       ) : firstPartyRate >= 20 ? (
         <p
           className="text-sm text-signal-green font-medium"
           data-testid="source-verdict-clean"
         >
-          Your source landscape is healthy — AI models are citing your own
-          website and trusted review sites.
+          Looking good — AI apps are citing your website and trusted review
+          sites.
         </p>
       ) : (
         <p
           className="text-sm text-slate-400"
           data-testid="source-verdict-low-fp"
         >
-          Your first-party citation rate is low. Improving your website content
-          and structured data will help AI models cite your website more often.
+          AI rarely cites your own website. Improving your website content will
+          help AI mention you more often.
         </p>
       )}
     </div>

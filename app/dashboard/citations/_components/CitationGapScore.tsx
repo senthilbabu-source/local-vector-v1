@@ -28,7 +28,7 @@ export default function CitationGapScore({ gapScore, platformsCovered, platforms
 
   return (
     <div className="rounded-2xl bg-surface-dark border border-white/5 p-6 flex flex-col items-center">
-      <h2 className="text-sm font-semibold text-white tracking-tight mb-4">Citation Gap Score</h2>
+      <h2 className="text-sm font-semibold text-white tracking-tight mb-4">Platform Coverage Score</h2>
 
       <div className="relative w-32 h-32">
         <svg className="w-full h-full -rotate-90" viewBox="0 0 120 120">

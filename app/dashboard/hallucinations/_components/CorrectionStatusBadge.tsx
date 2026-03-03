@@ -27,7 +27,7 @@ export default function CorrectionStatusBadge({ followUp }: CorrectionStatusBadg
         className="inline-flex items-center rounded-full bg-alert-amber/15 px-2.5 py-0.5 text-[10px] font-semibold text-alert-amber ring-1 ring-inset ring-alert-amber/20"
         data-testid="correction-status-badge"
       >
-        Rescan pending in {daysLeft} day{daysLeft !== 1 ? 's' : ''}
+        Re-checking in {daysLeft} day{daysLeft !== 1 ? 's' : ''}
       </span>
     );
   }
@@ -38,7 +38,7 @@ export default function CorrectionStatusBadge({ followUp }: CorrectionStatusBadg
         className="inline-flex items-center rounded-full bg-signal-green/15 px-2.5 py-0.5 text-[10px] font-semibold text-signal-green ring-1 ring-inset ring-signal-green/20"
         data-testid="correction-status-badge"
       >
-        Cleared — hallucination no longer detected
+        Fixed — incorrect info no longer detected
       </span>
     );
   }
@@ -60,7 +60,7 @@ export default function CorrectionStatusBadge({ followUp }: CorrectionStatusBadg
       className="inline-flex items-center rounded-full bg-slate-500/15 px-2.5 py-0.5 text-[10px] font-semibold text-slate-400 ring-1 ring-inset ring-slate-500/20"
       data-testid="correction-status-badge"
     >
-      Rescan inconclusive
+      Re-check inconclusive
     </span>
   );
 }

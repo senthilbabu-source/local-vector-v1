@@ -121,7 +121,7 @@ describe('EngineResponseBlock', () => {
     );
 
     expect(
-      screen.getByText(/Structured data only/),
+      screen.getByText(/Summary only/),
     ).toBeDefined();
   });
 });

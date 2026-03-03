@@ -63,9 +63,9 @@ export default function LLMsTxtCard({
   return (
     <div className="rounded-lg border border-slate-700 bg-slate-800/50 p-4 space-y-3">
       <div>
-        <h3 className="text-sm font-medium text-white">AI Visibility File</h3>
+        <h3 className="text-sm font-medium text-white">AI Business Profile</h3>
         <p className="mt-0.5 text-xs text-slate-400">
-          Your llms.txt file provides verified business data to AI models.
+          This file gives AI apps verified information about your business.
         </p>
       </div>
 

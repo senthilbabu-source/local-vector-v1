@@ -436,7 +436,7 @@ export default function SovCard({ locationId, locationLabel, queries, plan, brie
       {/* Card header */}
       <div className="border-b border-white/5 bg-midnight-slate px-5 py-3">
         <h2 className="text-sm font-semibold text-white">{locationLabel}</h2>
-        <p className="text-xs text-[#94A3B8]">AI share of voice by query</p>
+        <p className="text-xs text-[#94A3B8]">How often AI mentions you by search query</p>
       </div>
 
       {/* Query rows */}

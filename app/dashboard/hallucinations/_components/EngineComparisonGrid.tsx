@@ -47,7 +47,7 @@ export default function EngineComparisonGrid({ engineScores }: EngineComparisonG
 
   return (
     <div className="rounded-xl bg-surface-dark border border-white/5 p-6" data-testid="engine-comparison-grid">
-      <h2 className="text-sm font-semibold text-white mb-4">Engine Comparison</h2>
+      <h2 className="text-sm font-semibold text-white mb-4">Accuracy by AI App</h2>
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         {engines.map((engine) => {
@@ -79,7 +79,7 @@ export default function EngineComparisonGrid({ engineScores }: EngineComparisonG
 
               {/* Weight */}
               <p className="mt-1 text-[10px] text-slate-500">
-                Weight: {weight}%
+                Impact: {weight}%
               </p>
             </div>
           );

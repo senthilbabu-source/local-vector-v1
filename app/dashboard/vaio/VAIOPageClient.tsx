@@ -125,7 +125,7 @@ export default function VAIOPageClient() {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Mic className="h-5 w-5 text-electric-indigo" />
-          <h1 className="text-xl font-bold text-white">Voice Readiness</h1>
+          <h1 className="text-xl font-bold text-white">Ready for Voice Search?</h1>
         </div>
         <button
           onClick={handleRunScan}
@@ -134,7 +134,7 @@ export default function VAIOPageClient() {
           data-testid="vaio-run-scan"
         >
           {running && <Loader2 className="h-4 w-4 animate-spin" />}
-          {running ? 'Scanning...' : 'Run VAIO Scan'}
+          {running ? 'Scanning...' : 'Run Voice Check'}
         </button>
       </div>
 
@@ -238,7 +238,7 @@ export default function VAIOPageClient() {
         <div className="rounded-xl border border-white/5 bg-surface-dark p-5" data-testid="vaio-llms-txt">
           <div className="mb-3 flex items-center justify-between">
             <h2 className="text-xs font-semibold uppercase tracking-wider text-slate-400">
-              llms.txt
+              AI Business Profile
             </h2>
             <button
               onClick={() => handleCopy(profile.llms_txt_standard!, 'standard')}

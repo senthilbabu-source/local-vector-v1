@@ -47,12 +47,12 @@ export default function TruthScoreCard({
         <div>
           <h2 className="text-sm font-semibold text-white">Truth Score</h2>
           <p className="text-xs text-slate-400">
-            Weighted composite across {enginesReporting} engine{enginesReporting !== 1 ? 's' : ''}
+            Based on {enginesReporting} AI app{enginesReporting !== 1 ? 's' : ''}
           </p>
         </div>
         {consensus && (
           <span className="inline-flex items-center gap-1 rounded-full bg-signal-green/10 px-2.5 py-0.5 text-xs font-semibold text-signal-green ring-1 ring-inset ring-signal-green/20">
-            Consensus
+            All Agree
           </span>
         )}
       </div>
@@ -107,7 +107,7 @@ export default function TruthScoreCard({
 
         {score === null && (
           <p className="mt-1 text-xs text-slate-400">
-            Run a multi-engine audit to calculate your Truth Score
+            Run an accuracy check to see how AI apps describe your business
           </p>
         )}
       </div>

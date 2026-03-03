@@ -24,7 +24,7 @@ export default async function AIAssistantPage() {
                     AI Assistant
                 </h1>
                 <p className="mt-0.5 text-sm text-slate-400">
-                    Ask questions about your AI visibility, hallucinations, and competitive position.
+                    Ask questions about how AI sees your business, mistakes it makes, and how you compare to competitors.
                 </p>
             </div>
             <Chat />

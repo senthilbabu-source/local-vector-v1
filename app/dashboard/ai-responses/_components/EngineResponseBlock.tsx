@@ -102,7 +102,7 @@ export default function EngineResponseBlock({
         </div>
       ) : rawResponse !== null ? (
         <p className="text-sm text-slate-500 italic">
-          Structured data only — re-run evaluation for full AI response
+          Summary only — re-run check for full AI response
         </p>
       ) : rankPosition === null ? (
         <div>
@@ -111,7 +111,7 @@ export default function EngineResponseBlock({
             href="/dashboard/share-of-voice"
             className="mt-1 inline-block text-xs font-medium text-electric-indigo hover:text-electric-indigo/80 transition"
           >
-            Run SOV evaluation →
+            Check AI Mentions →
           </a>
         </div>
       ) : (
@@ -121,7 +121,7 @@ export default function EngineResponseBlock({
             href="/dashboard/share-of-voice"
             className="mt-1 inline-block text-xs font-medium text-electric-indigo hover:text-electric-indigo/80 transition"
           >
-            Run SOV evaluation →
+            Check AI Mentions →
           </a>
         </div>
       )}

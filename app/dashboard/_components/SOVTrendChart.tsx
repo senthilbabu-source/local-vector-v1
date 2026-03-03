@@ -62,7 +62,7 @@ function CustomTooltip({
         <div className="rounded-lg bg-midnight-slate border border-white/10 px-3 py-2 shadow-lg">
             <p className="text-xs text-slate-400">{label}</p>
             <p className="text-sm font-bold text-signal-green tabular-nums">
-                {payload[0].value}% SOV
+                {payload[0].value}% mentioned
             </p>
         </div>
     );
@@ -78,7 +78,7 @@ export default function SOVTrendChart({ data, title = 'AI Visibility Trend' }: S
             <div className="rounded-xl bg-surface-dark border border-white/5 p-5">
                 <h3 className="text-sm font-semibold text-white mb-3">{title}</h3>
                 <div className="flex items-center justify-center h-48 text-slate-500 text-sm">
-                    No visibility data yet — first SOV scan populates this chart.
+                    No visibility data yet — your first weekly scan will populate this chart.
                 </div>
             </div>
         );

@@ -27,7 +27,7 @@ export default function AuditScoreOverview({ overallScore, totalPages, lastAudit
 
   return (
     <div className="rounded-2xl bg-surface-dark border border-white/5 p-6 flex flex-col items-center">
-      <h2 className="text-sm font-semibold text-white tracking-tight mb-4">AEO Readiness Score</h2>
+      <h2 className="text-sm font-semibold text-white tracking-tight mb-4">Page Readiness Score</h2>
 
       <div className="relative w-32 h-32">
         <svg className="w-full h-full -rotate-90" viewBox="0 0 120 120">
@@ -46,7 +46,7 @@ export default function AuditScoreOverview({ overallScore, totalPages, lastAudit
         </svg>
         <div className="absolute inset-0 flex flex-col items-center justify-center">
           <span className={`text-3xl font-bold tabular-nums ${color}`}>{overallScore}</span>
-          <span className="text-[10px] text-slate-500 uppercase tracking-wide">AEO</span>
+          <span className="text-[10px] text-slate-500 uppercase tracking-wide">Score</span>
         </div>
       </div>
 

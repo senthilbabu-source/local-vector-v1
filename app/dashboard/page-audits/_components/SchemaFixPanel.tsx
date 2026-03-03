@@ -30,7 +30,7 @@ export default function SchemaFixPanel({ schemas, onClose }: Props) {
     <div className="mt-4 rounded-2xl bg-surface-dark border border-white/5 p-5 animate-in fade-in slide-in-from-top-2 duration-300">
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-sm font-semibold text-white">Schema Fixes Generated</h3>
+        <h3 className="text-sm font-semibold text-white">Code Fixes Generated</h3>
         <button
           onClick={onClose}
           className="rounded-md p-1 text-slate-500 hover:text-white hover:bg-white/5 transition-colors"

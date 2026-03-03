@@ -22,9 +22,9 @@ export default async function SystemHealthPage() {
           <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-electric-indigo/10">
             <Activity className="h-6 w-6 text-electric-indigo" />
           </div>
-          <h2 className="mt-4 text-lg font-semibold text-white">No cron runs recorded yet</h2>
+          <h2 className="mt-4 text-lg font-semibold text-white">No automated checks recorded yet</h2>
           <p className="mt-2 max-w-md mx-auto text-sm text-slate-400">
-            Cron jobs run on a schedule. The first audit scan runs daily at 3 AM EST.
+            Automated checks run on a schedule. The first accuracy scan runs daily at 3 AM EST.
             Check back after your first scheduled run.
           </p>
         </div>
@@ -178,10 +178,10 @@ function StatusIcon({ status }: { status: CronRunRow['status'] }) {
 // ---------------------------------------------------------------------------
 
 const CRON_LABELS: Record<string, string> = {
-  audit: 'AI Audit',
-  sov: 'SOV Engine',
-  citation: 'Citation Scan',
-  'content-audit': 'Content Audit',
+  audit: 'AI Accuracy Check',
+  sov: 'AI Mention Scan',
+  citation: 'Platform Check',
+  'content-audit': 'Content Review',
 };
 
 function cronLabel(cronName: string): string {

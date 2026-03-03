@@ -155,7 +155,7 @@ export default async function ProofTimelinePage() {
         <div className="rounded-xl border border-white/5 bg-surface-dark px-5 py-8 text-center">
           <p className="text-sm text-slate-400">
             Your timeline will fill up as LocalVector monitors your AI visibility.
-            Check back after your first weekly SOV snapshot.
+            Check back after your first weekly scan.
           </p>
         </div>
       ) : (

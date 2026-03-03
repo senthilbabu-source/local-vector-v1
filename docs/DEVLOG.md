@@ -4,6 +4,47 @@
 
 ---
 
+## 2026-03-03 — Dashboard Simplification Phase 2: Page-Level Content De-Jargoning
+
+Deeper pass across ~25 files removing remaining technical jargon within individual dashboard page content. Phase 1 handled navigation/titles; Phase 2 targets internal section labels, cron names, scoring descriptions, status messages, and link text.
+
+### Batch 7: System Status Cron Names
+- CRON_REGISTRY labels: "SOV Engine" → "AI Mention Scan", "Schema Drift Check" → "Website Data Check", "Benchmark Aggregation" → "Local Comparison Update", etc.
+- Empty state: "Cron jobs" → "Automated checks"
+
+### Batch 8: Hallucinations Engine Labels
+- EngineComparisonGrid: "Engine Comparison" → "Accuracy by AI App", "Weight:" → "Impact:"
+- TruthScoreCard: "Weighted composite across N engines" → "Based on N AI apps", "Consensus" → "All Agree"
+- CorrectionStatusBadge: "hallucination no longer detected" → "incorrect info no longer detected", "Rescan" → "Re-check"
+- EngineResponseBlock: "Run SOV evaluation" → "Check AI Mentions", "Structured data only" → "Summary only"
+
+### Batch 9: Page Audits AEO/Schema
+- AuditScoreOverview: "AEO Readiness Score" → "Page Readiness Score", "AEO" label → "Score"
+- PageAuditCard: "Generate Schema Fix" → "Generate Code Fix"
+- SchemaFixPanel: "Schema Fixes Generated" → "Code Fixes Generated"
+- DimensionDetail: "JSON-LD structured data" → "business information markup", "FAQPage schema" → "FAQ sections"
+
+### Batch 10: SOV Acronym Removal
+- SOVTrendChart: "% SOV" → "% mentioned", "first SOV scan" → "first weekly scan"
+- SOV page: "SOV Trend" → "AI Mention Trend"
+- SovCard: "AI share of voice by query" → "How often AI mentions you by search query"
+- Proof Timeline: "weekly SOV snapshot" → "weekly scan"
+
+### Batch 11: VAIO/Reviews/AI Assistant
+- VAIOPageClient: "Run VAIO Scan" → "Run Voice Check", "llms.txt" → "AI Business Profile"
+- AI Assistant: "hallucinations" → "mistakes it makes"
+- ReviewCard: "Entity-Optimized" → "AI-Enhanced"
+- LLMsTxtCard: "AI Visibility File" → "AI Business Profile"
+
+### Batch 12: Sources/Citations/Compete
+- SourceHealthSummaryPanel: "first-party citation rate" → "How often AI cites your website", "hallucination alerts" → "AI mistake alerts", "source landscape" → plain English
+- CitationGapScore: "Citation Gap Score" → "Platform Coverage Score"
+- InterceptCard: "gap" badge → "difference"
+
+Files changed: 22 components, 3 test files. Tests: 5250/5250 passing.
+
+---
+
 ## 2026-03-03 — Dashboard Simplification: Plain English for Restaurant Owners
 
 Copy-only change across ~50 files. All technical/analyst jargon replaced with plain English a restaurant owner can understand in a 30-second glance. Zero logic, API, database, or component structure changes. Internal prop names, interfaces, `data-testid` values, and code identifiers remain unchanged.

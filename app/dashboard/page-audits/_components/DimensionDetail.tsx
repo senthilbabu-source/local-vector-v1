@@ -10,9 +10,9 @@ const DIMENSION_EXPLANATIONS: Record<DimensionKey, string> = {
   answerFirst:
     'Measures whether your page leads with the answer — AI models read top-down and stop early. A high score means your opening text directly answers the most common query.',
   schemaCompleteness:
-    'Measures JSON-LD structured data on the page. Schema markup tells AI exactly what your business is, where it\'s located, and what you offer.',
+    'Measures business information markup on the page. This tells AI exactly what your business is, where it\'s located, and what you offer.',
   faqSchema:
-    'Checks for FAQPage schema with Q&A pairs. Pages with FAQ schema are 3.2x more likely to appear in AI Overviews and answer boxes.',
+    'Checks for FAQ sections with Q&A pairs. Pages with FAQ content are 3.2x more likely to appear in AI answers.',
   keywordDensity:
     'Checks that your business name, location, and category terms appear naturally in the visible text — not just in schema or footers.',
   entityClarity:

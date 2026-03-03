@@ -51,15 +51,15 @@ interface CronRegistryEntry {
 }
 
 export const CRON_REGISTRY: CronRegistryEntry[] = [
-  { cronName: 'audit', label: 'AI Audit', schedule: 'Daily 3 AM EST' },
-  { cronName: 'sov', label: 'SOV Engine', schedule: 'Weekly Sun 2 AM EST' },
-  { cronName: 'citation', label: 'Citation Scan', schedule: '1st Sun Monthly' },
-  { cronName: 'content-audit', label: 'Content Audit', schedule: '1st of Month 3 AM EST' },
-  { cronName: 'weekly-digest', label: 'Weekly Digest', schedule: 'Weekly Mon 8 AM EST' },
-  { cronName: 'correction-follow-up', label: 'Correction Follow-Up', schedule: 'Daily 5 AM EST' },
-  { cronName: 'benchmarks', label: 'Benchmark Aggregation', schedule: 'Weekly Sun 3 AM EST' },
-  { cronName: 'schema-drift', label: 'Schema Drift Check', schedule: '1st of Month 4 AM UTC' },
-  { cronName: 'review-sync', label: 'Review Sync', schedule: 'Weekly Sun 1 AM UTC' },
+  { cronName: 'audit', label: 'AI Accuracy Check', schedule: 'Daily 3 AM EST' },
+  { cronName: 'sov', label: 'AI Mention Scan', schedule: 'Weekly Sun 2 AM EST' },
+  { cronName: 'citation', label: 'Platform Check', schedule: '1st Sun Monthly' },
+  { cronName: 'content-audit', label: 'Content Review', schedule: '1st of Month 3 AM EST' },
+  { cronName: 'weekly-digest', label: 'Weekly Summary', schedule: 'Weekly Mon 8 AM EST' },
+  { cronName: 'correction-follow-up', label: 'Fix Verification', schedule: 'Daily 5 AM EST' },
+  { cronName: 'benchmarks', label: 'Local Comparison Update', schedule: 'Weekly Sun 3 AM EST' },
+  { cronName: 'schema-drift', label: 'Website Data Check', schedule: '1st of Month 4 AM UTC' },
+  { cronName: 'review-sync', label: 'Review Update', schedule: 'Weekly Sun 1 AM UTC' },
 ];
 
 // ---------------------------------------------------------------------------

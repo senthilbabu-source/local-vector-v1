@@ -87,7 +87,7 @@ export default function InterceptCard({ intercept, myBusiness }: InterceptCardPr
           </div>
           {intercept.gap_magnitude && (
             <span className={['text-xs font-semibold px-2 py-0.5 rounded-full border', gapColor].join(' ')}>
-              {intercept.gap_magnitude.toUpperCase()} gap
+              {intercept.gap_magnitude.toUpperCase()} difference
             </span>
           )}
         </div>

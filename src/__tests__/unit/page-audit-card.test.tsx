@@ -165,7 +165,7 @@ describe('PageAuditCard — expandable dimensions', () => {
 
     // Expand Schema Completeness — should collapse Answer-First
     fireEvent.click(screen.getByText('Schema Completeness').closest('button')!);
-    expect(screen.getByText(/Measures JSON-LD structured data/)).toBeDefined();
+    expect(screen.getByText(/Measures business information markup/)).toBeDefined();
     expect(screen.queryByText(/Measures whether your page leads with the answer/)).toBeNull();
   });
 

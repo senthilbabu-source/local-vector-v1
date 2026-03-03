@@ -3392,5 +3392,16 @@ Copy-only refactor replacing all technical/analyst jargon with plain English for
   - "Reality Score" → "AI Health Score"
   - "AEO Score" → "Score: {N}"
   - "Content Drafts" → "Posts" (sidebar) / "Posts Ready for Review" (page title)
+* **Phase 2 — page-level content mappings** (internal labels, cron names, descriptions):
+  - Cron labels: "SOV Engine" → "AI Mention Scan", "Schema Drift Check" → "Website Data Check", "Benchmark Aggregation" → "Local Comparison Update"
+  - "Engine Comparison" → "Accuracy by AI App", "Weight:" → "Impact:"
+  - "Consensus" badge → "All Agree"
+  - "AEO Readiness Score" → "Page Readiness Score", "Generate Schema Fix" → "Generate Code Fix"
+  - "Run SOV evaluation" → "Check AI Mentions"
+  - "Run VAIO Scan" → "Run Voice Check"
+  - "Entity-Optimized" → "AI-Enhanced"
+  - "Citation Gap Score" → "Platform Coverage Score"
+  - "llms.txt" (UI heading) → "AI Business Profile"
+  - "first-party citation rate" → "How often AI cites your website"
 
 ---

@@ -128,7 +128,7 @@ export default function ReviewCard({ review, showEntityBadge }: ReviewCardProps)
                 className="inline-flex items-center rounded-full bg-alert-amber/15 px-2 py-0.5 text-[10px] font-semibold text-alert-amber ring-1 ring-inset ring-alert-amber/20"
                 data-testid="entity-badge"
               >
-                Entity-Optimized
+                AI-Enhanced
               </span>
             )}
           </div>

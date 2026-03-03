@@ -111,7 +111,7 @@ describe('buildCronHealthSummary', () => {
   it('preserves label and schedule from CRON_REGISTRY', () => {
     const result = buildCronHealthSummary([]);
     const auditJob = result.jobs.find((j) => j.cronName === 'audit')!;
-    expect(auditJob.label).toBe('AI Audit');
+    expect(auditJob.label).toBe('AI Accuracy Check');
     expect(auditJob.schedule).toBe('Daily 3 AM EST');
   });
 

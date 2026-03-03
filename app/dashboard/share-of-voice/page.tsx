@@ -293,7 +293,7 @@ export default async function ShareOfVoicePage() {
       </div>
 
       {/* ── SOV Trend Chart ──────────────────────────────────────────────── */}
-      <SOVTrendChart data={trendData} title="SOV Trend (Last 12 Weeks)" />
+      <SOVTrendChart data={trendData} title="AI Mention Trend (Last 12 Weeks)" />
 
       {/* ── First Mover Opportunities ────────────────────────────────────── */}
       {firstMoverOpps.length > 0 && (
