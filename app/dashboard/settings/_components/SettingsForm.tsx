@@ -26,6 +26,7 @@ import {
 } from '../actions';
 import DeleteOrgModal from './DeleteOrgModal';
 import { getPlanDisplayName } from '@/lib/plan-display-names';
+import { canConfigureWebhook, type PlanTier } from '@/lib/plan-enforcer';
 import { UpgradePlanPrompt } from '@/components/ui/UpgradePlanPrompt';
 
 // ---------------------------------------------------------------------------
@@ -149,7 +150,7 @@ export default function SettingsForm({ displayName, email, orgName, plan, notify
   const [scoreDropThreshold, setScoreDropThreshold] = useState(expandedPrefs.score_drop_threshold);
   const [webhookUrl, setWebhookUrl] = useState(expandedPrefs.webhook_url);
 
-  const isAgency = plan === 'agency';
+  const isAgency = canConfigureWebhook((plan ?? 'trial') as PlanTier);
   const planLabel = getPlanDisplayName(plan);
 
   function toggleModel(modelId: string, checked: boolean) {

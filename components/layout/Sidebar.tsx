@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
@@ -35,11 +36,14 @@ import {
   MessageCircle,
   Zap,
   Compass,
+  Lock,
 } from 'lucide-react';
 import LogoutButton from '@/app/dashboard/_components/LogoutButton';
 import LocationSwitcher, { type LocationOption } from './LocationSwitcher';
 import { getPlanDisplayName } from '@/lib/plan-display-names';
 import { getIndustryConfig } from '@/lib/industries/industry-config';
+import { planSatisfies } from '@/lib/plan-enforcer';
+import { UpgradeModal } from '@/components/ui/UpgradeModal';
 
 // ---------------------------------------------------------------------------
 // Nav items — mapped to Doc 06 §2 Application Shell
@@ -173,6 +177,7 @@ export const NAV_ITEMS = [
     icon: BotMessageSquare,
     exact: false,
     active: true,
+    minPlan: 'growth' as const,
   },
   {
     href: '/dashboard/revenue-impact',
@@ -229,6 +234,7 @@ export const NAV_ITEMS = [
     icon: Mic,
     exact: false,
     active: true,
+    minPlan: 'growth' as const,
   },
   {
     href: '/dashboard/system-health',
@@ -237,6 +243,7 @@ export const NAV_ITEMS = [
     icon: Activity,
     exact: false,
     active: true,
+    minPlan: 'agency' as const,
   },
   {
     href: '/dashboard/settings',
@@ -253,6 +260,7 @@ export const NAV_ITEMS = [
     icon: Users,
     exact: false,
     active: true,
+    minPlan: 'agency' as const,
   },
   {
     href: '/dashboard/settings/domain',
@@ -261,6 +269,7 @@ export const NAV_ITEMS = [
     icon: Link2,
     exact: false,
     active: true,
+    minPlan: 'agency' as const,
   },
   {
     href: '/dashboard/billing',
@@ -277,6 +286,7 @@ export const NAV_ITEMS = [
     icon: Zap,
     exact: false,
     active: true,
+    minPlan: 'agency' as const,
   },
   {
     href: '/dashboard/intent-discovery',
@@ -285,6 +295,7 @@ export const NAV_ITEMS = [
     icon: Compass,
     exact: false,
     active: true,
+    minPlan: 'agency' as const,
   },
   {
     href: '/dashboard/settings/widget',
@@ -293,6 +304,7 @@ export const NAV_ITEMS = [
     icon: MessageCircle,
     exact: false,
     active: true,
+    minPlan: 'growth' as const,
   },
 ];
 
@@ -300,7 +312,7 @@ export const NAV_ITEMS = [
 // Grouped navigation — Sprint A (H4)
 // ---------------------------------------------------------------------------
 
-type NavItem = (typeof NAV_ITEMS)[number];
+type NavItem = (typeof NAV_ITEMS)[number] & { minPlan?: 'growth' | 'agency' };
 
 export const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
   {
@@ -401,6 +413,7 @@ function planLabel(plan: string | null): string {
 export default function Sidebar({ isOpen, onClose, displayName, orgName, plan, locations, selectedLocationId, badgeCounts, orgIndustry }: SidebarProps) {
   const pathname = usePathname();
   const industryConfig = getIndustryConfig(orgIndustry);
+  const [lockedItem, setLockedItem] = useState<NavItem | null>(null);
 
   function isActive(href: string, exact: boolean): boolean {
     if (href === '#') return false;
@@ -482,6 +495,24 @@ export default function Sidebar({ isOpen, onClose, displayName, orgName, plan, l
                     );
                   }
 
+                  // P1-FIX-06: Plan-locked items render as buttons with lock icon
+                  const isLocked = !!(item as NavItem).minPlan && !planSatisfies(plan, (item as NavItem).minPlan!);
+                  if (isLocked) {
+                    return (
+                      <button
+                        key={item.label}
+                        type="button"
+                        data-testid={`nav-${item.testId}`}
+                        onClick={() => setLockedItem(item as NavItem)}
+                        className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-slate-600 hover:bg-white/5 hover:text-slate-500 transition cursor-pointer"
+                      >
+                        <Icon className="h-4 w-4 shrink-0 opacity-50" />
+                        {displayLabel}
+                        <Lock className="ml-auto h-3 w-3 shrink-0 opacity-50" />
+                      </button>
+                    );
+                  }
+
                   return (
                     <Link
                       key={item.label}
@@ -538,6 +569,16 @@ export default function Sidebar({ isOpen, onClose, displayName, orgName, plan, l
           <LogoutButton />
         </div>
       </aside>
+
+      {/* P1-FIX-06: Upgrade modal for plan-locked nav items */}
+      {lockedItem?.minPlan && (
+        <UpgradeModal
+          open={!!lockedItem}
+          onClose={() => setLockedItem(null)}
+          featureName={lockedItem.label}
+          requiredPlan={lockedItem.minPlan}
+        />
+      )}
     </>
   );
 }

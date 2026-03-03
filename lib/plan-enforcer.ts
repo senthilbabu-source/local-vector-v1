@@ -280,6 +280,34 @@ export function canRunIntentDiscovery(plan: PlanTier): boolean {
 }
 
 // ---------------------------------------------------------------------------
+// P1-FIX-08 — Plan gating for inline comparisons
+// ---------------------------------------------------------------------------
+
+/**
+ * Revenue Leak Scorecard — full revenue impact details.
+ * Growth and Agency orgs see full breakdown. Trial/Starter see locked state.
+ */
+export function canViewRevenueLeak(plan: PlanTier): boolean {
+  return plan === 'growth' || plan === 'agency';
+}
+
+/**
+ * Webhook URL configuration — outbound webhook for org alerts (Sprint B).
+ * Only Agency orgs can configure a custom webhook URL.
+ */
+export function canConfigureWebhook(plan: PlanTier): boolean {
+  return plan === 'agency';
+}
+
+/**
+ * API Key management — create/revoke org API keys (Sprint 121).
+ * Only Agency orgs can manage API keys.
+ */
+export function canManageApiKeys(plan: PlanTier): boolean {
+  return plan === 'agency';
+}
+
+// ---------------------------------------------------------------------------
 // Sprint 111 — Org Membership Foundation
 // ---------------------------------------------------------------------------
 

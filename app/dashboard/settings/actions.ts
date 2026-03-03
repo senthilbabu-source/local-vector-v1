@@ -18,6 +18,7 @@ import { redirect } from 'next/navigation';
 import { z } from 'zod';
 import { createClient, createServiceRoleClient } from '@/lib/supabase/server';
 import { getSafeAuthContext } from '@/lib/auth';
+import type { PlanTier } from '@/lib/plan-enforcer';
 
 // ---------------------------------------------------------------------------
 // Shared result type
@@ -241,8 +242,9 @@ export async function updateAdvancedPrefs(formData: FormData): Promise<ActionRes
   const updateData: Record<string, unknown> = {
     score_drop_threshold: parsed.data.score_drop_threshold,
   };
-  // Only write webhook_url if the plan allows it (agency) — server-side enforcement
-  if (ctx.plan === 'agency') {
+  // Only write webhook_url if the plan allows it — server-side enforcement (P1-FIX-08)
+  const { canConfigureWebhook } = await import('@/lib/plan-enforcer');
+  if (canConfigureWebhook((ctx.plan ?? 'trial') as PlanTier)) {
     updateData.webhook_url = parsed.data.webhook_url;
   }
 

@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { TrendingUp, TrendingDown, Lock, Settings } from 'lucide-react';
 import type { RevenueLeak, RevenueConfig } from '@/lib/services/revenue-leak.service';
-import type { PlanTier } from '@/lib/plan-enforcer';
+import { canViewRevenueLeak, type PlanTier } from '@/lib/plan-enforcer';
 
 interface RevenueLeakCardProps {
   leak: RevenueLeak | null;
@@ -27,7 +27,7 @@ export default function RevenueLeakCard({
   config,
   plan,
 }: RevenueLeakCardProps) {
-  const isLocked = plan === 'trial' || plan === 'starter';
+  const isLocked = !canViewRevenueLeak(plan);
 
   // Compute delta from previous week
   const delta =

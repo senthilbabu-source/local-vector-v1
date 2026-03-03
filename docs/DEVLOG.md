@@ -4,6 +4,42 @@
 
 ---
 
+## 2026-03-03 — P1 Sprint Block: Feature Integrity + Plan Gating (P1-FIX-05 → P1-FIX-08)
+
+Feature integrity sprints. Adapted from sprint prompts to real codebase architecture (same prompt→reality corrections as P0 block). Execution order reordered: FIX-08 → FIX-06 → FIX-07 → FIX-05 (simplest→most complex).
+
+### P1-FIX-08: Plan Consistency Audit
+- **Modified** `lib/plan-enforcer.ts` — added 3 new gating functions: `canViewRevenueLeak` (growth+), `canConfigureWebhook` (agency), `canManageApiKeys` (agency)
+- **Modified** `app/dashboard/_components/RevenueLeakCard.tsx` — replaced `plan === 'trial' || plan === 'starter'` with `!canViewRevenueLeak(plan)`
+- **Modified** `app/dashboard/settings/actions.ts` — replaced `ctx.plan === 'agency'` with `canConfigureWebhook()`
+- **Modified** `app/dashboard/settings/_components/SettingsForm.tsx` — replaced `plan === 'agency'` with `canConfigureWebhook()`
+- **Modified** `app/dashboard/settings/page.tsx` — replaced `ctx.plan === 'agency'` with `canManageApiKeys()`
+- **Tests:** 25 (plan-consistency-audit.test.ts)
+
+### P1-FIX-06: Sidebar Navigation Plan Gating
+- **Modified** `components/layout/Sidebar.tsx` — added `minPlan` field to 8 NAV_ITEMS (5 agency-only: team, domain, playbooks, intent-discovery, system-health; 3 growth+: chat-widget, voice-readiness, agent-readiness). Locked items render as `<button>` with Lock icon, clicking opens UpgradeModal
+- **Created** `components/ui/UpgradeModal.tsx` — custom modal (no shadcn Dialog). Escape key + backdrop click + X button. Lock icon + feature name + plan display name + CTA to `/dashboard/billing`. `data-testid="upgrade-modal"`
+- **Tests:** 30 (sidebar-plan-gating.test.tsx)
+
+### P1-FIX-07: Settings Navigation Audit
+- **Created** `app/dashboard/_components/UpgradeRedirectBanner.tsx` — client component for `/dashboard?upgrade=X` redirect handling. Maps 6 upgrade keys (team, domain, playbooks, widget, intent, voice) to feature name + required plan. Dismissible via X button. Renders `UpgradePlanPrompt`
+- **Modified** `app/dashboard/page.tsx` — accepts `searchParams.upgrade`, renders `UpgradeRedirectBanner` when present
+- **Tests:** 12 (settings-navigation.test.ts)
+
+### P1-FIX-05: Manual SOV Scan Trigger
+- **Created** `supabase/migrations/20260428000001_manual_scan_status.sql` — adds `last_manual_scan_triggered_at` (timestamptz) + `manual_scan_status` (text CHECK pending/running/complete/failed) to organizations
+- **Modified** `lib/inngest/events.ts` — added `'manual/sov.triggered'` event type
+- **Created** `lib/inngest/functions/manual-sov-trigger.ts` — Inngest function (4 steps: fetch-org-queries → mark-running → run-sov via `processOrgSOV` → mark-complete). Plan-based query caps (starter:15, growth:30, agency:100). Retries: 1
+- **Modified** `app/api/inngest/route.ts` — registered `manualSOVTriggerFunction`
+- **Created** `app/api/sov/trigger-manual/route.ts` — POST (auth → plan gate growth+ → cooldown 1/hr via Redis → in-progress check → dispatch Inngest) + GET (poll status). Rate limit: `checkRateLimit({ max_requests: 1, window_seconds: 3600, key_prefix: 'manual-sov' })`
+- **Created** `app/dashboard/_components/ManualScanTrigger.tsx` — client component. Growth/Agency: "Check AI Mentions Now" button with poll every 5s. Trial/Starter: UpgradePlanPrompt. States: idle → pending/running (animate-spin) → complete (CheckCircle) → error
+- **Modified** `app/dashboard/page.tsx` — added `ManualScanTrigger` component on dashboard
+- **Tests:** 31 (manual-sov-trigger.test.ts)
+
+**Files changed:** 7 created, 9 modified. **Tests: 356 files, 5,379 pass, 0 fail.** 98 new tests. AI_RULES §174-§177.
+
+---
+
 ## 2026-03-03 — P0 Sprint Block: Plan Integrity + Core Routing Fix (P0-FIX-01 → P0-FIX-04)
 
 Critical pre-production fix block. 4 sprints adapted from sprint prompts to real codebase architecture (prompts assumed `profiles` table — real codebase uses `organizations`).

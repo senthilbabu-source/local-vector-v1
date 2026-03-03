@@ -63,6 +63,10 @@ import VAIOPanel from './_components/VAIOPanel';
 import SandboxPanel from './_components/SandboxPanel';
 // Sprint 122: Benchmark Comparisons — Percentile-based
 import BenchmarkCard from './_components/BenchmarkCard';
+// P1-FIX-07: Upgrade redirect banner
+import UpgradeRedirectBanner from './_components/UpgradeRedirectBanner';
+// P1-FIX-05: Manual scan trigger
+import ManualScanTrigger from './_components/ManualScanTrigger';
 
 export type { HallucinationRow } from '@/lib/data/dashboard'; // re-export for AlertFeed.tsx
 
@@ -94,7 +98,14 @@ export function deriveRealityScore(
   );
   return { visibility: visibilityScore, accuracy, dataHealth, realityScore };
 }
-export default async function DashboardPage() {
+export default async function DashboardPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ upgrade?: string }>;
+}) {
+  const params = await searchParams;
+  const upgradeFeature = params.upgrade ?? null;
+
   const ctx = await getSafeAuthContext();
   if (!ctx) redirect('/login');
 
@@ -251,6 +262,9 @@ export default async function DashboardPage() {
         <ExportButtons canExport={exportGated} showCSV={false} showPDF />
       </div>
 
+      {/* ── P1-FIX-07: Upgrade redirect banner ───────────────────────────── */}
+      {upgradeFeature && <UpgradeRedirectBanner upgradeKey={upgradeFeature} />}
+
       {/* ── Sprint 117: Onboarding Checklist (real data path) ─────────────── */}
       {onboardingState && <OnboardingChecklist initialState={onboardingState} />}
 
@@ -271,6 +285,9 @@ export default async function DashboardPage() {
           </p>
         </div>
       )}
+
+      {/* ── P1-FIX-05: Manual Scan Trigger ────────────────────────────────── */}
+      <ManualScanTrigger plan={planTier} />
 
       {/* Sprint 101: Occasion Alert Feed */}
       {occasionAlerts.length > 0 && (

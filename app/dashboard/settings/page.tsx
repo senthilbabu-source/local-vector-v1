@@ -8,6 +8,7 @@ import ApiKeySettings from './_components/ApiKeySettings';
 import DangerZoneSettings from './_components/DangerZoneSettings';
 import { getOrCreateOrgSettings } from '@/lib/settings';
 import type { OrgSettings } from '@/lib/settings/types';
+import { canManageApiKeys, type PlanTier } from '@/lib/plan-enforcer';
 
 // ---------------------------------------------------------------------------
 // SettingsPage — Server Component (Sprint 24B + Sprint 62 + Sprint 121)
@@ -104,7 +105,7 @@ export default async function SettingsPage() {
           </div>
 
           <div className="border-t border-white/5 pt-5">
-            <ApiKeySettings isAgencyPlan={ctx.plan === 'agency'} />
+            <ApiKeySettings isAgencyPlan={canManageApiKeys((ctx.plan ?? 'trial') as PlanTier)} />
           </div>
         </>
       )}

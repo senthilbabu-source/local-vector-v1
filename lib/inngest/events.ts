@@ -45,4 +45,12 @@ export type Events = {
   'cron/places-refresh.daily': {
     data: Record<string, never>;
   };
+
+  /** P1-FIX-05: Triggered by Growth/Agency user from dashboard — runs SOV for one org on demand. */
+  'manual/sov.triggered': {
+    data: {
+      orgId: string;
+      triggeredByUserId: string;
+    };
+  };
 };

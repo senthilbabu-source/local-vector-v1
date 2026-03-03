@@ -12,7 +12,7 @@ LocalVector is an AEO/GEO SaaS platform that helps local businesses monitor and 
 - **Billing:** Stripe webhooks → `organizations.plan_tier` enum (`trial | starter | growth | agency`)
 - **Email:** Resend + React Email (`emails/`)
 - **Cache:** Upstash Redis (`lib/redis.ts`) — optional, all callers must degrade gracefully
-- **Testing:** Vitest (unit/integration in `src/__tests__/`), Playwright (E2E in `tests/e2e/`, 41 specs). Current: 4880 tests, 338 files.
+- **Testing:** Vitest (unit/integration in `src/__tests__/`), Playwright (E2E in `tests/e2e/`, 41 specs). Current: 5379 tests, 356 files.
 - **Monitoring:** Sentry (client, server, edge configs) — all catch blocks instrumented (Sprint A, AI_RULES §70)
 
 ## Architecture Rules
@@ -23,7 +23,9 @@ LocalVector is an AEO/GEO SaaS platform that helps local businesses monitor and 
 - **Plan display names live in `lib/plan-display-names.ts`.** Never inline plan tier display logic (e.g., `capitalize(plan)`) — always use `getPlanDisplayName()`. Maps: trial→The Audit, starter→Starter, growth→AI Shield, agency→Brand Fortress, null→Free. (AI_RULES §71)
 - **AI providers are centralized.** Never call AI APIs directly — use `getModel(key)` from `lib/ai/providers.ts`. Mock fallbacks activate when API keys are absent.
 - **RLS pattern:** Every tenant-scoped table has `org_isolation_select/insert/update/delete` policies using `org_id = public.current_user_org_id()`.
-- **Cron routes** live in `app/api/cron/` and require `Authorization: Bearer <CRON_SECRET>` header. Each has a kill switch env var. 21 crons registered in `vercel.json`, 9 in `CRON_REGISTRY`.
+- **Cron routes** live in `app/api/cron/` and require `Authorization: Bearer <CRON_SECRET>` header. Each has a kill switch env var. 24 crons registered in `vercel.json`, 9 in `CRON_REGISTRY`.
+- **Sidebar plan gating:** NAV_ITEMS in `components/layout/Sidebar.tsx` have optional `minPlan` field. Locked items render as buttons with Lock icon → `UpgradeModal`. (P1-FIX-06, AI_RULES §175)
+- **Manual scan trigger:** Growth/Agency users can trigger on-demand SOV scans via `POST /api/sov/trigger-manual`. Rate-limited 1/hr/org. Inngest async. (P1-FIX-05, AI_RULES §177)
 
 ## Key Directories
 
@@ -103,6 +105,11 @@ app/api/cron/bing-sync/            — Nightly Bing Places sync, 4:00 AM UTC, Ag
 app/actions/apple-bc.ts            — Connect/disconnect/manual-sync Apple BC (Sprint 130, §162)
 app/actions/bing-places.ts         — Connect/disconnect/manual-sync Bing Places (Sprint 131, §163)
 app/dashboard/settings/connections/ — Per-location connection management UI (Sprint 130, §162)
+components/ui/UpgradeModal.tsx — Plan-locked feature modal: Lock icon + plan name + billing CTA (P1-FIX-06, §175)
+app/dashboard/_components/ManualScanTrigger.tsx — On-demand SOV scan button: poll status, Growth+ gate (P1-FIX-05, §177)
+app/dashboard/_components/UpgradeRedirectBanner.tsx — Dismissible upgrade banner for /dashboard?upgrade=X (P1-FIX-07, §176)
+app/api/sov/trigger-manual/         — POST trigger + GET poll manual SOV scan (P1-FIX-05, §177)
+lib/inngest/functions/manual-sov-trigger.ts — Inngest async SOV scan: 4 steps, reuses processOrgSOV (P1-FIX-05, §177)
 lib/supabase/database.types.ts — Full Database type (59 tables, 9 enums, Relationships)
 supabase/migrations/   — Applied SQL migrations (55, timestamp-ordered)
 supabase/prod_schema.sql — Full production schema dump
@@ -207,6 +214,7 @@ app/dashboard/_components/BenchmarkComparisonCard.tsx — City benchmark compari
 57. `20260321000002_add_embedding_columns.sql` — `embedding vector(1536)` on 5 tables (Sprint 119)
 58. `20260321000003_create_hnsw_indexes.sql` — 5 HNSW indexes with cosine ops (Sprint 119)
 59. `20260321000004_vector_match_functions.sql` — 4 SECURITY DEFINER match RPCs (Sprint 119)
+60. `20260428000001_manual_scan_status.sql` — `last_manual_scan_triggered_at` + `manual_scan_status` on organizations (P1-FIX-05)
 
 ## Testing Commands
 
@@ -715,7 +723,15 @@ APPLE_MAPS_PRIVATE_KEY, APPLE_MAPS_KEY_ID, APPLE_MAPS_TEAM_ID
 | Sprint 123 | Multi-Model SOV Expansion | Complete | — |
 | Sprint 130 | Apple Business Connect Sync | Complete | — |
 | Sprint 131 | Bing Places Sync + Sync Orchestrator | Complete | — |
+| P0-FIX-01 | Stripe Webhook Plan Sync + TopBar Display | Complete | §170 |
+| P0-FIX-02 | Business Profile Onboarding Link | Complete | §171 |
+| P0-FIX-03 | Plan-Gated Onboarding Steps | Complete | §172 |
+| P0-FIX-04 | Completion Tracking Verification | Complete | §173 |
+| P1-FIX-05 | Manual SOV Scan Trigger | Complete | §177 |
+| P1-FIX-06 | Sidebar Navigation Plan Gating | Complete | §175 |
+| P1-FIX-07 | Settings Navigation Audit | Complete | §176 |
+| P1-FIX-08 | Plan Consistency Audit | Complete | §174 |
 
 ## Build History
 
-See `DEVLOG.md` (project root) and `docs/DEVLOG.md` for the complete sprint-by-sprint build log. Current sprint: 135 (+ FIX-1 through FIX-8 + Sprint A through Sprint O). AI_RULES: §1–§168 (168 sections). Production readiness: all audit issues resolved. **V1 complete.**
+See `DEVLOG.md` (project root) and `docs/DEVLOG.md` for the complete sprint-by-sprint build log. Current sprint: 135 (+ FIX-1 through FIX-8 + Sprint A through Sprint O + P0-FIX-01 through P1-FIX-08). AI_RULES: §1–§177 (177 sections). Production readiness: all audit issues resolved. **V1 complete.**

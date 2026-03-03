@@ -16,6 +16,7 @@ import { postPublishCheckFunction } from '@/lib/inngest/functions/post-publish-c
 import { weeklyDigestCron } from '@/lib/inngest/functions/weekly-digest-cron';
 import { tokenRefreshCron } from '@/lib/inngest/functions/token-refresh-cron';
 import { placesRefreshCron } from '@/lib/inngest/functions/places-refresh-cron';
+import { manualSOVTriggerFunction } from '@/lib/inngest/functions/manual-sov-trigger';
 
 export const { GET, POST, PUT } = serve({
   client: inngest,
@@ -27,6 +28,7 @@ export const { GET, POST, PUT } = serve({
     weeklyDigestCron,
     tokenRefreshCron,
     placesRefreshCron,
+    manualSOVTriggerFunction,
   ],
 });
 

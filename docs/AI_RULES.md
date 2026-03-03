@@ -3461,3 +3461,106 @@ When executing future sprint prompts (P1, P2), always adapt to the real architec
 4. Plan display names are UI-only (`lib/plan-display-names.ts`) — DB stores enum values
 
 ---
+
+## §174. Plan Consistency Audit (P1-FIX-08, 2026-03-03)
+
+All inline plan string comparisons in feature-gating code must use `lib/plan-enforcer.ts` helper functions. Never compare `plan === 'agency'` or `plan === 'trial' || plan === 'starter'` directly.
+
+**New functions added to `lib/plan-enforcer.ts`:**
+* `canViewRevenueLeak(plan: PlanTier): boolean` — returns `true` for growth/agency
+* `canConfigureWebhook(plan: PlanTier): boolean` — returns `true` for agency only
+* `canManageApiKeys(plan: PlanTier): boolean` — returns `true` for agency only
+
+**Files modified:**
+* `RevenueLeakCard.tsx` — `!canViewRevenueLeak(plan)` replaces `plan === 'trial' || plan === 'starter'`
+* `settings/actions.ts` — `canConfigureWebhook()` replaces `ctx.plan === 'agency'`
+* `settings/_components/SettingsForm.tsx` — `canConfigureWebhook()` replaces `plan === 'agency'`
+* `settings/page.tsx` — `canManageApiKeys()` replaces `ctx.plan === 'agency'`
+
+**Intentionally NOT changed (valid inline comparisons):**
+* `app/dashboard/billing/` — billing page legitimately compares plan tiers for UI routing/pricing
+* `app/admin/` — admin-only pages, not customer-facing feature gating
+* `app/dashboard/billing/_components/SeatUsageCard.tsx` — `state.plan_tier` is a billing API field name
+* `app/dashboard/settings/locations/page.tsx` — UI copy variation, not feature gating
+
+---
+
+## §175. Sidebar Plan Gating (P1-FIX-06, 2026-03-03)
+
+Sidebar navigation items can be locked by plan tier. Locked items show a Lock icon and open an UpgradeModal instead of navigating.
+
+**NAV_ITEMS `minPlan` field:**
+* Optional `minPlan?: 'growth' | 'agency'` on any NAV_ITEMS entry
+* Agency-only (`minPlan: 'agency'`): team, domain, playbooks, intent-discovery, system-health
+* Growth+ (`minPlan: 'growth'`): chat-widget, voice-readiness, agent-readiness
+* Items without `minPlan` are visible to all plans (trial, starter, growth, agency)
+
+**Locked item rendering:**
+* Locked items render as `<button>` (not `<Link>`) with dimmed text + Lock icon
+* `data-testid="nav-{item.testId}"` is preserved on locked items (same as unlocked)
+* Clicking a locked item sets `lockedItem` state → opens `UpgradeModal`
+
+**`UpgradeModal` (`components/ui/UpgradeModal.tsx`):**
+* Custom modal (follows InviteMemberModal pattern, no shadcn Dialog)
+* Props: `open`, `onClose`, `featureName`, `requiredPlan: 'growth' | 'agency'`
+* Close: Escape key, backdrop click, X button
+* Uses `getPlanDisplayName()` for plan tier display name
+* CTA links to `/dashboard/billing`
+* `data-testid="upgrade-modal"`
+
+---
+
+## §176. Settings Navigation Audit + Upgrade Redirect Banner (P1-FIX-07, 2026-03-03)
+
+When a non-qualifying user is redirected from a locked sidebar item to `/dashboard?upgrade=X`, a dismissible banner explains the situation.
+
+**`UpgradeRedirectBanner` (`app/dashboard/_components/UpgradeRedirectBanner.tsx`):**
+* Client component, reads `upgradeKey` prop
+* Maps 6 upgrade keys to feature name + required plan display name:
+  * `team` → Team Management / Brand Fortress
+  * `domain` → Custom Domain / Brand Fortress
+  * `playbooks` → Improvement Plans / Brand Fortress
+  * `widget` → Website Chat / AI Shield
+  * `intent` → Missing Questions / Brand Fortress
+  * `voice` → Voice Search / AI Shield
+* Renders `UpgradePlanPrompt` component (existing)
+* Dismissible via X button
+* Returns `null` for unknown upgrade keys
+
+**Dashboard integration:**
+* `app/dashboard/page.tsx` accepts `searchParams: Promise<{ upgrade?: string }>` (Next.js 16 async searchParams)
+* Renders `UpgradeRedirectBanner` after header when `upgrade` param is present
+
+---
+
+## §177. Manual SOV Scan Trigger (P1-FIX-05, 2026-03-03)
+
+Growth/Agency users can trigger a full-org AI visibility scan on demand. Trial/Starter users see an upgrade prompt.
+
+**Database migration (`supabase/migrations/20260428000001_manual_scan_status.sql`):**
+* `organizations.last_manual_scan_triggered_at` — timestamptz, nullable
+* `organizations.manual_scan_status` — text, CHECK (pending/running/complete/failed/NULL)
+* Status lifecycle: `NULL → pending (API route) → running (Inngest) → complete/failed → NULL`
+
+**Inngest function (`lib/inngest/functions/manual-sov-trigger.ts`):**
+* Function ID: `manual-sov-trigger`, retries: 1, event: `'manual/sov.triggered'`
+* 4 steps: `fetch-org-queries` → `mark-running` → `run-sov` (calls `processOrgSOV()` from sov-cron.ts) → `mark-complete`
+* Plan-based query caps: starter=15, growth=30, agency=100
+* Uses `createServiceRoleClient()` per step (no session in Inngest context)
+* Registered in `app/api/inngest/route.ts`
+
+**API route (`app/api/sov/trigger-manual/route.ts`):**
+* POST: auth → plan gate (`planSatisfies(plan, 'growth')` → 403) → in-progress check (409) → rate limit 1/hr/org via Redis (`checkRateLimit` → 429) → set pending → dispatch Inngest → 200
+* GET: auth → return `{ status, last_triggered_at }` from organizations row
+* Rate limit config: `{ max_requests: 1, window_seconds: 3600, key_prefix: 'manual-sov' }`
+
+**UI component (`app/dashboard/_components/ManualScanTrigger.tsx`):**
+* Client component, props: `{ plan: string | null }`
+* Trial/Starter: renders `UpgradePlanPrompt` for "Manual AI Scan"
+* Growth/Agency: "Check AI Mentions Now" card with button
+* Polls `GET /api/sov/trigger-manual` every 5s while pending/running
+* Button states: idle → triggering (spinner) → pending/running (animate-spin) → complete (CheckCircle) → error
+* Error states: cooldown (429), already running (409), network error
+* `data-testid="manual-scan-trigger"`, `data-testid="manual-scan-btn"`, `data-testid="manual-scan-error"`
+
+---
