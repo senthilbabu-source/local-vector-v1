@@ -59,9 +59,9 @@ export default function BenchmarkComparisonCard({
           <InfoTooltip
             content={
               <div className="space-y-1.5 text-xs">
-                <p className="font-semibold text-white">City Benchmark</p>
+                <p className="font-semibold text-white">Local Comparison</p>
                 <p>
-                  How your Reality Score compares to other {industryLabel.toLowerCase()} businesses
+                  How your AI Health Score compares to other {industryLabel.toLowerCase()} businesses
                   in {orgCity} on LocalVector.
                 </p>
                 <p>
@@ -69,7 +69,7 @@ export default function BenchmarkComparisonCard({
                   {MIN_DISPLAY_THRESHOLD} businesses.
                 </p>
                 <p className="text-signal-green">
-                  Improve your score by resolving open hallucination alerts.
+                  Improve your score by fixing AI mistakes about your business.
                 </p>
               </div>
             }

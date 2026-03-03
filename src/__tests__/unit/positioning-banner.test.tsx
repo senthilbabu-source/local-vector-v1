@@ -102,22 +102,22 @@ describe('PositioningBanner', () => {
   });
 
   // Sprint M: updated copy tests
-  it('11. contains "AI models" in banner text', () => {
+  it('11. contains "AI apps" in banner text', () => {
     render(<PositioningBanner />);
     const banner = screen.getByTestId('positioning-banner');
-    expect(banner.textContent).toContain('AI models');
+    expect(banner.textContent).toContain('AI apps');
   });
 
-  it('12. contains "Reality Score" in banner text', () => {
+  it('12. contains "AI Health Score" in banner text', () => {
     render(<PositioningBanner />);
     const banner = screen.getByTestId('positioning-banner');
-    expect(banner.textContent).toContain('Reality Score');
+    expect(banner.textContent).toContain('AI Health Score');
   });
 
-  it('13. contains "search ranking" context for comparison', () => {
+  it('13. contains "recommendations" context', () => {
     render(<PositioningBanner />);
     const banner = screen.getByTestId('positioning-banner');
-    expect(banner.textContent).toContain('search ranking');
+    expect(banner.textContent).toContain('recommendations');
   });
 });
 

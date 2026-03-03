@@ -4,6 +4,58 @@
 
 ---
 
+## 2026-03-03 — Dashboard Simplification: Plain English for Restaurant Owners
+
+Copy-only change across ~50 files. All technical/analyst jargon replaced with plain English a restaurant owner can understand in a 30-second glance. Zero logic, API, database, or component structure changes. Internal prop names, interfaces, `data-testid` values, and code identifiers remain unchanged.
+
+### Batch 1: Sidebar Navigation
+- Added stable `testId` field to all 31 NAV_ITEMS entries, decoupling `data-testid` from display labels
+- Renamed 22 sidebar labels (e.g., "Share of Voice" → "AI Mentions", "Page Audits" → "Website Checkup", "Hallucination Alerts" → "AI Mistakes")
+- Renamed NAV_GROUPS: "AI Visibility" → "How AI Sees You", "Content & Menu" → "Content", "Intelligence" → "Insights"
+- Updated GuidedTour 8-step titles and descriptions to plain English
+
+### Batch 2: SSOT Files
+- Rewrote all 10 tooltip entries in `lib/tooltip-content.tsx` (e.g., "Reality Score" → "AI Health Score", "Hallucinations by Model" → "Mistakes by AI App")
+- Updated `lib/sample-data/sample-dashboard-data.ts` component labels
+- Updated `lib/plan-feature-matrix.ts` feature labels (e.g., "Weekly hallucination scan" → "Weekly AI accuracy check")
+
+### Batch 3: Dashboard Stat Panels (6 files)
+- AIVisibilityPanel: "AI Visibility" → "AI Health Score"
+- WrongFactsPanel: "Wrong Facts" → "AI Mistakes"
+- AIBotAccessPanel: "AI Bot Access" → "Who's Visiting Your Site", "Blind spot" → "Can't reach you"
+- DataHealthBreakdown: "Core identity" → "Business basics", "GBP Import" → "From Google Business"
+- TopIssuesPanel: "Top Issues" → "Things to Fix"
+- CompeteVerdictPanel: "Winning N matchups" → "AI picks you N times", etc.
+
+### Batch 4: Page Titles & Subtitles (20+ pages)
+- "AI Truth Audit" → "Things AI Gets Wrong"
+- "AI Share of Voice" → "How Often AI Recommends You"
+- "Content Drafts" → "Posts Ready for Review"
+- "Content Calendar" → "Upcoming Opportunities"
+- "Citation Intelligence" → "Who's Talking About You"
+- "Page Audits" → "Website Checkup"
+- "Revenue Impact Calculator" → "What This Costs You"
+- "Competitor Intercept" → "You vs Competitors"
+- "City Benchmark" → "How You Compare Locally"
+- Plus 15+ more page title/subtitle changes
+
+### Batch 5: Component Labels
+- ContentDraftCard trigger badges: "First Mover" → "Be First to Answer", "AEO {score}" → "Score: {score}", etc.
+- CitationsSummaryPanel: "Gap Score" → "Missing Platforms"
+- ScanFrequencySettings: "AI Scan Frequency" → "How Often We Check AI for You"
+- Content calendar signals: "SOV Gaps" → "Mention Gaps", "Hallucination Fixes" → "AI Mistakes to Fix"
+- PositioningBanner: Updated copy to reference "AI Health Score", removed "traditional SEO" jargon
+
+### Batch 6: Test Updates
+- Updated 10 E2E spec files (heading regex, sidebar link names, text assertions)
+- Updated 13 unit test files (sidebar label lookups, testId assertions switched to stable `testId` field)
+- All 5250 unit tests pass, 349 test files
+
+**Files modified:** ~50 (sidebar, guided tour, tooltips, sample data, plan matrix, 6 dashboard panels, 20+ page files, 5 component files, 10 E2E specs, 13 unit tests)
+**AI_RULES:** §169
+
+---
+
 ## 2026-03-02 — Wave 4: Sprints 133, 134, 135 — Data-Gated Features (Completed)
 
 Three data-gated features adding truth-grounded RAG chatbot, per-engine optimization playbooks, and conversational intent discovery.

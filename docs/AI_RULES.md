@@ -3372,3 +3372,25 @@ Prompt expansion in `lib/intent/prompt-expander.ts`, gap detection in `lib/inten
 * **Tests:** 30 Vitest (8 classify + 6 score + 4 dedup + 4 expand + 3 discover + 5 cron/registration).
 
 ---
+
+## §169. Dashboard Simplification — Plain English Labels (2026-03-03)
+
+Copy-only refactor replacing all technical/analyst jargon with plain English for restaurant owners. Zero logic changes.
+
+* **Sidebar testId decoupling:** NAV_ITEMS now has a stable `testId` field. Sidebar renders `data-testid={`nav-${item.testId}`}` instead of deriving from label. Tests must assert on `item.testId`, NOT compute from label.
+* **Label SSOT:** All user-facing labels are in their respective component files. No centralized label map — each component owns its display strings.
+* **Tooltip SSOT:** `lib/tooltip-content.tsx` — all 10 entries rewritten to plain English.
+* **Sample data SSOT:** `lib/sample-data/sample-dashboard-data.ts` — component labels updated.
+* **Plan feature matrix:** `lib/plan-feature-matrix.ts` — feature labels updated (derived from `plan-enforcer.ts`).
+* **NAV_GROUPS:** 5 groups: Overview, How AI Sees You, Content, Insights, Admin. Dynamic industry suffix uses `group.label === 'Content'` (was `'Content & Menu'`).
+* **Key label mappings** (for test maintenance):
+  - "Share of Voice" → "AI Mentions" (sidebar) / "How Often AI Recommends You" (page title)
+  - "Hallucination" → "AI Mistakes" (panels) / "Things AI Gets Wrong" (page title)
+  - "Citation Intelligence" → "Platforms" (sidebar) / "Who's Talking About You" (page title)
+  - "Page Audits" → "Website Checkup"
+  - "Revenue Impact" → "Lost Sales" (sidebar) / "What This Costs You" (page title)
+  - "Reality Score" → "AI Health Score"
+  - "AEO Score" → "Score: {N}"
+  - "Content Drafts" → "Posts" (sidebar) / "Posts Ready for Review" (page title)
+
+---

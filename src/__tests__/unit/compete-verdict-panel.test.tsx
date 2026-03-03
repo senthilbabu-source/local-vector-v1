@@ -20,7 +20,7 @@ describe('CompeteVerdictPanel', () => {
       <CompeteVerdictPanel winCount={3} lossCount={1} totalIntercepts={4} />,
     );
     const panel = screen.getByTestId('compete-verdict-panel');
-    expect(panel.textContent).toContain('Winning 3 matchups');
+    expect(panel.textContent).toContain('AI picks you 3 times');
     expect(panel.innerHTML).toContain('signal-green');
   });
 
@@ -29,7 +29,7 @@ describe('CompeteVerdictPanel', () => {
       <CompeteVerdictPanel winCount={1} lossCount={2} totalIntercepts={3} />,
     );
     const panel = screen.getByTestId('compete-verdict-panel');
-    expect(panel.textContent).toContain('Losing 2 matchups');
+    expect(panel.textContent).toContain('AI picks competitors 2 times');
     expect(panel.innerHTML).toContain('alert-amber');
   });
 
@@ -37,14 +37,14 @@ describe('CompeteVerdictPanel', () => {
     render(
       <CompeteVerdictPanel winCount={1} lossCount={2} totalIntercepts={3} />,
     );
-    expect(screen.getByText(/fix your hallucination alerts/)).toBeDefined();
+    expect(screen.getByText(/fix AI mistakes/)).toBeDefined();
   });
 
   it('shows leading message when all wins', () => {
     render(
       <CompeteVerdictPanel winCount={3} lossCount={0} totalIntercepts={3} />,
     );
-    expect(screen.getByText(/leading across the board/)).toBeDefined();
+    expect(screen.getByText(/AI prefers you every time/)).toBeDefined();
   });
 
   it('uses singular "matchup" when count is 1', () => {
@@ -52,8 +52,8 @@ describe('CompeteVerdictPanel', () => {
       <CompeteVerdictPanel winCount={1} lossCount={0} totalIntercepts={1} />,
     );
     const panel = screen.getByTestId('compete-verdict-panel');
-    expect(panel.textContent).toContain('Winning 1 matchup');
-    expect(panel.textContent).not.toContain('matchups');
+    expect(panel.textContent).toContain('AI picks you 1 time');
+    expect(panel.textContent).not.toContain('times');
   });
 
   it('data-testid="compete-verdict-panel" on root', () => {

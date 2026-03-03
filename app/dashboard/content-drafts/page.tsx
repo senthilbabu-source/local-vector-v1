@@ -177,7 +177,7 @@ export default async function ContentDraftsPage({
             href="/dashboard/content-calendar"
             className="hover:text-white transition-colors"
           >
-            Content Calendar
+            Calendar
           </Link>
           <span aria-hidden="true">&rsaquo;</span>
           <span className="text-white">
@@ -188,7 +188,7 @@ export default async function ContentDraftsPage({
 
       {/* ── Page header ────────────────────────────────────────────── */}
       <div>
-        <h1 className="text-xl font-semibold text-white">Content Drafts</h1>
+        <h1 className="text-xl font-semibold text-white">Posts Ready for Review</h1>
         <p className="mt-0.5 text-sm text-slate-400">
           AI-generated content waiting for your review. Approve drafts to publish
           them to your website or Google Business Profile.

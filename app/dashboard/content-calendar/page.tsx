@@ -50,15 +50,15 @@ function SignalSummaryStrip({
 }) {
   const signals = [
     { label: 'Occasions', count: summary.occasionCount, emoji: '🎉' },
-    { label: 'SOV Gaps', count: summary.sovGapCount, emoji: '📉' },
-    { label: 'Stale Pages', count: summary.freshnessCount, emoji: '🔄' },
+    { label: 'Mention Gaps', count: summary.sovGapCount, emoji: '📉' },
+    { label: 'Outdated Pages', count: summary.freshnessCount, emoji: '🔄' },
     {
-      label: 'Competitor Gaps',
+      label: 'Competitor Advantages',
       count: summary.competitorGapCount,
       emoji: '⚔️',
     },
     {
-      label: 'Hallucination Fixes',
+      label: 'AI Mistakes to Fix',
       count: summary.hallucinationFixCount,
       emoji: '🔴',
     },
@@ -200,7 +200,7 @@ export default async function ContentCalendarPage() {
     return (
       <div className="space-y-5">
         <h1 className="text-xl font-semibold text-white tracking-tight">
-          Content Calendar
+          Upcoming Opportunities
         </h1>
         <div className="rounded-xl border border-white/5 bg-surface-dark px-5 py-8 text-center">
           <p className="text-sm text-slate-400">
@@ -219,10 +219,10 @@ export default async function ContentCalendarPage() {
       <div>
         <h1 className="text-xl font-semibold text-white tracking-tight flex items-center gap-2">
           <CalendarDays className="h-5 w-5 text-signal-green" />
-          Content Calendar
+          Upcoming Opportunities
         </h1>
         <p className="mt-0.5 text-sm text-slate-400">
-          AI-recommended publishing schedule based on your data signals.
+          Suggested content based on what's happening near your business.
         </p>
       </div>
 

@@ -29,10 +29,10 @@ export default async function IntentDiscoveryPage() {
       >
         <div>
           <h1 className="text-xl font-semibold text-white tracking-tight">
-            Intent Discovery
+            Questions You're Missing
           </h1>
           <p className="mt-0.5 text-sm text-slate-400">
-            Find prompts real customers ask that your business is missing.
+            Discover what customers are asking AI that you don't have an answer for.
           </p>
         </div>
         <div
@@ -40,7 +40,7 @@ export default async function IntentDiscoveryPage() {
           className="rounded-2xl border border-white/5 bg-surface-dark p-8 text-center space-y-3"
         >
           <p className="text-sm text-slate-300">
-            Intent Discovery is available on the Agency plan.
+            Questions You're Missing is available on the Agency plan.
           </p>
           <Link
             href="/dashboard/billing"
@@ -64,7 +64,7 @@ export default async function IntentDiscoveryPage() {
         className="max-w-3xl space-y-5"
       >
         <h1 className="text-xl font-semibold text-white tracking-tight">
-          Intent Discovery
+          Questions You're Missing
         </h1>
         <p className="text-sm text-slate-400">
           No active location found. Add a location first.

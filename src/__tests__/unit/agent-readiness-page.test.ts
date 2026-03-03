@@ -80,10 +80,9 @@ describe('Sidebar', () => {
       (item) => item.href === '/dashboard/agent-readiness',
     );
     expect(navItem).toBeDefined();
-    expect(navItem!.label).toBe('Agent Readiness');
+    expect(navItem!.label).toBe('AI Actions');
     expect(navItem!.active).toBe(true);
-    // data-testid is generated from label: nav-agent-readiness
-    const expectedTestId = `nav-${navItem!.label.toLowerCase().replace(/\s+/g, '-')}`;
-    expect(expectedTestId).toBe('nav-agent-readiness');
+    // data-testid uses stable testId field (decoupled from label)
+    expect(navItem!.testId).toBe('agent-readiness');
   });
 });

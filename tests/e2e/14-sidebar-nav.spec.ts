@@ -18,26 +18,26 @@ test.describe('14 — Sidebar navigation', () => {
   const navTests = [
     // ── Overview ─────────────────────────────────────────────────────────
     { testId: 'nav-dashboard', url: '/dashboard', heading: /Welcome back/i },
-    { testId: 'nav-alerts', url: '/dashboard/hallucinations', heading: /Truth Audit/i },
-    // ── AI Visibility ─────────────────────────────────────────────────────
-    { testId: 'nav-share-of-voice', url: '/dashboard/share-of-voice', heading: /Share of Voice/i },
-    { testId: 'nav-cluster-map', url: '/dashboard/cluster-map', heading: /Where Does AI Place You/i },
+    { testId: 'nav-alerts', url: '/dashboard/hallucinations', heading: /Things AI Gets Wrong/i },
+    // ── How AI Sees You ─────────────────────────────────────────────────────
+    { testId: 'nav-share-of-voice', url: '/dashboard/share-of-voice', heading: /How Often AI Recommends/i },
+    { testId: 'nav-cluster-map', url: '/dashboard/cluster-map', heading: /Where You Stand/i },
     { testId: 'nav-ai-says', url: '/dashboard/ai-responses', heading: /AI Says|Responses/i },
-    { testId: 'nav-ai-sentiment', url: '/dashboard/sentiment', heading: /Sentiment/i },
+    { testId: 'nav-ai-sentiment', url: '/dashboard/sentiment', heading: /How AI Describes/i },
     { testId: 'nav-ai-sources', url: '/dashboard/source-intelligence', heading: /What AI Reads/i },
-    { testId: 'nav-bot-activity', url: '/dashboard/crawler-analytics', heading: /Bot|Crawler/i },
-    // ── Content & Menu ────────────────────────────────────────────────────
+    { testId: 'nav-bot-activity', url: '/dashboard/crawler-analytics', heading: /Who.*Checking.*Website/i },
+    // ── Content ────────────────────────────────────────────────────
     { testId: 'nav-magic-menu', url: '/dashboard/magic-menus', heading: /Magic Menu|Magic Services/i },
-    { testId: 'nav-content', url: '/dashboard/content-drafts', heading: /Content/i },
-    { testId: 'nav-content-calendar', url: '/dashboard/content-calendar', heading: /Calendar/i },
-    { testId: 'nav-page-audits', url: '/dashboard/page-audits', heading: /Page Audits/i },
-    { testId: 'nav-citations', url: '/dashboard/citations', heading: /Citation/i },
-    { testId: 'nav-proof-timeline', url: '/dashboard/proof-timeline', heading: /Before.*After|Visibility Journey/i },
-    // ── Intelligence ──────────────────────────────────────────────────────
-    { testId: 'nav-compete', url: '/dashboard/compete', heading: /Competitor Intercept/i },
-    { testId: 'nav-revenue-impact', url: '/dashboard/revenue-impact', heading: /Revenue/i },
-    { testId: 'nav-benchmarks', url: '/dashboard/benchmarks', heading: /Benchmark/i },
-    { testId: 'nav-agent-readiness', url: '/dashboard/agent-readiness', heading: /Take Action|Agent Readiness/i },
+    { testId: 'nav-content', url: '/dashboard/content-drafts', heading: /Posts Ready for Review/i },
+    { testId: 'nav-content-calendar', url: '/dashboard/content-calendar', heading: /Upcoming Opportunities/i },
+    { testId: 'nav-page-audits', url: '/dashboard/page-audits', heading: /Website Checkup/i },
+    { testId: 'nav-citations', url: '/dashboard/citations', heading: /Who.*Talking About You/i },
+    { testId: 'nav-proof-timeline', url: '/dashboard/proof-timeline', heading: /When AI Noticed/i },
+    // ── Insights ──────────────────────────────────────────────────────
+    { testId: 'nav-compete', url: '/dashboard/compete', heading: /You vs Competitors/i },
+    { testId: 'nav-revenue-impact', url: '/dashboard/revenue-impact', heading: /What This Costs/i },
+    { testId: 'nav-benchmarks', url: '/dashboard/benchmarks', heading: /How You Compare/i },
+    { testId: 'nav-agent-readiness', url: '/dashboard/agent-readiness', heading: /Can AI Book/i },
     { testId: 'nav-entity-health', url: '/dashboard/entity-health', heading: /Know Your Business|Entity Health/i },
     // ── Admin ─────────────────────────────────────────────────────────────
     { testId: 'nav-ai-assistant', url: '/dashboard/ai-assistant', heading: /Assistant/i },

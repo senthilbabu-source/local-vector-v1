@@ -94,9 +94,9 @@ export default async function CitationsPage() {
     return (
       <div className="space-y-8">
         <div>
-          <h1 className="text-xl font-semibold text-white">Citation Intelligence</h1>
+          <h1 className="text-xl font-semibold text-white">Who's Talking About You</h1>
           <p className="mt-0.5 text-sm text-[#94A3B8]">
-            See which platforms AI actually cites — and where you&apos;re missing.
+            See which platforms AI checks — and where you're missing.
           </p>
         </div>
         <div className="flex flex-col items-center justify-center rounded-2xl bg-surface-dark border border-white/5 px-6 py-16 text-center">
@@ -136,9 +136,9 @@ export default async function CitationsPage() {
     <div className="space-y-8">
       {/* ── Page header ─────────────────────────────────────────────────── */}
       <div>
-        <h1 className="text-xl font-semibold text-white">Citation Intelligence</h1>
+        <h1 className="text-xl font-semibold text-white">Who's Talking About You</h1>
         <p className="mt-0.5 text-sm text-[#94A3B8]">
-          See which platforms AI actually cites — and where you&apos;re missing.
+          See which platforms AI checks — and where you're missing.
         </p>
       </div>
 

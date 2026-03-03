@@ -63,7 +63,7 @@ export default async function ProofTimelinePage() {
     return (
       <div className="space-y-5">
         <h1 className="text-xl font-semibold text-white tracking-tight">
-          Before / After — Your AI Visibility Journey
+          When AI Noticed Your Updates
         </h1>
         <div className="rounded-xl border border-white/5 bg-surface-dark px-5 py-8 text-center">
           <p className="text-sm text-slate-400">
@@ -87,10 +87,10 @@ export default async function ProofTimelinePage() {
       <div>
         <h1 className="text-xl font-semibold text-white tracking-tight flex items-center gap-2">
           <TrendingUp className="h-5 w-5 text-signal-green" />
-          Before / After — Your AI Visibility Journey
+          When AI Noticed Your Updates
         </h1>
         <p className="mt-0.5 text-sm text-slate-400">
-          See how your actions correlate with measurable visibility improvements.
+          See how quickly AI picks up your changes.
         </p>
       </div>
 
@@ -98,7 +98,7 @@ export default async function ProofTimelinePage() {
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         {/* SOV Delta */}
         <div className="rounded-xl border border-white/5 bg-surface-dark px-4 py-3">
-          <p className="text-xs font-medium text-slate-400">SOV Change</p>
+          <p className="text-xs font-medium text-slate-400">AI Mentions Change</p>
           {summary.sovDelta !== null ? (
             <div className="mt-1 flex items-center gap-1">
               {summary.sovDelta >= 0 ? (

@@ -154,10 +154,9 @@ describe('Sidebar', () => {
       (item) => item.href === '/dashboard/content-calendar',
     );
     expect(calendarItem).toBeDefined();
-    expect(calendarItem!.label).toBe('Content Calendar');
+    expect(calendarItem!.label).toBe('Calendar');
     expect(calendarItem!.active).toBe(true);
-    // data-testid is generated from label: nav-content-calendar
-    const expectedTestId = `nav-${calendarItem!.label.toLowerCase().replace(/\s+/g, '-')}`;
-    expect(expectedTestId).toBe('nav-content-calendar');
+    // data-testid uses stable testId field (decoupled from label)
+    expect(calendarItem!.testId).toBe('content-calendar');
   });
 });

@@ -32,7 +32,7 @@ function statusIndicator(status: BotActivity['status']) {
     case 'blind_spot':
       return {
         dot: 'bg-alert-crimson',
-        label: 'Blind spot',
+        label: "Can't reach you",
         labelClass: 'text-alert-crimson',
       };
   }
@@ -60,14 +60,14 @@ export default function AIBotAccessPanel({ bots }: AIBotAccessPanelProps) {
     >
       <div className="mb-3 flex items-center gap-1.5">
         <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-400">
-          AI Bot Access
+          Who's Visiting Your Site
         </h3>
         <InfoTooltip content="AI crawlers visit your website to learn about your business. If they can't reach you, they rely on outdated or incorrect third-party sources instead." />
       </div>
 
       {sorted.length === 0 ? (
         <p className="text-xs text-slate-500" data-testid="ai-bot-access-empty">
-          No bot activity recorded yet
+          No AI apps have visited your site yet
         </p>
       ) : (
         <div className="space-y-2">

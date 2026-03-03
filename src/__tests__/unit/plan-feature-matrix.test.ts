@@ -94,8 +94,8 @@ describe('PLAN_FEATURE_MATRIX', () => {
     }
   });
 
-  it('Reality Score is available on all plans', () => {
-    const row = PLAN_FEATURE_MATRIX.find((f) => f.label === 'Reality Score');
+  it('AI Health Score is available on all plans', () => {
+    const row = PLAN_FEATURE_MATRIX.find((f) => f.label === 'AI Health Score');
     expect(row).toBeDefined();
     expect(row!.trial).toBe(true);
     expect(row!.starter).toBe(true);
@@ -120,7 +120,7 @@ describe('PLAN_FEATURE_MATRIX', () => {
   });
 
   it('daily scan is growth+ only', () => {
-    const row = PLAN_FEATURE_MATRIX.find((f) => f.label === 'Daily hallucination scan');
+    const row = PLAN_FEATURE_MATRIX.find((f) => f.label === 'Daily AI accuracy check');
     expect(row).toBeDefined();
     expect(row!.trial).toBe(false);
     expect(row!.starter).toBe(false);

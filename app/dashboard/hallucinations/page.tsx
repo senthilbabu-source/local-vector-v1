@@ -161,10 +161,9 @@ export default async function HallucinationsPage() {
       {/* ── Page header ─────────────────────────────────────────────────── */}
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h1 className="text-xl font-semibold text-white">AI Truth Audit</h1>
+          <h1 className="text-xl font-semibold text-white">Things AI Gets Wrong</h1>
           <p className="mt-0.5 text-sm text-[#94A3B8]">
-            Multi-engine truth verification — see how accurately AI engines describe your
-            business across OpenAI, Perplexity, Anthropic, and Gemini.
+            See what AI apps are saying wrong about your business and fix it.
           </p>
         </div>
         <ExportButtons canExport={exportAllowed} />
@@ -183,7 +182,7 @@ export default async function HallucinationsPage() {
       {/* ── AI Evaluation Audit Cards ────────────────────────────────────── */}
       <section>
         <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-[#94A3B8]">
-          Live Accuracy Audits
+          Accuracy by AI App
         </h2>
 
         {locations.length === 0 ? (
@@ -298,7 +297,7 @@ export default async function HallucinationsPage() {
             <div className="flex items-start justify-between gap-4">
               <div>
                 <h2 className="text-sm font-semibold uppercase tracking-wide text-[#94A3B8]">
-                  Hallucination Triage
+                  Fix Your AI Mistakes
                 </h2>
                 <HallucinationsPageHeader
                   openCount={fixNowAlerts.length}

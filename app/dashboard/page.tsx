@@ -245,7 +245,7 @@ export default async function DashboardPage() {
           <p className="mt-0.5 text-sm text-slate-400">
             {hasOpenAlerts
               ? `${openAlerts.length} wrong ${openAlerts.length === 1 ? 'fact' : 'facts'} detected — fix them before your customers notice.`
-              : 'Your AI visibility is clean. Keep your ground truth up to date.'}
+              : 'AI is showing accurate info about your business.'}
           </p>
         </div>
         <ExportButtons canExport={exportGated} showCSV={false} showPDF />

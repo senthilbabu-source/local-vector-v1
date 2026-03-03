@@ -65,7 +65,7 @@ export default async function BenchmarksPage() {
         <div>
           <h1 className="text-xl font-semibold text-white tracking-tight flex items-center gap-2">
             <Trophy className="h-5 w-5 text-signal-green" />
-            City Benchmark
+            How You Compare Locally
           </h1>
         </div>
         <div
@@ -99,7 +99,7 @@ export default async function BenchmarksPage() {
       <div>
         <h1 className="text-xl font-semibold text-white tracking-tight flex items-center gap-2">
           <Trophy className="h-5 w-5 text-signal-green" />
-          City Benchmark
+          How You Compare Locally
         </h1>
         <p className="mt-0.5 text-sm text-slate-400">
           How your AI Visibility Score compares to other {industryLabel.toLowerCase()} businesses

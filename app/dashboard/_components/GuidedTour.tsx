@@ -24,52 +24,52 @@ interface TourStep {
 export const TOUR_STEPS: TourStep[] = [
   {
     targetTestId: 'nav-dashboard',
-    title: 'Your Command Center',
+    title: 'Your Dashboard',
     description:
-      'See your AI Visibility Score, recent alerts, and content performance at a glance.',
+      'See your AI health, recent issues, and what needs attention at a glance.',
   },
   {
     targetTestId: 'nav-alerts',
-    title: 'AI Hallucination Alerts',
+    title: 'AI Mistakes',
     description:
-      'When AI models get facts wrong about your business, we catch it here.',
+      'When AI apps get facts wrong about your business, we catch it here.',
   },
   {
-    targetTestId: 'nav-magic-menu',
-    title: 'Magic Menu',
+    targetTestId: 'nav-menu',
+    title: 'Your AI-Ready Menu',
     description:
-      'Upload your PDF menu and we convert it to AI-readable structured data.',
+      'Upload your menu and we make it readable by ChatGPT, Google, and other AI apps.',
   },
   {
     targetTestId: 'nav-compete',
-    title: 'Competitor Intelligence',
+    title: 'You vs Competitors',
     description:
-      'See how competitors are positioning themselves in AI answers vs. you.',
+      'See how competitors are showing up in AI answers compared to you.',
   },
   {
     targetTestId: 'nav-content',
-    title: 'AI Content Drafts',
+    title: 'Posts Ready for Review',
     description:
-      'AI-generated content suggestions to improve your visibility in AI answers.',
+      'We draft posts to improve how AI talks about your business. Review and publish them here.',
   },
   // Sprint E — 3 new tour steps (M2)
   {
     targetTestId: 'nav-share-of-voice',
-    title: 'Share of Voice',
+    title: 'How Often AI Mentions You',
     description:
-      'Track how often AI models mention your business vs. your competitors when customers search for businesses like yours. This is the metric traditional SEO tools can\'t see.',
+      'Track how often AI apps mention your business vs. your competitors when customers search.',
   },
   {
     targetTestId: 'nav-citations',
-    title: 'Citations',
+    title: 'Your Platforms',
     description:
-      'Citations are the web mentions that teach AI models about your business. More high-quality citations = higher AI visibility score. This page shows which citation sources are helping and which are missing.',
+      'These are the websites that teach AI about your business. More quality listings = better AI answers.',
   },
   {
     targetTestId: 'nav-revenue-impact',
-    title: 'Revenue Impact',
+    title: 'What This Costs You',
     description:
-      'See the estimated monthly revenue you\'re losing because AI models are giving customers wrong information. Enter your average check size and covers per night — LocalVector calculates the rest.',
+      'See how much money you might be losing because AI is giving customers wrong information.',
   },
 ];
 

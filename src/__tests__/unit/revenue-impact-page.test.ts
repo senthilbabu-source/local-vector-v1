@@ -133,10 +133,9 @@ describe('Sidebar', () => {
       (item) => item.href === '/dashboard/revenue-impact',
     );
     expect(navItem).toBeDefined();
-    expect(navItem!.label).toBe('Revenue Impact');
+    expect(navItem!.label).toBe('Lost Sales');
     expect(navItem!.active).toBe(true);
-    // test-id is generated dynamically: nav-${label.toLowerCase().replace(/\s+/g, '-')}
-    const expectedTestId = `nav-${navItem!.label.toLowerCase().replace(/\s+/g, '-')}`;
-    expect(expectedTestId).toBe('nav-revenue-impact');
+    // data-testid uses stable testId field (decoupled from label)
+    expect(navItem!.testId).toBe('revenue-impact');
   });
 });

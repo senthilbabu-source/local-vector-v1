@@ -27,7 +27,7 @@ export default function CompeteVerdictPanel({
       <p className="text-sm text-foreground">
         {winCount > 0 && (
           <span className="font-semibold text-signal-green">
-            Winning {winCount} matchup{winCount !== 1 ? 's' : ''}
+            AI picks you {winCount} time{winCount !== 1 ? 's' : ''}
           </span>
         )}
         {winCount > 0 && lossCount > 0 && (
@@ -35,17 +35,17 @@ export default function CompeteVerdictPanel({
         )}
         {lossCount > 0 && (
           <span className="font-semibold text-alert-amber">
-            Losing {lossCount} matchup{lossCount !== 1 ? 's' : ''}
+            AI picks competitors {lossCount} time{lossCount !== 1 ? 's' : ''}
           </span>
         )}
         {lossCount > 0 && (
           <span className="ml-2 text-muted-foreground text-xs">
-            — fix your hallucination alerts and add more citations to close the gap
+            — fix AI mistakes and get listed on more platforms to close the gap
           </span>
         )}
         {winCount === totalIntercepts && totalIntercepts > 0 && (
           <span className="ml-2 text-signal-green">
-            — you&apos;re leading across the board
+            — AI prefers you every time
           </span>
         )}
       </p>

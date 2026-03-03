@@ -21,11 +21,11 @@ test.describe('10 — AI Truth Audit', () => {
     await page.goto('/dashboard/hallucinations');
 
     await expect(
-      page.getByRole('heading', { name: 'AI Truth Audit', level: 1 }),
+      page.getByRole('heading', { name: 'Things AI Gets Wrong', level: 1 }),
     ).toBeVisible();
 
     await expect(
-      page.getByText(/multi-engine truth verification/i),
+      page.getByText(/See what AI apps are saying wrong/i),
     ).toBeVisible();
   });
 

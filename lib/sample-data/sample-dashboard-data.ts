@@ -25,15 +25,15 @@ export const SAMPLE_HEALTH_SCORE: HealthScoreResult = {
   score: 61,
   grade: 'C',
   components: {
-    visibility: { label: 'Visibility', score: 47 },
-    accuracy:   { label: 'Accuracy',   score: 68 },
-    structure:  { label: 'Structure',  score: 72 },
-    freshness:  { label: 'Freshness',  score: 55 },
+    visibility: { label: 'How Often Mentioned', score: 47 },
+    accuracy:   { label: 'Info Accuracy',       score: 68 },
+    structure:  { label: 'Website Data',        score: 72 },
+    freshness:  { label: 'Info Freshness',      score: 55 },
   },
   topRecommendation: {
-    title: 'Fix 2 open hallucination alerts',
+    title: 'Fix 2 things AI gets wrong',
     estimatedImpact: 8,
-    actionLabel: 'View Alerts',
+    actionLabel: 'View Mistakes',
     actionHref: '/dashboard/hallucinations',
   },
 };

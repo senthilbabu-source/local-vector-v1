@@ -40,17 +40,17 @@ type PublishTarget = 'download' | 'wordpress' | 'gbp_post';
 function triggerBadge(type: string): { label: string; classes: string } {
   switch (type) {
     case 'first_mover':
-      return { label: 'First Mover', classes: 'bg-amber-400/10 text-amber-400 ring-amber-400/20' };
+      return { label: 'Be First to Answer', classes: 'bg-amber-400/10 text-amber-400 ring-amber-400/20' };
     case 'competitor_gap':
-      return { label: 'Competitor Gap', classes: 'bg-alert-crimson/10 text-alert-crimson ring-alert-crimson/20' };
+      return { label: 'Competitor Advantage', classes: 'bg-alert-crimson/10 text-alert-crimson ring-alert-crimson/20' };
     case 'occasion':
       return { label: 'Occasion Engine', classes: 'bg-violet-400/10 text-violet-400 ring-violet-400/20' };
     case 'prompt_missing':
-      return { label: 'Prompt Gap', classes: 'bg-purple-400/10 text-purple-400 ring-purple-400/20' };
+      return { label: 'Missing Answer', classes: 'bg-purple-400/10 text-purple-400 ring-purple-400/20' };
     case 'review_gap':
-      return { label: 'Review Gap', classes: 'bg-orange-400/10 text-orange-400 ring-orange-400/20' };
+      return { label: 'Review Insight', classes: 'bg-orange-400/10 text-orange-400 ring-orange-400/20' };
     case 'schema_gap':
-      return { label: 'Schema Gap', classes: 'bg-cyan-400/10 text-cyan-400 ring-cyan-400/20' };
+      return { label: 'Incomplete Info', classes: 'bg-cyan-400/10 text-cyan-400 ring-cyan-400/20' };
     default:
       return { label: 'Manual', classes: 'bg-slate-400/10 text-slate-400 ring-slate-400/20' };
   }
@@ -277,7 +277,7 @@ export default function ContentDraftCard({ draft, occasionName }: ContentDraftCa
         <div className="flex items-center gap-3">
           {draft.aeo_score !== null && (
             <span className={`text-xs font-semibold tabular-nums ${aeoColor(draft.aeo_score)}`}>
-              AEO {draft.aeo_score}
+              Score: {draft.aeo_score}
             </span>
           )}
           <span className="text-xs text-slate-600 tabular-nums">

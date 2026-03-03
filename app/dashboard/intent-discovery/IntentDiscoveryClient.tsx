@@ -40,10 +40,10 @@ export default function IntentDiscoveryClient({
     <div data-testid="intent-discovery-page" className="max-w-3xl space-y-5">
       <div>
         <h1 className="text-xl font-semibold text-white tracking-tight">
-          Intent Discovery
+          Questions You're Missing
         </h1>
         <p className="mt-0.5 text-sm text-slate-400">
-          Prompts real customers ask that your business is missing.
+          Discover what customers are asking AI that you don't have an answer for.
           {latestRunDate && (
             <span className="ml-2 text-slate-500">
               Last run: {new Date(latestRunDate).toLocaleDateString()}

@@ -15,8 +15,8 @@ export default async function SystemHealthPage() {
     return (
       <div className="space-y-5">
         <div>
-          <h1 className="text-xl font-semibold text-white tracking-tight">System Health</h1>
-          <p className="mt-0.5 text-sm text-slate-400">Cron job status and execution history</p>
+          <h1 className="text-xl font-semibold text-white tracking-tight">System Status</h1>
+          <p className="mt-0.5 text-sm text-slate-400">Automated checks and their status.</p>
         </div>
         <div className="rounded-xl border border-white/5 bg-surface-dark px-6 py-10 text-center">
           <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-electric-indigo/10">
@@ -35,8 +35,8 @@ export default async function SystemHealthPage() {
   return (
     <div className="space-y-5">
       <div>
-        <h1 className="text-xl font-semibold text-white tracking-tight">System Health</h1>
-        <p className="mt-0.5 text-sm text-slate-400">Cron job status and execution history</p>
+        <h1 className="text-xl font-semibold text-white tracking-tight">System Status</h1>
+        <p className="mt-0.5 text-sm text-slate-400">Automated checks and their status.</p>
       </div>
 
       {/* Failure alert banner */}

@@ -72,7 +72,7 @@ export default async function ReviewsPage() {
       <div>
         <h1 className="text-xl font-semibold text-white">Reviews</h1>
         <p className="mt-0.5 text-sm text-[#94A3B8]">
-          Manage AI-generated review responses with entity optimization
+          AI-drafted replies to your customer reviews, ready for your approval.
         </p>
       </div>
 

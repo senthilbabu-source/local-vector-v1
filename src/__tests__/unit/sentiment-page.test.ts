@@ -59,7 +59,7 @@ describe('Sentiment page', () => {
 
 describe('Sidebar', () => {
   it('5. shows AI Sentiment link with expected path and label', () => {
-    const sentimentItem = NAV_ITEMS.find(item => item.label === 'AI Sentiment');
+    const sentimentItem = NAV_ITEMS.find(item => item.label === 'Your Reputation');
     expect(sentimentItem).toBeDefined();
     expect(sentimentItem!.href).toBe('/dashboard/sentiment');
     expect(sentimentItem!.active).toBe(true);

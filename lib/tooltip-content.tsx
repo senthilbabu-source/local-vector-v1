@@ -36,91 +36,91 @@ export const TOOLTIP_CONTENT = {
 
   realityScore: (
     <TooltipBody
-      title="Reality Score"
-      what="A 0-100 measure of how accurately AI models represent your business right now."
-      how="Weighted average: Visibility (40%) + Accuracy (40%) + Data Health (20%)."
-      action="Fix open hallucination alerts to improve your Accuracy score."
+      title="AI Health Score"
+      what="A simple 0–100 score showing how well AI apps represent your business right now."
+      how="Based on how often AI mentions you (40%), how accurate the info is (40%), and how complete your business details are (20%)."
+      action="Fix the mistakes AI is making about your business to raise this score."
     />
   ),
 
   aiVisibility: (
     <TooltipBody
-      title="AI Visibility"
-      what="How often your business appears in AI-generated answers to local search queries."
-      how="Percent of monitored queries where at least one AI model mentions your business."
-      action="Add more structured data and citation sources to increase mentions."
+      title="How Often AI Mentions You"
+      what="When customers ask AI for restaurant recommendations, how often does your business show up?"
+      how="We check popular AI apps like ChatGPT, Google, and Perplexity to see if they mention you."
+      action="Get listed on more platforms and keep your info up to date to appear more often."
     />
   ),
 
   openAlerts: (
     <TooltipBody
-      title="Open Alerts"
-      what="Confirmed hallucinations — cases where an AI model said something factually wrong about your business."
-      how="Each alert is a distinct wrong fact verified across multiple query runs."
-      action="Generate a correction brief and distribute the correct info to citation sources."
+      title="Things AI Gets Wrong"
+      what="These are things AI apps like ChatGPT or Google are getting wrong about your business — wrong hours, wrong address, wrong prices."
+      how="Each item is a specific mistake we've confirmed AI is telling your customers."
+      action="Click any mistake to see what's wrong and how to fix it."
     />
   ),
 
   interceptCount: (
     <TooltipBody
-      title="Intercept Analyses"
-      what="The number of times we've analyzed what AI models say about searches for businesses like yours."
-      how="Each intercept is one AI model responding to one of your monitored query templates."
-      action="Upgrade your query list in Settings to increase coverage."
+      title="Competitor Checks"
+      what="How many times we've compared what AI says about businesses like yours."
+      how="Each check looks at what one AI app says when a customer searches for your type of business."
+      action="Add more search terms in Settings to get a fuller picture."
     />
   ),
 
   shareOfVoice: (
     <TooltipBody
-      title="Share of Voice"
-      what="Your business's percentage of AI mentions compared to competitors in your category."
-      how="Count of queries mentioning you / total monitored queries x 100."
-      action="Outperform competitors by fixing hallucinations and adding fresh citation sources."
+      title="Your AI Mentions"
+      what="Out of all the times customers ask AI about your type of business, how often do they mention you?"
+      how="We count how often you come up vs. your competitors across AI apps."
+      action="Fix AI mistakes and get listed on more platforms to get mentioned more often."
     />
   ),
 
   hallucinationsByModel: (
     <TooltipBody
-      title="Hallucinations by Model"
-      what="Which AI models are generating incorrect information about your business."
-      how="Each bar shows hallucination counts per AI model."
-      action="Models with the most hallucinations are your highest-priority correction targets."
+      title="Mistakes by AI App"
+      what="Which AI apps are getting the most things wrong about your business."
+      how="Each bar shows how many mistakes that AI app is currently making."
+      action="Focus on fixing mistakes from the AI apps your customers use most."
     />
   ),
 
   visibilityComponent: (
     <TooltipBody
-      title="Visibility"
-      what="How often AI includes your business in relevant local search results."
-      how="40% of your overall Reality Score."
-      action="Build more online citations and mentions to increase visibility."
+      title="How Often You're Mentioned"
+      what="How often AI includes your business when customers search for places like yours."
+      how="This makes up 40% of your overall AI Health Score."
+      action="Get listed on more platforms to appear in more AI answers."
     />
   ),
 
   accuracyComponent: (
     <TooltipBody
-      title="Accuracy"
-      what="How correctly AI models describe your business facts (hours, address, phone, services)."
-      how="40% of your overall Reality Score. Reduced by each open hallucination."
-      action="Resolve open hallucination alerts to directly improve this score."
+      title="How Accurate Your Info Is"
+      what="When AI does mention your business, is the information correct? Hours, address, phone, menu — all the basics."
+      how="This makes up 40% of your AI Health Score. Each mistake lowers it."
+      action="Fix the mistakes listed in AI Mistakes to improve this score."
     />
   ),
 
   structureComponent: (
     <TooltipBody
-      title="Structure"
-      what="How complete your business's schema markup and structured data is."
-      how="10% of your overall Reality Score."
-      action="Generate and publish your business schema via the Magic Menu."
+      title="Your Website Data"
+      what="How well your website is set up so AI apps can read and understand your business info."
+      how="This makes up 10% of your AI Health Score."
+      action="Use the Menu tool to create an AI-readable version of your offerings."
     />
   ),
 
   freshnessComponent: (
     <TooltipBody
-      title="Freshness"
-      what="How recently AI models have updated their knowledge about your business."
-      how="10% of your overall Reality Score."
-      action="Publish fresh content regularly and update your Google Business Profile."
+      title="How Up-to-Date Your Info Is"
+      what="How recently AI apps have checked and updated what they know about your business."
+      how="This makes up 10% of your AI Health Score."
+      action="Post new content regularly and keep your Google Business Profile updated."
     />
   ),
 

@@ -28,10 +28,10 @@ export default async function PlaybooksPage() {
       <div data-testid="playbooks-page" className="max-w-3xl space-y-5">
         <div>
           <h1 className="text-xl font-semibold text-white tracking-tight">
-            AI Engine Playbooks
+            How to Get Found by Each AI
           </h1>
           <p className="mt-0.5 text-sm text-slate-400">
-            Get specific, actionable recommendations for each AI engine.
+            Simple steps to improve how each AI app talks about your business.
           </p>
         </div>
         <div
@@ -39,7 +39,7 @@ export default async function PlaybooksPage() {
           className="rounded-2xl border border-white/5 bg-surface-dark p-8 text-center space-y-3"
         >
           <p className="text-sm text-slate-300">
-            AI Engine Playbooks are available on the Agency plan.
+            How to Get Found by Each AI is available on the Agency plan.
           </p>
           <Link
             href="/dashboard/billing"
@@ -60,7 +60,7 @@ export default async function PlaybooksPage() {
     return (
       <div data-testid="playbooks-page" className="max-w-3xl space-y-5">
         <h1 className="text-xl font-semibold text-white tracking-tight">
-          AI Engine Playbooks
+          How to Get Found by Each AI
         </h1>
         <p className="text-sm text-slate-400">
           No active location found. Add a location first.

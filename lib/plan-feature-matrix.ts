@@ -94,18 +94,18 @@ export function buildFeatureMatrix(): FeatureRow[] {
 
   return [
     // ── Core ──────────────────────────────────────────────────────────────────
-    boolRow('Reality Score',             'Core', allPlans),
-    boolRow('Weekly hallucination scan', 'Core', allPlans),
-    boolRow('Daily hallucination scan',  'Core', canRunDailyAudit),
-    boolRow('Hallucination alerts',      'Core', allPlans),
-    boolRow('Weekly digest email',       'Core', starterPlus),
+    boolRow('AI Health Score',             'Core', allPlans),
+    boolRow('Weekly AI accuracy check',    'Core', allPlans),
+    boolRow('Daily AI accuracy check',     'Core', canRunDailyAudit),
+    boolRow('AI mistake alerts',           'Core', allPlans),
+    boolRow('Weekly digest email',         'Core', starterPlus),
 
     // ── AI Monitoring ──────────────────────────────────────────────────────────
-    boolRow('ChatGPT monitoring',  'AI Monitoring', allPlans),
-    boolRow('Perplexity monitoring','AI Monitoring', allPlans),
-    boolRow('Gemini monitoring',   'AI Monitoring', allPlans),
-    boolRow('Multi-model SOV',     'AI Monitoring', canRunMultiModelSOV),
-    boolRow('Share of Voice tracking','AI Monitoring', canRunSovEvaluation),
+    boolRow('ChatGPT monitoring',    'AI Monitoring', allPlans),
+    boolRow('Perplexity monitoring', 'AI Monitoring', allPlans),
+    boolRow('Gemini monitoring',     'AI Monitoring', allPlans),
+    boolRow('Track all AI apps',     'AI Monitoring', canRunMultiModelSOV),
+    boolRow('AI mention tracking',   'AI Monitoring', canRunSovEvaluation),
 
     // ── Competitive ────────────────────────────────────────────────────────────
     {
@@ -116,17 +116,17 @@ export function buildFeatureMatrix(): FeatureRow[] {
       growth:  numericGate(maxCompetitors, 'growth', ' max'),
       agency:  numericGate(maxCompetitors, 'agency', ' max'),
     },
-    boolRow('Competitor intercept analysis', 'Competitive', canRunCompetitorIntercept),
-    boolRow('Cluster map analysis',          'Competitive', canRunCompetitorIntercept),
-    boolRow('Citation gap dashboard',        'Competitive', canViewCitationGap),
+    boolRow('Competitor comparison',       'Competitive', canRunCompetitorIntercept),
+    boolRow('Competitive positioning',     'Competitive', canRunCompetitorIntercept),
+    boolRow('Platform coverage',           'Competitive', canViewCitationGap),
 
     // ── Content ────────────────────────────────────────────────────────────────
-    boolRow('Magic Menu schema generation', 'Content', starterPlus),
-    boolRow('AI content drafts',            'Content', canRunAutopilot),
-    boolRow('AEO page audit',               'Content', canRunPageAudit),
+    boolRow('AI-ready menu',                'Content', starterPlus),
+    boolRow('AI-written posts',             'Content', canRunAutopilot),
+    boolRow('Website checkup',              'Content', canRunPageAudit),
     boolRow('Occasion engine',              'Content', canRunOccasionEngine),
     boolRow('CSV/PDF export',               'Content', canExportData),
-    boolRow('llms.txt regeneration',        'Content', canRegenerateLLMsTxt),
+    boolRow('AI data file update',          'Content', canRegenerateLLMsTxt),
 
     // ── Integrations ──────────────────────────────────────────────────────────
     boolRow('Google Business Profile sync', 'Integrations', canConnectGBP),

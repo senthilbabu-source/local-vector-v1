@@ -20,7 +20,7 @@ test.describe('12 — Citations page', () => {
     await page.goto('/dashboard/citations');
 
     await expect(
-      page.getByRole('heading', { name: /Citation Intelligence/i, level: 1 })
+      page.getByRole('heading', { name: /Who.*Talking About You/i, level: 1 })
     ).toBeVisible();
   });
 
@@ -28,7 +28,7 @@ test.describe('12 — Citations page', () => {
     await page.goto('/dashboard/citations');
 
     // Either citation data is present or the empty state message shows
-    const gapScoreVisible = await page.getByText(/Gap Score/i).isVisible().catch(() => false);
+    const gapScoreVisible = await page.getByText(/Missing Platforms/i).isVisible().catch(() => false);
     const emptyStateVisible = await page.getByText(/Citation data is being collected/i).isVisible().catch(() => false);
     const noLocationVisible = await page.getByText(/Add a location first/i).isVisible().catch(() => false);
 
@@ -40,7 +40,7 @@ test.describe('12 — Citations page', () => {
     await page.getByTestId('nav-citations').click();
     await expect(page).toHaveURL(/\/dashboard\/citations/);
     await expect(
-      page.getByRole('heading', { name: /Citation Intelligence/i, level: 1 })
+      page.getByRole('heading', { name: /Who.*Talking About You/i, level: 1 })
     ).toBeVisible();
   });
 });

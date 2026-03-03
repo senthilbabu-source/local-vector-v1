@@ -22,7 +22,7 @@ export default async function CrawlerAnalyticsPage() {
     return (
       <div className="space-y-5">
         <div>
-          <h1 className="text-xl font-semibold text-white tracking-tight">AI Bot Activity</h1>
+          <h1 className="text-xl font-semibold text-white tracking-tight">Who's Checking Your Website</h1>
           <p className="mt-0.5 text-sm text-slate-400">Last 30 days</p>
         </div>
         <div className="rounded-xl border border-white/5 bg-surface-dark px-6 py-10 text-center">
@@ -52,7 +52,7 @@ export default async function CrawlerAnalyticsPage() {
       />
 
       <div>
-        <h1 className="text-xl font-semibold text-white tracking-tight">AI Bot Activity</h1>
+        <h1 className="text-xl font-semibold text-white tracking-tight">Who's Checking Your Website</h1>
         <p className="mt-0.5 text-sm text-slate-400">Last 30 days</p>
       </div>
 
@@ -79,7 +79,7 @@ export default async function CrawlerAnalyticsPage() {
       {/* Bot activity list */}
       <div className="rounded-xl border border-white/5 bg-surface-dark">
         <div className="border-b border-white/5 px-4 py-3">
-          <h2 className="text-sm font-semibold text-white">Bot Activity</h2>
+          <h2 className="text-sm font-semibold text-white">AI Visitors</h2>
         </div>
         <div className="divide-y divide-white/5">
           {summary.bots.map((bot) => (
@@ -94,7 +94,7 @@ export default async function CrawlerAnalyticsPage() {
           <div className="px-4 py-3 border-b border-alert-amber/10">
             <h2 className="text-sm font-semibold text-alert-amber flex items-center gap-2">
               <EyeOff className="h-4 w-4" />
-              {summary.blindSpotCount} Blind {summary.blindSpotCount === 1 ? 'Spot' : 'Spots'} Detected
+              {summary.blindSpotCount} AI {summary.blindSpotCount === 1 ? 'App' : 'Apps'} Can&apos;t Reach You
             </h2>
           </div>
           <div className="divide-y divide-alert-amber/10">
@@ -184,7 +184,7 @@ function StatusBadge({ status, engine }: { status: BotActivity['status']; engine
   }
   return (
     <span className="inline-flex items-center rounded-md bg-alert-crimson/10 px-2 py-0.5 text-xs font-medium text-alert-crimson">
-      Blind spot
+      Can&apos;t reach you
     </span>
   );
 }

@@ -33,9 +33,9 @@ export default function WrongFactsPanel({
     >
       <div className="mb-3 flex items-center gap-1.5">
         <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-400">
-          Wrong Facts
+          AI Mistakes
         </h3>
-        <InfoTooltip content="A 'wrong fact' is when an AI model states something incorrect about your business — wrong hours, wrong address, wrong prices. Each one costs you customers." />
+        <InfoTooltip content="An AI mistake is when an AI app states something incorrect about your business — wrong hours, wrong address, wrong prices. Each one costs you customers." />
       </div>
 
       <div className="flex items-baseline gap-2">

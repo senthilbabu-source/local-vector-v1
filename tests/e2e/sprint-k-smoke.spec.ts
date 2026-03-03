@@ -113,11 +113,11 @@ test.describe('Sprint K — Sidebar Groups (H4)', () => {
     expect(texts.some((t) => t.toLowerCase().includes('overview'))).toBe(true);
   });
 
-  test('group label "Intelligence" is visible in sidebar', async ({ page }) => {
+  test('group label "Insights" is visible in sidebar', async ({ page }) => {
     await page.goto('/dashboard');
     const labels = page.getByTestId('sidebar-group-label');
     const texts = await labels.allTextContents();
-    expect(texts.some((t) => t.toLowerCase().includes('intelligence'))).toBe(true);
+    expect(texts.some((t) => t.toLowerCase().includes('insights'))).toBe(true);
   });
 
   test('all nav items still present (no items removed from nav)', async ({ page }) => {
@@ -143,7 +143,7 @@ test.describe('Sprint K — Sentry Coverage (C1)', () => {
 
   test('bot activity page loads without error', async ({ page }) => {
     await page.goto('/dashboard/crawler-analytics');
-    await expect(page.getByText('AI Bot Activity')).toBeVisible();
+    await expect(page.getByText("Who's Checking Your Website")).toBeVisible();
   });
 
   test('AI responses page loads without error', async ({ page }) => {

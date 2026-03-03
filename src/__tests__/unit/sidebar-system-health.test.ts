@@ -12,22 +12,22 @@ import { NAV_ITEMS } from '@/components/layout/Sidebar';
 
 describe('Sidebar NAV_ITEMS — System Health', () => {
   it('NAV_ITEMS includes System Health entry', () => {
-    const systemHealth = NAV_ITEMS.find((item) => item.label === 'System Health');
+    const systemHealth = NAV_ITEMS.find((item) => item.label === 'System Status');
     expect(systemHealth).toBeDefined();
   });
 
   it('System Health has correct href /dashboard/system-health', () => {
-    const systemHealth = NAV_ITEMS.find((item) => item.label === 'System Health');
+    const systemHealth = NAV_ITEMS.find((item) => item.label === 'System Status');
     expect(systemHealth?.href).toBe('/dashboard/system-health');
   });
 
   it('System Health has active=true', () => {
-    const systemHealth = NAV_ITEMS.find((item) => item.label === 'System Health');
+    const systemHealth = NAV_ITEMS.find((item) => item.label === 'System Status');
     expect(systemHealth?.active).toBe(true);
   });
 
   it('System Health is positioned before Settings', () => {
-    const healthIndex = NAV_ITEMS.findIndex((item) => item.label === 'System Health');
+    const healthIndex = NAV_ITEMS.findIndex((item) => item.label === 'System Status');
     const settingsIndex = NAV_ITEMS.findIndex((item) => item.label === 'Settings');
     expect(healthIndex).toBeGreaterThan(-1);
     expect(settingsIndex).toBeGreaterThan(-1);

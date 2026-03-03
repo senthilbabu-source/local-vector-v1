@@ -49,13 +49,15 @@ export const NAV_ITEMS = [
   {
     href: '/dashboard',
     label: 'Dashboard',
+    testId: 'dashboard',
     icon: LayoutDashboard,
     exact: true,
     active: true,
   },
   {
     href: '/dashboard/hallucinations',
-    label: 'Alerts',
+    label: 'AI Mistakes',
+    testId: 'alerts',
     icon: AlertTriangle,
     exact: false,
     active: true,
@@ -63,41 +65,47 @@ export const NAV_ITEMS = [
   {
     href: '/dashboard/magic-menus',
     label: 'Menu',
+    testId: 'menu',
     icon: Utensils,
     exact: false,
     active: true,
   },
   {
     href: '/dashboard/share-of-voice',
-    label: 'Share of Voice',
+    label: 'AI Mentions',
+    testId: 'share-of-voice',
     icon: TrendingUp,
     exact: false,
     active: true,
   },
   {
     href: '/dashboard/cluster-map',
-    label: 'Cluster Map',
+    label: 'Your Position',
+    testId: 'cluster-map',
     icon: ScatterChart,
     exact: false,
     active: true,
   },
   {
     href: '/dashboard/content-drafts',
-    label: 'Content',
+    label: 'Posts',
+    testId: 'content',
     icon: FileText,
     exact: false,
     active: true,
   },
   {
     href: '/dashboard/content-calendar',
-    label: 'Content Calendar',
+    label: 'Calendar',
+    testId: 'content-calendar',
     icon: CalendarDays,
     exact: false,
     active: true,
   },
   {
     href: '/dashboard/compete',
-    label: 'Compete',
+    label: 'Competitors',
+    testId: 'compete',
     icon: Swords,
     exact: false,
     active: true,
@@ -105,6 +113,7 @@ export const NAV_ITEMS = [
   {
     href: '/dashboard/integrations',
     label: 'Listings',
+    testId: 'listings',
     icon: MapPin,
     exact: false,
     active: true,
@@ -112,62 +121,71 @@ export const NAV_ITEMS = [
   {
     href: '/dashboard/settings/locations',
     label: 'Locations',
+    testId: 'locations',
     icon: MapPinned,
     exact: false,
     active: true,
   },
   {
     href: '/dashboard/citations',
-    label: 'Citations',
+    label: 'Platforms',
+    testId: 'citations',
     icon: Globe,
     exact: false,
     active: true,
   },
   {
     href: '/dashboard/page-audits',
-    label: 'Page Audits',
+    label: 'Website Checkup',
+    testId: 'page-audits',
     icon: FileSearch,
     exact: false,
     active: true,
   },
   {
     href: '/dashboard/crawler-analytics',
-    label: 'Bot Activity',
+    label: 'Site Visitors',
+    testId: 'bot-activity',
     icon: Bot,
     exact: false,
     active: true,
   },
   {
     href: '/dashboard/proof-timeline',
-    label: 'Proof Timeline',
+    label: 'Update Tracking',
+    testId: 'proof-timeline',
     icon: GitCompareArrows,
     exact: false,
     active: true,
   },
   {
     href: '/dashboard/entity-health',
-    label: 'Entity Health',
+    label: 'AI Recognition',
+    testId: 'entity-health',
     icon: HeartPulse,
     exact: false,
     active: true,
   },
   {
     href: '/dashboard/agent-readiness',
-    label: 'Agent Readiness',
+    label: 'AI Actions',
+    testId: 'agent-readiness',
     icon: BotMessageSquare,
     exact: false,
     active: true,
   },
   {
     href: '/dashboard/revenue-impact',
-    label: 'Revenue Impact',
+    label: 'Lost Sales',
+    testId: 'revenue-impact',
     icon: DollarSign,
     exact: false,
     active: true,
   },
   {
     href: '/dashboard/benchmarks',
-    label: 'Benchmarks',
+    label: 'Local Comparison',
+    testId: 'benchmarks',
     icon: Trophy,
     exact: false,
     active: true,
@@ -175,6 +193,7 @@ export const NAV_ITEMS = [
   {
     href: '/dashboard/ai-assistant',
     label: 'AI Assistant',
+    testId: 'ai-assistant',
     icon: MessageSquare,
     exact: false,
     active: true,
@@ -182,34 +201,39 @@ export const NAV_ITEMS = [
   {
     href: '/dashboard/ai-responses',
     label: 'AI Says',
+    testId: 'ai-says',
     icon: Quote,
     exact: false,
     active: true,
   },
   {
     href: '/dashboard/sentiment',
-    label: 'AI Sentiment',
+    label: 'Your Reputation',
+    testId: 'ai-sentiment',
     icon: SmilePlus,
     exact: false,
     active: true,
   },
   {
     href: '/dashboard/source-intelligence',
-    label: 'AI Sources',
+    label: 'Your Sources',
+    testId: 'ai-sources',
     icon: BookOpen,
     exact: false,
     active: true,
   },
   {
     href: '/dashboard/vaio',
-    label: 'Voice Readiness',
+    label: 'Voice Search',
+    testId: 'voice-readiness',
     icon: Mic,
     exact: false,
     active: true,
   },
   {
     href: '/dashboard/system-health',
-    label: 'System Health',
+    label: 'System Status',
+    testId: 'system-health',
     icon: Activity,
     exact: false,
     active: true,
@@ -217,6 +241,7 @@ export const NAV_ITEMS = [
   {
     href: '/dashboard/settings',
     label: 'Settings',
+    testId: 'settings',
     icon: Settings,
     exact: false,
     active: true,
@@ -224,6 +249,7 @@ export const NAV_ITEMS = [
   {
     href: '/dashboard/team',
     label: 'Team',
+    testId: 'team',
     icon: Users,
     exact: false,
     active: true,
@@ -231,6 +257,7 @@ export const NAV_ITEMS = [
   {
     href: '/dashboard/settings/domain',
     label: 'Domain',
+    testId: 'domain',
     icon: Link2,
     exact: false,
     active: true,
@@ -238,27 +265,31 @@ export const NAV_ITEMS = [
   {
     href: '/dashboard/billing',
     label: 'Billing',
+    testId: 'billing',
     icon: CreditCard,
     exact: false,
     active: true,
   },
   {
     href: '/dashboard/playbooks',
-    label: 'Playbooks',
+    label: 'Improvement Plans',
+    testId: 'playbooks',
     icon: Zap,
     exact: false,
     active: true,
   },
   {
     href: '/dashboard/intent-discovery',
-    label: 'Intent Discovery',
+    label: 'Missing Questions',
+    testId: 'intent-discovery',
     icon: Compass,
     exact: false,
     active: true,
   },
   {
     href: '/dashboard/settings/widget',
-    label: 'Chat Widget',
+    label: 'Website Chat',
+    testId: 'chat-widget',
     icon: MessageCircle,
     exact: false,
     active: true,
@@ -279,7 +310,7 @@ export const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
     ),
   },
   {
-    label: 'AI Visibility',
+    label: 'How AI Sees You',
     items: NAV_ITEMS.filter((i) =>
       [
         '/dashboard/share-of-voice',
@@ -293,7 +324,7 @@ export const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
     ),
   },
   {
-    label: 'Content & Menu',
+    label: 'Content',
     items: NAV_ITEMS.filter((i) =>
       [
         '/dashboard/magic-menus',
@@ -306,7 +337,7 @@ export const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
     ),
   },
   {
-    label: 'Intelligence',
+    label: 'Insights',
     items: NAV_ITEMS.filter((i) =>
       [
         '/dashboard/compete',
@@ -425,8 +456,8 @@ export default function Sidebar({ isOpen, onClose, displayName, orgName, plan, l
                 data-testid="sidebar-group-label"
                 className="px-3 mb-1 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60 select-none"
               >
-                {/* Sprint E: Dynamic group label for Content & Menu */}
-                {group.label === 'Content & Menu'
+                {/* Sprint E: Dynamic group label for Content */}
+                {group.label === 'Content'
                   ? `Content & ${industryConfig.servicesNoun}`
                   : group.label}
               </p>
@@ -456,7 +487,7 @@ export default function Sidebar({ isOpen, onClose, displayName, orgName, plan, l
                       key={item.label}
                       href={item.href}
                       onClick={onClose}
-                      data-testid={`nav-${displayLabel.toLowerCase().replace(/\s+/g, '-')}`}
+                      data-testid={`nav-${item.testId}`}
                       className={[
                         'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition',
                         active

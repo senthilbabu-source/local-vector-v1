@@ -80,10 +80,9 @@ describe('Sidebar', () => {
   it('6. shows AI Sources link with test-id nav-ai-sources', () => {
     const sourceItem = NAV_ITEMS.find(item => item.href === '/dashboard/source-intelligence');
     expect(sourceItem).toBeDefined();
-    expect(sourceItem!.label).toBe('AI Sources');
+    expect(sourceItem!.label).toBe('Your Sources');
     expect(sourceItem!.active).toBe(true);
-    // The data-testid is generated from label: nav-ai-sources
-    const expectedTestId = `nav-${sourceItem!.label.toLowerCase().replace(/\s+/g, '-')}`;
-    expect(expectedTestId).toBe('nav-ai-sources');
+    // data-testid uses stable testId field (decoupled from label)
+    expect(sourceItem!.testId).toBe('ai-sources');
   });
 });

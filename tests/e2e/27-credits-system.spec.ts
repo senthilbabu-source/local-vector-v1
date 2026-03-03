@@ -70,7 +70,7 @@ test.describe('Credit-gated actions', () => {
     await page.goto('/dashboard/share-of-voice');
 
     // The page should load successfully
-    await expect(page.getByRole('heading', { name: /Share of Voice/i }).first()).toBeVisible();
+    await expect(page.getByRole('heading', { name: /How Often AI Recommends/i }).first()).toBeVisible();
   });
 
   test('compete page loads without credit errors', async ({ page }) => {

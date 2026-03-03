@@ -28,7 +28,7 @@ export default async function VAIOPage() {
     return (
       <div className="flex h-full items-center justify-center p-8">
         <div className="max-w-md text-center">
-          <h2 className="mb-2 text-lg font-semibold text-white">Voice Readiness</h2>
+          <h2 className="mb-2 text-lg font-semibold text-white">Ready for Voice Search?</h2>
           <p className="text-sm text-slate-400">
             Upgrade to Growth or Agency plan to unlock voice search optimization,
             llms.txt generation, and AI crawler audits.

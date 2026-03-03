@@ -43,7 +43,7 @@ test.describe('Sprint I — AI Sentiment', () => {
   test('page loads without error', async ({ page }) => {
     await page.goto('/dashboard/sentiment');
     // Page should have the title heading at minimum
-    await expect(page.getByText('AI Sentiment Analysis')).toBeVisible();
+    await expect(page.getByText('How AI Describes You')).toBeVisible();
   });
 
   test('shows interpretation panel when sentiment data exists', async ({ page }) => {
@@ -87,7 +87,7 @@ test.describe('Sprint I — Source Intelligence', () => {
 test.describe('Sprint I — Bot Activity', () => {
   test('page loads and shows bot activity', async ({ page }) => {
     await page.goto('/dashboard/crawler-analytics');
-    await expect(page.getByText('AI Bot Activity')).toBeVisible();
+    await expect(page.getByText("Who's Checking Your Website")).toBeVisible();
   });
 
   test('blind spots have "How to fix" expandable button', async ({ page }) => {

@@ -40,10 +40,10 @@ export default function PlaybooksPageClient({
       <div data-testid="playbooks-page" className="max-w-3xl space-y-5">
         <div>
           <h1 className="text-xl font-semibold text-white tracking-tight">
-            Your AI Engine Playbook
+            How to Get Found by Each AI
           </h1>
           <p className="mt-0.5 text-sm text-slate-400">
-            What each AI engine needs to cite your business more often.
+            Simple steps to improve how each AI app talks about your business.
           </p>
         </div>
         <div className="rounded-2xl border border-amber-500/20 bg-amber-500/5 p-6 text-center">
@@ -60,10 +60,10 @@ export default function PlaybooksPageClient({
     <div data-testid="playbooks-page" className="max-w-3xl space-y-5">
       <div>
         <h1 className="text-xl font-semibold text-white tracking-tight">
-          Your AI Engine Playbook
+          How to Get Found by Each AI
         </h1>
         <p className="mt-0.5 text-sm text-slate-400">
-          What each AI engine needs to cite your business more often.
+          Simple steps to improve how each AI app talks about your business.
           {generatedAt && (
             <span className="ml-2 text-slate-500">
               Last updated: {new Date(generatedAt).toLocaleDateString()}

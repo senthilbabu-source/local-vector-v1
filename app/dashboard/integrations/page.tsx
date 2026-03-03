@@ -198,7 +198,7 @@ export default async function IntegrationsPage() {
           <h1 className="text-xl font-semibold text-white">Listings</h1>
           <p className="mt-0.5 text-sm text-slate-400">
             Add your listing URLs and connect to the Big 6 platforms so AI
-            engines read your ground-truth NAP data directly.
+            apps can find accurate information about your business.
           </p>
         </div>
       </div>

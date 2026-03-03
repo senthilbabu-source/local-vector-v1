@@ -20,7 +20,7 @@ test.describe('06 — Share of Voice page', () => {
 
     // Page header
     await expect(
-      page.getByRole('heading', { name: /AI Share of Voice/i, level: 1 })
+      page.getByRole('heading', { name: /How Often AI Recommends/i, level: 1 })
     ).toBeVisible();
 
     // SOV Score Ring should render (either with data or calculating state)
@@ -28,7 +28,7 @@ test.describe('06 — Share of Voice page', () => {
 
     // Query Library section heading
     await expect(
-      page.getByRole('heading', { name: /Query Library/i })
+      page.getByRole('heading', { name: /What We're Tracking/i })
     ).toBeVisible();
   });
 
@@ -56,10 +56,10 @@ test.describe('06 — Share of Voice page', () => {
 
   test('can navigate to SOV page from sidebar', async ({ page }) => {
     await page.goto('/dashboard');
-    await page.getByRole('link', { name: 'Share of Voice' }).click();
+    await page.getByRole('link', { name: 'AI Mentions' }).click();
     await expect(page).toHaveURL(/\/dashboard\/share-of-voice/);
     await expect(
-      page.getByRole('heading', { name: /AI Share of Voice/i, level: 1 })
+      page.getByRole('heading', { name: /How Often AI Recommends/i, level: 1 })
     ).toBeVisible();
   });
 });

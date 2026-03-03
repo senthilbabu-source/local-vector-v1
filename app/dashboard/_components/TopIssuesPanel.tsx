@@ -197,7 +197,7 @@ export default function TopIssuesPanel({
         data-testid="top-issues-panel"
       >
         <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-sm font-semibold text-white">Top Issues</h2>
+          <h2 className="text-sm font-semibold text-white">Things to Fix</h2>
           <Link
             href="/dashboard/hallucinations"
             className="text-xs text-slate-400 hover:text-white underline"
@@ -249,7 +249,7 @@ export default function TopIssuesPanel({
       data-testid="top-issues-panel"
     >
       <div className="mb-4 flex items-center justify-between">
-        <h2 className="text-sm font-semibold text-white">Top Issues</h2>
+        <h2 className="text-sm font-semibold text-white">Things to Fix</h2>
         {allIssues.length > 0 && (
           <Link
             href="/dashboard/hallucinations"

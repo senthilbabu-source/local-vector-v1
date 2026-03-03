@@ -37,20 +37,19 @@ export function PositioningBanner() {
       <Sparkles className="mt-0.5 h-4 w-4 text-electric-indigo shrink-0" aria-hidden="true" />
       <div className="flex-1 text-sm">
         <p className="font-medium text-white">
-          LocalVector measures a layer traditional SEO tools don&apos;t.
+          LocalVector tracks something your other tools don&apos;t.
         </p>
         <p className="mt-0.5 text-slate-400">
-          Traditional SEO tools track your Google search rankings.
-          LocalVector tracks what AI models say about your business when
-          customers ask them directly. These are separate measurements
+          When customers ask AI apps like ChatGPT or Google for recommendations,
+          what do they say about your business? LocalVector monitors this for you
           &mdash; your{' '}
-          <span className="font-medium text-white">Reality Score</span>{' '}
-          reflects AI visibility, which isn&apos;t captured by search ranking tools.{' '}
+          <span className="font-medium text-white">AI Health Score</span>{' '}
+          shows how well AI represents your business.{' '}
           <Link
             href="/dashboard/ai-responses"
             className="text-electric-indigo hover:underline font-medium"
           >
-            See what AI says about your business &rarr;
+            See what AI says about you &rarr;
           </Link>
         </p>
       </div>

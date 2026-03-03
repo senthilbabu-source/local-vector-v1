@@ -61,7 +61,7 @@ export default async function SentimentPage() {
     return (
       <div className="space-y-4">
         <div>
-          <h1 className="text-xl font-semibold text-white">AI Sentiment Analysis</h1>
+          <h1 className="text-xl font-semibold text-white">How AI Describes You</h1>
           <p className="mt-0.5 text-sm text-[#94A3B8]">How AI engines describe your business</p>
         </div>
         <PlanGate requiredPlan="growth" currentPlan={plan} feature="AI Sentiment Tracker">
@@ -80,7 +80,7 @@ export default async function SentimentPage() {
     return (
       <div className="space-y-4">
         <div>
-          <h1 className="text-xl font-semibold text-white">AI Sentiment Analysis</h1>
+          <h1 className="text-xl font-semibold text-white">How AI Describes You</h1>
           <p className="mt-0.5 text-sm text-[#94A3B8]">How AI engines describe your business</p>
         </div>
         <PlanGate requiredPlan="growth" currentPlan={plan} feature="AI Sentiment Tracker">
@@ -100,7 +100,7 @@ export default async function SentimentPage() {
       />
 
       <div>
-        <h1 className="text-xl font-semibold text-white">AI Sentiment Analysis</h1>
+        <h1 className="text-xl font-semibold text-white">How AI Describes You</h1>
         <p className="mt-0.5 text-sm text-[#94A3B8]">
           How AI engines describe your business — tone, descriptors, and recommendation strength.
         </p>

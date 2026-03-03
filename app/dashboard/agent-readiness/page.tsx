@@ -41,7 +41,7 @@ export default async function AgentReadinessPage() {
     return (
       <div className="space-y-5">
         <h1 className="text-xl font-semibold text-white tracking-tight">
-          Can AI Take Action for Your Customers?
+          Can AI Book or Order for You?
         </h1>
         <div className="rounded-xl border border-white/5 bg-surface-dark px-5 py-8 text-center">
           <p className="text-sm text-slate-400">
@@ -71,7 +71,7 @@ export default async function AgentReadinessPage() {
       <div>
         <h1 className="text-xl font-semibold text-white tracking-tight flex items-center gap-2">
           <Bot className="h-5 w-5 text-signal-green" />
-          Can AI Take Action for Your Customers?
+          Can AI Book or Order for You?
         </h1>
         <p className="mt-0.5 text-sm text-slate-400">
           Which customer questions AI assistants can answer or actions they can take for your business.

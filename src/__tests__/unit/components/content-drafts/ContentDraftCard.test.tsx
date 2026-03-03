@@ -59,19 +59,19 @@ describe('ContentDraftCard', () => {
     expect(screen.getByText(/Austin has become a hotspot/)).toBeDefined();
   });
 
-  it('shows First Mover trigger badge for first_mover type', () => {
+  it('shows Be First to Answer trigger badge for first_mover type', () => {
     render(<ContentDraftCard draft={baseDraft} />);
     const badge = screen.getByTestId('trigger-badge');
-    expect(badge.textContent).toBe('First Mover');
+    expect(badge.textContent).toBe('Be First to Answer');
     expect(badge.className).toContain('text-amber-400');
   });
 
-  it('shows Competitor Gap trigger badge', () => {
+  it('shows Competitor Advantage trigger badge', () => {
     render(
       <ContentDraftCard draft={{ ...baseDraft, trigger_type: 'competitor_gap' }} />,
     );
     const badge = screen.getByTestId('trigger-badge');
-    expect(badge.textContent).toBe('Competitor Gap');
+    expect(badge.textContent).toBe('Competitor Advantage');
     expect(badge.className).toContain('text-alert-crimson');
   });
 
@@ -86,25 +86,25 @@ describe('ContentDraftCard', () => {
 
   it('shows AEO score with green color for >= 80', () => {
     render(<ContentDraftCard draft={{ ...baseDraft, aeo_score: 85 }} />);
-    expect(screen.getByText('AEO 85')).toBeDefined();
-    expect(screen.getByText('AEO 85').className).toContain('text-signal-green');
+    expect(screen.getByText('Score: 85')).toBeDefined();
+    expect(screen.getByText('Score: 85').className).toContain('text-signal-green');
   });
 
   it('shows AEO score with amber color for 60-79', () => {
     render(<ContentDraftCard draft={{ ...baseDraft, aeo_score: 72 }} />);
-    expect(screen.getByText('AEO 72')).toBeDefined();
-    expect(screen.getByText('AEO 72').className).toContain('text-amber-400');
+    expect(screen.getByText('Score: 72')).toBeDefined();
+    expect(screen.getByText('Score: 72').className).toContain('text-amber-400');
   });
 
   it('shows AEO score with crimson color for < 60', () => {
     render(<ContentDraftCard draft={{ ...baseDraft, aeo_score: 45 }} />);
-    expect(screen.getByText('AEO 45')).toBeDefined();
-    expect(screen.getByText('AEO 45').className).toContain('text-alert-crimson');
+    expect(screen.getByText('Score: 45')).toBeDefined();
+    expect(screen.getByText('Score: 45').className).toContain('text-alert-crimson');
   });
 
   it('hides AEO score when null', () => {
     render(<ContentDraftCard draft={{ ...baseDraft, aeo_score: null }} />);
-    expect(screen.queryByText(/AEO/)).toBeNull();
+    expect(screen.queryByText(/Score:/)).toBeNull();
   });
 
   it('shows Draft status badge for draft status', () => {

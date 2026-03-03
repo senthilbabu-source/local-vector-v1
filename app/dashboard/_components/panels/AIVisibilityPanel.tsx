@@ -55,9 +55,9 @@ export default function AIVisibilityPanel({
     >
       <div className="mb-3 flex items-center gap-1.5">
         <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-400">
-          AI Visibility
+          AI Health Score
         </h3>
-        <InfoTooltip content="Your AI Visibility score (0–100) measures how accurately and prominently AI models represent your business across ChatGPT, Perplexity, and Gemini." />
+        <InfoTooltip content="Your AI Health Score (0–100) measures how well AI apps like ChatGPT, Google, and Perplexity represent your business." />
       </div>
 
       <div className="flex items-center gap-4">

@@ -20,7 +20,7 @@ test.describe('13 — Page Audits page', () => {
     await page.goto('/dashboard/page-audits');
 
     await expect(
-      page.getByRole('heading', { name: /Page Audits/i, level: 1 })
+      page.getByRole('heading', { name: /Website Checkup/i, level: 1 })
     ).toBeVisible();
   });
 
@@ -39,7 +39,7 @@ test.describe('13 — Page Audits page', () => {
     await page.getByTestId('nav-page-audits').click();
     await expect(page).toHaveURL(/\/dashboard\/page-audits/);
     await expect(
-      page.getByRole('heading', { name: /Page Audits/i, level: 1 })
+      page.getByRole('heading', { name: /Website Checkup/i, level: 1 })
     ).toBeVisible();
   });
 });

@@ -70,7 +70,7 @@ function PageHeader() {
     <div>
       <h1 className="text-xl font-semibold text-white tracking-tight flex items-center gap-2">
         <Map className="h-5 w-5 text-signal-green" />
-        Where Does AI Place You?
+        Where You Stand vs Competitors
       </h1>
       <p className="mt-0.5 text-sm text-slate-400">
         How often AI mentions your business and how accurate its information is, compared to competitors.

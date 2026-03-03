@@ -33,9 +33,9 @@ describe('Sidebar NAV_ITEMS', () => {
     expect(aiIndex).toBeLessThan(settingsIndex);
   });
 
-  it('AI Assistant is positioned after Page Audits', () => {
+  it('AI Assistant is positioned after Website Checkup (Page Audits)', () => {
     const aiIndex = NAV_ITEMS.findIndex((item) => item.label === 'AI Assistant');
-    const pageAuditsIndex = NAV_ITEMS.findIndex((item) => item.label === 'Page Audits');
+    const pageAuditsIndex = NAV_ITEMS.findIndex((item) => item.label === 'Website Checkup');
     expect(pageAuditsIndex).toBeGreaterThan(-1);
     expect(aiIndex).toBeGreaterThan(pageAuditsIndex);
   });
@@ -69,9 +69,9 @@ describe('Sidebar NAV_ITEMS — Locations entry (Sprint 102)', () => {
     expect(locationsIndex).toBeGreaterThan(listingsIndex);
   });
 
-  it('Locations is positioned before System Health', () => {
+  it('Locations is positioned before System Status', () => {
     const locationsIndex = NAV_ITEMS.findIndex((item) => item.label === 'Locations');
-    const systemHealthIndex = NAV_ITEMS.findIndex((item) => item.label === 'System Health');
+    const systemHealthIndex = NAV_ITEMS.findIndex((item) => item.label === 'System Status');
     expect(locationsIndex).toBeGreaterThan(-1);
     expect(systemHealthIndex).toBeGreaterThan(-1);
     expect(locationsIndex).toBeLessThan(systemHealthIndex);

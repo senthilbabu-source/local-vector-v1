@@ -19,13 +19,13 @@ describe('Content draft trigger badge logic', () => {
   function triggerBadge(type: string): { label: string; classes: string } {
     switch (type) {
       case 'first_mover':
-        return { label: 'First Mover', classes: 'bg-amber-400/10 text-amber-400 ring-amber-400/20' };
+        return { label: 'Be First to Answer', classes: 'bg-amber-400/10 text-amber-400 ring-amber-400/20' };
       case 'competitor_gap':
-        return { label: 'Competitor Gap', classes: 'bg-alert-crimson/10 text-alert-crimson ring-alert-crimson/20' };
+        return { label: 'Competitor Advantage', classes: 'bg-alert-crimson/10 text-alert-crimson ring-alert-crimson/20' };
       case 'occasion':
         return { label: 'Occasion Engine', classes: 'bg-violet-400/10 text-violet-400 ring-violet-400/20' };
       case 'prompt_missing':
-        return { label: 'Prompt Gap', classes: 'bg-purple-400/10 text-purple-400 ring-purple-400/20' };
+        return { label: 'Missing Answer', classes: 'bg-purple-400/10 text-purple-400 ring-purple-400/20' };
       default:
         return { label: 'Manual', classes: 'bg-slate-400/10 text-slate-400 ring-slate-400/20' };
     }
@@ -42,8 +42,8 @@ describe('Content draft trigger badge logic', () => {
   });
 
   it('non-occasion triggers return their own labels', () => {
-    expect(triggerBadge('first_mover').label).toBe('First Mover');
-    expect(triggerBadge('competitor_gap').label).toBe('Competitor Gap');
+    expect(triggerBadge('first_mover').label).toBe('Be First to Answer');
+    expect(triggerBadge('competitor_gap').label).toBe('Competitor Advantage');
     expect(triggerBadge('manual').label).toBe('Manual');
   });
 

@@ -155,7 +155,7 @@ test.describe('Sprint G — Charts on detail pages', () => {
 
     // The page should render — check for the page heading
     await expect(
-      page.getByRole('heading', { name: 'AI Truth Audit', level: 1 }),
+      page.getByRole('heading', { name: 'Things AI Gets Wrong', level: 1 }),
     ).toBeVisible();
   });
 });

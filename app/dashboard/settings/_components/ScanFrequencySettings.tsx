@@ -50,9 +50,9 @@ export default function ScanFrequencySettings({ currentFrequency }: ScanFrequenc
 
   return (
     <div className="space-y-3" data-testid="scan-frequency-select">
-      <h3 className="text-sm font-semibold text-white">AI Scan Frequency</h3>
+      <h3 className="text-sm font-semibold text-white">How Often We Check AI for You</h3>
       <p className="text-xs text-slate-400">
-        Controls how often the SOV engine scans your AI visibility.
+        Choose how often we check what AI apps say about your business.
       </p>
 
       <div className="flex gap-3">

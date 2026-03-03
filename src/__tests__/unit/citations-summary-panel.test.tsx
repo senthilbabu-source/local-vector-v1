@@ -25,7 +25,7 @@ describe('CitationsSummaryPanel', () => {
       />,
     );
     expect(screen.getByText('8')).toBeDefined();
-    expect(screen.getByText('platforms AI cites')).toBeDefined();
+    expect(screen.getByText('platforms AI checks')).toBeDefined();
   });
 
   it('renders covered count in green', () => {

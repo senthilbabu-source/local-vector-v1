@@ -31,7 +31,7 @@ export default function CitationsSummaryPanel({
         <span className="text-2xl font-bold tabular-nums text-foreground">
           {totalPlatforms}
         </span>
-        <span className="text-sm text-muted-foreground">platforms AI cites</span>
+        <span className="text-sm text-muted-foreground">platforms AI checks</span>
         <InfoTooltip content="Citation sources are websites that AI models reference when answering questions about your business category. Being listed on more cited platforms increases your AI visibility." />
       </div>
 
@@ -70,7 +70,7 @@ export default function CitationsSummaryPanel({
         </div>
         <div className="rounded-md bg-electric-indigo/10 px-3 py-2" data-testid="citations-gap-score">
           <p className="text-lg font-bold text-electric-indigo">{gapScore}</p>
-          <p className="text-[10px] text-electric-indigo/80">Gap Score</p>
+          <p className="text-[10px] text-electric-indigo/80">Missing Platforms</p>
         </div>
       </div>
 

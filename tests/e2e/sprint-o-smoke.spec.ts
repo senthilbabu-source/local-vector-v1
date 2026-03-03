@@ -70,12 +70,12 @@ test.describe('Sprint O — Revenue Impact Defaults (M4)', () => {
 test.describe('Sprint O — Content Flow Clarity (L3)', () => {
   test('content-drafts page loads', async ({ page }) => {
     await page.goto('/dashboard/content-drafts');
-    await expect(page.getByRole('heading', { name: 'Content Drafts' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Posts Ready for Review' })).toBeVisible();
   });
 
   test('content-calendar page loads', async ({ page }) => {
     await page.goto('/dashboard/content-calendar');
-    await expect(page.getByRole('heading', { name: 'Content Calendar' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Upcoming Opportunities' })).toBeVisible();
   });
 
   test('breadcrumb visible when from=calendar param present', async ({ page }) => {
@@ -84,7 +84,7 @@ test.describe('Sprint O — Content Flow Clarity (L3)', () => {
     const breadcrumbCount = await breadcrumb.count();
     if (breadcrumbCount > 0) {
       await expect(breadcrumb).toBeVisible();
-      await expect(breadcrumb.getByText('Content Calendar')).toBeVisible();
+      await expect(breadcrumb.getByText('Calendar')).toBeVisible();
       await expect(breadcrumb.getByText('Cinco de Mayo')).toBeVisible();
     }
   });

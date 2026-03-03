@@ -56,20 +56,20 @@ export default function DataHealthBreakdown({
   if (!hasBreakdown) return null;
 
   const dimensions: DimensionConfig[] = [
-    { label: 'Core identity', value: coreIdentity ?? 0, max: 30 },
+    { label: 'Business basics', value: coreIdentity ?? 0, max: 30 },
     { label: 'Hours', value: hours ?? 0, max: 20 },
     {
-      label: 'Amenities',
+      label: 'Features & facilities',
       value: amenities ?? 0,
       max: 20,
-      note: gbpImportSource ? 'GBP Import — auto-scored' : undefined,
+      note: gbpImportSource ? 'From Google Business' : undefined,
     },
     {
-      label: 'Category & description',
+      label: 'Business type & details',
       value: categoryDescription ?? 0,
       max: 15,
     },
-    { label: 'Menu / services', value: menuServices ?? 0, max: 15 },
+    { label: 'Menu & offerings', value: menuServices ?? 0, max: 15 },
   ];
 
   return (
@@ -78,7 +78,7 @@ export default function DataHealthBreakdown({
       className="mt-3 space-y-2 border-t border-white/5 pt-3"
     >
       <p className="text-[10px] font-medium text-slate-500 uppercase tracking-wider">
-        Data Health: {score}/100
+        Your Info Completeness: {score}/100
       </p>
 
       {dimensions.map((dim) => {
@@ -103,7 +103,7 @@ export default function DataHealthBreakdown({
 
       {gbpImportSource && (
         <p className="text-[10px] text-amber-400/70 mt-1">
-          GBP Import — amenities not scored
+          From Google Business — not scored
         </p>
       )}
     </div>

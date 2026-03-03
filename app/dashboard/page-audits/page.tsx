@@ -75,9 +75,9 @@ export default async function PageAuditsPage() {
     return (
       <div className="space-y-8">
         <div>
-          <h1 className="text-xl font-semibold text-white">Page Audits</h1>
+          <h1 className="text-xl font-semibold text-white">Website Checkup</h1>
           <p className="mt-0.5 text-sm text-[#94A3B8]">
-            Score your pages on 5 AEO dimensions to maximize AI visibility.
+            Check how well AI can read and understand your web pages.
           </p>
         </div>
         <PlanGate requiredPlan="growth" currentPlan={plan} feature="Page Audit">
@@ -117,9 +117,9 @@ export default async function PageAuditsPage() {
     <div className="space-y-8">
       {/* ── Page header ─────────────────────────────────────────────────── */}
       <div>
-        <h1 className="text-xl font-semibold text-white">Page Audits</h1>
+        <h1 className="text-xl font-semibold text-white">Website Checkup</h1>
         <p className="mt-0.5 text-sm text-[#94A3B8]">
-          Score your pages on 5 AEO dimensions to maximize AI visibility.
+          Check how well AI can read and understand your web pages.
         </p>
       </div>
 

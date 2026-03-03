@@ -12,18 +12,18 @@ import { NAV_ITEMS } from '@/components/layout/Sidebar';
 
 describe('Sidebar NAV_ITEMS — Proof Timeline', () => {
   it('1. NAV_ITEMS includes Proof Timeline entry', () => {
-    const entry = NAV_ITEMS.find((item) => item.label === 'Proof Timeline');
+    const entry = NAV_ITEMS.find((item) => item.label === 'Update Tracking');
     expect(entry).toBeDefined();
   });
 
   it('2. Proof Timeline has correct href /dashboard/proof-timeline', () => {
-    const entry = NAV_ITEMS.find((item) => item.label === 'Proof Timeline');
+    const entry = NAV_ITEMS.find((item) => item.label === 'Update Tracking');
     expect(entry!.href).toBe('/dashboard/proof-timeline');
   });
 
   it('3. Proof Timeline is positioned after Bot Activity', () => {
-    const botIndex = NAV_ITEMS.findIndex((item) => item.label === 'Bot Activity');
-    const timelineIndex = NAV_ITEMS.findIndex((item) => item.label === 'Proof Timeline');
+    const botIndex = NAV_ITEMS.findIndex((item) => item.label === 'Site Visitors');
+    const timelineIndex = NAV_ITEMS.findIndex((item) => item.label === 'Update Tracking');
     expect(botIndex).toBeGreaterThanOrEqual(0);
     expect(timelineIndex).toBe(botIndex + 1);
   });

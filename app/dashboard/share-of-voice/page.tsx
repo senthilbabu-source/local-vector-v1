@@ -224,10 +224,9 @@ export default async function ShareOfVoicePage() {
 
       {/* ── Page header ─────────────────────────────────────────────────── */}
       <div>
-        <h1 className="text-xl font-semibold text-white">AI Share of Voice</h1>
+        <h1 className="text-xl font-semibold text-white">How Often AI Recommends You</h1>
         <p className="mt-0.5 text-sm text-[#94A3B8]">
-          Track how often AI engines mention your business vs. competitors when
-          answering relevant local search queries.
+          See how often AI apps mention your business when customers search.
         </p>
       </div>
 
@@ -300,7 +299,7 @@ export default async function ShareOfVoicePage() {
       {firstMoverOpps.length > 0 && (
         <section>
           <h2 className="text-sm font-semibold text-white tracking-tight mb-3">
-            First Mover Opportunities
+            Be First to Answer These
             <span className="ml-2 text-xs font-medium text-amber-400">
               {firstMoverOpps.length}
             </span>
@@ -322,7 +321,7 @@ export default async function ShareOfVoicePage() {
       {isGrowthPlus && queries.length > 0 && (
         <section>
           <h2 className="text-sm font-semibold text-white tracking-tight mb-3">
-            Prompt Intelligence
+            Search Insights
             {gaps.length > 0 && (
               <span className="ml-2 text-xs font-medium text-alert-crimson">
                 {gaps.length} gap{gaps.length !== 1 ? 's' : ''} detected
@@ -336,7 +335,7 @@ export default async function ShareOfVoicePage() {
             {gaps.length > 0 && (
               <div className="space-y-3">
                 <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wide">
-                  Query Gaps
+                  Missing Searches
                 </h3>
                 {gaps.slice(0, 5).map((gap, i) => (
                   <GapAlertCard
@@ -357,7 +356,7 @@ export default async function ShareOfVoicePage() {
       {/* ── Query Library (existing per-location SovCards) ─────────────── */}
       <section>
         <h2 className="text-sm font-semibold text-white tracking-tight mb-3">
-          Query Library
+          What We're Tracking
         </h2>
 
         {locations.length === 0 ? (

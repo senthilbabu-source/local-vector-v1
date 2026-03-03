@@ -128,9 +128,9 @@ export default async function CompetePage() {
 
       {/* ── Page header ─────────────────────────────────────────────────── */}
       <div>
-        <h1 className="text-xl font-semibold text-white tracking-tight">Competitor Intercept</h1>
+        <h1 className="text-xl font-semibold text-white tracking-tight">You vs Competitors</h1>
         <p className="mt-0.5 text-sm text-slate-400">
-          Discover why AI recommends your competitors over you — and what to do about it.
+          See when AI picks your competitors over you — and how to fix it.
         </p>
       </div>
 

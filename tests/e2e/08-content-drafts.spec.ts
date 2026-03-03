@@ -21,7 +21,7 @@ test.describe('08 — Content Drafts page', () => {
 
     // Page header
     await expect(
-      page.getByRole('heading', { name: /Content Drafts/i, level: 1 })
+      page.getByRole('heading', { name: /Posts Ready for Review/i, level: 1 })
     ).toBeVisible();
 
     // Summary strip cards (scoped to paragraphs to avoid matching filter tab buttons)
@@ -42,10 +42,10 @@ test.describe('08 — Content Drafts page', () => {
 
   test('can navigate to Content Drafts from sidebar', async ({ page }) => {
     await page.goto('/dashboard');
-    await page.getByRole('link', { name: 'Content' }).click();
+    await page.getByRole('link', { name: 'Posts' }).click();
     await expect(page).toHaveURL(/\/dashboard\/content-drafts/);
     await expect(
-      page.getByRole('heading', { name: /Content Drafts/i, level: 1 })
+      page.getByRole('heading', { name: /Posts Ready for Review/i, level: 1 })
     ).toBeVisible();
   });
 });
