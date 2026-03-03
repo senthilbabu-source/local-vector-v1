@@ -22,6 +22,7 @@ import { getModel, hasApiKey } from '@/lib/ai/providers';
 import { MenuOCRSchema, zodSchema, type MenuOCROutput } from '@/lib/ai/schemas';
 import type { Json } from '@/lib/supabase/database.types';
 import * as Sentry from '@sentry/nextjs';
+import { pingIndexNow } from '@/lib/indexnow';
 
 // ---------------------------------------------------------------------------
 // Phase 18 — OpenAI menu extraction helper
@@ -445,6 +446,12 @@ export async function approveAndPublish(
   revalidatePath('/dashboard/magic-menus');
   if (current.public_slug) {
     revalidatePath(`/m/${current.public_slug}`, 'page');
+
+    // Fire-and-forget IndexNow ping — never blocks approval flow
+    const menuUrl = `${process.env.NEXT_PUBLIC_APP_URL}/m/${current.public_slug}`;
+    pingIndexNow([menuUrl]).catch((err) => {
+      Sentry.captureException(err, { tags: { component: 'indexnow', sprint: '129' } });
+    });
   }
 
   return { success: true, publicSlug: current.public_slug ?? '' };

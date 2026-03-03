@@ -67,6 +67,14 @@
     {
       "path": "/api/cron/correction-rescan",
       "schedule": "0 4 * * *"
+    },
+    {
+      "path": "/api/cron/data-health-refresh",
+      "schedule": "0 5 * * *"
+    },
+    {
+      "path": "/api/cron/faq-regeneration",
+      "schedule": "0 3 * * *"
     }
   ]
 }

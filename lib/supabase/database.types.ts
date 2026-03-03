@@ -1770,6 +1770,14 @@ export type Database = {
           last_simulation_score: number | null;
           simulation_last_run_at: string | null;
           embedding: number[] | null;
+          data_health_score: number | null;
+          accepting_new_patients: boolean | null;
+          telehealth_available: boolean | null;
+          insurance_types: Json | null;
+          specialty_tags: string[] | null;
+          faq_cache: Json | null;
+          faq_updated_at: string | null;
+          faq_excluded_hashes: Json | null;
         };
         Insert: {
           id?: string;
@@ -1823,6 +1831,14 @@ export type Database = {
           last_simulation_score?: number | null;
           simulation_last_run_at?: string | null;
           embedding?: number[] | null;
+          data_health_score?: number | null;
+          accepting_new_patients?: boolean | null;
+          telehealth_available?: boolean | null;
+          insurance_types?: Json | null;
+          specialty_tags?: string[] | null;
+          faq_cache?: Json | null;
+          faq_updated_at?: string | null;
+          faq_excluded_hashes?: Json | null;
         };
         Update: {
           id?: string;
@@ -1876,6 +1892,14 @@ export type Database = {
           last_simulation_score?: number | null;
           simulation_last_run_at?: string | null;
           embedding?: number[] | null;
+          data_health_score?: number | null;
+          accepting_new_patients?: boolean | null;
+          telehealth_available?: boolean | null;
+          insurance_types?: Json | null;
+          specialty_tags?: string[] | null;
+          faq_cache?: Json | null;
+          faq_updated_at?: string | null;
+          faq_excluded_hashes?: Json | null;
         };
         Relationships: [
           {

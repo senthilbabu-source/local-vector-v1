@@ -3195,3 +3195,64 @@ Multi-model SOV in `lib/services/multi-model-sov.ts`, config in `lib/config/sov-
 * **Tests:** 14 sov-model-normalizer + 14 multi-model-sov + 10 model-breakdown-route + 8 model-breakdown-component = 46 Vitest. 5 Playwright E2E.
 
 ---
+
+## §158. IndexNow — Autopilot + Magic Menu Integration (Sprint 129)
+
+`pingIndexNow()` is ALWAYS fire-and-forget. Never await it in a user-facing flow. Never let IndexNow failure block publish, approve, or any write operation. Only call after confirmed successful DB write.
+
+* **Two new call sites.** Content-drafts `publishDraft()` pings IndexNow after successful GBP or WordPress publish (with `result.publishedUrl`). Magic-menus `approveAndPublish()` pings with `/m/[slug]` URL after successful publish.
+* **Fire-and-forget pattern.** `pingIndexNow([url]).catch(err => Sentry.captureException(err, { tags: { component: 'indexnow', sprint: '129' } }))` — no `await`, catch-and-log only.
+* **No ping when URL absent.** GBP/WordPress publish guards on `result.publishedUrl` truthy. Magic-menus guards on `current.public_slug` truthy (already inside the slug revalidation block).
+* **INDEXNOW_API_KEY documented.** `.env.local.example` line 154. Returns false silently when missing.
+* **Tests:** 10 Vitest (8 core pingIndexNow behavior + 2 approveAndPublish integration). 0 regressions.
+
+---
+
+## §159. Reality Score DataHealth v2 (Sprint 124)
+
+DataHealth scoring in `lib/services/data-health.service.ts`. `computeDataHealth()` is the ONLY place DataHealth is calculated. Never inline the formula. Cron refreshes nightly; dashboard reads from `data_health_score` cache during day.
+
+* **5 dimensions, 100 total points.** Core Identity (30pts: name/address/phone/website), Hours (20pts: all 7 days), Amenities (20pts: >50% set), Category/Description (15pts: category + desc≥50chars), Menu/Services (15pts: published magic menu).
+* **GBP import fairness.** When `gbp_synced_at` is set (GBP-imported), amenities null is expected — full 20pts awarded. Uses existing column as proxy, no new `gbp_import_source` column needed.
+* **`computeDataHealthFromData()` is pure.** No DB access, no side effects. Used for testing. `computeDataHealth()` wraps it with Supabase queries.
+* **`deriveRealityScore()` updated.** New signature: `(openAlertCount, visibilityScore, dataHealthScore?, simulationScore?)`. Priority: real dataHealthScore > simulationScore blend > 100 fallback.
+* **Cached on locations table.** `data_health_score INTEGER` column. Populated by nightly cron, read by dashboard.
+* **Cron:** `data-health-refresh` daily 5 AM UTC. Kill switch: `STOP_DATA_HEALTH_CRON`. Registered in vercel.json (18→19 total crons after Sprint 128).
+* **Migration:** `20260322000003_data_health_score.sql`.
+* **Tests:** 38 Vitest (6 coreIdentity + 6 hours + 7 amenities + 5 categoryDesc + 2 menuServices + 7 composite + 4 deriveRealityScore + 2 cron registration). 0 regressions.
+
+---
+
+## §160. Dynamic FAQ Auto-Generation (Sprint 128)
+
+FAQ generation in `lib/faq/faq-generator.ts`, schema in `lib/faq/faq-schema-builder.ts`. Server actions in `app/actions/faq.ts`.
+
+* **`generateFAQs()` is the ONLY place** FAQ pairs are created. Pure function — no AI calls, no I/O. Generates from ground truth (hours, location, menu items, amenities, operational status, medical templates).
+* **Content hash exclusions:** SHA-256 of question string stored in `locations.faq_excluded_hashes` (JSONB array). `applyExclusions()` filters by hash. Never use index-based or topic-string exclusion.
+* **FAQPair type:** `{id, question, answer, contentHash, source}`. Source is one of: hours, location, menu, amenity, operational, medical.
+* **Cap:** Generate max 15 pairs; inject max 10 in FAQPage schema (`toFAQPageJsonLd()`).
+* **Medical rule:** When `isMedicalCategory()=true`, use `MEDICAL_FAQ_TEMPLATES` for medical-specific FAQs (§161). Skip food/amenity generators.
+* **No HTML in answers:** `stripHtml()` mandatory before schema injection. `truncateAnswer()` caps at 300 chars.
+* **FAQ cache on `locations` table.** `faq_cache` (JSONB array of FAQPair), `faq_updated_at` (timestamptz), `faq_excluded_hashes` (JSONB array of SHA-256 strings). Migration `20260322000004_faq_cache.sql`.
+* **Cache pattern:** Nightly cron populates `locations.faq_cache`. `/m/[slug]` reads from cache via locations join; never generates on-request.
+* **Server actions:** `excludeFAQPair()`, `unhideFAQPair()`, `regenerateFAQs()`, `getFAQPreview()` in `app/actions/faq.ts`. All require auth + org ownership.
+* **Barrel export.** `lib/faq/index.ts` exports generateFAQs, applyExclusions, makeHash, toFAQPageJsonLd, stripHtml, truncateAnswer + types.
+* **Cron:** `faq-regeneration` daily 3 AM UTC. Kill switch: `STOP_FAQ_CRON`. Registered in vercel.json (19 total crons).
+* **Tests:** 54 Vitest (6 hours + 3 location + 2 operational + 3 menu + 3 amenity + 4 medical + 6 general + 4 exclusions + 5 jsonLd + 3 stripHtml + 2 truncateAnswer + 3 makeHash + 1 cron registration + 3 migration + 3 schema + 3 db types). 0 regressions.
+
+---
+
+## §161. Medical/Dental Scaffolding v2 (Sprint 127)
+
+Medical/dental vertical extensions in `lib/schema-generator/medical-procedure-types.ts`, `lib/services/medical-faq-templates.ts`, `lib/services/medical-copy-guard.ts`.
+
+* **`isMedicalCategory()` is the single gate** for all medical-specific behavior. All medical paths check it.
+* **`buildAvailableServices(specialtyTags)`** in `medical-procedure-types.ts`. Builds `availableService` array for MedicalClinic/Physician/Dentist schema. 8 dental categories, 7 medical categories. Cap at 20 services. Dedup by name. Auto-detects dental vs medical catalog from tag names.
+* **HIPAA copy rule:** All AI-generated copy for medical orgs MUST pass `checkMedicalCopy()` in `medical-copy-guard.ts`. Forbidden: diagnose, treat, cure, guarantee, painless, 100% success, best doctor in, risk-free, miracle. Disclaimer required for: treatment, procedure, diagnosis, medication, surgery, therapy.
+* **FAQ templates:** 15 templates in `MEDICAL_FAQ_TEMPLATES`. `getApplicableTemplates()` filters to fields that are non-null and non-empty. `renderFAQTemplate()` substitutes {businessName}, {city}, {phone}, {insuranceList}, {hoursString}, {specialty} with fallbacks.
+* **New location columns:** `accepting_new_patients` (BOOLEAN NULL), `telehealth_available` (BOOLEAN NULL), `insurance_types` (JSONB DEFAULT '[]'), `specialty_tags` (TEXT[] DEFAULT '{}'). Medical/dental only — nullable for non-medical orgs.
+* **Migration:** `20260322000005_medical_fields.sql`.
+* **Never modify Sprint E files.** `medical-types.ts`, `industry-config.ts`, `sov-seed.ts` are complete. Only add new files.
+* **Tests:** 48 Vitest (8 buildAvailableServices + 2 catalogs + 7 getApplicableTemplates + 5 renderFAQTemplate + 11 checkMedicalCopy + 3 templates + 4 migration + 4 schema + 4 db types). 0 regressions.
+
+---

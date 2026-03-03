@@ -21,6 +21,9 @@ import type {
   DayHours,
   Amenities,
 } from '@/lib/types/ground-truth';
+import { toFAQPageJsonLd } from '@/lib/faq/faq-schema-builder';
+import { applyExclusions } from '@/lib/faq/faq-generator';
+import type { FAQPair } from '@/lib/faq/faq-generator';
 import MenuSearch from './_components/MenuSearch';
 
 // ---------------------------------------------------------------------------
@@ -84,6 +87,8 @@ type LocationData = {
   website_url: string | null;
   hours_data: HoursData | null;
   amenities: Partial<Amenities> | null;
+  faq_cache: FAQPair[] | null;
+  faq_excluded_hashes: string[] | null;
 };
 
 type PublicMenuData = {
@@ -264,11 +269,11 @@ const fetchPublicMenuPage = cache(
         // This page only shows PUBLIC data (is_published=true), so service role is safe.
         const supabase = createServiceRoleClient();
 
-        // Fetch menu header + full location data (incl. hours_data and amenities).
+        // Fetch menu header + full location data (incl. hours_data, amenities, FAQ cache).
         const { data: menu } = (await supabase
           .from('magic_menus')
           .select(
-            'id, public_slug, location_id, locations(id, business_name, address_line1, address_line2, city, state, zip, phone, website_url, hours_data, amenities)'
+            'id, public_slug, location_id, locations(id, business_name, address_line1, address_line2, city, state, zip, phone, website_url, hours_data, amenities, faq_cache, faq_excluded_hashes)'
           )
           .eq('public_slug', slug)
           .eq('is_published', true)
@@ -346,6 +351,16 @@ export default async function PublicMenuPage({
   const restaurantSchema = buildRestaurantSchema(menu);
   const menuSchema       = buildMenuSchema(menuDisplayName, categories);
 
+  // ── FAQ schema (Sprint 128) ───────────────────────────────────────────
+  const rawFaqCache = (loc?.faq_cache as FAQPair[] | null) ?? [];
+  const excludedHashes = (loc?.faq_excluded_hashes as string[]) ?? [];
+  const faqPairs = rawFaqCache.length > 0
+    ? applyExclusions(rawFaqCache, excludedHashes)
+    : [];
+  const faqSchemaJson = faqPairs.length > 0
+    ? JSON.parse(toFAQPageJsonLd(faqPairs))
+    : null;
+
   // ── Hours rendering prep ────────────────────────────────────────────────
   const hoursData = loc?.hours_data ?? null;
   const hoursRows: { day: DayOfWeek; label: string; display: string }[] =
@@ -375,6 +390,14 @@ export default async function PublicMenuPage({
         // eslint-disable-next-line react/no-danger
         dangerouslySetInnerHTML={{ __html: safeJsonLd(menuSchema) }}
       />
+      {/* ── JSON-LD: FAQPage (Sprint 128) ─────────────────────────── */}
+      {faqSchemaJson && (
+        <script
+          type="application/ld+json"
+          // eslint-disable-next-line react/no-danger
+          dangerouslySetInnerHTML={{ __html: safeJsonLd(faqSchemaJson) }}
+        />
+      )}
 
       {/* ── Page body ─────────────────────────────────────────────── */}
       <div className="min-h-screen py-10 px-4">
@@ -576,6 +599,30 @@ export default async function PublicMenuPage({
               )}
             </section>
           ))}
+
+          {/* ── FAQ section (Sprint 128) ────────────────────────────── */}
+          {faqPairs.length > 0 && (
+            <section
+              aria-label="Frequently asked questions"
+              className="rounded-2xl bg-surface-dark border border-white/5 px-6 py-5"
+            >
+              <h2 className="text-sm font-semibold text-white mb-4">
+                Frequently Asked Questions
+              </h2>
+              <dl className="space-y-4">
+                {faqPairs.map((faq) => (
+                  <div key={faq.id}>
+                    <dt className="text-sm font-medium text-slate-300">
+                      {faq.question}
+                    </dt>
+                    <dd className="mt-1 text-xs text-slate-400 leading-relaxed">
+                      {faq.answer}
+                    </dd>
+                  </div>
+                ))}
+              </dl>
+            </section>
+          )}
 
           {/* ── AI-discovery footer ──────────────────────────────────── */}
           <footer className="rounded-2xl border border-white/5 bg-surface-dark px-6 py-5">

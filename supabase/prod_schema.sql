@@ -655,7 +655,15 @@ CREATE TABLE IF NOT EXISTS "public"."locations" (
     "timezone" character varying(50) DEFAULT 'America/New_York'::character varying,
     "location_order" integer DEFAULT 0,
     "autopilot_last_run_at" timestamp with time zone,
-    "drafts_pending_count" integer DEFAULT 0
+    "drafts_pending_count" integer DEFAULT 0,
+    "data_health_score" integer,
+    "accepting_new_patients" boolean,
+    "telehealth_available" boolean,
+    "insurance_types" "jsonb" DEFAULT '[]'::"jsonb",
+    "specialty_tags" "text"[] DEFAULT '{}'::"text"[],
+    "faq_cache" "jsonb",
+    "faq_updated_at" timestamp with time zone,
+    "faq_excluded_hashes" "jsonb" DEFAULT '[]'::"jsonb"
 );
 
 

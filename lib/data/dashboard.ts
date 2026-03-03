@@ -83,6 +83,8 @@ export interface DashboardData {
   draftsMonthlyLimit: number;
   // Sprint 110: Sandbox simulation score for Reality Score DataHealth factor
   simulationScore: number | null;
+  // Sprint 124: Cached DataHealth score from data-health-refresh cron
+  dataHealthScore: number | null;
 }
 
 // ---------------------------------------------------------------------------
@@ -366,19 +368,21 @@ export async function fetchDashboardData(orgId: string, locationId?: string | nu
   }
   const draftsMonthlyLimit = getDraftLimit(orgPlan);
 
-  // Sprint 110: Fetch sandbox simulation score for Reality Score DataHealth factor
+  // Sprint 110 + 124: Fetch simulation score + cached DataHealth for Reality Score
   let simulationScore: number | null = null;
+  let dataHealthScore: number | null = null;
   try {
     if (locationId) {
       const { data: simLoc } = await supabase
         .from('locations')
-        .select('last_simulation_score')
+        .select('last_simulation_score, data_health_score')
         .eq('id', locationId)
         .maybeSingle();
       simulationScore = simLoc?.last_simulation_score ?? null;
+      dataHealthScore = simLoc?.data_health_score ?? null;
     }
   } catch (err) {
-    Sentry.captureException(err, { tags: { file: 'dashboard.ts', sprint: '110' } });
+    Sentry.captureException(err, { tags: { file: 'dashboard.ts', sprint: '124' } });
   }
 
   return {
@@ -413,5 +417,6 @@ export async function fetchDashboardData(orgId: string, locationId?: string | nu
     draftsMonthlyUsed,
     draftsMonthlyLimit,
     simulationScore,
+    dataHealthScore,
   };
 }

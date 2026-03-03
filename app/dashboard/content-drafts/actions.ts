@@ -10,9 +10,11 @@ import { publishAsDownload } from '@/lib/autopilot/publish-download';
 import { publishToGBP } from '@/lib/autopilot/publish-gbp';
 import { publishToWordPress } from '@/lib/autopilot/publish-wordpress';
 import { schedulePostPublishRecheck } from '@/lib/autopilot/post-publish';
+import { pingIndexNow } from '@/lib/indexnow';
 import type { AutopilotLocationContext } from '@/lib/types/autopilot';
 import { z } from 'zod';
 import { generateAndSaveEmbedding } from '@/lib/services/embedding-service';
+import * as Sentry from '@sentry/nextjs';
 
 // ---------------------------------------------------------------------------
 // Shared result type
@@ -439,6 +441,13 @@ export async function publishDraft(formData: FormData): Promise<PublishActionRes
         await schedulePostPublishRecheck(draft.id, draft.location_id, draft.target_prompt);
       }
 
+      // Fire-and-forget IndexNow ping — never blocks publish flow
+      if (result.publishedUrl) {
+        pingIndexNow([result.publishedUrl]).catch((err) => {
+          Sentry.captureException(err, { tags: { component: 'indexnow', sprint: '129' } });
+        });
+      }
+
       revalidatePath('/dashboard/content-drafts');
       return { success: true, publishedUrl: result.publishedUrl };
     }
@@ -480,6 +489,13 @@ export async function publishDraft(formData: FormData): Promise<PublishActionRes
 
       if (draft.target_prompt && draft.location_id) {
         await schedulePostPublishRecheck(draft.id, draft.location_id, draft.target_prompt);
+      }
+
+      // Fire-and-forget IndexNow ping — never blocks publish flow
+      if (result.publishedUrl) {
+        pingIndexNow([result.publishedUrl]).catch((err) => {
+          Sentry.captureException(err, { tags: { component: 'indexnow', sprint: '129' } });
+        });
       }
 
       revalidatePath('/dashboard/content-drafts');

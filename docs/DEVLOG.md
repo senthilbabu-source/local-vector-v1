@@ -4,6 +4,91 @@
 
 ---
 
+## 2026-03-02 — Sprint 127: Medical/Dental Scaffolding v2 (Completed)
+
+Sprint 127: Medical/Dental v2 — extends Sprint E's foundation with procedure catalogs, FAQ templates, and HIPAA copy guardrails. 8 dental procedure categories + 7 medical specialty categories feed `buildAvailableServices()` for JSON-LD schema enrichment. 15 FAQ templates with placeholder substitution and field-presence filtering. Copy guard prevents AI from generating medical advice claims. 4 new location columns for insurance/telehealth/specialty data.
+
+**Files created:**
+- `lib/schema-generator/medical-procedure-types.ts` — DENTAL_PROCEDURE_CATEGORIES (8), MEDICAL_SPECIALTY_CATEGORIES (7), buildAvailableServices()
+- `lib/services/medical-faq-templates.ts` — 15 MEDICAL_FAQ_TEMPLATES, getApplicableTemplates(), renderFAQTemplate()
+- `lib/services/medical-copy-guard.ts` — checkMedicalCopy(), 8 forbidden patterns, 6 disclaimer triggers
+- `supabase/migrations/20260322000005_medical_fields.sql` — accepting_new_patients, telehealth_available, insurance_types, specialty_tags
+- `src/__tests__/unit/medical-scaffolding.test.ts` — 48 tests
+
+**Files modified:**
+- `supabase/prod_schema.sql` — 4 new columns on locations
+- `lib/supabase/database.types.ts` — Row/Insert/Update for new columns
+
+**Golden fixtures added (gap patch):**
+- `MOCK_MEDICAL_LOCATION`, `MOCK_MEDICAL_FAQ_INPUT` in `src/__fixtures__/golden-tenant.ts`
+
+**Tests:** 48 Vitest; 0 regressions
+**AI_RULES:** §161
+
+---
+
+## 2026-03-02 — Sprint 128: Pure Ground-Truth FAQ Generation (Completed — Rewritten)
+
+Sprint 128: Pure ground-truth FAQ — generates FAQ Q&A pairs deterministically from location data (hours, amenities, menu items, contact info, medical templates) with zero AI/LLM calls. FAQ cache stored on `locations` table (not magic_menus). SHA-256 content hash exclusion system. Server actions for exclude/unhide/regenerate/preview. FAQPage JSON-LD injection via `toFAQPageJsonLd()` with HTML stripping and 300-char truncation, capped at 10 pairs. Medical integration via Sprint 127's `MEDICAL_FAQ_TEMPLATES` when `isMedicalCategory()=true`.
+
+**Files created:**
+- `lib/faq/faq-generator.ts` — Pure generator: generateFAQs (6 source generators + medical), applyExclusions (SHA-256 hash set), makeHash, FAQPair type
+- `lib/faq/faq-schema-builder.ts` — toFAQPageJsonLd (cap 10), stripHtml, truncateAnswer (300 chars)
+- `app/actions/faq.ts` — Server actions: excludeFAQPair, unhideFAQPair, regenerateFAQs (+ IndexNow Call Site 3), getFAQPreview
+- `lib/faq/index.ts` — Barrel export (rewritten)
+- `app/api/cron/faq-regeneration/route.ts` — Nightly 3 AM UTC cron, CRON_SECRET auth, STOP_FAQ_CRON kill switch
+- `supabase/migrations/20260322000004_faq_cache.sql` — faq_cache, faq_updated_at, faq_excluded_hashes on locations
+- `src/__tests__/unit/dynamic-faq.test.ts` — 54 tests (rewritten)
+
+**Files modified:**
+- `app/m/[slug]/page.tsx` — FAQ data from locations join, applyExclusions() + toFAQPageJsonLd(), visible FAQ section
+- `supabase/prod_schema.sql` — faq_cache, faq_updated_at, faq_excluded_hashes on locations (removed from magic_menus)
+- `lib/supabase/database.types.ts` — FAQ types moved from magic_menus to locations
+- `vercel.json` — cron schedule 6→3 AM UTC
+- `src/__tests__/unit/sprint-f-registration.test.ts` — 18→19 crons
+- `src/__tests__/unit/sprint-n-registration.test.ts` — 18→19 crons
+
+**Files deleted:**
+- `lib/faq/dynamic-faq.service.ts` — Old AI-based service removed
+
+**Tests:** 54 Vitest; 0 regressions (net -2 from old 56)
+**AI_RULES:** §160
+
+---
+
+## 2026-03-02 — Sprint 124: Reality Score DataHealth v2 (Completed)
+
+Sprint 124: Reality Score DataHealth v2 — replaced hardcoded dataHealth=100 with real 5-dimension completeness scoring. Added `data_health_score` cached column, nightly cron, GBP import fairness. deriveRealityScore() now prioritizes real score. DataHealthBreakdown component shows 5 dimension bars with color-coded progress.
+
+**Files created (gap patch):**
+- `app/dashboard/_components/DataHealthBreakdown.tsx` — Client component: 5 dimension bars (coreIdentity/30, hours/20, amenities/20, categoryDesc/15, menuServices/15), color coding (green ≥80%, amber ≥50%, red <50%), GBP import note
+
+**Golden fixtures added:**
+- `MOCK_DATA_HEALTH_INPUT`, `MOCK_DATA_HEALTH_SCORE`, `MOCK_DATA_HEALTH_INPUT_GBP` in `src/__fixtures__/golden-tenant.ts`
+
+**Tests:** 38 Vitest; 0 regressions
+**AI_RULES:** §159
+
+---
+
+## 2026-03-02 — Sprint 129: IndexNow — Autopilot + Magic Menu Integration (Completed)
+
+Sprint 129: IndexNow Full Integration — autopilot content-drafts publishDraft() and magic-menus approveAndPublish() now ping IndexNow after successful content publication. Fire-and-forget, Sentry on failure. When a customer publishes a correction or approves a content draft, search engines are notified within seconds instead of waiting for the next crawl cycle.
+
+**Files modified:**
+- `app/dashboard/content-drafts/actions.ts` — Added `pingIndexNow` import + fire-and-forget calls after GBP and WordPress publish success paths
+- `app/dashboard/magic-menus/actions.ts` — Added `pingIndexNow` import + fire-and-forget call in `approveAndPublish()` after successful publish with `/m/[slug]` URL
+
+**Files created:**
+- `src/__tests__/unit/indexnow-integration.test.ts` — 10 tests: 8 core `pingIndexNow()` behavior (missing key, empty URLs, 200/202/429 responses, Sentry on error, payload validation, custom host) + 2 approveAndPublish integration (slug→URL, null slug→no ping)
+
+**Call Site 3 (gap patch):** `app/actions/faq.ts` → `regenerateFAQs()` pings IndexNow after FAQ cache write.
+
+**Tests:** 10 Vitest; 0 regressions
+**AI_RULES:** §158
+
+---
+
 ## 2026-03-02 — Sprint 123: Multi-Model SOV Expansion (Completed)
 
 **Goal:** Extend the SOV engine to query multiple AI models (Perplexity Sonar, GPT-4o-mini, Gemini Flash) per target query, record per-model citation results in a new `sov_model_results` table, and surface model-level breakdowns in the dashboard via a "Which AI mentions you?" disclosure panel.

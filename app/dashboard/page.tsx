@@ -70,17 +70,22 @@ export type { HallucinationRow } from '@/lib/data/dashboard'; // re-export for A
 //   reality_score = (Visibility × 0.4) + (Accuracy × 0.4) + (DataHealth × 0.2)
 // Visibility: live from visibility_analytics.share_of_voice (Phase 5 SOV cron)
 // Accuracy:   100 with 0 open alerts; −15 per open alert, floor 40
-// Data Health: 100 — user cleared the onboarding guard (ground truth exists)
-// Sprint 110: When simulationScore is available, DataHealth = (100 × 0.5) + (simulationScore × 0.5)
+// Data Health: Sprint 124 — real 5-dimension completeness score from computeDataHealth()
+//   Falls back to simulationScore blend when data_health_score is null,
+//   falls back to 100 when neither is available.
 export function deriveRealityScore(
   openAlertCount: number,
   visibilityScore: number | null,
+  dataHealthScore?: number | null,
   simulationScore?: number | null,
 ) {
   const accuracy = openAlertCount === 0 ? 100 : Math.max(40, 100 - openAlertCount * 15);
-  const dataHealth = simulationScore != null
-    ? Math.round(100 * 0.5 + simulationScore * 0.5)
-    : 100;
+  // Sprint 124: prefer real DataHealth score, fallback to simulation blend, fallback to 100
+  const dataHealth = dataHealthScore != null
+    ? dataHealthScore
+    : simulationScore != null
+      ? Math.round(100 * 0.5 + simulationScore * 0.5)
+      : 100;
   if (visibilityScore === null) {
     return { visibility: null, accuracy, dataHealth, realityScore: null };
   }
@@ -106,7 +111,7 @@ export default async function DashboardPage() {
     healthScore, crawlerSummary, hasPublishedMenu, cronHealth, freshness,
     benchmark, locationContext,
     draftsPending, draftsApproved, draftsMonthlyUsed, draftsMonthlyLimit,
-    simulationScore,
+    simulationScore, dataHealthScore,
   } = await fetchDashboardData(ctx.orgId ?? '', activeLocationId);
 
   // ── Sprint 77: Proof Timeline summary card (Sprint 100: uses active location)
@@ -177,7 +182,7 @@ export default async function DashboardPage() {
     }
   }
 
-  const scores = deriveRealityScore(openAlerts.length, visibilityScore, simulationScore);
+  const scores = deriveRealityScore(openAlerts.length, visibilityScore, dataHealthScore, simulationScore);
   const firstName = ctx.fullName?.split(' ')[0] ?? ctx.email.split('@')[0];
   const hasOpenAlerts = openAlerts.length > 0;
   const draftGated = canRunAutopilot(planTier);

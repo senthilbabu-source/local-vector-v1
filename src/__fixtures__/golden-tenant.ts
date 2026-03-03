@@ -3072,3 +3072,108 @@ export const MOCK_MODEL_SCORES = [
   { model_provider: 'openai_gpt4o_mini' as SOVModelId, display_name: 'ChatGPT',
     sov_percent: 42, cited_count: 5, total_queries: 12 },
 ];
+
+// ---------------------------------------------------------------------------
+// Sprint 124 — DataHealth fixtures
+// ---------------------------------------------------------------------------
+
+export const MOCK_DATA_HEALTH_INPUT: import('@/lib/services/data-health.service').LocationDataForHealth = {
+  business_name: 'Charcoal N Chill',
+  address_line1: '11950 Jones Bridge Road Ste 103',
+  phone: '(470) 546-4866',
+  website_url: 'https://charcoalnchill.com',
+  hours_data: {
+    monday: 'closed',
+    tuesday: { open: '17:00', close: '01:00' },
+    wednesday: { open: '17:00', close: '01:00' },
+    thursday: { open: '17:00', close: '01:00' },
+    friday: { open: '17:00', close: '02:00' },
+    saturday: { open: '17:00', close: '02:00' },
+    sunday: { open: '17:00', close: '01:00' },
+  },
+  amenities: {
+    has_outdoor_seating: true,
+    serves_alcohol: true,
+    has_hookah: true,
+    is_kid_friendly: false,
+    takes_reservations: true,
+    has_live_music: true,
+    has_dj: true,
+    has_private_rooms: true,
+  },
+  categories: ['Hookah Bar', 'Indian Restaurant', 'Fusion Restaurant', 'Lounge'],
+  description: 'Premium hookah lounge and Indo-American fusion restaurant in Alpharetta, GA.',
+  gbp_import_source: false,
+};
+
+export const MOCK_DATA_HEALTH_SCORE: import('@/lib/services/data-health.service').DataHealthBreakdown = {
+  total: 100,
+  coreIdentity: 30,
+  hoursComplete: 20,
+  amenities: 20,
+  categoryDesc: 15,
+  menuServices: 15,
+  gbpImportSource: false,
+};
+
+export const MOCK_DATA_HEALTH_INPUT_GBP: import('@/lib/services/data-health.service').LocationDataForHealth = {
+  ...MOCK_DATA_HEALTH_INPUT,
+  amenities: null,
+  gbp_import_source: true,
+};
+
+// ---------------------------------------------------------------------------
+// Sprint 127 — Medical/dental golden tenant fixtures
+// ---------------------------------------------------------------------------
+
+export const MOCK_MEDICAL_LOCATION = {
+  name: 'Bright Smiles Dental',
+  slug: 'midtown',
+  business_name: 'Bright Smiles Dental',
+  address_line1: '200 Peachtree St NW Ste 300',
+  city: 'Atlanta',
+  state: 'GA',
+  zip: '30303',
+  phone: '(404) 555-1234',
+  website_url: 'https://brightsmilesdental.com',
+  operational_status: 'OPERATIONAL',
+  hours_data: {
+    monday: { open: '08:00', close: '17:00' },
+    tuesday: { open: '08:00', close: '17:00' },
+    wednesday: { open: '08:00', close: '17:00' },
+    thursday: { open: '08:00', close: '17:00' },
+    friday: { open: '08:00', close: '14:00' },
+    saturday: null,
+    sunday: null,
+  },
+  amenities: null,
+  categories: ['Dentist', 'Cosmetic Dentistry', 'Orthodontics'],
+  accepting_new_patients: true,
+  telehealth_available: true,
+  insurance_types: ['Delta Dental', 'Cigna', 'Aetna', 'MetLife'],
+  specialty_tags: ['Preventive', 'Cosmetic', 'Orthodontics'],
+} as const;
+
+export const MOCK_MEDICAL_FAQ_INPUT: import('@/lib/faq/faq-generator').FAQGeneratorInput = {
+  name: 'Bright Smiles Dental',
+  city: 'Atlanta',
+  state: 'GA',
+  phone: '(404) 555-1234',
+  website_url: 'https://brightsmilesdental.com',
+  hours_data: {
+    monday: { open: '08:00', close: '17:00' },
+    tuesday: { open: '08:00', close: '17:00' },
+    wednesday: { open: '08:00', close: '17:00' },
+    thursday: { open: '08:00', close: '17:00' },
+    friday: { open: '08:00', close: '14:00' },
+  },
+  amenities: null,
+  categories: ['Dentist', 'Cosmetic Dentistry'],
+  display_name: 'Full-service dental practice',
+  operational_status: 'OPERATIONAL',
+  menuItemNames: [],
+  accepting_new_patients: true,
+  telehealth_available: true,
+  insurance_types: ['Delta Dental', 'Cigna', 'Aetna'],
+  specialty_tags: ['Preventive', 'Cosmetic'],
+};
