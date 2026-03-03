@@ -12,7 +12,7 @@ LocalVector is an AEO/GEO SaaS platform that helps local businesses monitor and 
 - **Billing:** Stripe webhooks → `organizations.plan_tier` enum (`trial | starter | growth | agency`)
 - **Email:** Resend + React Email (`emails/`)
 - **Cache:** Upstash Redis (`lib/redis.ts`) — optional, all callers must degrade gracefully
-- **Testing:** Vitest (unit/integration in `src/__tests__/`), Playwright (E2E in `tests/e2e/`, 41 specs). Current: ~5578 tests, 369 files.
+- **Testing:** Vitest (unit/integration in `src/__tests__/`), Playwright (E2E in `tests/e2e/`, 41 specs). Current: ~5715 tests, 378 files.
 - **Monitoring:** Sentry (client, server, edge configs) — all catch blocks instrumented (Sprint A, AI_RULES §70)
 
 ## Architecture Rules
@@ -23,7 +23,7 @@ LocalVector is an AEO/GEO SaaS platform that helps local businesses monitor and 
 - **Plan display names live in `lib/plan-display-names.ts`.** Never inline plan tier display logic (e.g., `capitalize(plan)`) — always use `getPlanDisplayName()`. Maps: trial→The Audit, starter→Starter, growth→AI Shield, agency→Brand Fortress, null→Free. (AI_RULES §71)
 - **AI providers are centralized.** Never call AI APIs directly — use `getModel(key)` from `lib/ai/providers.ts`. Mock fallbacks activate when API keys are absent.
 - **RLS pattern:** Every tenant-scoped table has `org_isolation_select/insert/update/delete` policies using `org_id = public.current_user_org_id()`.
-- **Cron routes** live in `app/api/cron/` and require `Authorization: Bearer <CRON_SECRET>` header. Each has a kill switch env var. 24 crons registered in `vercel.json`, 9 in `CRON_REGISTRY`.
+- **Cron routes** live in `app/api/cron/` and require `Authorization: Bearer <CRON_SECRET>` header. Each has a kill switch env var. 25 crons registered in `vercel.json`, 9 in `CRON_REGISTRY`.
 - **Sidebar plan gating:** NAV_ITEMS in `components/layout/Sidebar.tsx` have optional `minPlan` field. Locked items render as buttons with Lock icon → `UpgradeModal`. (P1-FIX-06, AI_RULES §175)
 - **Manual scan trigger:** Growth/Agency users can trigger on-demand SOV scans via `POST /api/sov/trigger-manual`. Rate-limited 1/hr/org. Inngest async. (P1-FIX-05, AI_RULES §177)
 
@@ -113,6 +113,11 @@ lib/inngest/functions/manual-sov-trigger.ts — Inngest async SOV scan: 4 steps,
 lib/data/scan-data-resolver.ts — Unified data mode resolver: sample/real/empty modes, getNextSundayUTC, isFirstScanRecent (P3-FIX-13, §178)
 components/dashboard/ScanCompleteBanner.tsx — First scan success banner: auto-dismiss 8s, localStorage one-shot (P3-FIX-13, §178)
 app/api/credits/history/route.ts — GET credit balance + usage history, auth-required (P3-FIX-14, §178)
+lib/security/                  — CSP builder, scanner UA guard, barrel export (P6-FIX-25, §183)
+lib/logger.ts                  — Structured JSON logger with redaction, request tracing context (P7-FIX-30, §184)
+app/api/settings/data-export/  — GDPR data export API, owner-only, rate-limited (P6-FIX-26, §186)
+app/api/cron/data-cleanup/     — GDPR 7-day grace period deletion cron (P6-FIX-26, §186)
+components/ui/CookieConsentBanner.tsx — Cookie consent banner, localStorage-backed (P6-FIX-26, §186)
 lib/supabase/database.types.ts — Full Database type (59 tables, 9 enums, Relationships)
 supabase/migrations/   — Applied SQL migrations (55, timestamp-ordered)
 supabase/prod_schema.sql — Full production schema dump
@@ -219,6 +224,8 @@ app/dashboard/_components/BenchmarkComparisonCard.tsx — City benchmark compari
 59. `20260321000004_vector_match_functions.sql` — 4 SECURITY DEFINER match RPCs (Sprint 119)
 60. `20260428000001_manual_scan_status.sql` — `last_manual_scan_triggered_at` + `manual_scan_status` on organizations (P1-FIX-05)
 61. `20260303100001_credit_usage_log.sql` — `credit_usage_log` append-only audit trail (P3-FIX-14)
+62. `20260304100001_rls_gap_fill.sql` — RLS on 10 tenant-scoped tables (entity_authority_*, intent_discoveries, listing_*, nap_discrepancies, page_schemas, post_publish_audits, vaio_profiles) (P6-FIX-25)
+63. `20260304100002_gdpr_deletion.sql` — `deletion_requested_at`, `deletion_reason` columns on organizations (P6-FIX-26)
 
 ## Testing Commands
 
@@ -747,7 +754,12 @@ APPLE_MAPS_PRIVATE_KEY, APPLE_MAPS_KEY_ID, APPLE_MAPS_TEAM_ID
 | P5-FIX-22 | API Rate Limiting — Systematic Coverage | Complete | §180 |
 | P5-FIX-23 | Error Boundaries — Graceful Failure Handling | Complete | §181 |
 | P5-FIX-24 | Performance — CWV, Bundle, Caching | Complete | §181 |
+| P6-FIX-25 | Security Headers + CSP + Scanner Blocking + RLS Gap Fill | Complete | §183 |
+| P6-FIX-26 | GDPR Compliance (Data Export, Deletion Grace, Cookie Consent) | Complete | §186 |
+| P6-FIX-28 | Mobile Responsiveness | Complete | §187 |
+| P7-FIX-30 | Structured Logging + Request Tracing | Complete | §184 |
+| P7-FIX-31 | CI/CD Pipeline Enhancement | Complete | §185 |
 
 ## Build History
 
-See `DEVLOG.md` (project root) and `docs/DEVLOG.md` for the complete sprint-by-sprint build log. Current sprint: 135 (+ FIX-1 through FIX-8 + Sprint A through Sprint O + P0-FIX-01 through P5-FIX-24). AI_RULES: §1–§182 (182 sections). Production readiness: all audit issues resolved. **V1 complete.**
+See `DEVLOG.md` (project root) and `docs/DEVLOG.md` for the complete sprint-by-sprint build log. Current sprint: 135 (+ FIX-1 through FIX-8 + Sprint A through Sprint O + P0-FIX-01 through P7-FIX-31). AI_RULES: §1–§187 (187 sections). Production readiness: all audit issues resolved. **V1 complete.**

@@ -4,6 +4,51 @@
 
 ---
 
+## 2026-03-03 — P6–P8 Sprint Block (Cherry-Pick): Security + Logging + CI/CD + GDPR + Mobile (P6-FIX-25 → P6-FIX-28)
+
+5-sprint cherry-pick from 14-sprint P6-P8 block. Skipped: P7-FIX-29 (Sentry — already done), P6-FIX-27 (Accessibility — deferred), P7-FIX-32 (Pre-Launch docs), P8-FIX-33 to FIX-38 (product features — deferred).
+
+### P6-FIX-25: Security Headers + CSP + Scanner Blocking + RLS Gap Fill
+- **Created** `lib/security/csp.ts` — `buildCSP()` with 11 CSP directives (self + Stripe + Supabase + Sentry + Google Fonts). `getCSPHeaderName()` production vs dev mode switching.
+- **Created** `lib/security/scanner-guard.ts` — `isScannerUA()` blocking 12 scanner patterns (sqlmap, nikto, nessus, nmap, etc.)
+- **Modified** `next.config.ts` — added `headers()` function with 7 security headers (HSTS, X-Frame-Options, X-Content-Type-Options, Referrer-Policy, Permissions-Policy, CSP)
+- **Modified** `proxy.ts` — scanner UA blocking at top of `handleProxy()`, returns 403
+- **Created** `supabase/migrations/20260304100001_rls_gap_fill.sql` — RLS enabled on 10 tables (entity_authority_citations/profiles/snapshots, intent_discoveries, listing_platform_ids, listing_snapshots, nap_discrepancies, page_schemas, post_publish_audits, vaio_profiles)
+- **Tests:** 76 (security-csp.test.ts: 19, security-scanner-guard.test.ts: 22, security-rls-audit.test.ts: 35)
+
+### P7-FIX-30: Structured Logging + Request Tracing
+- **Created** `lib/logger.ts` — structured JSON logger (production) / human-readable (dev). Sensitive field redaction (8 field names). Error serialization.
+- **Modified** `proxy.ts` — `x-request-id` header generation via `crypto.randomUUID()`, passthrough on response
+- **Modified** `app/api/settings/danger/delete-org/route.ts` — replaced `console.warn` with `Sentry.captureException`
+- **Tests:** 19 (logger.test.ts: 19)
+
+### P7-FIX-31: CI/CD Pipeline Enhancement
+- **Modified** `.github/workflows/test.yml` — added lint step (`npx next lint`), build step (`npm run build`), SENTRY_AUTH_TOKEN env
+- **Tests:** 6 (vercel-config-valid.test.ts: 6)
+
+### P6-FIX-26: GDPR Compliance — Data Export, Deletion Grace Period, Cookie Consent
+- **Created** `app/api/settings/data-export/route.ts` — GDPR data export API (owner-only, rate-limited 1/day, 9 tables, Stripe field redaction)
+- **Created** `app/api/cron/data-cleanup/route.ts` — daily cron for 7-day grace period deletion (25th cron)
+- **Created** `components/ui/CookieConsentBanner.tsx` — localStorage-backed cookie consent (essential cookies only)
+- **Created** `supabase/migrations/20260304100002_gdpr_deletion.sql` — `deletion_requested_at`, `deletion_reason` on organizations
+- **Modified** `app/api/settings/danger/delete-org/route.ts` — immediate CASCADE → 7-day grace period
+- **Modified** `lib/rate-limit/types.ts` — added `data_export` rate limit config
+- **Modified** `vercel.json` — added data-cleanup cron (`0 2 * * *`)
+- **Modified** `app/layout.tsx` — added CookieConsentBanner
+- **Tests:** 20 (data-export-route.test.ts: 6, data-cleanup-cron.test.ts: 6, cookie-consent-banner.test.tsx: 8)
+
+### P6-FIX-28: Mobile Responsiveness
+- **Modified** TeamMembersTable, PendingInvitationsTable — `overflow-hidden` → `overflow-x-auto`
+- **Modified** InviteMemberModal, ListingFixModal, SimulationResultsModal, DangerZoneSettings — `p-4` on modal backdrops
+- **Modified** AddLocationModal — `grid-cols-5` → `grid-cols-1 sm:grid-cols-5`
+- **Tests:** 16 (mobile-responsive.test.ts: 16)
+
+**Regressions fixed:** cron count 24→25 in sprint-f/n-registration tests, `STOP_DATA_CLEANUP_CRON` added to `.env.local.example`.
+
+**Files changed:** 11 created, 15 modified. **Tests: 137 new across 9 test files.** Total: 378 files, 5,715 tests, 0 failures. AI_RULES §183-§187.
+
+---
+
 ## 2026-03-03 — P3–P5 Sprint Block: Data Integrity + Content + Infrastructure (P3-FIX-13 → P5-FIX-24)
 
 12-sprint execution block. P3 (data integrity), P4 (content validation), P5 (infrastructure). Same prompt→reality adaptation as P0/P1 blocks. Pages already existed for P4 sprints — tests added to validate patterns.

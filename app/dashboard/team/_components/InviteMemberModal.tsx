@@ -104,14 +104,14 @@ export default function InviteMemberModal({ open, onClose, onInviteSent }: Invit
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       {/* Backdrop */}
       <div
         className="absolute inset-0 bg-black/60"
         onClick={onClose}
       />
 
-      {/* Modal */}
+      {/* Modal — P6-FIX-28: mobile-safe max-width */}
       <div
         data-testid="invite-member-modal"
         className="relative w-full max-w-md rounded-xl border border-white/5 bg-surface-dark p-6 shadow-xl"

@@ -1,6 +1,7 @@
 // ---------------------------------------------------------------------------
-// DELETE /api/settings/danger/delete-org — Sprint 121: Delete Organization
+// DELETE /api/settings/danger/delete-org — Sprint 121 + P6-FIX-26
 // OWNER ONLY. Service role client. Confirmation = org slug.
+// P6-FIX-26: 7-day grace period. Cron data-cleanup handles hard delete.
 // ---------------------------------------------------------------------------
 
 import * as Sentry from '@sentry/nextjs';
@@ -72,13 +73,29 @@ export async function DELETE(request: NextRequest) {
         await stripe.subscriptions.cancel(subId);
       }
     } catch (stripeErr) {
-      console.warn('[delete-org] Stripe cancellation failed (proceeding):', stripeErr);
+      Sentry.captureException(stripeErr, {
+        tags: { sprint: '121', route: 'delete-org', step: 'stripe-cancel' },
+      });
     }
 
-    // DELETE organization (CASCADE will remove all child data)
-    await supabase.from('organizations').delete().eq('id', ctx.orgId);
+    // P6-FIX-26: Set deletion_requested_at for 7-day grace period.
+    // Cron /api/cron/data-cleanup does the actual CASCADE hard delete.
+    const now = new Date();
+    const deletionDate = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
 
-    return NextResponse.json({ ok: true, redirect: '/' });
+    await supabase
+      .from('organizations')
+      .update({
+        deletion_requested_at: now.toISOString(),
+        plan_status: 'pending_deletion',
+      })
+      .eq('id', ctx.orgId);
+
+    return NextResponse.json({
+      ok: true,
+      deletion_date: deletionDate.toISOString(),
+      message: 'Account scheduled for deletion. You have 7 days to cancel.',
+    });
   } catch (err) {
     Sentry.captureException(err, { tags: { sprint: '121', route: 'delete-org' } });
     return NextResponse.json({ error: 'delete_failed' }, { status: 500 });

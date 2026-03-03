@@ -66,7 +66,7 @@ export default function SimulationResultsModal({ isOpen, onClose, run }: Simulat
   const gaps = run.gap_analysis as GapAnalysisResult | null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60" data-testid="simulation-results-modal">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" data-testid="simulation-results-modal">
       <div className="relative w-full max-w-4xl max-h-[85vh] overflow-y-auto rounded-xl border border-white/10 bg-surface-dark p-6 shadow-2xl">
         {/* Header */}
         <div className="flex items-start justify-between mb-4">

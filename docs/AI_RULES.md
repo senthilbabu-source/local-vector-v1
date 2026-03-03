@@ -3682,3 +3682,119 @@ Growth/Agency users can trigger a full-org AI visibility scan on demand. Trial/S
 **Tests:** 0 new tests. 15 existing tests unblocked (4 + 1 + 10). Total suite: 369 files, 5,578 tests, 0 failures.
 
 ---
+
+## §183. P6-FIX-25 — Security Headers + CSP + Scanner Blocking + RLS Gap Fill (2026-03-03)
+
+**Content Security Policy (CSP):**
+- `lib/security/csp.ts` — `buildCSP()` returns CSP directive string. 11 directives: default-src self, script-src self+stripe, style-src self+fonts, img-src self+data+blob+supabase, connect-src self+supabase+sentry+stripe, frame-src stripe, object-src none, base-uri self, form-action self, frame-ancestors self, upgrade-insecure-requests.
+- `getCSPHeaderName()` returns `Content-Security-Policy` in production, `Content-Security-Policy-Report-Only` in development.
+- CSP never includes `unsafe-eval` or `unsafe-inline`.
+
+**Security Headers:**
+- `next.config.ts` `headers()` function — 7 headers on all routes `/(.*)`
+- X-DNS-Prefetch-Control: on
+- Strict-Transport-Security: max-age=63072000; includeSubDomains; preload
+- X-Frame-Options: SAMEORIGIN
+- X-Content-Type-Options: nosniff
+- Referrer-Policy: strict-origin-when-cross-origin
+- Permissions-Policy: camera=(), microphone=(), geolocation=()
+- Content-Security-Policy (via `buildCSP()`)
+
+**Scanner UA Blocking:**
+- `lib/security/scanner-guard.ts` — `isScannerUA(ua)` pure function. 12 blocked patterns: sqlmap, nikto, nessus, nmap, masscan, nuclei, dirbuster, gobuster, wfuzz, acunetix, burpsuite, openvas.
+- Integrated at top of `handleProxy()` in `proxy.ts` — returns 403 before any auth/rate-limit processing.
+- Null/empty UA passes through (don't block legitimate clients).
+
+**RLS Gap Fill:**
+- Migration `20260304100001_rls_gap_fill.sql` — Enables RLS + 4 policies (select/insert/update/delete) on 10 tables:
+  `entity_authority_citations`, `entity_authority_profiles`, `entity_authority_snapshots`, `intent_discoveries`, `listing_platform_ids`, `listing_snapshots`, `nap_discrepancies`, `page_schemas`, `post_publish_audits`, `vaio_profiles`.
+- All use standard `org_id = public.current_user_org_id()` pattern.
+- Skipped: `local_occasions` (intentionally global), `directories` (global lookup).
+
+**Tests:** 76 Vitest — security-csp.test.ts (19), security-scanner-guard.test.ts (22), security-rls-audit.test.ts (35).
+
+---
+
+## §184. P7-FIX-30 — Structured Logging + Request Tracing (2026-03-03)
+
+**Structured Logger:**
+- `lib/logger.ts` — Lightweight structured logger (no pino dependency — avoids bundle bloat).
+- Production: `JSON.stringify` output (Vercel log drain compatible).
+- Dev: human-readable format `[LEVEL] message { context }`.
+- Interface: `log.info(msg, ctx)`, `log.warn(msg, ctx)`, `log.error(msg, ctx, err?)`.
+- Context type: `{ requestId?, orgId?, userId?, route?, sprint?, duration_ms?, [key: string]: unknown }`.
+- `redactSensitiveFields(obj)` — strips values for: password, token, secret, authorization, stripe_customer_id, stripe_subscription_id, cookie, api_key, apiKey. Replaces with `'[REDACTED]'`.
+- Error serialization: `log.error()` extracts `message`, `stack`, `code` from Error objects.
+
+**Request Tracing:**
+- `proxy.ts` — Generates `x-request-id` header via `crypto.randomUUID()` if not already present.
+- Attaches `x-request-id` to response headers on all requests.
+- Existing `x-request-id` from upstream is preserved (not overwritten).
+
+**Tests:** 19 Vitest — logger.test.ts (19).
+
+---
+
+## §185. P7-FIX-31 — CI/CD Pipeline Enhancement (2026-03-03)
+
+**GitHub Actions Enhancement:**
+- `.github/workflows/test.yml` — Enhanced pipeline: TypeScript → Lint → Vitest → Build.
+- Added `npx next lint` step between typecheck and test.
+- Added `npm run build` step after tests (catches SSR/RSC build errors).
+- Build step has `SENTRY_AUTH_TOKEN: ''` to prevent Sentry source map upload in CI.
+- Job name: "TypeScript + Lint + Vitest + Build".
+
+**Vercel Config Validation:**
+- `src/__tests__/unit/vercel-config-valid.test.ts` — 6 tests: valid JSON, crons array, no duplicate schedules, paths start with /api/cron/, all paths have route.ts files, valid cron schedule format.
+
+**Tests:** 6 Vitest — vercel-config-valid.test.ts (6).
+
+---
+
+## §186. P6-FIX-26 — GDPR Compliance (2026-03-03)
+
+**Data Export API:**
+- `app/api/settings/data-export/route.ts` — GET, auth required, owner-only via `roleSatisfies(role, 'owner')`.
+- Rate limited: `ROUTE_RATE_LIMITS.data_export` (1 request/day/org, key_prefix: `rl:gdpr:export`).
+- Queries 9 org-scoped tables in parallel: organizations, locations, target_queries, sov_evaluations, ai_hallucinations, content_drafts, page_audits, competitors, entity_checks.
+- Returns JSON file attachment via `Content-Disposition: attachment; filename="localvector-data-export-{date}.json"`.
+- Structure: `{ exportVersion: '1.0', exportedAt, organization, locations, targetQueries, sovEvaluations, hallucinations, contentDrafts, pageAudits, competitors, entityChecks }`.
+- **Redaction:** `stripe_customer_id` and `stripe_subscription_id` replaced with `'[REDACTED]'`.
+
+**7-Day Deletion Grace Period:**
+- Migration `20260304100002_gdpr_deletion.sql` — Adds `deletion_requested_at timestamptz` and `deletion_reason text` to `organizations`.
+- `app/api/settings/danger/delete-org/route.ts` — Changed from immediate CASCADE to grace period. Sets `deletion_requested_at = now()`, `plan_status = 'pending_deletion'`. Cancels Stripe immediately. Returns `{ ok: true, deletion_date, message }`.
+- `app/api/cron/data-cleanup/route.ts` — Daily cron (2 AM UTC). CRON_SECRET protected. Kill switch: `STOP_DATA_CLEANUP_CRON`. Finds orgs where `deletion_requested_at < now() - 7 days`. Cancels Stripe subscription, then hard-deletes org (CASCADE). Sentry logging per deletion.
+- 25th cron registered in `vercel.json`.
+
+**Cookie Consent Banner:**
+- `components/ui/CookieConsentBanner.tsx` — Client component. localStorage-backed (`lv_cookie_consent`). Minimal: "We use essential cookies only." + Privacy Policy link + "Got it" button. role="dialog", aria-label="Cookie consent". Fixed bottom, z-50.
+- Added to `app/layout.tsx` before `</body>`.
+
+**Tests:** 20 Vitest — data-export-route.test.ts (6), data-cleanup-cron.test.ts (6), cookie-consent-banner.test.tsx (8).
+
+---
+
+## §187. P6-FIX-28 — Mobile Responsiveness (2026-03-03)
+
+**Table Responsiveness:**
+- `TeamMembersTable.tsx`, `PendingInvitationsTable.tsx` — `overflow-hidden` → `overflow-x-auto` for horizontal scroll on mobile.
+- `ActivityLogTable.tsx`, `PlanComparisonTable.tsx` — already had `overflow-x-auto` (verified).
+- Column hiding: `hidden sm:block` on "Joined" column (TeamMembersTable), "Invited By"/"Expires" columns (PendingInvitationsTable).
+
+**Modal Responsiveness:**
+- `InviteMemberModal.tsx`, `ListingFixModal.tsx`, `SimulationResultsModal.tsx`, `DangerZoneSettings.tsx` — `p-4` added to modal backdrop div (ensures mobile viewport safety margins).
+- `UpgradeModal.tsx` — already had `mx-4` (verified).
+
+**Grid Responsiveness:**
+- `app/dashboard/page.tsx` — stat panel grid already uses `grid-cols-1 sm:grid-cols-2 lg:grid-cols-4` (verified).
+- `AddLocationModal.tsx` — city/state/zip grid changed from `grid-cols-5` to `grid-cols-1 sm:grid-cols-5`.
+
+**Layout:**
+- `Sidebar.tsx` — uses `-translate-x-full` / `lg:translate-x-0` pattern (slide in/out).
+- `TopBar.tsx` — hamburger button with `lg:hidden`.
+- `DashboardShell.tsx` — main content area has `p-4 sm:p-6` responsive padding.
+
+**Tests:** 16 Vitest — mobile-responsive.test.ts (16).
+
+---

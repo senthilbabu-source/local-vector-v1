@@ -65,7 +65,7 @@ export default function TeamMembersTable({
   return (
     <div
       data-testid="team-members-table"
-      className="rounded-xl border border-white/5 bg-surface-dark overflow-hidden"
+      className="rounded-xl border border-white/5 bg-surface-dark overflow-x-auto"
     >
       {/* Header */}
       <div className="grid grid-cols-[1fr_1fr_auto_auto_auto] gap-3 px-5 py-3 border-b border-white/5 text-xs font-medium uppercase tracking-wider text-slate-500">

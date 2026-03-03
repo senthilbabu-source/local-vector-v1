@@ -8,7 +8,7 @@ on:
 
 jobs:
   typecheck-and-test:
-    name: TypeScript + Vitest
+    name: TypeScript + Lint + Vitest + Build
     runs-on: ubuntu-latest
 
     env:
@@ -51,10 +51,20 @@ jobs:
       - name: Type check
         run: npx tsc --noEmit
 
+      - name: Lint
+        run: npx next lint
+
       - name: Run unit tests
         run: npm test
         # npm test = vitest run (src/__tests__/unit/)
         # All external API calls are mocked — no live DB or API keys required.
+
+      # P7-FIX-31: Build step catches SSR/RSC errors that typecheck alone misses
+      - name: Production build
+        run: npm run build
+        env:
+          # Suppress Sentry source map upload in CI (no auth token)
+          SENTRY_AUTH_TOKEN: ''
 
       # NOTE: Playwright E2E tests require a live Supabase local stack with the full
       # auth trigger chain (on_auth_user_created → on_user_created) and are run

@@ -157,7 +157,7 @@ export default function AddLocationModal() {
               </Field>
 
               {/* City / State / ZIP — 3 columns */}
-              <div className="grid grid-cols-5 gap-3">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-5">
                 <div className="col-span-2">
                   <Field label="City" id="city" error={errors.city?.message}>
                     <input

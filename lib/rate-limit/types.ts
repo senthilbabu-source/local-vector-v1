@@ -61,6 +61,9 @@ export const ROUTE_RATE_LIMITS = {
   danger_delete_org: { max_requests: 1, window_seconds: 3600, key_prefix: 'rl:danger:org' },
   danger_delete_data: { max_requests: 1, window_seconds: 3600, key_prefix: 'rl:danger:data' },
 
+  /** GDPR data export — 1 per day per org (P6-FIX-26) */
+  data_export: { max_requests: 1, window_seconds: 86400, key_prefix: 'rl:gdpr:export' },
+
   /** Expensive AI operations (org-based) */
   ai_preview: { max_requests: 20, window_seconds: 3600, key_prefix: 'rl:ai:preview' },
   content_stream: { max_requests: 30, window_seconds: 3600, key_prefix: 'rl:ai:content' },

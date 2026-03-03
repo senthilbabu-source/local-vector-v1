@@ -93,7 +93,7 @@ function DeleteScanDataAction() {
       </div>
 
       {showModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
           <div className="w-full max-w-md rounded-xl border border-white/10 bg-card p-6 space-y-4">
             <h4 className="text-sm font-semibold text-white">Confirm Deletion</h4>
             <p className="text-xs text-slate-400">
@@ -198,7 +198,7 @@ function DeleteOrgAction({ orgSlug }: { orgSlug: string }) {
       </div>
 
       {showModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
           <div className="w-full max-w-md rounded-xl border border-white/10 bg-card p-6 space-y-4">
             <h4 className="text-sm font-semibold text-white">Confirm Organization Deletion</h4>
             <p className="text-xs text-slate-400">

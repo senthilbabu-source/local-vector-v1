@@ -1,9 +1,27 @@
 // ---------------------------------------------------------------------------
 // next.config.ts — Sprint 26A: wrapped with withSentryConfig
+// P6-FIX-25: Security headers + CSP
 // ---------------------------------------------------------------------------
 
 import type { NextConfig } from 'next';
 import { withSentryConfig } from '@sentry/nextjs';
+import { buildCSP, getCSPHeaderName } from './lib/security/csp';
+
+const securityHeaders = [
+  { key: 'X-DNS-Prefetch-Control', value: 'on' },
+  {
+    key: 'Strict-Transport-Security',
+    value: 'max-age=63072000; includeSubDomains; preload',
+  },
+  { key: 'X-Frame-Options', value: 'SAMEORIGIN' },
+  { key: 'X-Content-Type-Options', value: 'nosniff' },
+  { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
+  {
+    key: 'Permissions-Policy',
+    value: 'camera=(), microphone=(), geolocation=(), interest-cohort=()',
+  },
+  { key: getCSPHeaderName(), value: buildCSP() },
+];
 
 const nextConfig: NextConfig = {
   // P5-FIX-24: Performance optimizations
@@ -26,6 +44,10 @@ const nextConfig: NextConfig = {
   reactStrictMode: true,
   // Disable x-powered-by header (minor security + bandwidth)
   poweredByHeader: false,
+  // P6-FIX-25: Security headers on every response
+  async headers() {
+    return [{ source: '/(.*)', headers: securityHeaders }];
+  },
 };
 
 export default withSentryConfig(nextConfig, {

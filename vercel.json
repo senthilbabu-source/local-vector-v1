@@ -95,6 +95,10 @@
     {
       "path": "/api/cron/intent-discovery",
       "schedule": "0 10 * * 4"
+    },
+    {
+      "path": "/api/cron/data-cleanup",
+      "schedule": "0 2 * * *"
     }
   ]
 }

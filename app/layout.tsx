@@ -6,6 +6,7 @@ import { getOrgThemeOrDefault } from '@/lib/whitelabel/theme-service';
 import { buildThemeCssProps, cssPropsToObject } from '@/lib/whitelabel/theme-utils';
 import { buildGoogleFontUrl } from '@/lib/whitelabel/types';
 import { createServiceRoleClient } from '@/lib/supabase/server';
+import CookieConsentBanner from '@/components/ui/CookieConsentBanner';
 
 const outfit = Outfit({
   subsets: ['latin'],
@@ -53,6 +54,7 @@ export default async function RootLayout({
         className={`${outfit.variable} ${jetbrainsMono.variable} antialiased`}
       >
         {children}
+        <CookieConsentBanner />
       </body>
     </html>
   );

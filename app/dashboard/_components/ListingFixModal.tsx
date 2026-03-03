@@ -31,7 +31,7 @@ export default function ListingFixModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
       data-testid="listing-fix-modal"
     >
       <div className="relative w-full max-w-lg rounded-xl border border-white/10 bg-surface-dark p-6 shadow-2xl">

@@ -4,6 +4,7 @@ import { detectAIBot } from '@/lib/crawler/bot-detector';
 import { resolveOrgFromHostname } from '@/lib/whitelabel/domain-resolver';
 import { checkRateLimit, getRateLimitHeaders } from '@/lib/rate-limit/rate-limiter';
 import { PLAN_RATE_LIMITS, RATE_LIMIT_BYPASS_PREFIXES } from '@/lib/rate-limit/types';
+import { isScannerUA } from '@/lib/security/scanner-guard';
 
 const PROTECTED_PREFIXES = ['/dashboard'];
 const AUTH_PREFIXES = ['/login', '/register', '/signup'];
@@ -13,6 +14,11 @@ export function proxy(request: NextRequest) {
 }
 
 async function handleProxy(request: NextRequest) {
+  // ── P6-FIX-25: Block known vulnerability scanner user agents ────────────
+  if (isScannerUA(request.headers.get('user-agent'))) {
+    return new Response('Forbidden', { status: 403 });
+  }
+
   // ── Subdomain routing (Sprint 62C) ──────────────────────────────────────
   //
   // Vercel DNS configuration:
@@ -141,6 +147,10 @@ async function handleProxy(request: NextRequest) {
     url.pathname = '/dashboard';
     return NextResponse.redirect(url);
   }
+
+  // P7-FIX-30: Attach request ID for log correlation
+  const requestId = request.headers.get('x-request-id') ?? crypto.randomUUID();
+  response.headers.set('x-request-id', requestId);
 
   // Always return the response from createMiddlewareClient so any refreshed
   // session cookies are forwarded to the browser.
