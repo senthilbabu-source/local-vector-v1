@@ -186,68 +186,233 @@ LIMIT 1
 ON CONFLICT (id) DO NOTHING;
 
 -- ── 5. MENU CATEGORIES ────────────────────────────────────────────────────────
+-- Real Charcoal N Chill menu: 17 categories across Food, Bar, Cloud, Bottle Service.
 
 INSERT INTO public.menu_categories (id, org_id, menu_id, name, sort_order)
 VALUES
-  (
-    'd0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
-    'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
-    'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
-    'BBQ Plates',
-    1
-  ),
-  (
-    'd1eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
-    'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
-    'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
-    'Sides & Starters',
-    2
-  )
+  ('d0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'Appetizers', 1),
+  ('d1eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'Grill', 2),
+  ('d2eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'Entrées', 3),
+  ('d3eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'Desserts', 4),
+  ('d4eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'Beverages', 5),
+  ('d5eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'Mocktails', 6),
+  ('d6eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'Cocktails', 7),
+  ('d7eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'Mixed Shots', 8),
+  ('d8eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'IPA', 9),
+  ('d9eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'Domestic Beer', 10),
+  ('daeebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'Imported Beer', 11),
+  ('dbeebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'Chill Sips', 12),
+  ('dceebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'Easy Sips', 13),
+  ('ddeebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'Boss Sips', 14),
+  ('deeebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'Curated Hookah', 15),
+  ('dfeebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'Build Your Own Hookah', 16),
+  ('d00ebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'VVIP Bottle Service', 17)
 ON CONFLICT (id) DO NOTHING;
 
 -- ── 6. MENU ITEMS ─────────────────────────────────────────────────────────────
+-- Real Charcoal N Chill menu: 156 items from the actual PDF menu.
+-- Abbreviations: O=org_id, M=menu_id, C=category_id (see categories above).
 
 INSERT INTO public.menu_items (
   id, org_id, menu_id, category_id,
-  name, description, price, currency, is_available, sort_order
+  name, description, price, price_note, currency, dietary_tags, is_available, sort_order
 )
 VALUES
-  (
-    'e0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
-    'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
-    'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
-    'd0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
-    'Smoked Brisket',
-    'Low-and-slow smoked beef brisket served with house BBQ sauce, pickles, and white bread.',
-    28.00, 'USD', TRUE, 1
-  ),
-  (
-    'e1eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
-    'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
-    'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
-    'd0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
-    'Smoked Half Chicken',
-    'Hickory-smoked half chicken with a crispy bark, served with two sides of your choice.',
-    22.00, 'USD', TRUE, 2
-  ),
-  (
-    'e2eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
-    'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
-    'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
-    'd1eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
-    'Truffle Mac & Cheese',
-    'Creamy three-cheese mac tossed with black truffle oil, topped with crispy breadcrumbs.',
-    14.00, 'USD', TRUE, 1
-  ),
-  (
-    'e3eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
-    'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
-    'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
-    'd1eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
-    'Collard Greens',
-    'Southern-style collard greens slow-cooked with smoked turkey and a touch of apple cider vinegar.',
-    9.00, 'USD', TRUE, 2
-  )
+  -- ── Appetizers (22 items) ─ cat d0eebc99 ──────────────────────────────────
+  ('e000bc99-9c0b-4ef8-bb6d-6bb9bd380001', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'd0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'Chicken Tenders', NULL, 13.95, NULL, 'USD', NULL, TRUE, 1),
+  ('e000bc99-9c0b-4ef8-bb6d-6bb9bd380002', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'd0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'Veg Spring Rolls', NULL, 9.95, NULL, 'USD', '["Vegetarian"]'::jsonb, TRUE, 2),
+  ('e000bc99-9c0b-4ef8-bb6d-6bb9bd380003', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'd0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'Chill Chips & Dips', NULL, 9.95, NULL, 'USD', NULL, TRUE, 3),
+  ('e000bc99-9c0b-4ef8-bb6d-6bb9bd380004', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'd0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'Cauliflower Bites', NULL, 10.95, NULL, 'USD', '["Vegetarian"]'::jsonb, TRUE, 4),
+  ('e000bc99-9c0b-4ef8-bb6d-6bb9bd380005', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'd0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'Truffle Cloud Fries', NULL, 9.95, NULL, 'USD', '["Vegetarian"]'::jsonb, TRUE, 5),
+  ('e000bc99-9c0b-4ef8-bb6d-6bb9bd380006', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'd0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'Egg Pepper Roast', NULL, 12.95, NULL, 'USD', NULL, TRUE, 6),
+  ('e000bc99-9c0b-4ef8-bb6d-6bb9bd380007', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'd0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'Omelette', NULL, 10.95, NULL, 'USD', '["Vegetarian"]'::jsonb, TRUE, 7),
+  ('e000bc99-9c0b-4ef8-bb6d-6bb9bd380008', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'd0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'Crispy Corn', NULL, 9.95, NULL, 'USD', '["Vegetarian", "Vegan"]'::jsonb, TRUE, 8),
+  ('e000bc99-9c0b-4ef8-bb6d-6bb9bd380009', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'd0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'Peanut Masala', NULL, 9.95, NULL, 'USD', '["Vegetarian", "Vegan"]'::jsonb, TRUE, 9),
+  ('e000bc99-9c0b-4ef8-bb6d-6bb9bd38000a', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'd0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'Paneer Chilli', NULL, 14.95, NULL, 'USD', '["Vegetarian"]'::jsonb, TRUE, 10),
+  ('e000bc99-9c0b-4ef8-bb6d-6bb9bd38000b', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'd0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'Paneer 65', NULL, 14.95, NULL, 'USD', '["Vegetarian"]'::jsonb, TRUE, 11),
+  ('e000bc99-9c0b-4ef8-bb6d-6bb9bd38000c', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'd0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'Pepper Chicken', NULL, 15.95, NULL, 'USD', NULL, TRUE, 12),
+  ('e000bc99-9c0b-4ef8-bb6d-6bb9bd38000d', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'd0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'Chili Chicken', NULL, 15.95, NULL, 'USD', NULL, TRUE, 13),
+  ('e000bc99-9c0b-4ef8-bb6d-6bb9bd38000e', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'd0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'Chicken Pakora', NULL, 15.95, NULL, 'USD', NULL, TRUE, 14),
+  ('e000bc99-9c0b-4ef8-bb6d-6bb9bd38000f', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'd0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'Chicken 65 (wet)', NULL, 15.95, NULL, 'USD', NULL, TRUE, 15),
+  ('e000bc99-9c0b-4ef8-bb6d-6bb9bd380010', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'd0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'Pepper Shrimp', NULL, 18.95, NULL, 'USD', NULL, TRUE, 16),
+  ('e000bc99-9c0b-4ef8-bb6d-6bb9bd380011', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'd0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'Chili Shrimp', NULL, 18.95, NULL, 'USD', NULL, TRUE, 17),
+  ('e000bc99-9c0b-4ef8-bb6d-6bb9bd380012', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'd0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'Shrimp 65', NULL, 18.95, NULL, 'USD', NULL, TRUE, 18),
+  ('e000bc99-9c0b-4ef8-bb6d-6bb9bd380013', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'd0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'Schezwan Paneer', NULL, 14.95, NULL, 'USD', '["Vegetarian"]'::jsonb, TRUE, 19),
+  ('e000bc99-9c0b-4ef8-bb6d-6bb9bd380014', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'd0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'Schezwan Chicken', NULL, 15.95, NULL, 'USD', NULL, TRUE, 20),
+  ('e000bc99-9c0b-4ef8-bb6d-6bb9bd380015', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'd0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'Schezwan Shrimp', NULL, 18.95, NULL, 'USD', NULL, TRUE, 21),
+  ('e000bc99-9c0b-4ef8-bb6d-6bb9bd380016', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'd0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'Wings', 'Flavors: Buffalo, Lemon Pepper, BBQ, Honey Chilli, Honey Mustard', 13.95, NULL, 'USD', NULL, TRUE, 22),
+
+  -- ── Grill (4 items) ─ cat d1eebc99 ────────────────────────────────────────
+  ('e000bc99-9c0b-4ef8-bb6d-6bb9bd380017', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'd1eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'Lamb Chops', NULL, 24.95, NULL, 'USD', NULL, TRUE, 1),
+  ('e000bc99-9c0b-4ef8-bb6d-6bb9bd380018', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'd1eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'Grilled Fish', NULL, 15.95, NULL, 'USD', NULL, TRUE, 2),
+  ('e000bc99-9c0b-4ef8-bb6d-6bb9bd380019', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'd1eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'Grilled Paneer', NULL, 14.95, NULL, 'USD', '["Vegetarian"]'::jsonb, TRUE, 3),
+  ('e000bc99-9c0b-4ef8-bb6d-6bb9bd38001a', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'd1eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'Grilled Chicken', NULL, 15.95, NULL, 'USD', NULL, TRUE, 4),
+
+  -- ── Entrées (8 items) ─ cat d2eebc99 ──────────────────────────────────────
+  ('e000bc99-9c0b-4ef8-bb6d-6bb9bd38001b', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'd2eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'Veg Fried Rice', NULL, 13.95, NULL, 'USD', '["Vegetarian"]'::jsonb, TRUE, 1),
+  ('e000bc99-9c0b-4ef8-bb6d-6bb9bd38001c', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'd2eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'Egg Fried Rice', NULL, 14.95, NULL, 'USD', NULL, TRUE, 2),
+  ('e000bc99-9c0b-4ef8-bb6d-6bb9bd38001d', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'd2eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'Chicken Fried Rice', NULL, 15.95, NULL, 'USD', NULL, TRUE, 3),
+  ('e000bc99-9c0b-4ef8-bb6d-6bb9bd38001e', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'd2eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'Shrimp Fried Rice', NULL, 18.95, NULL, 'USD', NULL, TRUE, 4),
+  ('e000bc99-9c0b-4ef8-bb6d-6bb9bd38001f', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'd2eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'Maggi', NULL, 9.95, NULL, 'USD', '["Vegetarian"]'::jsonb, TRUE, 5),
+  ('e000bc99-9c0b-4ef8-bb6d-6bb9bd380020', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'd2eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'Paneer Butter Masala', NULL, 15.95, NULL, 'USD', '["Vegetarian"]'::jsonb, TRUE, 6),
+  ('e000bc99-9c0b-4ef8-bb6d-6bb9bd380021', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'd2eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'Butter Chicken Masala', NULL, 16.95, NULL, 'USD', NULL, TRUE, 7),
+  ('e000bc99-9c0b-4ef8-bb6d-6bb9bd380022', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'd2eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'Naan', NULL, 3.00, NULL, 'USD', '["Vegetarian"]'::jsonb, TRUE, 8),
+
+  -- ── Desserts (2 items) ─ cat d3eebc99 ─────────────────────────────────────
+  ('e000bc99-9c0b-4ef8-bb6d-6bb9bd380023', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'd3eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'Chocolate Cake', NULL, 9.95, NULL, 'USD', NULL, TRUE, 1),
+  ('e000bc99-9c0b-4ef8-bb6d-6bb9bd380024', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'd3eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'Pistachio Gelato Bomb', NULL, 10.95, NULL, 'USD', NULL, TRUE, 2),
+
+  -- ── Beverages (6 items) ─ cat d4eebc99 ────────────────────────────────────
+  ('e000bc99-9c0b-4ef8-bb6d-6bb9bd380025', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'd4eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'Coke', 'Classic, Zero, or Diet', 3.00, NULL, 'USD', NULL, TRUE, 1),
+  ('e000bc99-9c0b-4ef8-bb6d-6bb9bd380026', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'd4eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'Ginger Ale', NULL, 3.00, NULL, 'USD', NULL, TRUE, 2),
+  ('e000bc99-9c0b-4ef8-bb6d-6bb9bd380027', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'd4eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'Ginger Beer', NULL, 3.00, NULL, 'USD', NULL, TRUE, 3),
+  ('e000bc99-9c0b-4ef8-bb6d-6bb9bd380028', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'd4eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'Sprite', NULL, 3.00, NULL, 'USD', NULL, TRUE, 4),
+  ('e000bc99-9c0b-4ef8-bb6d-6bb9bd380029', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'd4eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'Topo Chico', NULL, 5.00, NULL, 'USD', NULL, TRUE, 5),
+  ('e000bc99-9c0b-4ef8-bb6d-6bb9bd38002a', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'd4eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'Red Bull', NULL, 5.00, NULL, 'USD', NULL, TRUE, 6),
+
+  -- ── Mocktails (3 items) ─ cat d5eebc99 ────────────────────────────────────
+  ('e000bc99-9c0b-4ef8-bb6d-6bb9bd38002b', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'd5eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'Pina Colada', NULL, 10.00, NULL, 'USD', '["Non-Alcoholic"]'::jsonb, TRUE, 1),
+  ('e000bc99-9c0b-4ef8-bb6d-6bb9bd38002c', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'd5eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'Mojito', NULL, 10.00, NULL, 'USD', '["Non-Alcoholic"]'::jsonb, TRUE, 2),
+  ('e000bc99-9c0b-4ef8-bb6d-6bb9bd38002d', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'd5eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'Sunriser Citrus & Vine', NULL, 10.00, NULL, 'USD', '["Non-Alcoholic"]'::jsonb, TRUE, 3),
+
+  -- ── Cocktails (10 items) ─ cat d6eebc99 ───────────────────────────────────
+  ('e000bc99-9c0b-4ef8-bb6d-6bb9bd38002e', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'd6eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'Sex on the Beach', NULL, 16.00, NULL, 'USD', NULL, TRUE, 1),
+  ('e000bc99-9c0b-4ef8-bb6d-6bb9bd38002f', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'd6eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'Long Island', NULL, 16.00, NULL, 'USD', NULL, TRUE, 2),
+  ('e000bc99-9c0b-4ef8-bb6d-6bb9bd380030', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'd6eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'House Margarita', NULL, 16.00, NULL, 'USD', NULL, TRUE, 3),
+  ('e000bc99-9c0b-4ef8-bb6d-6bb9bd380031', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'd6eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'Bulleit Old Fashion', NULL, 16.00, NULL, 'USD', NULL, TRUE, 4),
+  ('e000bc99-9c0b-4ef8-bb6d-6bb9bd380032', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'd6eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'Peach Bourbon Smash', NULL, 16.00, NULL, 'USD', NULL, TRUE, 5),
+  ('e000bc99-9c0b-4ef8-bb6d-6bb9bd380033', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'd6eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'Smoke Runner', NULL, 16.00, NULL, 'USD', NULL, TRUE, 6),
+  ('e000bc99-9c0b-4ef8-bb6d-6bb9bd380034', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'd6eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'Lemon Drop Martini', NULL, 16.00, NULL, 'USD', NULL, TRUE, 7),
+  ('e000bc99-9c0b-4ef8-bb6d-6bb9bd380035', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'd6eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'Espresso Martini', NULL, 16.00, NULL, 'USD', NULL, TRUE, 8),
+  ('e000bc99-9c0b-4ef8-bb6d-6bb9bd380036', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'd6eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'Moscow Mule', NULL, 16.00, NULL, 'USD', NULL, TRUE, 9),
+  ('e000bc99-9c0b-4ef8-bb6d-6bb9bd380037', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'd6eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'Whiskey Sour', NULL, 16.00, NULL, 'USD', NULL, TRUE, 10),
+
+  -- ── Mixed Shots (5 items) ─ cat d7eebc99 ──────────────────────────────────
+  ('e000bc99-9c0b-4ef8-bb6d-6bb9bd380038', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'd7eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'Vegas Bomb', NULL, 9.00, NULL, 'USD', NULL, TRUE, 1),
+  ('e000bc99-9c0b-4ef8-bb6d-6bb9bd380039', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'd7eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'Lemon Drop', NULL, 9.00, NULL, 'USD', NULL, TRUE, 2),
+  ('e000bc99-9c0b-4ef8-bb6d-6bb9bd38003a', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'd7eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'Green Tea', NULL, 9.00, NULL, 'USD', NULL, TRUE, 3),
+  ('e000bc99-9c0b-4ef8-bb6d-6bb9bd38003b', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'd7eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'Jager Bomb', NULL, 9.00, NULL, 'USD', NULL, TRUE, 4),
+  ('e000bc99-9c0b-4ef8-bb6d-6bb9bd38003c', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'd7eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'Cinder Shot', NULL, 9.00, NULL, 'USD', NULL, TRUE, 5),
+
+  -- ── IPA (3 items) ─ cat d8eebc99 ──────────────────────────────────────────
+  ('e000bc99-9c0b-4ef8-bb6d-6bb9bd38003d', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'd8eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'Chance IPA', NULL, 9.00, NULL, 'USD', NULL, TRUE, 1),
+  ('e000bc99-9c0b-4ef8-bb6d-6bb9bd38003e', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'd8eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'Scofflaw', NULL, 9.00, NULL, 'USD', NULL, TRUE, 2),
+  ('e000bc99-9c0b-4ef8-bb6d-6bb9bd38003f', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'd8eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'Sweetwater', NULL, 9.00, NULL, 'USD', NULL, TRUE, 3),
+
+  -- ── Domestic Beer (4 items) ─ cat d9eebc99 ────────────────────────────────
+  ('e000bc99-9c0b-4ef8-bb6d-6bb9bd380040', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'd9eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'Miller Lite', NULL, 6.00, NULL, 'USD', NULL, TRUE, 1),
+  ('e000bc99-9c0b-4ef8-bb6d-6bb9bd380041', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'd9eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'Michelob Ultra', NULL, 6.00, NULL, 'USD', NULL, TRUE, 2),
+  ('e000bc99-9c0b-4ef8-bb6d-6bb9bd380042', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'd9eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'Blue Moon', NULL, 6.00, NULL, 'USD', NULL, TRUE, 3),
+  ('e000bc99-9c0b-4ef8-bb6d-6bb9bd380043', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'd9eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'Yuengling', NULL, 6.00, NULL, 'USD', NULL, TRUE, 4),
+
+  -- ── Imported Beer (10 items) ─ cat daeebc99 ───────────────────────────────
+  ('e000bc99-9c0b-4ef8-bb6d-6bb9bd380044', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'daeebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'Corona', NULL, 7.00, NULL, 'USD', NULL, TRUE, 1),
+  ('e000bc99-9c0b-4ef8-bb6d-6bb9bd380045', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'daeebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'Modelo', NULL, 7.00, NULL, 'USD', NULL, TRUE, 2),
+  ('e000bc99-9c0b-4ef8-bb6d-6bb9bd380046', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'daeebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'Dos Equis XX', NULL, 7.00, NULL, 'USD', NULL, TRUE, 3),
+  ('e000bc99-9c0b-4ef8-bb6d-6bb9bd380047', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'daeebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'Dos Equis Amber', NULL, 7.00, NULL, 'USD', NULL, TRUE, 4),
+  ('e000bc99-9c0b-4ef8-bb6d-6bb9bd380048', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'daeebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'Stella Artois', NULL, 7.00, NULL, 'USD', NULL, TRUE, 5),
+  ('e000bc99-9c0b-4ef8-bb6d-6bb9bd380049', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'daeebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'Kingfisher', NULL, 7.00, NULL, 'USD', NULL, TRUE, 6),
+  ('e000bc99-9c0b-4ef8-bb6d-6bb9bd38004a', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'daeebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'Taj Mahal', NULL, 7.00, NULL, 'USD', NULL, TRUE, 7),
+  ('e000bc99-9c0b-4ef8-bb6d-6bb9bd38004b', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'daeebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'Haywards 5000', NULL, 7.00, NULL, 'USD', NULL, TRUE, 8),
+  ('e000bc99-9c0b-4ef8-bb6d-6bb9bd38004c', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'daeebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'Rupee', NULL, 7.00, NULL, 'USD', NULL, TRUE, 9),
+  ('e000bc99-9c0b-4ef8-bb6d-6bb9bd38004d', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'daeebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'Red Stripe', NULL, 7.00, NULL, 'USD', NULL, TRUE, 10),
+
+  -- ── Chill Sips — single $9 / double $15 (10 items) ─ cat dbeebc99 ─────────
+  ('e000bc99-9c0b-4ef8-bb6d-6bb9bd38004e', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'dbeebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'Barebone', NULL, 9.00, 'Double: $15', 'USD', NULL, TRUE, 1),
+  ('e000bc99-9c0b-4ef8-bb6d-6bb9bd38004f', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'dbeebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'Smirnoff Vanilla', NULL, 9.00, 'Double: $15', 'USD', NULL, TRUE, 2),
+  ('e000bc99-9c0b-4ef8-bb6d-6bb9bd380050', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'dbeebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'Gilbey''s', NULL, 9.00, 'Double: $15', 'USD', NULL, TRUE, 3),
+  ('e000bc99-9c0b-4ef8-bb6d-6bb9bd380051', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'dbeebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'Captain Morgan Spiced', NULL, 9.00, 'Double: $15', 'USD', NULL, TRUE, 4),
+  ('e000bc99-9c0b-4ef8-bb6d-6bb9bd380052', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'dbeebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'Old Monk', NULL, 9.00, 'Double: $15', 'USD', NULL, TRUE, 5),
+  ('e000bc99-9c0b-4ef8-bb6d-6bb9bd380053', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'dbeebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'Bacardi', NULL, 9.00, 'Double: $15', 'USD', NULL, TRUE, 6),
+  ('e000bc99-9c0b-4ef8-bb6d-6bb9bd380054', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'dbeebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'Crown Royal', NULL, 9.00, 'Double: $15', 'USD', NULL, TRUE, 7),
+  ('e000bc99-9c0b-4ef8-bb6d-6bb9bd380055', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'dbeebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'Jack Daniel''s', NULL, 9.00, 'Double: $15', 'USD', NULL, TRUE, 8),
+  ('e000bc99-9c0b-4ef8-bb6d-6bb9bd380056', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'dbeebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'Mitcher''s', NULL, 9.00, 'Double: $15', 'USD', NULL, TRUE, 9),
+  ('e000bc99-9c0b-4ef8-bb6d-6bb9bd380057', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'dbeebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'Tito''s Handmade', NULL, 9.00, 'Double: $15', 'USD', NULL, TRUE, 10),
+
+  -- ── Easy Sips — single $12 / double $18 (10 items) ─ cat dceebc99 ─────────
+  ('e000bc99-9c0b-4ef8-bb6d-6bb9bd380058', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'dceebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'The Singleton', NULL, 12.00, 'Double: $18', 'USD', NULL, TRUE, 1),
+  ('e000bc99-9c0b-4ef8-bb6d-6bb9bd380059', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'dceebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'Bombay Sapphire', NULL, 12.00, 'Double: $18', 'USD', NULL, TRUE, 2),
+  ('e000bc99-9c0b-4ef8-bb6d-6bb9bd38005a', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'dceebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'Casamigos Blanco', NULL, 12.00, 'Double: $18', 'USD', NULL, TRUE, 3),
+  ('e000bc99-9c0b-4ef8-bb6d-6bb9bd38005b', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'dceebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'Don Julio Blanco', NULL, 12.00, 'Double: $18', 'USD', NULL, TRUE, 4),
+  ('e000bc99-9c0b-4ef8-bb6d-6bb9bd38005c', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'dceebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'Patrón Silver', NULL, 12.00, 'Double: $18', 'USD', NULL, TRUE, 5),
+  ('e000bc99-9c0b-4ef8-bb6d-6bb9bd38005d', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'dceebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'The Solan Gold', NULL, 12.00, 'Double: $18', 'USD', NULL, TRUE, 6),
+  ('e000bc99-9c0b-4ef8-bb6d-6bb9bd38005e', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'dceebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'Maker''s Mark', NULL, 12.00, 'Double: $18', 'USD', NULL, TRUE, 7),
+  ('e000bc99-9c0b-4ef8-bb6d-6bb9bd38005f', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'dceebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'Bulleit Bourbon', NULL, 12.00, 'Double: $18', 'USD', NULL, TRUE, 8),
+  ('e000bc99-9c0b-4ef8-bb6d-6bb9bd380060', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'dceebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'Jameson Irish', NULL, 12.00, 'Double: $18', 'USD', NULL, TRUE, 9),
+  ('e000bc99-9c0b-4ef8-bb6d-6bb9bd380061', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'dceebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'Woodford Reserve', NULL, 12.00, 'Double: $18', 'USD', NULL, TRUE, 10),
+
+  -- ── Boss Sips — single $14 / double $23 (10 items) ─ cat ddeebc99 ─────────
+  ('e000bc99-9c0b-4ef8-bb6d-6bb9bd380062', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'ddeebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'Johnnie Walker Gold', NULL, 14.00, 'Double: $23', 'USD', NULL, TRUE, 1),
+  ('e000bc99-9c0b-4ef8-bb6d-6bb9bd380063', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'ddeebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'Macallan 12', NULL, 14.00, 'Double: $23', 'USD', NULL, TRUE, 2),
+  ('e000bc99-9c0b-4ef8-bb6d-6bb9bd380064', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'ddeebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'The Glenlivet 12', NULL, 14.00, 'Double: $23', 'USD', NULL, TRUE, 3),
+  ('e000bc99-9c0b-4ef8-bb6d-6bb9bd380065', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'ddeebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'Glenfiddich 12', NULL, 14.00, 'Double: $23', 'USD', NULL, TRUE, 4),
+  ('e000bc99-9c0b-4ef8-bb6d-6bb9bd380066', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'ddeebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'Basil Hayden', NULL, 14.00, 'Double: $23', 'USD', NULL, TRUE, 5),
+  ('e000bc99-9c0b-4ef8-bb6d-6bb9bd380067', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'ddeebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'Casamigos Añejo', NULL, 14.00, 'Double: $23', 'USD', NULL, TRUE, 6),
+  ('e000bc99-9c0b-4ef8-bb6d-6bb9bd380068', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'ddeebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'Grey Goose', NULL, 14.00, 'Double: $23', 'USD', NULL, TRUE, 7),
+  ('e000bc99-9c0b-4ef8-bb6d-6bb9bd380069', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'ddeebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'Belvedere', NULL, 14.00, 'Double: $23', 'USD', NULL, TRUE, 8),
+  ('e000bc99-9c0b-4ef8-bb6d-6bb9bd38006a', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'ddeebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'Hendrick''s', NULL, 14.00, 'Double: $23', 'USD', NULL, TRUE, 9),
+  ('e000bc99-9c0b-4ef8-bb6d-6bb9bd38006b', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'ddeebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'Don Julio Reposado', NULL, 14.00, 'Double: $23', 'USD', NULL, TRUE, 10),
+
+  -- ── Curated Hookah — $40 / refill $20 (6 items) ─ cat deeebc99 ────────────
+  ('e000bc99-9c0b-4ef8-bb6d-6bb9bd38006c', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'deeebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'CNC Special', 'Signature Blend: Chief Commissioner + Pan Ras or Lychee', 40.00, 'Refill: $20', 'USD', NULL, TRUE, 1),
+  ('e000bc99-9c0b-4ef8-bb6d-6bb9bd38006d', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'deeebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'The Exotic Edit', 'Baku Night + Lychee + Chief Commissioner', 40.00, 'Refill: $20', 'USD', NULL, TRUE, 2),
+  ('e000bc99-9c0b-4ef8-bb6d-6bb9bd38006e', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'deeebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'Queen of Chaotic', 'Ladykiller + Skyfall + Mint', 40.00, 'Refill: $20', 'USD', NULL, TRUE, 3),
+  ('e000bc99-9c0b-4ef8-bb6d-6bb9bd38006f', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'deeebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'Mint Mocha', 'Mint + Kiwi + Paan', 40.00, 'Refill: $20', 'USD', NULL, TRUE, 4),
+  ('e000bc99-9c0b-4ef8-bb6d-6bb9bd380070', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'deeebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'Breeze Titanic', 'Green Saviour + Mighty Freeze', 40.00, 'Refill: $20', 'USD', NULL, TRUE, 5),
+  ('e000bc99-9c0b-4ef8-bb6d-6bb9bd380071', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'deeebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'Saviour Surprise', 'Safari Melon + Green Saviour', 40.00, 'Refill: $20', 'USD', NULL, TRUE, 6),
+
+  -- ── Build Your Own Hookah — $25 / refill $15 (1 item) ─ cat dfeebc99 ──────
+  ('e000bc99-9c0b-4ef8-bb6d-6bb9bd380072', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'dfeebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'Build Your Own Cloud', 'Choose from 45+ flavors: Pan Ras, Green Savior, Blue Surfer, Pirates Cave, Safari Melon Dew, Sex On The Beach, Tequila Sunrise, Queen Of Sex, Citrus Mint, Blue Mist, Spiced Chai, Exagelado, Mint, Blueberry, Chief Commissioner, Fresh Gum Mint, Harvest Moon, Lemon Mint, Rose, Coconut, Cappuccino, Baku Nights, Blue Dragon, Lady Killer, Skyfall, Love 66, Mi Amor, JK 77, Hawaii, Kiwi, Mango, Double Apple, Watermelon, Grape, Guava, Orange, Orange With Cream, Dubai Mint, Lychee, Peach, Strawberry, Vanilla, Dream Scape, Exotic Watermelon', 25.00, 'Refill: $15', 'USD', NULL, TRUE, 1),
+
+  -- ── VVIP Bottle Service (42 items) ─ cat d00ebc99 ─────────────────────────
+  -- Tequila & Mezcal
+  ('e000bc99-9c0b-4ef8-bb6d-6bb9bd380073', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'd00ebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'Don Julio Silver (Bottle)', NULL, 190.00, NULL, 'USD', NULL, TRUE, 1),
+  ('e000bc99-9c0b-4ef8-bb6d-6bb9bd380074', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'd00ebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'Patrón Silver (Bottle)', NULL, 190.00, NULL, 'USD', NULL, TRUE, 2),
+  ('e000bc99-9c0b-4ef8-bb6d-6bb9bd380075', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'd00ebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'Casamigos Blanco (Bottle)', NULL, 200.00, NULL, 'USD', NULL, TRUE, 3),
+  ('e000bc99-9c0b-4ef8-bb6d-6bb9bd380076', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'd00ebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'Don Julio Reposado (Bottle)', NULL, 225.00, NULL, 'USD', NULL, TRUE, 4),
+  ('e000bc99-9c0b-4ef8-bb6d-6bb9bd380077', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'd00ebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'Casamigos Reposado (Bottle)', NULL, 225.00, NULL, 'USD', NULL, TRUE, 5),
+  ('e000bc99-9c0b-4ef8-bb6d-6bb9bd380078', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'd00ebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'Casamigos Añejo (Bottle)', NULL, 250.00, NULL, 'USD', NULL, TRUE, 6),
+  -- Cognac & Brandy
+  ('e000bc99-9c0b-4ef8-bb6d-6bb9bd380079', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'd00ebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'Hennessy (Bottle)', NULL, 250.00, NULL, 'USD', NULL, TRUE, 7),
+  ('e000bc99-9c0b-4ef8-bb6d-6bb9bd38007a', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'd00ebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'Martell (Bottle)', NULL, 250.00, NULL, 'USD', NULL, TRUE, 8),
+  ('e000bc99-9c0b-4ef8-bb6d-6bb9bd38007b', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'd00ebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'D''Ussé (Bottle)', NULL, 250.00, NULL, 'USD', NULL, TRUE, 9),
+  ('e000bc99-9c0b-4ef8-bb6d-6bb9bd38007c', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'd00ebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'Rémy Martin (Bottle)', NULL, 275.00, NULL, 'USD', NULL, TRUE, 10),
+  -- American Whiskey
+  ('e000bc99-9c0b-4ef8-bb6d-6bb9bd38007d', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'd00ebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'Jack Daniel''s (Bottle)', NULL, 180.00, NULL, 'USD', NULL, TRUE, 11),
+  ('e000bc99-9c0b-4ef8-bb6d-6bb9bd38007e', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'd00ebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'Crown Royal (Bottle)', NULL, 180.00, NULL, 'USD', NULL, TRUE, 12),
+  ('e000bc99-9c0b-4ef8-bb6d-6bb9bd38007f', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'd00ebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'Four Roses (Bottle)', NULL, 180.00, NULL, 'USD', NULL, TRUE, 13),
+  ('e000bc99-9c0b-4ef8-bb6d-6bb9bd380080', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'd00ebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'Old Forester (Bottle)', NULL, 180.00, NULL, 'USD', NULL, TRUE, 14),
+  ('e000bc99-9c0b-4ef8-bb6d-6bb9bd380081', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'd00ebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'Bulleit Bourbon (Bottle)', NULL, 190.00, NULL, 'USD', NULL, TRUE, 15),
+  ('e000bc99-9c0b-4ef8-bb6d-6bb9bd380082', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'd00ebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'Woodford Reserve (Bottle)', NULL, 190.00, NULL, 'USD', NULL, TRUE, 16),
+  ('e000bc99-9c0b-4ef8-bb6d-6bb9bd380083', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'd00ebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'Basil Hayden (Bottle)', NULL, 190.00, NULL, 'USD', NULL, TRUE, 17),
+  ('e000bc99-9c0b-4ef8-bb6d-6bb9bd380084', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'd00ebc99-9c0b-4ef8-bb6d-6bb9bd380a11', '1792 Bourbon (Bottle)', NULL, 190.00, NULL, 'USD', NULL, TRUE, 18),
+  ('e000bc99-9c0b-4ef8-bb6d-6bb9bd380085', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'd00ebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'Maker''s Mark (Bottle)', NULL, 190.00, NULL, 'USD', NULL, TRUE, 19),
+  ('e000bc99-9c0b-4ef8-bb6d-6bb9bd380086', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'd00ebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'Gentleman Jack (Bottle)', NULL, 200.00, NULL, 'USD', NULL, TRUE, 20),
+  -- Scotch
+  ('e000bc99-9c0b-4ef8-bb6d-6bb9bd380087', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'd00ebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'The Singleton (Bottle)', NULL, 220.00, NULL, 'USD', NULL, TRUE, 21),
+  ('e000bc99-9c0b-4ef8-bb6d-6bb9bd380088', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'd00ebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'The Glenlivet 12 (Bottle)', NULL, 220.00, NULL, 'USD', NULL, TRUE, 22),
+  ('e000bc99-9c0b-4ef8-bb6d-6bb9bd380089', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'd00ebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'Glenfiddich 12 (Bottle)', NULL, 220.00, NULL, 'USD', NULL, TRUE, 23),
+  ('e000bc99-9c0b-4ef8-bb6d-6bb9bd38008a', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'd00ebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'Johnnie Walker Gold Label (Bottle)', NULL, 225.00, NULL, 'USD', NULL, TRUE, 24),
+  ('e000bc99-9c0b-4ef8-bb6d-6bb9bd38008b', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'd00ebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'Macallan 12 (Bottle)', NULL, 240.00, NULL, 'USD', NULL, TRUE, 25),
+  -- Irish
+  ('e000bc99-9c0b-4ef8-bb6d-6bb9bd38008c', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'd00ebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'Jameson (Bottle)', NULL, 180.00, NULL, 'USD', NULL, TRUE, 26),
+  -- Vodka
+  ('e000bc99-9c0b-4ef8-bb6d-6bb9bd38008d', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'd00ebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'Smirnoff Vanilla (Bottle)', NULL, 150.00, NULL, 'USD', NULL, TRUE, 27),
+  ('e000bc99-9c0b-4ef8-bb6d-6bb9bd38008e', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'd00ebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'Tito''s (Bottle)', NULL, 175.00, NULL, 'USD', NULL, TRUE, 28),
+  ('e000bc99-9c0b-4ef8-bb6d-6bb9bd38008f', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'd00ebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'Grey Goose (Bottle)', NULL, 200.00, NULL, 'USD', NULL, TRUE, 29),
+  -- Rum
+  ('e000bc99-9c0b-4ef8-bb6d-6bb9bd380090', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'd00ebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'Bacardi (Bottle)', NULL, 150.00, NULL, 'USD', NULL, TRUE, 30),
+  ('e000bc99-9c0b-4ef8-bb6d-6bb9bd380091', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'd00ebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'Captain Morgan Spiced (Bottle)', NULL, 150.00, NULL, 'USD', NULL, TRUE, 31),
+  ('e000bc99-9c0b-4ef8-bb6d-6bb9bd380092', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'd00ebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'Old Monk (Bottle)', NULL, 150.00, NULL, 'USD', NULL, TRUE, 32),
+  ('e000bc99-9c0b-4ef8-bb6d-6bb9bd380093', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'd00ebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'Malibu (Bottle)', NULL, 150.00, NULL, 'USD', NULL, TRUE, 33),
+  ('e000bc99-9c0b-4ef8-bb6d-6bb9bd380094', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'd00ebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'Bumbu (Bottle)', NULL, 175.00, NULL, 'USD', NULL, TRUE, 34),
+  -- Gin
+  ('e000bc99-9c0b-4ef8-bb6d-6bb9bd380095', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'd00ebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'Bombay Sapphire (Bottle)', NULL, 175.00, NULL, 'USD', NULL, TRUE, 35),
+  ('e000bc99-9c0b-4ef8-bb6d-6bb9bd380096', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'd00ebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'Hendrick''s (Bottle)', NULL, 200.00, NULL, 'USD', NULL, TRUE, 36),
+  -- Wine
+  ('e000bc99-9c0b-4ef8-bb6d-6bb9bd380097', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'd00ebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'Meiomi Pinot Noir', NULL, 45.00, NULL, 'USD', NULL, TRUE, 37),
+  ('e000bc99-9c0b-4ef8-bb6d-6bb9bd380098', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'd00ebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'Kim Crawford', NULL, 45.00, NULL, 'USD', NULL, TRUE, 38),
+  ('e000bc99-9c0b-4ef8-bb6d-6bb9bd380099', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'd00ebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'Whispering Angel', NULL, 45.00, NULL, 'USD', NULL, TRUE, 39)
 ON CONFLICT (id) DO NOTHING;
 
 -- ── 7. GOOGLE INTEGRATION (connected) ────────────────────────────────────────

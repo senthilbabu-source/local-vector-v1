@@ -224,6 +224,7 @@ export const MenuOCRItemSchema = z.object({
   name: z.string(),
   description: z.string().optional(),
   price: z.string().optional(),
+  price_note: z.string().optional(),
   category: z.string(),
 });
 

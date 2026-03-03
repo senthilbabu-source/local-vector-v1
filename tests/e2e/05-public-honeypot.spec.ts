@@ -16,8 +16,9 @@
 //
 // Seeded data for charcoal-n-chill (seed.sql §4–6, golden tenant):
 //   - Business: Charcoal N Chill (org a0eebc99-…, Alpharetta location)
-//   - Menu items: Smoked Brisket, Smoked Half Chicken, Truffle Mac & Cheese,
-//                 Collard Greens
+//   - Menu: 153 items across 17 categories (Appetizers, Grill, Entrées,
+//           Desserts, Beverages, Mocktails, Cocktails, Mixed Shots, IPA,
+//           Domestic/Imported Beer, Chill/Easy/Boss Sips, Hookah, VVIP Bottles)
 //   - Hours: set in the migration (Tuesday–Sunday open → openingHoursSpecification
 //            will have entries for those days)
 // ---------------------------------------------------------------------------
@@ -44,12 +45,12 @@ test.describe('05 — Public Honeypot: /m/charcoal-n-chill', () => {
     await expect(page.getByRole('heading', { name: 'Charcoal N Chill', level: 1 })).toBeVisible();
 
     // Category headings from seed.sql §5.
-    await expect(page.getByText('BBQ Plates')).toBeVisible();
-    await expect(page.getByText('Sides & Starters')).toBeVisible();
+    await expect(page.getByText('Appetizers')).toBeVisible();
+    await expect(page.getByText('Grill')).toBeVisible();
 
     // Item names from seed.sql §6.
-    await expect(page.getByText('Smoked Brisket')).toBeVisible();
-    await expect(page.getByText('Truffle Mac & Cheese')).toBeVisible();
+    await expect(page.getByText('Chicken 65 (wet)')).toBeVisible();
+    await expect(page.getByText('Lamb Chops')).toBeVisible();
 
     // AI-readable data endpoints footer (PublicMenuPage.tsx).
     await expect(page.getByText('AI-readable data endpoints')).toBeVisible();
@@ -133,11 +134,11 @@ test.describe('05 — Public Honeypot: /m/charcoal-n-chill', () => {
     expect(text).toContain('## Amenities');
     expect(text).toContain('## Menu');
 
-    // At least one menu category heading (### BBQ Plates or ### Sides & Starters).
-    expect(text).toMatch(/### (BBQ Plates|Sides & Starters)/);
+    // At least one menu category heading (### Appetizers or ### Grill).
+    expect(text).toMatch(/### (Appetizers|Grill)/);
 
     // Item names from seed.sql §6 appear in the menu section.
-    expect(text).toContain('Smoked Brisket');
+    expect(text).toContain('Chicken 65 (wet)');
 
     // AI Config cross-reference footer.
     expect(text).toContain('ai-config.json');

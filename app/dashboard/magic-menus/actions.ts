@@ -35,6 +35,7 @@ const MenuExtractedItemSchema = z.object({
   name:        z.string(),
   description: z.string().optional(),
   price:       z.string().optional(),
+  price_note:  z.string().optional(),
   category:    z.string(),
   confidence:  z.number().min(0).max(1),
   // Doc 04b §2: image_url added to MenuExtractedItem (lib/types/menu.ts).
@@ -53,19 +54,24 @@ const MenuExtractedDataSchema = z.object({
 const SAMPLE_MENU_TEXT = `
 CHARCOAL N CHILL — MENU
 
-BBQ Plates
-- Brisket Plate · $18 · 12 oz smoked brisket with choice of two sides
-- Pulled Pork Sandwich · $12 · house-smoked pork shoulder on toasted brioche, pickles, slaw
-- St. Louis Ribs Half Rack · $22 · slow-smoked pork ribs, house dry rub, sauce on the side
+Appetizers
+- Chicken 65 (wet) · $15.95 · Crispy fried chicken tossed in spicy curry leaf sauce
+- Paneer 65 · $14.95 · Crispy paneer cubes in tangy spiced batter
+- Wings · $13.95 · Flavors: Buffalo, Lemon Pepper, BBQ, Honey Chilli, Honey Mustard
+- Truffle Cloud Fries · $9.95
 
-Starters
-- Smoked Wings · $14 · 8-piece smoked chicken wings: plain, dry rub, or sauced
+Grill
+- Lamb Chops · $24.95
 
-Sides
-- Loaded Mac & Cheese · $8 · four-cheese blend, baked to order
+Entrées
+- Chicken Fried Rice · $15.95
+- Butter Chicken Masala · $16.95
 
-Drinks
-- Sweet Tea · $3
+Mocktails
+- Mojito · $10.00
+
+Curated Hookah
+- CNC Special · $40 · Signature Blend: Chief Commissioner + Pan Ras or Lychee (Refill: $20)
 `.trim();
 
 /**
@@ -343,12 +349,12 @@ export async function simulateAIParsing(
   const mockData: MenuExtractedData = aiData ?? {
     extracted_at: new Date().toISOString(),
     items: [
-      { id: '1', name: 'Brisket Plate',           price: '$18', category: 'BBQ Plates', confidence: 0.94, description: '12oz smoked brisket with choice of two sides' },
-      { id: '2', name: 'Pulled Pork Sandwich',    price: '$12', category: 'Sandwiches', confidence: 0.91, description: 'House-smoked pork shoulder on toasted brioche with pickles and slaw' },
-      { id: '3', name: 'St. Louis Ribs Half Rack', price: '$22', category: 'BBQ Plates', confidence: 0.88, description: 'Slow-smoked pork ribs, house dry rub, sauce on the side' },
-      { id: '4', name: 'Smoked Wings',             price: '$14', category: 'Starters',   confidence: 0.76, description: '8 piece smoked chicken wings — plain, dry rub, or sauced' },
-      { id: '5', name: 'Loaded Mac & Cheese',      price: '$8',  category: 'Sides',      confidence: 0.68 },
-      { id: '6', name: 'Sweet Tea',                price: '$3',  category: 'Drinks',     confidence: 0.83 },
+      { id: '1', name: 'Chicken 65 (wet)',       price: '$15.95', category: 'Appetizers',     confidence: 0.94, description: 'Crispy fried chicken tossed in spicy curry leaf sauce' },
+      { id: '2', name: 'Paneer 65',              price: '$14.95', category: 'Appetizers',     confidence: 0.91, description: 'Crispy paneer cubes in tangy spiced batter' },
+      { id: '3', name: 'Lamb Chops',             price: '$24.95', category: 'Grill',          confidence: 0.88 },
+      { id: '4', name: 'Wings',                  price: '$13.95', category: 'Appetizers',     confidence: 0.76, description: 'Flavors: Buffalo, Lemon Pepper, BBQ, Honey Chilli, Honey Mustard' },
+      { id: '5', name: 'Butter Chicken Masala',   price: '$16.95', category: 'Entrées',       confidence: 0.68 },
+      { id: '6', name: 'CNC Special',            price: '$40',    category: 'Curated Hookah', confidence: 0.83, description: 'Signature Blend: Chief Commissioner + Pan Ras or Lychee', price_note: 'Refill: $20' },
     ],
   };
 
@@ -709,6 +715,7 @@ export async function uploadMenuFile(
             'You are a restaurant menu digitizer.',
             'Extract ALL menu items from the provided document into structured JSON.',
             'For each item provide: name, description (if visible), price (as a string like "$12"), and category (infer from section headers or context).',
+            'If an item has tiered or alternate pricing (e.g. single/double pours, initial/refill for hookah), put the base price in "price" and the alternate pricing note in "price_note" (e.g. "Double: $15", "Refill: $20").',
             'If a section header is visible (e.g. "Appetizers", "Mains"), use it as the category.',
             'Do NOT invent items that are not in the document.',
           ].join('\n'),
@@ -739,6 +746,7 @@ export async function uploadMenuFile(
         name: item.name,
         description: item.description,
         price: item.price,
+        ...(item.price_note && { price_note: item.price_note }),
         category: item.category,
         confidence: 0.70, // OCR-derived items start at 70% confidence
       })),

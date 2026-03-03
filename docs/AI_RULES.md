@@ -3798,3 +3798,49 @@ Growth/Agency users can trigger a full-org AI visibility scan on demand. Trial/S
 **Tests:** 16 Vitest — mobile-responsive.test.ts (16).
 
 ---
+
+## §188. Real Menu Ground Truth + price_note Schema Enhancement (2026-03-03)
+
+**Context:** Charcoal N Chill seed data had 4 fictional BBQ items (Smoked Brisket, Half Chicken, Truffle Mac & Cheese, Collard Greens). The actual restaurant is an Indo-fusion hookah lounge & grill with ~153 menu items. All ground truth systems (hallucination detection, RAG, entity weaver, llms.txt, data health) were comparing AI claims against fake data.
+
+### Part A: Seed Data — Real Menu (4 → 153 items, 2 → 17 categories)
+
+**Categories (17):** Appetizers (22), Grill (4), Entrées (8), Desserts (2), Beverages (6), Mocktails (3), Cocktails (10), Mixed Shots (5), IPA (3), Domestic Beer (4), Imported Beer (10), Chill Sips (10), Easy Sips (10), Boss Sips (10), Curated Hookah (6), Build Your Own Hookah (1), VVIP Bottle Service (39).
+
+**Tiered pricing via `price_note`:**
+- Spirits (Chill/Easy/Boss Sips): `price` = single pour, `price_note` = "Double: $X"
+- Curated Hookah: `price` = $40.00, `price_note` = "Refill: $20"
+- Build Your Own Cloud: `price` = $25.00, `price_note` = "Refill: $15"
+
+**Dietary tags:** Vegetarian (paneer items, spring rolls, fries, corn, naan), Vegan (crispy corn, peanut masala), Non-Alcoholic (mocktails).
+
+**UUID patterns:** Categories use `dXeebc99-9c0b-4ef8-bb6d-6bb9bd380a11` (X=0-f + d00). Items use `e000bc99-9c0b-4ef8-bb6d-6bb9bd38XXXX` (XXXX=0001-0099, overflow e001bc99 prefix).
+
+**File:** `supabase/seed.sql` — §4 (categories), §5 (menu_items), §6 (magic_menus extracted_data).
+
+### Part B: Schema — price_note in OCR Pipeline
+
+The DB `menu_items.price_note` column existed but was not exposed in the extraction pipeline.
+
+**Files modified:**
+1. `lib/types/menu.ts` — Added `price_note?: string` to `MenuExtractedItem`
+2. `lib/ai/schemas.ts` — Added `price_note: z.string().optional()` to `MenuOCRItemSchema`
+3. `lib/utils/parseCsvMenu.ts` — Added `Price_Note` column support in parser + updated CSV template to 7 columns with real CNC items
+4. `app/dashboard/magic-menus/actions.ts` — Added `price_note` to local Zod schema, OCR mapping, mock data, GPT-4o prompt
+
+**CSV Gold Standard template (7 columns):** `Category,Item_Name,Description,Price,Price_Note,Dietary_Tags,Image_URL`
+
+### Part C: Test & Fixture Updates
+
+**Updated files:**
+- `src/__fixtures__/golden-tenant.ts` — `MOCK_MENU_SEARCH_RESULTS` now uses real items (Chicken 65, Lamb Chops)
+- `tests/e2e/05-public-honeypot.spec.ts` — Updated assertions: Appetizers/Grill categories, Chicken 65/Lamb Chops items
+- `tests/e2e/hybrid-upload.spec.ts` — Updated assertions for real CNC items
+- `src/__tests__/unit/menu-search-route.test.ts` — Updated mock result assertion
+- `src/__tests__/unit/parseCsvMenu.test.ts` — Added 2 new tests (Price_Note parsing + blank Price_Note), updated template test (6→7 columns)
+- `tests/fixtures/sample-gold-menu.csv` — Rewritten with real CNC items and Price_Note column
+- `src/mocks/handlers.ts` — Updated MSW mock menu data to real items
+
+**Tests:** 2 new Vitest (parseCsvMenu.test.ts). Total: 378 files, 5,717 tests, 0 failures.
+
+---

@@ -124,8 +124,8 @@ test.describe('Hybrid Upload — Gold Standard CSV path', () => {
     ).toBeVisible({ timeout: 15_000 });
 
     // ── Step 5: Assert fixture items are present in the triage list ─────────
-    await expect(page.getByText('Brisket Plate')).toBeVisible();
-    await expect(page.getByText('Mac & Cheese')).toBeVisible();
+    await expect(page.getByText('Chicken 65 (wet)')).toBeVisible();
+    await expect(page.getByText('Lamb Chops')).toBeVisible();
 
     // ── Step 6: All items are auto-approved (confidence = 1.0 for CSV path) ─
     // The "Auto-Approved" section heading must be visible

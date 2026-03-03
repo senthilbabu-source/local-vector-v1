@@ -13,6 +13,7 @@
 //   Item_Name   → item.name      (required; rows without a name are skipped)
 //   Description → item.description
 //   Price       → item.price
+//   Price_Note  → item.price_note (optional; for tiered/refill pricing, e.g. "Double: $15")
 //   Dietary_Tags→ stored as pipe-separated string on item; mapDietaryTagsToSchemaUris
 //                 converts to Schema.org URIs at JSON-LD generation time.
 //   Image_URL   → item.image_url (validated — invalid URLs stripped, no crash)
@@ -120,6 +121,7 @@ export function parseLocalVectorCsv(csvText: string): ParseCsvResult {
       name,
       description: row['description'] || undefined,
       price:       row['price']       || undefined,
+      ...(row['price_note'] && { price_note: row['price_note'] }),
       category:    row['category']    || 'Uncategorised',
       // Owner-supplied CSV → canonical ground truth → always auto-approved
       confidence:  1.0,
@@ -159,10 +161,11 @@ export function parseLocalVectorCsv(csvText: string): ParseCsvResult {
  */
 export function getLocalVectorCsvTemplate(): string {
   return [
-    'Category,Item_Name,Description,Price,Dietary_Tags,Image_URL',
-    'BBQ Plates,Brisket Plate,"Slow-smoked beef brisket, two sides, cornbread",$22.00,Gluten-Free,',
-    'BBQ Plates,Pulled Pork Sandwich,House-smoked pulled pork on brioche with pickles,$14.00,,',
-    'Sides,Mac & Cheese,Creamy four-cheese blend baked to order,$8.00,Vegetarian,',
-    'Drinks,Sweet Tea,,$4.00,,',
+    'Category,Item_Name,Description,Price,Price_Note,Dietary_Tags,Image_URL',
+    'Appetizers,Chicken 65 (wet),Crispy fried chicken tossed in spicy curry leaf sauce,$15.95,,,',
+    'Appetizers,Paneer 65,Crispy paneer cubes in tangy spiced batter,$14.95,,Vegetarian,',
+    'Grill,Lamb Chops,Grilled lamb chops with house spice blend,$24.95,,,',
+    'Chill Sips,Bacardi,,$9.00,Double: $15,,',
+    'Curated Hookah,CNC Special,Chief Commissioner + Pan Ras or Lychee,$40.00,Refill: $20,,',
   ].join('\r\n');
 }

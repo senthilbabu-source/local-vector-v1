@@ -2809,18 +2809,18 @@ export type MenuSearchResult = {
 export const MOCK_MENU_SEARCH_RESULTS: MenuSearchResult[] = [
   {
     id: 'menu-item-001',
-    name: 'Spicy Hookah Chicken Wings',
-    description: 'Crispy wings tossed in our signature hookah sauce',
-    price: 14.0,
-    category: 'Small Plates',
+    name: 'Chicken 65 (wet)',
+    description: 'Crispy fried chicken tossed in spicy curry leaf sauce',
+    price: 15.95,
+    category: 'Appetizers',
     similarity: 0.87,
   },
   {
     id: 'menu-item-002',
-    name: 'Indo-Fusion Lamb Chops',
-    description: 'Marinated lamb with aromatic Indian spices',
-    price: 24.0,
-    category: 'Main Course',
+    name: 'Lamb Chops',
+    description: 'Grilled lamb chops with house spice blend',
+    price: 24.95,
+    category: 'Grill',
     similarity: 0.72,
   },
 ];

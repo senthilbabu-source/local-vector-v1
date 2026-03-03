@@ -29,6 +29,8 @@ export interface MenuExtractedItem {
   confidence: number;
   /** Optional dish photo URL. Rendered in Smart Review UI and emitted in JSON-LD. */
   image_url?: string;
+  /** Optional pricing note for tiered/refill pricing (e.g. "Double: $15", "Refill: $20"). */
+  price_note?: string;
 }
 
 /**

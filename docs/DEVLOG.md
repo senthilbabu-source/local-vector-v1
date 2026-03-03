@@ -4,6 +4,35 @@
 
 ---
 
+## 2026-03-03 — Real Menu Ground Truth + price_note Schema Enhancement (§188)
+
+Replaced 4 fictional BBQ items with 153 real Charcoal N Chill menu items from the owner's PDF menu. Added `price_note` field to the OCR extraction pipeline for tiered/refill pricing.
+
+### Part A: Seed Data — Real Menu (4 → 153 items, 2 → 17 categories)
+- **Modified** `supabase/seed.sql` — replaced 2 categories + 4 items with 17 categories + 153 real items across Food (Appetizers, Grill, Entrées, Desserts, Beverages), Bar (Mocktails, Cocktails, Mixed Shots, IPA, Domestic/Imported Beer, Chill/Easy/Boss Sips), Cloud (Curated Hookah, Build Your Own), VVIP Bottle Service
+- Tiered pricing: spirits use `price_note` ("Double: $X"), hookah uses `price_note` ("Refill: $20/$15")
+- Dietary tags: Vegetarian, Vegan, Non-Alcoholic where applicable
+- Updated `magic_menus.extracted_data` JSONB with all 153 items at `confidence: 1.0`
+
+### Part B: Schema — price_note in OCR Pipeline
+- **Modified** `lib/types/menu.ts` — added `price_note?: string` to `MenuExtractedItem`
+- **Modified** `lib/ai/schemas.ts` — added `price_note` to `MenuOCRItemSchema`
+- **Modified** `lib/utils/parseCsvMenu.ts` — `Price_Note` column support + updated CSV template (6→7 columns)
+- **Modified** `app/dashboard/magic-menus/actions.ts` — `price_note` in Zod schema, OCR mapping, mock data, GPT-4o prompt
+
+### Part C: Test & Fixture Updates
+- **Modified** `src/__fixtures__/golden-tenant.ts` — real items in `MOCK_MENU_SEARCH_RESULTS`
+- **Modified** `tests/e2e/05-public-honeypot.spec.ts` — Appetizers/Grill + Chicken 65/Lamb Chops assertions
+- **Modified** `tests/e2e/hybrid-upload.spec.ts` — real CNC items
+- **Modified** `src/__tests__/unit/menu-search-route.test.ts` — updated mock result
+- **Modified** `src/__tests__/unit/parseCsvMenu.test.ts` — +2 new tests (Price_Note), updated template test
+- **Modified** `tests/fixtures/sample-gold-menu.csv` — real CNC items with Price_Note
+- **Modified** `src/mocks/handlers.ts` — updated MSW mock menu data
+
+**Files changed:** 12 modified. **Tests: 2 new (parseCsvMenu.test.ts).** Total: 378 files, 5,717 tests, 0 failures. AI_RULES §188.
+
+---
+
 ## 2026-03-03 — P6–P8 Sprint Block (Cherry-Pick): Security + Logging + CI/CD + GDPR + Mobile (P6-FIX-25 → P6-FIX-28)
 
 5-sprint cherry-pick from 14-sprint P6-P8 block. Skipped: P7-FIX-29 (Sentry — already done), P6-FIX-27 (Accessibility — deferred), P7-FIX-32 (Pre-Launch docs), P8-FIX-33 to FIX-38 (product features — deferred).

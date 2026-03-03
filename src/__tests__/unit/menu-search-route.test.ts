@@ -104,7 +104,7 @@ describe('GET /api/public/menu/search', () => {
     expect(body.query).toBe('spicy wings');
     expect(body.count).toBe(MOCK_MENU_SEARCH_RESULTS.length);
     expect(body.results).toHaveLength(MOCK_MENU_SEARCH_RESULTS.length);
-    expect(body.results[0].name).toBe('Spicy Hookah Chicken Wings');
+    expect(body.results[0].name).toBe('Chicken 65 (wet)');
   });
 
   it('7. returns 500 with error=search_unavailable when embedding fails', async () => {

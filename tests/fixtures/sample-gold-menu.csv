@@ -1,3 +1,4 @@
-Category,Item_Name,Description,Price,Dietary_Tags,Image_URL
-BBQ Plates,Brisket Plate,"Slow-smoked beef brisket, two sides, cornbread",$22.00,Gluten-Free,https://example.com/brisket.jpg
-Sides,Mac & Cheese,Creamy four-cheese blend baked to order,$8.00,Vegetarian,
+Category,Item_Name,Description,Price,Price_Note,Dietary_Tags,Image_URL
+Appetizers,Chicken 65 (wet),Crispy fried chicken tossed in spicy curry leaf sauce,$15.95,,,
+Appetizers,Paneer 65,Crispy paneer cubes in tangy spiced batter,$14.95,,Vegetarian,
+Grill,Lamb Chops,Grilled lamb chops with house spice blend,$24.95,,,

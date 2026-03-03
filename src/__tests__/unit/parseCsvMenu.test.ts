@@ -97,6 +97,32 @@ describe('parseLocalVectorCsv', () => {
     expect(result.data.items[0].price).toBeUndefined();
   });
 
+  it('parses Price_Note column for tiered pricing', () => {
+    const csv = [
+      'Category,Item_Name,Description,Price,Price_Note,Dietary_Tags,Image_URL',
+      'Chill Sips,Bacardi,,$9.00,Double: $15,,',
+      'Curated Hookah,CNC Special,Signature Blend,$40.00,Refill: $20,,',
+    ].join('\n');
+
+    const result = parseLocalVectorCsv(csv);
+    if (!('data' in result)) throw new Error('Expected data');
+
+    expect(result.data.items[0].price_note).toBe('Double: $15');
+    expect(result.data.items[1].price_note).toBe('Refill: $20');
+  });
+
+  it('omits price_note when the Price_Note column is blank', () => {
+    const csv = [
+      'Category,Item_Name,Description,Price,Price_Note,Dietary_Tags,Image_URL',
+      'Appetizers,Wings,,$13.95,,,',
+    ].join('\n');
+
+    const result = parseLocalVectorCsv(csv);
+    if (!('data' in result)) throw new Error('Expected data');
+
+    expect(result.data.items[0].price_note).toBeUndefined();
+  });
+
   // ── Image_URL validation ──────────────────────────────────────────────────
 
   it('accepts a valid HTTPS Image_URL', () => {
@@ -242,7 +268,7 @@ describe('parseLocalVectorCsv', () => {
 // ---------------------------------------------------------------------------
 
 describe('getLocalVectorCsvTemplate', () => {
-  it('returns a string containing all 6 required column headers', () => {
+  it('returns a string containing all 7 column headers', () => {
     const template = getLocalVectorCsvTemplate();
 
     expect(typeof template).toBe('string');
@@ -250,6 +276,7 @@ describe('getLocalVectorCsvTemplate', () => {
     expect(template).toContain('Item_Name');
     expect(template).toContain('Description');
     expect(template).toContain('Price');
+    expect(template).toContain('Price_Note');
     expect(template).toContain('Dietary_Tags');
     expect(template).toContain('Image_URL');
   });
