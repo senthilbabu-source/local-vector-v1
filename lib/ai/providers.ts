@@ -148,6 +148,12 @@ export const MODELS = {
   /** Sprint 123: Multi-Model SOV — Gemini Flash (no search grounding, pure citation) */
   'sov-query-gemini': google('gemini-2.0-flash'),
 
+  /** Sprint 133: RAG chatbot — Haiku for speed + cost on public widget */
+  'rag-chatbot': anthropic('claude-3-5-haiku-20241022'),
+
+  /** Sprint 135: Intent Discovery prompt expansion (Haiku for cost) */
+  'intent-expand': anthropic('claude-3-5-haiku-20241022'),
+
 } as const;
 
 /** Sprint 119: Embedding model — kept separate from MODELS to preserve LanguageModelV1 union */

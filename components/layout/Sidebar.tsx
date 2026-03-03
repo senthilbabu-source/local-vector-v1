@@ -32,6 +32,9 @@ import {
   Users,
   X,
   Link2,
+  MessageCircle,
+  Zap,
+  Compass,
 } from 'lucide-react';
 import LogoutButton from '@/app/dashboard/_components/LogoutButton';
 import LocationSwitcher, { type LocationOption } from './LocationSwitcher';
@@ -239,6 +242,27 @@ export const NAV_ITEMS = [
     exact: false,
     active: true,
   },
+  {
+    href: '/dashboard/playbooks',
+    label: 'Playbooks',
+    icon: Zap,
+    exact: false,
+    active: true,
+  },
+  {
+    href: '/dashboard/intent-discovery',
+    label: 'Intent Discovery',
+    icon: Compass,
+    exact: false,
+    active: true,
+  },
+  {
+    href: '/dashboard/settings/widget',
+    label: 'Chat Widget',
+    icon: MessageCircle,
+    exact: false,
+    active: true,
+  },
 ];
 
 // ---------------------------------------------------------------------------
@@ -290,6 +314,8 @@ export const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
         '/dashboard/benchmarks',
         '/dashboard/agent-readiness',
         '/dashboard/entity-health',
+        '/dashboard/playbooks',
+        '/dashboard/intent-discovery',
       ].includes(i.href),
     ),
   },
@@ -302,6 +328,7 @@ export const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
         '/dashboard/settings/locations',
         '/dashboard/system-health',
         '/dashboard/settings',
+        '/dashboard/settings/widget',
         '/dashboard/team',
         '/dashboard/settings/domain',
         '/dashboard/billing',

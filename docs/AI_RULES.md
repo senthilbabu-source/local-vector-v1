@@ -3319,3 +3319,56 @@ Detection in `lib/agent-seo/action-schema-detector.ts`, scoring in `lib/agent-se
 * **Tests:** 31 Vitest (9 parseActionSchemasFromHtml + 4 booking URL safety + 15 computeAgentSEOScore + 1 fetchAndParseActionSchemas + 2 inspectSchemaForActions).
 
 ---
+
+## §166. Truth-Grounded RAG Chatbot Widget (Sprint 133)
+
+Embeddable chatbot in `lib/rag/`, widget UI at `app/widget/[slug]/`, settings at `app/dashboard/settings/widget/`.
+
+* **ZERO hallucinations.** System prompt enforces "ONLY use provided context". If answer isn't in context → "I don't have that information. Please call {phone}."
+* **80-word limit** on all responses. Keep concise.
+* **RAG readiness gate:** `checkRAGReadiness()` in `rag-readiness-check.ts`. 4 dimensions: menu(40), amenities(20), hours(25), status(15). Ready ≥ 80. Widget cannot be enabled below threshold.
+* **Correct menu join:** `menu_items → menu_categories!inner → magic_menus!inner(location_id, is_published)`. `menu_items` has NO `location_id` column.
+* **No question logging.** Widget chat does NOT persist user questions. Privacy by design.
+* **Rate limiting:** 20 requests/hr per IP + 200/day per location. Uses `checkRateLimit()` from `lib/rate-limit/rate-limiter.ts`.
+* **Public route:** `app/api/widget/chat/route.ts` uses `createServiceRoleClient()` — no auth required. CORS headers required.
+* **Embed script:** `app/api/widget/[slug]/embed/route.ts` — GET returns JS injecting iframe. Cache-Control 1hr.
+* **Plan gate:** `canEmbedWidget(plan)` → growth + agency only.
+* **Model:** `rag-chatbot` key in `lib/ai/providers.ts` → `anthropic('claude-3-5-haiku-20241022')`.
+* **Migration:** `20260427000001_widget_settings.sql`. Adds `widget_enabled`, `widget_settings` to locations.
+* **Tests:** 32 Vitest (8 readiness + 5 formatHours + 9 prompt + 3 answer + 7 context).
+
+---
+
+## §167. Per-Engine Optimization Playbooks (Sprint 134)
+
+Engine signal library in `lib/playbooks/engine-signal-library.ts`, generation in `lib/playbooks/playbook-engine.ts`.
+
+* **Agency-only.** `canViewPlaybooks(plan)` gate on page and cron.
+* **Data gate:** `MIN_QUERIES_FOR_PLAYBOOK = 20`. Returns `insufficientData=true` when fewer queries exist for an engine.
+* **4 engines:** `perplexity_sonar`, `openai_gpt4o_mini`, `gemini_flash`, `copilot`. Keys use underscores to match `sov_model_results.model_provider` CHECK constraint.
+* **Pure signal functions:** Every `checkFn` in `ENGINE_SIGNAL_LIBRARIES` is pure — takes `LocationSignalInput`, returns `'present' | 'partial' | 'missing'`. No side effects.
+* **Action priority:** Actions sorted: missing first (high), then partial (medium), then present (low).
+* **Cache pattern:** `locations.playbook_cache` JSONB populated weekly by cron. `playbook_generated_at` TIMESTAMPTZ.
+* **Cron:** `app/api/cron/playbook-generation/route.ts` — Monday 9 AM UTC. Kill switch: `PLAYBOOK_CRON_DISABLED`.
+* **Migration:** `20260427000002_playbook_cache.sql`. Adds 2 columns to locations.
+* **Tests:** 28 Vitest (14 signals + 6 generatePlaybook + 3 engine structure + 5 cron/registration).
+
+---
+
+## §168. Conversational Intent Discovery (Sprint 135)
+
+Prompt expansion in `lib/intent/prompt-expander.ts`, gap detection in `lib/intent/intent-discoverer.ts`.
+
+* **Agency-only.** `canRunIntentDiscovery(plan)` gate on page and cron.
+* **Prompt expansion:** Claude generates 50 realistic prompts via `expandPrompts()`. Capped at `MAX_SAMPLE_SIZE = 50`. Deduplication via first-6-words clustering.
+* **Citation reuse:** `detectCitation()` from `lib/services/sov-model-normalizer.ts` reused for client/competitor citation detection.
+* **Opportunity scoring:** `scoreOpportunity()` — 50 base (not cited) + 30 competitor scaling + 20 theme bonus (occasion/comparison). Pure function.
+* **Theme classification:** 7 themes: menu, hours, reviews, location, comparison, occasion, general. Regex keyword matching via `classifyPromptTheme()`.
+* **Rate limiting:** 2-second delay between Perplexity API calls in `discoverIntents()`.
+* **Perplexity data gate:** Cron requires ≥ 200 rows in `sov_model_results` for `perplexity_sonar` before running.
+* **Generate Brief CTA:** Creates content_drafts with `trigger_type = 'intent_gap'`. CHECK constraint updated.
+* **Cron:** `app/api/cron/intent-discovery/route.ts` — Thursday 10 AM UTC. Kill switch: `INTENT_CRON_DISABLED`. maxDuration=300.
+* **Migration:** `20260427000003_intent_discoveries.sql`. New table + content_drafts CHECK update.
+* **Tests:** 30 Vitest (8 classify + 6 score + 4 dedup + 4 expand + 3 discover + 5 cron/registration).
+
+---

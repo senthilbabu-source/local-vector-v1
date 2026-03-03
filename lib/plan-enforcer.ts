@@ -255,6 +255,30 @@ export function canSyncBingPlaces(plan: PlanTier): boolean {
   return plan === 'agency';
 }
 
+/**
+ * RAG Chatbot Widget — embeddable truth-grounded chat (Sprint 133).
+ * Growth and Agency orgs can enable the widget on their locations.
+ */
+export function canEmbedWidget(plan: PlanTier): boolean {
+  return plan === 'growth' || plan === 'agency';
+}
+
+/**
+ * Per-Engine Optimization Playbooks (Sprint 134).
+ * Agency-only: requires 8+ weeks of multi-model SOV data.
+ */
+export function canViewPlaybooks(plan: PlanTier): boolean {
+  return plan === 'agency';
+}
+
+/**
+ * Conversational Intent Discovery (Sprint 135).
+ * Agency-only: requires 8+ weeks of Perplexity SOV results.
+ */
+export function canRunIntentDiscovery(plan: PlanTier): boolean {
+  return plan === 'agency';
+}
+
 // ---------------------------------------------------------------------------
 // Sprint 111 — Org Membership Foundation
 // ---------------------------------------------------------------------------

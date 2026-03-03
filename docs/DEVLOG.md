@@ -4,6 +4,86 @@
 
 ---
 
+## 2026-03-02 — Wave 4: Sprints 133, 134, 135 — Data-Gated Features (Completed)
+
+Three data-gated features adding truth-grounded RAG chatbot, per-engine optimization playbooks, and conversational intent discovery.
+
+### Sprint 133 — Truth-Grounded RAG Chatbot Widget (Growth+)
+
+Embeddable `<script>` widget that answers customer questions using only verified ground-truth data (menu, hours, amenities, FAQ). Zero hallucinations by design — system prompt enforces context-only answers with 80-word limit and phone fallback.
+
+**Files created:**
+- `supabase/migrations/20260427000001_widget_settings.sql` — widget_enabled + widget_settings on locations
+- `lib/rag/rag-readiness-check.ts` — 4-dimension scoring (menu/amenities/hours/status), ready ≥ 80
+- `lib/rag/rag-context-builder.ts` — 3 parallel queries, correct menu join chain
+- `lib/rag/rag-responder.ts` — system prompt builder + answerQuestion via Vercel AI SDK
+- `lib/rag/index.ts` — barrel export
+- `app/api/widget/chat/route.ts` — public POST, rate-limited (20/hr IP + 200/day location), CORS
+- `app/api/widget/[slug]/embed/route.ts` — JS embed script, Cache-Control 1hr
+- `app/widget/[slug]/page.tsx` — iframe widget UI (server component)
+- `app/widget/[slug]/WidgetChat.tsx` — chat client component
+- `app/dashboard/settings/widget/page.tsx` — settings page with readiness gate
+- `app/dashboard/settings/widget/_components/WidgetSettingsForm.tsx` — enable toggle, color, position, greeting
+- `app/dashboard/settings/widget/actions.ts` — updateWidgetSettings server action
+- `src/__tests__/unit/rag.test.ts` — 32 tests
+
+**Files modified:**
+- `lib/plan-enforcer.ts` — canEmbedWidget() (growth+)
+- `lib/ai/providers.ts` — 'rag-chatbot' model key
+
+### Sprint 134 — Per-Engine Optimization Playbooks (Agency-only)
+
+Per-AI-engine actionable recommendations based on SOV data. Hardcoded signal libraries for Perplexity, ChatGPT, Gemini, Copilot with pure check functions. Weekly cron generates and caches playbooks.
+
+**Files created:**
+- `supabase/migrations/20260427000002_playbook_cache.sql` — playbook_cache + playbook_generated_at on locations
+- `lib/playbooks/playbook-types.ts` — Playbook, PlaybookAction, SignalDefinition types
+- `lib/playbooks/engine-signal-library.ts` — 4 engines, 11 signals total, ENGINE_DISPLAY_NAMES
+- `lib/playbooks/playbook-engine.ts` — generatePlaybook + generateAllPlaybooks
+- `lib/playbooks/index.ts` — barrel export
+- `app/api/cron/playbook-generation/route.ts` — Monday 9 AM UTC, Agency-only
+- `app/dashboard/playbooks/page.tsx` — plan gate, reads cache
+- `app/dashboard/playbooks/PlaybooksPageClient.tsx` — engine tabs, citation rate gauge, action cards
+- `src/__tests__/unit/playbooks.test.ts` — 28 tests
+
+**Files modified:**
+- `lib/plan-enforcer.ts` — canViewPlaybooks() (agency)
+
+### Sprint 135 — Conversational Intent Discovery (Agency-only)
+
+Claude generates 50 realistic prompts, Perplexity tests them, gaps surface where competitors cited but client isn't. Weekly cron with Perplexity data gate ≥ 200 rows.
+
+**Files created:**
+- `supabase/migrations/20260427000003_intent_discoveries.sql` — intent_discoveries table + trigger_type CHECK update
+- `lib/intent/intent-types.ts` — IntentTheme, IntentGap, IntentDiscovery types
+- `lib/intent/prompt-expander.ts` — expandPrompts via Claude, deduplicatePrompts
+- `lib/intent/intent-discoverer.ts` — classifyPromptTheme, scoreOpportunity, discoverIntents
+- `lib/intent/index.ts` — barrel export
+- `app/api/cron/intent-discovery/route.ts` — Thursday 10 AM UTC, Agency-only
+- `app/dashboard/intent-discovery/page.tsx` — plan gate, fetches latest run
+- `app/dashboard/intent-discovery/IntentDiscoveryClient.tsx` — gap cards, theme badges, opportunity scores
+- `src/__tests__/unit/intent-discovery.test.ts` — 30 tests
+
+**Files modified:**
+- `lib/plan-enforcer.ts` — canRunIntentDiscovery() (agency)
+- `lib/ai/providers.ts` — 'intent-expand' model key
+
+### Cross-Sprint Modifications
+
+- `components/layout/Sidebar.tsx` — 3 new nav items: Playbooks (Intelligence), Intent Discovery (Intelligence), Chat Widget (Admin)
+- `vercel.json` — 2 new crons (24 total): playbook-generation (Mon 9AM), intent-discovery (Thu 10AM)
+- `src/__tests__/unit/sprint-f-registration.test.ts` — cron count 22→24
+- `src/__tests__/unit/sprint-n-registration.test.ts` — cron count 22→24
+- `.env.local.example` — PLAYBOOK_CRON_DISABLED, INTENT_CRON_DISABLED
+- `supabase/prod_schema.sql` — 4 new location columns, intent_discoveries table, trigger_type CHECK update
+- `docs/AI_RULES.md` — §166 (RAG Widget), §167 (Playbooks), §168 (Intent Discovery)
+
+**AI_RULES:** §166-§168
+
+**Test counts:** ~90 new tests (32 + 28 + 30). 0 regressions.
+
+---
+
 ## 2026-03-02 — Sprint 126: Agent-SEO Action Readiness Audit (Completed)
 
 Sprint 126: New tab in Agent Readiness page auditing whether AI agents can take actions (book reservations, place orders, schedule appointments) through the business website. Weekly cron parses homepage JSON-LD for ReserveAction/OrderAction/MedicalAppointment schemas, detects booking CTAs, and checks booking URL accessibility. Results cached on locations table.

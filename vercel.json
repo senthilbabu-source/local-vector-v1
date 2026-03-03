@@ -87,6 +87,14 @@
     {
       "path": "/api/cron/agent-seo-audit",
       "schedule": "0 8 * * 1"
+    },
+    {
+      "path": "/api/cron/playbook-generation",
+      "schedule": "0 9 * * 1"
+    },
+    {
+      "path": "/api/cron/intent-discovery",
+      "schedule": "0 10 * * 4"
     }
   ]
 }

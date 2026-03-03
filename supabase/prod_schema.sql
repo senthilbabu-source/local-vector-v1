@@ -463,11 +463,30 @@ CREATE TABLE IF NOT EXISTS "public"."content_drafts" (
     "generation_notes" "text",
     CONSTRAINT "content_drafts_content_type_check" CHECK ((("content_type")::"text" = ANY ((ARRAY['faq_page'::character varying, 'occasion_page'::character varying, 'blog_post'::character varying, 'landing_page'::character varying, 'gbp_post'::character varying])::"text"[]))),
     CONSTRAINT "content_drafts_status_check" CHECK ((("status")::"text" = ANY ((ARRAY['draft'::character varying, 'approved'::character varying, 'published'::character varying, 'rejected'::character varying, 'archived'::character varying])::"text"[]))),
-    CONSTRAINT "content_drafts_trigger_type_check" CHECK ((("trigger_type")::"text" = ANY ((ARRAY['competitor_gap'::character varying, 'occasion'::character varying, 'prompt_missing'::character varying, 'first_mover'::character varying, 'manual'::character varying, 'hallucination_correction'::character varying, 'review_gap'::character varying, 'schema_gap'::character varying])::"text"[])))
+    CONSTRAINT "content_drafts_trigger_type_check" CHECK ((("trigger_type")::"text" = ANY ((ARRAY['competitor_gap'::character varying, 'occasion'::character varying, 'prompt_missing'::character varying, 'first_mover'::character varying, 'manual'::character varying, 'hallucination_correction'::character varying, 'review_gap'::character varying, 'schema_gap'::character varying, 'intent_gap'::character varying])::"text"[])))
 );
 
 
 ALTER TABLE "public"."content_drafts" OWNER TO "postgres";
+
+
+CREATE TABLE IF NOT EXISTS "public"."intent_discoveries" (
+    "id" "uuid" DEFAULT "extensions"."uuid_generate_v4"() NOT NULL,
+    "org_id" "uuid" NOT NULL,
+    "location_id" "uuid" NOT NULL,
+    "run_id" "uuid" NOT NULL,
+    "prompt" "text" NOT NULL,
+    "theme" character varying(50) NOT NULL,
+    "client_cited" boolean DEFAULT false NOT NULL,
+    "competitors_cited" "text"[] DEFAULT '{}'::"text"[],
+    "opportunity_score" integer DEFAULT 0 NOT NULL,
+    "brief_created" boolean DEFAULT false NOT NULL,
+    "discovered_at" timestamp with time zone DEFAULT "now"() NOT NULL,
+    CONSTRAINT "intent_discoveries_opportunity_score_check" CHECK (("opportunity_score" >= 0 AND "opportunity_score" <= 100))
+);
+
+
+ALTER TABLE "public"."intent_discoveries" OWNER TO "postgres";
 
 
 CREATE TABLE IF NOT EXISTS "public"."post_publish_audits" (
@@ -663,7 +682,11 @@ CREATE TABLE IF NOT EXISTS "public"."locations" (
     "specialty_tags" "text"[] DEFAULT '{}'::"text"[],
     "faq_cache" "jsonb",
     "faq_updated_at" timestamp with time zone,
-    "faq_excluded_hashes" "jsonb" DEFAULT '[]'::"jsonb"
+    "faq_excluded_hashes" "jsonb" DEFAULT '[]'::"jsonb",
+    "widget_enabled" boolean DEFAULT false NOT NULL,
+    "widget_settings" "jsonb",
+    "playbook_cache" "jsonb",
+    "playbook_generated_at" timestamp with time zone
 );
 
 
