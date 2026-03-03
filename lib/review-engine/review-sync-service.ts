@@ -15,35 +15,77 @@ import { fetchYelpReviews } from './fetchers/yelp-review-fetcher';
 import { analyzeSentiment } from './sentiment-analyzer';
 import { deriveOrUpdateBrandVoice } from './brand-voice-profiler';
 import { generateResponseDraft, RESPONSE_GENERATION_LIMITS } from './response-generator';
+import { generateEntityOptimizedResponse } from '@/lib/reviews/review-responder';
+import { extractTopMenuItems } from '@/lib/reviews/entity-weaver';
 import { planSatisfies } from '@/lib/plan-enforcer';
 
+/** Location data including entity context for Sprint 132. */
+interface LocationData {
+  groundTruth: GroundTruth;
+  categories: string[] | null;
+  amenities: Record<string, boolean | null> | null;
+}
+
 /**
- * Fetches Ground Truth data for a location.
+ * Fetches Ground Truth data + entity context for a location.
  */
-async function fetchGroundTruth(
+async function fetchLocationData(
   supabase: SupabaseClient<Database>,
   locationId: string,
   orgId: string,
-): Promise<GroundTruth | null> {
+): Promise<LocationData | null> {
   const { data } = await supabase
     .from('locations')
-    .select('id, org_id, business_name, address_line1, city, state, zip, phone, website_url')
+    .select('id, org_id, business_name, address_line1, city, state, zip, phone, website_url, categories, amenities')
     .eq('id', locationId)
     .maybeSingle();
 
   if (!data) return null;
 
+  // Parse categories — can be string[] or { primary: string, ... }
+  let categories: string[] | null = null;
+  if (data.categories) {
+    if (Array.isArray(data.categories)) {
+      categories = data.categories as string[];
+    } else if (typeof data.categories === 'object') {
+      const catObj = data.categories as Record<string, unknown>;
+      if (catObj.primary) categories = [catObj.primary as string];
+    }
+  }
+
   return {
-    location_id: data.id,
-    org_id: data.org_id,
-    name: data.business_name ?? '',
-    address: data.address_line1 ?? '',
-    city: data.city ?? '',
-    state: data.state ?? '',
-    zip: data.zip ?? '',
-    phone: data.phone ?? '',
-    website: data.website_url ?? undefined,
+    groundTruth: {
+      location_id: data.id,
+      org_id: data.org_id,
+      name: data.business_name ?? '',
+      address: data.address_line1 ?? '',
+      city: data.city ?? '',
+      state: data.state ?? '',
+      zip: data.zip ?? '',
+      phone: data.phone ?? '',
+      website: data.website_url ?? undefined,
+    },
+    categories,
+    amenities: data.amenities as Record<string, boolean | null> | null,
   };
+}
+
+/**
+ * Fetches signature menu items for entity selection.
+ */
+async function fetchSignatureMenuItems(
+  supabase: SupabaseClient<Database>,
+  locationId: string,
+): Promise<string[]> {
+  const { data } = await supabase
+    .from('magic_menus')
+    .select('extracted_data')
+    .eq('location_id', locationId)
+    .eq('is_published', true)
+    .limit(1)
+    .maybeSingle();
+
+  return extractTopMenuItems(data?.extracted_data, 3);
 }
 
 /**
@@ -88,12 +130,13 @@ export async function runReviewSync(
   };
 
   try {
-    // 1. Fetch Ground Truth
-    const groundTruth = await fetchGroundTruth(supabase, locationId, orgId);
-    if (!groundTruth) {
+    // 1. Fetch Ground Truth + entity context (Sprint 132)
+    const locationData = await fetchLocationData(supabase, locationId, orgId);
+    if (!locationData) {
       result.errors.push('Location not found');
       return result;
     }
+    const { groundTruth, categories: locationCategories, amenities: locationAmenities } = locationData;
 
     // 2. Fetch/refresh brand voice profile
     const brandVoice = await deriveOrUpdateBrandVoice(supabase, locationId, orgId);
@@ -187,6 +230,9 @@ export async function runReviewSync(
       .order('rating', { ascending: true }) // Negative first (priority)
       .limit(20);
 
+    // Sprint 132: Fetch menu items for entity selection
+    const signatureMenuItems = await fetchSignatureMenuItems(supabase, locationId);
+
     if (pendingReviews && remaining > 0) {
       for (const row of pendingReviews) {
         if (remaining <= 0) break;
@@ -202,10 +248,22 @@ export async function runReviewSync(
           published_at: row.published_at,
         };
 
-        const sentiment = analyzeSentiment(reviewForDraft);
-
         try {
-          const draft = await generateResponseDraft(reviewForDraft, sentiment, brandVoice, groundTruth);
+          // Sprint 132: Use entity-optimized response generator
+          const draft = await generateEntityOptimizedResponse({
+            review: reviewForDraft,
+            groundTruth,
+            brandVoice,
+            locationCategories,
+            locationAmenities,
+            signatureMenuItems,
+          });
+
+          if (!draft) {
+            result.errors.push(`Draft generation returned null for review ${row.id}`);
+            continue;
+          }
+
           const responseStatus = draft.requires_approval ? 'pending_approval' : 'draft_ready';
 
           await supabase

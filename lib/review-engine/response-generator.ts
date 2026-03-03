@@ -29,6 +29,7 @@ export function buildResponseSystemPrompt(
   groundTruth: GroundTruth,
   brandVoice: BrandVoiceProfile,
   sentiment: ReviewSentiment,
+  entityTerms?: string[],
 ): string {
   const lines: string[] = [];
 
@@ -49,6 +50,14 @@ export function buildResponseSystemPrompt(
   // SEO instruction
   if (brandVoice.highlight_keywords.length > 0) {
     lines.push(`SEO: Naturally weave 1-2 of these keywords into the response: ${brandVoice.highlight_keywords.join(', ')}`);
+    lines.push('');
+  }
+
+  // Sprint 132: Entity optimization — weave entity terms naturally
+  if (entityTerms && entityTerms.length > 0) {
+    lines.push('Entity optimization — naturally weave ALL of these terms into the response:');
+    for (const t of entityTerms) lines.push(`  - "${t}"`);
+    lines.push('IMPORTANT: Use each naturally in context — never list them. No more than 3 terms.');
     lines.push('');
   }
 
@@ -141,8 +150,9 @@ export async function generateResponseDraft(
   sentiment: ReviewSentiment,
   brandVoice: BrandVoiceProfile,
   groundTruth: GroundTruth,
+  entityTerms?: string[],
 ): Promise<ReviewResponseDraft> {
-  const systemPrompt = buildResponseSystemPrompt(groundTruth, brandVoice, sentiment);
+  const systemPrompt = buildResponseSystemPrompt(groundTruth, brandVoice, sentiment, entityTerms);
   const userMessage = buildResponseUserMessage(review, sentiment);
 
   try {

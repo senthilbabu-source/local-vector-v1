@@ -15,7 +15,9 @@ import { Bot, Zap } from 'lucide-react';
 import { FirstVisitTooltip } from '@/components/ui/FirstVisitTooltip';
 import { AgentReadinessVerdictPanel } from './_components/AgentReadinessVerdictPanel';
 import { AgentReadinessScenarioCard } from './_components/AgentReadinessScenarioCard';
+import { AgentSEOTab } from './_components/AgentSEOTab';
 import { SCENARIO_DESCRIPTIONS, type CapabilityId } from '@/lib/agent-readiness/scenario-descriptions';
+import type { ActionAuditResult } from '@/lib/agent-seo/agent-seo-types';
 
 // ── Page Component ────────────────────────────────────────────────────────
 
@@ -26,12 +28,14 @@ export default async function AgentReadinessPage() {
 
   const supabase = await createClient();
 
+  // Note: agent_seo_cache and agent_seo_audited_at added in migration 20260303000004
+  // Type cast needed until database.types.ts is regenerated
   const { data: location } = await supabase
     .from('locations')
-    .select('id')
+    .select('id, agent_seo_cache, agent_seo_audited_at')
     .eq('org_id', ctx.orgId)
     .eq('is_primary', true)
-    .maybeSingle();
+    .maybeSingle() as { data: { id: string; agent_seo_cache: unknown; agent_seo_audited_at: string | null } | null };
 
   if (!location) {
     return (
@@ -109,6 +113,20 @@ export default async function AgentReadinessPage() {
           </div>
         </div>
       )}
+
+      {/* ── Sprint 126: Agent-SEO Action Readiness ─────────── */}
+      <div className="border-t border-white/5 pt-6">
+        <h2 className="text-lg font-semibold text-white mb-4">
+          Can AI Take Actions on Your Website?
+        </h2>
+        <p className="text-sm text-slate-400 mb-4">
+          Whether AI agents can book reservations, place orders, or schedule appointments through your website.
+        </p>
+        <AgentSEOTab
+          result={location.agent_seo_cache as ActionAuditResult | null}
+          auditedAt={location.agent_seo_audited_at}
+        />
+      </div>
     </div>
   );
 }

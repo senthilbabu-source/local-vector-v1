@@ -3285,3 +3285,37 @@ Sync pipeline in `lib/apple-bc/`. Agency plan required for all operations.
 * **Tests:** 26 Vitest (3 toBingHours + 3 toBingCategories + 3 buildBingLocation + 8 sync-orchestrator + 5 bing-sync cron + 2 Business Info Editor integration + 2 vercel.json).
 
 ---
+
+## §164. Entity-Optimized Review Responses (Sprint 132)
+
+Entity weaving in `lib/reviews/entity-weaver.ts`, orchestration in `lib/reviews/review-responder.ts`.
+
+* **`generateEntityOptimizedResponse()` is the ONLY entry point** for review response generation after Sprint 132. Never call bare `generateResponseDraft()` from new code.
+* **2-3 entity terms MAXIMUM.** `selectEntityTerms()` always caps at 3. Never override.
+* **Term slots:** Slot 1 = businessName, Slot 2 = city, Slot 3 = context-aware (matched reviewer keyword > amenity > category label > first signature item).
+* **`BANNED_PHRASES` list** in `app/dashboard/reviews/actions.ts` checked before every save. Retry once on match. If second attempt also contains banned phrase, save with `entityOptimized=false`.
+* **Human approval required** — `response_status = 'approved'` must be set before publish.
+* **Graceful fallback:** Entity selection failure falls back to non-entity response via `generateResponseDraft()`. Never block review sync.
+* **Dashboard:** `app/dashboard/reviews/page.tsx` groups by status (Needs Response, Approved, Published). Entity-Optimized badge shown for Growth+ plans.
+* **Tests:** 30 Vitest (7 slot selection + 4 extractKeyAmenities + 4 extractTopMenuItems + 4 entity orchestrator + 4 system prompt + 4 banned phrases + 3 integration).
+
+---
+
+## §165. Agent-SEO Action Readiness Audit (Sprint 126)
+
+Detection in `lib/agent-seo/action-schema-detector.ts`, scoring in `lib/agent-seo/agent-seo-scorer.ts`.
+
+* **Spec-first rule:** `docs/21-AGENT-SEO.md` MUST exist before any code is written.
+* **Standard User-Agent only** — never masquerade as a bot. `LocalVector/1.0` UA string.
+* **READ-ONLY** — never submit forms, never execute JS, never follow >1 redirect.
+* **Jargon-free UI** (§102): "ReserveAction" → "Reservation Booking". Never show "JSON-LD" in UI.
+* **Cache pattern:** `locations.agent_seo_cache` JSONB populated weekly by cron. Never audit on page request.
+* **Checks both** live website HTML AND `magic_menus.json_ld_schema` for LocalVector-generated action schemas.
+* **5 capabilities:** reserve_action (25pts), order_action (25pts), booking_cta (20pts), booking_crawlable (20pts), appointment_action (10pts). Total 100.
+* **Scoring levels:** agent_action_ready >= 80, partially_actionable >= 40, not_actionable < 40.
+* **booking_crawlable special rules:** skipped (10pts neutral) when no booking URL detected; partial (10pts) for login-gated; fail (0pts) for HTTP.
+* **Cron:** `app/api/cron/agent-seo-audit/route.ts` — Monday 8 AM UTC. Kill switch: `AGENT_SEO_CRON_DISABLED`.
+* **Migration:** `20260303000004_agent_seo.sql`. Adds 2 columns to locations table.
+* **Tests:** 31 Vitest (9 parseActionSchemasFromHtml + 4 booking URL safety + 15 computeAgentSEOScore + 1 fetchAndParseActionSchemas + 2 inspectSchemaForActions).
+
+---

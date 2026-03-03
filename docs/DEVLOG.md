@@ -4,6 +4,60 @@
 
 ---
 
+## 2026-03-02 — Sprint 126: Agent-SEO Action Readiness Audit (Completed)
+
+Sprint 126: New tab in Agent Readiness page auditing whether AI agents can take actions (book reservations, place orders, schedule appointments) through the business website. Weekly cron parses homepage JSON-LD for ReserveAction/OrderAction/MedicalAppointment schemas, detects booking CTAs, and checks booking URL accessibility. Results cached on locations table.
+
+**Files created:**
+- `docs/21-AGENT-SEO.md` — spec document (created BEFORE code per §165)
+- `lib/agent-seo/agent-seo-types.ts` — ActionCapability, ActionAuditResult, DetectedSchemas types
+- `lib/agent-seo/action-schema-detector.ts` — `fetchAndParseActionSchemas()`, `parseActionSchemasFromHtml()` (pure), `inspectSchemaForActions()`
+- `lib/agent-seo/agent-seo-scorer.ts` — `computeAgentSEOScore()` pure function (5 capabilities, 100 pts max)
+- `lib/agent-seo/index.ts` — barrel export
+- `app/api/cron/agent-seo-audit/route.ts` — weekly Monday 8 AM UTC, kill switch, per-location error isolation
+- `app/dashboard/agent-readiness/_components/AgentSEOTab.tsx` — score verdict + capability cards
+- `supabase/migrations/20260303000004_agent_seo.sql` — agent_seo_cache JSONB + agent_seo_audited_at on locations
+- `src/__tests__/unit/agent-seo.test.ts` — 31 tests
+
+**Files modified:**
+- `app/dashboard/agent-readiness/page.tsx` — integrated AgentSEOTab section
+- `vercel.json` — added agent-seo-audit cron (22 total)
+- `.env.local.example` — AGENT_SEO_CRON_DISABLED
+- `src/__tests__/unit/sprint-f-registration.test.ts` — cron count 21→22
+- `src/__tests__/unit/sprint-n-registration.test.ts` — cron count 21→22
+- `docs/AI_RULES.md` — §165
+
+**AI_RULES:** §165
+
+**Test counts:** 346 files, 5160 tests passing (31 new). 0 regressions.
+
+---
+
+## 2026-03-02 — Sprint 132: Entity-Optimized Review Response Generator (Completed)
+
+Sprint 132: Entity weaving layer on top of Sprint 107's review response pipeline. Responses now naturally include 2-3 entity terms (business name, city, context-aware third term) to reinforce Google Knowledge Graph associations. Entity selection is a pure function; response generation gracefully falls back to non-entity path on failure.
+
+**Files created:**
+- `lib/reviews/entity-weaver.ts` — `selectEntityTerms()`, `extractKeyAmenities()`, `extractTopMenuItems()` (all pure functions)
+- `lib/reviews/review-responder.ts` — `generateEntityOptimizedResponse()` orchestrator (entity selection + response generation)
+- `lib/reviews/index.ts` — barrel export
+- `app/dashboard/reviews/page.tsx` — reviews dashboard with status grouping (Needs Response, Approved, Published)
+- `app/dashboard/reviews/_components/ReviewCard.tsx` — review card with entity-optimized badge, star ratings, action buttons
+- `app/dashboard/reviews/actions.ts` — `approveReviewResponse`, `publishReviewResponse`, `regenerateResponse` (banned phrase retry), `skipResponse`
+- `src/__tests__/unit/entity-weaver.test.ts` — 30 tests
+
+**Files modified:**
+- `lib/review-engine/types.ts` — `entityTermsUsed`, `entityOptimized` added to `ReviewResponseDraft`
+- `lib/review-engine/response-generator.ts` — `entityTerms` optional param on `buildResponseSystemPrompt()` and `generateResponseDraft()`
+- `lib/review-engine/review-sync-service.ts` — wired to `generateEntityOptimizedResponse()`, fetches location categories/amenities/menu items
+- `docs/AI_RULES.md` — §164
+
+**AI_RULES:** §164
+
+**Test counts:** 345 files, 5129 tests passing (30 new). 0 regressions.
+
+---
+
 ## 2026-03-02 — Sprint 130: Apple Business Connect Sync (Completed)
 
 Sprint 130: One-way nightly sync pipeline pushing LocalVector ground-truth location data to Apple Business Connect. ES256 JWT auth with token caching, field-level diff to avoid overwriting Apple editorial data, Agency-only gating. Connection management UI at `/dashboard/settings/connections`.

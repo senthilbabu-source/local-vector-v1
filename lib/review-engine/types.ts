@@ -70,6 +70,9 @@ export interface ReviewResponseDraft {
   generation_method: 'ai' | 'template';
   requires_approval: boolean;
   generated_at: string;
+  // Sprint 132: Entity optimization metadata
+  entityTermsUsed?: string[];
+  entityOptimized?: boolean;
 }
 
 /**
