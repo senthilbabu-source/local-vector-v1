@@ -1,5 +1,5 @@
 // ---------------------------------------------------------------------------
-// lib/credits/credit-service.ts — Sprint D (N1): Credit check & consumption
+// lib/credits/credit-service.ts — Sprint D (N1) + P3-FIX-14
 //
 // Server-only module. All credit operations go through this service.
 // No direct DB calls from action files.
@@ -9,11 +9,25 @@
 // - Credits consumed AFTER successful LLM call (not before)
 // - Auto-initialize on first checkCredit() if no row exists
 // - Auto-reset when reset_date has passed
+// - P3-FIX-14: All consumption logged to credit_usage_log (audit trail)
 // ---------------------------------------------------------------------------
 
 import { createServiceRoleClient } from '@/lib/supabase/server';
 import { getCreditLimit, getNextResetDate } from './credit-limits';
 import * as Sentry from '@sentry/nextjs';
+
+// ---------------------------------------------------------------------------
+// Credit operation types for audit log
+// ---------------------------------------------------------------------------
+
+export type CreditOperation =
+  | 'sov_evaluation'
+  | 'content_brief'
+  | 'competitor_intercept'
+  | 'magic_menu'
+  | 'ai_preview'
+  | 'manual_scan'
+  | 'generic';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -94,6 +108,137 @@ export async function consumeCredit(orgId: string): Promise<void> {
       tags: { service: 'credit-service', function: 'consumeCredit', sprint: 'D' },
       extra: { orgId },
     });
+  }
+}
+
+// ---------------------------------------------------------------------------
+// P3-FIX-14: Consume credit with audit log
+// ---------------------------------------------------------------------------
+
+/**
+ * Increments credits_used by 1 and logs the event to credit_usage_log.
+ * Preferred over consumeCredit() for new call sites that want audit trails.
+ */
+export async function consumeCreditWithLog(
+  orgId: string,
+  operation: CreditOperation,
+  referenceId?: string,
+): Promise<void> {
+  try {
+    const supabase = createServiceRoleClient();
+
+    // Fetch current state before incrementing
+    const { data: before } = await supabase
+      .from('api_credits')
+      .select('credits_used, credits_limit')
+      .eq('org_id', orgId)
+      .single();
+
+    // Increment credits
+    await supabase.rpc('increment_credits_used', { p_org_id: orgId });
+
+    // Log to audit trail (fire-and-forget, non-blocking)
+    if (before) {
+      await supabase.from('credit_usage_log').insert({
+        org_id: orgId,
+        operation,
+        credits_used: 1,
+        credits_before: before.credits_used,
+        credits_after: before.credits_used + 1,
+        reference_id: referenceId ?? null,
+      });
+    }
+  } catch (err) {
+    Sentry.captureException(err, {
+      tags: { service: 'credit-service', function: 'consumeCreditWithLog', sprint: 'P3-FIX-14' },
+      extra: { orgId, operation },
+    });
+  }
+}
+
+// ---------------------------------------------------------------------------
+// P3-FIX-14: Credit usage history
+// ---------------------------------------------------------------------------
+
+export interface CreditHistoryEntry {
+  operation: string;
+  creditsUsed: number;
+  creditsBefore: number;
+  creditsAfter: number;
+  referenceId: string | null;
+  createdAt: string;
+}
+
+/**
+ * Returns the credit usage history for an org, most recent first.
+ */
+export async function getCreditHistory(
+  orgId: string,
+  limit: number = 20,
+): Promise<CreditHistoryEntry[]> {
+  try {
+    const supabase = createServiceRoleClient();
+    const { data } = await supabase
+      .from('credit_usage_log')
+      .select('operation, credits_used, credits_before, credits_after, reference_id, created_at')
+      .eq('org_id', orgId)
+      .order('created_at', { ascending: false })
+      .limit(limit);
+
+    return (data ?? []).map((row) => ({
+      operation: row.operation,
+      creditsUsed: row.credits_used,
+      creditsBefore: row.credits_before,
+      creditsAfter: row.credits_after,
+      referenceId: row.reference_id,
+      createdAt: row.created_at,
+    }));
+  } catch (err) {
+    Sentry.captureException(err, {
+      tags: { service: 'credit-service', function: 'getCreditHistory', sprint: 'P3-FIX-14' },
+      extra: { orgId },
+    });
+    return [];
+  }
+}
+
+// ---------------------------------------------------------------------------
+// P3-FIX-14: Credit balance (public, for API routes)
+// ---------------------------------------------------------------------------
+
+export interface CreditBalance {
+  used: number;
+  limit: number;
+  remaining: number;
+  resetDate: string;
+}
+
+/**
+ * Returns the current credit balance for an org.
+ */
+export async function getCreditBalance(orgId: string): Promise<CreditBalance | null> {
+  try {
+    const supabase = createServiceRoleClient();
+    const { data } = await supabase
+      .from('api_credits')
+      .select('credits_used, credits_limit, reset_date')
+      .eq('org_id', orgId)
+      .single();
+
+    if (!data) return null;
+
+    return {
+      used: data.credits_used,
+      limit: data.credits_limit,
+      remaining: data.credits_limit - data.credits_used,
+      resetDate: data.reset_date,
+    };
+  } catch (err) {
+    Sentry.captureException(err, {
+      tags: { service: 'credit-service', function: 'getCreditBalance', sprint: 'P3-FIX-14' },
+      extra: { orgId },
+    });
+    return null;
   }
 }
 

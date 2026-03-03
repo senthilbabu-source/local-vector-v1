@@ -33,7 +33,7 @@ import {
   type SOVQueryInput,
   type SOVQueryResult,
 } from '@/lib/services/sov-engine.service';
-import { sendWeeklyDigest, sendFreshnessAlert } from '@/lib/email';
+import { sendWeeklyDigest, sendFreshnessAlert, sendScanCompleteEmail } from '@/lib/email';
 import { fetchFreshnessAlerts } from '@/lib/data/freshness-alerts';
 import { runOccasionScheduler } from '@/lib/services/occasion-engine.service';
 import { detectQueryGaps } from '@/lib/services/prompt-intelligence.service';
@@ -227,6 +227,26 @@ export async function processOrgSOV(batch: OrgBatch): Promise<OrgSOVResult> {
       citationRate,
     }).catch((err: unknown) =>
       console.error('[inngest-sov] Email send failed:', err),
+    );
+
+    // P5-FIX-21: Scan complete notification (fire-and-forget)
+    // Detect first scan by checking total sov_evaluations count for org
+    const { count: evalCount } = await supabase
+      .from('sov_evaluations')
+      .select('id', { count: 'exact', head: true })
+      .eq('org_id', batch.orgId);
+    const isFirstScan = (evalCount ?? 0) <= results.length; // only this batch's results exist
+
+    sendScanCompleteEmail({
+      to: ownerEmail,
+      businessName,
+      shareOfVoice: Math.round(shareOfVoice),
+      queriesRun: results.length,
+      queriesCited: citedCount,
+      isFirstScan,
+      dashboardUrl: 'https://app.localvector.ai/dashboard',
+    }).catch((err: unknown) =>
+      console.error('[inngest-sov] Scan complete email failed:', err),
     );
   }
 

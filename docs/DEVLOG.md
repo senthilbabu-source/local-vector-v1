@@ -4,6 +4,67 @@
 
 ---
 
+## 2026-03-03 — P3–P5 Sprint Block: Data Integrity + Content + Infrastructure (P3-FIX-13 → P5-FIX-24)
+
+12-sprint execution block. P3 (data integrity), P4 (content validation), P5 (infrastructure). Same prompt→reality adaptation as P0/P1 blocks. Pages already existed for P4 sprints — tests added to validate patterns.
+
+### P3-FIX-13: Sample→Real Data Transition
+- **Created** `lib/data/scan-data-resolver.ts` — unified data mode resolver. Three modes: `sample` (no data, org < 14 days), `real` (has sov_evaluations), `empty` (no data, org > 14 days). `getNextSundayUTC()` for scan scheduling. `isFirstScanRecent` flag for banner.
+- **Created** `components/dashboard/ScanCompleteBanner.tsx` — client component. Shows on first scan completion (< 24h). Auto-dismiss 8s. localStorage one-shot.
+- **Modified** `app/dashboard/page.tsx` — wired `resolveDataMode()` + `ScanCompleteBanner`
+- **Tests:** 24 (scan-data-resolver.test.ts: 17, scan-complete-banner.test.tsx: 7)
+
+### P3-FIX-14: Credit Usage Audit Trail
+- **Created** `supabase/migrations/20260303100001_credit_usage_log.sql` — `credit_usage_log` table (append-only audit trail). RLS via membership join. Index on `(org_id, created_at DESC)`.
+- **Modified** `lib/credits/credit-service.ts` — added `CreditOperation` type (7 operations), `consumeCreditWithLog()`, `getCreditHistory()`, `getCreditBalance()`
+- **Created** `app/api/credits/history/route.ts` — GET balance + history (auth-required, limit 1-100)
+- **Tests:** 18 (credits-service-enhanced.test.ts)
+
+### P3-FIX-15: Billing Page Enhancements
+- **Modified** `app/dashboard/billing/actions.ts` — added `getSubscriptionDetails()`, `getCreditsSummary()` server actions
+- **Modified** `app/dashboard/billing/page.tsx` — subscription details section + credits usage with history table
+- **Tests:** 20 (billing-enhancements.test.ts)
+
+### P3-FIX-16: Core Dashboard Data Page States
+- Validated all 4 dashboard data states: sample, real, empty, error
+- **Tests:** 18 (core-dashboard-pages.test.ts — sample mode transition, deriveRealityScore, getNextSundayUTC)
+
+### P4-FIX-17 to P4-FIX-20: Content & Recommendations Validation
+- All pages already existed and functional. Tests validate patterns:
+- **Tests:** 39 total — content-recommendations.test.ts (12), ai-mistakes-page.test.ts (12), voice-search-pages.test.ts (8), reputation-sources-pages.test.ts (7)
+
+### P5-FIX-21: Transactional Email — Scan Complete
+- **Modified** `lib/email.ts` — added `ScanCompletePayload` type + `sendScanCompleteEmail()`. First-scan vs repeat messaging. Citation rate calculation.
+- **Modified** `lib/inngest/functions/sov-cron.ts` — wired `sendScanCompleteEmail()` after weekly digest in `processOrgSOV()`. Detects first scan via sov_evaluations count.
+- **Tests:** 15 (scan-complete-email.test.ts)
+
+### P5-FIX-22: API Rate Limiting — Systematic Coverage
+- **Modified** `lib/rate-limit/types.ts` — added `ROUTE_RATE_LIMITS` config (14 route-specific limits): auth login/register (5/3 req/min/IP), destructive operations (1/hr/org), AI operations (20-30/hr/org), team mutations (20/min/org), public endpoints (20-30/min/IP)
+- **Modified** `app/api/auth/login/route.ts` — brute force protection (5 req/min/IP)
+- **Modified** `app/api/auth/register/route.ts` — signup spam protection (3 req/min/IP)
+- **Modified** `app/api/settings/danger/delete-org/route.ts` — destructive op limit (1/hr/org)
+- **Modified** `app/api/settings/danger/delete-scan-data/route.ts` — destructive op limit (1/hr/org)
+- **Tests:** 19 (rate-limit-coverage.test.ts)
+
+### P5-FIX-23: Error Boundaries — App-Wide Coverage
+- **Created** `app/(auth)/error.tsx` — auth pages error boundary with login link
+- **Created** `app/admin/error.tsx` — admin panel error boundary
+- **Created** `app/onboarding/error.tsx` — onboarding error boundary with dashboard link
+- **Created** `app/invitations/error.tsx` — invitation error boundary with expired link message
+- **Created** `app/not-found.tsx` — global 404 page
+- **Created** `app/dashboard/not-found.tsx` — dashboard 404 with back link
+- **Created** `app/dashboard/loading.tsx` — loading skeleton with animate-pulse
+- **Tests:** 29 (error-boundaries.test.ts)
+
+### P5-FIX-24: Performance — Core Web Vitals, Bundle, Caching
+- **Modified** `next.config.ts` — `optimizePackageImports` (lucide-react, radix-ui, recharts, date-fns), `compress: true`, `reactStrictMode: true`, `poweredByHeader: false`
+- **Modified** `instrumentation-client.ts` — added `browserTracingIntegration()` for CWV (LCP, INP, CLS) capture via Sentry
+- **Tests:** 17 (performance-config.test.ts)
+
+**Files changed:** 17 created, 13 modified. **Tests: 199 new across 13 test files.** AI_RULES §178-§181.
+
+---
+
 ## 2026-03-03 — P1 Sprint Block: Feature Integrity + Plan Gating (P1-FIX-05 → P1-FIX-08)
 
 Feature integrity sprints. Adapted from sprint prompts to real codebase architecture (same prompt→reality corrections as P0 block). Execution order reordered: FIX-08 → FIX-06 → FIX-07 → FIX-05 (simplest→most complex).

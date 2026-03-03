@@ -6,7 +6,26 @@ import type { NextConfig } from 'next';
 import { withSentryConfig } from '@sentry/nextjs';
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  // P5-FIX-24: Performance optimizations
+  experimental: {
+    // Tree-shake barrel exports for smaller bundles
+    optimizePackageImports: [
+      'lucide-react',
+      '@radix-ui/react-popover',
+      '@radix-ui/react-dialog',
+      '@radix-ui/react-tooltip',
+      '@radix-ui/react-tabs',
+      '@radix-ui/react-select',
+      'recharts',
+      'date-fns',
+    ],
+  },
+  // Compress responses (enabled by default in production on Vercel)
+  compress: true,
+  // Strict mode for catching accidental side effects
+  reactStrictMode: true,
+  // Disable x-powered-by header (minor security + bandwidth)
+  poweredByHeader: false,
 };
 
 export default withSentryConfig(nextConfig, {

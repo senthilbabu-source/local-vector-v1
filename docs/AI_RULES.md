@@ -3564,3 +3564,96 @@ Growth/Agency users can trigger a full-org AI visibility scan on demand. Trial/S
 * `data-testid="manual-scan-trigger"`, `data-testid="manual-scan-btn"`, `data-testid="manual-scan-error"`
 
 ---
+
+## §178. Sample→Real Data Transition + Credit Audit Trail (P3-FIX-13 to P3-FIX-16, 2026-03-03)
+
+**Unified data mode resolver (`lib/data/scan-data-resolver.ts`):**
+* Three modes: `'sample'` (org < 14 days, no sov_evaluations), `'real'` (has sov_evaluations), `'empty'` (> 14 days, no data)
+* `getNextSundayUTC(from?)` — next Sunday midnight UTC for scan scheduling
+* `resolveDataMode({ supabase, orgId })` — parallel fetch org + first/last sov_evaluations, returns `DataResolverResult`
+* `isFirstScanRecent` — true when first scan completed < 24h ago and only one scan exists
+
+**Scan complete banner (`components/dashboard/ScanCompleteBanner.tsx`):**
+* Client component, `isFirstScanRecent` prop. Auto-dismiss 8s. localStorage `lv_scan_complete_banner_shown` one-shot
+* `data-testid="scan-complete-banner"`, `data-testid="scan-complete-banner-dismiss"`
+
+**Credit usage audit trail:**
+* Migration `20260303100001_credit_usage_log.sql` — `credit_usage_log` append-only table. RLS via memberships
+* `CreditOperation` type: `sov_evaluation | content_brief | competitor_intercept | magic_menu | ai_preview | manual_scan | generic`
+* `consumeCreditWithLog(orgId, operation, referenceId?)` — RPC increment + audit log insert. Fail-open
+* `getCreditBalance(orgId)` → `{ used, limit, remaining, resetDate }` or null
+* `getCreditHistory(orgId, limit?)` → paginated history entries
+
+**Billing page enhancements:**
+* `getSubscriptionDetails()` — Stripe subscription period end + cancel status. Demo mode fallback
+* `getCreditsSummary()` — balance + recent 10 history entries
+
+**Tests:** 80 across 4 files (p3-fix-13: 24, p3-fix-14: 18, p3-fix-15: 20, p3-fix-16: 18)
+
+---
+
+## §179. Transactional Email — Scan Complete Notification (P5-FIX-21, 2026-03-03)
+
+**Email function (`lib/email.ts`):**
+* `ScanCompletePayload` type: to, businessName, shareOfVoice, queriesRun, queriesCited, isFirstScan, dashboardUrl
+* `sendScanCompleteEmail(payload)` — first-scan subject ("Your first AI visibility scan is complete") vs repeat ("Weekly scan complete"). Citation rate calculated. Onboarding guidance for first scan only
+* No-ops when `RESEND_API_KEY` absent. From: `LocalVector <alerts@localvector.ai>`
+
+**SOV cron wiring (`lib/inngest/functions/sov-cron.ts`):**
+* After weekly digest email, queries `sov_evaluations` count to detect first scan
+* Fire-and-forget `sendScanCompleteEmail()` with `.catch()` error logging
+* `isFirstScan = evalCount <= results.length` (only this batch's results exist)
+
+**Tests:** 15 (scan-complete-email.test.ts — no-op, subjects, recipients, citation rate, first-scan guidance)
+
+---
+
+## §180. API Rate Limiting — Systematic Route Coverage (P5-FIX-22, 2026-03-03)
+
+**Route-specific rate limit config (`lib/rate-limit/types.ts` → `ROUTE_RATE_LIMITS`):**
+* Auth: `auth_login` (5/min/IP), `auth_register` (3/min/IP), `auth_oauth` (10/min/IP)
+* Destructive: `danger_delete_org` (1/hr/org), `danger_delete_data` (1/hr/org)
+* AI operations: `ai_preview` (20/hr/org), `content_stream` (30/hr/org), `review_generate` (20/day/org), `schema_run` (5/day/org), `vaio_run` (2/day/org), `nap_sync` (5/day/org)
+* Team/billing: `team_mutate` (20/min/org), `billing_sync` (5/min/org)
+* Public: `public_search` (20/min/IP), `public_menu` (30/min/IP)
+* All configs have unique `key_prefix` and positive limits. Auth limits are stricter than plan-based middleware limits
+
+**Routes wired:**
+* `app/api/auth/login/route.ts` — IP-based brute force protection. 429 with rate limit headers
+* `app/api/auth/register/route.ts` — IP-based signup spam protection. 429 with rate limit headers
+* `app/api/settings/danger/delete-org/route.ts` — org-based destructive op limit (after auth check)
+* `app/api/settings/danger/delete-scan-data/route.ts` — org-based destructive op limit (after auth check)
+
+**Layered approach:** Route-specific limits supplement the existing plan-based middleware limits in `proxy.ts`. `RATE_LIMIT_BYPASS_PREFIXES` (webhooks, crons, email, revalidate) remain unchanged.
+
+**Tests:** 19 (rate-limit-coverage.test.ts — config validation, plan hierarchy, bypass rules, checkRateLimit, getRateLimitHeaders)
+
+---
+
+## §181. Error Boundaries + Performance (P5-FIX-23 + P5-FIX-24, 2026-03-03)
+
+**Error boundaries added:**
+* `app/(auth)/error.tsx` — auth pages. Sentry capture + login link + try again
+* `app/admin/error.tsx` — admin panel. Sentry capture + try again
+* `app/onboarding/error.tsx` — onboarding. "Your progress has been saved" + dashboard link
+* `app/invitations/error.tsx` — invitation acceptance. "Link may have expired" + sign in link
+* All follow dashboard/error.tsx pattern: `'use client'`, `Sentry.captureException(error)`, AlertTriangle icon, error.digest display, reset button
+
+**Not-found pages:**
+* `app/not-found.tsx` — global 404. Home + dashboard links
+* `app/dashboard/not-found.tsx` — dashboard 404. "Back to dashboard" link
+
+**Dashboard loading skeleton:**
+* `app/dashboard/loading.tsx` — CSS-only animate-pulse. Header + 4 metric cards + chart skeleton. `data-testid="dashboard-loading"`
+
+**Performance optimizations (`next.config.ts`):**
+* `experimental.optimizePackageImports`: lucide-react, 5 radix-ui packages, recharts, date-fns — tree-shakes barrel exports
+* `compress: true`, `reactStrictMode: true`, `poweredByHeader: false`
+
+**Core Web Vitals (`instrumentation-client.ts`):**
+* `Sentry.browserTracingIntegration()` captures LCP, INP, CLS automatically via Sentry
+* Existing 10% `tracesSampleRate` applies to CWV collection
+
+**Tests:** 46 (error-boundaries.test.ts: 29, performance-config.test.ts: 17)
+
+---

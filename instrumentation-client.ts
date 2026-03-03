@@ -11,7 +11,11 @@ import * as Sentry from "@sentry/nextjs";
 Sentry.init({
   dsn: process.env.NEXT_PUBLIC_SENTRY_DSN,
 
-  integrations: [Sentry.replayIntegration()],
+  integrations: [
+    Sentry.replayIntegration(),
+    // P5-FIX-24: Browser tracing for Core Web Vitals (LCP, INP, CLS)
+    Sentry.browserTracingIntegration(),
+  ],
 
   // 10% of transactions sampled for performance monitoring.
   // Increase to 1.0 (100%) for debugging, lower in high-traffic prod.

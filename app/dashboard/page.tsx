@@ -12,6 +12,7 @@ import { canRunAutopilot, canConnectGBP, canExportData, canRunNAPSync, canRunSch
 import { createServiceRoleClient } from '@/lib/supabase/server';
 import { nextSundayLabel } from './_components/scan-health-utils';
 import { isSampleMode } from '@/lib/sample-data/use-sample-mode';
+import { resolveDataMode, type DataResolverResult } from '@/lib/data/scan-data-resolver';
 import { getOnboardingState } from '@/lib/onboarding/onboarding-service';
 import OnboardingChecklist from './_components/OnboardingChecklist';
 import OnboardingInterstitial from './_components/OnboardingInterstitial';
@@ -26,6 +27,7 @@ import {
 import { SampleDataBadge } from '@/components/ui/SampleDataBadge';
 import { SampleModeBanner } from '@/components/ui/SampleModeBanner';
 import { PositioningBanner } from '@/components/ui/PositioningBanner';
+import { ScanCompleteBanner } from '@/components/dashboard/ScanCompleteBanner';
 import GBPImportCard from './_components/GBPImportCard';
 import ExportButtons from './_components/ExportButtons';
 import AlertFeed from './_components/AlertFeed';
@@ -213,14 +215,21 @@ export default async function DashboardPage({
 
   // Sprint 117: Onboarding state
   let onboardingState = null;
+  // P3-FIX-13: Scan data resolver
+  let dataResolverResult: DataResolverResult | null = null;
   try {
     if (ctx.orgId) {
       const serviceClient = createServiceRoleClient();
-      onboardingState = await getOnboardingState(serviceClient, ctx.orgId, orgCreatedAt, planTier);
+      const [onboarding, dataMode] = await Promise.all([
+        getOnboardingState(serviceClient, ctx.orgId, orgCreatedAt, planTier),
+        resolveDataMode({ supabase: serviceClient, orgId: ctx.orgId }),
+      ]);
+      onboardingState = onboarding;
+      dataResolverResult = dataMode;
     }
   } catch (err) {
     Sentry.captureException(err, { tags: { component: 'onboarding', sprint: '117' }, extra: { orgId: ctx.orgId } });
-    // Onboarding is non-critical
+    // Onboarding + data resolver are non-critical
   }
 
   // Sprint 117: If no real data, show sample dashboard with onboarding
@@ -261,6 +270,11 @@ export default async function DashboardPage({
         </div>
         <ExportButtons canExport={exportGated} showCSV={false} showPDF />
       </div>
+
+      {/* ── P3-FIX-13: First scan complete success banner ─────────────────── */}
+      {dataResolverResult?.isFirstScanRecent && (
+        <ScanCompleteBanner isFirstScanRecent />
+      )}
 
       {/* ── P1-FIX-07: Upgrade redirect banner ───────────────────────────── */}
       {upgradeFeature && <UpgradeRedirectBanner upgradeKey={upgradeFeature} />}

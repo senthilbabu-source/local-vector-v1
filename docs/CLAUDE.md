@@ -12,7 +12,7 @@ LocalVector is an AEO/GEO SaaS platform that helps local businesses monitor and 
 - **Billing:** Stripe webhooks → `organizations.plan_tier` enum (`trial | starter | growth | agency`)
 - **Email:** Resend + React Email (`emails/`)
 - **Cache:** Upstash Redis (`lib/redis.ts`) — optional, all callers must degrade gracefully
-- **Testing:** Vitest (unit/integration in `src/__tests__/`), Playwright (E2E in `tests/e2e/`, 41 specs). Current: 5379 tests, 356 files.
+- **Testing:** Vitest (unit/integration in `src/__tests__/`), Playwright (E2E in `tests/e2e/`, 41 specs). Current: ~5578 tests, 369 files.
 - **Monitoring:** Sentry (client, server, edge configs) — all catch blocks instrumented (Sprint A, AI_RULES §70)
 
 ## Architecture Rules
@@ -110,6 +110,9 @@ app/dashboard/_components/ManualScanTrigger.tsx — On-demand SOV scan button: p
 app/dashboard/_components/UpgradeRedirectBanner.tsx — Dismissible upgrade banner for /dashboard?upgrade=X (P1-FIX-07, §176)
 app/api/sov/trigger-manual/         — POST trigger + GET poll manual SOV scan (P1-FIX-05, §177)
 lib/inngest/functions/manual-sov-trigger.ts — Inngest async SOV scan: 4 steps, reuses processOrgSOV (P1-FIX-05, §177)
+lib/data/scan-data-resolver.ts — Unified data mode resolver: sample/real/empty modes, getNextSundayUTC, isFirstScanRecent (P3-FIX-13, §178)
+components/dashboard/ScanCompleteBanner.tsx — First scan success banner: auto-dismiss 8s, localStorage one-shot (P3-FIX-13, §178)
+app/api/credits/history/route.ts — GET credit balance + usage history, auth-required (P3-FIX-14, §178)
 lib/supabase/database.types.ts — Full Database type (59 tables, 9 enums, Relationships)
 supabase/migrations/   — Applied SQL migrations (55, timestamp-ordered)
 supabase/prod_schema.sql — Full production schema dump
@@ -215,6 +218,7 @@ app/dashboard/_components/BenchmarkComparisonCard.tsx — City benchmark compari
 58. `20260321000003_create_hnsw_indexes.sql` — 5 HNSW indexes with cosine ops (Sprint 119)
 59. `20260321000004_vector_match_functions.sql` — 4 SECURITY DEFINER match RPCs (Sprint 119)
 60. `20260428000001_manual_scan_status.sql` — `last_manual_scan_triggered_at` + `manual_scan_status` on organizations (P1-FIX-05)
+61. `20260303100001_credit_usage_log.sql` — `credit_usage_log` append-only audit trail (P3-FIX-14)
 
 ## Testing Commands
 

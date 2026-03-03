@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { LoginSchema } from '@/lib/schemas/auth';
 import * as Sentry from '@sentry/nextjs';
+import { checkRateLimit, getRateLimitHeaders } from '@/lib/rate-limit/rate-limiter';
+import { ROUTE_RATE_LIMITS } from '@/lib/rate-limit/types';
 
 /**
  * POST /api/auth/login
@@ -18,6 +20,16 @@ import * as Sentry from '@sentry/nextjs';
  * }
  */
 export async function POST(request: Request): Promise<NextResponse> {
+  // P5-FIX-22: Rate limit by IP (brute force protection)
+  const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown';
+  const rl = await checkRateLimit(ROUTE_RATE_LIMITS.auth_login, ip);
+  if (!rl.allowed) {
+    return NextResponse.json(
+      { error: 'Too many login attempts. Please try again later.' },
+      { status: 429, headers: getRateLimitHeaders(rl) },
+    );
+  }
+
   // 1. Parse and validate body
   let body: unknown;
   try {

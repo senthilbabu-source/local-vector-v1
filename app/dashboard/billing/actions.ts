@@ -181,3 +181,77 @@ export async function getCurrentPlan(): Promise<CurrentPlanInfo> {
     has_stripe_customer: !!org?.stripe_customer_id,
   };
 }
+
+// ---------------------------------------------------------------------------
+// P3-FIX-15: getSubscriptionDetails — Stripe subscription info
+// ---------------------------------------------------------------------------
+
+export interface SubscriptionDetails {
+  currentPeriodEnd: string | null;
+  cancelAtPeriodEnd: boolean;
+  status: string | null;
+}
+
+/**
+ * Fetches subscription details from Stripe.
+ * Returns null fields when Stripe is unavailable (demo mode).
+ */
+export async function getSubscriptionDetails(): Promise<SubscriptionDetails> {
+  if (!process.env.STRIPE_SECRET_KEY) {
+    return { currentPeriodEnd: null, cancelAtPeriodEnd: false, status: null };
+  }
+
+  const auth = await getAuthContext();
+  const orgId = auth.orgId;
+
+  const supabase = await createClient();
+  const { data: org } = await supabase
+    .from('organizations')
+    .select('stripe_subscription_id')
+    .eq('id', orgId)
+    .single();
+
+  if (!org?.stripe_subscription_id) {
+    return { currentPeriodEnd: null, cancelAtPeriodEnd: false, status: null };
+  }
+
+  try {
+    const subscription = await getStripe().subscriptions.retrieve(
+      org.stripe_subscription_id,
+    );
+
+    return {
+      currentPeriodEnd: new Date(subscription.current_period_end * 1000).toISOString(),
+      cancelAtPeriodEnd: subscription.cancel_at_period_end,
+      status: subscription.status,
+    };
+  } catch {
+    return { currentPeriodEnd: null, cancelAtPeriodEnd: false, status: null };
+  }
+}
+
+// ---------------------------------------------------------------------------
+// P3-FIX-15: getCreditsSummary — credit balance for billing page
+// ---------------------------------------------------------------------------
+
+import { getCreditBalance, getCreditHistory, type CreditBalance, type CreditHistoryEntry } from '@/lib/credits/credit-service';
+
+export interface CreditsSummary {
+  balance: CreditBalance | null;
+  recentHistory: CreditHistoryEntry[];
+}
+
+/**
+ * Fetches credit balance and recent usage for the billing page.
+ */
+export async function getCreditsSummary(): Promise<CreditsSummary> {
+  const auth = await getAuthContext();
+  const orgId = auth.orgId;
+
+  const [balance, recentHistory] = await Promise.all([
+    getCreditBalance(orgId),
+    getCreditHistory(orgId, 10),
+  ]);
+
+  return { balance, recentHistory };
+}

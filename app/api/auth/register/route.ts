@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import { createServiceRoleClient } from '@/lib/supabase/server';
 import { RegisterSchema } from '@/lib/schemas/auth';
 import * as Sentry from '@sentry/nextjs';
+import { checkRateLimit, getRateLimitHeaders } from '@/lib/rate-limit/rate-limiter';
+import { ROUTE_RATE_LIMITS } from '@/lib/rate-limit/types';
 
 /**
  * POST /api/auth/register
@@ -21,6 +23,16 @@ import * as Sentry from '@sentry/nextjs';
  * The caller should immediately POST /api/auth/login to obtain a session cookie.
  */
 export async function POST(request: Request): Promise<NextResponse> {
+  // P5-FIX-22: Rate limit by IP (signup spam protection)
+  const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown';
+  const rl = await checkRateLimit(ROUTE_RATE_LIMITS.auth_register, ip);
+  if (!rl.allowed) {
+    return NextResponse.json(
+      { error: 'Too many registration attempts. Please try again later.' },
+      { status: 429, headers: getRateLimitHeaders(rl) },
+    );
+  }
+
   // 1. Parse and validate body
   let body: unknown;
   try {

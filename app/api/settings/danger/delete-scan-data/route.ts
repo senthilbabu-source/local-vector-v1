@@ -9,11 +9,22 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getSafeAuthContext } from '@/lib/auth';
 import { roleSatisfies } from '@/lib/auth/org-roles';
 import { createServiceRoleClient } from '@/lib/supabase/server';
+import { checkRateLimit, getRateLimitHeaders } from '@/lib/rate-limit/rate-limiter';
+import { ROUTE_RATE_LIMITS } from '@/lib/rate-limit/types';
 
 export async function DELETE(request: NextRequest) {
   const ctx = await getSafeAuthContext();
   if (!ctx || !ctx.orgId) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  // P5-FIX-22: Strict rate limit on destructive operations (1/hour/org)
+  const rl = await checkRateLimit(ROUTE_RATE_LIMITS.danger_delete_data, ctx.orgId);
+  if (!rl.allowed) {
+    return NextResponse.json(
+      { error: 'Rate limited. This operation can only be performed once per hour.' },
+      { status: 429, headers: getRateLimitHeaders(rl) },
+    );
   }
 
   if (!roleSatisfies(ctx.role, 'owner')) {

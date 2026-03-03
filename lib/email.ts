@@ -286,6 +286,93 @@ export async function sendEnhancedDigest(
 export { formatWeekOf } from '@/emails/WeeklyDigest';
 
 // ---------------------------------------------------------------------------
+// P5-FIX-21: Scan Complete Notification Email
+// ---------------------------------------------------------------------------
+
+export interface ScanCompletePayload {
+  to: string;
+  businessName: string;
+  shareOfVoice: number;
+  queriesRun: number;
+  queriesCited: number;
+  isFirstScan: boolean;
+  dashboardUrl: string;
+}
+
+/**
+ * Sends a "Scan Complete" notification email after a SOV scan finishes.
+ * Includes a special first-scan message with onboarding guidance.
+ *
+ * No-ops silently when RESEND_API_KEY is not configured.
+ */
+export async function sendScanCompleteEmail(
+  payload: ScanCompletePayload,
+): Promise<void> {
+  if (!process.env.RESEND_API_KEY) {
+    console.log(
+      `[email] RESEND_API_KEY absent — skipping scan complete for ${payload.businessName}`,
+    );
+    return;
+  }
+
+  const subject = payload.isFirstScan
+    ? `Your first AI visibility scan is complete — ${payload.businessName}`
+    : `Weekly scan complete — ${payload.businessName}`;
+
+  const greeting = payload.isFirstScan
+    ? `<p>Great news! Your first AI visibility scan for <strong>${payload.businessName}</strong> is complete. Here's what we found:</p>`
+    : `<p>Your weekly AI visibility scan for <strong>${payload.businessName}</strong> has completed.</p>`;
+
+  const citationRate = payload.queriesRun > 0
+    ? Math.round((payload.queriesCited / payload.queriesRun) * 100)
+    : 0;
+
+  await getResend().emails.send({
+    from: 'LocalVector <alerts@localvector.ai>',
+    to: payload.to,
+    subject,
+    html: `
+      <div style="font-family:sans-serif;max-width:560px;margin:0 auto">
+        <h2 style="color:#16a34a">Scan Complete</h2>
+        ${greeting}
+        <div style="background:#f0fdf4;padding:16px;border-radius:8px;margin:16px 0">
+          <table style="width:100%;border-collapse:collapse">
+            <tr>
+              <td style="padding:8px 0;color:#475569;font-size:14px">AI Visibility Score</td>
+              <td style="padding:8px 0;text-align:right;font-weight:600;font-size:18px;color:#16a34a">${payload.shareOfVoice}%</td>
+            </tr>
+            <tr>
+              <td style="padding:8px 0;color:#475569;font-size:14px">Queries Scanned</td>
+              <td style="padding:8px 0;text-align:right;font-weight:600;color:#1e293b">${payload.queriesRun}</td>
+            </tr>
+            <tr>
+              <td style="padding:8px 0;color:#475569;font-size:14px">Citation Rate</td>
+              <td style="padding:8px 0;text-align:right;font-weight:600;color:#1e293b">${citationRate}%</td>
+            </tr>
+          </table>
+        </div>
+        ${payload.isFirstScan ? `
+        <p style="color:#475569;font-size:14px">
+          Your dashboard now shows real data. Check your AI Mentions, Position, and any wrong facts that AI engines have about your business.
+        </p>
+        ` : ''}
+        <p>
+          <a
+            href="${payload.dashboardUrl}"
+            style="display:inline-block;background:#4f46e5;color:#fff;padding:12px 24px;border-radius:6px;text-decoration:none;font-weight:600"
+          >
+            View Dashboard →
+          </a>
+        </p>
+        <p style="color:#6b7280;font-size:12px;margin-top:24px">
+          You're receiving this because you have weekly digest enabled on LocalVector.ai.
+        </p>
+      </div>
+    `,
+  });
+}
+
+// ---------------------------------------------------------------------------
 // Content Freshness Decay Alert (Sprint 76)
 // ---------------------------------------------------------------------------
 

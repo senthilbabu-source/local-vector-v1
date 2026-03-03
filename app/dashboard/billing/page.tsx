@@ -25,7 +25,11 @@ import {
   createCheckoutSession,
   createPortalSession,
   getCurrentPlan,
+  getSubscriptionDetails,
+  getCreditsSummary,
   type CurrentPlanInfo,
+  type SubscriptionDetails,
+  type CreditsSummary,
 } from './actions';
 import SeatManagementCard from './_components/SeatManagementCard';
 import SeatUsageCard from './_components/SeatUsageCard';
@@ -331,12 +335,24 @@ export default function BillingPage() {
   const [showSuccess, setShowSuccess] = useState(searchParams.get('success') === 'true');
   const [showCanceled, setShowCanceled] = useState(searchParams.get('canceled') === 'true');
   const [planInfo, setPlanInfo] = useState<CurrentPlanInfo | null>(null);
+  const [subDetails, setSubDetails] = useState<SubscriptionDetails | null>(null);
+  const [creditsSummary, setCreditsSummary] = useState<CreditsSummary | null>(null);
 
   useEffect(() => {
     getCurrentPlan()
       .then(setPlanInfo)
       .catch((err) => {
         Sentry.captureException(err, { tags: { component: 'billing-page', sprint: 'A' } });
+      });
+    getSubscriptionDetails()
+      .then(setSubDetails)
+      .catch((err) => {
+        Sentry.captureException(err, { tags: { component: 'billing-sub-details', sprint: 'P3-FIX-15' } });
+      });
+    getCreditsSummary()
+      .then(setCreditsSummary)
+      .catch((err) => {
+        Sentry.captureException(err, { tags: { component: 'billing-credits', sprint: 'P3-FIX-15' } });
       });
   }, []);
 
@@ -391,6 +407,89 @@ export default function BillingPage() {
         </p>
         <PlanComparisonTable currentPlan={planInfo?.plan ?? null} />
       </section>
+
+      {/* P3-FIX-15: Subscription Details */}
+      {subDetails?.currentPeriodEnd && (
+        <section className="rounded-2xl border border-white/5 bg-surface-dark p-6" data-testid="subscription-details">
+          <h2 className="text-sm font-semibold text-white mb-3">Subscription Details</h2>
+          <div className="grid grid-cols-2 gap-4 text-sm">
+            <div>
+              <span className="text-slate-500">Status</span>
+              <p className="text-slate-200 capitalize">{subDetails.status ?? 'N/A'}</p>
+            </div>
+            <div>
+              <span className="text-slate-500">Current period ends</span>
+              <p className="text-slate-200">
+                {new Date(subDetails.currentPeriodEnd).toLocaleDateString('en-US', {
+                  month: 'long', day: 'numeric', year: 'numeric',
+                })}
+              </p>
+            </div>
+          </div>
+          {subDetails.cancelAtPeriodEnd && (
+            <p className="mt-3 text-xs text-alert-amber">
+              Your subscription will downgrade to Free at the end of the current period.
+            </p>
+          )}
+        </section>
+      )}
+
+      {/* P3-FIX-15: Credits Usage */}
+      {creditsSummary?.balance && (
+        <section className="rounded-2xl border border-white/5 bg-surface-dark p-6" data-testid="credits-usage-section">
+          <h2 className="text-sm font-semibold text-white mb-3">Credits Usage</h2>
+          <div className="flex items-center gap-4 mb-4">
+            <div className="text-2xl font-bold text-white tabular-nums">
+              {creditsSummary.balance.remaining}
+              <span className="text-sm text-slate-500 font-normal"> / {creditsSummary.balance.limit}</span>
+            </div>
+            <span className="text-xs text-slate-500">
+              Resets {new Date(creditsSummary.balance.resetDate).toLocaleDateString('en-US', {
+                month: 'short', day: 'numeric',
+              })}
+            </span>
+          </div>
+
+          {creditsSummary.recentHistory.length > 0 && (
+            <div className="overflow-x-auto">
+              <table className="w-full text-xs">
+                <thead>
+                  <tr className="border-b border-white/5 text-left text-slate-500">
+                    <th className="pb-2 pr-4">Date</th>
+                    <th className="pb-2 pr-4">Operation</th>
+                    <th className="pb-2 pr-4 text-right">Credits</th>
+                    <th className="pb-2 text-right">Remaining</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {creditsSummary.recentHistory.map((entry, i) => (
+                    <tr key={i} className="border-b border-white/5 text-slate-300">
+                      <td className="py-1.5 pr-4 tabular-nums">
+                        {new Date(entry.createdAt).toLocaleDateString('en-US', {
+                          month: 'short', day: 'numeric',
+                        })}
+                      </td>
+                      <td className="py-1.5 pr-4 capitalize">
+                        {entry.operation.replace(/_/g, ' ')}
+                      </td>
+                      <td className="py-1.5 pr-4 text-right tabular-nums text-alert-amber">
+                        -{entry.creditsUsed}
+                      </td>
+                      <td className="py-1.5 text-right tabular-nums">
+                        {creditsSummary.balance!.limit - entry.creditsAfter}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          {creditsSummary.recentHistory.length === 0 && (
+            <p className="text-xs text-slate-500">No credit usage yet this billing period.</p>
+          )}
+        </section>
+      )}
 
       {/* Sprint 113: Activity Log — Agency owners/admins only */}
       {planInfo?.plan === 'agency' && <ActivityLogTable />}
