@@ -46,7 +46,7 @@ export const GOLDEN_TENANT = {
       sunday: { open: '17:00', close: '01:00' },
     },
     amenities: {
-      has_outdoor_seating: true,
+      has_outdoor_seating: false,
       serves_alcohol: true,
       has_hookah: true,
       is_kid_friendly: false,
@@ -227,7 +227,7 @@ export const MOCK_SCHEMA_LOCATION: import('@/lib/schema-generator/types').Schema
     sunday: { open: '17:00', close: '01:00' },
   },
   amenities: {
-    has_outdoor_seating: true,
+    has_outdoor_seating: false,
     serves_alcohol: true,
     has_hookah: true,
     is_kid_friendly: false,
@@ -421,7 +421,7 @@ export const MOCK_CORRECTION_INPUT: import('@/lib/services/correction-generator.
       sunday: { open: '17:00', close: '01:00' },
     },
     amenities: {
-      has_outdoor_seating: true,
+      has_outdoor_seating: false,
       serves_alcohol: true,
       has_hookah: true,
       is_kid_friendly: false,
@@ -1029,7 +1029,7 @@ export const MOCK_GBP_LOCATION_ENRICHED: GBPLocation = {
   openInfo: { status: 'OPEN' },
   attributes: [
     { attributeId: 'has_wifi',             values: [true] },
-    { attributeId: 'has_outdoor_seating',  values: [true] },
+    { attributeId: 'has_outdoor_seating',  values: [false] },
     { attributeId: 'serves_alcohol',       values: [true] },
     { attributeId: 'has_live_music',       values: [true] },
     { attributeId: 'accepts_reservations', values: [true] },
@@ -1064,7 +1064,6 @@ export const MOCK_GBP_MAPPED: import('@/lib/gbp/gbp-data-mapper').MappedLocation
   },
   amenities: {
     wifi: true,
-    outdoor_seating: true,
     alcohol: true,
     live_music: true,
     reservations: true,
@@ -3094,7 +3093,7 @@ export const MOCK_DATA_HEALTH_INPUT: import('@/lib/services/data-health.service'
     sunday: { open: '17:00', close: '01:00' },
   },
   amenities: {
-    has_outdoor_seating: true,
+    has_outdoor_seating: false,
     serves_alcohol: true,
     has_hookah: true,
     is_kid_friendly: false,

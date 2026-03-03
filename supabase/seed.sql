@@ -2273,7 +2273,7 @@ SET
   }'::jsonb,
   operational_status = 'OPERATIONAL',
   amenities = '{
-    "has_outdoor_seating": true,
+    "has_outdoor_seating": false,
     "serves_alcohol": true,
     "has_hookah": true,
     "is_kid_friendly": false,
@@ -2560,11 +2560,20 @@ END $$;
 DO $$
 DECLARE
   v_org_id      uuid := 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11';
-  v_location_id uuid;
+  v_location_id  uuid;
+  v_user_id      uuid;  -- public.users.id  (memberships FK)
+  v_auth_user_id uuid;  -- auth.users.id    (activity_log FK)
 BEGIN
   SELECT id INTO v_location_id
     FROM public.locations
    WHERE org_id = v_org_id
+   LIMIT 1;
+
+  -- Lookup the owner user for this org (needed by Section 21+22).
+  SELECT u.id, u.auth_provider_id INTO v_user_id, v_auth_user_id
+    FROM public.users u
+    JOIN public.memberships m ON m.user_id = u.id
+   WHERE m.org_id = v_org_id AND m.role = 'owner'
    LIMIT 1;
 
   IF v_location_id IS NULL THEN
@@ -2590,14 +2599,14 @@ BEGIN
   INSERT INTO public.vaio_profiles
     (location_id, org_id, voice_readiness_score,
      llms_txt_standard, llms_txt_full, llms_txt_generated_at, llms_txt_status,
-     crawler_audit, voice_query_stats, gaps, issues, last_run_at)
+     crawler_audit, voice_queries_tracked, voice_citation_rate, voice_gaps, top_content_issues, last_run_at)
   VALUES
     (v_location_id, v_org_id, 48,
      '# Charcoal N Chill' || E'\n' || '> Hookah lounge and Mediterranean restaurant in Alpharetta, GA' || E'\n' || '## Location' || E'\n' || '11950 Jones Bridge Road Ste 103, Alpharetta, GA 30005',
      '# Charcoal N Chill' || E'\n' || '> Hookah lounge and Mediterranean restaurant in Alpharetta, GA' || E'\n' || '## Location' || E'\n' || '11950 Jones Bridge Road Ste 103, Alpharetta, GA 30005' || E'\n' || '## Menu Highlights' || E'\n' || 'Specialty hookahs, Mediterranean small plates, craft cocktails',
      NOW() - INTERVAL '3 days', 'generated',
      '{"crawlers_checked": 10, "allowed": 6, "blocked": 2, "not_specified": 2, "health_pct": 60, "details": []}',
-     '{"total_voice_queries": 8, "with_citation": 3, "zero_citation": 5, "avg_citation_rate": 0.375}',
+     8, 0.375,
      '[{"category": "action", "query_count": 2, "zero_citation_count": 2, "consecutive_zero_weeks": 3}]',
      '[{"type": "low_action_language", "severity": "warning", "message": "Content lacks action verbs for voice commands"}]',
      NOW() - INTERVAL '1 day')
@@ -2656,7 +2665,7 @@ BEGIN
     target_user_id, target_email, target_role, metadata, created_at
   ) VALUES
   (
-    v_org_id, 'member_invited', v_user_id, 'aruna@charcoalnchill.com',
+    v_org_id, 'member_invited', v_auth_user_id, 'aruna@charcoalnchill.com',
     NULL, 'newmember@example.com', 'analyst',
     '{"invitation_id": "inv-seed-001"}'::jsonb,
     NOW() - INTERVAL '1 hour'
@@ -2727,7 +2736,7 @@ BEGIN
   INSERT INTO public.onboarding_steps (
     org_id, step_id, completed, completed_at, completed_by_user_id
   ) VALUES
-  (v_org_id, 'business_profile', true, NOW() - INTERVAL '30 days', v_public_user_id),
+  (v_org_id, 'business_profile', true, NOW() - INTERVAL '30 days', v_auth_user_id),
   (v_org_id, 'first_scan',       true, NOW() - INTERVAL '29 days', null),
   (v_org_id, 'first_draft',      true, NOW() - INTERVAL '28 days', null),
   (v_org_id, 'invite_teammate',  false, null, null),

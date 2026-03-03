@@ -188,15 +188,15 @@ describe('generateLLMsTxt — Hours', () => {
 describe('generateLLMsTxt — Amenities', () => {
   it('15. only outputs amenities where value === true', () => {
     const output = generateLLMsTxt(buildFullInput());
-    expect(output).toContain('Outdoor Seating: Yes');
     expect(output).toContain('Full Bar / Alcohol Service: Yes');
     expect(output).toContain('Hookah Lounge: Yes');
   });
 
   it('16. omits false amenities from output', () => {
     const output = generateLLMsTxt(buildFullInput());
-    // is_kid_friendly is false in the fixture
+    // is_kid_friendly and has_outdoor_seating are false in the fixture
     expect(output).not.toContain('Kid-Friendly: Yes');
+    expect(output).not.toContain('Outdoor Seating: Yes');
   });
 
   it('17. handles null amenities gracefully (omits section)', () => {

@@ -42,4 +42,4 @@ CREATE POLICY "service_role_all" ON public.apple_bc_sync_log
 -- Trigger: update updated_at on apple_bc_connections
 CREATE TRIGGER set_apple_bc_connections_updated_at
   BEFORE UPDATE ON public.apple_bc_connections
-  FOR EACH ROW EXECUTE PROCEDURE public.set_updated_at();
+  FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();

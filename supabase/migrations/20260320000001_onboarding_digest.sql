@@ -101,8 +101,11 @@ CROSS JOIN (
 ON CONFLICT (org_id, step_id) DO NOTHING;
 
 -- 5. Backfill email_preferences for existing org owners
+-- Only runs when auth.users already has rows (skips on fresh db reset where
+-- users are created by seed.sql after migrations).
 INSERT INTO public.email_preferences (user_id, org_id)
 SELECT m.user_id, m.org_id
 FROM public.memberships m
+JOIN auth.users u ON u.id = m.user_id
 WHERE m.role = 'owner'
 ON CONFLICT (user_id, org_id) DO NOTHING;

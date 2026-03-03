@@ -43,4 +43,4 @@ CREATE POLICY "service_role_all" ON public.bing_places_sync_log
 -- Trigger: update updated_at on bing_places_connections
 CREATE TRIGGER set_bing_places_connections_updated_at
   BEFORE UPDATE ON public.bing_places_connections
-  FOR EACH ROW EXECUTE PROCEDURE public.set_updated_at();
+  FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
