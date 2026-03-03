@@ -3256,3 +3256,32 @@ Medical/dental vertical extensions in `lib/schema-generator/medical-procedure-ty
 * **Tests:** 48 Vitest (8 buildAvailableServices + 2 catalogs + 7 getApplicableTemplates + 5 renderFAQTemplate + 11 checkMedicalCopy + 3 templates + 4 migration + 4 schema + 4 db types). 0 regressions.
 
 ---
+
+## §162. Apple Business Connect Sync (Sprint 130)
+
+Sync pipeline in `lib/apple-bc/`. Agency plan required for all operations.
+
+* **NEVER log the private key or access tokens.** Log only location_id and status codes.
+* **Partial update ONLY.** `computeLocationDiff()` gates every PATCH — never send unchanged fields.
+* **Token cache:** Module-level, 1hr expiry with 60s buffer. Token refresh is automatic.
+* **Claim flow is manual.** Never auto-claim. UI walks owner through Apple's verification.
+* **`CLOSED_PERMANENTLY`** uses `closeABCLocation()` endpoint, not `updateABCLocation()`.
+* **Agency-only gate:** `planSatisfies(plan, 'agency')` before every API call in cron and actions.
+* **Category map:** `APPLE_CATEGORY_MAP` in `apple-bc-types.ts` — 20 categories. Unmapped categories omitted.
+* **Migration:** `20260310000001_apple_bc.sql`. Tables: `apple_bc_connections`, `apple_bc_sync_log`.
+* **Tests:** 43 Vitest (6 toE164 + 6 toABCHours + 6 toABCCategories + 4 toABCStatus + 5 buildABCLocation + 8 computeLocationDiff + 5 cron + 1 category map + 2 vercel.json).
+
+---
+
+## §163. Bing Places Sync + Sync Orchestrator (Sprint 131)
+
+* **`syncLocationToAll()` in `lib/sync/sync-orchestrator.ts` is the ONLY place** multi-platform sync is triggered. Never call apple-bc-client or bing-places-client directly from action files.
+* **Partial failure isolation:** Apple BC failure never blocks Bing sync, and vice versa. Each platform's error is caught independently and logged to Sentry with its own tag.
+* **Conflict detection:** When `searchBingBusiness()` returns >1 result, set `claim_status='conflict'`. Never auto-select.
+* **Fire-and-forget from Business Info Editor:** `void syncLocationToAll(...)`. Never await it in a user-facing action.
+* **Auth:** Bing uses `Authorization: BingPlaces-ApiKey ${BING_PLACES_API_KEY}`. No JWT. No token cache needed.
+* **Category map:** `BING_CATEGORY_MAP` uses Google-compatible `gcid:` prefixed IDs.
+* **Migration:** `20260310000002_bing_places.sql`. Tables: `bing_places_connections`, `bing_places_sync_log`.
+* **Tests:** 26 Vitest (3 toBingHours + 3 toBingCategories + 3 buildBingLocation + 8 sync-orchestrator + 5 bing-sync cron + 2 Business Info Editor integration + 2 vercel.json).
+
+---

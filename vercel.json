@@ -75,6 +75,14 @@
     {
       "path": "/api/cron/faq-regeneration",
       "schedule": "0 3 * * *"
+    },
+    {
+      "path": "/api/cron/apple-bc-sync",
+      "schedule": "30 3 * * *"
+    },
+    {
+      "path": "/api/cron/bing-sync",
+      "schedule": "0 4 * * *"
     }
   ]
 }

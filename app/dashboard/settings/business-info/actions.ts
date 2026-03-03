@@ -15,6 +15,7 @@
 import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
 import { getSafeAuthContext } from '@/lib/auth';
+import { syncLocationToAll } from '@/lib/sync/sync-orchestrator';
 import { z } from 'zod';
 import type { HoursData, Amenities } from '@/lib/types/ground-truth';
 import type { Json } from '@/lib/supabase/database.types';
@@ -145,6 +146,9 @@ export async function saveBusinessInfo(
   if (error) {
     return { success: false, error: error.message };
   }
+
+  // Sprint 131: Fire-and-forget sync to connected platforms
+  void syncLocationToAll(location_id, supabase);
 
   revalidatePath('/dashboard');
   revalidatePath('/dashboard/settings/business-info');

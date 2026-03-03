@@ -23,12 +23,12 @@ LocalVector is an AEO/GEO SaaS platform that helps local businesses monitor and 
 - **Plan display names live in `lib/plan-display-names.ts`.** Never inline plan tier display logic (e.g., `capitalize(plan)`) — always use `getPlanDisplayName()`. Maps: trial→The Audit, starter→Starter, growth→AI Shield, agency→Brand Fortress, null→Free. (AI_RULES §71)
 - **AI providers are centralized.** Never call AI APIs directly — use `getModel(key)` from `lib/ai/providers.ts`. Mock fallbacks activate when API keys are absent.
 - **RLS pattern:** Every tenant-scoped table has `org_isolation_select/insert/update/delete` policies using `org_id = public.current_user_org_id()`.
-- **Cron routes** live in `app/api/cron/` and require `Authorization: Bearer <CRON_SECRET>` header. Each has a kill switch env var. 17 crons registered in `vercel.json`, 9 in `CRON_REGISTRY`.
+- **Cron routes** live in `app/api/cron/` and require `Authorization: Bearer <CRON_SECRET>` header. Each has a kill switch env var. 21 crons registered in `vercel.json`, 9 in `CRON_REGISTRY`.
 
 ## Key Directories
 
 ```
-app/api/cron/          — Automated pipelines (sov, audit, content-audit, weekly-digest, correction-follow-up, correction-rescan, benchmarks, nap-sync, schema-drift, review-sync, autopilot)
+app/api/cron/          — Automated pipelines (sov, audit, content-audit, weekly-digest, correction-follow-up, correction-rescan, benchmarks, nap-sync, schema-drift, review-sync, autopilot, apple-bc-sync, bing-sync)
 app/(auth)/            — Auth pages (login, register, forgot-password, reset-password)
 app/dashboard/         — Authenticated dashboard pages (each has error.tsx boundary)
 app/dashboard/citations/     — Citation Gap Dashboard (Sprint 58A)
@@ -95,6 +95,14 @@ app/api/sov/simulate-stream/   — SSE SOV query simulation with neutral prompt 
 app/api/settings/              — Org settings CRUD + API key management + danger zone (Sprint 121, §155)
 app/api/hallucinations/[id]/correct/ — Mark hallucination corrected + schedule rescan (Sprint 121, §155)
 app/api/cron/correction-rescan/     — Daily re-scan of pending corrections (Sprint 121, §155)
+lib/apple-bc/                      — Apple Business Connect sync pipeline: ES256 JWT auth, mapper, diff, client (Sprint 130, §162)
+lib/bing-places/                   — Bing Places sync pipeline: API key auth, mapper, client (Sprint 131, §163)
+lib/sync/sync-orchestrator.ts      — Unified multi-platform sync entry point: syncLocationToAll() (Sprint 131, §163)
+app/api/cron/apple-bc-sync/        — Nightly Apple BC sync, 3:30 AM UTC, Agency-only (Sprint 130, §162)
+app/api/cron/bing-sync/            — Nightly Bing Places sync, 4:00 AM UTC, Agency-only (Sprint 131, §163)
+app/actions/apple-bc.ts            — Connect/disconnect/manual-sync Apple BC (Sprint 130, §162)
+app/actions/bing-places.ts         — Connect/disconnect/manual-sync Bing Places (Sprint 131, §163)
+app/dashboard/settings/connections/ — Per-location connection management UI (Sprint 130, §162)
 lib/supabase/database.types.ts — Full Database type (59 tables, 9 enums, Relationships)
 supabase/migrations/   — Applied SQL migrations (55, timestamp-ordered)
 supabase/prod_schema.sql — Full production schema dump
@@ -636,6 +644,30 @@ APPLE_MAPS_PRIVATE_KEY, APPLE_MAPS_KEY_ID, APPLE_MAPS_TEAM_ID
 - Tests: 46 Vitest (sov-model-normalizer 14, multi-model-sov 14, model-breakdown-route 10, model-breakdown-component 8). 5 Playwright E2E (sprint-123-multi-model-sov.spec.ts).
 - Result: 338 test files, 4880 tests pass. 1 migration.
 
+### Sprint 130 — Apple Business Connect Sync (2026-03-02)
+- **Migration:** `20260310000001_apple_bc.sql` — `apple_bc_connections` + `apple_bc_sync_log` tables with RLS + trigger.
+- **Sync pipeline:** `lib/apple-bc/` — ES256 JWT auth with token caching (1hr expiry, 60s buffer), field-level diff (`computeLocationDiff`), category mapping (20 entries), E.164 phone normalization.
+- **Client:** `apple-bc-client.ts` — `getAccessToken()`, `searchABCLocation()`, `getABCLocation()`, `updateABCLocation()`, `closeABCLocation()`, `syncOneLocation()`.
+- **Cron:** `app/api/cron/apple-bc-sync/route.ts` — nightly 3:30 AM UTC, Agency-only, kill switch: `APPLE_BC_CRON_DISABLED`.
+- **Server actions:** `app/actions/apple-bc.ts` — `connectAppleBC()`, `disconnectAppleBC()`, `manualSyncAppleBC()` (owner + Agency).
+- **Connection UI:** `app/dashboard/settings/connections/page.tsx` — per-location connection status.
+- **Plan enforcer:** `canSyncAppleBC()` added.
+- AI_RULES: §162 (Apple Business Connect Sync).
+- Tests: 43 Vitest (toE164 6, toABCHours 6, toABCCategories 6, toABCStatus 4, buildABCLocation 5, computeLocationDiff 8, cron 5, category map 1, vercel.json 2).
+- Result: 342 test files, 5030 tests pass. 1 migration.
+
+### Sprint 131 — Bing Places Sync + Sync Orchestrator (2026-03-02)
+- **Migration:** `20260310000002_bing_places.sql` — `bing_places_connections` (with `conflict_note`) + `bing_places_sync_log` tables with RLS + trigger.
+- **Sync pipeline:** `lib/bing-places/` — API key auth, daily rate limit tracking (warn at 80/100), category mapping (15 gcid: entries), conflict detection (>1 match → `claim_status='conflict'`).
+- **Orchestrator:** `lib/sync/sync-orchestrator.ts` — `syncLocationToAll()` with independent failure isolation per platform. Never throws. Apple BC failure never blocks Bing sync. Fire-and-forget from Business Info Editor.
+- **Cron:** `app/api/cron/bing-sync/route.ts` — nightly 4:00 AM UTC, Agency-only, kill switch: `BING_SYNC_CRON_DISABLED`.
+- **Server actions:** `app/actions/bing-places.ts` — `connectBingPlaces()`, `disconnectBingPlaces()`, `manualSyncBingPlaces()` (owner + Agency).
+- **Wiring:** `app/dashboard/settings/business-info/actions.ts` — `void syncLocationToAll(...)` after successful DB write.
+- **Plan enforcer:** `canSyncBingPlaces()` added.
+- AI_RULES: §163 (Bing Places Sync + Sync Orchestrator).
+- Tests: 26 Vitest (toBingHours 3, toBingCategories 3, buildBingLocation 3, sync-orchestrator 8, bing-sync cron 5, business-info integration 2, vercel.json 2).
+- Result: 344 test files, 5099 tests pass. 1 migration.
+
 ## Tier Completion Status
 
 | Tier | Sprints | Status | Gate |
@@ -681,10 +713,9 @@ APPLE_MAPS_PRIVATE_KEY, APPLE_MAPS_KEY_ID, APPLE_MAPS_TEAM_ID
 | Sprint 121 | Correction Follow-up + Settings Expansion | Complete | — |
 | Sprint 122 | Benchmark Comparisons | Complete | — |
 | Sprint 123 | Multi-Model SOV Expansion | Complete | — |
-
-### Sprints Pending External Approval:
-- Apple Business Connect Sync (originally §57): Submit API request at https://developer.apple.com/business-connect/
+| Sprint 130 | Apple Business Connect Sync | Complete | — |
+| Sprint 131 | Bing Places Sync + Sync Orchestrator | Complete | — |
 
 ## Build History
 
-See `DEVLOG.md` (project root) and `docs/DEVLOG.md` for the complete sprint-by-sprint build log. Current sprint: 123 (+ FIX-1 through FIX-8 + Sprint A through Sprint O). AI_RULES: §1–§157 (157 sections). Production readiness: all audit issues resolved. **V1 complete.**
+See `DEVLOG.md` (project root) and `docs/DEVLOG.md` for the complete sprint-by-sprint build log. Current sprint: 131 (+ FIX-1 through FIX-8 + Sprint A through Sprint O). AI_RULES: §1–§163 (163 sections). Production readiness: all audit issues resolved. **V1 complete.**

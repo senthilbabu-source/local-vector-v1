@@ -4,6 +4,64 @@
 
 ---
 
+## 2026-03-02 — Sprint 130: Apple Business Connect Sync (Completed)
+
+Sprint 130: One-way nightly sync pipeline pushing LocalVector ground-truth location data to Apple Business Connect. ES256 JWT auth with token caching, field-level diff to avoid overwriting Apple editorial data, Agency-only gating. Connection management UI at `/dashboard/settings/connections`.
+
+**Files created:**
+- `lib/apple-bc/apple-bc-types.ts` — ABCLocation, ABCAddress, ABCHours, ABCSyncResult, APPLE_CATEGORY_MAP (20 entries)
+- `lib/apple-bc/apple-bc-mapper.ts` — toE164(), toABCHours(), toABCCategories(), toABCStatus(), buildABCLocation()
+- `lib/apple-bc/apple-bc-diff.ts` — computeLocationDiff() pure function
+- `lib/apple-bc/apple-bc-client.ts` — ES256 JWT auth, token cache, searchABCLocation, getABCLocation, updateABCLocation, closeABCLocation, syncOneLocation
+- `lib/apple-bc/index.ts` — barrel export
+- `app/api/cron/apple-bc-sync/route.ts` — nightly 3:30 AM UTC, Agency-only, kill switch
+- `app/actions/apple-bc.ts` — connectAppleBC, disconnectAppleBC, manualSyncAppleBC
+- `app/dashboard/settings/connections/page.tsx` — per-location connection status UI
+- `supabase/migrations/20260310000001_apple_bc.sql` — apple_bc_connections + apple_bc_sync_log + RLS
+- `src/__tests__/unit/apple-bc.test.ts` — 43 tests
+
+**Files modified:**
+- `vercel.json` — added apple-bc-sync cron (20 total)
+- `lib/plan-enforcer.ts` — canSyncAppleBC()
+- `supabase/prod_schema.sql` — 2 new tables
+- `docs/AI_RULES.md` — §162
+- `.env.local.example` — APPLE_BC_CLIENT_ID, APPLE_BC_PRIVATE_KEY, APPLE_BC_CRON_DISABLED
+
+**AI_RULES:** §162
+
+---
+
+## 2026-03-02 — Sprint 131: Bing Places Sync + Sync Orchestrator (Completed)
+
+Sprint 131: Bing Places sync pipeline + shared sync orchestrator. After this sprint, a single edit in Business Info Editor automatically queues sync to Apple Maps and Bing/Copilot simultaneously. Partial failure isolation — Apple failure never blocks Bing. Conflict detection for duplicate Bing listings.
+
+**Files created:**
+- `lib/bing-places/bing-places-types.ts` — BingLocation, BingAddress, BingHours, BingSyncResult, BING_CATEGORY_MAP (15 entries)
+- `lib/bing-places/bing-places-mapper.ts` — toBingHours(), toBingCategories(), toBingStatus(), buildBingLocation()
+- `lib/bing-places/bing-places-client.ts` — API key auth, rate limit tracking, searchBingBusiness, getBingLocation, updateBingLocation, closeBingLocation, syncOneBingLocation
+- `lib/bing-places/index.ts` — barrel export
+- `lib/sync/sync-orchestrator.ts` — syncLocationToAll() with independent failure isolation per platform
+- `lib/sync/index.ts` — barrel export
+- `app/api/cron/bing-sync/route.ts` — nightly 4:00 AM UTC, Agency-only, kill switch
+- `app/actions/bing-places.ts` — connectBingPlaces, disconnectBingPlaces, manualSyncBingPlaces
+- `supabase/migrations/20260310000002_bing_places.sql` — bing_places_connections + bing_places_sync_log + RLS
+- `src/__tests__/unit/bing-places.test.ts` — 26 tests
+
+**Files modified:**
+- `vercel.json` — added bing-sync cron (21 total)
+- `app/dashboard/settings/business-info/actions.ts` — wired syncLocationToAll fire-and-forget
+- `app/dashboard/settings/connections/page.tsx` — extended with Bing section
+- `lib/plan-enforcer.ts` — canSyncBingPlaces()
+- `supabase/prod_schema.sql` — 2 new tables
+- `docs/AI_RULES.md` — §163
+- `.env.local.example` — BING_PLACES_API_KEY, BING_SYNC_CRON_DISABLED
+- `src/__tests__/unit/sprint-f-registration.test.ts` — cron count 19→21
+- `src/__tests__/unit/sprint-n-registration.test.ts` — cron count 19→21
+
+**AI_RULES:** §163
+
+---
+
 ## 2026-03-02 — Sprint 127: Medical/Dental Scaffolding v2 (Completed)
 
 Sprint 127: Medical/Dental v2 — extends Sprint E's foundation with procedure catalogs, FAQ templates, and HIPAA copy guardrails. 8 dental procedure categories + 7 medical specialty categories feed `buildAvailableServices()` for JSON-LD schema enrichment. 15 FAQ templates with placeholder substitution and field-presence filtering. Copy guard prevents AI from generating medical advice claims. 4 new location columns for insurance/telehealth/specialty data.

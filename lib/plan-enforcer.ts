@@ -239,6 +239,22 @@ export function canCustomizeTheme(plan: PlanTier): boolean {
   return plan === 'agency';
 }
 
+/**
+ * Apple Business Connect Sync — push location data to Apple Maps (Sprint 130).
+ * Agency-only: only Agency tier can sync to Apple BC.
+ */
+export function canSyncAppleBC(plan: PlanTier): boolean {
+  return plan === 'agency';
+}
+
+/**
+ * Bing Places Sync — push location data to Bing/Copilot (Sprint 131).
+ * Agency-only: only Agency tier can sync to Bing Places.
+ */
+export function canSyncBingPlaces(plan: PlanTier): boolean {
+  return plan === 'agency';
+}
+
 // ---------------------------------------------------------------------------
 // Sprint 111 — Org Membership Foundation
 // ---------------------------------------------------------------------------
