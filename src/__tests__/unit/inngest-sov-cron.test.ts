@@ -50,6 +50,7 @@ vi.mock('@/lib/supabase/server', () => ({
 vi.mock('@/lib/email', () => ({
   sendSOVReport: vi.fn().mockResolvedValue(undefined),
   sendWeeklyDigest: vi.fn().mockResolvedValue(undefined),
+  sendScanCompleteEmail: vi.fn().mockResolvedValue(undefined),
 }));
 
 vi.mock('@/lib/services/occasion-engine.service', () => ({

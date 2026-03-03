@@ -1,5 +1,7 @@
 'use server';
 
+import * as Sentry from '@sentry/nextjs';
+
 // ---------------------------------------------------------------------------
 // Billing Server Actions — Phase 18: Stripe Checkout
 //
@@ -225,7 +227,8 @@ export async function getSubscriptionDetails(): Promise<SubscriptionDetails> {
       cancelAtPeriodEnd: subscription.cancel_at_period_end,
       status: subscription.status,
     };
-  } catch {
+  } catch (err) {
+    Sentry.captureException(err, { tags: { component: 'getSubscriptionDetails', sprint: 'P3-FIX-15' } });
     return { currentPeriodEnd: null, cancelAtPeriodEnd: false, status: null };
   }
 }

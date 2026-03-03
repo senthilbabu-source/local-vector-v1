@@ -5173,3 +5173,66 @@ npx vitest run                                                       # all — n
 ```
 
 ---
+
+## P3-P5 Sprint Block — Data Integrity, Content Validation, Infrastructure (2026-03-03)
+
+**Objective:** Harden real data pipelines (P3), content & recommendations pages (P4), and infrastructure reliability (P5). 12 sprints total: P3-FIX-13 through P5-FIX-24.
+
+### P3 — Data Integrity & Real Data Pipeline
+
+**P3-FIX-13 — Sample Data → Real Data Transition:**
+- `lib/data/scan-data-resolver.ts` (NEW) — `resolveDataMode()` returns `DataMode` ('sample'|'real'|'empty') per org. Parallel queries to `organizations` + `sov_evaluations` for first/last scan timestamps. Integrates with `isSampleMode()`. Calculates next Sunday UTC.
+- `components/dashboard/ScanCompleteBanner.tsx` (NEW) — Client component. Auto-dismisses after 8s. localStorage `lv_scan_complete_banner_shown`.
+- `app/dashboard/page.tsx` — Wired `resolveDataMode()` in parallel with `getOnboardingState()`.
+
+**P3-FIX-14 — Credits System: Deduction, Tracking & Accurate Display:**
+- `supabase/migrations/20260303100001_credit_usage_log.sql` (NEW) — `credit_usage_log` append-only audit table with RLS via memberships.
+- `lib/credits/credit-service.ts` — Added `consumeCreditWithLog()`, `getCreditHistory()`, `getCreditBalance()`.
+- `app/api/credits/history/route.ts` (NEW) — GET endpoint returns balance + history.
+
+**P3-FIX-15 — Billing / Plan Upgrade-Downgrade Flow:**
+- `app/dashboard/billing/actions.ts` — Added `getSubscriptionDetails()` (Stripe period end + cancel status), `getCreditsSummary()` (balance + recent 10 history).
+- `app/dashboard/billing/page.tsx` — Subscription details section + credits usage section with history table.
+
+**P3-FIX-16 — Core Dashboard Data Pages:**
+- Dashboard integration verified: sample/real/empty data modes, ScanCompleteBanner, parallel data resolution.
+
+### P4 — Content & Recommendations Engine
+
+- **P4-FIX-17:** Content recommendations — draft limits per plan, plan gating, filter tabs (verified)
+- **P4-FIX-18:** AI mistakes — severity ordering, 6 correction statuses, model provider mapping, triage swimlanes (verified)
+- **P4-FIX-19:** Voice search & site visitors — VAIO plan gating, 6 readiness dimensions, crawler analytics (verified)
+- **P4-FIX-20:** Reputation & sources — sentiment thresholds, citation gap score, platform sync statuses (verified)
+
+### P5 — Infrastructure & Reliability
+
+- **P5-FIX-21:** Transactional email — `sendScanCompleteEmail()` in `lib/email.ts`, wired in SOV cron
+- **P5-FIX-22:** Rate limiting — 14 route-specific configs in `lib/rate-limit/types.ts`, 4 routes wired
+- **P5-FIX-23:** Error boundaries — 5 new boundaries, 2 not-found pages, loading skeleton
+- **P5-FIX-24:** Performance — `optimizePackageImports`, `browserTracingIntegration` for CWV, `compress: true`
+
+### Tests
+- P3: 80 tests (p3-fix-13: 24, p3-fix-14: 18, p3-fix-15: 20, p3-fix-16: 18)
+- P4: 39 tests (content-recommendations: 12, ai-mistakes: 12, voice-search: 8, reputation-sources: 7)
+- P5: 80 tests (scan-complete-email: 15, rate-limit-coverage: 19, error-boundaries: 29, performance-config: 17)
+- Total: 199 new tests across 17 files
+
+**AI_RULES:** §178–§181
+
+---
+
+## P3-P5 Regression Fixes (2026-03-03)
+
+**Objective:** Fix 15 test regressions (3 files) caused by cross-sprint interactions in the P3-P5 block.
+
+1. `sentry-config.test.ts` (4 tests) — Mock missing `browserTracingIntegration` (P5-FIX-24). Added to `@sentry/nextjs` mock.
+2. `sentry-sweep-verification.test.ts` (1 test) — Bare `} catch {` in `billing/actions.ts:228` (P3-FIX-15). Added `Sentry.captureException` + import.
+3. `inngest-sov-cron.test.ts` (10 tests) — Mock missing `sendScanCompleteEmail` (P5-FIX-21). Added to `@/lib/email` mock.
+
+**AI_RULES:** §182
+
+```bash
+npx vitest run  # 369 files, 5578 tests — 0 failures
+```
+
+---

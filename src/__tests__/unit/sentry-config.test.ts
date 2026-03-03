@@ -19,12 +19,14 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 const mockInit = vi.fn();
 const mockCaptureException = vi.fn();
 const mockReplayIntegration = vi.fn().mockReturnValue({ name: 'Replay' });
+const mockBrowserTracingIntegration = vi.fn().mockReturnValue({ name: 'BrowserTracing' });
 const mockCaptureRouterTransitionStart = vi.fn();
 
 vi.mock('@sentry/nextjs', () => ({
   init: mockInit,
   captureException: mockCaptureException,
   replayIntegration: mockReplayIntegration,
+  browserTracingIntegration: mockBrowserTracingIntegration,
   captureRouterTransitionStart: mockCaptureRouterTransitionStart,
 }));
 

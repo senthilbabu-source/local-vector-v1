@@ -3657,3 +3657,28 @@ Growth/Agency users can trigger a full-org AI visibility scan on demand. Trial/S
 **Tests:** 46 (error-boundaries.test.ts: 29, performance-config.test.ts: 17)
 
 ---
+
+## §182. P3-P5 Cross-Sprint Regression Fixes (2026-03-03)
+
+**Root cause:** Three cross-sprint interactions broke existing tests after the P3-P5 block commit:
+
+**Fix 1 — sentry-config.test.ts (4 tests):**
+* P5-FIX-24 added `Sentry.browserTracingIntegration()` to `instrumentation-client.ts`
+* Test mock for `@sentry/nextjs` did not include `browserTracingIntegration` → module-level call threw
+* **Fix:** Added `browserTracingIntegration: vi.fn().mockReturnValue({ name: 'BrowserTracing' })` to mock
+
+**Fix 2 — sentry-sweep-verification.test.ts (1 test):**
+* P3-FIX-15 introduced bare `} catch {` in `app/dashboard/billing/actions.ts:228` (`getSubscriptionDetails` Stripe fallback)
+* Sentry sweep regression test detects bare catches (Sprint A §70 enforcement)
+* **Fix:** `} catch (err) { Sentry.captureException(err, { tags: { component: 'getSubscriptionDetails', sprint: 'P3-FIX-15' } }) }` + added `import * as Sentry from '@sentry/nextjs'`
+
+**Fix 3 — inngest-sov-cron.test.ts (10 tests):**
+* P5-FIX-21 added `sendScanCompleteEmail()` import to `lib/inngest/functions/sov-cron.ts`
+* Test mock for `@/lib/email` only had `sendSOVReport` + `sendWeeklyDigest` → `sendScanCompleteEmail` was `undefined` → TypeError at call site
+* **Fix:** Added `sendScanCompleteEmail: vi.fn().mockResolvedValue(undefined)` to email mock
+
+**Enforcement:** These regressions are prevented by existing tests — no new regression guards needed. The sentry-sweep test itself caught Fix 2.
+
+**Tests:** 0 new tests. 15 existing tests unblocked (4 + 1 + 10). Total suite: 369 files, 5,578 tests, 0 failures.
+
+---

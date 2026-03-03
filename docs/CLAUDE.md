@@ -735,7 +735,19 @@ APPLE_MAPS_PRIVATE_KEY, APPLE_MAPS_KEY_ID, APPLE_MAPS_TEAM_ID
 | P1-FIX-06 | Sidebar Navigation Plan Gating | Complete | §175 |
 | P1-FIX-07 | Settings Navigation Audit | Complete | §176 |
 | P1-FIX-08 | Plan Consistency Audit | Complete | §174 |
+| P3-FIX-13 | Sample Data → Real Data Transition | Complete | §178 |
+| P3-FIX-14 | Credits System: Deduction, Tracking & Display | Complete | §178 |
+| P3-FIX-15 | Billing / Plan Upgrade-Downgrade Flow | Complete | §178 |
+| P3-FIX-16 | Core Dashboard Data Pages | Complete | §178 |
+| P4-FIX-17 | Content Recommendations Display | Complete | §178 |
+| P4-FIX-18 | AI Mistakes Page — Real Data + Corrections | Complete | §178 |
+| P4-FIX-19 | Voice Search & Site Visitors Pages | Complete | §178 |
+| P4-FIX-20 | Reputation & Sources Pages | Complete | §178 |
+| P5-FIX-21 | Transactional Email — Scan Complete + Digest | Complete | §179 |
+| P5-FIX-22 | API Rate Limiting — Systematic Coverage | Complete | §180 |
+| P5-FIX-23 | Error Boundaries — Graceful Failure Handling | Complete | §181 |
+| P5-FIX-24 | Performance — CWV, Bundle, Caching | Complete | §181 |
 
 ## Build History
 
-See `DEVLOG.md` (project root) and `docs/DEVLOG.md` for the complete sprint-by-sprint build log. Current sprint: 135 (+ FIX-1 through FIX-8 + Sprint A through Sprint O + P0-FIX-01 through P1-FIX-08). AI_RULES: §1–§177 (177 sections). Production readiness: all audit issues resolved. **V1 complete.**
+See `DEVLOG.md` (project root) and `docs/DEVLOG.md` for the complete sprint-by-sprint build log. Current sprint: 135 (+ FIX-1 through FIX-8 + Sprint A through Sprint O + P0-FIX-01 through P5-FIX-24). AI_RULES: §1–§182 (182 sections). Production readiness: all audit issues resolved. **V1 complete.**
