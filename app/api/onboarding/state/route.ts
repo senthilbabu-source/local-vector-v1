@@ -10,6 +10,7 @@ import { NextResponse } from 'next/server';
 import { getSafeAuthContext } from '@/lib/auth';
 import { createServiceRoleClient } from '@/lib/supabase/server';
 import { getOnboardingState } from '@/lib/onboarding/onboarding-service';
+import type { PlanTier } from '@/lib/plan-enforcer';
 
 export const dynamic = 'force-dynamic';
 
@@ -21,7 +22,8 @@ export async function GET() {
     }
 
     const supabase = createServiceRoleClient();
-    const state = await getOnboardingState(supabase, ctx.orgId, ctx.org?.created_at ?? null);
+    const orgPlan = (ctx.plan ?? 'trial') as PlanTier;
+    const state = await getOnboardingState(supabase, ctx.orgId, ctx.org?.created_at ?? null, orgPlan);
 
     return NextResponse.json(state);
   } catch (err) {

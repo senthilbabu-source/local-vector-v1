@@ -1,9 +1,15 @@
 // ---------------------------------------------------------------------------
-// lib/onboarding/types.ts — Onboarding Types (Sprint 117)
+// lib/onboarding/types.ts — Onboarding Types (Sprint 117, P0-FIX-03)
 //
 // Per-org onboarding checklist types. Steps are org-scoped — any member
 // completing a step marks it done for all members.
+//
+// P0-FIX-03: Steps can be plan-gated via requiredPlan. Use getVisibleSteps()
+// to filter steps for a given plan tier.
 // ---------------------------------------------------------------------------
+
+import type { PlanTier } from '@/lib/plan-enforcer';
+import { planSatisfies } from '@/lib/plan-enforcer';
 
 export type OnboardingStepId =
   | 'business_profile'
@@ -20,6 +26,8 @@ export interface OnboardingStep {
   action_url: string;
   /** Can this step be auto-completed by the system (vs requires user action)? */
   auto_completable: boolean;
+  /** Minimum plan tier required to see this step. Omit for steps available to all. */
+  requiredPlan?: PlanTier;
 }
 
 export const ONBOARDING_STEPS: OnboardingStep[] = [
@@ -28,7 +36,7 @@ export const ONBOARDING_STEPS: OnboardingStep[] = [
     label: 'Complete your business profile',
     description: 'Add your business name, industry, and first location.',
     action_label: 'Set up profile',
-    action_url: '/dashboard/settings/profile',
+    action_url: '/dashboard/settings/business-info',
     auto_completable: false,
   },
   {
@@ -54,6 +62,7 @@ export const ONBOARDING_STEPS: OnboardingStep[] = [
     action_label: 'Invite team',
     action_url: '/dashboard/team',
     auto_completable: false,
+    requiredPlan: 'agency',
   },
   {
     id: 'connect_domain',
@@ -62,6 +71,7 @@ export const ONBOARDING_STEPS: OnboardingStep[] = [
     action_label: 'Set up domain',
     action_url: '/dashboard/settings/domain',
     auto_completable: false,
+    requiredPlan: 'agency',
   },
 ];
 
@@ -75,12 +85,24 @@ export interface OnboardingStepState {
 export interface OnboardingState {
   org_id: string;
   steps: OnboardingStepState[];
+  /** IDs of steps visible for the org's plan */
+  visible_step_ids: OnboardingStepId[];
   total_steps: number;
   completed_steps: number;
-  /** All 5 steps done */
+  /** All visible steps done */
   is_complete: boolean;
   /** true if < 2 steps complete AND org < 7 days old */
   show_interstitial: boolean;
   /** true if first_scan step is complete */
   has_real_data: boolean;
+}
+
+/**
+ * Returns the onboarding steps visible for a given plan tier.
+ * Steps with requiredPlan are only shown if the org's plan satisfies it.
+ */
+export function getVisibleSteps(plan: PlanTier): OnboardingStep[] {
+  return ONBOARDING_STEPS.filter(
+    (step) => !step.requiredPlan || planSatisfies(plan, step.requiredPlan),
+  );
 }

@@ -1,6 +1,7 @@
 'use client';
 
 import { Menu, HelpCircle, User } from 'lucide-react';
+import { getPlanDisplayName } from '@/lib/plan-display-names';
 
 // ---------------------------------------------------------------------------
 // Props
@@ -77,8 +78,8 @@ export default function TopBar({ onMenuToggle, orgName, plan, credits, presenceS
       <div className="hidden lg:flex items-center gap-2">
         <span className="text-sm font-medium text-slate-300 truncate max-w-xs">{orgName}</span>
         {plan && (
-          <span className="rounded-full bg-signal-green/15 px-2.5 py-0.5 text-xs font-medium text-signal-green capitalize">
-            {plan}
+          <span className="rounded-full bg-signal-green/15 px-2.5 py-0.5 text-xs font-medium text-signal-green">
+            {getPlanDisplayName(plan)}
           </span>
         )}
       </div>

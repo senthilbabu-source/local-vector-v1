@@ -398,7 +398,8 @@ describe('TopBar', () => {
         plan="growth"
       />,
     );
-    expect(screen.getByText('growth')).toBeDefined();
+    // P0-FIX-01: TopBar now uses getPlanDisplayName() — "growth" renders as "AI Shield"
+    expect(screen.getByText('AI Shield')).toBeDefined();
   });
 
   it('does not render plan badge when plan is null', () => {
@@ -410,10 +411,10 @@ describe('TopBar', () => {
         plan={null}
       />,
     );
-    expect(screen.queryByText('growth')).toBeNull();
+    expect(screen.queryByText('AI Shield')).toBeNull();
   });
 
-  it('plan badge has electric-indigo styling when plan is present', () => {
+  it('plan badge has signal-green styling when plan is present', () => {
     render(
       <TopBar
         onMenuToggle={vi.fn()}
@@ -422,7 +423,7 @@ describe('TopBar', () => {
         plan="growth"
       />,
     );
-    const badge = screen.getByText('growth');
+    const badge = screen.getByText('AI Shield');
     // TAILWIND LITERALS — exact class token per project rule 5
     expect(badge.className).toContain('text-signal-green');
   });

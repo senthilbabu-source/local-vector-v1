@@ -3405,3 +3405,59 @@ Copy-only refactor replacing all technical/analyst jargon with plain English for
   - "first-party citation rate" → "How often AI cites your website"
 
 ---
+
+## §170. Stripe Webhook Plan Tier Sync (P0-FIX-01, 2026-03-03)
+
+When a subscription changes via Stripe portal, the webhook MUST sync `organizations.plan` — not just `plan_status`.
+
+* **Price ID resolver:** `lib/stripe/plan-tier-resolver.ts` — `resolvePlanTierFromPriceId(priceId)` maps env vars (`STRIPE_PRICE_ID_STARTER`, `STRIPE_PRICE_ID_GROWTH`, `STRIPE_PRICE_ID_AGENCY_SEAT`) to `PlanTier`. Returns `null` for unknown IDs.
+* **Webhook sync rules** (`app/api/webhooks/stripe/route.ts`):
+  - `subscription.updated` + active/trialing + resolved tier → set `plan = resolvedTier`
+  - `subscription.updated` + canceled/unpaid → set `plan = 'trial'`
+  - `subscription.deleted` → set `plan = 'trial'`, `plan_status = 'canceled'`, `seat_limit = 1`
+  - `invoice.payment_failed` → set `plan_status = 'past_due'` only (do NOT downgrade plan tier)
+* **TopBar display:** Always use `getPlanDisplayName(plan)` from `lib/plan-display-names.ts`. Never display raw enum values. The `capitalize` CSS class is not used on the plan badge.
+* **DB column:** `organizations.plan` (enum: `trial|starter|growth|agency`). There is NO `profiles` table — all plan data lives on `organizations`.
+
+---
+
+## §171. Onboarding Link Fix (P0-FIX-02, 2026-03-03)
+
+* **Correct URL:** `business_profile` step `action_url` is `/dashboard/settings/business-info` (not `/dashboard/settings/profile`).
+* **Legacy redirect:** `app/dashboard/settings/profile/page.tsx` redirects to `/dashboard/settings/business-info` to catch bookmarks/cached URLs.
+* When adding new onboarding steps, always verify the `action_url` resolves to an existing route.
+
+---
+
+## §172. Plan-Gated Onboarding Steps (P0-FIX-03, 2026-03-03)
+
+Onboarding steps are filtered by the org's plan tier. Not all steps are shown to all plans.
+
+* **`OnboardingStep.requiredPlan?: PlanTier`** — if set, the step is only visible when `planSatisfies(orgPlan, requiredPlan)` returns true.
+* **Current gating:** `invite_teammate` and `connect_domain` require `'agency'`. The 3 core steps (`business_profile`, `first_scan`, `first_draft`) have no `requiredPlan` and are visible to all plans.
+* **`getVisibleSteps(plan: PlanTier)`** — exported from `lib/onboarding/types.ts`. Returns filtered array of steps visible for the given plan.
+* **Service layer:** `getOnboardingState()` and `autoCompleteSteps()` accept optional `orgPlan?: PlanTier` (defaults to `'trial'`). `total_steps`, `completed_steps`, and `is_complete` are computed from visible steps only.
+* **`visible_step_ids: OnboardingStepId[]`** — included in `OnboardingState` response so clients know which steps are relevant.
+* **Component:** `OnboardingChecklist.tsx` iterates `state.steps` (pre-filtered by service), not `ONBOARDING_STEPS` directly.
+
+---
+
+## §173. P0 Sprint Prompt Adaptation Pattern (2026-03-03)
+
+The P0 sprint prompts assumed a `profiles` table with user-level plan data. The real codebase uses `organizations.plan` (enum: `trial|starter|growth|agency`). Key mapping differences:
+
+| Sprint prompt assumes | Real codebase |
+|---|---|
+| `profiles` table | `organizations` table |
+| `profiles.plan_tier` column | `organizations.plan` column |
+| `'free'` plan tier | `'trial'` plan tier |
+| `'ai_shield'` plan tier | `'growth'` (display name "AI Shield" via `getPlanDisplayName`) |
+| User-level plan data | Org-level plan data |
+
+When executing future sprint prompts (P1, P2), always adapt to the real architecture:
+1. Replace `profiles` references with `organizations`
+2. Replace `plan_tier` with `plan`
+3. Replace `'free'` with `'trial'`, `'ai_shield'` with `'growth'`
+4. Plan display names are UI-only (`lib/plan-display-names.ts`) — DB stores enum values
+
+---

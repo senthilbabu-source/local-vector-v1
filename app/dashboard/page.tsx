@@ -205,7 +205,7 @@ export default async function DashboardPage() {
   try {
     if (ctx.orgId) {
       const serviceClient = createServiceRoleClient();
-      onboardingState = await getOnboardingState(serviceClient, ctx.orgId, orgCreatedAt);
+      onboardingState = await getOnboardingState(serviceClient, ctx.orgId, orgCreatedAt, planTier);
     }
   } catch (err) {
     Sentry.captureException(err, { tags: { component: 'onboarding', sprint: '117' }, extra: { orgId: ctx.orgId } });

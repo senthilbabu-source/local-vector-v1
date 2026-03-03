@@ -4,6 +4,41 @@
 
 ---
 
+## 2026-03-03 — P0 Sprint Block: Plan Integrity + Core Routing Fix (P0-FIX-01 → P0-FIX-04)
+
+Critical pre-production fix block. 4 sprints adapted from sprint prompts to real codebase architecture (prompts assumed `profiles` table — real codebase uses `organizations`).
+
+### P0-FIX-01: Stripe Webhook Plan Sync + TopBar Display
+- **Created** `lib/stripe/plan-tier-resolver.ts` — pure function mapping Stripe price IDs (`STRIPE_PRICE_ID_STARTER`, `_GROWTH`, `_AGENCY_SEAT`) to `PlanTier` enum values
+- **Modified** `app/api/webhooks/stripe/route.ts` — `handleSubscriptionUpdated()` now resolves plan tier from `subscription.items.data[0].price.id` via `resolvePlanTierFromPriceId()` and syncs `organizations.plan`; added `handleInvoicePaymentFailed()` handler (sets `plan_status: 'past_due'` without downgrading plan)
+- **Modified** `components/layout/TopBar.tsx` — plan badge now uses `getPlanDisplayName(plan)` instead of raw enum value with CSS `capitalize`. "growth" displays as "AI Shield", not "Growth"
+- **Tests:** 7 (plan-tier-resolver.test.ts) + 17 (stripe-webhook-events.test.ts) + 5 (topbar-plan-badge.test.tsx) = 29 new tests
+- **E2E verified:** Stripe CLI → crafted HMAC-signed webhook → Supabase DB update confirmed for all 3 event types
+
+### P0-FIX-02: Business Profile Onboarding Link
+- **Modified** `lib/onboarding/types.ts` — `business_profile` step `action_url` changed from `/dashboard/settings/profile` (404) to `/dashboard/settings/business-info`
+- **Created** `app/dashboard/settings/profile/page.tsx` — server redirect catching legacy URLs
+
+### P0-FIX-03: Plan-Gated Onboarding Steps
+- **Modified** `lib/onboarding/types.ts` — added `requiredPlan?: PlanTier` to `OnboardingStep` interface; `invite_teammate` and `connect_domain` require `'agency'`; added `getVisibleSteps(plan)` filter using `planSatisfies()`; added `visible_step_ids` to `OnboardingState`
+- **Modified** `lib/onboarding/onboarding-service.ts` — `getOnboardingState()` and `autoCompleteSteps()` accept `orgPlan?: PlanTier` param; `total_steps` and `completed_steps` only count plan-visible steps
+- **Modified** `app/dashboard/_components/OnboardingChecklist.tsx` — renders `state.steps` (plan-filtered) instead of raw `ONBOARDING_STEPS`
+- **Modified** `app/api/onboarding/state/route.ts` + `app/dashboard/page.tsx` — pass org plan to `getOnboardingState()`
+- **Tests:** 12 (onboarding-visible-steps.test.ts) new tests
+
+### P0-FIX-04: Completion Tracking Verification
+- Added `visible_step_ids: OnboardingStepId[]` to `OnboardingState` interface
+- Updated `golden-tenant.ts` fixtures with new field
+- Verified auto-complete logic works end-to-end (no code changes needed)
+
+### Regression Fixes
+- Updated `DashboardShell.test.tsx` — 2 TopBar plan badge tests updated from raw `'growth'` to `'AI Shield'`
+- Updated `onboarding-service.test.ts` — 5 tests updated to pass `'agency'` plan for agency-only steps
+
+**Files changed:** 5 created, 10 modified. **Tests: 352 files, 5,281 pass, 0 fail.** AI_RULES §170-§173.
+
+---
+
 ## 2026-03-03 — Dashboard Simplification Phase 2: Page-Level Content De-Jargoning
 
 Deeper pass across ~25 files removing remaining technical jargon within individual dashboard page content. Phase 1 handled navigation/titles; Phase 2 targets internal section labels, cron names, scoring descriptions, status messages, and link text.

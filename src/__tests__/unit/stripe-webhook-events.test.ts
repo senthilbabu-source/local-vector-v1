@@ -83,13 +83,22 @@ function mockUpdateFailure(message: string) {
 
 let savedWebhookSecret: string | undefined;
 let savedStripeKey: string | undefined;
+let savedPriceStarter: string | undefined;
+let savedPriceGrowth: string | undefined;
+let savedPriceAgency: string | undefined;
 
 beforeEach(() => {
   vi.clearAllMocks();
   savedWebhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
   savedStripeKey = process.env.STRIPE_SECRET_KEY;
+  savedPriceStarter = process.env.STRIPE_PRICE_ID_STARTER;
+  savedPriceGrowth = process.env.STRIPE_PRICE_ID_GROWTH;
+  savedPriceAgency = process.env.STRIPE_PRICE_ID_AGENCY_SEAT;
   process.env.STRIPE_WEBHOOK_SECRET = 'whsec_test_secret';
   process.env.STRIPE_SECRET_KEY = 'sk_test_key';
+  process.env.STRIPE_PRICE_ID_STARTER = 'price_starter_test';
+  process.env.STRIPE_PRICE_ID_GROWTH = 'price_growth_test';
+  process.env.STRIPE_PRICE_ID_AGENCY_SEAT = 'price_agency_test';
 });
 
 afterEach(() => {
@@ -97,6 +106,12 @@ afterEach(() => {
   else process.env.STRIPE_WEBHOOK_SECRET = savedWebhookSecret;
   if (savedStripeKey === undefined) delete process.env.STRIPE_SECRET_KEY;
   else process.env.STRIPE_SECRET_KEY = savedStripeKey;
+  if (savedPriceStarter === undefined) delete process.env.STRIPE_PRICE_ID_STARTER;
+  else process.env.STRIPE_PRICE_ID_STARTER = savedPriceStarter;
+  if (savedPriceGrowth === undefined) delete process.env.STRIPE_PRICE_ID_GROWTH;
+  else process.env.STRIPE_PRICE_ID_GROWTH = savedPriceGrowth;
+  if (savedPriceAgency === undefined) delete process.env.STRIPE_PRICE_ID_AGENCY_SEAT;
+  else process.env.STRIPE_PRICE_ID_AGENCY_SEAT = savedPriceAgency;
 });
 
 // ---------------------------------------------------------------------------
@@ -169,6 +184,92 @@ describe('Stripe webhook — all revenue-critical events', () => {
     expect(chain.eq).toHaveBeenCalledWith('stripe_customer_id', TEST_CUSTOMER_ID);
   });
 
+  // ── 3b. subscription.updated — plan tier sync (P0-FIX-01) ──────────
+
+  it('subscription.updated syncs plan to growth when price ID matches GROWTH', async () => {
+    const chain = mockUpdateSuccess();
+    mockConstructEvent.mockReturnValue(
+      mockStripeEvent('customer.subscription.updated', {
+        customer: TEST_CUSTOMER_ID,
+        status: 'active',
+        items: { data: [{ price: { id: 'price_growth_test' } }] },
+      })
+    );
+
+    const res = await POST(makeWebhookRequest('{}'));
+    expect(res.status).toBe(200);
+    expect(chain.update).toHaveBeenCalledWith(
+      expect.objectContaining({ plan: 'growth', plan_status: 'active' })
+    );
+  });
+
+  it('subscription.updated syncs plan to agency when price ID matches AGENCY', async () => {
+    const chain = mockUpdateSuccess();
+    mockConstructEvent.mockReturnValue(
+      mockStripeEvent('customer.subscription.updated', {
+        customer: TEST_CUSTOMER_ID,
+        status: 'active',
+        items: { data: [{ price: { id: 'price_agency_test' } }] },
+      })
+    );
+
+    const res = await POST(makeWebhookRequest('{}'));
+    expect(res.status).toBe(200);
+    expect(chain.update).toHaveBeenCalledWith(
+      expect.objectContaining({ plan: 'agency' })
+    );
+  });
+
+  it('subscription.updated does not set plan when price ID is unrecognized', async () => {
+    const chain = mockUpdateSuccess();
+    mockConstructEvent.mockReturnValue(
+      mockStripeEvent('customer.subscription.updated', {
+        customer: TEST_CUSTOMER_ID,
+        status: 'active',
+        items: { data: [{ price: { id: 'price_unknown_xyz' } }] },
+      })
+    );
+
+    const res = await POST(makeWebhookRequest('{}'));
+    expect(res.status).toBe(200);
+    const updatePayload = chain.update.mock.calls[0][0];
+    expect(updatePayload).not.toHaveProperty('plan');
+  });
+
+  it('subscription.updated downgrades plan to trial when status is canceled', async () => {
+    const chain = mockUpdateSuccess();
+    mockConstructEvent.mockReturnValue(
+      mockStripeEvent('customer.subscription.updated', {
+        customer: TEST_CUSTOMER_ID,
+        status: 'canceled',
+        items: { data: [{ price: { id: 'price_growth_test' } }] },
+      })
+    );
+
+    const res = await POST(makeWebhookRequest('{}'));
+    expect(res.status).toBe(200);
+    expect(chain.update).toHaveBeenCalledWith(
+      expect.objectContaining({ plan: 'trial', plan_status: 'canceled' })
+    );
+  });
+
+  it('subscription.updated downgrades plan to trial when status is unpaid', async () => {
+    const chain = mockUpdateSuccess();
+    mockConstructEvent.mockReturnValue(
+      mockStripeEvent('customer.subscription.updated', {
+        customer: TEST_CUSTOMER_ID,
+        status: 'unpaid',
+        items: { data: [{ price: { id: 'price_growth_test' } }] },
+      })
+    );
+
+    const res = await POST(makeWebhookRequest('{}'));
+    expect(res.status).toBe(200);
+    expect(chain.update).toHaveBeenCalledWith(
+      expect.objectContaining({ plan: 'trial' })
+    );
+  });
+
   // ── 4. customer.subscription.deleted → downgrades to trial ────────
 
   it('customer.subscription.deleted downgrades org to trial', async () => {
@@ -212,9 +313,10 @@ describe('Stripe webhook — all revenue-critical events', () => {
     expect(mockFrom).not.toHaveBeenCalled();
   });
 
-  // ── 6. invoice.payment_failed → acknowledged (not yet handled) ────
+  // ── 6. invoice.payment_failed → sets plan_status to past_due ─────
 
-  it('invoice.payment_failed returns 200 (acknowledged but no-op)', async () => {
+  it('invoice.payment_failed sets plan_status to past_due', async () => {
+    const chain = mockUpdateSuccess();
     mockConstructEvent.mockReturnValue(
       mockStripeEvent('invoice.payment_failed', {
         id: 'inv_fail_123',
@@ -225,8 +327,39 @@ describe('Stripe webhook — all revenue-critical events', () => {
 
     const res = await POST(makeWebhookRequest('{}'));
     expect(res.status).toBe(200);
-    const body = await res.json();
-    expect(body.received).toBe(true);
+    expect(chain.update).toHaveBeenCalledWith(
+      expect.objectContaining({ plan_status: 'past_due' })
+    );
+    expect(chain.eq).toHaveBeenCalledWith('stripe_customer_id', TEST_CUSTOMER_ID);
+  });
+
+  it('invoice.payment_failed does NOT downgrade plan tier', async () => {
+    const chain = mockUpdateSuccess();
+    mockConstructEvent.mockReturnValue(
+      mockStripeEvent('invoice.payment_failed', {
+        id: 'inv_fail_456',
+        customer: TEST_CUSTOMER_ID,
+        status: 'open',
+      })
+    );
+
+    const res = await POST(makeWebhookRequest('{}'));
+    expect(res.status).toBe(200);
+    const updatePayload = chain.update.mock.calls[0][0];
+    expect(updatePayload).not.toHaveProperty('plan');
+  });
+
+  it('invoice.payment_failed skips when customer ID is missing', async () => {
+    mockConstructEvent.mockReturnValue(
+      mockStripeEvent('invoice.payment_failed', {
+        id: 'inv_fail_789',
+        customer: null,
+        status: 'open',
+      })
+    );
+
+    const res = await POST(makeWebhookRequest('{}'));
+    expect(res.status).toBe(200);
     expect(mockFrom).not.toHaveBeenCalled();
   });
 

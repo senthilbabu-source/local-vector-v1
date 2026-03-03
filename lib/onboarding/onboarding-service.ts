@@ -1,16 +1,20 @@
 // ---------------------------------------------------------------------------
-// lib/onboarding/onboarding-service.ts — Onboarding Service (Sprint 117)
+// lib/onboarding/onboarding-service.ts — Onboarding Service (Sprint 117, P0-FIX-03)
 //
 // Per-org onboarding checklist operations. Caller passes Supabase client.
 // Service role client required for autoCompleteSteps() (reads across tables).
 //
 // Steps are org-scoped — any member completing a step marks it for all.
 // Auto-completable steps are checked on every getOnboardingState() call.
+//
+// P0-FIX-03: Steps are now plan-filtered. Only steps visible for the org's
+// plan are counted toward total_steps and completed_steps.
 // ---------------------------------------------------------------------------
 
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Database } from '@/lib/supabase/database.types';
-import { ONBOARDING_STEPS } from './types';
+import type { PlanTier } from '@/lib/plan-enforcer';
+import { ONBOARDING_STEPS, getVisibleSteps } from './types';
 import type { OnboardingStepId, OnboardingStepState, OnboardingState } from './types';
 
 const VALID_STEP_IDS = new Set<string>(ONBOARDING_STEPS.map((s) => s.id));
@@ -42,6 +46,7 @@ export async function initOnboardingSteps(
 export async function autoCompleteSteps(
   supabase: SupabaseClient<Database>,
   orgId: string,
+  orgPlan?: PlanTier,
 ): Promise<void> {
   // Fetch current step states
   const { data: steps } = await supabase
@@ -49,8 +54,13 @@ export async function autoCompleteSteps(
     .select('step_id, completed')
     .eq('org_id', orgId);
 
+  // Only check steps visible for the org's plan
+  const visibleIds = new Set(
+    getVisibleSteps(orgPlan ?? 'trial').map((s) => s.id),
+  );
+
   const incomplete = (steps ?? [])
-    .filter((s) => !s.completed)
+    .filter((s) => !s.completed && visibleIds.has(s.step_id as OnboardingStepId))
     .map((s) => s.step_id);
 
   if (incomplete.length === 0) return;
@@ -193,6 +203,7 @@ export async function getOnboardingState(
   supabase: SupabaseClient<Database>,
   orgId: string,
   orgCreatedAt?: string | null,
+  orgPlan?: PlanTier,
 ): Promise<OnboardingState> {
   // 1. Fetch steps (lazy init if none exist)
   let { data: rows } = await supabase
@@ -209,8 +220,8 @@ export async function getOnboardingState(
     rows = refetch.data ?? [];
   }
 
-  // 2. Auto-complete eligible steps
-  await autoCompleteSteps(supabase, orgId);
+  // 2. Auto-complete eligible steps (plan-filtered)
+  await autoCompleteSteps(supabase, orgId, orgPlan);
 
   // Re-fetch after auto-complete
   const { data: updated } = await supabase
@@ -218,16 +229,21 @@ export async function getOnboardingState(
     .select('step_id, completed, completed_at, completed_by_user_id')
     .eq('org_id', orgId);
 
-  const steps: OnboardingStepState[] = (updated ?? rows).map((row) => ({
+  const allSteps: OnboardingStepState[] = (updated ?? rows).map((row) => ({
     step_id: row.step_id as OnboardingStepId,
     completed: row.completed,
     completed_at: row.completed_at,
     completed_by_user_id: row.completed_by_user_id,
   }));
 
-  const completedSteps = steps.filter((s) => s.completed).length;
-  const totalSteps = ONBOARDING_STEPS.length;
-  const hasRealData = steps.some(
+  // 3. Filter to only plan-visible steps
+  const visibleSteps = getVisibleSteps(orgPlan ?? 'trial');
+  const visibleStepIds = new Set(visibleSteps.map((s) => s.id));
+  const filteredSteps = allSteps.filter((s) => visibleStepIds.has(s.step_id));
+
+  const completedSteps = filteredSteps.filter((s) => s.completed).length;
+  const totalSteps = filteredSteps.length;
+  const hasRealData = allSteps.some(
     (s) => s.step_id === 'first_scan' && s.completed,
   );
 
@@ -243,7 +259,8 @@ export async function getOnboardingState(
 
   return {
     org_id: orgId,
-    steps,
+    steps: filteredSteps,
+    visible_step_ids: visibleSteps.map((s) => s.id),
     total_steps: totalSteps,
     completed_steps: completedSteps,
     is_complete: completedSteps >= totalSteps,

@@ -21,6 +21,7 @@
 //   checkout.session.completed       — initial purchase; sets plan + stripe IDs
 //   customer.subscription.updated    — plan changes, renewals, seat quantity sync
 //   customer.subscription.deleted    — subscription fully canceled; downgrade to trial
+//   invoice.payment_failed           — payment failure; sets plan_status to past_due
 //
 // Sprint 99: Added seat_limit sync on subscription.updated and deleted.
 //   When subscription quantity changes (via portal or API), seat_limit is synced.
@@ -38,6 +39,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import { createServiceRoleClient } from '@/lib/supabase/server';
 import { syncSeatsFromStripe } from '@/lib/billing/seat-billing-service';
+import { resolvePlanTierFromPriceId } from '@/lib/stripe/plan-tier-resolver';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Database } from '@/lib/supabase/database.types';
 
@@ -146,10 +148,23 @@ async function handleSubscriptionUpdated(
       ?.data?.[0]?.quantity) ??
     undefined;
 
-  // Build update payload — always update plan_status, optionally sync seat_limit
+  // Resolve plan tier from subscription's current price ID
+  const subAny = subscription as unknown as Record<string, unknown>;
+  const items = (subAny.items as { data?: Array<{ price?: { id?: string } }> } | undefined);
+  const currentPriceId = items?.data?.[0]?.price?.id ?? null;
+  const resolvedTier = resolvePlanTierFromPriceId(currentPriceId);
+
+  // Build update payload — always update plan_status, optionally sync plan + seat_limit
   const updatePayload: Record<string, unknown> = {
     plan_status: planStatus as Database['public']['Enums']['plan_status'],
   };
+
+  // Sync plan tier when price ID resolves to a known tier
+  if (resolvedTier && (subscription.status === 'active' || subscription.status === 'trialing')) {
+    updatePayload.plan = resolvedTier;
+  } else if (subscription.status === 'canceled' || subscription.status === 'unpaid') {
+    updatePayload.plan = 'trial';
+  }
 
   // Sync seat_limit if we got a quantity and subscription is not canceled/unpaid
   if (seatQuantity !== undefined && seatQuantity > 0) {
@@ -173,10 +188,11 @@ async function handleSubscriptionUpdated(
   }
 
   console.log(
-    '[stripe-webhook] customer.subscription.updated: customer=%s status=%s → plan_status=%s seat_quantity=%s',
+    '[stripe-webhook] customer.subscription.updated: customer=%s status=%s → plan_status=%s plan=%s seat_quantity=%s',
     stripeCustomerId,
     subscription.status,
     planStatus,
+    updatePayload.plan ?? 'unchanged',
     seatQuantity ?? 'unchanged'
   );
 
@@ -226,6 +242,39 @@ async function handleSubscriptionDeleted(
 
   console.log(
     '[stripe-webhook] customer.subscription.deleted: customer=%s → plan=trial, plan_status=canceled',
+    stripeCustomerId
+  );
+}
+
+async function handleInvoicePaymentFailed(
+  invoice: Stripe.Invoice,
+  supabase: SupabaseClient<Database>
+): Promise<void> {
+  const stripeCustomerId =
+    typeof invoice.customer === 'string' ? invoice.customer : null;
+
+  if (!stripeCustomerId) {
+    console.warn('[stripe-webhook] invoice.payment_failed: no customer ID — skipping');
+    return;
+  }
+
+  // Update plan_status to past_due — do NOT downgrade plan tier on payment failure.
+  // Plan downgrade only happens on explicit cancellation (subscription.deleted).
+  const { error } = await supabase
+    .from('organizations')
+    .update({
+      plan_status: 'past_due' as Database['public']['Enums']['plan_status'],
+    })
+    .eq('stripe_customer_id', stripeCustomerId);
+
+  if (error) {
+    throw new Error(
+      `[stripe-webhook] DB update failed (invoice.payment_failed): ${error.message}`
+    );
+  }
+
+  console.log(
+    '[stripe-webhook] invoice.payment_failed: customer=%s → plan_status=past_due',
     stripeCustomerId
   );
 }
@@ -285,6 +334,13 @@ export async function POST(request: NextRequest) {
       case 'customer.subscription.deleted':
         await handleSubscriptionDeleted(
           event.data.object as Stripe.Subscription,
+          supabase
+        );
+        break;
+
+      case 'invoice.payment_failed':
+        await handleInvoicePaymentFailed(
+          event.data.object as Stripe.Invoice,
           supabase
         );
         break;

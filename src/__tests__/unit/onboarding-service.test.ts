@@ -146,7 +146,8 @@ describe('getOnboardingState — Supabase mocked', () => {
       }),
     } as unknown as SupabaseClient<Database>;
 
-    const state = await getOnboardingState(supabase, TEST_ORG_ID);
+    // P0-FIX-03: pass agency plan to see all 5 steps
+    const state = await getOnboardingState(supabase, TEST_ORG_ID, null, 'agency');
 
     // Verify initOnboardingSteps was triggered: from('onboarding_steps') called with upsert
     expect(supabase.from).toHaveBeenCalledWith('onboarding_steps');
@@ -185,7 +186,7 @@ describe('getOnboardingState — Supabase mocked', () => {
     expect(state.completed_steps).toBe(3);
   });
 
-  it('is_complete = true when all 5 steps done', async () => {
+  it('is_complete = true when all 5 steps done (agency plan)', async () => {
     const rows = makeStepRows({
       business_profile: true,
       first_scan: true,
@@ -210,13 +211,14 @@ describe('getOnboardingState — Supabase mocked', () => {
       }),
     } as unknown as SupabaseClient<Database>;
 
-    const state = await getOnboardingState(supabase, TEST_ORG_ID);
+    // P0-FIX-03: agency plan sees all 5 steps
+    const state = await getOnboardingState(supabase, TEST_ORG_ID, null, 'agency');
 
     expect(state.is_complete).toBe(true);
     expect(state.completed_steps).toBe(5);
   });
 
-  it('is_complete = false when any step incomplete', async () => {
+  it('is_complete = false when any visible step incomplete (agency plan)', async () => {
     const rows = makeStepRows({
       business_profile: true,
       first_scan: true,
@@ -243,7 +245,8 @@ describe('getOnboardingState — Supabase mocked', () => {
       }),
     } as unknown as SupabaseClient<Database>;
 
-    const state = await getOnboardingState(supabase, TEST_ORG_ID);
+    // P0-FIX-03: agency plan sees all 5 steps — connect_domain is incomplete
+    const state = await getOnboardingState(supabase, TEST_ORG_ID, null, 'agency');
 
     expect(state.is_complete).toBe(false);
   });
@@ -476,7 +479,7 @@ describe('autoCompleteSteps — Supabase mocked', () => {
     expect(supabase.from).toHaveBeenCalledWith('content_drafts');
   });
 
-  it('auto-completes invite_teammate when org has > 1 member', async () => {
+  it('auto-completes invite_teammate when org has > 1 member (agency plan)', async () => {
     // Only invite_teammate is incomplete
     const rows = makeStepRows({
       business_profile: true,
@@ -522,12 +525,13 @@ describe('autoCompleteSteps — Supabase mocked', () => {
       }),
     } as unknown as SupabaseClient<Database>;
 
-    await autoCompleteSteps(supabase, TEST_ORG_ID);
+    // P0-FIX-03: invite_teammate requires agency plan to be visible
+    await autoCompleteSteps(supabase, TEST_ORG_ID, 'agency');
 
     expect(supabase.from).toHaveBeenCalledWith('memberships');
   });
 
-  it('auto-completes connect_domain when verified custom domain exists', async () => {
+  it('auto-completes connect_domain when verified custom domain exists (agency plan)', async () => {
     // Only connect_domain is incomplete
     const rows = makeStepRows({
       business_profile: true,
@@ -576,7 +580,8 @@ describe('autoCompleteSteps — Supabase mocked', () => {
       }),
     } as unknown as SupabaseClient<Database>;
 
-    await autoCompleteSteps(supabase, TEST_ORG_ID);
+    // P0-FIX-03: connect_domain requires agency plan to be visible
+    await autoCompleteSteps(supabase, TEST_ORG_ID, 'agency');
 
     expect(supabase.from).toHaveBeenCalledWith('org_domains');
   });

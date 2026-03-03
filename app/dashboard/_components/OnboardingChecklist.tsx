@@ -1,10 +1,13 @@
 'use client';
 
 // ---------------------------------------------------------------------------
-// OnboardingChecklist.tsx — Setup progress widget (Sprint 117)
+// OnboardingChecklist.tsx — Setup progress widget (Sprint 117, P0-FIX-03)
 //
 // Fetches from GET /api/onboarding/state on mount. Shows on the main
 // dashboard page until all steps complete. Dismiss via localStorage.
+//
+// P0-FIX-03: Now renders only plan-visible steps from the state response
+// instead of the static ONBOARDING_STEPS array.
 // ---------------------------------------------------------------------------
 
 import { useState, useEffect, useCallback } from 'react';
@@ -91,11 +94,13 @@ export default function OnboardingChecklist({ initialState }: OnboardingChecklis
         />
       </div>
 
-      {/* Steps */}
+      {/* Steps — render only plan-visible steps from state */}
       <ul className="space-y-2">
-        {ONBOARDING_STEPS.map((step) => {
-          const stepState = state.steps.find((s) => s.step_id === step.id);
-          const isComplete = stepState?.completed ?? false;
+        {state.steps.map((stepState) => {
+          const step = ONBOARDING_STEPS.find((s) => s.id === stepState.step_id);
+          if (!step) return null;
+
+          const isComplete = stepState.completed;
 
           return (
             <li

@@ -2707,6 +2707,7 @@ export const MOCK_ONBOARDING_STATE_IN_PROGRESS: OnboardingState = {
   is_complete: false,
   show_interstitial: false,
   has_real_data: true,
+  visible_step_ids: ['business_profile', 'first_scan', 'first_draft', 'invite_teammate', 'connect_domain'],
 };
 
 export const MOCK_ONBOARDING_STATE_NEW_USER: OnboardingState = {
@@ -2723,6 +2724,7 @@ export const MOCK_ONBOARDING_STATE_NEW_USER: OnboardingState = {
   is_complete: false,
   show_interstitial: true,
   has_real_data: false,
+  visible_step_ids: ['business_profile', 'first_scan', 'first_draft', 'invite_teammate', 'connect_domain'],
 };
 
 export const MOCK_WEEKLY_DIGEST_PAYLOAD: WeeklyDigestPayload = {
