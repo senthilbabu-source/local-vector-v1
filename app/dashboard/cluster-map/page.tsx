@@ -6,6 +6,8 @@ import { Map } from 'lucide-react';
 import ClusterMapWrapper from './_components/ClusterMapWrapper';
 import { FirstVisitTooltip } from '@/components/ui/FirstVisitTooltip';
 
+export const metadata = { title: 'Your Position | LocalVector.ai' };
+
 // ---------------------------------------------------------------------------
 // Page
 // ---------------------------------------------------------------------------

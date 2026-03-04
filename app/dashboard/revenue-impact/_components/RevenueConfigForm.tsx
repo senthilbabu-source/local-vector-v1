@@ -82,7 +82,7 @@ export default function RevenueConfigForm({
         </button>
       </div>
       {isDefaultConfig && !message && (
-        <p className="text-xs text-slate-500" data-testid="revenue-defaults-help">
+        <p className="text-xs text-slate-400" data-testid="revenue-defaults-help">
           Default values are based on typical restaurant revenue patterns. Adjust to match your actual numbers.
         </p>
       )}

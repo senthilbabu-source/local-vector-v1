@@ -68,7 +68,7 @@ function LockOverlay({ text = 'Sign up to unlock' }: { text?: string }) {
       style={{ backgroundColor: 'rgba(10,22,40,0.85)', backdropFilter: 'blur(3px)', borderRadius: 16 }}
     >
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor"
-        className="h-5 w-5 text-slate-500 mb-2" aria-hidden>
+        className="h-5 w-5 text-slate-400 mb-2" aria-hidden>
         <path fillRule="evenodd" d="M8 1a3.5 3.5 0 0 0-3.5 3.5V7A1.5 1.5 0 0 0 3 8.5v5A1.5 1.5 0 0 0 4.5 15h7a1.5 1.5 0 0 0 1.5-1.5v-5A1.5 1.5 0 0 0 11 7V4.5A3.5 3.5 0 0 0 8 1Zm2 6V4.5a2 2 0 1 0-4 0V7h4Z" clipRule="evenodd" />
       </svg>
       <p
@@ -115,7 +115,7 @@ function mentionsColor(m: 'none' | 'low' | 'medium' | 'high'): string {
 function mentionsBorderColor(m: 'none' | 'low' | 'medium' | 'high'): string {
   return m === 'high'   ? '#00F5A0'
        : m === 'medium' ? '#FFB800'
-       :                  '#64748B';
+       :                  '#94A3B8';
 }
 
 function mentionsDescription(m: 'none' | 'low' | 'medium' | 'high'): string {
@@ -130,7 +130,7 @@ function sentimentColor(s: 'positive' | 'neutral' | 'negative'): string {
 }
 
 function sentimentBorderColor(s: 'positive' | 'neutral' | 'negative'): string {
-  return s === 'positive' ? '#00F5A0' : s === 'negative' ? '#EF4444' : '#64748B';
+  return s === 'positive' ? '#00F5A0' : s === 'negative' ? '#EF4444' : '#94A3B8';
 }
 
 function sentimentIcon(s: 'positive' | 'neutral' | 'negative'): string {
@@ -155,7 +155,7 @@ function categoryBorderColor(c: IssueCategory): string {
   return c === 'hours'   ? '#FFB800'
        : c === 'address' ? '#6366f1'
        : c === 'menu'    ? '#00F5A0'
-       :                   '#64748B';
+       :                   '#94A3B8';
 }
 
 function getMentions(r: ScanDisplayData): 'none' | 'low' | 'medium' | 'high' {
@@ -172,7 +172,7 @@ function getAccuracyIssues(r: ScanDisplayData): string[] {
 
 /** Accent color for the alert banner per result status. */
 function statusAccent(s: 'fail' | 'pass' | 'not_found'): string {
-  return s === 'fail' ? '#EF4444' : s === 'pass' ? '#00F5A0' : '#64748B';
+  return s === 'fail' ? '#EF4444' : s === 'pass' ? '#00F5A0' : '#94A3B8';
 }
 
 // ---------------------------------------------------------------------------
@@ -211,7 +211,7 @@ export default function ScanDashboard({ result }: Props) {
           <a href="/" className="flex items-center gap-2 text-base font-bold" style={{ letterSpacing: '-0.02em' }}>
             <img src="/logo.svg" alt="" className="h-7 w-auto" aria-hidden />
             <span style={{ color: '#00F5A0' }}>LocalVector</span>
-            <span className="text-slate-600">.ai</span>
+            <span className="text-slate-500">.ai</span>
           </a>
           <a
             href="/"
@@ -327,7 +327,7 @@ export default function ScanDashboard({ result }: Props) {
             {result.status === 'not_found' && (
               <div
                 className="lv-card relative overflow-hidden"
-                style={{ borderLeft: '3px solid #64748B' }}
+                style={{ borderLeft: '3px solid #94A3B8' }}
               >
                 <div className="flex items-center gap-3 mb-3">
                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"
@@ -445,7 +445,7 @@ export default function ScanDashboard({ result }: Props) {
                 <div className="text-center">
                   <div className="flex items-center justify-center gap-2 mb-1">
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor"
-                      className="h-3.5 w-3.5 text-slate-500" aria-hidden>
+                      className="h-3.5 w-3.5 text-slate-400" aria-hidden>
                       <path fillRule="evenodd" d="M8 1a3.5 3.5 0 0 0-3.5 3.5V7A1.5 1.5 0 0 0 3 8.5v5A1.5 1.5 0 0 0 4.5 15h7a1.5 1.5 0 0 0 1.5-1.5v-5A1.5 1.5 0 0 0 11 7V4.5A3.5 3.5 0 0 0 8 1Zm2 6V4.5a2 2 0 1 0-4 0V7h4Z" clipRule="evenodd" />
                     </svg>
                     <p className="text-sm font-semibold" style={{ color: '#94A3B8' }}>
@@ -631,7 +631,7 @@ function RealMentionsCard({ mentions }: { mentions: 'none' | 'low' | 'medium' | 
       <div className="mb-4">
         <p
           className="text-xs font-bold uppercase mb-0.5"
-          style={{ color: '#64748B', letterSpacing: '0.14em', fontFamily: 'var(--font-jetbrains-mono), monospace' }}
+          style={{ color: '#94A3B8', letterSpacing: '0.14em', fontFamily: 'var(--font-jetbrains-mono), monospace' }}
         >
           AI Mentions
         </p>
@@ -673,7 +673,7 @@ function RealSentimentCard({ sentiment }: { sentiment: 'positive' | 'neutral' | 
       <div className="mb-4">
         <p
           className="text-xs font-bold uppercase mb-0.5"
-          style={{ color: '#64748B', letterSpacing: '0.14em', fontFamily: 'var(--font-jetbrains-mono), monospace' }}
+          style={{ color: '#94A3B8', letterSpacing: '0.14em', fontFamily: 'var(--font-jetbrains-mono), monospace' }}
         >
           AI Sentiment
         </p>
@@ -761,7 +761,7 @@ function CompetitorBar({
       <div className="w-32 shrink-0">
         <p
           className="text-xs font-semibold leading-tight"
-          style={{ color: isMine ? '#F1F5F9' : '#64748B' }}
+          style={{ color: isMine ? '#F1F5F9' : '#94A3B8' }}
         >
           {label}
         </p>
@@ -818,7 +818,7 @@ function AccuracyIssueItem({
         >
           <p
             className="text-xs font-semibold uppercase mb-1"
-            style={{ color: '#64748B', letterSpacing: '0.08em' }}
+            style={{ color: '#94A3B8', letterSpacing: '0.08em' }}
           >
             Detected via
           </p>
@@ -863,7 +863,7 @@ function FallbackIssueCard({ result }: { result: ScanDisplayData }) {
             <p className="text-sm font-semibold" style={{ color: '#F1F5F9' }}>
               {result.engine} reports &ldquo;{result.businessName}&rdquo; as &ldquo;{result.claimText}&rdquo;
             </p>
-            <p className="text-xs mt-1" style={{ color: '#64748B' }}>
+            <p className="text-xs mt-1" style={{ color: '#94A3B8' }}>
               Detected via Perplexity Sonar scan · Reality: {result.expectedTruth}
             </p>
           </div>
@@ -884,7 +884,7 @@ function FallbackIssueCard({ result }: { result: ScanDisplayData }) {
             <p className="text-sm font-semibold" style={{ color: '#00F5A0' }}>
               No critical hallucinations found
             </p>
-            <p className="text-xs mt-1" style={{ color: '#64748B' }}>
+            <p className="text-xs mt-1" style={{ color: '#94A3B8' }}>
               {result.engine} currently shows accurate information. Monitoring ensures it stays that way.
             </p>
           </div>
@@ -895,7 +895,7 @@ function FallbackIssueCard({ result }: { result: ScanDisplayData }) {
 
   // not_found
   return (
-    <div className="lv-card" style={{ borderLeft: '3px solid #64748B' }}>
+    <div className="lv-card" style={{ borderLeft: '3px solid #94A3B8' }}>
       <div className="flex items-start gap-3">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"
           className="h-4 w-4 shrink-0 mt-0.5" style={{ color: '#94A3B8' }} aria-hidden>
@@ -905,7 +905,7 @@ function FallbackIssueCard({ result }: { result: ScanDisplayData }) {
           <p className="text-sm font-semibold" style={{ color: '#CBD5E1' }}>
             AI models have no data about your business
           </p>
-          <p className="text-xs mt-1" style={{ color: '#64748B' }}>
+          <p className="text-xs mt-1" style={{ color: '#94A3B8' }}>
             You have zero AI visibility — potential customers can&apos;t find you via AI search.
           </p>
         </div>
@@ -929,7 +929,7 @@ function LockedFixItem({
     <div className="lv-card relative overflow-hidden select-none">
       <LockPill />
       <p className="text-sm font-semibold" style={{ color: '#F1F5F9' }}>{title}</p>
-      <p className="text-xs mt-1" style={{ color: '#64748B' }}>{description}</p>
+      <p className="text-xs mt-1" style={{ color: '#94A3B8' }}>{description}</p>
     </div>
   );
 }

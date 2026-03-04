@@ -9,6 +9,8 @@ import type { MenuWorkspaceData } from '@/lib/types/menu';
 import MenuWorkspace from './_components/MenuWorkspace';
 import { getIndustryConfig } from '@/lib/industries/industry-config';
 
+export const metadata = { title: 'Menu | LocalVector.ai' };
+
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
@@ -103,7 +105,7 @@ export default async function MagicMenusPage() {
         // No primary location yet — guide the user
         <div className="rounded-2xl bg-surface-dark border border-white/5 px-6 py-10 text-center">
           <p className="text-sm font-medium text-slate-300">No location found.</p>
-          <p className="mt-1 text-xs text-slate-500">
+          <p className="mt-1 text-xs text-slate-400">
             Add a location first before creating your {industryConfig.magicMenuLabel}.
           </p>
           <a

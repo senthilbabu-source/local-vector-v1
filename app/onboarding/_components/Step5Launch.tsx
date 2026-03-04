@@ -122,7 +122,7 @@ export default function Step5Launch() {
             Google Gemini, and Microsoft Copilot...
           </p>
         </div>
-        <p className="text-xs text-slate-500">
+        <p className="text-xs text-slate-400">
           This takes about 30–60 seconds.
         </p>
 
@@ -165,7 +165,7 @@ export default function Step5Launch() {
         >
           Go to My Dashboard &rarr;
         </button>
-        <p data-testid="step5-countdown" className="text-xs text-slate-500">
+        <p data-testid="step5-countdown" className="text-xs text-slate-400">
           Auto-redirecting in {countdown} second{countdown !== 1 ? 's' : ''}...
         </p>
       </div>
@@ -195,7 +195,7 @@ export default function Step5Launch() {
       >
         Go to My Dashboard &rarr;
       </button>
-      <p data-testid="step5-countdown" className="text-xs text-slate-500">
+      <p data-testid="step5-countdown" className="text-xs text-slate-400">
         Auto-redirecting in {countdown} second{countdown !== 1 ? 's' : ''}...
       </p>
     </div>

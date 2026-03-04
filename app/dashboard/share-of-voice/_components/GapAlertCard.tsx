@@ -79,7 +79,7 @@ export default function GapAlertCard({
 
           {/* Metadata row */}
           <div className="mt-1 flex items-center gap-3 text-[10px]">
-            <span className="text-slate-500">{CATEGORY_LABELS[queryCategory]}</span>
+            <span className="text-slate-400">{CATEGORY_LABELS[queryCategory]}</span>
             <span className={`font-semibold uppercase ${IMPACT_COLORS[estimatedImpact]}`}>
               {estimatedImpact} impact
             </span>

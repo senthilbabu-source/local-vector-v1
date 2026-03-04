@@ -80,7 +80,7 @@ export function ListingVerificationRow({
             Data Verification
           </p>
           {!result && (
-            <span className="text-[10px] text-slate-600">Not yet verified</span>
+            <span className="text-[10px] text-slate-500">Not yet verified</span>
           )}
           {notFound && (
             <span className="text-[10px] text-amber-400">Not found on this platform</span>
@@ -124,7 +124,7 @@ export function ListingVerificationRow({
             className={[
               'inline-flex items-center gap-1 rounded-md border px-2.5 py-1 text-[11px] font-medium transition-colors',
               loading
-                ? 'border-slate-700 bg-slate-800 text-slate-500 cursor-wait'
+                ? 'border-slate-700 bg-slate-800 text-slate-400 cursor-wait'
                 : 'border-electric-indigo/30 bg-electric-indigo/5 text-electric-indigo hover:bg-electric-indigo/10',
             ].join(' ')}
             data-testid={`${platform}-verify-btn`}
@@ -148,31 +148,31 @@ export function ListingVerificationRow({
       {/* ── Verified data — what the platform shows ────────────────────── */}
       {result?.found && (
         <div className="rounded-md border border-white/5 bg-midnight-slate px-3 py-2 space-y-1.5">
-          <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">
+          <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">
             What {platformLabel} is showing
           </p>
           <div className="space-y-1 text-xs">
             {result.platformName && (
               <div className="flex gap-2">
-                <span className="w-20 shrink-0 text-slate-500">Name</span>
+                <span className="w-20 shrink-0 text-slate-400">Name</span>
                 <span className="text-slate-300">{result.platformName}</span>
               </div>
             )}
             {result.platformAddress && (
               <div className="flex gap-2">
-                <span className="w-20 shrink-0 text-slate-500">Address</span>
+                <span className="w-20 shrink-0 text-slate-400">Address</span>
                 <span className="text-slate-300">{result.platformAddress}</span>
               </div>
             )}
             {result.platformPhone && (
               <div className="flex gap-2">
-                <span className="w-20 shrink-0 text-slate-500">Phone</span>
+                <span className="w-20 shrink-0 text-slate-400">Phone</span>
                 <span className="text-slate-300">{result.platformPhone}</span>
               </div>
             )}
             {result.platformRating !== undefined && (
               <div className="flex gap-2">
-                <span className="w-20 shrink-0 text-slate-500">Rating</span>
+                <span className="w-20 shrink-0 text-slate-400">Rating</span>
                 <span className="text-slate-300">
                   {result.platformRating}/5 ({result.platformReviewCount ?? 0} reviews)
                 </span>
@@ -206,7 +206,7 @@ export function ListingVerificationRow({
                 {platformLabel} shows:{' '}
                 <span className="font-medium text-red-300">{d.platformValue}</span>
               </p>
-              <p className="text-slate-500">
+              <p className="text-slate-400">
                 Your data:{' '}
                 <span className="font-medium text-slate-400">{d.localValue}</span>
               </p>
@@ -244,7 +244,7 @@ export function ListingVerificationRow({
 
       {/* ── Last verified ──────────────────────────────────────────────── */}
       {result?.verifiedAt && (
-        <p className="text-[10px] text-slate-600">
+        <p className="text-[10px] text-slate-500">
           Last checked:{' '}
           {new Date(result.verifiedAt).toLocaleDateString('en-US', {
             month: 'short',

@@ -116,11 +116,11 @@ function AlertCardInteractive({
           >
             {style.label}
           </span>
-          <span className="text-xs text-slate-500">
+          <span className="text-xs text-slate-400">
             {engine} · {category}
           </span>
           {alert.occurrence_count > 1 && (
-            <span className="ml-auto text-xs text-slate-600 tabular-nums">
+            <span className="ml-auto text-xs text-slate-500 tabular-nums">
               Seen {alert.occurrence_count}×
             </span>
           )}
@@ -145,7 +145,7 @@ function AlertCardInteractive({
 
         {/* ── Footer: timestamp + CTAs ─────────────────────────── */}
         <div className="mt-3 flex items-center justify-between gap-3 flex-wrap">
-          <span className="text-xs text-slate-600">
+          <span className="text-xs text-slate-500">
             Detected {timeAgo(alert.first_detected_at)}
             {alert.last_seen_at !== alert.first_detected_at &&
               ` · last seen ${timeAgo(alert.last_seen_at)}`}

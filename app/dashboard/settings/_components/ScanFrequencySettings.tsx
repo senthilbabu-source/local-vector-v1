@@ -79,7 +79,7 @@ export default function ScanFrequencySettings({ currentFrequency }: ScanFrequenc
         ))}
       </div>
 
-      <p className="text-xs text-slate-500">
+      <p className="text-xs text-slate-400">
         {isPending
           ? 'Saving...'
           : `Estimated next scan: ${nextScan.toLocaleDateString()}`}

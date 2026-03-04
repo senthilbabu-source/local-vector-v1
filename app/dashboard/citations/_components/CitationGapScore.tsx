@@ -50,7 +50,7 @@ export default function CitationGapScore({ gapScore, platformsCovered, platforms
         {/* Center text */}
         <div className="absolute inset-0 flex flex-col items-center justify-center">
           <span className={`text-3xl font-bold tabular-nums ${color}`}>{gapScore}</span>
-          <span className="text-[10px] text-slate-500 uppercase tracking-wide">Score</span>
+          <span className="text-[10px] text-slate-400 uppercase tracking-wide">Score</span>
         </div>
       </div>
 

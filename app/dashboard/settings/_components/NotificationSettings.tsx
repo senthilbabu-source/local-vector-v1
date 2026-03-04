@@ -95,7 +95,7 @@ export default function NotificationSettings({ settings }: NotificationSettingsP
           value={webhook}
           onChange={(e) => setWebhook(e.target.value)}
           placeholder="https://hooks.slack.com/services/..."
-          className="w-full rounded-md border border-white/10 bg-surface-dark px-3 py-1.5 text-sm text-white placeholder:text-slate-500"
+          className="w-full rounded-md border border-white/10 bg-surface-dark px-3 py-1.5 text-sm text-white placeholder:text-slate-400"
           data-testid="slack-webhook-input"
         />
       </div>

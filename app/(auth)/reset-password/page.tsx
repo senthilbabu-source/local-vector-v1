@@ -99,7 +99,7 @@ export default function ResetPasswordPage() {
                 className="w-full rounded-lg border border-white/10 px-3 py-2.5 text-sm outline-none transition focus:border-signal-green/50 focus:ring-2 focus:ring-signal-green/20"
                 style={{ backgroundColor: '#050A15', color: '#F1F5F9', fontSize: 14 }}
               />
-              <p className="mt-1.5 text-xs text-slate-500">Must be at least 8 characters.</p>
+              <p className="mt-1.5 text-xs text-slate-400">Must be at least 8 characters.</p>
             </div>
 
             <div>

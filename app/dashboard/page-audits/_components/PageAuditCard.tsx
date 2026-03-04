@@ -101,7 +101,7 @@ export default function PageAuditCard({
             <p className="mt-1.5 text-sm font-medium text-white truncate" title={pageUrl}>
               {displayUrl}
             </p>
-            <p className="mt-0.5 text-[10px] text-slate-500">
+            <p className="mt-0.5 text-[10px] text-slate-400">
               Audited {new Date(lastAuditedAt).toLocaleDateString('en-US', {
                 month: 'short', day: 'numeric', year: 'numeric',
               })}
@@ -188,7 +188,7 @@ export default function PageAuditCard({
               Top Fix (+{recommendations[0].impactPoints} pts)
             </p>
             <p className="text-xs text-slate-300">{recommendations[0].issue}</p>
-            <p className="mt-1 text-xs text-slate-500">{recommendations[0].fix}</p>
+            <p className="mt-1 text-xs text-slate-400">{recommendations[0].fix}</p>
           </div>
         )}
 

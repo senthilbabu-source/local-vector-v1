@@ -99,7 +99,7 @@ export default function OrgSwitcher({ orgs, activeOrgId }: OrgSwitcherProps) {
               >
                 <Building2
                   className={`h-3.5 w-3.5 shrink-0 ${
-                    org.id === activeOrgId ? 'text-electric-indigo' : 'text-slate-500'
+                    org.id === activeOrgId ? 'text-electric-indigo' : 'text-slate-400'
                   }`}
                 />
                 <div className="flex-1 min-w-0">
@@ -108,7 +108,7 @@ export default function OrgSwitcher({ orgs, activeOrgId }: OrgSwitcherProps) {
                   }`}>
                     {org.name}
                   </p>
-                  <p className="text-[10px] text-slate-500 capitalize">{org.role}</p>
+                  <p className="text-[10px] text-slate-400 capitalize">{org.role}</p>
                 </div>
                 <span className={`rounded-full px-1.5 py-0.5 text-[10px] font-medium ${planBadge(org.plan)}`}>
                   {org.plan}

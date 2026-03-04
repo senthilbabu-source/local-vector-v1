@@ -68,44 +68,44 @@ export default function PendingInvitationsTable({ invitations: initialInvitation
         data-testid="pending-invitations-table"
         className="rounded-xl border border-white/5 bg-surface-dark overflow-x-auto"
       >
-        {/* Header */}
-        <div className="grid grid-cols-[1fr_auto_auto_auto_auto] gap-3 px-5 py-3 border-b border-white/5 text-xs font-medium uppercase tracking-wider text-slate-500">
-          <span>Email</span>
-          <span>Role</span>
-          <span className="hidden sm:block">Invited By</span>
-          <span className="hidden sm:block">Expires</span>
-          <span className="w-16" />
-        </div>
-
-        {/* Rows */}
-        <div className="divide-y divide-white/5">
-          {invitations.map((inv) => (
-            <div
-              key={inv.id}
-              data-testid={`pending-invite-row-${inv.id}`}
-              className="grid grid-cols-[1fr_auto_auto_auto_auto] gap-3 items-center px-5 py-3"
-            >
-              <span className="text-sm text-slate-300 truncate">{inv.email}</span>
-              <span className="text-xs text-slate-400">{capitalizeRole(inv.role)}</span>
-              <span className="hidden sm:block text-xs text-slate-500 truncate max-w-[120px]">
-                {inv.invited_by}
-              </span>
-              <span className="hidden sm:block text-xs text-slate-500">
-                {formatExpiry(inv.expires_at)}
-              </span>
-              <div className="w-16 text-right">
-                <button
-                  data-testid={`revoke-invite-${inv.id}`}
-                  onClick={() => handleRevoke(inv.id)}
-                  disabled={revoking === inv.id}
-                  className="text-xs text-red-400 hover:text-red-300 transition-colors disabled:opacity-50"
-                >
-                  {revoking === inv.id ? 'Revoking...' : 'Revoke'}
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
+        <table className="w-full">
+          <thead>
+            <tr className="border-b border-white/5 text-xs font-medium uppercase tracking-wider text-slate-400">
+              <th scope="col" className="px-5 py-3 text-left">Email</th>
+              <th scope="col" className="px-3 py-3 text-left">Role</th>
+              <th scope="col" className="hidden sm:table-cell px-3 py-3 text-left">Invited By</th>
+              <th scope="col" className="hidden sm:table-cell px-3 py-3 text-left">Expires</th>
+              <th scope="col" className="w-16 px-3 py-3"><span className="sr-only">Actions</span></th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-white/5">
+            {invitations.map((inv) => (
+              <tr
+                key={inv.id}
+                data-testid={`pending-invite-row-${inv.id}`}
+              >
+                <td className="px-5 py-3 text-sm text-slate-300 truncate">{inv.email}</td>
+                <td className="px-3 py-3 text-xs text-slate-400">{capitalizeRole(inv.role)}</td>
+                <td className="hidden sm:table-cell px-3 py-3 text-xs text-slate-400 truncate max-w-[120px]">
+                  {inv.invited_by}
+                </td>
+                <td className="hidden sm:table-cell px-3 py-3 text-xs text-slate-400">
+                  {formatExpiry(inv.expires_at)}
+                </td>
+                <td className="w-16 px-3 py-3 text-right">
+                  <button
+                    data-testid={`revoke-invite-${inv.id}`}
+                    onClick={() => handleRevoke(inv.id)}
+                    disabled={revoking === inv.id}
+                    className="text-xs text-red-400 hover:text-red-300 transition-colors disabled:opacity-50"
+                  >
+                    {revoking === inv.id ? 'Revoking...' : 'Revoke'}
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
     </div>
   );

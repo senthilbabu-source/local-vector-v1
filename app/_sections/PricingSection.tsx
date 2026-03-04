@@ -76,7 +76,7 @@ export default function PricingSection() {
           </div>
 
           <Reveal delay={500}>
-            <p className="text-center text-sm text-slate-500 mt-8">
+            <p className="text-center text-sm text-slate-400 mt-8">
               14-day free trial on all plans. Cancel anytime. No contracts. No setup fees.
             </p>
           </Reveal>
@@ -169,7 +169,7 @@ export default function PricingSection() {
             <div className="max-w-md mx-auto">
               <ViralScanner />
               <p
-                className="mt-3 text-xs text-slate-600"
+                className="mt-3 text-xs text-slate-500"
                 style={{ fontFamily: 'var(--font-jetbrains-mono), monospace' }}
               >
                 Free &middot; Instant &middot; Real results from real AI models
@@ -189,11 +189,11 @@ export default function PricingSection() {
             <span className="text-sm font-bold text-white">
               LocalVector<span style={{ color: '#00F5A0' }}>.ai</span>
             </span>
-            <p className="text-xs text-slate-600 mt-1">
+            <p className="text-xs text-slate-500 mt-1">
               Defending the truth for local business. Built for the Generative Age.
             </p>
           </div>
-          <div className="flex gap-5 text-xs text-slate-600">
+          <div className="flex gap-5 text-xs text-slate-500">
             <a href="/privacy" className="hover:text-slate-300 transition">Privacy</a>
             <a href="/terms" className="hover:text-slate-300 transition">Terms</a>
             <a href="/login" className="hover:text-slate-300 transition">Log In</a>

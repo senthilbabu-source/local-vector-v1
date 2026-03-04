@@ -101,9 +101,9 @@ export default function OccasionTimeline({
           </span>
         </div>
         {expanded ? (
-          <ChevronUp className="h-4 w-4 text-slate-500" />
+          <ChevronUp className="h-4 w-4 text-slate-400" />
         ) : (
-          <ChevronDown className="h-4 w-4 text-slate-500" />
+          <ChevronDown className="h-4 w-4 text-slate-400" />
         )}
       </button>
 

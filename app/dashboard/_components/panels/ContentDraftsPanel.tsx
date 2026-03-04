@@ -48,7 +48,7 @@ export default function ContentDraftsPanel({
         >
           {pendingCount}
         </span>
-        <span className="text-sm text-slate-500">pending review</span>
+        <span className="text-sm text-slate-400">pending review</span>
       </div>
 
       {hasApproved && (
@@ -70,7 +70,7 @@ export default function ContentDraftsPanel({
             data-testid="drafts-usage-bar"
           />
         </div>
-        <span className="text-[10px] tabular-nums text-slate-500" data-testid="drafts-usage-text">
+        <span className="text-[10px] tabular-nums text-slate-400" data-testid="drafts-usage-text">
           {monthlyUsed}/{monthlyLimit}
         </span>
       </div>

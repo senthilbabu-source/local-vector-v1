@@ -9,6 +9,8 @@ import RevenueEstimatePanel from './_components/RevenueEstimatePanel';
 import { getIndustryRevenueDefaults } from '@/lib/revenue-impact/industry-revenue-defaults';
 import { getIndustryConfig } from '@/lib/industries/industry-config';
 
+export const metadata = { title: 'Lost Sales | LocalVector.ai' };
+
 // ── Category display helpers (literal Tailwind — AI_RULES §12) ──────────
 
 function categoryEmoji(category: RevenueLineItem['category']): string {
@@ -172,7 +174,7 @@ function LineItemCard({ item }: { item: RevenueLineItem }) {
         </span>
       </div>
       <p className="text-xs text-slate-400 ml-6">{item.description}</p>
-      <p className="text-xs text-slate-500 ml-6 mt-1">{item.detail}</p>
+      <p className="text-xs text-slate-400 ml-6 mt-1">{item.detail}</p>
     </div>
   );
 }

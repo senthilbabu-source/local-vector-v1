@@ -16,6 +16,8 @@ import type { HallucinationRow } from '@/lib/data/dashboard';
 import TriageSwimlane from './_components/TriageSwimlane';
 import HallucinationsPageHeader from './_components/HallucinationsPageHeader';
 
+export const metadata = { title: 'AI Mistakes | LocalVector.ai' };
+
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------

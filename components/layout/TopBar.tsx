@@ -57,7 +57,7 @@ export default function TopBar({ onMenuToggle, orgName, plan, credits, presenceS
           className="lg:hidden flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 hover:bg-white/5 hover:text-white transition"
           aria-label="Open navigation menu"
         >
-          <Menu className="h-5 w-5" />
+          <Menu className="h-5 w-5" aria-hidden="true" />
         </button>
 
         {/* Logo — hidden on mobile (shown in sidebar), visible on desktop */}
@@ -92,12 +92,12 @@ export default function TopBar({ onMenuToggle, orgName, plan, credits, presenceS
         {credits && (
           <div className="flex items-center gap-2 mr-2" data-testid="credits-meter">
             <div className="hidden sm:flex flex-col items-end">
-              <span className="text-[10px] text-slate-500 uppercase tracking-wider leading-none">
+              <span className="text-[10px] text-slate-400 uppercase tracking-wider leading-none">
                 Credits
               </span>
-              <span className="text-xs font-medium tabular-nums text-slate-300">
+              <span className="text-xs font-medium tabular-nums text-slate-300" aria-live="polite" aria-atomic="true">
                 {credits.credits_limit - credits.credits_used}
-                <span className="text-slate-500"> / {credits.credits_limit}</span>
+                <span className="text-slate-400"> / {credits.credits_limit}</span>
               </span>
             </div>
             <CreditsMeterBar used={credits.credits_used} limit={credits.credits_limit} />
@@ -108,14 +108,14 @@ export default function TopBar({ onMenuToggle, orgName, plan, credits, presenceS
           aria-label="Help"
           title="Help"
         >
-          <HelpCircle className="h-4 w-4" />
+          <HelpCircle className="h-4 w-4" aria-hidden="true" />
         </button>
         <button
           className="flex h-8 w-8 items-center justify-center rounded-lg bg-signal-green/15 text-signal-green hover:bg-signal-green/25 transition"
           aria-label="User profile"
           title="User profile"
         >
-          <User className="h-4 w-4" />
+          <User className="h-4 w-4" aria-hidden="true" />
         </button>
       </div>
     </header>

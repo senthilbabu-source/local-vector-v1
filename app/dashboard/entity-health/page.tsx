@@ -13,6 +13,8 @@ import EntityStatusDropdown from './_components/EntityStatusDropdown';
 import { EntityHealthVerdictPanel } from './_components/EntityHealthVerdictPanel';
 import { PLATFORM_DESCRIPTIONS, getPlatformConsequence } from '@/lib/entity-health/platform-descriptions';
 
+export const metadata = { title: 'AI Recognition | LocalVector.ai' };
+
 // ── Status display helpers (literal Tailwind — AI_RULES §12) ────────────
 
 function statusIcon(status: EntityStatus) {
@@ -198,7 +200,7 @@ function PlatformRow({ info, status, metadata }: PlatformRowProps) {
           </p>
           <ol className="list-decimal list-inside space-y-1">
             {info.claimGuide.map((step, i) => (
-              <li key={i} className="text-xs text-slate-500">{step}</li>
+              <li key={i} className="text-xs text-slate-400">{step}</li>
             ))}
           </ol>
           <a

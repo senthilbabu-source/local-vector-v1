@@ -89,7 +89,7 @@ export default function AIHealthScoreCard({ healthScore }: AIHealthScoreCardProp
             <svg className="absolute inset-0 h-full w-full" viewBox="0 0 100 100">
               <circle cx="50" cy="50" r={r} fill="none" strokeWidth="8" className="stroke-white/5" />
             </svg>
-            <span className="relative text-3xl font-bold tabular-nums text-slate-500">
+            <span className="relative text-3xl font-bold tabular-nums text-slate-400">
               &mdash;
             </span>
           </div>
@@ -183,7 +183,7 @@ export default function AIHealthScoreCard({ healthScore }: AIHealthScoreCardProp
       <div className="space-y-2.5">
         {componentEntries.map((comp) => (
           <div key={comp.key} className="flex items-center gap-3">
-            <span className="text-xs text-slate-500 w-24 shrink-0 flex items-center gap-1">
+            <span className="text-xs text-slate-400 w-24 shrink-0 flex items-center gap-1">
               {comp.label}
               <InfoTooltip content={componentTooltipMap[comp.key]} />
             </span>
@@ -203,7 +203,7 @@ export default function AIHealthScoreCard({ healthScore }: AIHealthScoreCardProp
       {topRecommendation && (
         <>
           <div className="border-t border-white/5 mt-4 pt-4">
-            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">
+            <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">
               Top Recommendation
             </p>
             <p className="text-sm text-slate-300">

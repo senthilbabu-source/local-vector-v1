@@ -410,7 +410,7 @@ export default async function PublicMenuPage({
               <span className="flex h-5 w-5 items-center justify-center rounded bg-electric-indigo text-white text-xs font-bold select-none">
                 LV
               </span>
-              <span className="text-xs text-slate-500">
+              <span className="text-xs text-slate-400">
                 LocalVector.ai · AI-verified menu
               </span>
             </div>
@@ -473,7 +473,7 @@ export default async function PublicMenuPage({
                       <td
                         className={[
                           'py-1.5 tabular-nums',
-                          display === 'Closed' ? 'text-slate-600'
+                          display === 'Closed' ? 'text-slate-500'
                             : display === '—'  ? 'text-slate-700 italic'
                             : 'text-slate-300',
                         ].join(' ')}
@@ -507,7 +507,7 @@ export default async function PublicMenuPage({
                         'inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium',
                         present
                           ? 'bg-truth-emerald/15 text-truth-emerald'
-                          : 'bg-white/5 text-slate-500',
+                          : 'bg-white/5 text-slate-400',
                       ].join(' ')}
                     >
                       {present ? '✓' : '✗'} {present ? label : negative}
@@ -524,7 +524,7 @@ export default async function PublicMenuPage({
               {menuDisplayName}
             </h2>
             {totalItems > 0 && (
-              <p className="mt-0.5 text-sm text-slate-500">
+              <p className="mt-0.5 text-sm text-slate-400">
                 {categories.length}{' '}
                 {categories.length === 1 ? 'category' : 'categories'},{' '}
                 {totalItems} {totalItems === 1 ? 'item' : 'items'}
@@ -540,7 +540,7 @@ export default async function PublicMenuPage({
           {/* ── Empty state ──────────────────────────────────────────── */}
           {categories.length === 0 && (
             <div className="rounded-2xl border border-dashed border-white/10 bg-surface-dark py-10 text-center">
-              <p className="text-sm text-slate-500">
+              <p className="text-sm text-slate-400">
                 This menu has no categories yet.
               </p>
             </div>
@@ -561,7 +561,7 @@ export default async function PublicMenuPage({
               </h3>
 
               {category.menu_items.length === 0 && (
-                <p className="text-sm italic text-slate-600">
+                <p className="text-sm italic text-slate-500">
                   No items in this category yet.
                 </p>
               )}
@@ -577,7 +577,7 @@ export default async function PublicMenuPage({
                         <h4 className="text-sm font-medium text-white leading-snug">
                           {item.name}
                           {!item.is_available && (
-                            <span className="ml-2 inline-flex items-center rounded-full bg-white/5 px-2 py-0.5 text-xs font-medium text-slate-500">
+                            <span className="ml-2 inline-flex items-center rounded-full bg-white/5 px-2 py-0.5 text-xs font-medium text-slate-400">
                               Unavailable
                             </span>
                           )}
@@ -626,7 +626,7 @@ export default async function PublicMenuPage({
 
           {/* ── AI-discovery footer ──────────────────────────────────── */}
           <footer className="rounded-2xl border border-white/5 bg-surface-dark px-6 py-5">
-            <p className="text-xs text-slate-500 mb-2 font-medium">
+            <p className="text-xs text-slate-400 mb-2 font-medium">
               AI-readable data endpoints
             </p>
             <div className="flex flex-wrap gap-4">
@@ -643,12 +643,12 @@ export default async function PublicMenuPage({
                 ai-config.json
               </a>
             </div>
-            <p className="mt-3 text-xs text-slate-600">
+            <p className="mt-3 text-xs text-slate-500">
               Menu data maintained and verified by the business owner.{' '}
               Powered by{' '}
               <a
                 href="https://localvector.ai"
-                className="text-slate-500 hover:text-slate-300 transition"
+                className="text-slate-400 hover:text-slate-300 transition"
               >
                 LocalVector.ai
               </a>

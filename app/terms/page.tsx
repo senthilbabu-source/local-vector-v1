@@ -25,11 +25,11 @@ export default function TermsPage() {
 
         {/* Header */}
         <div>
-          <p className="text-xs font-medium text-slate-500 mb-2">
+          <p className="text-xs font-medium text-slate-400 mb-2">
             ⚠️ Please review with your legal counsel before launch.
           </p>
           <h1 className="text-3xl font-bold text-white">Terms of Service</h1>
-          <p className="mt-2 text-sm text-slate-500">Effective date: {effectiveDate}</p>
+          <p className="mt-2 text-sm text-slate-400">Effective date: {effectiveDate}</p>
         </div>
 
         <ProseSection title="1. Acceptance of Terms">
@@ -146,11 +146,11 @@ function LegalFooter() {
   return (
     <footer className="border-t border-white/5 py-8">
       <div className="mx-auto max-w-3xl px-6 flex flex-wrap items-center justify-center gap-x-4 gap-y-2">
-        <a href="/privacy" className="text-sm text-slate-500 hover:text-slate-300 transition">Privacy Policy</a>
+        <a href="/privacy" className="text-sm text-slate-400 hover:text-slate-300 transition">Privacy Policy</a>
         <span className="text-slate-700">·</span>
-        <a href="/terms" className="text-sm text-slate-500 hover:text-slate-300 transition">Terms of Service</a>
+        <a href="/terms" className="text-sm text-slate-400 hover:text-slate-300 transition">Terms of Service</a>
         <span className="text-slate-700">·</span>
-        <a href="mailto:hello@localvector.ai" className="text-sm text-slate-500 hover:text-slate-300 transition">
+        <a href="mailto:hello@localvector.ai" className="text-sm text-slate-400 hover:text-slate-300 transition">
           hello@localvector.ai
         </a>
       </div>

@@ -45,7 +45,7 @@ export default function ResponseCard({ entry }: Props) {
             <p className="text-sm font-medium text-white">
               &ldquo;{entry.queryText}&rdquo;
             </p>
-            <p className="mt-0.5 text-xs text-slate-500">
+            <p className="mt-0.5 text-xs text-slate-400">
               Last checked: {formattedDate}
             </p>
           </div>

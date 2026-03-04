@@ -74,11 +74,11 @@ export default function DnsInstructions({
         </div>
         <div className="flex gap-4 text-xs">
           <div>
-            <span className="text-slate-500">Name:</span>{' '}
+            <span className="text-slate-400">Name:</span>{' '}
             <span className="text-slate-300">{customDomain}</span>
           </div>
           <div>
-            <span className="text-slate-500">Value:</span>{' '}
+            <span className="text-slate-400">Value:</span>{' '}
             <code data-testid="cname-record-value" className="text-electric-indigo">{cnameValue}</code>
           </div>
         </div>
@@ -92,11 +92,11 @@ export default function DnsInstructions({
         </div>
         <div className="flex gap-4 text-xs">
           <div>
-            <span className="text-slate-500">Name:</span>{' '}
+            <span className="text-slate-400">Name:</span>{' '}
             <span className="text-slate-300">{customDomain}</span>
           </div>
           <div className="break-all">
-            <span className="text-slate-500">Value:</span>{' '}
+            <span className="text-slate-400">Value:</span>{' '}
             <code data-testid="txt-record-value" className="text-electric-indigo">{txtValue}</code>
           </div>
         </div>

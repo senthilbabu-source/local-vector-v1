@@ -17,6 +17,8 @@ import PlatformCitationBar from './_components/PlatformCitationBar';
 import TopGapCard from './_components/TopGapCard';
 import CitationsSummaryPanel from './_components/CitationsSummaryPanel';
 
+export const metadata = { title: 'Platforms | LocalVector.ai' };
+
 // ---------------------------------------------------------------------------
 // Data fetching
 // ---------------------------------------------------------------------------
@@ -102,7 +104,7 @@ export default async function CitationsPage() {
         <div className="flex flex-col items-center justify-center rounded-2xl bg-surface-dark border border-white/5 px-6 py-16 text-center">
           <svg
             xmlns="http://www.w3.org/2000/svg"
-            className="mx-auto h-10 w-10 text-slate-500"
+            className="mx-auto h-10 w-10 text-slate-400"
             fill="none"
             viewBox="0 0 24 24"
             stroke="currentColor"
@@ -114,7 +116,7 @@ export default async function CitationsPage() {
           <p className="mt-3 text-sm font-medium text-slate-300">
             {!location ? 'Add a location first' : 'Citation data is being collected'}
           </p>
-          <p className="mt-1 max-w-sm text-xs text-slate-500">
+          <p className="mt-1 max-w-sm text-xs text-slate-400">
             {!location
               ? 'Create a location to start tracking which platforms AI cites in your category.'
               : 'The citation engine runs weekly. Your first results will appear after the next scan.'}

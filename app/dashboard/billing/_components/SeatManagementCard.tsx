@@ -115,7 +115,7 @@ export default function SeatManagementCard() {
           ${summary.monthlyCostPerSeat}/seat/month
         </p>
       ) : (
-        <p data-testid="seat-cost-display" className="text-xs text-slate-500 text-center">
+        <p data-testid="seat-cost-display" className="text-xs text-slate-400 text-center">
           Contact us for custom seat pricing
         </p>
       )}

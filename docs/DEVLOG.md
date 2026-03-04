@@ -4,6 +4,28 @@
 
 ---
 
+## 2026-03-03 — Accessibility WCAG 2.1 AA (P6-FIX-27, §191)
+
+Full WCAG 2.1 AA accessibility pass. Skip links, semantic landmarks, focus-visible rings, semantic tables, chart accessibility, modal focus trap, page titles, color contrast fixes, ARIA live regions, and decorative icon aria-hidden.
+
+### Key Changes
+- **Skip links** on all layouts (dashboard, login, register)
+- **Semantic tables** — TeamMembersTable + PendingInvitationsTable converted from div grids
+- **Chart accessibility** — 5 charts wrapped with `role="img"` + descriptive `aria-label`; SOVTrendChart adds `sr-only` data table
+- **UpgradeModal** — true Tab focus trap + focus restore on close
+- **Page titles** — 41 dashboard pages + auth layout now export metadata
+- **Color contrast** — 185 files: `text-slate-500` → `text-slate-400`, `text-slate-600` → `text-slate-500`
+- **Sidebar** — `role="group"` + `aria-labelledby` on groups, `aria-current="page"` on active links
+- **TopBar** — `aria-live="polite"` on credits counter
+
+### Tests
+- 24 new unit tests (`accessibility.test.tsx`)
+- E2E axe audit spec (`accessibility-audit.spec.ts`)
+- 3 regression fixes (wizard-progress, mobile-responsive)
+- **5806 tests passing, 380 files.** AI_RULES §191.
+
+---
+
 ## 2026-03-03 — Business Ground Truth Relevance Filter (§190)
 
 Made the entire dashboard actionable by filtering all recommendations, gaps, revenue calculations, and emails through business ground truth (hours, amenities, categories). A dinner-only restaurant no longer sees "brunch" queries; a business without a patio no longer sees "outdoor seating" gaps.

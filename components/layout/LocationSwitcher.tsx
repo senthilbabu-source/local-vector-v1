@@ -66,7 +66,7 @@ export default function LocationSwitcher({ locations, selectedLocationId, plan }
           <p className="truncate text-sm font-medium text-white">
             {isPending ? 'Switching…' : displayLabel(current)}
           </p>
-          <p className="truncate text-xs text-slate-500">
+          <p className="truncate text-xs text-slate-400">
             {[current.city, current.state].filter(Boolean).join(', ') || 'No location'}
           </p>
         </div>
@@ -98,7 +98,7 @@ export default function LocationSwitcher({ locations, selectedLocationId, plan }
               >
                 <MapPin
                   className={`h-3.5 w-3.5 shrink-0 ${
-                    loc.id === selectedLocationId ? 'text-signal-green' : 'text-slate-500'
+                    loc.id === selectedLocationId ? 'text-signal-green' : 'text-slate-400'
                   }`}
                 />
                 <div className="flex-1 min-w-0">
@@ -107,7 +107,7 @@ export default function LocationSwitcher({ locations, selectedLocationId, plan }
                   }`}>
                     {displayLabel(loc)}
                   </p>
-                  <p className="truncate text-xs text-slate-500">
+                  <p className="truncate text-xs text-slate-400">
                     {[loc.city, loc.state].filter(Boolean).join(', ')}
                   </p>
                 </div>

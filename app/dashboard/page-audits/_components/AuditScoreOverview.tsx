@@ -46,7 +46,7 @@ export default function AuditScoreOverview({ overallScore, totalPages, lastAudit
         </svg>
         <div className="absolute inset-0 flex flex-col items-center justify-center">
           <span className={`text-3xl font-bold tabular-nums ${color}`}>{overallScore}</span>
-          <span className="text-[10px] text-slate-500 uppercase tracking-wide">Score</span>
+          <span className="text-[10px] text-slate-400 uppercase tracking-wide">Score</span>
         </div>
       </div>
 
@@ -55,7 +55,7 @@ export default function AuditScoreOverview({ overallScore, totalPages, lastAudit
           <span className="font-semibold text-white">{totalPages}</span> page{totalPages !== 1 ? 's' : ''} audited
         </p>
         {lastAuditedAt && (
-          <p className="text-xs text-slate-500">
+          <p className="text-xs text-slate-400">
             Last audit:{' '}
             {new Date(lastAuditedAt).toLocaleDateString('en-US', {
               month: 'short',

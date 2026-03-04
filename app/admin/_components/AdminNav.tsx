@@ -40,7 +40,7 @@ export default function AdminNav({ email }: { email: string }) {
             ))}
           </div>
         </div>
-        <span className="text-xs text-slate-500">{email}</span>
+        <span className="text-xs text-slate-400">{email}</span>
       </div>
     </nav>
   );

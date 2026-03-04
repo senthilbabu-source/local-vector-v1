@@ -14,6 +14,8 @@ import type { PlanTier } from '@/lib/plan-enforcer';
 import { getActiveLocationId } from '@/lib/location/active-location';
 import IntentDiscoveryClient from './IntentDiscoveryClient';
 
+export const metadata = { title: 'Missing Questions | LocalVector.ai' };
+
 export default async function IntentDiscoveryPage() {
   const ctx = await getSafeAuthContext();
   if (!ctx) redirect('/login');

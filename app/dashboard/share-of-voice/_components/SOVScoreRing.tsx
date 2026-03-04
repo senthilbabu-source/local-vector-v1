@@ -60,7 +60,7 @@ export default function SOVScoreRing({
             <svg className="absolute inset-0 h-full w-full" viewBox="0 0 100 100">
               <circle cx="50" cy="50" r={r} fill="none" strokeWidth="8" className="stroke-white/5" />
             </svg>
-            <span className="relative text-3xl font-bold tabular-nums text-slate-500">
+            <span className="relative text-3xl font-bold tabular-nums text-slate-400">
               &mdash;
             </span>
           </div>
@@ -116,7 +116,7 @@ export default function SOVScoreRing({
         <div className="min-w-0 space-y-2">
           {/* Citation rate */}
           <div>
-            <span className="text-xs text-slate-500 block">Citation Rate</span>
+            <span className="text-xs text-slate-400 block">Citation Rate</span>
             <span className="text-sm font-semibold text-white tabular-nums">
               {citationRate !== null ? `${Math.round(citationRate)}%` : '—'}
             </span>
@@ -125,7 +125,7 @@ export default function SOVScoreRing({
           {/* Week-over-week delta */}
           {weekOverWeekDelta !== null && (
             <div data-testid="sov-delta">
-              <span className="text-xs text-slate-500 block">vs Last Week</span>
+              <span className="text-xs text-slate-400 block">vs Last Week</span>
               <span
                 className={`text-sm font-semibold tabular-nums ${
                   weekOverWeekDelta >= 0 ? 'text-signal-green' : 'text-alert-crimson'

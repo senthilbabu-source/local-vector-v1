@@ -23,7 +23,7 @@ const STATUS_COLOR: Record<AuditStatus, string> = {
   pass: 'text-truth-emerald',
   partial: 'text-alert-amber',
   fail: 'text-alert-crimson',
-  skipped: 'text-slate-500',
+  skipped: 'text-slate-400',
 };
 
 const LEVEL_STYLES: Record<string, { bg: string; text: string; label: string }> = {
@@ -54,7 +54,7 @@ export function AgentSEOTab({ result, auditedAt }: AgentSEOTabProps) {
           Action readiness audit has not run yet. Results will appear after the next weekly scan.
         </p>
         {auditedAt === null && (
-          <p className="mt-1 text-xs text-slate-500">
+          <p className="mt-1 text-xs text-slate-400">
             Audits run every Monday at 8 AM UTC.
           </p>
         )}
@@ -74,7 +74,7 @@ export function AgentSEOTab({ result, auditedAt }: AgentSEOTabProps) {
           <div>
             <p className="text-sm font-semibold text-white">Action Readiness Score</p>
             <p className={`text-3xl font-bold tabular-nums ${levelStyle.text}`}>
-              {result.score}<span className="text-base text-slate-500">/100</span>
+              {result.score}<span className="text-base text-slate-400">/100</span>
             </p>
           </div>
           <span className={`rounded-full px-3 py-1 text-xs font-semibold ${levelStyle.bg} ${levelStyle.text} ring-1 ring-inset ring-white/10`}>
@@ -82,7 +82,7 @@ export function AgentSEOTab({ result, auditedAt }: AgentSEOTabProps) {
           </span>
         </div>
         {auditedAt && (
-          <p className="mt-2 text-xs text-slate-500">
+          <p className="mt-2 text-xs text-slate-400">
             Last audited: {new Date(auditedAt).toLocaleDateString()}
           </p>
         )}
@@ -105,7 +105,7 @@ export function AgentSEOTab({ result, auditedAt }: AgentSEOTabProps) {
             {result.topPriority.statusDetail}
           </p>
           {result.topPriority.fixGuide && (
-            <p className="text-xs text-slate-500 mt-2">{result.topPriority.fixGuide}</p>
+            <p className="text-xs text-slate-400 mt-2">{result.topPriority.fixGuide}</p>
           )}
         </div>
       )}
@@ -155,14 +155,14 @@ function CapabilityCard({ capability }: { capability: ActionCapability }) {
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
             <p className="text-sm font-medium text-white">{capability.label}</p>
-            <span className="text-xs text-slate-500 tabular-nums">
+            <span className="text-xs text-slate-400 tabular-nums">
               {capability.earnedPoints}/{capability.maxPoints} pts
             </span>
           </div>
           <p className="text-xs text-slate-400 mt-0.5">{capability.description}</p>
-          <p className="text-xs text-slate-500 mt-1">{capability.statusDetail}</p>
+          <p className="text-xs text-slate-400 mt-1">{capability.statusDetail}</p>
           {capability.fixGuide && (
-            <p className="text-xs text-slate-600 mt-1 italic">{capability.fixGuide}</p>
+            <p className="text-xs text-slate-500 mt-1 italic">{capability.fixGuide}</p>
           )}
         </div>
       </div>

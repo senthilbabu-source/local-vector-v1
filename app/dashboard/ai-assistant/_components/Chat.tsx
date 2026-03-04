@@ -47,7 +47,7 @@ function Metric({ label, value, color }: { label: string; value: any; color: str
     const colorClass = color === 'green' ? 'text-signal-green' : color === 'red' ? 'text-alert-crimson' : 'text-white';
     return (
         <div>
-            <p className="text-xs text-slate-500">{label}</p>
+            <p className="text-xs text-slate-400">{label}</p>
             <p className={`text-lg font-bold tabular-nums ${colorClass}`}>{value}</p>
         </div>
     );
@@ -57,7 +57,7 @@ function Metric({ label, value, color }: { label: string; value: any; color: str
 function TrendSparkline({ data }: { data: any }) {
     if (!data.data?.length) {
         return (
-            <div className="rounded-xl bg-surface-dark border border-white/10 p-4 my-2 text-sm text-slate-500">
+            <div className="rounded-xl bg-surface-dark border border-white/10 p-4 my-2 text-sm text-slate-400">
                 No SOV trend data yet — first scan populates this.
             </div>
         );
@@ -76,7 +76,7 @@ function TrendSparkline({ data }: { data: any }) {
                         </defs>
                         <XAxis
                             dataKey="date"
-                            tick={{ fontSize: 10, fill: '#64748B' }}
+                            tick={{ fontSize: 10, fill: '#94A3B8' }}
                             axisLine={false}
                             tickLine={false}
                             interval="preserveStartEnd"
@@ -134,7 +134,7 @@ function AlertList({ data }: { data: any }) {
                             <span className={`text-[10px] font-bold uppercase px-1.5 py-0.5 rounded ${severityColors[h.severity] ?? ''}`}>
                                 {h.severity}
                             </span>
-                            <span className="text-xs text-slate-500">{h.model} · {h.category}</span>
+                            <span className="text-xs text-slate-400">{h.model} · {h.category}</span>
                         </div>
                         <p className="text-sm text-alert-crimson">&ldquo;{h.claim}&rdquo;</p>
                         <p className="text-sm text-signal-green mt-1">✓ {h.truth}</p>
@@ -148,7 +148,7 @@ function AlertList({ data }: { data: any }) {
 function CompetitorList({ data }: { data: any }) {
     if (!data.competitors?.length) {
         return (
-            <div className="rounded-xl bg-surface-dark border border-white/10 p-4 my-2 text-sm text-slate-500">
+            <div className="rounded-xl bg-surface-dark border border-white/10 p-4 my-2 text-sm text-slate-400">
                 No competitor data yet — run an intercept analysis first.
             </div>
         );
@@ -161,7 +161,7 @@ function CompetitorList({ data }: { data: any }) {
                     <div key={i} className="rounded-lg bg-midnight-slate/50 border border-white/5 p-3">
                         <div className="flex justify-between items-center mb-1">
                             <span className="text-sm font-semibold text-white">{c.name}</span>
-                            <span className="text-xs text-slate-500">{c.analyses} analyses</span>
+                            <span className="text-xs text-slate-400">{c.analyses} analyses</span>
                         </div>
                         {c.recommendation && (
                             <p className="text-xs text-slate-400 mt-1">{c.recommendation}</p>
@@ -439,7 +439,7 @@ export default function Chat() {
                                         return <ToolResult key={i} name={toolPart.toolName} result={toolPart.result} />;
                                     }
                                     return (
-                                        <div key={i} className="flex items-center gap-2 text-xs text-slate-500 my-1">
+                                        <div key={i} className="flex items-center gap-2 text-xs text-slate-400 my-1">
                                             <span className="animate-pulse">●</span> Looking up {toolPart.toolName?.replace(/([A-Z])/g, ' $1').toLowerCase()}...
                                         </div>
                                     );
@@ -477,7 +477,7 @@ export default function Chat() {
                     onChange={handleInputChange}
                     placeholder="Ask about your AI visibility..."
                     disabled={isLoading}
-                    className="flex-1 rounded-xl bg-surface-dark border border-white/10 px-4 py-3 text-sm text-white placeholder:text-slate-500 focus:outline-none focus:border-electric-indigo/50 disabled:opacity-50"
+                    className="flex-1 rounded-xl bg-surface-dark border border-white/10 px-4 py-3 text-sm text-white placeholder:text-slate-400 focus:outline-none focus:border-electric-indigo/50 disabled:opacity-50"
                 />
                 <div className="flex gap-2">
                     {isLoading ? (

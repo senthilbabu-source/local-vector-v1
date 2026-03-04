@@ -50,7 +50,7 @@ const MODEL_COLORS: Record<string, string> = {
 };
 
 function getModelColor(model: string): string {
-    return MODEL_COLORS[model] ?? '#64748B';
+    return MODEL_COLORS[model] ?? '#94A3B8';
 }
 
 function formatModelName(model: string): string {
@@ -100,7 +100,7 @@ export default function HallucinationsByModel({
         return (
             <div className="rounded-xl bg-surface-dark border border-white/5 p-5">
                 <h3 className="text-sm font-semibold text-white mb-3">{title}</h3>
-                <div className="flex items-center justify-center h-48 text-slate-500 text-sm">
+                <div className="flex items-center justify-center h-48 text-slate-400 text-sm">
                     No hallucination data yet.
                 </div>
             </div>
@@ -123,34 +123,39 @@ export default function HallucinationsByModel({
                     <ChevronRight className="h-3 w-3" />
                 </Link>
             </div>
-            <ResponsiveContainer width="100%" height={Math.max(160, chartData.length * 44)}>
-                <BarChart
-                    data={chartData}
-                    layout="vertical"
-                    margin={{ top: 0, right: 10, left: 0, bottom: 0 }}
-                >
-                    <XAxis
-                        type="number"
-                        tick={{ fill: '#64748B', fontSize: 11 }}
-                        axisLine={false}
-                        tickLine={false}
-                    />
-                    <YAxis
-                        type="category"
-                        dataKey="label"
-                        tick={{ fill: '#94A3B8', fontSize: 12 }}
-                        axisLine={false}
-                        tickLine={false}
-                        width={80}
-                    />
-                    <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(255,255,255,0.03)' }} />
-                    <Bar dataKey="count" radius={[0, 4, 4, 0]} barSize={20}>
-                        {chartData.map((entry) => (
-                            <Cell key={entry.model} fill={getModelColor(entry.model)} />
-                        ))}
-                    </Bar>
-                </BarChart>
-            </ResponsiveContainer>
+            <div
+                role="img"
+                aria-label={`AI mistakes by model chart. ${chartData.map((d) => `${d.label}: ${d.count}`).join(', ')}.`}
+            >
+                <ResponsiveContainer width="100%" height={Math.max(160, chartData.length * 44)}>
+                    <BarChart
+                        data={chartData}
+                        layout="vertical"
+                        margin={{ top: 0, right: 10, left: 0, bottom: 0 }}
+                    >
+                        <XAxis
+                            type="number"
+                            tick={{ fill: '#94A3B8', fontSize: 11 }}
+                            axisLine={false}
+                            tickLine={false}
+                        />
+                        <YAxis
+                            type="category"
+                            dataKey="label"
+                            tick={{ fill: '#94A3B8', fontSize: 12 }}
+                            axisLine={false}
+                            tickLine={false}
+                            width={80}
+                        />
+                        <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(255,255,255,0.03)' }} />
+                        <Bar dataKey="count" radius={[0, 4, 4, 0]} barSize={20}>
+                            {chartData.map((entry) => (
+                                <Cell key={entry.model} fill={getModelColor(entry.model)} />
+                            ))}
+                        </Bar>
+                    </BarChart>
+                </ResponsiveContainer>
+            </div>
         </div>
     );
 }

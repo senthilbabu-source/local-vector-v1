@@ -45,7 +45,7 @@ export default function RevenueLeakCard({
       {/* Lock overlay for trial/starter */}
       {isLocked && (
         <div className="absolute inset-0 z-10 flex flex-col items-center justify-center rounded-2xl bg-surface-dark/80 backdrop-blur-sm">
-          <Lock className="mb-2 h-6 w-6 text-slate-500" />
+          <Lock className="mb-2 h-6 w-6 text-slate-400" />
           <p className="text-sm font-medium text-slate-400">
             Upgrade to Growth to unlock Revenue Leak Scorecard
           </p>
@@ -56,7 +56,7 @@ export default function RevenueLeakCard({
       <div className="flex items-start justify-between">
         <div>
           <p
-            className="text-xs font-bold uppercase tracking-widest text-slate-500"
+            className="text-xs font-bold uppercase tracking-widest text-slate-400"
             style={{ fontFamily: 'var(--font-jetbrains-mono), monospace' }}
           >
             Revenue Leak Scorecard
@@ -78,7 +78,7 @@ export default function RevenueLeakCard({
               data-testid="leak-range"
             >
               {formatDollar(leak.leak_low)} – {formatDollar(leak.leak_high)}
-              <span className="ml-1 text-base font-medium text-slate-500">
+              <span className="ml-1 text-base font-medium text-slate-400">
                 /month
               </span>
             </p>
@@ -101,7 +101,7 @@ export default function RevenueLeakCard({
             )}
           </>
         ) : (
-          <p className="mt-1 text-2xl font-bold text-slate-600">—</p>
+          <p className="mt-1 text-2xl font-bold text-slate-500">—</p>
         )}
       </div>
 
@@ -153,7 +153,7 @@ function BreakdownChip({
 }) {
   return (
     <div className="rounded-xl bg-midnight-slate px-4 py-3" data-testid="breakdown-chip">
-      <p className="text-xs text-slate-500">{label}</p>
+      <p className="text-xs text-slate-400">{label}</p>
       <p
         className="mt-1 text-sm font-semibold tabular-nums text-slate-200"
         style={{ fontFamily: 'var(--font-jetbrains-mono), monospace' }}

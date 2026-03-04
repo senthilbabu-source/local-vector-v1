@@ -12,7 +12,7 @@ LocalVector is an AEO/GEO SaaS platform that helps local businesses monitor and 
 - **Billing:** Stripe webhooks → `organizations.plan_tier` enum (`trial | starter | growth | agency`)
 - **Email:** Resend + React Email (`emails/`)
 - **Cache:** Upstash Redis (`lib/redis.ts`) — optional, all callers must degrade gracefully
-- **Testing:** Vitest (unit/integration in `src/__tests__/`), Playwright (E2E in `tests/e2e/`, 41 specs). Current: ~5745 tests, 379 files.
+- **Testing:** Vitest (unit/integration in `src/__tests__/`), Playwright (E2E in `tests/e2e/`, 41 specs). Current: ~5806 tests, 380 files.
 - **Monitoring:** Sentry (client, server, edge configs) — all catch blocks instrumented (Sprint A, AI_RULES §70)
 
 ## Architecture Rules
@@ -25,6 +25,7 @@ LocalVector is an AEO/GEO SaaS platform that helps local businesses monitor and 
 - **RLS pattern:** Every tenant-scoped table has `org_isolation_select/insert/update/delete` policies using `org_id = public.current_user_org_id()`.
 - **Cron routes** live in `app/api/cron/` and require `Authorization: Bearer <CRON_SECRET>` header. Each has a kill switch env var. 25 crons registered in `vercel.json`, 9 in `CRON_REGISTRY`.
 - **Sidebar plan gating:** NAV_ITEMS in `components/layout/Sidebar.tsx` have optional `minPlan` field. Locked items render as buttons with Lock icon → `UpgradeModal`. (P1-FIX-06, AI_RULES §175)
+- **Accessibility (WCAG 2.1 AA):** Skip link in DashboardShell, semantic landmarks, `aria-current="page"` on active nav, `aria-hidden="true"` on decorative icons, focus trap in UpgradeModal, `aria-live="polite"` on credits counter, semantic `<table>` elements, `role="img"` + sr-only data tables on charts. Contrast: use `text-slate-400` (not `text-slate-500`) on dark backgrounds. (P6-FIX-27, AI_RULES §191)
 - **Manual scan trigger:** Growth/Agency users can trigger on-demand SOV scans via `POST /api/sov/trigger-manual`. Rate-limited 1/hr/org. Inngest async. (P1-FIX-05, AI_RULES §177)
 
 ## Key Directories

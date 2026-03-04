@@ -73,6 +73,14 @@ export default function DashboardShell({
   return (
     <div className="flex h-screen overflow-hidden bg-midnight-slate">
 
+      {/* P6-FIX-27: Skip to main content link */}
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-[60] focus:rounded-lg focus:bg-signal-green focus:px-4 focus:py-2 focus:text-deep-navy focus:font-semibold focus:text-sm"
+      >
+        Skip to main content
+      </a>
+
       {/* ── Mobile overlay backdrop ───────────────────────────── */}
       {sidebarOpen && (
         <div
@@ -113,7 +121,7 @@ export default function DashboardShell({
         />
 
         {/* Main content area */}
-        <main className="flex-1 overflow-y-auto p-4 sm:p-6 bg-midnight-slate">
+        <main id="main-content" tabIndex={-1} className="flex-1 overflow-y-auto p-4 sm:p-6 bg-midnight-slate">
           {children}
         </main>
       </div>

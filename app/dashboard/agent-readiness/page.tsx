@@ -19,6 +19,8 @@ import { AgentSEOTab } from './_components/AgentSEOTab';
 import { SCENARIO_DESCRIPTIONS, type CapabilityId } from '@/lib/agent-readiness/scenario-descriptions';
 import type { ActionAuditResult } from '@/lib/agent-seo/agent-seo-types';
 
+export const metadata = { title: 'AI Actions | LocalVector.ai' };
+
 // ── Page Component ────────────────────────────────────────────────────────
 
 export default async function AgentReadinessPage() {
@@ -161,7 +163,7 @@ function TopPriorityCard({ capability }: { capability: import('@/lib/services/ag
           : capability.statusDetail}
       </p>
       {capability.fixGuide && (
-        <p className="text-xs text-slate-500 mt-2">{capability.fixGuide}</p>
+        <p className="text-xs text-slate-400 mt-2">{capability.fixGuide}</p>
       )}
       {capability.schemaAction && (
         <button

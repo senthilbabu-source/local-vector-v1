@@ -7,6 +7,8 @@ import type { NormalizedSource, SourceAlert, SourceCategory } from '@/lib/servic
 import { SourceHealthSummaryPanel } from './_components/SourceHealthSummaryPanel';
 import { SourceHealthBadge, deriveSourceHealth } from './_components/SourceHealthBadge';
 
+export const metadata = { title: 'Your Sources | LocalVector.ai' };
+
 // ---------------------------------------------------------------------------
 // Engine label mapping (matches Sentiment page)
 // ---------------------------------------------------------------------------
@@ -157,11 +159,11 @@ function TopSourcesTable({ sources }: { sources: NormalizedSource[] }) {
 
   return (
     <div className="rounded-xl bg-surface-dark border border-white/5 p-6" data-testid="top-sources-table">
-      <p className="text-xs font-semibold uppercase tracking-wider text-slate-500 font-mono">Top Sources</p>
+      <p className="text-xs font-semibold uppercase tracking-wider text-slate-400 font-mono">Top Sources</p>
       <div className="mt-4 space-y-2">
         {top10.map((source, i) => (
           <div key={`${source.name}-${i}`} className="flex items-center gap-3 py-1.5">
-            <span className="w-6 text-right text-xs font-mono text-slate-600">{i + 1}.</span>
+            <span className="w-6 text-right text-xs font-mono text-slate-500">{i + 1}.</span>
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2">
                 {source.url ? (
@@ -215,8 +217,8 @@ function CategoryBreakdownBars({
   return (
     <div className="rounded-xl bg-surface-dark border border-white/5 p-6" data-testid="category-breakdown">
       <div className="flex items-baseline justify-between">
-        <p className="text-xs font-semibold uppercase tracking-wider text-slate-500 font-mono">Source Categories</p>
-        <span className="text-xs text-slate-500">
+        <p className="text-xs font-semibold uppercase tracking-wider text-slate-400 font-mono">Source Categories</p>
+        <span className="text-xs text-slate-400">
           First-party rate: <span className="font-mono text-white">{firstPartyRate}%</span>
         </span>
       </div>
@@ -253,7 +255,7 @@ function EngineSourceBreakdown({
 
   return (
     <div className="rounded-xl bg-surface-dark border border-white/5 p-6" data-testid="engine-breakdown">
-      <p className="text-xs font-semibold uppercase tracking-wider text-slate-500 font-mono">Per-Engine Breakdown</p>
+      <p className="text-xs font-semibold uppercase tracking-wider text-slate-400 font-mono">Per-Engine Breakdown</p>
       <div className="mt-4 space-y-4">
         {engines.map(([engine, sources]) => {
           const config = ENGINE_LABELS[engine] ?? { label: engine, color: 'bg-slate-500' };
@@ -262,7 +264,7 @@ function EngineSourceBreakdown({
               <div className="flex items-center gap-2 mb-1.5">
                 <div className={`h-2 w-2 rounded-full ${config.color}`} />
                 <span className="text-sm font-medium text-white">{config.label}</span>
-                <span className="text-xs text-slate-500">({sources.length} sources)</span>
+                <span className="text-xs text-slate-400">({sources.length} sources)</span>
               </div>
               <div className="flex flex-wrap gap-1.5 pl-4">
                 {sources.slice(0, 8).map((source, i) => (
@@ -274,7 +276,7 @@ function EngineSourceBreakdown({
                   </span>
                 ))}
                 {sources.length > 8 && (
-                  <span className="text-xs text-slate-500">+{sources.length - 8} more</span>
+                  <span className="text-xs text-slate-400">+{sources.length - 8} more</span>
                 )}
               </div>
             </div>

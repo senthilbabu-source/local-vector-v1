@@ -58,7 +58,7 @@ export function PositioningBanner() {
           localStorage.setItem(DISMISSED_KEY, 'true');
           setDismissed(true);
         }}
-        className="ml-2 mt-0.5 rounded text-slate-500 hover:text-white focus:outline-none focus:ring-2 focus:ring-electric-indigo"
+        className="ml-2 mt-0.5 rounded text-slate-400 hover:text-white focus:outline-none focus:ring-2 focus:ring-electric-indigo"
         aria-label="Dismiss this notice"
         data-testid="positioning-banner-dismiss"
       >

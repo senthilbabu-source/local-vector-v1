@@ -95,7 +95,7 @@ function Toggle({
     <div className="flex items-center justify-between py-3">
       <div>
         <p className="text-sm font-medium text-white">{label}</p>
-        <p className="text-xs text-slate-500">{description}</p>
+        <p className="text-xs text-slate-400">{description}</p>
       </div>
       <button
         type="button"
@@ -285,7 +285,7 @@ export default function SettingsForm({ displayName, email, orgName, plan, notify
         <div className="flex items-center justify-between py-2 border-t border-white/5 mt-4 pt-4">
           <div>
             <p className="text-sm font-medium text-white">Product Tour</p>
-            <p className="text-xs text-slate-500">Re-run the guided tour of LocalVector&apos;s key features.</p>
+            <p className="text-xs text-slate-400">Re-run the guided tour of LocalVector&apos;s key features.</p>
           </div>
           <button
             type="button"
@@ -403,7 +403,7 @@ export default function SettingsForm({ displayName, email, orgName, plan, notify
       {/* ── Section 4: AI Monitoring (Sprint B) ──────────────────────── */}
       <section className="rounded-2xl bg-surface-dark border border-white/5 p-6">
         <h2 className="text-sm font-semibold text-white mb-1">AI Monitoring</h2>
-        <p className="text-xs text-slate-500 mb-4">Choose which AI models LocalVector tracks for your business.</p>
+        <p className="text-xs text-slate-400 mb-4">Choose which AI models LocalVector tracks for your business.</p>
         <div className="divide-y divide-white/5">
           {AI_MODELS.map((model) => (
             <Toggle
@@ -421,7 +421,7 @@ export default function SettingsForm({ displayName, email, orgName, plan, notify
         <div className="flex items-center justify-between py-3 border-t border-white/5 mt-2 pt-4">
           <div className="flex-1">
             <p className="text-sm font-medium text-white">Weekly scan day</p>
-            <p className="text-xs text-slate-500">
+            <p className="text-xs text-slate-400">
               Your Reality Score updates the morning after this day&apos;s scan completes.
             </p>
           </div>
@@ -495,7 +495,7 @@ export default function SettingsForm({ displayName, email, orgName, plan, notify
         <div className="flex items-center justify-between py-3 border-t border-white/5 mt-2 pt-4">
           <div className="flex-1">
             <p className="text-sm font-medium text-white">Reality Score Drop Alert</p>
-            <p className="text-xs text-slate-500">
+            <p className="text-xs text-slate-400">
               Send an alert if your Reality Score drops by this many points between weekly scans.
             </p>
           </div>
@@ -534,7 +534,7 @@ export default function SettingsForm({ displayName, email, orgName, plan, notify
       {/* ── Section 6: Webhooks (Sprint B — Agency plan only) ────────── */}
       <section className="rounded-2xl bg-surface-dark border border-white/5 p-6">
         <h2 className="text-sm font-semibold text-white mb-1">Webhooks</h2>
-        <p className="text-xs text-slate-500 mb-4">Send alert notifications to an external URL (Slack, Zapier, n8n).</p>
+        <p className="text-xs text-slate-400 mb-4">Send alert notifications to an external URL (Slack, Zapier, n8n).</p>
         {isAgency ? (
           <div className="space-y-3">
             <div>
@@ -550,7 +550,7 @@ export default function SettingsForm({ displayName, email, orgName, plan, notify
                 className="w-full rounded-xl border border-white/10 bg-midnight-slate px-3 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-signal-green"
                 data-testid="webhook-url-input"
               />
-              <p className="text-xs text-slate-500 mt-1.5">
+              <p className="text-xs text-slate-400 mt-1.5">
                 POST requests are sent when a hallucination is detected or your Reality Score drops.
               </p>
             </div>
@@ -578,7 +578,7 @@ export default function SettingsForm({ displayName, email, orgName, plan, notify
       {/* ── Section 7: Competitors (Sprint N) ─────────────────────── */}
       <section className="rounded-2xl bg-surface-dark border border-white/5 p-6">
         <h2 className="text-sm font-semibold text-white mb-1">Competitors</h2>
-        <p className="text-xs text-slate-500 mb-4">
+        <p className="text-xs text-slate-400 mb-4">
           Manage the competitors LocalVector tracks in your AI visibility comparisons.
         </p>
         <div className="flex items-center justify-between">

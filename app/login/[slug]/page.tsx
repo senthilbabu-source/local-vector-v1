@@ -87,7 +87,7 @@ export default async function BrandedLoginPage({ params }: BrandedLoginPageProps
         {theme.show_powered_by && (
           <p
             data-testid="powered-by-footer"
-            className="text-center text-xs text-slate-500"
+            className="text-center text-xs text-slate-400"
           >
             Powered by{' '}
             <a

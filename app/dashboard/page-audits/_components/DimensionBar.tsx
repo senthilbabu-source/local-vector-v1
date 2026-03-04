@@ -50,7 +50,7 @@ export default function DimensionBar({
               {label}
             </span>
             <svg
-              className={`h-3 w-3 text-slate-500 transition-transform ${expanded ? 'rotate-180' : ''}`}
+              className={`h-3 w-3 text-slate-400 transition-transform ${expanded ? 'rotate-180' : ''}`}
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
@@ -60,11 +60,11 @@ export default function DimensionBar({
             </svg>
           </div>
           <div className="flex items-center gap-2">
-            <span className="text-xs text-slate-500">{weight}</span>
+            <span className="text-xs text-slate-400">{weight}</span>
             {score !== null ? (
               <span className="text-xs font-semibold tabular-nums text-white">{score}</span>
             ) : (
-              <span className="text-xs font-medium text-slate-500">&mdash;</span>
+              <span className="text-xs font-medium text-slate-400">&mdash;</span>
             )}
           </div>
         </div>

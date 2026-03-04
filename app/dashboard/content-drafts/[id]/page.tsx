@@ -15,6 +15,8 @@ import { createClient } from '@/lib/supabase/server';
 import DraftEditor from './_components/DraftEditor';
 import PublishDropdown from './_components/PublishDropdown';
 
+export const metadata = { title: 'Post Details | LocalVector.ai' };
+
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
@@ -182,7 +184,7 @@ export default async function DraftDetailPage({
           >
             {triggerLabel(draft.trigger_type)}
           </span>
-          <span className="text-xs text-slate-600">
+          <span className="text-xs text-slate-500">
             {contentTypeLabel(draft.content_type)}
           </span>
           <span
@@ -196,7 +198,7 @@ export default async function DraftDetailPage({
           {draft.draft_title}
         </h1>
 
-        <div className="flex flex-wrap items-center gap-4 text-xs text-slate-500">
+        <div className="flex flex-wrap items-center gap-4 text-xs text-slate-400">
           {draft.aeo_score != null && (
             <span className={`font-semibold tabular-nums ${aeoColor(draft.aeo_score)}`}>
               AEO Score: {draft.aeo_score}
@@ -261,18 +263,18 @@ export default async function DraftDetailPage({
             <dl className="space-y-2 text-xs">
               {draft.target_prompt && (
                 <div>
-                  <dt className="text-slate-500">Target Query</dt>
+                  <dt className="text-slate-400">Target Query</dt>
                   <dd className="text-white font-medium mt-0.5">
                     &ldquo;{draft.target_prompt}&rdquo;
                   </dd>
                 </div>
               )}
               <div>
-                <dt className="text-slate-500">Trigger Type</dt>
+                <dt className="text-slate-400">Trigger Type</dt>
                 <dd className="text-white mt-0.5">{triggerLabel(draft.trigger_type)}</dd>
               </div>
               <div>
-                <dt className="text-slate-500">Content Type</dt>
+                <dt className="text-slate-400">Content Type</dt>
                 <dd className="text-white mt-0.5">{contentTypeLabel(draft.content_type)}</dd>
               </div>
             </dl>
@@ -295,7 +297,7 @@ export default async function DraftDetailPage({
               </a>
             )}
             {isDraft && (
-              <p className="text-xs text-slate-500">
+              <p className="text-xs text-slate-400">
                 Approve this draft to unlock publish options.
               </p>
             )}

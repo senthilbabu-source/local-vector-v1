@@ -76,7 +76,7 @@ export default function BenchmarkComparisonCard({
           />
         </div>
         {isReady && (
-          <span className="text-xs text-slate-500">{benchmark.org_count} businesses</span>
+          <span className="text-xs text-slate-400">{benchmark.org_count} businesses</span>
         )}
       </div>
 
@@ -89,7 +89,7 @@ export default function BenchmarkComparisonCard({
             </span>
             <span className="text-sm text-slate-400">your score</span>
           </div>
-          <p className="mt-2 text-xs text-slate-500">
+          <p className="mt-2 text-xs text-slate-400">
             Benchmark data is collecting. {orgCount} of {MIN_DISPLAY_THRESHOLD}{' '}
             {industryLabel.toLowerCase()} businesses needed in {orgCity}.
           </p>
@@ -112,13 +112,13 @@ export default function BenchmarkComparisonCard({
           {/* Score vs Average */}
           <div className="flex items-end gap-6">
             <div>
-              <span className="text-[10px] uppercase tracking-wider text-slate-500">
+              <span className="text-[10px] uppercase tracking-wider text-slate-400">
                 Your Score
               </span>
               <p className="text-2xl font-bold tabular-nums text-white">{orgScore}</p>
             </div>
             <div>
-              <span className="text-[10px] uppercase tracking-wider text-slate-500">
+              <span className="text-[10px] uppercase tracking-wider text-slate-400">
                 {orgCity} Avg
               </span>
               <p className="text-2xl font-bold tabular-nums text-slate-400">
@@ -138,7 +138,7 @@ export default function BenchmarkComparisonCard({
               avg={benchmark.avg_score}
               you={orgScore}
             />
-            <div className="mt-1 flex justify-between text-[10px] text-slate-600 tabular-nums">
+            <div className="mt-1 flex justify-between text-[10px] text-slate-500 tabular-nums">
               <span>{benchmark.min_score}</span>
               <span>{benchmark.max_score}</span>
             </div>
@@ -149,7 +149,7 @@ export default function BenchmarkComparisonCard({
       {/* Ready state but no org score yet */}
       {isReady && orgScore === null && (
         <div data-testid="benchmark-no-score-state">
-          <p className="text-xs text-slate-500">
+          <p className="text-xs text-slate-400">
             Benchmark data is ready ({benchmark.org_count} businesses in {orgCity}).
             Your Reality Score will appear after your first AI scan.
           </p>

@@ -13,6 +13,8 @@ import type { PlanTier } from '@/lib/plan-enforcer';
 import { getOrgThemeOrDefault } from '@/lib/whitelabel/theme-service';
 import ThemeEditorForm from './_components/ThemeEditorForm';
 
+export const metadata = { title: 'Theme | LocalVector.ai' };
+
 export default async function ThemeSettingsPage() {
   const ctx = await getSafeAuthContext();
   if (!ctx) {

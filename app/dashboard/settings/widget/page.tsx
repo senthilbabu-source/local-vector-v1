@@ -19,6 +19,8 @@ import { checkRAGReadiness } from '@/lib/rag/rag-readiness-check';
 import type { RAGReadinessInput } from '@/lib/rag/rag-readiness-check';
 import WidgetSettingsForm from './_components/WidgetSettingsForm';
 
+export const metadata = { title: 'Website Chat | LocalVector.ai' };
+
 export default async function WidgetSettingsPage() {
   const ctx = await getSafeAuthContext();
   if (!ctx) redirect('/login');

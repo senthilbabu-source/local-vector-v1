@@ -56,7 +56,7 @@ export function BotFixInstructions({ botType }: BotFixInstructionsProps) {
         >
           {/* What is this bot? */}
           <div>
-            <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 mb-1">
+            <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 mb-1">
               What is {info.displayName}?
             </p>
             <p className="text-xs text-slate-300">
@@ -68,7 +68,7 @@ export function BotFixInstructions({ botType }: BotFixInstructionsProps) {
 
           {/* How to fix */}
           <div>
-            <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 mb-1">
+            <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 mb-1">
               Add to your robots.txt
             </p>
             <div className="relative">
@@ -78,7 +78,7 @@ export function BotFixInstructions({ botType }: BotFixInstructionsProps) {
               <button
                 type="button"
                 onClick={handleCopy}
-                className="absolute top-1.5 right-1.5 rounded p-1 text-slate-500 hover:text-white hover:bg-white/10 transition"
+                className="absolute top-1.5 right-1.5 rounded p-1 text-slate-400 hover:text-white hover:bg-white/10 transition"
                 title="Copy to clipboard"
               >
                 {copied ? (
@@ -88,7 +88,7 @@ export function BotFixInstructions({ botType }: BotFixInstructionsProps) {
                 )}
               </button>
             </div>
-            <p className="mt-1.5 text-[10px] text-slate-500">
+            <p className="mt-1.5 text-[10px] text-slate-400">
               Add this to your website&apos;s{' '}
               <code className="text-slate-400">robots.txt</code> file (usually at{' '}
               <code className="text-slate-400">yoursite.com/robots.txt</code>).

@@ -67,66 +67,68 @@ export default function TeamMembersTable({
       data-testid="team-members-table"
       className="rounded-xl border border-white/5 bg-surface-dark overflow-x-auto"
     >
-      {/* Header */}
-      <div className="grid grid-cols-[1fr_1fr_auto_auto_auto] gap-3 px-5 py-3 border-b border-white/5 text-xs font-medium uppercase tracking-wider text-slate-500">
-        <span>Name</span>
-        <span>Email</span>
-        <span>Role</span>
-        <span className="hidden sm:block">Joined</span>
-        {canRemove && <span className="w-16" />}
-      </div>
+      <table className="w-full">
+        <thead>
+          <tr className="border-b border-white/5 text-xs font-medium uppercase tracking-wider text-slate-400">
+            <th scope="col" className="px-5 py-3 text-left">Name</th>
+            <th scope="col" className="px-3 py-3 text-left">Email</th>
+            <th scope="col" className="px-3 py-3 text-left">Role</th>
+            <th scope="col" className="hidden sm:table-cell px-3 py-3 text-left">Joined</th>
+            {canRemove && <th scope="col" className="w-16 px-3 py-3"><span className="sr-only">Actions</span></th>}
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-white/5">
+          {members.map((m) => {
+            const isOwner = m.role === 'owner';
+            const isSelf = m.user_id === currentUserId;
+            const showRemove = canRemove && !isOwner && !isSelf;
 
-      {/* Rows */}
-      <div className="divide-y divide-white/5">
-        {members.map((m) => {
-          const isOwner = m.role === 'owner';
-          const isSelf = m.user_id === currentUserId;
-          const showRemove = canRemove && !isOwner && !isSelf;
-
-          return (
-            <div
-              key={m.id}
-              data-testid={`member-row-${m.user_id}`}
-              className="grid grid-cols-[1fr_1fr_auto_auto_auto] gap-3 items-center px-5 py-3"
-            >
-              {/* Name */}
-              <span className="text-sm font-medium text-white truncate">
-                {m.full_name ?? m.email.split('@')[0]}
-                {isSelf && (
-                  <span className="ml-1.5 text-xs text-slate-500">(you)</span>
-                )}
-              </span>
-
-              {/* Email */}
-              <span className="text-sm text-slate-400 truncate">{m.email}</span>
-
-              {/* Role */}
-              <RoleBadge role={m.role} data-testid={`role-badge-${m.user_id}`} />
-
-              {/* Joined */}
-              <span className="hidden sm:block text-xs text-slate-500 w-20 text-right">
-                {formatDate(m.joined_at)}
-              </span>
-
-              {/* Actions */}
-              {canRemove && (
-                <div className="w-16 text-right">
-                  {showRemove && (
-                    <button
-                      data-testid={`remove-member-${m.user_id}`}
-                      onClick={() => handleRemove(m)}
-                      disabled={removing === m.id}
-                      className="text-xs text-red-400 hover:text-red-300 transition-colors disabled:opacity-50"
-                    >
-                      {removing === m.id ? 'Removing...' : 'Remove'}
-                    </button>
+            return (
+              <tr
+                key={m.id}
+                data-testid={`member-row-${m.user_id}`}
+              >
+                {/* Name */}
+                <td className="px-5 py-3 text-sm font-medium text-white truncate">
+                  {m.full_name ?? m.email.split('@')[0]}
+                  {isSelf && (
+                    <span className="ml-1.5 text-xs text-slate-400">(you)</span>
                   )}
-                </div>
-              )}
-            </div>
-          );
-        })}
-      </div>
+                </td>
+
+                {/* Email */}
+                <td className="px-3 py-3 text-sm text-slate-400 truncate">{m.email}</td>
+
+                {/* Role */}
+                <td className="px-3 py-3">
+                  <RoleBadge role={m.role} data-testid={`role-badge-${m.user_id}`} />
+                </td>
+
+                {/* Joined */}
+                <td className="hidden sm:table-cell px-3 py-3 text-xs text-slate-400 text-right">
+                  {formatDate(m.joined_at)}
+                </td>
+
+                {/* Actions */}
+                {canRemove && (
+                  <td className="w-16 px-3 py-3 text-right">
+                    {showRemove && (
+                      <button
+                        data-testid={`remove-member-${m.user_id}`}
+                        onClick={() => handleRemove(m)}
+                        disabled={removing === m.id}
+                        className="text-xs text-red-400 hover:text-red-300 transition-colors disabled:opacity-50"
+                      >
+                        {removing === m.id ? 'Removing...' : 'Remove'}
+                      </button>
+                    )}
+                  </td>
+                )}
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
     </div>
   );
 }

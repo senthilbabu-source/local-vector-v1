@@ -130,7 +130,7 @@ export default function AuthorityPanel({ isGrowthPlan }: AuthorityPanelProps) {
 
       {/* ── Last run ────────────────────────────────────────────────── */}
       {lastRunAt && (
-        <p data-testid="authority-last-run" className="mt-1 text-xs text-slate-500">
+        <p data-testid="authority-last-run" className="mt-1 text-xs text-slate-400">
           Last mapped: {formatRelativeTime(lastRunAt)}
         </p>
       )}
@@ -160,7 +160,7 @@ export default function AuthorityPanel({ isGrowthPlan }: AuthorityPanelProps) {
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             {/* Score breakdown */}
             <div data-testid="authority-tier-breakdown">
-              <p className="mb-2 text-xs font-medium uppercase tracking-wider text-slate-500">Score Breakdown</p>
+              <p className="mb-2 text-xs font-medium uppercase tracking-wider text-slate-400">Score Breakdown</p>
               <div className="space-y-1.5">
                 <ScoreDimension label="Tier 1 Citations" value={profile.dimensions.tier1_citation_score} max={30} />
                 <ScoreDimension label="Tier 2 Coverage" value={profile.dimensions.tier2_coverage_score} max={25} />
@@ -172,7 +172,7 @@ export default function AuthorityPanel({ isGrowthPlan }: AuthorityPanelProps) {
 
             {/* Citation sources */}
             <div>
-              <p className="mb-2 text-xs font-medium uppercase tracking-wider text-slate-500">
+              <p className="mb-2 text-xs font-medium uppercase tracking-wider text-slate-400">
                 Citation Sources ({profile.tier_breakdown.tier1 + profile.tier_breakdown.tier2 + profile.tier_breakdown.tier3} total)
               </p>
               <div className="space-y-1">
@@ -191,7 +191,7 @@ export default function AuthorityPanel({ isGrowthPlan }: AuthorityPanelProps) {
           {/* sameAs gaps */}
           {profile.sameas_gaps.length > 0 && (
             <div data-testid="authority-sameas-gaps">
-              <p className="mb-2 text-xs font-medium uppercase tracking-wider text-slate-500">
+              <p className="mb-2 text-xs font-medium uppercase tracking-wider text-slate-400">
                 sameAs Gaps ({profile.sameas_gaps.length})
               </p>
               <div className="space-y-1.5">
@@ -199,7 +199,7 @@ export default function AuthorityPanel({ isGrowthPlan }: AuthorityPanelProps) {
                   <div key={gap.platform} className="flex items-center justify-between rounded-lg border border-slate-700/30 bg-slate-800/30 px-3 py-2">
                     <div>
                       <p className="text-xs font-medium text-slate-300">{gap.action_label}</p>
-                      <p className="text-xs text-slate-500">Impact: {gap.estimated_impact}</p>
+                      <p className="text-xs text-slate-400">Impact: {gap.estimated_impact}</p>
                     </div>
                     {gap.url && (
                       <a href={gap.url} target="_blank" rel="noopener noreferrer" className="text-electric-indigo hover:underline">
@@ -215,7 +215,7 @@ export default function AuthorityPanel({ isGrowthPlan }: AuthorityPanelProps) {
           {/* Recommendations */}
           {profile.recommendations.length > 0 && (
             <div data-testid="authority-recommendations">
-              <p className="mb-2 text-xs font-medium uppercase tracking-wider text-slate-500">
+              <p className="mb-2 text-xs font-medium uppercase tracking-wider text-slate-400">
                 Top Recommendations
               </p>
               <div className="space-y-1.5">
@@ -231,7 +231,7 @@ export default function AuthorityPanel({ isGrowthPlan }: AuthorityPanelProps) {
                       </span>
                       <p className="text-xs font-medium text-slate-300">{rec.title}</p>
                     </div>
-                    <p className="mt-0.5 pl-6 text-xs text-slate-500">{rec.description.slice(0, 120)}...</p>
+                    <p className="mt-0.5 pl-6 text-xs text-slate-400">{rec.description.slice(0, 120)}...</p>
                     <p className="mt-0.5 pl-6 text-xs text-electric-indigo">+{rec.estimated_score_gain} pts estimated</p>
                   </div>
                 ))}
@@ -256,7 +256,7 @@ function ScoreDimension({ label, value, max }: { label: string; value: number; m
       <div className="flex-1 h-1.5 rounded-full bg-slate-700/50">
         <div className={`h-1.5 rounded-full ${color}`} style={{ width: `${pct}%` }} />
       </div>
-      <span className="w-10 text-right text-xs text-slate-500">{value}/{max}</span>
+      <span className="w-10 text-right text-xs text-slate-400">{value}/{max}</span>
     </div>
   );
 }
@@ -273,7 +273,7 @@ function TierCount({ label, count, color }: { label: string; count: number; colo
 function VelocityIndicator({ velocity, label }: { velocity: number | null; label: string }) {
   if (velocity === null || label === 'unknown') {
     return (
-      <div className="flex items-center gap-1 text-xs text-slate-500">
+      <div className="flex items-center gap-1 text-xs text-slate-400">
         <Minus className="h-3 w-3" /> First run — no velocity data yet
       </div>
     );

@@ -90,7 +90,7 @@ export default function MetricCard({
         >
             {/* Label */}
             <div className="flex items-center gap-1.5">
-                <p className="text-xs font-medium text-slate-500 uppercase tracking-wide">
+                <p className="text-xs font-medium text-slate-400 uppercase tracking-wide">
                     {label}
                 </p>
                 {tooltip && <InfoTooltip content={tooltip} />}

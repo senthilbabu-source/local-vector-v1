@@ -65,7 +65,7 @@ export default function BenchmarkPercentileBar({
       </div>
 
       {/* Labels */}
-      <div className="mt-1.5 flex justify-between text-[10px] text-slate-500 tabular-nums">
+      <div className="mt-1.5 flex justify-between text-[10px] text-slate-400 tabular-nums">
         <span>0</span>
         <span>100</span>
       </div>

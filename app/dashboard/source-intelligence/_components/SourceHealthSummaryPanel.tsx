@@ -104,7 +104,7 @@ export function SourceHealthSummaryPanel({
             className={`text-lg font-bold font-mono ${
               competitorCount > 0
                 ? 'text-alert-crimson'
-                : 'text-slate-600'
+                : 'text-slate-500'
             }`}
           >
             {competitorCount}
@@ -113,7 +113,7 @@ export function SourceHealthSummaryPanel({
             className={`text-[10px] leading-tight ${
               competitorCount > 0
                 ? 'text-alert-crimson/70'
-                : 'text-slate-600'
+                : 'text-slate-500'
             }`}
           >
             Competitor
@@ -131,14 +131,14 @@ export function SourceHealthSummaryPanel({
         >
           <p
             className={`text-lg font-bold font-mono ${
-              totalAlerts > 0 ? 'text-alert-amber' : 'text-slate-600'
+              totalAlerts > 0 ? 'text-alert-amber' : 'text-slate-500'
             }`}
           >
             {totalAlerts}
           </p>
           <p
             className={`text-[10px] leading-tight ${
-              totalAlerts > 0 ? 'text-alert-amber/70' : 'text-slate-600'
+              totalAlerts > 0 ? 'text-alert-amber/70' : 'text-slate-500'
             }`}
           >
             Active
@@ -150,7 +150,7 @@ export function SourceHealthSummaryPanel({
 
       {/* First-party rate */}
       <div className="flex items-center gap-3">
-        <span className="text-xs text-slate-500">How often AI cites your website:</span>
+        <span className="text-xs text-slate-400">How often AI cites your website:</span>
         <span className={`text-sm font-bold font-mono ${firstPartyColor}`}>
           {firstPartyRate}%
         </span>

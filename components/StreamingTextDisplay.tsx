@@ -25,7 +25,7 @@ export default function StreamingTextDisplay({
   if (status === 'idle' && !text) {
     return (
       <div
-        className={`text-sm text-slate-500 ${className}`}
+        className={`text-sm text-slate-400 ${className}`}
         data-testid="streaming-text-display"
       >
         <span data-testid="streaming-placeholder">{placeholder}</span>
@@ -66,7 +66,7 @@ export default function StreamingTextDisplay({
         <span className="text-alert-crimson ml-1">(Error)</span>
       )}
       {status === 'cancelled' && (
-        <span className="text-slate-500 ml-1">(Cancelled)</span>
+        <span className="text-slate-400 ml-1">(Cancelled)</span>
       )}
     </div>
   );

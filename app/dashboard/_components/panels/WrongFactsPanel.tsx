@@ -56,7 +56,7 @@ export default function WrongFactsPanel({
       </div>
 
       {hasIssues ? (
-        <p className="mt-1 text-xs text-slate-500">
+        <p className="mt-1 text-xs text-slate-400">
           in AI responses across ChatGPT, Perplexity, and Gemini
         </p>
       ) : (

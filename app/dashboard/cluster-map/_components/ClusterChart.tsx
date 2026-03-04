@@ -183,7 +183,7 @@ export default function ClusterChart({
             dataKey="brandAuthority"
             name="Brand Authority"
             domain={[0, 100]}
-            tick={{ fill: '#64748B', fontSize: 11 }}
+            tick={{ fill: '#94A3B8', fontSize: 11 }}
             axisLine={{ stroke: 'rgba(255,255,255,0.05)' }}
             tickLine={false}
             label={{
@@ -199,7 +199,7 @@ export default function ClusterChart({
             dataKey="factAccuracy"
             name="Fact Accuracy"
             domain={[0, 100]}
-            tick={{ fill: '#64748B', fontSize: 11 }}
+            tick={{ fill: '#94A3B8', fontSize: 11 }}
             axisLine={false}
             tickLine={false}
             label={{
@@ -255,7 +255,7 @@ export default function ClusterChart({
             Wrong Information Zones
           </div>
         )}
-        <span className="text-slate-600">Bubble size = AI visibility share</span>
+        <span className="text-slate-500">Bubble size = AI visibility share</span>
       </div>
     </div>
   );

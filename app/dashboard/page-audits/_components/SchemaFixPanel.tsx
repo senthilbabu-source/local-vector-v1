@@ -33,7 +33,7 @@ export default function SchemaFixPanel({ schemas, onClose }: Props) {
         <h3 className="text-sm font-semibold text-white">Code Fixes Generated</h3>
         <button
           onClick={onClose}
-          className="rounded-md p-1 text-slate-500 hover:text-white hover:bg-white/5 transition-colors"
+          className="rounded-md p-1 text-slate-400 hover:text-white hover:bg-white/5 transition-colors"
           aria-label="Close schema panel"
         >
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

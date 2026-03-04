@@ -208,7 +208,7 @@ export default function ContentDraftCard({ draft, occasionName }: ContentDraftCa
           {draft.trigger_type === 'occasion' && <CalendarDays className="h-2.5 w-2.5" aria-hidden="true" />}
           {trigger.label}
         </span>
-        <span className="text-xs text-slate-600">{contentTypeLabel(draft.content_type)}</span>
+        <span className="text-xs text-slate-500">{contentTypeLabel(draft.content_type)}</span>
         <span
           className={`ml-auto inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ring-1 ring-inset ${status.classes}`}
           data-testid={status.testId ?? 'status-badge'}
@@ -280,7 +280,7 @@ export default function ContentDraftCard({ draft, occasionName }: ContentDraftCa
               Score: {draft.aeo_score}
             </span>
           )}
-          <span className="text-xs text-slate-600 tabular-nums">
+          <span className="text-xs text-slate-500 tabular-nums">
             {new Date(draft.created_at).toLocaleDateString('en-US', {
               month: 'short',
               day: 'numeric',
@@ -376,7 +376,7 @@ export default function ContentDraftCard({ draft, occasionName }: ContentDraftCa
             <p className="text-xs text-slate-400 mb-1">
               {draft.draft_title}
             </p>
-            <p className="text-xs text-slate-500 mb-4">
+            <p className="text-xs text-slate-400 mb-4">
               This will publish the draft externally. This action cannot be undone.
             </p>
 

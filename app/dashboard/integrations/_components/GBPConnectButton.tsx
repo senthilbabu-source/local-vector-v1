@@ -60,10 +60,10 @@ export default function GBPConnectButton({
   if (!configured) {
     return (
       <div className="flex items-center gap-3">
-        <span className="inline-flex items-center rounded-full bg-slate-400/10 px-2.5 py-1 text-xs font-medium text-slate-500 ring-1 ring-inset ring-slate-400/20">
+        <span className="inline-flex items-center rounded-full bg-slate-400/10 px-2.5 py-1 text-xs font-medium text-slate-400 ring-1 ring-inset ring-slate-400/20">
           Not configured
         </span>
-        <p className="text-xs text-slate-600">Google OAuth is not configured for this environment.</p>
+        <p className="text-xs text-slate-500">Google OAuth is not configured for this environment.</p>
       </div>
     );
   }
@@ -78,7 +78,7 @@ export default function GBPConnectButton({
         >
           Upgrade to Connect
         </Link>
-        <p className="text-xs text-slate-500">Upgrade your plan to connect Google Business Profile.</p>
+        <p className="text-xs text-slate-400">Upgrade your plan to connect Google Business Profile.</p>
       </div>
     );
   }
@@ -117,13 +117,13 @@ export default function GBPConnectButton({
           <span className="text-xs text-slate-400">{googleEmail}</span>
         )}
         {gbpAccountName && (
-          <span className="text-xs text-slate-600">{gbpAccountName}</span>
+          <span className="text-xs text-slate-500">{gbpAccountName}</span>
         )}
         <button
           type="button"
           onClick={handleDisconnect}
           disabled={isPending}
-          className="text-xs font-medium text-slate-500 hover:text-alert-crimson transition-colors disabled:opacity-50"
+          className="text-xs font-medium text-slate-400 hover:text-alert-crimson transition-colors disabled:opacity-50"
         >
           {isPending ? 'Disconnecting…' : 'Disconnect'}
         </button>

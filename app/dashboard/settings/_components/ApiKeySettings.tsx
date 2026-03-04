@@ -104,7 +104,7 @@ export default function ApiKeySettings({ isAgencyPlan }: ApiKeySettingsProps) {
             >
               <div>
                 <span className="text-sm font-medium text-white">{key.name}</span>
-                <span className="ml-3 text-xs text-slate-500 font-mono">{key.key_prefix}...</span>
+                <span className="ml-3 text-xs text-slate-400 font-mono">{key.key_prefix}...</span>
               </div>
               <button
                 type="button"
@@ -126,7 +126,7 @@ export default function ApiKeySettings({ isAgencyPlan }: ApiKeySettingsProps) {
           value={newKeyName}
           onChange={(e) => setNewKeyName(e.target.value)}
           placeholder="Key name (e.g., Production)"
-          className="flex-1 rounded-md border border-white/10 bg-surface-dark px-3 py-1.5 text-sm text-white placeholder:text-slate-500"
+          className="flex-1 rounded-md border border-white/10 bg-surface-dark px-3 py-1.5 text-sm text-white placeholder:text-slate-400"
           data-testid="new-key-name-input"
         />
         <button

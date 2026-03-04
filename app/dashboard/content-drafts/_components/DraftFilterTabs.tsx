@@ -42,7 +42,7 @@ export default function DraftFilterTabs() {
               'rounded-md px-3 py-1.5 text-xs font-medium transition',
               isActive
                 ? 'bg-white/10 text-white'
-                : 'text-slate-500 hover:text-slate-300',
+                : 'text-slate-400 hover:text-slate-300',
             ].join(' ')}
           >
             {tab.label}

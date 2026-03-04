@@ -89,14 +89,14 @@ describe('Mobile responsiveness — Grids (P6-FIX-28)', () => {
 
   it('TeamMembersTable hides columns on mobile', () => {
     const content = readComponent('app/dashboard/team/_components/TeamMembersTable.tsx');
-    // "Joined" column hidden on mobile
-    expect(content).toContain('hidden sm:block');
+    // "Joined" column hidden on mobile (P6-FIX-27: converted to semantic table)
+    expect(content).toContain('hidden sm:table-cell');
   });
 
   it('PendingInvitationsTable hides columns on mobile', () => {
     const content = readComponent('app/dashboard/team/_components/PendingInvitationsTable.tsx');
-    // "Invited By" and "Expires" columns hidden on mobile
-    expect(content).toContain('hidden sm:block');
+    // "Invited By" and "Expires" columns hidden on mobile (P6-FIX-27: converted to semantic table)
+    expect(content).toContain('hidden sm:table-cell');
   });
 });
 

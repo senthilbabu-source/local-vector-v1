@@ -75,7 +75,7 @@ export default function CompetitorComparison({
         return (
             <div className="rounded-xl bg-surface-dark border border-white/5 p-5">
                 <h3 className="text-sm font-semibold text-white mb-3">{title}</h3>
-                <div className="flex items-center justify-center h-48 text-slate-500 text-sm">
+                <div className="flex items-center justify-center h-48 text-slate-400 text-sm">
                     No competitor data yet — run an intercept analysis first.
                 </div>
             </div>
@@ -93,7 +93,7 @@ export default function CompetitorComparison({
                 >
                     <XAxis
                         type="number"
-                        tick={{ fill: '#64748B', fontSize: 11 }}
+                        tick={{ fill: '#94A3B8', fontSize: 11 }}
                         axisLine={false}
                         tickLine={false}
                     />

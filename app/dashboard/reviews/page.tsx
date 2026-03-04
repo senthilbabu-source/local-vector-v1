@@ -5,6 +5,8 @@ import { createClient } from '@/lib/supabase/server';
 import { planSatisfies } from '@/lib/plan-enforcer';
 import ReviewCard from './_components/ReviewCard';
 
+export const metadata = { title: 'Reviews | LocalVector.ai' };
+
 // ---------------------------------------------------------------------------
 // Data fetching
 // ---------------------------------------------------------------------------
@@ -79,25 +81,25 @@ export default async function ReviewsPage() {
       {/* Summary strip */}
       <div className="flex flex-wrap gap-4">
         <div className="rounded-xl bg-surface-dark px-4 py-3 ring-1 ring-white/5">
-          <p className="text-xs text-slate-500">Total Reviews</p>
+          <p className="text-xs text-slate-400">Total Reviews</p>
           <p className="mt-0.5 text-2xl font-bold tabular-nums text-white">
             {stats.total}
           </p>
         </div>
         <div className="rounded-xl bg-surface-dark px-4 py-3 ring-1 ring-white/5">
-          <p className="text-xs text-slate-500">Avg Rating</p>
+          <p className="text-xs text-slate-400">Avg Rating</p>
           <p className="mt-0.5 text-2xl font-bold tabular-nums text-alert-amber">
             {stats.avgRating > 0 ? stats.avgRating.toFixed(1) : '--'}
           </p>
         </div>
         <div className="rounded-xl bg-surface-dark px-4 py-3 ring-1 ring-white/5">
-          <p className="text-xs text-slate-500">Needs Response</p>
+          <p className="text-xs text-slate-400">Needs Response</p>
           <p className="mt-0.5 text-2xl font-bold tabular-nums text-alert-crimson">
             {stats.pending}
           </p>
         </div>
         <div className="rounded-xl bg-surface-dark px-4 py-3 ring-1 ring-white/5">
-          <p className="text-xs text-slate-500">Published</p>
+          <p className="text-xs text-slate-400">Published</p>
           <p className="mt-0.5 text-2xl font-bold tabular-nums text-truth-emerald">
             {stats.published}
           </p>
@@ -107,7 +109,7 @@ export default async function ReviewsPage() {
       {/* Empty state */}
       {reviews.length === 0 && (
         <div className="rounded-xl bg-surface-dark px-6 py-12 text-center border border-white/5">
-          <MessageSquareText className="mx-auto h-10 w-10 text-slate-600" />
+          <MessageSquareText className="mx-auto h-10 w-10 text-slate-500" />
           <p className="mt-3 text-sm text-slate-400">
             No reviews synced yet. Reviews will appear after the next review sync cycle.
           </p>

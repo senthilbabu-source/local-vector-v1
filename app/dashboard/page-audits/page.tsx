@@ -15,6 +15,8 @@ import PageAuditCardWrapper from './_components/PageAuditCardWrapper';
 import AddPageAuditForm from './_components/AddPageAuditForm';
 import type { PageAuditRecommendation } from '@/lib/page-audit/auditor';
 
+export const metadata = { title: 'Website Checkup | LocalVector.ai' };
+
 // ---------------------------------------------------------------------------
 // Types (mirrors page_audits table)
 // ---------------------------------------------------------------------------
@@ -84,7 +86,7 @@ export default async function PageAuditsPage() {
           <div data-testid="page-audits-empty" className="rounded-2xl bg-surface-dark border border-white/5 p-8">
             <svg
               xmlns="http://www.w3.org/2000/svg"
-              className="h-10 w-10 text-slate-500"
+              className="h-10 w-10 text-slate-400"
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
@@ -93,7 +95,7 @@ export default async function PageAuditsPage() {
               <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
             </svg>
             <p className="mt-3 text-sm font-medium text-slate-300">Audit your first page</p>
-            <p className="mt-1 max-w-sm text-xs text-slate-500 mb-6">
+            <p className="mt-1 max-w-sm text-xs text-slate-400 mb-6">
               Enter any public URL from your website to score it on Answer-First Structure,
               Schema Completeness, FAQ Schema, Keyword Density, and Entity Clarity.
             </p>
@@ -146,7 +148,7 @@ export default async function PageAuditsPage() {
         <section className="mt-6">
           <h2 className="text-sm font-semibold text-white tracking-tight mb-3">
             Audited Pages
-            <span className="ml-2 text-xs font-medium text-slate-500">{audits.length}</span>
+            <span className="ml-2 text-xs font-medium text-slate-400">{audits.length}</span>
           </h2>
           <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
             {audits.map((audit) => (

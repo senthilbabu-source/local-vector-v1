@@ -90,7 +90,7 @@ export default function ReviewResponseModal({
   };
 
   const stars = Array.from({ length: 5 }, (_, i) => (
-    <span key={i} className={i < review.rating ? 'text-yellow-400' : 'text-slate-600'}>
+    <span key={i} className={i < review.rating ? 'text-yellow-400' : 'text-slate-500'}>
       &#9733;
     </span>
   ));
@@ -154,7 +154,7 @@ export default function ReviewResponseModal({
                 {regenerating ? 'Regenerating...' : 'Regenerate Draft'}
               </button>
             </div>
-            <span className={`text-xs ${draftText.length > maxLength ? 'text-red-400' : 'text-slate-500'}`} data-testid="modal-char-count">
+            <span className={`text-xs ${draftText.length > maxLength ? 'text-red-400' : 'text-slate-400'}`} data-testid="modal-char-count">
               {draftText.length} / {maxLength} chars
             </span>
           </div>

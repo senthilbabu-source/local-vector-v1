@@ -38,7 +38,7 @@ describe('WizardProgress', () => {
     render(<WizardProgress currentStep={1} completedSteps={[]} />);
     const dot = screen.getByTestId('step-indicator-3');
     expect(dot.className).toContain('bg-slate-800');
-    expect(dot.className).toContain('text-slate-500');
+    expect(dot.className).toContain('text-slate-400');
   });
 
   it('renders correct label for each step', () => {

@@ -35,7 +35,7 @@ export default function CompetitorChip({ competitor }: CompetitorChipProps) {
       <div className="min-w-0">
         <p className="text-sm font-medium text-white truncate">{competitor.competitor_name}</p>
         {competitor.competitor_address && (
-          <p className="text-xs text-slate-500 truncate">{competitor.competitor_address}</p>
+          <p className="text-xs text-slate-400 truncate">{competitor.competitor_address}</p>
         )}
       </div>
 
@@ -51,7 +51,7 @@ export default function CompetitorChip({ competitor }: CompetitorChipProps) {
           </button>
           <button
             onClick={() => setConfirming(false)}
-            className="text-xs text-slate-500 hover:text-slate-300"
+            className="text-xs text-slate-400 hover:text-slate-300"
           >
             No
           </button>
@@ -60,7 +60,7 @@ export default function CompetitorChip({ competitor }: CompetitorChipProps) {
         <button
           onClick={handleDeleteClick}
           aria-label={`Remove ${competitor.competitor_name}`}
-          className="shrink-0 text-slate-600 hover:text-slate-300 transition"
+          className="shrink-0 text-slate-500 hover:text-slate-300 transition"
         >
           <X className="h-3.5 w-3.5" />
         </button>

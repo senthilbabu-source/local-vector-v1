@@ -134,7 +134,7 @@ export default function GBPImportInterstitial({
           {onImportSuccess ? 'Continue' : 'Continue to Dashboard'}
         </button>
 
-        <p className="mt-3 text-center text-xs text-slate-500">
+        <p className="mt-3 text-center text-xs text-slate-400">
           Need to make changes? You can edit anytime in Settings.
         </p>
       </div>
@@ -219,11 +219,11 @@ export default function GBPImportInterstitial({
         )}
       </button>
 
-      <p className="mt-2 text-center text-xs text-slate-500">Takes &lt; 5 seconds</p>
+      <p className="mt-2 text-center text-xs text-slate-400">Takes &lt; 5 seconds</p>
 
       <div className="flex items-center gap-3 w-full mt-6">
         <div className="h-px flex-1 bg-white/10" />
-        <span className="text-xs text-slate-500 uppercase tracking-wider">or</span>
+        <span className="text-xs text-slate-400 uppercase tracking-wider">or</span>
         <div className="h-px flex-1 bg-white/10" />
       </div>
 

@@ -24,7 +24,7 @@ export default function HallucinationsError({
         <h2 className="text-xl font-semibold text-white">Something went wrong</h2>
         <p className="text-sm text-slate-400">{error.message}</p>
         {error.digest && (
-          <p className="text-xs text-slate-600 font-mono">Error ID: {error.digest}</p>
+          <p className="text-xs text-slate-500 font-mono">Error ID: {error.digest}</p>
         )}
         <button
           onClick={reset}

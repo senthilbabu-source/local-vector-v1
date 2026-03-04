@@ -225,13 +225,13 @@ export default function AIAnswerPreviewWidget() {
             placeholder="best hookah lounge in Alpharetta for a birthday party"
             maxLength={MAX_CHARS}
             disabled={running}
-            className="w-full rounded-lg border border-white/10 bg-midnight-slate px-3 py-2 text-sm text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-signal-green/50 disabled:opacity-50"
+            className="w-full rounded-lg border border-white/10 bg-midnight-slate px-3 py-2 text-sm text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-signal-green/50 disabled:opacity-50"
             data-testid="ai-preview-query-input"
           />
           <span
             className={cn(
               'absolute right-2 top-1/2 -translate-y-1/2 text-[10px] tabular-nums',
-              charCount > MAX_CHARS - 20 ? 'text-amber-400' : 'text-slate-600',
+              charCount > MAX_CHARS - 20 ? 'text-amber-400' : 'text-slate-500',
             )}
           >
             {charCount}/{MAX_CHARS}
@@ -321,10 +321,10 @@ function ModelResponseCard({
           {label}
         </p>
         {(state.status === 'loading' || isStreaming) && (
-          <Loader2 className="h-3 w-3 animate-spin text-slate-500" aria-hidden="true" />
+          <Loader2 className="h-3 w-3 animate-spin text-slate-400" aria-hidden="true" />
         )}
       </div>
-      {state.status === 'idle' && <p className="text-sm text-slate-500">&mdash;</p>}
+      {state.status === 'idle' && <p className="text-sm text-slate-400">&mdash;</p>}
       {state.status === 'loading' && (
         <div className="space-y-1.5" aria-label={`${label} loading`}>
           <div className="h-2.5 w-full animate-pulse rounded bg-white/5" />

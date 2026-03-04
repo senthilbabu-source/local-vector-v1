@@ -9,6 +9,8 @@ import RunAnalysisButton from './_components/RunAnalysisButton';
 import InterceptCard from './_components/InterceptCard';
 import CompeteVerdictPanel from './_components/CompeteVerdictPanel';
 
+export const metadata = { title: 'Competitors | LocalVector.ai' };
+
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
@@ -39,7 +41,7 @@ type InterceptRow = {
 function UpgradeGate() {
   return (
     <div className="flex flex-col items-center justify-center min-h-[60vh] gap-6 text-center">
-      <Swords className="h-12 w-12 text-slate-600" />
+      <Swords className="h-12 w-12 text-slate-500" />
       <h2 className="text-xl font-semibold text-white">See Why They&apos;re Winning</h2>
       <p className="text-slate-400 max-w-md">
         Competitor Intercept is available on the Growth plan. Upgrade to track up to 3 competitors
@@ -138,7 +140,7 @@ export default async function CompetePage() {
       <section className="rounded-xl border border-white/10 bg-surface-dark p-5 space-y-4">
         <div className="flex items-center justify-between">
           <h2 className="text-sm font-semibold text-slate-300">Competitors</h2>
-          <span className="text-xs text-slate-500">{competitors.length}/{maxAllowed} tracked</span>
+          <span className="text-xs text-slate-400">{competitors.length}/{maxAllowed} tracked</span>
         </div>
 
         {competitors.length > 0 && (
@@ -193,8 +195,8 @@ export default async function CompetePage() {
           ))
         ) : (
           <div className="rounded-xl border border-white/5 bg-surface-dark px-6 py-10 text-center">
-            <Swords className="mx-auto h-8 w-8 text-slate-600 mb-3" />
-            <p className="text-sm text-slate-500">
+            <Swords className="mx-auto h-8 w-8 text-slate-500 mb-3" />
+            <p className="text-sm text-slate-400">
               {competitors.length === 0
                 ? 'Add a competitor above to get started.'
                 : 'No intercepts yet. Run your first analysis above.'}

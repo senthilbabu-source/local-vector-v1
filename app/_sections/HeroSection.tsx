@@ -61,7 +61,7 @@ export default function HeroSection() {
           <span className="flex items-center gap-2 text-base font-bold" style={{ letterSpacing: '-0.02em' }}>
             <img src="/logo.svg" alt="" className="h-7 w-auto" aria-hidden />
             <span style={{ color: '#00F5A0' }}>LocalVector</span>
-            <span className="text-slate-600">.ai</span>
+            <span className="text-slate-500">.ai</span>
           </span>
 
           {/* Links */}
@@ -201,7 +201,7 @@ export default function HeroSection() {
           <Reveal delay={480}>
             <div className="flex flex-wrap items-center gap-5 mt-12">
               <span
-                className="text-xs uppercase font-semibold text-slate-600"
+                className="text-xs uppercase font-semibold text-slate-500"
                 style={{ letterSpacing: '0.1em', fontFamily: 'var(--font-jetbrains-mono), monospace' }}
               >
                 Monitoring:
@@ -209,7 +209,7 @@ export default function HeroSection() {
               {(['ChatGPT', 'Perplexity', 'Google Gemini', 'Claude', 'Copilot'] as const).map((model, i) => (
                 <span
                   key={model}
-                  className="text-xs font-medium text-slate-500 px-3 py-1 rounded-md"
+                  className="text-xs font-medium text-slate-400 px-3 py-1 rounded-md"
                   style={{
                     background: 'rgba(255,255,255,0.03)',
                     opacity: 0,

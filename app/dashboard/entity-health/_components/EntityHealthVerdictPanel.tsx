@@ -104,7 +104,7 @@ export function EntityHealthVerdictPanel({ result }: EntityHealthVerdictPanelPro
       </div>
 
       {/* Pass/fail summary */}
-      <div className="flex items-center gap-4 text-xs text-slate-500">
+      <div className="flex items-center gap-4 text-xs text-slate-400">
         <span className="text-green-400 font-medium">
           {confirmedCount} confirmed
         </span>
@@ -113,7 +113,7 @@ export function EntityHealthVerdictPanel({ result }: EntityHealthVerdictPanelPro
             {missingCount} need{missingCount !== 1 ? '' : 's'} action
           </span>
         )}
-        <span className="text-slate-600">Score: {score}%</span>
+        <span className="text-slate-500">Score: {score}%</span>
       </div>
     </div>
   );

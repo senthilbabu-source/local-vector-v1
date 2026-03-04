@@ -33,7 +33,7 @@ export default function PlanComparisonTable({ currentPlan }: PlanComparisonTable
       <table className="w-full text-sm">
         <thead>
           <tr className="border-b border-white/5 bg-surface-dark">
-            <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500 w-52">
+            <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-400 w-52">
               Feature
             </th>
             {PLAN_ORDER.map((plan) => (
@@ -43,12 +43,12 @@ export default function PlanComparisonTable({ currentPlan }: PlanComparisonTable
                   'px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider',
                   plan === currentPlan
                     ? 'bg-electric-indigo/10 text-electric-indigo'
-                    : 'text-slate-500'
+                    : 'text-slate-400'
                 )}
                 data-testid={`plan-column-${plan}`}
               >
                 <div>{getPlanDisplayName(plan)}</div>
-                <div className="text-[10px] font-normal normal-case tracking-normal mt-0.5 text-slate-500">
+                <div className="text-[10px] font-normal normal-case tracking-normal mt-0.5 text-slate-400">
                   {PLAN_PRICES[plan]}
                 </div>
                 {plan === currentPlan && (
@@ -64,7 +64,7 @@ export default function PlanComparisonTable({ currentPlan }: PlanComparisonTable
           {categories.map((category) => (
             <Fragment key={category}>
               <tr className="border-b border-white/5 bg-midnight-slate/50">
-                <td colSpan={5} className="px-4 py-2 text-xs font-semibold uppercase tracking-wider text-slate-500">
+                <td colSpan={5} className="px-4 py-2 text-xs font-semibold uppercase tracking-wider text-slate-400">
                   {category}
                 </td>
               </tr>
@@ -82,7 +82,7 @@ export default function PlanComparisonTable({ currentPlan }: PlanComparisonTable
                         )}
                       >
                         {value === true  && <Check className="mx-auto h-4 w-4 text-signal-green" aria-label="Included" />}
-                        {value === false && <Minus className="mx-auto h-4 w-4 text-slate-600" aria-label="Not included" />}
+                        {value === false && <Minus className="mx-auto h-4 w-4 text-slate-500" aria-label="Not included" />}
                         {typeof value === 'string' && (
                           <span className="text-xs font-medium text-slate-300">{value}</span>
                         )}

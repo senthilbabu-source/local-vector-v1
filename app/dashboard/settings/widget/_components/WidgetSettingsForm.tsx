@@ -144,7 +144,7 @@ export default function WidgetSettingsForm({
             value={greeting}
             onChange={(e) => setGreeting(e.target.value)}
             maxLength={200}
-            className="mt-1 w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder:text-slate-500"
+            className="mt-1 w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder:text-slate-400"
             placeholder="Ask us anything!"
           />
         </div>

@@ -188,7 +188,7 @@ function ManageSubscriptionButton({ planInfo }: { planInfo: CurrentPlanInfo | nu
 
   if (status === 'demo') {
     return (
-      <p className="text-center text-xs text-slate-500 py-2">
+      <p className="text-center text-xs text-slate-400 py-2">
         Demo mode — Stripe not configured.
       </p>
     );
@@ -244,7 +244,7 @@ function UpgradeButton({ tier, currentPlan }: { tier: Tier; currentPlan: string 
 
   if (status === 'demo') {
     return (
-      <p className="text-center text-xs text-slate-500 py-2">
+      <p className="text-center text-xs text-slate-400 py-2">
         Demo mode — Stripe not configured.
       </p>
     );
@@ -305,7 +305,7 @@ function TierCard({ tier, currentPlan }: { tier: Tier; currentPlan: string | nul
         <div className="mt-4 flex items-baseline gap-1">
           <span className="text-3xl font-bold text-white">{tier.price}</span>
           {tier.period && (
-            <span className="text-sm text-slate-500">{tier.period}</span>
+            <span className="text-sm text-slate-400">{tier.period}</span>
           )}
         </div>
       </div>
@@ -414,11 +414,11 @@ export default function BillingPage() {
           <h2 className="text-sm font-semibold text-white mb-3">Subscription Details</h2>
           <div className="grid grid-cols-2 gap-4 text-sm">
             <div>
-              <span className="text-slate-500">Status</span>
+              <span className="text-slate-400">Status</span>
               <p className="text-slate-200 capitalize">{subDetails.status ?? 'N/A'}</p>
             </div>
             <div>
-              <span className="text-slate-500">Current period ends</span>
+              <span className="text-slate-400">Current period ends</span>
               <p className="text-slate-200">
                 {new Date(subDetails.currentPeriodEnd).toLocaleDateString('en-US', {
                   month: 'long', day: 'numeric', year: 'numeric',
@@ -441,9 +441,9 @@ export default function BillingPage() {
           <div className="flex items-center gap-4 mb-4">
             <div className="text-2xl font-bold text-white tabular-nums">
               {creditsSummary.balance.remaining}
-              <span className="text-sm text-slate-500 font-normal"> / {creditsSummary.balance.limit}</span>
+              <span className="text-sm text-slate-400 font-normal"> / {creditsSummary.balance.limit}</span>
             </div>
-            <span className="text-xs text-slate-500">
+            <span className="text-xs text-slate-400">
               Resets {new Date(creditsSummary.balance.resetDate).toLocaleDateString('en-US', {
                 month: 'short', day: 'numeric',
               })}
@@ -454,7 +454,7 @@ export default function BillingPage() {
             <div className="overflow-x-auto">
               <table className="w-full text-xs">
                 <thead>
-                  <tr className="border-b border-white/5 text-left text-slate-500">
+                  <tr className="border-b border-white/5 text-left text-slate-400">
                     <th className="pb-2 pr-4">Date</th>
                     <th className="pb-2 pr-4">Operation</th>
                     <th className="pb-2 pr-4 text-right">Credits</th>
@@ -486,7 +486,7 @@ export default function BillingPage() {
           )}
 
           {creditsSummary.recentHistory.length === 0 && (
-            <p className="text-xs text-slate-500">No credit usage yet this billing period.</p>
+            <p className="text-xs text-slate-400">No credit usage yet this billing period.</p>
           )}
         </section>
       )}
@@ -495,7 +495,7 @@ export default function BillingPage() {
       {planInfo?.plan === 'agency' && <ActivityLogTable />}
 
       {/* Footer note */}
-      <p className="text-center text-xs text-slate-600">
+      <p className="text-center text-xs text-slate-500">
         All prices in USD. Starter and Growth billed monthly. Agency billed annually or custom.
       </p>
     </div>

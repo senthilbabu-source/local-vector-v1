@@ -41,11 +41,15 @@ export default function LeakTrendChart({ snapshots }: LeakTrendChartProps) {
       data-testid="leak-trend-chart"
     >
       <p
-        className="mb-3 text-xs font-bold uppercase tracking-widest text-slate-500"
+        className="mb-3 text-xs font-bold uppercase tracking-widest text-slate-400"
         style={{ fontFamily: 'var(--font-jetbrains-mono), monospace' }}
       >
         Leak Trend
       </p>
+      <div
+        role="img"
+        aria-label={`Revenue leak trend chart showing ${snapshots.length} weeks of data. ${trendingDown ? 'Trending down (improving).' : 'Trending up (worsening).'}`}
+      >
       <AreaChart
         data={data}
         index="date"
@@ -61,6 +65,7 @@ export default function LeakTrendChart({ snapshots }: LeakTrendChartProps) {
         yAxisWidth={60}
         className="h-52"
       />
+      </div>
     </div>
   );
 }

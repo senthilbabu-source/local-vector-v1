@@ -8,6 +8,8 @@ import Link from 'next/link';
 import { FirstVisitTooltip } from '@/components/ui/FirstVisitTooltip';
 import { BotFixInstructions } from './_components/BotFixInstructions';
 
+export const metadata = { title: 'Site Visitors | LocalVector.ai' };
+
 export default async function CrawlerAnalyticsPage() {
   const ctx = await getSafeAuthContext();
   if (!ctx) redirect('/login');
@@ -33,7 +35,7 @@ export default async function CrawlerAnalyticsPage() {
           <p className="mt-2 max-w-md mx-auto text-sm text-slate-400">
             AI crawlers will be automatically detected when they visit your published Magic Menu page.
           </p>
-          <div className="mt-4 space-y-1 text-sm text-slate-500">
+          <div className="mt-4 space-y-1 text-sm text-slate-400">
             <p>Make sure your Magic Menu is published to start tracking.</p>
             <p>Check back in a few days — AI bots crawl new pages weekly.</p>
           </div>
@@ -116,7 +118,7 @@ function BotRow({ bot }: { bot: BotActivity }) {
           <StatusIcon status={bot.status} />
           <div className="min-w-0">
             <p className="text-sm font-medium text-white truncate">{bot.label}</p>
-            <p className="text-xs text-slate-500">{bot.engine}</p>
+            <p className="text-xs text-slate-400">{bot.engine}</p>
           </div>
         </div>
         <div className="flex items-center gap-4 shrink-0">
@@ -142,7 +144,7 @@ function BlindSpotRow({ spot }: { spot: BlindSpot }) {
       <div className="flex items-center gap-2">
         <EyeOff className="h-3.5 w-3.5 text-alert-crimson shrink-0" />
         <p className="text-sm font-medium text-white">
-          {spot.label} <span className="text-slate-500">— {spot.engine} can&apos;t see your content</span>
+          {spot.label} <span className="text-slate-400">— {spot.engine} can&apos;t see your content</span>
         </p>
       </div>
       <p className="mt-1 ml-5.5 text-xs text-slate-400 flex items-start gap-1">

@@ -172,7 +172,7 @@ export default function SchemaHealthPanel({ isGrowthPlan }: SchemaHealthPanelPro
 
       {/* Last run */}
       {lastRunAt && (
-        <p className="text-xs text-slate-500 mb-3" data-testid="schema-last-run">
+        <p className="text-xs text-slate-400 mb-3" data-testid="schema-last-run">
           Last run: {formatRelativeTime(lastRunAt)}
         </p>
       )}

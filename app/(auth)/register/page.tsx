@@ -122,6 +122,13 @@ export default function RegisterPage() {
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-midnight-slate px-4">
+    {/* P6-FIX-27: Skip to register form */}
+    <a
+      href="#register-form"
+      className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-[60] focus:rounded-lg focus:bg-signal-green focus:px-4 focus:py-2 focus:text-deep-navy focus:font-semibold focus:text-sm"
+    >
+      Skip to registration form
+    </a>
     <div className="w-full max-w-md">
       {/* Card */}
       <div className="rounded-2xl bg-surface-dark px-8 py-10 border border-white/5">
@@ -151,7 +158,7 @@ export default function RegisterPage() {
           </div>
         )}
 
-        <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-4">
+        <form id="register-form" onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-4">
           {fields.map(({ name, label, type, placeholder, autoComplete }) => (
             <div key={name}>
               <label
@@ -180,7 +187,7 @@ export default function RegisterPage() {
           ))}
 
           {/* Password hint */}
-          <p style={{ fontSize: 12, color: '#64748B' }}>
+          <p style={{ fontSize: 12, color: '#94A3B8' }}>
             Must be 8+ characters with an uppercase letter, lowercase letter, and number.
           </p>
 
@@ -198,7 +205,7 @@ export default function RegisterPage() {
         {/* Divider */}
         <div className="my-6 flex items-center gap-3">
           <div className="h-px flex-1 bg-white/10" />
-          <span className="text-xs text-slate-500">or</span>
+          <span className="text-xs text-slate-400">or</span>
           <div className="h-px flex-1 bg-white/10" />
         </div>
 

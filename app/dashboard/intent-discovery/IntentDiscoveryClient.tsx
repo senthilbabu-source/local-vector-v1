@@ -45,7 +45,7 @@ export default function IntentDiscoveryClient({
         <p className="mt-0.5 text-sm text-slate-400">
           Discover what customers are asking AI that you don't have an answer for.
           {latestRunDate && (
-            <span className="ml-2 text-slate-500">
+            <span className="ml-2 text-slate-400">
               Last run: {new Date(latestRunDate).toLocaleDateString()}
             </span>
           )}
@@ -105,7 +105,7 @@ export default function IntentDiscoveryClient({
                     {gap.theme}
                   </span>
                   {gap.competitors_cited.length > 0 && (
-                    <span className="text-[10px] text-slate-500">
+                    <span className="text-[10px] text-slate-400">
                       Competitors: {gap.competitors_cited.join(', ')}
                     </span>
                   )}

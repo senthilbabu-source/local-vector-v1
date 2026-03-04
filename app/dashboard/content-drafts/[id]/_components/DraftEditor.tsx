@@ -142,7 +142,7 @@ export default function DraftEditor({
     >
       {/* AEO Score */}
       <div className="flex items-center justify-between">
-        <span className="text-xs text-slate-500">Live AEO Score</span>
+        <span className="text-xs text-slate-400">Live AEO Score</span>
         <span className={`text-sm font-bold tabular-nums ${aeoColor(liveAeo)}`}>
           {liveAeo}
         </span>
@@ -154,7 +154,7 @@ export default function DraftEditor({
           type="text"
           value={title}
           onChange={handleTitleChange}
-          className="w-full rounded-md border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder:text-slate-600 focus:border-electric-indigo focus:outline-none"
+          className="w-full rounded-md border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder:text-slate-500 focus:border-electric-indigo focus:outline-none"
           placeholder="Draft title"
           data-testid="draft-title-input"
         />
@@ -168,7 +168,7 @@ export default function DraftEditor({
           value={content}
           onChange={handleContentChange}
           rows={16}
-          className="w-full rounded-md border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder:text-slate-600 focus:border-electric-indigo focus:outline-none resize-y"
+          className="w-full rounded-md border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder:text-slate-500 focus:border-electric-indigo focus:outline-none resize-y"
           placeholder="Draft content..."
           data-testid="draft-content-textarea"
         />
@@ -180,7 +180,7 @@ export default function DraftEditor({
 
       {/* Target prompt (read-only) */}
       {targetPrompt && (
-        <div className="text-xs text-slate-500">
+        <div className="text-xs text-slate-400">
           <span className="font-medium">Target query:</span> &ldquo;{targetPrompt}&rdquo;
         </div>
       )}
@@ -250,7 +250,7 @@ export default function DraftEditor({
             type="button"
             onClick={handleArchive}
             disabled={isPending}
-            className="ml-auto rounded-md bg-white/5 px-4 py-1.5 text-xs font-semibold text-slate-500 hover:bg-white/10 transition disabled:opacity-50"
+            className="ml-auto rounded-md bg-white/5 px-4 py-1.5 text-xs font-semibold text-slate-400 hover:bg-white/10 transition disabled:opacity-50"
             data-testid="archive-btn"
           >
             Archive

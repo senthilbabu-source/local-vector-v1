@@ -130,7 +130,7 @@ export default function Step3Competitors({
               <button
                 type="button"
                 onClick={() => handleRemove(i)}
-                className="text-slate-500 hover:text-alert-crimson transition-colors text-lg leading-none"
+                className="text-slate-400 hover:text-alert-crimson transition-colors text-lg leading-none"
                 aria-label={`Remove ${name}`}
               >
                 &times;

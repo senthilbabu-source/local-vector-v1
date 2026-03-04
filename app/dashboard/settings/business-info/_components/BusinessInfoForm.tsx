@@ -728,7 +728,7 @@ export default function BusinessInfoForm({
                   />
                 </button>
 
-                <span className="text-xs text-slate-500 w-9 shrink-0">
+                <span className="text-xs text-slate-400 w-9 shrink-0">
                   {day.closed ? 'Closed' : 'Open'}
                 </span>
 
@@ -740,7 +740,7 @@ export default function BusinessInfoForm({
                       onChange={(e) => updateHours(key, 'open', e.target.value)}
                       className="flex-1 min-w-0 rounded-md border border-white/10 bg-surface-dark px-2 py-1 text-xs text-white focus:outline-none focus:ring-1 focus:ring-signal-green/50"
                     />
-                    <span className="text-slate-500 text-xs shrink-0">&ndash;</span>
+                    <span className="text-slate-400 text-xs shrink-0">&ndash;</span>
                     <input
                       type="time"
                       value={day.close}

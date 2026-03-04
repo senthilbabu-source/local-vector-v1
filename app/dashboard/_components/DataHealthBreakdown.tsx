@@ -77,7 +77,7 @@ export default function DataHealthBreakdown({
       data-testid="data-health-breakdown"
       className="mt-3 space-y-2 border-t border-white/5 pt-3"
     >
-      <p className="text-[10px] font-medium text-slate-500 uppercase tracking-wider">
+      <p className="text-[10px] font-medium text-slate-400 uppercase tracking-wider">
         Your Info Completeness: {score}/100
       </p>
 
@@ -94,7 +94,7 @@ export default function DataHealthBreakdown({
                 style={{ width: `${Math.min(100, pctWidth)}%` }}
               />
             </div>
-            <span className="w-10 text-right text-[10px] tabular-nums text-slate-500">
+            <span className="w-10 text-right text-[10px] tabular-nums text-slate-400">
               {dim.value}/{dim.max}
             </span>
           </div>

@@ -45,7 +45,7 @@ export function InfoTooltip({ content, label = 'More information', align = 'star
       <PopoverPrimitive.Trigger asChild>
         <button
           type="button"
-          className="inline-flex h-4 w-4 items-center justify-center rounded-full text-slate-500/60 transition-colors hover:text-slate-300 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1 focus:ring-offset-surface-dark"
+          className="inline-flex h-4 w-4 items-center justify-center rounded-full text-slate-400/60 transition-colors hover:text-slate-300 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1 focus:ring-offset-surface-dark"
           aria-label={label}
           data-testid="info-tooltip-trigger"
           onMouseEnter={handleMouseEnter}

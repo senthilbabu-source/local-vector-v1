@@ -117,7 +117,7 @@ export default function SeatUsageCard() {
               <>
                 {additionalSeats} additional seat{additionalSeats > 1 ? 's' : ''} &times; ${perSeatDollars} = ${monthlyCostDollars}/mo
                 <br />
-                <span className="text-slate-500">(first seat included in Agency plan)</span>
+                <span className="text-slate-400">(first seat included in Agency plan)</span>
               </>
             ) : (
               'First seat included in your Agency plan'

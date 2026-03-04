@@ -48,13 +48,13 @@ export function MetricCard({
         {icon}
         <div>
           <p className="text-sm font-semibold text-white leading-tight">{title}</p>
-          <p className="text-xs text-slate-600">{subtitle}</p>
+          <p className="text-xs text-slate-500">{subtitle}</p>
         </div>
       </div>
 
       <p className="text-4xl font-bold text-white tabular-nums">
         {score}
-        <span className="text-lg text-slate-600 font-normal">/{outOf}</span>
+        <span className="text-lg text-slate-500 font-normal">/{outOf}</span>
       </p>
 
       <div className="mt-3 h-2 w-full rounded-full bg-white/5 overflow-hidden">
@@ -68,7 +68,7 @@ export function MetricCard({
         />
       </div>
 
-      <p className="mt-4 text-xs text-slate-500 leading-relaxed">{description}</p>
+      <p className="mt-4 text-xs text-slate-400 leading-relaxed">{description}</p>
     </div>
   );
 }
@@ -122,7 +122,7 @@ export function PricingCard({
       )}
 
       <p
-        className="text-xs font-bold uppercase text-slate-500 mb-3"
+        className="text-xs font-bold uppercase text-slate-400 mb-3"
         style={{ letterSpacing: '0.1em' }}
       >
         {name}
@@ -134,7 +134,7 @@ export function PricingCard({
         >
           {price}
         </span>
-        {period && <span className="text-sm text-slate-500">{period}</span>}
+        {period && <span className="text-sm text-slate-400">{period}</span>}
       </div>
       <p className="text-sm text-slate-400 mb-6">{description}</p>
 

@@ -54,7 +54,7 @@ export default function StreamingSimulatePanel({
       <button
         type="button"
         onClick={handleSimulate}
-        className="inline-flex items-center gap-1.5 text-xs text-slate-500 hover:text-electric-indigo transition"
+        className="inline-flex items-center gap-1.5 text-xs text-slate-400 hover:text-electric-indigo transition"
         data-testid="simulate-query-btn"
       >
         <svg
@@ -89,7 +89,7 @@ export default function StreamingSimulatePanel({
         <button
           type="button"
           onClick={handleClose}
-          className="rounded p-0.5 text-slate-600 hover:bg-white/5 hover:text-slate-400 transition"
+          className="rounded p-0.5 text-slate-500 hover:bg-white/5 hover:text-slate-400 transition"
           aria-label="Close simulation"
         >
           <svg
@@ -105,7 +105,7 @@ export default function StreamingSimulatePanel({
         </button>
       </div>
 
-      <p className="text-xs text-slate-600">
+      <p className="text-xs text-slate-500">
         What would AI say if asked this query?
       </p>
 

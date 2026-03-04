@@ -32,11 +32,15 @@ export default function LeakBreakdownChart({ breakdown }: LeakBreakdownChartProp
       data-testid="leak-breakdown-chart"
     >
       <p
-        className="mb-3 text-xs font-bold uppercase tracking-widest text-slate-500"
+        className="mb-3 text-xs font-bold uppercase tracking-widest text-slate-400"
         style={{ fontFamily: 'var(--font-jetbrains-mono), monospace' }}
       >
         Leak Breakdown
       </p>
+      <div
+        role="img"
+        aria-label={`Revenue leak breakdown chart. Inaccuracies: $${Math.round(breakdown.hallucination_cost.high)}, SOV Gap: $${Math.round(breakdown.sov_gap_cost.high)}, Competitor Steal: $${Math.round(breakdown.competitor_steal_cost.high)}.`}
+      >
       <BarChart
         data={data}
         index="name"
@@ -52,6 +56,7 @@ export default function LeakBreakdownChart({ breakdown }: LeakBreakdownChartProp
         yAxisWidth={60}
         className="h-52"
       />
+      </div>
     </div>
   );
 }

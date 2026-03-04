@@ -101,12 +101,12 @@ export default function EngineResponseBlock({
           )}
         </div>
       ) : rawResponse !== null ? (
-        <p className="text-sm text-slate-500 italic">
+        <p className="text-sm text-slate-400 italic">
           Summary only — re-run check for full AI response
         </p>
       ) : rankPosition === null ? (
         <div>
-          <p className="text-sm text-slate-500">Not mentioned by this engine</p>
+          <p className="text-sm text-slate-400">Not mentioned by this engine</p>
           <a
             href="/dashboard/share-of-voice"
             className="mt-1 inline-block text-xs font-medium text-electric-indigo hover:text-electric-indigo/80 transition"
@@ -116,7 +116,7 @@ export default function EngineResponseBlock({
         </div>
       ) : (
         <div>
-          <p className="text-sm text-slate-500">No response recorded</p>
+          <p className="text-sm text-slate-400">No response recorded</p>
           <a
             href="/dashboard/share-of-voice"
             className="mt-1 inline-block text-xs font-medium text-electric-indigo hover:text-electric-indigo/80 transition"
@@ -133,7 +133,7 @@ export default function EngineResponseBlock({
           <ol className="space-y-1">
             {citedSources.map((source, i) => (
               <li key={source.url} className="text-xs text-slate-300">
-                <span className="text-slate-500 mr-1.5">{i + 1}.</span>
+                <span className="text-slate-400 mr-1.5">{i + 1}.</span>
                 <a
                   href={source.url}
                   target="_blank"
@@ -162,7 +162,7 @@ export default function EngineResponseBlock({
       {/* Competitor pills */}
       {mentionedCompetitors.length > 0 && (
         <div className="mt-3 flex flex-wrap gap-1.5">
-          <span className="text-xs text-slate-500">Competitors:</span>
+          <span className="text-xs text-slate-400">Competitors:</span>
           {mentionedCompetitors.map((name) => (
             <span
               key={name}

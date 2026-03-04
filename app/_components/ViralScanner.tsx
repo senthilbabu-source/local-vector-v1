@@ -269,7 +269,7 @@ export default function ViralScanner() {
           {SCAN_MESSAGES[msgIndex]}
         </p>
 
-        <p className="text-xs text-slate-600">Powered by LocalVector · Typically 5–10 seconds</p>
+        <p className="text-xs text-slate-500">Powered by LocalVector · Typically 5–10 seconds</p>
       </div>
     );
   }
@@ -320,7 +320,7 @@ export default function ViralScanner() {
       <p className="text-sm font-semibold text-white mb-1">
         Free AI Audit
       </p>
-      <p className="text-xs text-slate-500 mb-4">
+      <p className="text-xs text-slate-400 mb-4">
         No signup required. See how AI models describe your business right now.
       </p>
 
@@ -382,7 +382,7 @@ export default function ViralScanner() {
                   className="cursor-pointer px-4 py-2.5 text-sm hover:bg-white/5 transition"
                 >
                   <span className="block font-medium text-white">{s.name}</span>
-                  <span className="block truncate text-xs text-slate-500">{s.address}</span>
+                  <span className="block truncate text-xs text-slate-400">{s.address}</span>
                 </li>
               ))}
             </ul>
@@ -397,7 +397,7 @@ export default function ViralScanner() {
 
           {/* No results / search error hints */}
           {!isUrlMode && !isSearching && noResults && nameInput.trim().length >= 3 && phase === 'idle' && (
-            <p className="mt-1.5 text-xs text-slate-500">
+            <p className="mt-1.5 text-xs text-slate-400">
               No results.{' '}
               <button type="button" onClick={handleManualMode} className="text-electric-indigo underline underline-offset-2">
                 Enter manually →
@@ -405,7 +405,7 @@ export default function ViralScanner() {
             </p>
           )}
           {searchError && (
-            <p className="mt-1.5 text-xs text-slate-500">
+            <p className="mt-1.5 text-xs text-slate-400">
               Search unavailable.{' '}
               <button type="button" onClick={handleManualMode} className="text-electric-indigo underline underline-offset-2">
                 Enter manually →
@@ -443,7 +443,7 @@ export default function ViralScanner() {
             <button
               type="button"
               onClick={handleReset}
-              className="text-xs text-slate-500 underline underline-offset-2"
+              className="text-xs text-slate-400 underline underline-offset-2"
             >
               ← Search for business instead
             </button>
@@ -455,7 +455,7 @@ export default function ViralScanner() {
           <button
             type="button"
             onClick={handleManualMode}
-            className="text-xs text-slate-500 underline underline-offset-2"
+            className="text-xs text-slate-400 underline underline-offset-2"
           >
             Enter business name and city manually →
           </button>

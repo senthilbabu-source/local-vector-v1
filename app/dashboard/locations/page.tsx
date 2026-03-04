@@ -1,5 +1,7 @@
 import { redirect } from 'next/navigation';
 
+export const metadata = { title: 'Locations | LocalVector.ai' };
+
 // ---------------------------------------------------------------------------
 // Redirect: /dashboard/locations → /dashboard/settings/locations (Sprint 100)
 //

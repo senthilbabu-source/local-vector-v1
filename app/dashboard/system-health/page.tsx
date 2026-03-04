@@ -4,6 +4,8 @@ import { fetchCronHealth } from '@/lib/data/cron-health';
 import type { CronRunRow, CronJobSummary } from '@/lib/services/cron-health.service';
 import { Activity, CheckCircle, AlertTriangle, Clock, XCircle } from 'lucide-react';
 
+export const metadata = { title: 'System Status | LocalVector.ai' };
+
 export default async function SystemHealthPage() {
   const ctx = await getSafeAuthContext();
   if (!ctx) redirect('/login');
@@ -84,12 +86,12 @@ function CronJobCard({ job }: { job: CronJobSummary }) {
         <p className="text-xs font-medium text-slate-400 truncate">{job.label}</p>
         <StatusBadge status={job.lastStatus} />
       </div>
-      <p className="text-xs text-slate-500">{job.schedule}</p>
+      <p className="text-xs text-slate-400">{job.schedule}</p>
       <p className="mt-1.5 text-xs text-slate-400">
         {job.lastRunAt ? `Last: ${formatRelative(job.lastRunAt)}` : 'Never run'}
       </p>
       {job.lastDurationMs != null && (
-        <p className="text-xs text-slate-500">
+        <p className="text-xs text-slate-400">
           Duration: <span className="font-mono">{formatDuration(job.lastDurationMs)}</span>
         </p>
       )}
@@ -110,7 +112,7 @@ function RunRow({ run }: { run: CronRunRow }) {
           <StatusIcon status={run.status} />
           <div className="min-w-0">
             <p className="text-sm font-medium text-white truncate">{cronLabel(run.cron_name)}</p>
-            <p className="text-xs text-slate-500">{formatRelative(run.started_at)}</p>
+            <p className="text-xs text-slate-400">{formatRelative(run.started_at)}</p>
           </div>
         </div>
         <div className="flex items-center gap-4 shrink-0">
@@ -159,7 +161,7 @@ function StatusBadge({ status }: { status: CronRunRow['status'] | null }) {
     );
   }
   return (
-    <span className="inline-flex items-center rounded-md bg-slate-500/10 px-2 py-0.5 text-xs font-medium text-slate-500">
+    <span className="inline-flex items-center rounded-md bg-slate-500/10 px-2 py-0.5 text-xs font-medium text-slate-400">
       Pending
     </span>
   );
@@ -170,7 +172,7 @@ function StatusIcon({ status }: { status: CronRunRow['status'] }) {
   if (status === 'running') return <Clock className="h-4 w-4 text-electric-indigo shrink-0" />;
   if (status === 'failed') return <XCircle className="h-4 w-4 text-alert-crimson shrink-0" />;
   if (status === 'timeout') return <AlertTriangle className="h-4 w-4 text-alert-amber shrink-0" />;
-  return <Clock className="h-4 w-4 text-slate-500 shrink-0" />;
+  return <Clock className="h-4 w-4 text-slate-400 shrink-0" />;
 }
 
 // ---------------------------------------------------------------------------

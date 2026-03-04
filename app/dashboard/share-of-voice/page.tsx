@@ -18,6 +18,8 @@ import GapAlertCard from './_components/GapAlertCard';
 import CategoryBreakdownChart from './_components/CategoryBreakdownChart';
 import SOVVerdictPanel from './_components/SOVVerdictPanel';
 
+export const metadata = { title: 'AI Mentions | LocalVector.ai' };
+
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
@@ -291,19 +293,19 @@ export default async function ShareOfVoicePage() {
           </h2>
           <div className="space-y-3">
             <div className="flex items-center justify-between">
-              <span className="text-xs text-slate-500">Queries Tracked</span>
+              <span className="text-xs text-slate-400">Queries Tracked</span>
               <span className="text-sm font-semibold text-white tabular-nums">
                 {queries.length}
               </span>
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-xs text-slate-500">Locations</span>
+              <span className="text-xs text-slate-400">Locations</span>
               <span className="text-sm font-semibold text-white tabular-nums">
                 {locations.length}
               </span>
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-xs text-slate-500">Last Scan</span>
+              <span className="text-xs text-slate-400">Last Scan</span>
               <span className="text-sm font-medium text-slate-300 tabular-nums">
                 {latest
                   ? new Date(latest.snapshot_date).toLocaleDateString('en-US', {
@@ -315,14 +317,14 @@ export default async function ShareOfVoicePage() {
               </span>
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-xs text-slate-500">First Mover Opps</span>
+              <span className="text-xs text-slate-400">First Mover Opps</span>
               <span className="text-sm font-semibold text-amber-400 tabular-nums">
                 {firstMoverOpps.length}
               </span>
             </div>
             {pausedCount > 0 && (
               <div className="flex items-center justify-between">
-                <span className="text-xs text-slate-500">Paused Queries</span>
+                <span className="text-xs text-slate-400">Paused Queries</span>
                 <span className="text-sm font-medium text-slate-400 tabular-nums">
                   {pausedCount}
                 </span>

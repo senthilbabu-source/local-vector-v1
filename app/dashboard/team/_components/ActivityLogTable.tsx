@@ -120,12 +120,12 @@ export default function ActivityLogTable() {
       <div className="overflow-x-auto">
         <table className="w-full text-xs text-left">
           <thead>
-            <tr className="border-b border-white/5 text-slate-500">
-              <th className="pb-2 pr-4 font-medium">Date</th>
-              <th className="pb-2 pr-4 font-medium">Event</th>
-              <th className="pb-2 pr-4 font-medium">Actor</th>
-              <th className="pb-2 pr-4 font-medium">Target</th>
-              <th className="pb-2 font-medium">Role</th>
+            <tr className="border-b border-white/5 text-slate-400">
+              <th scope="col" className="pb-2 pr-4 font-medium">Date</th>
+              <th scope="col" className="pb-2 pr-4 font-medium">Event</th>
+              <th scope="col" className="pb-2 pr-4 font-medium">Actor</th>
+              <th scope="col" className="pb-2 pr-4 font-medium">Target</th>
+              <th scope="col" className="pb-2 font-medium">Role</th>
             </tr>
           </thead>
           <tbody>
@@ -165,7 +165,7 @@ export default function ActivityLogTable() {
           disabled={page <= 1 || loading}
           className="flex items-center gap-1 disabled:opacity-40 disabled:cursor-not-allowed hover:text-white transition"
         >
-          <ChevronLeft className="h-3.5 w-3.5" />
+          <ChevronLeft className="h-3.5 w-3.5" aria-hidden="true" />
           Previous
         </button>
 
@@ -180,7 +180,7 @@ export default function ActivityLogTable() {
           className="flex items-center gap-1 disabled:opacity-40 disabled:cursor-not-allowed hover:text-white transition"
         >
           Next
-          <ChevronRight className="h-3.5 w-3.5" />
+          <ChevronRight className="h-3.5 w-3.5" aria-hidden="true" />
         </button>
       </div>
     </div>

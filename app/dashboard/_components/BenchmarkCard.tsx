@@ -90,7 +90,7 @@ export default function BenchmarkCard({ orgId, orgName }: BenchmarkCardProps) {
           Industry Benchmark
         </h3>
         <p
-          className="text-xs text-slate-500"
+          className="text-xs text-slate-400"
           data-testid="benchmark-insufficient-data"
         >
           Not enough businesses in your area to compute benchmarks yet. We need
@@ -131,7 +131,7 @@ export default function BenchmarkCard({ orgId, orgName }: BenchmarkCardProps) {
       {/* Stats grid */}
       <div className="grid grid-cols-2 gap-3 mb-4 text-xs">
         <div>
-          <span className="text-slate-500">Your score</span>
+          <span className="text-slate-400">Your score</span>
           <p
             className="text-white font-semibold tabular-nums"
             data-testid="benchmark-your-score"
@@ -140,7 +140,7 @@ export default function BenchmarkCard({ orgId, orgName }: BenchmarkCardProps) {
           </p>
         </div>
         <div>
-          <span className="text-slate-500">Industry median</span>
+          <span className="text-slate-400">Industry median</span>
           <p
             className="text-white font-semibold tabular-nums"
             data-testid="benchmark-industry-median"
@@ -149,13 +149,13 @@ export default function BenchmarkCard({ orgId, orgName }: BenchmarkCardProps) {
           </p>
         </div>
         <div>
-          <span className="text-slate-500">Top quartile</span>
+          <span className="text-slate-400">Top quartile</span>
           <p className="text-white font-semibold tabular-nums">
             {current.top_quartile_threshold}%
           </p>
         </div>
         <div>
-          <span className="text-slate-500">Top 10%</span>
+          <span className="text-slate-400">Top 10%</span>
           <p className="text-white font-semibold tabular-nums">
             {current.top_10pct_threshold}%
           </p>
@@ -164,7 +164,7 @@ export default function BenchmarkCard({ orgId, orgName }: BenchmarkCardProps) {
 
       {/* Sample count */}
       <p
-        className="text-[10px] text-slate-500 mb-4"
+        className="text-[10px] text-slate-400 mb-4"
         data-testid="benchmark-sample-count"
       >
         Based on {current.sample_count} businesses this week

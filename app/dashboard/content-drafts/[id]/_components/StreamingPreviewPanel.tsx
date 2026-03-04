@@ -94,7 +94,7 @@ export default function StreamingPreviewPanel({
         <button
           type="button"
           onClick={handleClose}
-          className="rounded p-0.5 text-slate-500 hover:bg-white/5 hover:text-slate-300 transition"
+          className="rounded p-0.5 text-slate-400 hover:bg-white/5 hover:text-slate-300 transition"
           aria-label="Close preview"
         >
           <svg
@@ -171,7 +171,7 @@ export default function StreamingPreviewPanel({
 
       {/* Token count */}
       {state.status === 'complete' && state.total_tokens != null && (
-        <p className="text-xs text-slate-600">~{state.total_tokens} tokens</p>
+        <p className="text-xs text-slate-500">~{state.total_tokens} tokens</p>
       )}
     </div>
   );

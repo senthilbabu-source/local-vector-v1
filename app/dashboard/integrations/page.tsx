@@ -26,6 +26,8 @@ import { getListingHealth } from './_utils/health';
 import { PLATFORM_SYNC_CONFIG } from '@/lib/integrations/platform-config';
 import type { VerificationResult } from '@/lib/integrations/detect-discrepancies';
 
+export const metadata = { title: 'Listings | LocalVector.ai' };
+
 // ---------------------------------------------------------------------------
 // Platform display names for verification rows (Sprint M)
 // ---------------------------------------------------------------------------
@@ -221,26 +223,26 @@ export default async function IntegrationsPage() {
       {locations.length > 0 && (
         <div className="flex flex-wrap gap-4">
           <div className="rounded-xl bg-surface-dark px-4 py-3 ring-1 ring-white/5">
-            <p className="text-xs text-slate-500">Locations</p>
+            <p className="text-xs text-slate-400">Locations</p>
             <p className="mt-0.5 text-2xl font-bold tabular-nums text-white">
               {locations.length}
             </p>
           </div>
           <div className="rounded-xl bg-surface-dark px-4 py-3 ring-1 ring-white/5">
-            <p className="text-xs text-slate-500">Platforms connected</p>
+            <p className="text-xs text-slate-400">Platforms connected</p>
             <p className="mt-0.5 text-2xl font-bold tabular-nums text-emerald-400">
               {totalConnected}
             </p>
           </div>
           <div className="rounded-xl bg-surface-dark px-4 py-3 ring-1 ring-white/5">
-            <p className="text-xs text-slate-500">Not connected</p>
-            <p className="mt-0.5 text-2xl font-bold tabular-nums text-slate-500">
+            <p className="text-xs text-slate-400">Not connected</p>
+            <p className="mt-0.5 text-2xl font-bold tabular-nums text-slate-400">
               {totalPossible - totalConnected}
             </p>
           </div>
           {healthyCount > 0 && (
             <div className="rounded-xl bg-surface-dark px-4 py-3 ring-1 ring-white/5">
-              <p className="text-xs text-slate-500">Healthy</p>
+              <p className="text-xs text-slate-400">Healthy</p>
               <p className="mt-0.5 text-2xl font-bold tabular-nums text-emerald-400">
                 {healthyCount}
               </p>
@@ -248,7 +250,7 @@ export default async function IntegrationsPage() {
           )}
           {needsAttentionCount > 0 && (
             <div className="rounded-xl bg-surface-dark px-4 py-3 ring-1 ring-white/5">
-              <p className="text-xs text-slate-500">Needs attention</p>
+              <p className="text-xs text-slate-400">Needs attention</p>
               <p className="mt-0.5 text-2xl font-bold tabular-nums text-amber-400">
                 {needsAttentionCount}
               </p>
@@ -262,7 +264,7 @@ export default async function IntegrationsPage() {
         <div className="flex items-center justify-between border-b border-white/5 bg-midnight-slate px-5 py-3">
           <div>
             <h2 className="text-sm font-semibold text-white">Google Business Profile</h2>
-            <p className="mt-0.5 text-xs text-slate-500">
+            <p className="mt-0.5 text-xs text-slate-400">
               Connect your GBP account to enable auto-publishing and real-time sync.
             </p>
           </div>
@@ -284,7 +286,7 @@ export default async function IntegrationsPage() {
           <div className="flex items-center justify-between border-b border-white/5 bg-midnight-slate px-5 py-3">
             <div>
               <h2 className="text-sm font-semibold text-white">WordPress</h2>
-              <p className="mt-0.5 text-xs text-slate-500">
+              <p className="mt-0.5 text-xs text-slate-400">
                 Connect your WordPress site to auto-publish content drafts as pages.
               </p>
             </div>
@@ -304,7 +306,7 @@ export default async function IntegrationsPage() {
         <div className="flex flex-col items-center justify-center rounded-xl bg-surface-dark px-6 py-16 text-center ring-1 ring-white/5">
           <svg
             xmlns="http://www.w3.org/2000/svg"
-            className="mx-auto h-10 w-10 text-slate-600"
+            className="mx-auto h-10 w-10 text-slate-500"
             fill="none"
             viewBox="0 0 24 24"
             stroke="currentColor"
@@ -317,7 +319,7 @@ export default async function IntegrationsPage() {
             />
           </svg>
           <p className="mt-3 text-sm font-medium text-slate-400">No locations yet</p>
-          <p className="mt-1 text-xs text-slate-500">
+          <p className="mt-1 text-xs text-slate-400">
             You need at least one location before managing platform listings.
           </p>
           <Link
@@ -345,7 +347,7 @@ export default async function IntegrationsPage() {
             <div className="flex items-center justify-between border-b border-white/5 bg-midnight-slate px-5 py-3">
               <div>
                 <h2 className="text-sm font-semibold text-white">{locationLabel}</h2>
-                <p className="mt-0.5 text-xs text-slate-500">
+                <p className="mt-0.5 text-xs text-slate-400">
                   {connected}/{BIG_6_PLATFORMS.length} platforms connected
                 </p>
               </div>
@@ -405,7 +407,7 @@ export default async function IntegrationsPage() {
 
       {/* ── Informational footer note ───────────────────────────────── */}
       {locations.length > 0 && (
-        <p className="text-center text-xs text-slate-600">
+        <p className="text-center text-xs text-slate-500">
           Google Business Profile syncs automatically via OAuth. For Yelp, Bing,
           and Tripadvisor, enter your listing URLs so AI engines can reference them
           directly. Apple Maps and Facebook automated sync coming 2026.

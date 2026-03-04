@@ -124,7 +124,7 @@ export default function AddMenuModal({ locations }: Props) {
             <div className="mb-5 flex items-center justify-between">
               <div>
                 <h2 className="text-lg font-semibold text-slate-900">Create Magic Menu</h2>
-                <p className="mt-0.5 text-xs text-slate-500">
+                <p className="mt-0.5 text-xs text-slate-400">
                   Link a menu to one of your locations so AI can read it.
                 </p>
               </div>

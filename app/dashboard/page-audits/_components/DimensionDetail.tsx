@@ -43,7 +43,7 @@ export default function DimensionDetail({ dimensionKey, recommendations, onGener
                   +{rec.impactPoints} pts
                 </span>
               </div>
-              <p className="text-xs text-slate-500">{rec.fix}</p>
+              <p className="text-xs text-slate-400">{rec.fix}</p>
               {rec.schemaType && onGenerateSchema && (
                 <button
                   onClick={() => onGenerateSchema(rec.schemaType!)}

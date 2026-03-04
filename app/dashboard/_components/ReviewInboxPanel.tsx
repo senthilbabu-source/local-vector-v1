@@ -188,7 +188,7 @@ export default function ReviewInboxPanel({ isGrowthPlan }: ReviewInboxPanelProps
 
       {/* Last synced */}
       {lastSynced && (
-        <p className="text-xs text-slate-500 mb-3" data-testid="review-last-synced">
+        <p className="text-xs text-slate-400 mb-3" data-testid="review-last-synced">
           Last synced: {formatRelativeTime(lastSynced)}
         </p>
       )}
@@ -221,7 +221,7 @@ export default function ReviewInboxPanel({ isGrowthPlan }: ReviewInboxPanelProps
             const sentiment = SENTIMENT_COLORS[review.sentiment_label as SentimentLabel] ?? SENTIMENT_COLORS.neutral;
             const statusLabel = STATUS_LABELS[review.response_status] ?? review.response_status;
             const stars = Array.from({ length: 5 }, (_, i) => (
-              <span key={i} className={i < review.rating ? 'text-yellow-400' : 'text-slate-600'}>
+              <span key={i} className={i < review.rating ? 'text-yellow-400' : 'text-slate-500'}>
                 {'\u2605'}
               </span>
             ));
@@ -235,7 +235,7 @@ export default function ReviewInboxPanel({ isGrowthPlan }: ReviewInboxPanelProps
                 <div className="flex items-center gap-4 flex-1 min-w-0">
                   <div className="min-w-[100px]">
                     <p className="text-sm font-medium text-white truncate">{review.reviewer_name}</p>
-                    <p className="text-xs text-slate-500 capitalize">{review.platform}</p>
+                    <p className="text-xs text-slate-400 capitalize">{review.platform}</p>
                   </div>
                   <div className="text-sm">{stars}</div>
                   <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${sentiment.bg} ${sentiment.text}`}>
@@ -269,7 +269,7 @@ export default function ReviewInboxPanel({ isGrowthPlan }: ReviewInboxPanelProps
                   {!['published', 'skipped'].includes(review.response_status) && (
                     <button
                       onClick={() => handleSkip(review.id)}
-                      className="text-xs text-slate-500 hover:text-slate-300 transition"
+                      className="text-xs text-slate-400 hover:text-slate-300 transition"
                       data-testid={`review-skip-${review.id}`}
                     >
                       Skip

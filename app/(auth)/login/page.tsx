@@ -73,6 +73,13 @@ export default function LoginPage() {
 
   return (
     <div className="flex min-h-screen">
+      {/* P6-FIX-27: Skip to login form */}
+      <a
+        href="#login-form"
+        className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-[60] focus:rounded-lg focus:bg-signal-green focus:px-4 focus:py-2 focus:text-deep-navy focus:font-semibold focus:text-sm"
+      >
+        Skip to login form
+      </a>
 
       {/* ── Left panel — Fear/Greed marketing copy ─────────────────────── */}
       <section
@@ -163,7 +170,7 @@ export default function LoginPage() {
               </div>
             )}
 
-            <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-5">
+            <form id="login-form" onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-5">
               {/* Email */}
               <div>
                 <label
@@ -238,7 +245,7 @@ export default function LoginPage() {
             {/* Divider */}
             <div className="my-6 flex items-center gap-3">
               <div className="h-px flex-1 bg-white/10" />
-              <span className="text-xs text-slate-500">or</span>
+              <span className="text-xs text-slate-400">or</span>
               <div className="h-px flex-1 bg-white/10" />
             </div>
 

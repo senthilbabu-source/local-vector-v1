@@ -106,7 +106,7 @@ export default function LocationCard({ location, isOwner }: LocationCardProps) {
 
       <p className="text-sm text-slate-400 mb-1">{formatAddress()}</p>
       {location.address_line1 && (
-        <p className="text-xs text-slate-500 mb-2">{location.address_line1}</p>
+        <p className="text-xs text-slate-400 mb-2">{location.address_line1}</p>
       )}
 
       {/* Error message */}
@@ -115,7 +115,7 @@ export default function LocationCard({ location, isOwner }: LocationCardProps) {
       )}
 
       <div className="flex items-center justify-between mt-3 pt-3 border-t border-white/5">
-        <p className="text-xs text-slate-500">
+        <p className="text-xs text-slate-400">
           {location.phone ?? 'No phone'}
         </p>
         <div className="flex items-center gap-1">
@@ -164,7 +164,7 @@ export default function LocationCard({ location, isOwner }: LocationCardProps) {
 
                   {/* Primary locations show message */}
                   {location.is_primary && (
-                    <p className="px-3 py-2 text-xs text-slate-500">
+                    <p className="px-3 py-2 text-xs text-slate-400">
                       Primary locations cannot be archived
                     </p>
                   )}

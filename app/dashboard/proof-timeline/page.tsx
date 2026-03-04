@@ -5,6 +5,8 @@ import { fetchProofTimeline } from '@/lib/data/proof-timeline';
 import { TrendingUp, ArrowUpRight, ArrowDownRight, CheckCircle, AlertTriangle, Clock } from 'lucide-react';
 import type { TimelineEvent } from '@/lib/services/proof-timeline.service';
 
+export const metadata = { title: 'Update Tracking | LocalVector.ai' };
+
 // ── Impact color helpers (literal Tailwind classes — AI_RULES §12) ──────
 
 function impactTextColor(impact: TimelineEvent['impact']): string {
@@ -114,7 +116,7 @@ export default async function ProofTimelinePage() {
               </span>
             </div>
           ) : (
-            <p className="mt-1 text-lg font-bold text-slate-500">—</p>
+            <p className="mt-1 text-lg font-bold text-slate-400">—</p>
           )}
         </div>
 
@@ -194,7 +196,7 @@ export default async function ProofTimelinePage() {
                             {event.description}
                           </p>
                           {event.metrics?.sovPercent !== undefined && (
-                            <p className="mt-1 text-xs text-slate-500">
+                            <p className="mt-1 text-xs text-slate-400">
                               SOV: {event.metrics.sovPercent.toFixed(0)}%
                               {event.metrics.pageAuditScore !== undefined &&
                                 ` · Audit: ${event.metrics.pageAuditScore}/100`}

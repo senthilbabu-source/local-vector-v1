@@ -10,6 +10,8 @@ import type {
   ActionVerb,
 } from '@/lib/services/content-calendar.service';
 
+export const metadata = { title: 'Calendar | LocalVector.ai' };
+
 // ── Constants ─────────────────────────────────────────────────────────────
 
 const ACTION_COLORS: Record<ActionVerb, string> = {
@@ -76,7 +78,7 @@ function SignalSummaryStrip({
           key={s.label}
           className="rounded-xl border border-white/5 bg-surface-dark px-4 py-3"
         >
-          <p className="text-xs text-slate-500">{s.label}</p>
+          <p className="text-xs text-slate-400">{s.label}</p>
           <p className="mt-0.5 flex items-center gap-1.5 text-lg font-bold text-white">
             <span role="img" aria-label={s.label}>
               {s.emoji}
@@ -125,7 +127,7 @@ function RecommendationCard({ rec }: { rec: ContentRecommendation }) {
       {/* Urgency bar */}
       <div className="space-y-1" data-testid="urgency-bar">
         <div className="flex items-center justify-between">
-          <span className="text-[10px] font-medium text-slate-500 uppercase tracking-wider">
+          <span className="text-[10px] font-medium text-slate-400 uppercase tracking-wider">
             Urgency
           </span>
           <span className="font-mono text-xs text-slate-400">
@@ -169,7 +171,7 @@ function TimeBucketSection({
 
   return (
     <div className="space-y-3" data-testid={`bucket-${label.toLowerCase().replace(/\s+/g, '-')}`}>
-      <h2 className="text-sm font-semibold uppercase tracking-wider text-slate-500">
+      <h2 className="text-sm font-semibold uppercase tracking-wider text-slate-400">
         {label}
       </h2>
       {recommendations.map((rec) => (

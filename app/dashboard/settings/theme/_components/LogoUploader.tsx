@@ -110,7 +110,7 @@ export default function LogoUploader({ currentLogoUrl, onLogoChange }: LogoUploa
           className="rounded-lg border-2 border-dashed border-white/10 p-6 text-center"
         >
           <p className="text-sm text-slate-400 mb-2">Upload your organization logo</p>
-          <p className="text-xs text-slate-500">PNG, JPEG, WebP, or SVG. Max 2MB.</p>
+          <p className="text-xs text-slate-400">PNG, JPEG, WebP, or SVG. Max 2MB.</p>
         </div>
       )}
 

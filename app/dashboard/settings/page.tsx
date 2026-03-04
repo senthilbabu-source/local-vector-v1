@@ -10,6 +10,8 @@ import { getOrCreateOrgSettings } from '@/lib/settings';
 import type { OrgSettings } from '@/lib/settings/types';
 import { canManageApiKeys, type PlanTier } from '@/lib/plan-enforcer';
 
+export const metadata = { title: 'Settings | LocalVector.ai' };
+
 // ---------------------------------------------------------------------------
 // SettingsPage — Server Component (Sprint 24B + Sprint 62 + Sprint 121)
 //

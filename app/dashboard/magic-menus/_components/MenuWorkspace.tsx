@@ -55,7 +55,7 @@ function StepIndicator({ current }: { current: WorkspaceView }) {
                 'flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-bold transition',
                 done   ? 'bg-truth-emerald text-white' :
                 active ? 'bg-electric-indigo text-white' :
-                         'bg-white/10 text-slate-500',
+                         'bg-white/10 text-slate-400',
               ].join(' ')}
               aria-current={active ? 'step' : undefined}
             >
@@ -65,7 +65,7 @@ function StepIndicator({ current }: { current: WorkspaceView }) {
             <span
               className={[
                 'ml-1.5 text-xs font-medium',
-                active ? 'text-white' : done ? 'text-truth-emerald' : 'text-slate-500',
+                active ? 'text-white' : done ? 'text-truth-emerald' : 'text-slate-400',
               ].join(' ')}
             >
               {step.label}
@@ -182,7 +182,7 @@ function PropagationPill({
     <span
       className={[
         'inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium',
-        done ? 'bg-truth-emerald/15 text-truth-emerald' : 'bg-white/5 text-slate-500',
+        done ? 'bg-truth-emerald/15 text-truth-emerald' : 'bg-white/5 text-slate-400',
       ].join(' ')}
     >
       {done ? '✓' : '○'} {label}

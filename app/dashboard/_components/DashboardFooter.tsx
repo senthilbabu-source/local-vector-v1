@@ -26,7 +26,7 @@ export default async function DashboardFooter() {
         <a
           href="https://localvector.ai"
           data-testid="powered-by-link"
-          className="text-xs text-slate-500 hover:text-slate-400 transition-colors"
+          className="text-xs text-slate-400 hover:text-slate-400 transition-colors"
           target="_blank"
           rel="noopener noreferrer"
         >

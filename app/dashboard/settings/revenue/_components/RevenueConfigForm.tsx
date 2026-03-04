@@ -44,7 +44,7 @@ export default function RevenueConfigForm({ config }: RevenueConfigFormProps) {
 
       <section className="rounded-2xl bg-surface-dark border border-white/5 p-6">
         <h2 className="text-sm font-semibold text-white mb-1">Revenue Inputs</h2>
-        <p className="text-xs text-slate-500 mb-5">
+        <p className="text-xs text-slate-400 mb-5">
           Customize the values used to estimate your monthly revenue leak from AI inaccuracies.
         </p>
 
@@ -65,7 +65,7 @@ export default function RevenueConfigForm({ config }: RevenueConfigFormProps) {
               required
               className="w-full rounded-xl bg-midnight-slate border border-white/10 px-3 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-signal-green"
             />
-            <p className="mt-1 text-xs text-slate-600">Average customer spend per visit</p>
+            <p className="mt-1 text-xs text-slate-500">Average customer spend per visit</p>
           </div>
 
           {/* Monthly Searches */}
@@ -84,7 +84,7 @@ export default function RevenueConfigForm({ config }: RevenueConfigFormProps) {
               required
               className="w-full rounded-xl bg-midnight-slate border border-white/10 px-3 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-signal-green"
             />
-            <p className="mt-1 text-xs text-slate-600">Estimated AI-driven searches in your area per month</p>
+            <p className="mt-1 text-xs text-slate-500">Estimated AI-driven searches in your area per month</p>
           </div>
 
           {/* Local Conversion Rate */}
@@ -103,7 +103,7 @@ export default function RevenueConfigForm({ config }: RevenueConfigFormProps) {
               required
               className="w-full rounded-xl bg-midnight-slate border border-white/10 px-3 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-signal-green"
             />
-            <p className="mt-1 text-xs text-slate-600">% of searchers who become customers (typically 2–5%)</p>
+            <p className="mt-1 text-xs text-slate-500">% of searchers who become customers (typically 2–5%)</p>
           </div>
 
           {/* Walk-away Rate */}
@@ -122,7 +122,7 @@ export default function RevenueConfigForm({ config }: RevenueConfigFormProps) {
               required
               className="w-full rounded-xl bg-midnight-slate border border-white/10 px-3 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-signal-green"
             />
-            <p className="mt-1 text-xs text-slate-600">% of customers who leave when they encounter wrong AI info</p>
+            <p className="mt-1 text-xs text-slate-500">% of customers who leave when they encounter wrong AI info</p>
           </div>
 
           {status && (

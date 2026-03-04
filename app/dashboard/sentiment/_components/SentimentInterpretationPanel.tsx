@@ -132,7 +132,7 @@ export function SentimentInterpretationPanel({
       {/* Per-engine breakdown */}
       {sorted.length > 0 && (
         <div className="space-y-2" data-testid="sentiment-model-breakdown">
-          <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 font-mono">
+          <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 font-mono">
             By AI model
           </p>
 
@@ -201,7 +201,7 @@ export function SentimentInterpretationPanel({
         bestEngine[1].averageScore > 0.3 &&
         worstEngine &&
         worstEngine[1].averageScore < 0 && (
-          <p className="text-xs text-slate-500">
+          <p className="text-xs text-slate-400">
             {engineName(bestEngine[0])} describes you well (+
             {bestEngine[1].averageScore.toFixed(2)}) — focus on bringing the
             other models up to the same level.

@@ -11,6 +11,8 @@ import { redirect } from 'next/navigation';
 import { getSafeAuthContext } from '@/lib/auth';
 import Chat from './_components/Chat';
 
+export const metadata = { title: 'AI Assistant | LocalVector.ai' };
+
 export default async function AIAssistantPage() {
     const ctx = await getSafeAuthContext();
     if (!ctx) {

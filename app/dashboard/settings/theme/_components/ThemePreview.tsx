@@ -75,10 +75,10 @@ export default function ThemePreview({
 
           {/* Mock form */}
           <div className="space-y-2">
-            <div className="rounded border border-white/10 bg-[#0A1628] px-3 py-1.5 text-xs text-slate-500">
+            <div className="rounded border border-white/10 bg-[#0A1628] px-3 py-1.5 text-xs text-slate-400">
               you@example.com
             </div>
-            <div className="rounded border border-white/10 bg-[#0A1628] px-3 py-1.5 text-xs text-slate-500">
+            <div className="rounded border border-white/10 bg-[#0A1628] px-3 py-1.5 text-xs text-slate-400">
               ********
             </div>
             <div
@@ -91,7 +91,7 @@ export default function ThemePreview({
 
           {/* Powered by */}
           {showPoweredBy && (
-            <p className="mt-4 text-center text-[10px] text-slate-500">
+            <p className="mt-4 text-center text-[10px] text-slate-400">
               Powered by LocalVector
             </p>
           )}

@@ -171,7 +171,7 @@ export default function ListingHealthPanel({ isGrowthPlan }: ListingHealthPanelP
 
       {/* Last checked */}
       {lastChecked && (
-        <p className="text-xs text-slate-500 mb-3" data-testid="nap-last-checked">
+        <p className="text-xs text-slate-400 mb-3" data-testid="nap-last-checked">
           Last checked: {formatRelativeTime(lastChecked)}
         </p>
       )}

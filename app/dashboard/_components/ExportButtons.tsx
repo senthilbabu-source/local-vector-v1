@@ -40,7 +40,7 @@ export default function ExportButtons({
             className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition ${
               canExport
                 ? 'bg-electric-indigo/10 text-electric-indigo hover:bg-electric-indigo/20 border border-electric-indigo/20'
-                : 'bg-white/5 text-slate-500 cursor-not-allowed opacity-50 border border-white/5'
+                : 'bg-white/5 text-slate-400 cursor-not-allowed opacity-50 border border-white/5'
             }`}
           >
             <svg
@@ -79,7 +79,7 @@ export default function ExportButtons({
             className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition ${
               canExport
                 ? 'bg-electric-indigo/10 text-electric-indigo hover:bg-electric-indigo/20 border border-electric-indigo/20'
-                : 'bg-white/5 text-slate-500 cursor-not-allowed opacity-50 border border-white/5'
+                : 'bg-white/5 text-slate-400 cursor-not-allowed opacity-50 border border-white/5'
             }`}
           >
             <svg

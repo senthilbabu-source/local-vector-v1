@@ -162,9 +162,9 @@ export default function CompareSection() {
                   borderBottom: '1px solid rgba(255,255,255,0.05)',
                 }}
               >
-                <span className="text-xs font-bold uppercase text-slate-500" style={{ letterSpacing: '0.08em' }}>Capability</span>
+                <span className="text-xs font-bold uppercase text-slate-400" style={{ letterSpacing: '0.08em' }}>Capability</span>
                 <span className="text-xs font-bold text-center" style={{ color: '#00F5A0' }}>LocalVector</span>
-                <span className="text-xs font-bold text-center text-slate-500">Listing Tools</span>
+                <span className="text-xs font-bold text-center text-slate-400">Listing Tools</span>
               </div>
 
               {([
@@ -193,7 +193,7 @@ export default function CompareSection() {
                   </span>
                   <span className="text-center text-base">
                     {them
-                      ? <span className="text-slate-500">&check;</span>
+                      ? <span className="text-slate-400">&check;</span>
                       : <span style={{ color: '#EF4444', opacity: 0.6 }}>&times;</span>
                     }
                   </span>

@@ -55,7 +55,7 @@ export default function FirstMoverCard({ id, queryText, createdAt }: FirstMoverC
           <p className="text-sm font-medium text-white leading-snug">
             &ldquo;{queryText}&rdquo;
           </p>
-          <p className="text-xs text-slate-500 mt-1">
+          <p className="text-xs text-slate-400 mt-1">
             AI isn&apos;t recommending anyone for this query &middot; {dateLabel}
           </p>
         </div>

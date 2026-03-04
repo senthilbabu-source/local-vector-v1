@@ -3923,3 +3923,49 @@ SOV page shows "Complete your profile" banner when `hours_data` or `amenities` a
 - Zero regressions. 5745 tests passing, 376 files.
 
 ---
+
+## §191. Accessibility — WCAG 2.1 AA Compliance (P6-FIX-27, 2026-03-03)
+
+### Architecture Rules
+
+1. **Skip links:** Every layout MUST have a skip-to-content link as first focusable element. Dashboard: `<a href="#main-content">`. Auth pages: `<a href="#login-form">` / `<a href="#register-form">`.
+
+2. **Semantic landmarks:** Dashboard: `<header>` (TopBar), `<aside>` + `<nav>` (Sidebar), `<main id="main-content" tabIndex={-1}>`.
+
+3. **Focus-visible ring:** Global rule in `globals.css`: `*:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }`. Never suppress focus rings without replacement.
+
+4. **Nav group accessibility:** Sidebar nav groups use `role="group"` + `aria-labelledby` pointing to `<p id="nav-group-{slug}">`. Active links MUST have `aria-current="page"`.
+
+5. **Locked nav items:** Plan-locked buttons MUST have `aria-label` with feature name + required plan.
+
+6. **Decorative icons:** All Lucide icons adjacent to visible text MUST have `aria-hidden="true"`.
+
+7. **Semantic tables:** NEVER use div grids for tabular data. Use `<table>`/`<thead>`/`<tbody>`/`<tr>`/`<th scope="col">`/`<td>`. Actions column headers get `<span className="sr-only">Actions</span>`.
+
+8. **Chart accessibility:** Every chart MUST wrap in `<div role="img" aria-label="...">` with data summary. Complex charts include `<table className="sr-only">`.
+
+9. **Color contrast:** Min 4.5:1 for normal text on dark backgrounds. `text-slate-400` (#94A3B8) on `#050A15` = 6.4:1 (passes). NEVER use `text-slate-500`/`text-slate-600` on midnight-slate/surface-dark.
+
+10. **Modal focus trap:** Modals MUST trap Tab/Shift+Tab, store/restore focus, close on Escape. Reference: `UpgradeModal.tsx`.
+
+11. **Page titles:** Every dashboard page MUST export `metadata = { title: 'Page Name | LocalVector.ai' }`. Client Component pages use `layout.tsx` wrapper.
+
+12. **Live regions:** Dynamic content uses `aria-live="polite"` + `aria-atomic="true"` (credits) or `role="status"` (scan) / `role="alert"` (errors).
+
+### Test Coverage
+- 24 Vitest unit tests: `src/__tests__/unit/accessibility.test.tsx`
+- E2E axe audit: `tests/e2e/accessibility-audit.spec.ts` (10 pages)
+- Regressions fixed: `wizard-progress.test.tsx` (1 assertion: text-slate-500→text-slate-400), `mobile-responsive.test.ts` (2 assertions: hidden sm:block→hidden sm:table-cell)
+
+### Key Files
+- `app/globals.css` — `*:focus-visible` rule
+- `components/layout/DashboardShell.tsx` — skip link + `<main id="main-content">`
+- `components/layout/Sidebar.tsx` — `role="group"`, `aria-labelledby`, `aria-current`, `aria-hidden`
+- `components/layout/TopBar.tsx` — `aria-hidden` on icons, `aria-live` on credits
+- `components/ui/UpgradeModal.tsx` — focus trap + focus restore
+- `app/dashboard/team/_components/TeamMembersTable.tsx` — semantic `<table>`
+- `app/dashboard/team/_components/PendingInvitationsTable.tsx` — semantic `<table>`
+- `app/dashboard/_components/SOVTrendChart.tsx` — `role="img"` + `sr-only` data table
+- `app/dashboard/billing/layout.tsx` — metadata wrapper for client component page
+
+---

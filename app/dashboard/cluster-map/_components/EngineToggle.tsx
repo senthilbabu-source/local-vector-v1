@@ -48,7 +48,7 @@ export default function EngineToggle({
                 ? 'bg-signal-green/15 text-signal-green ring-1 ring-signal-green/30'
                 : isAvailable
                   ? 'bg-white/5 text-slate-400 hover:bg-white/10 hover:text-white'
-                  : 'bg-white/[0.02] text-slate-600 cursor-not-allowed',
+                  : 'bg-white/[0.02] text-slate-500 cursor-not-allowed',
             ].join(' ')}
           >
             {isActive && (

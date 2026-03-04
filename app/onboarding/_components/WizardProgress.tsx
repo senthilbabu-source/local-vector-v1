@@ -74,7 +74,7 @@ export default function WizardProgress({
                       ? 'bg-signal-green text-deep-navy'
                       : isCompleted
                         ? 'bg-signal-green/20 text-signal-green'
-                        : 'bg-slate-800 text-slate-500',
+                        : 'bg-slate-800 text-slate-400',
                   ].join(' ')}
                 >
                   {isCompleted ? (
@@ -91,7 +91,7 @@ export default function WizardProgress({
                       : isCompleted
                         ? 'text-signal-green/70'
                         : isFuture
-                          ? 'text-slate-500'
+                          ? 'text-slate-400'
                           : 'text-slate-400',
                   ].join(' ')}
                 >

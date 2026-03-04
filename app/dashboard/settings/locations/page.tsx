@@ -7,6 +7,8 @@ import { PlanGate } from '@/components/plan-gate/PlanGate';
 import LocationCard, { type LocationCardData } from './_components/LocationCard';
 import LocationFormModal from './_components/LocationFormModal';
 
+export const metadata = { title: 'Locations | LocalVector.ai' };
+
 // ---------------------------------------------------------------------------
 // Location Management Page — /dashboard/settings/locations (Sprint 100)
 //
@@ -69,7 +71,7 @@ export default async function LocationsSettingsPage() {
           {/* Location count */}
           <p
             data-testid="location-count-display"
-            className={`text-xs ${atLimit ? 'text-alert-amber' : 'text-slate-500'}`}
+            className={`text-xs ${atLimit ? 'text-alert-amber' : 'text-slate-400'}`}
           >
             {locations.length} of {limit} locations used
           </p>
@@ -95,7 +97,7 @@ export default async function LocationsSettingsPage() {
           <div className="flex flex-col items-center justify-center px-6 py-16 text-center">
             <svg
               xmlns="http://www.w3.org/2000/svg"
-              className="mx-auto h-10 w-10 text-slate-500"
+              className="mx-auto h-10 w-10 text-slate-400"
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
@@ -113,7 +115,7 @@ export default async function LocationsSettingsPage() {
               />
             </svg>
             <p className="mt-3 text-sm font-medium text-slate-400">No locations yet</p>
-            <p className="mt-1 text-xs text-slate-500">
+            <p className="mt-1 text-xs text-slate-400">
               Click &quot;Add Location&quot; to register your first business location.
             </p>
           </div>

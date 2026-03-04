@@ -86,7 +86,7 @@ export default function WordPressConnectButton({
           type="button"
           onClick={handleDisconnect}
           disabled={isPending}
-          className="text-xs font-medium text-slate-500 hover:text-alert-crimson transition-colors disabled:opacity-50"
+          className="text-xs font-medium text-slate-400 hover:text-alert-crimson transition-colors disabled:opacity-50"
         >
           {isPending ? 'Disconnecting…' : 'Disconnect'}
         </button>

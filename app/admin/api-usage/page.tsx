@@ -76,7 +76,7 @@ export default async function AdminApiUsagePage() {
                   <td className="px-4 py-3 tabular-nums text-slate-300">{row.credits_used}</td>
                   <td className="px-4 py-3 tabular-nums text-slate-300">{row.credits_limit}</td>
                   <td className="px-4 py-3 tabular-nums text-slate-300">{usagePercent}%</td>
-                  <td className="px-4 py-3 text-xs text-slate-500">
+                  <td className="px-4 py-3 text-xs text-slate-400">
                     {new Date(row.reset_date).toLocaleDateString('en-US', {
                       month: 'short',
                       day: 'numeric',
@@ -88,7 +88,7 @@ export default async function AdminApiUsagePage() {
             })}
             {rows.length === 0 && (
               <tr>
-                <td colSpan={6} className="px-4 py-8 text-center text-slate-500">
+                <td colSpan={6} className="px-4 py-8 text-center text-slate-400">
                   No API credit usage recorded yet.
                 </td>
               </tr>

@@ -452,7 +452,7 @@ export default function Sidebar({ isOpen, onClose, displayName, orgName, plan, l
             className="lg:hidden flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 hover:text-white hover:bg-white/5 transition"
             aria-label="Close menu"
           >
-            <X className="h-4 w-4" />
+            <X className="h-4 w-4" aria-hidden="true" />
           </button>
         </div>
 
@@ -463,9 +463,12 @@ export default function Sidebar({ isOpen, onClose, displayName, orgName, plan, l
 
         {/* ── Navigation (grouped — Sprint A H4) ───────────────────── */}
         <nav className="flex-1 overflow-y-auto px-3 py-4">
-          {NAV_GROUPS.map((group) => (
-            <div key={group.label} className="mb-4">
+          {NAV_GROUPS.map((group) => {
+            const groupId = `nav-group-${group.label.toLowerCase().replace(/\s+/g, '-')}`;
+            return (
+            <div key={group.label} className="mb-4" role="group" aria-labelledby={groupId}>
               <p
+                id={groupId}
                 data-testid="sidebar-group-label"
                 className="px-3 mb-1 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60 select-none"
               >
@@ -489,7 +492,7 @@ export default function Sidebar({ isOpen, onClose, displayName, orgName, plan, l
                         title="Coming soon"
                         className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-slate-600 cursor-not-allowed select-none"
                       >
-                        <Icon className="h-4 w-4 shrink-0" />
+                        <Icon className="h-4 w-4 shrink-0" aria-hidden="true" />
                         {displayLabel}
                       </span>
                     );
@@ -504,11 +507,12 @@ export default function Sidebar({ isOpen, onClose, displayName, orgName, plan, l
                         type="button"
                         data-testid={`nav-${item.testId}`}
                         onClick={() => setLockedItem(item as NavItem)}
+                        aria-label={`${displayLabel} — requires ${getPlanDisplayName((item as NavItem).minPlan!)} plan`}
                         className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-slate-600 hover:bg-white/5 hover:text-slate-500 transition cursor-pointer"
                       >
-                        <Icon className="h-4 w-4 shrink-0 opacity-50" />
+                        <Icon className="h-4 w-4 shrink-0 opacity-50" aria-hidden="true" />
                         {displayLabel}
-                        <Lock className="ml-auto h-3 w-3 shrink-0 opacity-50" />
+                        <Lock className="ml-auto h-3 w-3 shrink-0 opacity-50" aria-hidden="true" />
                       </button>
                     );
                   }
@@ -519,6 +523,7 @@ export default function Sidebar({ isOpen, onClose, displayName, orgName, plan, l
                       href={item.href}
                       onClick={onClose}
                       data-testid={`nav-${item.testId}`}
+                      aria-current={active ? 'page' : undefined}
                       className={[
                         'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition',
                         active
@@ -528,6 +533,7 @@ export default function Sidebar({ isOpen, onClose, displayName, orgName, plan, l
                     >
                       <Icon
                         className={['h-4 w-4 shrink-0', active ? 'text-signal-green' : ''].join(' ')}
+                        aria-hidden="true"
                       />
                       {displayLabel}
                       {/* Sprint 101: Sidebar badge pill */}
@@ -546,7 +552,8 @@ export default function Sidebar({ isOpen, onClose, displayName, orgName, plan, l
                 })}
               </div>
             </div>
-          ))}
+            );
+          })}
         </nav>
 
         {/* ── Footer: AI Visibility Score + logout ───────────────── */}

@@ -204,7 +204,7 @@ export default function OnboardingWizard({
                     </button>
                     <a
                       href="/onboarding/connect"
-                      className="block text-center text-xs text-slate-500 hover:text-slate-300 transition-colors"
+                      className="block text-center text-xs text-slate-400 hover:text-slate-300 transition-colors"
                     >
                       Have a Google Business Profile? Connect it first &rarr;
                     </a>

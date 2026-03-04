@@ -57,7 +57,7 @@ export default function RealtimeNotificationToast({ orgId }: RealtimeNotificatio
             </div>
             <button
               type="button"
-              className="flex-shrink-0 text-slate-500 hover:text-slate-300"
+              className="flex-shrink-0 text-slate-400 hover:text-slate-300"
               onClick={() => dismissNotification(notif.id)}
               data-testid={`notification-toast-dismiss-${notif.id}`}
               aria-label="Dismiss notification"

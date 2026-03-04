@@ -30,7 +30,7 @@ export default function OnboardingError({
           Something went wrong during setup. Your progress has been saved.
         </p>
         {error.digest && (
-          <p className="text-xs text-slate-600 font-mono">Error ID: {error.digest}</p>
+          <p className="text-xs text-slate-500 font-mono">Error ID: {error.digest}</p>
         )}
         <div className="flex gap-3 justify-center">
           <button

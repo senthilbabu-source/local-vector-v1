@@ -109,7 +109,7 @@ function TierCard({ tier }: { tier: PricingTier }) {
         <div className="mt-4 flex items-baseline gap-1">
           <span className="text-4xl font-bold text-white font-mono">{tier.price}</span>
           {tier.period && (
-            <span className="text-sm text-slate-500">{tier.period}</span>
+            <span className="text-sm text-slate-400">{tier.period}</span>
           )}
         </div>
       </div>
@@ -186,7 +186,7 @@ export default function PricingPage() {
           </div>
 
           {/* Footer note */}
-          <p className="mt-8 text-center text-xs text-slate-600">
+          <p className="mt-8 text-center text-xs text-slate-500">
             All prices in USD. Starter and Growth billed monthly. No contracts. Cancel anytime.
           </p>
         </div>

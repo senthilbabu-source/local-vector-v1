@@ -88,14 +88,14 @@ export default function LinkInjectionModal({
             <h2 className="text-base font-semibold text-white">
               Distribute to AI Engines
             </h2>
-            <p className="mt-0.5 text-xs text-slate-500">
+            <p className="mt-0.5 text-xs text-slate-400">
               Paste your menu URL everywhere AI looks — Google, Yelp, your website.
             </p>
           </div>
           <button
             onClick={onClose}
             aria-label="Close"
-            className="flex h-7 w-7 items-center justify-center rounded-lg text-slate-500 hover:text-slate-300 hover:bg-white/5 transition"
+            className="flex h-7 w-7 items-center justify-center rounded-lg text-slate-400 hover:text-slate-300 hover:bg-white/5 transition"
           >
             ✕
           </button>
@@ -103,7 +103,7 @@ export default function LinkInjectionModal({
 
         {/* URL row */}
         <div>
-          <p className="text-xs text-slate-500 mb-1.5">Your AI-readable menu URL</p>
+          <p className="text-xs text-slate-400 mb-1.5">Your AI-readable menu URL</p>
           <div className="flex items-center gap-2 rounded-xl bg-midnight-slate border border-white/10 px-3 py-2">
             <span className="flex-1 text-xs font-mono text-slate-300 truncate">
               {relativePath}

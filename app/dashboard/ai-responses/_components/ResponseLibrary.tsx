@@ -59,7 +59,7 @@ export default function ResponseLibrary({ entries }: Props) {
           );
         })}
 
-        <span className="ml-auto text-xs text-slate-500">
+        <span className="ml-auto text-xs text-slate-400">
           {filtered.length} {filtered.length === 1 ? 'query' : 'queries'} with AI responses
         </span>
       </div>

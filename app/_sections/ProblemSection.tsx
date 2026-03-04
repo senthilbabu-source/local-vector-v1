@@ -73,7 +73,7 @@ export default function ProblemSection() {
           </div>
 
           <Reveal delay={400}>
-            <p className="text-center text-sm text-slate-500 mt-10 max-w-xl mx-auto">
+            <p className="text-center text-sm text-slate-400 mt-10 max-w-xl mx-auto">
               Traditional SEO tools check if your address is right on Yelp.
               They never check if ChatGPT is telling customers you don&apos;t exist.
             </p>

@@ -42,7 +42,7 @@ const STATUS_STYLES: Record<string, string> = {
   pending_approval: 'bg-alert-amber/15 text-alert-amber ring-alert-amber/20',
   approved: 'bg-blue-500/15 text-blue-400 ring-blue-600/20',
   published: 'bg-truth-emerald/15 text-truth-emerald ring-truth-emerald/20',
-  skipped: 'bg-slate-500/15 text-slate-500 ring-slate-500/20',
+  skipped: 'bg-slate-500/15 text-slate-400 ring-slate-500/20',
 };
 
 const STATUS_LABELS: Record<string, string> = {
@@ -91,13 +91,13 @@ export default function ReviewCard({ review, showEntityBadge }: ReviewCardProps)
               <Star
                 key={i}
                 className={`h-3.5 w-3.5 ${
-                  i < review.rating ? 'fill-alert-amber text-alert-amber' : 'text-slate-600'
+                  i < review.rating ? 'fill-alert-amber text-alert-amber' : 'text-slate-500'
                 }`}
               />
             ))}
           </div>
           <span className="text-sm font-medium text-white">{review.reviewer_name}</span>
-          <span className="text-xs text-slate-500">
+          <span className="text-xs text-slate-400">
             {new Date(review.published_at).toLocaleDateString()}
           </span>
           <span className="rounded-full bg-slate-700/50 px-2 py-0.5 text-[10px] font-medium uppercase text-slate-400">
@@ -184,7 +184,7 @@ export default function ReviewCard({ review, showEntityBadge }: ReviewCardProps)
           <button
             onClick={() => handleAction(skipResponse)}
             disabled={isPending}
-            className="inline-flex items-center gap-1.5 rounded-lg bg-white/5 px-3 py-1.5 text-xs font-medium text-slate-500 hover:bg-white/10 transition disabled:opacity-50"
+            className="inline-flex items-center gap-1.5 rounded-lg bg-white/5 px-3 py-1.5 text-xs font-medium text-slate-400 hover:bg-white/10 transition disabled:opacity-50"
           >
             <SkipForward className="h-3.5 w-3.5" />
             Skip

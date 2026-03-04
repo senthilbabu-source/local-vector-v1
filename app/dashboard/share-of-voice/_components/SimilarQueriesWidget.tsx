@@ -79,12 +79,12 @@ export default function SimilarQueriesWidget({
 
       {/* Error */}
       {error && !loading && (
-        <p className="text-xs text-slate-500">Unable to load similar queries.</p>
+        <p className="text-xs text-slate-400">Unable to load similar queries.</p>
       )}
 
       {/* Empty */}
       {!loading && !error && results.length === 0 && (
-        <p className="text-xs text-slate-500">No similar queries found.</p>
+        <p className="text-xs text-slate-400">No similar queries found.</p>
       )}
 
       {/* Results */}

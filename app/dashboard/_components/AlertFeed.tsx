@@ -61,7 +61,7 @@ export default function AlertFeed({
       <div className="mt-3 text-right">
         <Link
           href="/dashboard/hallucinations"
-          className="text-xs text-slate-500 hover:text-slate-300 transition"
+          className="text-xs text-slate-400 hover:text-slate-300 transition"
         >
           View all alert history →
         </Link>

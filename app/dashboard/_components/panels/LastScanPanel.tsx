@@ -73,7 +73,7 @@ export default function LastScanPanel({ lastScanAt }: LastScanPanelProps) {
               ? `Last scan: ${formatRelativeTime(lastScanAt)}`
               : 'No scans yet'}
           </p>
-          <p className="mt-0.5 text-xs text-slate-500" data-testid="next-scan-time">
+          <p className="mt-0.5 text-xs text-slate-400" data-testid="next-scan-time">
             {nextScanText}
           </p>
         </div>

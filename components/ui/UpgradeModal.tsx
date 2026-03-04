@@ -1,13 +1,13 @@
 'use client';
 
 // ---------------------------------------------------------------------------
-// components/ui/UpgradeModal.tsx — P1-FIX-06
+// components/ui/UpgradeModal.tsx — P1-FIX-06, P6-FIX-27 (a11y)
 //
 // Shown when a user clicks a plan-locked sidebar nav item.
 // Follows the InviteMemberModal pattern (custom modal, no shadcn Dialog).
 // ---------------------------------------------------------------------------
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
 import { Lock, X } from 'lucide-react';
 import { getPlanDisplayName } from '@/lib/plan-display-names';
@@ -21,7 +21,15 @@ interface UpgradeModalProps {
 
 export function UpgradeModal({ open, onClose, featureName, requiredPlan }: UpgradeModalProps) {
   const contentRef = useRef<HTMLDivElement>(null);
+  const previousFocusRef = useRef<HTMLElement | null>(null);
   const planDisplayName = getPlanDisplayName(requiredPlan);
+
+  // Store previously focused element on open
+  useEffect(() => {
+    if (open) {
+      previousFocusRef.current = document.activeElement as HTMLElement;
+    }
+  }, [open]);
 
   // Close on Escape key
   useEffect(() => {
@@ -33,12 +41,45 @@ export function UpgradeModal({ open, onClose, featureName, requiredPlan }: Upgra
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [open, onClose]);
 
-  // Focus trap: focus the content when opened
+  // Focus the modal content when opened
   useEffect(() => {
     if (open && contentRef.current) {
       contentRef.current.focus();
     }
   }, [open]);
+
+  // Restore focus on close
+  useEffect(() => {
+    if (!open && previousFocusRef.current) {
+      previousFocusRef.current.focus();
+      previousFocusRef.current = null;
+    }
+  }, [open]);
+
+  // P6-FIX-27: Tab key focus trap
+  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
+    if (e.key !== 'Tab' || !contentRef.current) return;
+
+    const focusableElements = contentRef.current.querySelectorAll<HTMLElement>(
+      'a[href], button:not([disabled]), textarea, input, select, [tabindex]:not([tabindex="-1"])'
+    );
+    if (focusableElements.length === 0) return;
+
+    const firstEl = focusableElements[0];
+    const lastEl = focusableElements[focusableElements.length - 1];
+
+    if (e.shiftKey) {
+      if (document.activeElement === firstEl) {
+        e.preventDefault();
+        lastEl.focus();
+      }
+    } else {
+      if (document.activeElement === lastEl) {
+        e.preventDefault();
+        firstEl.focus();
+      }
+    }
+  }, []);
 
   if (!open) return null;
 
@@ -58,6 +99,7 @@ export function UpgradeModal({ open, onClose, featureName, requiredPlan }: Upgra
         tabIndex={-1}
         className="relative mx-4 w-full max-w-md rounded-2xl border border-white/10 bg-surface-dark p-8 shadow-xl outline-none"
         onClick={(e) => e.stopPropagation()}
+        onKeyDown={handleKeyDown}
       >
         {/* Close button */}
         <button
@@ -66,12 +108,12 @@ export function UpgradeModal({ open, onClose, featureName, requiredPlan }: Upgra
           className="absolute right-4 top-4 flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 hover:bg-white/5 hover:text-white transition"
           aria-label="Close"
         >
-          <X className="h-4 w-4" />
+          <X className="h-4 w-4" aria-hidden="true" />
         </button>
 
         {/* Lock icon */}
         <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-electric-indigo/10">
-          <Lock className="h-6 w-6 text-electric-indigo" />
+          <Lock className="h-6 w-6 text-electric-indigo" aria-hidden="true" />
         </div>
 
         {/* Title */}

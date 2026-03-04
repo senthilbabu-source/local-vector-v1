@@ -200,7 +200,7 @@ export default function UploadState({
                   'rounded-full px-1.5 py-0.5 text-[10px] font-bold',
                   activeTab === tab.id
                     ? 'bg-white/20 text-white'
-                    : 'bg-white/10 text-slate-500',
+                    : 'bg-white/10 text-slate-400',
                 ].join(' ')}
               >
                 {tab.badge}
@@ -234,7 +234,7 @@ export default function UploadState({
             <p className="mt-3 text-sm font-medium text-slate-300">
               Drop your menu PDF or image here
             </p>
-            <p className="mt-1 text-xs text-slate-500">PDF, PNG, JPG, WebP up to 10 MB</p>
+            <p className="mt-1 text-xs text-slate-400">PDF, PNG, JPG, WebP up to 10 MB</p>
             <p className="mt-1.5 text-xs text-electric-indigo font-medium">
               or click to browse files
             </p>
@@ -260,7 +260,7 @@ export default function UploadState({
           {/* Simulate AI Parsing demo */}
           <div className="rounded-2xl bg-surface-dark border border-white/5 p-6 text-center space-y-3">
             <p className="text-sm font-medium text-slate-300">Or try the AI extraction demo</p>
-            <p className="text-xs text-slate-500 max-w-sm mx-auto">
+            <p className="text-xs text-slate-400 max-w-sm mx-auto">
               Generates a realistic menu for {locationName} using mock AI extraction —
               confidence scores, categories, and all.
             </p>
@@ -363,7 +363,7 @@ export default function UploadState({
                 </span>
               ))}
             </div>
-            <p className="text-xs text-slate-600">
+            <p className="text-xs text-slate-500">
               Export the &ldquo;Menu Items&rdquo; or &ldquo;Product List&rdquo; report from your POS dashboard.
             </p>
           </div>
@@ -456,7 +456,7 @@ function Divider() {
   return (
     <div className="flex items-center gap-3">
       <div className="flex-1 h-px bg-white/5" />
-      <span className="text-xs text-slate-600">or</span>
+      <span className="text-xs text-slate-500">or</span>
       <div className="flex-1 h-px bg-white/5" />
     </div>
   );
@@ -474,7 +474,7 @@ function UploadCloudIcon({ isDragOver }: { isDragOver: boolean }) {
       strokeLinejoin="round"
       className={[
         'mx-auto h-10 w-10 transition',
-        isDragOver ? 'text-electric-indigo' : 'text-slate-600',
+        isDragOver ? 'text-electric-indigo' : 'text-slate-500',
       ].join(' ')}
       aria-hidden
     >

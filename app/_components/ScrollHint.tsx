@@ -23,7 +23,7 @@ export default function ScrollHint() {
             width: 3,
             height: 8,
             borderRadius: 2,
-            background: '#64748B',
+            background: '#94A3B8',
             animation: 'lv-float 1.5s ease-in-out infinite',
           }}
         />

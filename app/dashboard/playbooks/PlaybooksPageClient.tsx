@@ -65,7 +65,7 @@ export default function PlaybooksPageClient({
         <p className="mt-0.5 text-sm text-slate-400">
           Simple steps to improve how each AI app talks about your business.
           {generatedAt && (
-            <span className="ml-2 text-slate-500">
+            <span className="ml-2 text-slate-400">
               Last updated: {new Date(generatedAt).toLocaleDateString()}
             </span>
           )}
@@ -170,7 +170,7 @@ export default function PlaybooksPageClient({
           )}
 
           {/* Disclaimer */}
-          <p className="text-[11px] text-slate-500 italic">
+          <p className="text-[11px] text-slate-400 italic">
             Recommendations are based on observed citation patterns and may not
             reflect all factors influencing AI responses.
           </p>

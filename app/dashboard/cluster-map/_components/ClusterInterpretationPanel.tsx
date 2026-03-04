@@ -277,11 +277,11 @@ function StatExplainer({
       className="rounded-lg border border-white/5 bg-white/[0.02] px-3 py-2.5"
       data-testid={testId}
     >
-      <p className="text-xs text-slate-500 font-medium">{label}</p>
+      <p className="text-xs text-slate-400 font-medium">{label}</p>
       <p className={`mt-0.5 text-lg font-bold tabular-nums ${valueColor}`}>
         {value}
       </p>
-      <p className="text-xs text-slate-500 mt-0.5">{explanation}</p>
+      <p className="text-xs text-slate-400 mt-0.5">{explanation}</p>
     </div>
   );
 }

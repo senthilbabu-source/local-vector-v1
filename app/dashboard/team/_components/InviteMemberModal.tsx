@@ -119,7 +119,7 @@ export default function InviteMemberModal({ open, onClose, onInviteSent }: Invit
         {/* Close button */}
         <button
           onClick={onClose}
-          className="absolute right-4 top-4 text-slate-500 hover:text-slate-300 transition-colors"
+          className="absolute right-4 top-4 text-slate-400 hover:text-slate-300 transition-colors"
           aria-label="Close"
         >
           <X className="h-4 w-4" />
@@ -178,7 +178,7 @@ export default function InviteMemberModal({ open, onClose, onInviteSent }: Invit
                   </option>
                 ))}
               </select>
-              <p className="mt-1 text-xs text-slate-500">
+              <p className="mt-1 text-xs text-slate-400">
                 {ROLE_OPTIONS.find((r) => r.value === role)?.description}
               </p>
             </div>

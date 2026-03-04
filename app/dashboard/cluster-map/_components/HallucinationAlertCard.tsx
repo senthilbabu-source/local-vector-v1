@@ -46,7 +46,7 @@ export default function HallucinationAlertCard({ zone }: HallucinationAlertCardP
             >
               {zone.severity.charAt(0).toUpperCase() + zone.severity.slice(1)}
             </span>
-            <span className="text-xs text-slate-500">{engineLabel(zone.engine)}</span>
+            <span className="text-xs text-slate-400">{engineLabel(zone.engine)}</span>
           </div>
           <p className="mt-1 text-sm text-white truncate">&ldquo;{zone.claimText}&rdquo;</p>
           <Link

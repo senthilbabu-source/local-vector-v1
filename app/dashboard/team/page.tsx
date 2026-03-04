@@ -12,6 +12,8 @@ import TeamMembersTable from './_components/TeamMembersTable';
 import TeamPageClient from './_components/TeamPageClient';
 import type { PlanTier } from '@/lib/plan-enforcer';
 
+export const metadata = { title: 'Team | LocalVector.ai' };
+
 /**
  * Team Members Page — Sprint 111 → Sprint 112
  *

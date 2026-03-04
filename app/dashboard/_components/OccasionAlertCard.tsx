@@ -132,7 +132,7 @@ export default function OccasionAlertCard({
           >
             {alert.name}
           </span>
-          <span className="text-xs text-slate-500">·</span>
+          <span className="text-xs text-slate-400">·</span>
           <span
             data-testid={`occasion-alert-days-until-${alert.id}`}
             className={[
@@ -150,7 +150,7 @@ export default function OccasionAlertCard({
           onClick={handleDismiss}
           disabled={isPending}
           aria-label={`Dismiss ${alert.name} alert`}
-          className="flex h-6 w-6 shrink-0 items-center justify-center rounded text-slate-500 hover:text-white hover:bg-white/5 transition disabled:opacity-50"
+          className="flex h-6 w-6 shrink-0 items-center justify-center rounded text-slate-400 hover:text-white hover:bg-white/5 transition disabled:opacity-50"
         >
           <X className="h-3.5 w-3.5" />
         </button>
@@ -173,7 +173,7 @@ export default function OccasionAlertCard({
             'inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition',
             canCreateDraft
               ? 'bg-signal-green/15 text-signal-green hover:bg-signal-green/25'
-              : 'bg-slate-700/50 text-slate-500 cursor-not-allowed',
+              : 'bg-slate-700/50 text-slate-400 cursor-not-allowed',
           ].join(' ')}
         >
           {isPending ? (
@@ -228,7 +228,7 @@ export default function OccasionAlertCard({
                 data-testid={`occasion-alert-dismiss-permanent-${alert.id}`}
                 role="menuitem"
                 onClick={handleDismissPermanently}
-                className="block w-full px-3 py-1.5 text-left text-xs text-slate-500 hover:bg-white/5 hover:text-slate-300 transition"
+                className="block w-full px-3 py-1.5 text-left text-xs text-slate-400 hover:bg-white/5 hover:text-slate-300 transition"
               >
                 Don&apos;t show again
               </button>

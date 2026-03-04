@@ -6,6 +6,8 @@ import { canRegenerateLLMsTxt, type PlanTier } from '@/lib/plan-enforcer';
 import BusinessInfoForm from './_components/BusinessInfoForm';
 import LLMsTxtCard from './_components/LLMsTxtCard';
 
+export const metadata = { title: 'Business Info | LocalVector.ai' };
+
 // ---------------------------------------------------------------------------
 // BusinessInfoPage — Server Component (Sprint 93)
 //

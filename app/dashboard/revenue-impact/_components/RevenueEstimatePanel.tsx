@@ -106,7 +106,7 @@ export default function RevenueEstimatePanel({
               }
             />
           </div>
-          <p className="mt-0.5 text-xs text-slate-500">
+          <p className="mt-0.5 text-xs text-slate-400">
             {formatCurrency(annualLoss)}/year if left unaddressed
           </p>
         </div>
@@ -169,7 +169,7 @@ export default function RevenueEstimatePanel({
       {/* CTA */}
       {hasLoss && hallucinationRevenue > 0 && (
         <div className="flex items-center justify-between gap-4">
-          <p className="text-xs text-slate-500">
+          <p className="text-xs text-slate-400">
             Fix hallucination alerts to reduce your estimated revenue loss.
           </p>
           <Link

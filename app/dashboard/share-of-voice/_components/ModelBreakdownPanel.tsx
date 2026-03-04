@@ -147,7 +147,7 @@ export default function ModelBreakdownPanel({ queryId, queryText, orgName, weekO
                                 : model.model_provider,
                             )
                           }
-                          className="text-[10px] font-medium text-slate-500 hover:text-slate-400 transition"
+                          className="text-[10px] font-medium text-slate-400 hover:text-slate-400 transition"
                           data-testid={`model-response-toggle-${model.model_provider}`}
                         >
                           {expandedModel === model.model_provider

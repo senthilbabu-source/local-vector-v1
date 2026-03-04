@@ -93,7 +93,7 @@ export default function CorrectionPanel({
       <div className="rounded-xl border border-white/10 bg-surface-dark p-5">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-sm font-semibold text-white">Correction Package</h3>
-          <button onClick={onClose} className="text-slate-500 hover:text-white text-sm">✕</button>
+          <button onClick={onClose} className="text-slate-400 hover:text-white text-sm">✕</button>
         </div>
         <div className="flex items-center gap-3 py-8 justify-center">
           <div className="h-4 w-4 animate-spin rounded-full border-2 border-indigo-400 border-t-transparent" />
@@ -109,7 +109,7 @@ export default function CorrectionPanel({
       <div className="rounded-xl border border-alert-crimson/20 bg-surface-dark p-5">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-sm font-semibold text-white">Correction Package</h3>
-          <button onClick={onClose} className="text-slate-500 hover:text-white text-sm">✕</button>
+          <button onClick={onClose} className="text-slate-400 hover:text-white text-sm">✕</button>
         </div>
         <p className="text-sm text-alert-crimson">{error}</p>
       </div>
@@ -124,7 +124,7 @@ export default function CorrectionPanel({
       {/* Header */}
       <div className="flex items-center justify-between">
         <h3 className="text-sm font-semibold text-white">Correction Package</h3>
-        <button onClick={onClose} className="text-slate-500 hover:text-white text-sm">✕</button>
+        <button onClick={onClose} className="text-slate-400 hover:text-white text-sm">✕</button>
       </div>
 
       {/* Sprint F (N3): Follow-up verification status banner */}
@@ -177,7 +177,7 @@ export default function CorrectionPanel({
             const style = IMPACT_STYLES[action.impact];
             return (
               <div key={i} className="flex items-start gap-3 rounded-lg bg-white/3 px-3 py-2.5">
-                <span className="text-xs text-slate-600 tabular-nums mt-0.5">{i + 1}.</span>
+                <span className="text-xs text-slate-500 tabular-nums mt-0.5">{i + 1}.</span>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-0.5">
                     <span className={`inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-bold uppercase ${style.badge}`}>
@@ -311,7 +311,7 @@ function ContentBlock({
                 {draftCreating ? 'Creating…' : 'Create Draft →'}
               </button>
             ) : (
-              <span className="text-[10px] text-slate-600">Growth plan required</span>
+              <span className="text-[10px] text-slate-500">Growth plan required</span>
             )
           )}
           <button onClick={onCopy} className="text-[10px] text-indigo-400 hover:text-indigo-300 transition">

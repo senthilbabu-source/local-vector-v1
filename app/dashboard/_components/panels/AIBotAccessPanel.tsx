@@ -66,7 +66,7 @@ export default function AIBotAccessPanel({ bots }: AIBotAccessPanelProps) {
       </div>
 
       {sorted.length === 0 ? (
-        <p className="text-xs text-slate-500" data-testid="ai-bot-access-empty">
+        <p className="text-xs text-slate-400" data-testid="ai-bot-access-empty">
           No AI apps have visited your site yet
         </p>
       ) : (
@@ -94,7 +94,7 @@ export default function AIBotAccessPanel({ bots }: AIBotAccessPanelProps) {
                   >
                     {indicator.label}
                   </span>
-                  <span className="text-xs text-slate-500 font-mono tabular-nums w-12 text-right">
+                  <span className="text-xs text-slate-400 font-mono tabular-nums w-12 text-right">
                     {bot.visitCount.toLocaleString()}
                   </span>
                 </div>

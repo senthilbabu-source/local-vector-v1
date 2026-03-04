@@ -90,7 +90,7 @@ export default function AIVisibilityPanel({
             )}
           </svg>
           <span
-            className={`relative text-2xl font-bold font-mono tabular-nums ${score !== null ? scoreColor(score) : 'text-slate-500'}`}
+            className={`relative text-2xl font-bold font-mono tabular-nums ${score !== null ? scoreColor(score) : 'text-slate-400'}`}
             data-testid="ai-visibility-score"
           >
             {score !== null ? score : '—'}
@@ -111,7 +111,7 @@ export default function AIVisibilityPanel({
 
           {benchmarkReady && benchmarkDiff !== null ? (
             <p
-              className="mt-0.5 text-xs text-slate-500"
+              className="mt-0.5 text-xs text-slate-400"
               data-testid="ai-visibility-benchmark"
             >
               {benchmarkDiff > 0
@@ -122,7 +122,7 @@ export default function AIVisibilityPanel({
             </p>
           ) : (
             <p
-              className="mt-0.5 text-xs text-slate-500"
+              className="mt-0.5 text-xs text-slate-400"
               data-testid="ai-visibility-benchmark"
             >
               Building benchmark...

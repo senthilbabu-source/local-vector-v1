@@ -49,7 +49,7 @@ export default async function AdminCronHealthPage() {
           return (
             <div key={cron} className="rounded-lg border border-white/10 bg-surface-dark p-4" data-testid="cron-health-card">
               <p className="text-sm font-semibold text-white">{cron}</p>
-              <p className="text-xs text-slate-500 mt-1">
+              <p className="text-xs text-slate-400 mt-1">
                 Last run: {formatRelativeDate(lastRun?.started_at)}
               </p>
               <div className="flex items-center gap-2 mt-2">
@@ -60,7 +60,7 @@ export default async function AdminCronHealthPage() {
           );
         })}
         {cronNames.length === 0 && (
-          <p className="col-span-full text-sm text-slate-500">No cron runs recorded yet.</p>
+          <p className="col-span-full text-sm text-slate-400">No cron runs recorded yet.</p>
         )}
       </div>
 
@@ -89,7 +89,7 @@ export default async function AdminCronHealthPage() {
                 <td className="px-4 py-3 tabular-nums text-slate-300">
                   {run.duration_ms ? `${(run.duration_ms / 1000).toFixed(1)}s` : '—'}
                 </td>
-                <td className="px-4 py-3 text-xs text-slate-500">
+                <td className="px-4 py-3 text-xs text-slate-400">
                   {formatRelativeDate(run.started_at)}
                 </td>
                 <td className="px-4 py-3 text-xs text-red-400 max-w-xs truncate">

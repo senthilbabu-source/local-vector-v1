@@ -55,7 +55,7 @@ export default function BenchmarkTrendChart({ history }: BenchmarkTrendChartProp
   return (
     <div data-testid="benchmark-trend-chart">
       <div className="flex items-center justify-between mb-1">
-        <span className="text-[10px] uppercase tracking-wider text-slate-500">
+        <span className="text-[10px] uppercase tracking-wider text-slate-400">
           8-Week Trend
         </span>
         <span
@@ -66,7 +66,7 @@ export default function BenchmarkTrendChart({ history }: BenchmarkTrendChartProp
           {trendLabel}
         </span>
       </div>
-      <div className="h-12 w-full">
+      <div className="h-12 w-full" role="img" aria-label={`Benchmark percentile trend. ${trendLabel}: from ${first}th to ${last}th percentile over ${chartData.length} weeks.`}>
         <ResponsiveContainer width="100%" height="100%">
           <LineChart data={chartData}>
             <Line

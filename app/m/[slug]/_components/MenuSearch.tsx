@@ -78,7 +78,7 @@ export default function MenuSearch({ menuSlug }: { menuSlug: string }) {
             if (e.target.value === '') handleClear();
           }}
           placeholder="Search the menu..."
-          className="flex-1 rounded-lg bg-white/5 border border-white/10 px-3 py-2 text-sm text-white placeholder:text-slate-500 focus:outline-none focus:ring-1 focus:ring-electric-indigo"
+          className="flex-1 rounded-lg bg-white/5 border border-white/10 px-3 py-2 text-sm text-white placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-electric-indigo"
           disabled={state === 'loading'}
         />
         <button
@@ -107,7 +107,7 @@ export default function MenuSearch({ menuSlug }: { menuSlug: string }) {
                     {item.description}
                   </p>
                 )}
-                <span className="mt-1 inline-block text-xs text-slate-500">
+                <span className="mt-1 inline-block text-xs text-slate-400">
                   {Math.round(item.similarity * 100)}% match
                   {item.category && ` · ${item.category}`}
                 </span>

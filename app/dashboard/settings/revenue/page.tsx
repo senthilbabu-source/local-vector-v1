@@ -3,6 +3,8 @@ import { getSafeAuthContext } from '@/lib/auth';
 import { createClient } from '@/lib/supabase/server';
 import RevenueConfigForm from './_components/RevenueConfigForm';
 
+export const metadata = { title: 'Revenue Settings | LocalVector.ai' };
+
 async function fetchRevenueConfig(orgId: string) {
   const supabase = await createClient();
 

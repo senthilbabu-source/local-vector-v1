@@ -70,6 +70,8 @@ import UpgradeRedirectBanner from './_components/UpgradeRedirectBanner';
 // P1-FIX-05: Manual scan trigger
 import ManualScanTrigger from './_components/ManualScanTrigger';
 
+export const metadata = { title: 'Dashboard | LocalVector.ai' };
+
 export type { HallucinationRow } from '@/lib/data/dashboard'; // re-export for AlertFeed.tsx
 
 // Reality Score derivation — Formula from Doc 03 §9:

@@ -103,7 +103,7 @@ export default function EnginesSection() {
                     }}
                   >
                     <p
-                      className="text-xs font-semibold uppercase mb-1 text-slate-500"
+                      className="text-xs font-semibold uppercase mb-1 text-slate-400"
                       style={{ letterSpacing: '0.08em' }}
                     >
                       What you see
@@ -186,7 +186,7 @@ export default function EnginesSection() {
                       className="flex justify-between py-1.5"
                       style={{ borderBottom: i < 3 ? '1px solid rgba(255,255,255,0.04)' : 'none' }}
                     >
-                      <span className="text-xs text-slate-500">{k}</span>
+                      <span className="text-xs text-slate-400">{k}</span>
                       <span
                         className="text-xs font-semibold text-slate-300"
                         style={{ fontFamily: 'var(--font-jetbrains-mono), monospace' }}
@@ -216,7 +216,7 @@ export default function EnginesSection() {
                       className="flex justify-between py-1.5"
                       style={{ borderBottom: i < 3 ? '1px solid rgba(255,255,255,0.04)' : 'none' }}
                     >
-                      <span className="text-xs text-slate-500">{k}</span>
+                      <span className="text-xs text-slate-400">{k}</span>
                       <span
                         className="text-xs font-semibold text-slate-300"
                         style={{ fontFamily: 'var(--font-jetbrains-mono), monospace' }}

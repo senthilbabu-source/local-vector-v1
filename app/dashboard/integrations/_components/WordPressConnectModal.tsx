@@ -85,7 +85,7 @@ export default function WordPressConnectModal({
           <button
             type="button"
             onClick={onClose}
-            className="rounded-lg p-1 text-slate-500 hover:text-white transition"
+            className="rounded-lg p-1 text-slate-400 hover:text-white transition"
           >
             <X className="h-5 w-5" />
           </button>
@@ -109,7 +109,7 @@ export default function WordPressConnectModal({
               placeholder="https://yoursite.com"
               value={siteUrl}
               onChange={(e) => { setSiteUrl(e.target.value); setTestResult('idle'); }}
-              className="mt-1 w-full rounded-lg border border-white/10 bg-surface-dark px-3 py-2 text-sm text-white placeholder:text-slate-600 focus:border-electric-indigo focus:outline-none focus:ring-1 focus:ring-electric-indigo"
+              className="mt-1 w-full rounded-lg border border-white/10 bg-surface-dark px-3 py-2 text-sm text-white placeholder:text-slate-500 focus:border-electric-indigo focus:outline-none focus:ring-1 focus:ring-electric-indigo"
             />
           </div>
           <div>
@@ -122,7 +122,7 @@ export default function WordPressConnectModal({
               placeholder="admin"
               value={username}
               onChange={(e) => { setUsername(e.target.value); setTestResult('idle'); }}
-              className="mt-1 w-full rounded-lg border border-white/10 bg-surface-dark px-3 py-2 text-sm text-white placeholder:text-slate-600 focus:border-electric-indigo focus:outline-none focus:ring-1 focus:ring-electric-indigo"
+              className="mt-1 w-full rounded-lg border border-white/10 bg-surface-dark px-3 py-2 text-sm text-white placeholder:text-slate-500 focus:border-electric-indigo focus:outline-none focus:ring-1 focus:ring-electric-indigo"
             />
           </div>
           <div>
@@ -135,7 +135,7 @@ export default function WordPressConnectModal({
               placeholder="xxxx xxxx xxxx xxxx xxxx xxxx"
               value={appPassword}
               onChange={(e) => { setAppPassword(e.target.value); setTestResult('idle'); }}
-              className="mt-1 w-full rounded-lg border border-white/10 bg-surface-dark px-3 py-2 text-sm text-white placeholder:text-slate-600 focus:border-electric-indigo focus:outline-none focus:ring-1 focus:ring-electric-indigo"
+              className="mt-1 w-full rounded-lg border border-white/10 bg-surface-dark px-3 py-2 text-sm text-white placeholder:text-slate-500 focus:border-electric-indigo focus:outline-none focus:ring-1 focus:ring-electric-indigo"
             />
           </div>
         </div>

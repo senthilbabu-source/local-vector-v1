@@ -99,7 +99,7 @@ const STATUS_CONFIG: Record<string, { label: string; className: string }> = {
   },
   disconnected: {
     label: 'Not connected',
-    className: 'bg-slate-400/10 text-slate-500 ring-slate-500/20',
+    className: 'bg-slate-400/10 text-slate-400 ring-slate-500/20',
   },
 };
 
@@ -203,7 +203,7 @@ export default function PlatformRow({ locationId, platform, integration }: Props
 
           <div className="min-w-0 flex-1">
             <p className="text-sm font-medium text-white">{config.name}</p>
-            <p className="text-xs text-slate-500">
+            <p className="text-xs text-slate-400">
               {syncConfig.syncDescription}
             </p>
           </div>
@@ -242,7 +242,7 @@ export default function PlatformRow({ locationId, platform, integration }: Props
 
           <div className="min-w-0 flex-1">
             <p className="text-sm font-medium text-white">{config.name}</p>
-            <p className="text-xs text-slate-500">
+            <p className="text-xs text-slate-400">
               {syncConfig.syncDescription}
             </p>
           </div>
@@ -320,11 +320,11 @@ export default function PlatformRow({ locationId, platform, integration }: Props
         {/* Name + description */}
         <div className="min-w-0 flex-1">
           <p className="text-sm font-medium text-white">{config.name}</p>
-          <p className="text-xs text-slate-500">{config.description}</p>
+          <p className="text-xs text-slate-400">{config.description}</p>
 
           {/* Last sync time */}
           {integration?.last_sync_at && (
-            <p className="mt-0.5 text-xs text-slate-600">
+            <p className="mt-0.5 text-xs text-slate-500">
               Last synced: {formatSyncTime(integration.last_sync_at)}
             </p>
           )}

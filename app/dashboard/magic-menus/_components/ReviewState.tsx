@@ -95,7 +95,7 @@ function ItemRow({
             {item.price && (
               <span className="text-xs text-slate-400 tabular-nums">{item.price}</span>
             )}
-            <span className="text-xs text-slate-600">· {item.category}</span>
+            <span className="text-xs text-slate-500">· {item.category}</span>
           </div>
           {expanded && item.description && (
             <p className="mt-1 text-xs text-slate-400 leading-snug">{item.description}</p>
@@ -186,7 +186,7 @@ export default function ReviewState({ menu, onPublished }: ReviewStateProps) {
             <h2 className="text-sm font-semibold text-white">
               AI Extraction Results
             </h2>
-            <span className="text-xs text-slate-500 tabular-nums">
+            <span className="text-xs text-slate-400 tabular-nums">
               {items.length} items · avg{' '}
               {menu.extraction_confidence !== null
                 ? `${Math.round(menu.extraction_confidence * 100)}% confidence`
@@ -194,7 +194,7 @@ export default function ReviewState({ menu, onPublished }: ReviewStateProps) {
             </span>
           </div>
           {menu.extracted_data?.extracted_at && (
-            <p className="mt-0.5 text-xs text-slate-600">
+            <p className="mt-0.5 text-xs text-slate-500">
               Extracted{' '}
               {new Date(menu.extracted_data.extracted_at).toLocaleString('en-US', {
                 month: 'short',
@@ -240,7 +240,7 @@ export default function ReviewState({ menu, onPublished }: ReviewStateProps) {
         </TierSection>
 
         {items.length === 0 && (
-          <p className="text-sm text-slate-500 text-center py-8">
+          <p className="text-sm text-slate-400 text-center py-8">
             No items were extracted. Try re-running the AI parse.
           </p>
         )}
@@ -329,7 +329,7 @@ export default function ReviewState({ menu, onPublished }: ReviewStateProps) {
               'w-full rounded-xl px-4 py-2.5 text-sm font-semibold transition',
               canPublish && !isPublishing
                 ? 'bg-electric-indigo text-white hover:bg-electric-indigo/90'
-                : 'bg-white/5 text-slate-600 cursor-not-allowed',
+                : 'bg-white/5 text-slate-500 cursor-not-allowed',
             ].join(' ')}
           >
             {isPublishing ? (
@@ -366,7 +366,7 @@ function SummaryRow({
 }) {
   return (
     <div className="flex items-center justify-between">
-      <span className="text-xs text-slate-500">{label}</span>
+      <span className="text-xs text-slate-400">{label}</span>
       <span className={['text-xs font-bold tabular-nums', colorClass].join(' ')}>
         {count}
       </span>

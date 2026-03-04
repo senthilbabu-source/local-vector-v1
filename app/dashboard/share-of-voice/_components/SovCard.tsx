@@ -251,7 +251,7 @@ function QueryRow({
             &ldquo;{query.query_text}&rdquo;
           </p>
           {relevance && relevance.verdict === 'not_applicable' && (
-            <p className="mt-0.5 text-xs text-slate-500" data-testid="relevance-not-applicable">
+            <p className="mt-0.5 text-xs text-slate-400" data-testid="relevance-not-applicable">
               Not applicable — {relevance.reason}
             </p>
           )}
@@ -286,7 +286,7 @@ function QueryRow({
             onClick={() => onDelete(query.id)}
             disabled={isDeletePending}
             title="Delete query"
-            className="shrink-0 rounded p-1 text-slate-600 transition hover:bg-white/5 hover:text-alert-crimson disabled:opacity-50"
+            className="shrink-0 rounded p-1 text-slate-500 transition hover:bg-white/5 hover:text-alert-crimson disabled:opacity-50"
             data-testid="delete-query-btn"
           >
             <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>

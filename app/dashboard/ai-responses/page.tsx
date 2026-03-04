@@ -7,6 +7,8 @@ import { canRunSovEvaluation, type PlanTier } from '@/lib/plan-enforcer';
 import ResponseLibrary from './_components/ResponseLibrary';
 import AIAnswerPreviewWidget from './_components/AIAnswerPreviewWidget';
 
+export const metadata = { title: 'AI Says | LocalVector.ai' };
+
 export default async function AIResponsesPage() {
   const ctx = await getSafeAuthContext();
   if (!ctx?.orgId) redirect('/login');

@@ -21,6 +21,8 @@ import ContentDraftCard, { type ContentDraftRow } from './_components/ContentDra
 import DraftFilterTabs from './_components/DraftFilterTabs';
 import OccasionTimeline, { type OccasionWithCountdown } from './_components/OccasionTimeline';
 
+export const metadata = { title: 'Posts | LocalVector.ai' };
+
 // ---------------------------------------------------------------------------
 // Data fetching
 // ---------------------------------------------------------------------------
@@ -169,7 +171,7 @@ export default async function ContentDraftsPage({
       {/* ── Sprint O (L3): Calendar breadcrumb ────────────────────── */}
       {fromCalendar && (
         <nav
-          className="flex items-center gap-2 text-sm text-slate-500"
+          className="flex items-center gap-2 text-sm text-slate-400"
           aria-label="Breadcrumb"
           data-testid="calendar-breadcrumb"
         >
@@ -200,19 +202,19 @@ export default async function ContentDraftsPage({
         {/* ── Summary strip ────────────────────────────────────────── */}
         <div className="flex flex-wrap gap-4">
           <div className="rounded-xl bg-surface-dark px-4 py-3 ring-1 ring-white/5">
-            <p className="text-xs text-slate-500">Pending Review</p>
+            <p className="text-xs text-slate-400">Pending Review</p>
             <p className="mt-0.5 text-2xl font-bold tabular-nums text-amber-400">
               {draftCount}
             </p>
           </div>
           <div className="rounded-xl bg-surface-dark px-4 py-3 ring-1 ring-white/5">
-            <p className="text-xs text-slate-500">Approved</p>
+            <p className="text-xs text-slate-400">Approved</p>
             <p className="mt-0.5 text-2xl font-bold tabular-nums text-emerald-400">
               {approvedCount}
             </p>
           </div>
           <div className="rounded-xl bg-surface-dark px-4 py-3 ring-1 ring-white/5">
-            <p className="text-xs text-slate-500">Total Drafts</p>
+            <p className="text-xs text-slate-400">Total Drafts</p>
             <p className="mt-0.5 text-2xl font-bold tabular-nums text-white">
               {allDrafts.length}
             </p>
@@ -239,21 +241,21 @@ export default async function ContentDraftsPage({
               data-testid="content-drafts-empty-state"
               className="flex flex-col items-center justify-center rounded-xl bg-surface-dark px-6 py-16 text-center ring-1 ring-white/5"
             >
-              <FileText className="mx-auto h-10 w-10 text-slate-600" />
+              <FileText className="mx-auto h-10 w-10 text-slate-500" />
               <p className="mt-3 text-sm font-medium text-slate-400">
                 {statusFilter ? 'No drafts match this filter' : 'No content drafts yet'}
               </p>
               {statusFilter ? (
-                <p className="mt-1 text-xs text-slate-500">
+                <p className="mt-1 text-xs text-slate-400">
                   Try removing the filter to see all drafts.
                 </p>
               ) : (
                 <>
-                  <p className="mt-2 max-w-sm text-xs text-slate-500 leading-relaxed">
+                  <p className="mt-2 max-w-sm text-xs text-slate-400 leading-relaxed">
                     Content drafts are auto-generated when LocalVector detects a competitor
                     outranking you on an AI query. To generate your first draft:
                   </p>
-                  <ol className="mt-2 text-left text-xs text-slate-500 space-y-0.5">
+                  <ol className="mt-2 text-left text-xs text-slate-400 space-y-0.5">
                     <li>1. Add competitors on the Compete page</li>
                     <li>2. LocalVector detects intercepts overnight</li>
                     <li>3. AI drafts appear here for your review</li>

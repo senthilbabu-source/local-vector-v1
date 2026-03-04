@@ -57,7 +57,7 @@ function crawlerBadge(health: string | undefined) {
     case 'blocked':
       return { icon: ShieldX, color: 'text-red-400', label: 'AI crawlers blocked' };
     default:
-      return { icon: ShieldAlert, color: 'text-slate-500', label: 'Not checked' };
+      return { icon: ShieldAlert, color: 'text-slate-400', label: 'Not checked' };
   }
 }
 
@@ -151,7 +151,7 @@ export default function VAIOPanel({ isGrowthPlan }: VAIOPanelProps) {
             >
               {score}
             </span>
-            <span className="text-xs text-slate-500">/ 100</span>
+            <span className="text-xs text-slate-400">/ 100</span>
           </div>
 
           {/* Crawler health badge */}
@@ -173,7 +173,7 @@ export default function VAIOPanel({ isGrowthPlan }: VAIOPanelProps) {
 
           {/* Top issue */}
           {profile?.top_content_issues?.[0] && (
-            <p className="text-xs text-slate-500">
+            <p className="text-xs text-slate-400">
               <span className="text-amber-400">Top issue:</span>{' '}
               {profile.top_content_issues[0].description}
             </p>
@@ -181,11 +181,11 @@ export default function VAIOPanel({ isGrowthPlan }: VAIOPanelProps) {
 
           {/* llms.txt status */}
           <div className="flex items-center gap-1.5 text-xs">
-            <span className="text-slate-500">llms.txt:</span>
+            <span className="text-slate-400">llms.txt:</span>
             <span className={
               profile?.llms_txt_status === 'generated' ? 'text-green-400' :
               profile?.llms_txt_status === 'stale' ? 'text-amber-400' :
-              'text-slate-500'
+              'text-slate-400'
             }>
               {profile?.llms_txt_status === 'generated' ? 'Generated' :
                profile?.llms_txt_status === 'stale' ? 'Stale' : 'Not generated'}

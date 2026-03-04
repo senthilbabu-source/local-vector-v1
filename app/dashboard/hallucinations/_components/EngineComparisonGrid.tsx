@@ -78,7 +78,7 @@ export default function EngineComparisonGrid({ engineScores }: EngineComparisonG
               </span>
 
               {/* Weight */}
-              <p className="mt-1 text-[10px] text-slate-500">
+              <p className="mt-1 text-[10px] text-slate-400">
                 Impact: {weight}%
               </p>
             </div>

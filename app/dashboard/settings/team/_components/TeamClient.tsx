@@ -174,7 +174,7 @@ export default function TeamClient({
               </span>
 
               {/* Joined date */}
-              <span className="shrink-0 text-xs text-slate-500 hidden sm:block w-24 text-right">
+              <span className="shrink-0 text-xs text-slate-400 hidden sm:block w-24 text-right">
                 {formatDate(m.joinedAt)}
               </span>
 
@@ -259,7 +259,7 @@ export default function TeamClient({
               placeholder="email@example.com"
               value={inviteEmail}
               onChange={(e) => setInviteEmail(e.target.value)}
-              className="flex-1 rounded-lg bg-slate-900 border border-slate-600 px-3 py-2 text-sm text-white placeholder:text-slate-500 focus:outline-none focus:ring-1 focus:ring-electric-indigo"
+              className="flex-1 rounded-lg bg-slate-900 border border-slate-600 px-3 py-2 text-sm text-white placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-electric-indigo"
             />
             <select
               data-testid="invite-role-select"

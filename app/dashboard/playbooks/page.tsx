@@ -16,6 +16,8 @@ import { getActiveLocationId } from '@/lib/location/active-location';
 import PlaybooksPageClient from './PlaybooksPageClient';
 import type { Playbook } from '@/lib/playbooks/playbook-types';
 
+export const metadata = { title: 'Improvement Plans | LocalVector.ai' };
+
 export default async function PlaybooksPage() {
   const ctx = await getSafeAuthContext();
   if (!ctx) redirect('/login');

@@ -66,7 +66,7 @@ export default async function ConnectPage() {
 
             <div className="flex items-center gap-3 w-full">
               <div className="h-px flex-1 bg-white/10" />
-              <span className="text-xs text-slate-500 uppercase tracking-wider">
+              <span className="text-xs text-slate-400 uppercase tracking-wider">
                 or
               </span>
               <div className="h-px flex-1 bg-white/10" />

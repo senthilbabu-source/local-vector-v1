@@ -20,7 +20,7 @@ export default function SampleDashboard() {
     <div data-testid="sample-dashboard" className="space-y-4">
       {/* SOV Score */}
       <div className="rounded-lg border border-white/10 bg-[#0A1628] p-6 text-center">
-        <p className="text-xs font-medium uppercase tracking-wider text-slate-500">
+        <p className="text-xs font-medium uppercase tracking-wider text-slate-400">
           AI Mentions
         </p>
         <p data-testid="sample-sov-score" className="mt-1 text-5xl font-bold text-slate-100">
@@ -29,7 +29,7 @@ export default function SampleDashboard() {
         <p className="mt-1 text-sm text-green-400">
           {'\u2191'} +{SAMPLE_SOV_DATA.delta} points this week
         </p>
-        <p className="mt-1 text-xs text-slate-500">
+        <p className="mt-1 text-xs text-slate-400">
           Based on {SAMPLE_SOV_DATA.total_queries} AI queries tracked
         </p>
       </div>
@@ -68,7 +68,7 @@ export default function SampleDashboard() {
           {'\uD83D\uDCDD'} Content Recommendation
         </h3>
         <p className="text-sm font-medium text-slate-200">{SAMPLE_CONTENT_DRAFT.title}</p>
-        <p className="mt-1 text-xs text-slate-500">
+        <p className="mt-1 text-xs text-slate-400">
           Status: {SAMPLE_CONTENT_DRAFT.status} — Trigger: SOV gap
         </p>
       </div>

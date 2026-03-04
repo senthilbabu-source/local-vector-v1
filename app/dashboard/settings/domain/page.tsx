@@ -8,6 +8,8 @@ import { SUBDOMAIN_BASE } from '@/lib/whitelabel/types';
 import DomainConfigForm from './_components/DomainConfigForm';
 import Link from 'next/link';
 
+export const metadata = { title: 'Domain | LocalVector.ai' };
+
 /**
  * Domain Settings Page — Sprint 114
  *

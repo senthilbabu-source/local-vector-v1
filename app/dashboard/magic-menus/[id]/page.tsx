@@ -6,6 +6,8 @@ import AddCategoryModal from './_components/AddCategoryModal';
 import AddItemModal from './_components/AddItemModal';
 import PublishToggle from '../_components/PublishToggle';
 
+export const metadata = { title: 'Menu Details | LocalVector.ai' };
+
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------

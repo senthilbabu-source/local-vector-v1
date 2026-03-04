@@ -184,7 +184,7 @@ export default function GuidedTour() {
         style={{ top: tooltipPos.top, left: tooltipPos.left }}
       >
         {/* Step indicator */}
-        <p className="text-xs text-slate-500 mb-1.5">
+        <p className="text-xs text-slate-400 mb-1.5">
           Step {currentStep + 1} of {TOUR_STEPS.length}
         </p>
         <h3 className="text-sm font-semibold text-white mb-1">{step.title}</h3>
@@ -195,7 +195,7 @@ export default function GuidedTour() {
         <div className="flex items-center justify-between">
           <button
             onClick={handleDismiss}
-            className="text-xs text-slate-500 hover:text-white transition"
+            className="text-xs text-slate-400 hover:text-white transition"
           >
             Skip tour
           </button>

@@ -5,6 +5,8 @@ import { roleSatisfies, ROLE_PERMISSIONS } from '@/lib/auth/org-roles';
 import { PlanGate } from '@/components/plan-gate/PlanGate';
 import TeamClient from './_components/TeamClient';
 
+export const metadata = { title: 'Team Settings | LocalVector.ai' };
+
 /**
  * Team Management Page — Sprint 98
  *

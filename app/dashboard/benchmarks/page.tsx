@@ -22,6 +22,8 @@ import { getActiveLocationId } from '@/lib/location/active-location';
 import BenchmarkComparisonCard from '../_components/BenchmarkComparisonCard';
 import { Trophy } from 'lucide-react';
 
+export const metadata = { title: 'Local Comparison | LocalVector.ai' };
+
 // ---------------------------------------------------------------------------
 // Constants — matches BenchmarkComparisonCard.MIN_DISPLAY_THRESHOLD
 // ---------------------------------------------------------------------------

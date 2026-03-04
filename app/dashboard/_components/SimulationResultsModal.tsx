@@ -49,7 +49,7 @@ function factIcon(status: string) {
   if (status === 'exact') return <CheckCircle className="h-3.5 w-3.5 text-signal-green shrink-0" />;
   if (status === 'partial') return <AlertTriangle className="h-3.5 w-3.5 text-amber-400 shrink-0" />;
   if (status === 'wrong') return <XCircle className="h-3.5 w-3.5 text-red-400 shrink-0" />;
-  return <AlertTriangle className="h-3.5 w-3.5 text-slate-500 shrink-0" />;
+  return <AlertTriangle className="h-3.5 w-3.5 text-slate-400 shrink-0" />;
 }
 
 interface SimulationResultsModalProps {
@@ -118,11 +118,11 @@ export default function SimulationResultsModal({ isOpen, onClose, run }: Simulat
                         <span className="text-xs">
                           <span className="text-red-400">Got: {fact.extracted_value}</span>
                           <br />
-                          <span className="text-slate-500">Expected: {fact.ground_truth_value}</span>
+                          <span className="text-slate-400">Expected: {fact.ground_truth_value}</span>
                         </span>
                       )}
                       {fact.match_status === 'missing' && (
-                        <span className="text-xs text-slate-500">Not mentioned</span>
+                        <span className="text-xs text-slate-400">Not mentioned</span>
                       )}
                     </div>
                   </div>
@@ -198,7 +198,7 @@ export default function SimulationResultsModal({ isOpen, onClose, run }: Simulat
                     <div>
                       <p className="text-xs text-slate-200">{addition.suggestion}</p>
                       {addition.closes_queries.length > 0 && (
-                        <p className="text-xs text-slate-500 mt-0.5">
+                        <p className="text-xs text-slate-400 mt-0.5">
                           Closes {addition.closes_queries.length} quer{addition.closes_queries.length === 1 ? 'y' : 'ies'}
                         </p>
                       )}
@@ -212,7 +212,7 @@ export default function SimulationResultsModal({ isOpen, onClose, run }: Simulat
 
         {/* Footer */}
         <div className="flex items-center justify-end gap-3 mt-4 pt-4 border-t border-white/5">
-          <span className="text-xs text-slate-500">
+          <span className="text-xs text-slate-400">
             Tokens: {run.input_tokens_used + run.output_tokens_used} | Model: {run.claude_model}
           </span>
           <button

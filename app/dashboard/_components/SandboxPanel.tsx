@@ -213,7 +213,7 @@ export default function SandboxPanel({ isGrowthPlan }: SandboxPanelProps) {
             value={contentText}
             onChange={(e) => setContentText(e.target.value)}
             placeholder="Paste your content here to test how AI would read and answer questions about your business..."
-            className="w-full h-32 rounded-lg border border-white/10 bg-white/[0.02] px-3 py-2 text-sm text-white placeholder:text-slate-500 focus:border-electric-indigo/50 focus:outline-none resize-none"
+            className="w-full h-32 rounded-lg border border-white/10 bg-white/[0.02] px-3 py-2 text-sm text-white placeholder:text-slate-400 focus:border-electric-indigo/50 focus:outline-none resize-none"
             data-testid="sandbox-content-input"
           />
 
@@ -259,7 +259,7 @@ export default function SandboxPanel({ isGrowthPlan }: SandboxPanelProps) {
           </button>
 
           {/* Rate limit */}
-          <p className="text-xs text-slate-500 mt-2">
+          <p className="text-xs text-slate-400 mt-2">
             Runs today: {rateLimit.runs_today} / {rateLimit.max}
           </p>
 
@@ -321,7 +321,7 @@ export default function SandboxPanel({ isGrowthPlan }: SandboxPanelProps) {
             </div>
           ) : (
             <div className="flex items-center justify-center h-full">
-              <p className="text-sm text-slate-500">No simulation results yet. Run your first test!</p>
+              <p className="text-sm text-slate-400">No simulation results yet. Run your first test!</p>
             </div>
           )}
         </div>
@@ -336,7 +336,7 @@ export default function SandboxPanel({ isGrowthPlan }: SandboxPanelProps) {
           <div className="overflow-x-auto">
             <table className="w-full text-xs">
               <thead>
-                <tr className="text-slate-500">
+                <tr className="text-slate-400">
                   <th className="text-left py-1 pr-4">Date</th>
                   <th className="text-left py-1 pr-4">Source</th>
                   <th className="text-left py-1 pr-4">Score</th>

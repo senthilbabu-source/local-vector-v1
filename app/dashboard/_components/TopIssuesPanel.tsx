@@ -141,7 +141,7 @@ function IssueRow({
             {description.headline}
           </p>
           {description.subtext && (
-            <p className="mt-0.5 text-xs text-slate-500">
+            <p className="mt-0.5 text-xs text-slate-400">
               {description.subtext}
             </p>
           )}
@@ -152,7 +152,7 @@ function IssueRow({
               {description.category}
             </span>
             {description.costsCredit && (
-              <span className="text-[10px] text-slate-600">· 1 credit</span>
+              <span className="text-[10px] text-slate-500">· 1 credit</span>
             )}
           </div>
         </div>
@@ -215,7 +215,7 @@ export default function TopIssuesPanel({
             />
           ))}
         </div>
-        <p className="mt-3 text-[10px] text-slate-600 text-center">
+        <p className="mt-3 text-[10px] text-slate-500 text-center">
           Sample issues shown — your real issues appear after the first scan
         </p>
       </div>
@@ -266,7 +266,7 @@ export default function TopIssuesPanel({
           <p className="text-sm font-medium text-truth-emerald">
             No issues found
           </p>
-          <p className="mt-1 text-xs text-slate-500">
+          <p className="mt-1 text-xs text-slate-400">
             LocalVector hasn&apos;t detected any problems with how AI models
             describe your business.
           </p>

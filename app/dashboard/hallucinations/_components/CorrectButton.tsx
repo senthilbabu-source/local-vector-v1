@@ -78,7 +78,7 @@ export default function CorrectButton({
         value={notes}
         onChange={(e) => setNotes(e.target.value)}
         placeholder="Optional notes — what was corrected and how?"
-        className="w-full rounded-md border border-white/10 bg-surface-dark px-3 py-2 text-xs text-white placeholder:text-slate-500 focus:outline-none focus:ring-1 focus:ring-primary"
+        className="w-full rounded-md border border-white/10 bg-surface-dark px-3 py-2 text-xs text-white placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-primary"
         rows={2}
         data-testid="correction-notes-input"
       />

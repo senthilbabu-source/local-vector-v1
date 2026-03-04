@@ -1,3 +1,5 @@
+export const metadata = { title: 'Sign In | LocalVector.ai' };
+
 export default function AuthLayout({
   children,
 }: {

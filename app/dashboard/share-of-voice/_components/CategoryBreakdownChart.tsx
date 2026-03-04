@@ -47,7 +47,7 @@ export default function CategoryBreakdownChart({ breakdown }: Props) {
                   {CATEGORY_LABELS[cat]}
                 </span>
                 <div className="flex items-center gap-2">
-                  <span className="text-[10px] text-slate-500">
+                  <span className="text-[10px] text-slate-400">
                     {data.citedCount}/{data.totalCount}
                   </span>
                   <span className="text-xs font-semibold tabular-nums text-white">

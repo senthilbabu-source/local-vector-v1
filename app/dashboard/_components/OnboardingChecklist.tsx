@@ -79,7 +79,7 @@ export default function OnboardingChecklist({ initialState }: OnboardingChecklis
             setDismissed(true);
             localStorage.setItem(DISMISS_KEY, 'true');
           }}
-          className="text-slate-500 hover:text-slate-300 text-xs"
+          className="text-slate-400 hover:text-slate-300 text-xs"
           aria-label="Dismiss onboarding checklist"
         >
           {'\u2715'}
@@ -108,13 +108,13 @@ export default function OnboardingChecklist({ initialState }: OnboardingChecklis
               data-testid={`onboarding-step-${step.id}`}
               className="flex items-center justify-between text-sm"
             >
-              <span className={isComplete ? 'text-slate-500 line-through' : 'text-slate-300'}>
+              <span className={isComplete ? 'text-slate-400 line-through' : 'text-slate-300'}>
                 {isComplete ? '\u2705' : '\u25CB'}{' '}
                 {step.label}
               </span>
               {!isComplete && (
                 step.auto_completable ? (
-                  <span className="text-xs text-slate-500">
+                  <span className="text-xs text-slate-400">
                     {step.id === 'first_scan'
                       ? 'Scan runs every Sunday'
                       : 'Will complete automatically'}

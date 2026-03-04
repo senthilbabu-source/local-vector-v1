@@ -113,7 +113,7 @@ export default function SchemaEmbedModal({
 
         {/* Validation links */}
         <div className="border-t border-white/5 pt-3">
-          <p className="text-xs text-slate-500 mb-2">After embedding, verify at:</p>
+          <p className="text-xs text-slate-400 mb-2">After embedding, verify at:</p>
           <div className="flex gap-3">
             <a
               href="https://search.google.com/test/rich-results"

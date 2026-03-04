@@ -65,7 +65,7 @@ function crawlerIcon(status: string) {
   switch (status) {
     case 'allowed': return <ShieldCheck className="h-3.5 w-3.5 text-green-400" />;
     case 'blocked': return <ShieldX className="h-3.5 w-3.5 text-red-400" />;
-    default: return <ShieldAlert className="h-3.5 w-3.5 text-slate-500" />;
+    default: return <ShieldAlert className="h-3.5 w-3.5 text-slate-400" />;
   }
 }
 
@@ -112,7 +112,7 @@ export default function VAIOPageClient() {
   if (loading) {
     return (
       <div className="flex h-64 items-center justify-center">
-        <Loader2 className="h-6 w-6 animate-spin text-slate-500" />
+        <Loader2 className="h-6 w-6 animate-spin text-slate-400" />
       </div>
     );
   }
@@ -144,7 +144,7 @@ export default function VAIOPageClient() {
           <span className={`font-mono text-5xl font-bold ${scoreColor(score)}`}>
             {score}
           </span>
-          <span className="text-lg text-slate-500">/ 100</span>
+          <span className="text-lg text-slate-400">/ 100</span>
         </div>
         <p className="mt-2 text-sm text-slate-400">
           {score >= 70 ? 'Your business is well-optimized for voice search.' :
@@ -165,12 +165,12 @@ export default function VAIOPageClient() {
                 <div className="flex items-center gap-2">
                   {crawlerIcon(c.status)}
                   <span className="text-slate-300">{c.name}</span>
-                  <span className="text-xs text-slate-500">({c.used_by})</span>
+                  <span className="text-xs text-slate-400">({c.used_by})</span>
                 </div>
                 <span className={`text-xs ${
                   c.status === 'allowed' ? 'text-green-400' :
                   c.status === 'blocked' ? 'text-red-400' :
-                  'text-slate-500'
+                  'text-slate-400'
                 }`}>
                   {c.status === 'allowed' ? 'Allowed' :
                    c.status === 'blocked' ? 'Blocked' : 'Not specified'}
@@ -192,10 +192,10 @@ export default function VAIOPageClient() {
               <div key={q.id} className="flex items-center justify-between text-sm">
                 <span className="text-slate-300 truncate max-w-md">&ldquo;{q.query_text}&rdquo;</span>
                 <div className="flex items-center gap-3">
-                  <span className="text-xs text-slate-500 capitalize">{q.query_category}</span>
+                  <span className="text-xs text-slate-400 capitalize">{q.query_category}</span>
                   <span className={`font-mono text-xs ${
                     q.citation_rate !== null && q.citation_rate > 0
-                      ? 'text-green-400' : 'text-slate-500'
+                      ? 'text-green-400' : 'text-slate-400'
                   }`}>
                     {q.citation_rate !== null ? `${Math.round(q.citation_rate * 100)}%` : '—'}
                   </span>
@@ -224,7 +224,7 @@ export default function VAIOPageClient() {
                 <p className="text-xs text-slate-400 mb-2">
                   {gap.queries.length} queries getting zero AI citations
                 </p>
-                <p className="text-xs text-slate-500 italic">
+                <p className="text-xs text-slate-400 italic">
                   Suggested answer: &ldquo;{gap.suggested_query_answer}&rdquo;
                 </p>
               </div>
@@ -271,7 +271,7 @@ export default function VAIOPageClient() {
                 }`} />
                 <div>
                   <p className="text-slate-300">{issue.description}</p>
-                  <p className="text-xs text-slate-500">{issue.fix}</p>
+                  <p className="text-xs text-slate-400">{issue.fix}</p>
                 </div>
               </div>
             ))}

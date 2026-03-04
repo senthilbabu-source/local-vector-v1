@@ -4,6 +4,8 @@ import { createClient } from '@/lib/supabase/server';
 import { planSatisfies } from '@/lib/plan-enforcer';
 import { getPlanDisplayName } from '@/lib/plan-display-names';
 
+export const metadata = { title: 'Connections | LocalVector.ai' };
+
 // ---------------------------------------------------------------------------
 // ConnectionsPage — Server Component (Sprint 130 + 131)
 //
@@ -100,7 +102,7 @@ export default async function ConnectionsPage() {
           <p className="text-sm text-slate-300">
             Platform sync is available on the <span className="font-medium text-white">{getPlanDisplayName('agency')}</span> plan.
           </p>
-          <p className="mt-2 text-xs text-slate-500">
+          <p className="mt-2 text-xs text-slate-400">
             Currently on: {getPlanDisplayName(ctx.plan)}
           </p>
           <a
@@ -173,7 +175,7 @@ export default async function ConnectionsPage() {
                     <StatusBadge status={conn.claim_status} />
                     <SyncStatusBadge status={conn.sync_status} />
                     {conn.last_synced_at && (
-                      <span className="text-xs text-slate-500">
+                      <span className="text-xs text-slate-400">
                         Last synced: {formatTimeAgo(conn.last_synced_at)}
                       </span>
                     )}
@@ -195,7 +197,7 @@ export default async function ConnectionsPage() {
               <p className="text-sm font-medium text-white">{loc.name}</p>
               <div className="mt-1 flex items-center gap-2">
                 <StatusBadge status="unclaimed" />
-                <span className="text-xs text-slate-500">
+                <span className="text-xs text-slate-400">
                   Not connected to Apple Business Connect
                 </span>
               </div>
@@ -215,7 +217,7 @@ export default async function ConnectionsPage() {
           ))}
 
           {appleRows.length === 0 && unclaimedAppleLocations.length === 0 && (
-            <p className="text-sm text-slate-500">No locations found.</p>
+            <p className="text-sm text-slate-400">No locations found.</p>
           )}
         </div>
       </section>
@@ -243,7 +245,7 @@ export default async function ConnectionsPage() {
                     <StatusBadge status={conn.claim_status} />
                     <SyncStatusBadge status={conn.sync_status} />
                     {conn.last_synced_at && (
-                      <span className="text-xs text-slate-500">
+                      <span className="text-xs text-slate-400">
                         Last synced: {formatTimeAgo(conn.last_synced_at)}
                       </span>
                     )}
@@ -268,7 +270,7 @@ export default async function ConnectionsPage() {
               <p className="text-sm font-medium text-white">{loc.name}</p>
               <div className="mt-1 flex items-center gap-2">
                 <StatusBadge status="unclaimed" />
-                <span className="text-xs text-slate-500">
+                <span className="text-xs text-slate-400">
                   Not connected to Bing Places
                 </span>
               </div>
@@ -288,7 +290,7 @@ export default async function ConnectionsPage() {
           ))}
 
           {bingRows.length === 0 && unclaimedBingLocations.length === 0 && (
-            <p className="text-sm text-slate-500">No locations found.</p>
+            <p className="text-sm text-slate-400">No locations found.</p>
           )}
         </div>
       </section>

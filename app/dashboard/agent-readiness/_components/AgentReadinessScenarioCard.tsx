@@ -81,7 +81,7 @@ export function AgentReadinessScenarioCard({ capability }: AgentReadinessScenari
           {/* Fix guide for non-active capabilities */}
           {capability.status !== 'active' && capability.fixGuide && (
             <div className="mt-2 border-t border-white/5 pt-2">
-              <p className="text-xs text-slate-500">{capability.fixGuide}</p>
+              <p className="text-xs text-slate-400">{capability.fixGuide}</p>
               {capability.schemaAction && (
                 <button
                   className="mt-2 inline-flex items-center text-xs font-semibold text-electric-indigo hover:text-electric-indigo/80 transition-colors"

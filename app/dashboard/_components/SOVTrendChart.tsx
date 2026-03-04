@@ -77,7 +77,7 @@ export default function SOVTrendChart({ data, title = 'AI Visibility Trend' }: S
         return (
             <div className="rounded-xl bg-surface-dark border border-white/5 p-5">
                 <h3 className="text-sm font-semibold text-white mb-3">{title}</h3>
-                <div className="flex items-center justify-center h-48 text-slate-500 text-sm">
+                <div className="flex items-center justify-center h-48 text-slate-400 text-sm">
                     No visibility data yet — your first weekly scan will populate this chart.
                 </div>
             </div>
@@ -102,44 +102,59 @@ export default function SOVTrendChart({ data, title = 'AI Visibility Trend' }: S
                     <ChevronRight className="h-3 w-3" />
                 </Link>
             </div>
-            <ResponsiveContainer width="100%" height={220}>
-                <AreaChart data={chartData} margin={{ top: 5, right: 10, left: -20, bottom: 0 }}>
-                    <defs>
-                        <linearGradient id="sovGradient" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="5%" stopColor="#00F5A0" stopOpacity={0.3} />
-                            <stop offset="95%" stopColor="#00F5A0" stopOpacity={0} />
-                        </linearGradient>
-                    </defs>
-                    <CartesianGrid
-                        strokeDasharray="3 3"
-                        stroke="rgba(255,255,255,0.05)"
-                        vertical={false}
-                    />
-                    <XAxis
-                        dataKey="label"
-                        tick={{ fill: '#64748B', fontSize: 11 }}
-                        axisLine={{ stroke: 'rgba(255,255,255,0.05)' }}
-                        tickLine={false}
-                    />
-                    <YAxis
-                        domain={[0, 100]}
-                        tick={{ fill: '#64748B', fontSize: 11 }}
-                        axisLine={false}
-                        tickLine={false}
-                        tickFormatter={(v: number) => `${v}%`}
-                    />
-                    <Tooltip content={<CustomTooltip />} />
-                    <Area
-                        type="monotone"
-                        dataKey="sov"
-                        stroke="#00F5A0"
-                        strokeWidth={2}
-                        fill="url(#sovGradient)"
-                        dot={{ fill: '#00F5A0', r: 3, strokeWidth: 0 }}
-                        activeDot={{ fill: '#00F5A0', r: 5, strokeWidth: 2, stroke: '#050A15' }}
-                    />
-                </AreaChart>
-            </ResponsiveContainer>
+            <div
+                role="img"
+                aria-label={`AI Visibility trend chart showing ${chartData.length} data points. Latest value: ${chartData[chartData.length - 1]?.sov ?? 0}% mentioned.`}
+            >
+                <ResponsiveContainer width="100%" height={220}>
+                    <AreaChart data={chartData} margin={{ top: 5, right: 10, left: -20, bottom: 0 }}>
+                        <defs>
+                            <linearGradient id="sovGradient" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="5%" stopColor="#00F5A0" stopOpacity={0.3} />
+                                <stop offset="95%" stopColor="#00F5A0" stopOpacity={0} />
+                            </linearGradient>
+                        </defs>
+                        <CartesianGrid
+                            strokeDasharray="3 3"
+                            stroke="rgba(255,255,255,0.05)"
+                            vertical={false}
+                        />
+                        <XAxis
+                            dataKey="label"
+                            tick={{ fill: '#94A3B8', fontSize: 11 }}
+                            axisLine={{ stroke: 'rgba(255,255,255,0.05)' }}
+                            tickLine={false}
+                        />
+                        <YAxis
+                            domain={[0, 100]}
+                            tick={{ fill: '#94A3B8', fontSize: 11 }}
+                            axisLine={false}
+                            tickLine={false}
+                            tickFormatter={(v: number) => `${v}%`}
+                        />
+                        <Tooltip content={<CustomTooltip />} />
+                        <Area
+                            type="monotone"
+                            dataKey="sov"
+                            stroke="#00F5A0"
+                            strokeWidth={2}
+                            fill="url(#sovGradient)"
+                            dot={{ fill: '#00F5A0', r: 3, strokeWidth: 0 }}
+                            activeDot={{ fill: '#00F5A0', r: 5, strokeWidth: 2, stroke: '#050A15' }}
+                        />
+                    </AreaChart>
+                </ResponsiveContainer>
+            </div>
+            {/* P6-FIX-27: Screen reader data table */}
+            <table className="sr-only">
+                <caption>AI Visibility Trend Data</caption>
+                <thead><tr><th>Date</th><th>Visibility (%)</th></tr></thead>
+                <tbody>
+                    {chartData.map((d) => (
+                        <tr key={d.date}><td>{d.label}</td><td>{d.sov}%</td></tr>
+                    ))}
+                </tbody>
+            </table>
         </div>
     );
 }

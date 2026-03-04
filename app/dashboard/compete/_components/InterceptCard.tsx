@@ -53,7 +53,7 @@ export default function InterceptCard({ intercept, myBusiness }: InterceptCardPr
       {/* Query + winner */}
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0">
-          <p className="text-xs text-slate-500 mb-1">Query asked</p>
+          <p className="text-xs text-slate-400 mb-1">Query asked</p>
           <p className="text-sm font-medium text-white">
             &ldquo;{intercept.query_asked ?? 'Unknown query'}&rdquo;
           </p>
@@ -73,7 +73,7 @@ export default function InterceptCard({ intercept, myBusiness }: InterceptCardPr
       {/* Why they won */}
       {intercept.winner_reason && (
         <div>
-          <p className="text-xs text-slate-500 mb-1">Why they won</p>
+          <p className="text-xs text-slate-400 mb-1">Why they won</p>
           <p className="text-sm text-slate-300">{intercept.winner_reason}</p>
         </div>
       )}
@@ -82,7 +82,7 @@ export default function InterceptCard({ intercept, myBusiness }: InterceptCardPr
       {intercept.winning_factor && (
         <div className="flex items-start gap-3">
           <div className="flex-1">
-            <p className="text-xs text-slate-500 mb-1">Winning factor</p>
+            <p className="text-xs text-slate-400 mb-1">Winning factor</p>
             <p className="text-sm text-slate-300">{intercept.winning_factor}</p>
           </div>
           {intercept.gap_magnitude && (
@@ -96,7 +96,7 @@ export default function InterceptCard({ intercept, myBusiness }: InterceptCardPr
       {/* Gap bar */}
       {intercept.gap_analysis && (
         <div className="space-y-1">
-          <div className="flex justify-between text-xs text-slate-500">
+          <div className="flex justify-between text-xs text-slate-400">
             <span>{myBusiness}: {intercept.gap_analysis.your_mentions} mentions</span>
             <span>{intercept.competitor_name}: {intercept.gap_analysis.competitor_mentions} mentions</span>
           </div>
@@ -144,7 +144,7 @@ export default function InterceptCard({ intercept, myBusiness }: InterceptCardPr
           </button>
         </div>
       ) : (
-        <div className="flex items-center gap-1.5 text-xs text-slate-600">
+        <div className="flex items-center gap-1.5 text-xs text-slate-500">
           <CheckCircle2 className="h-3.5 w-3.5" />
           {intercept.action_status === 'completed' ? 'Completed' : 'Dismissed'}
         </div>

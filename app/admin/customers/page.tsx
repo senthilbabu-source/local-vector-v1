@@ -86,10 +86,10 @@ export default async function AdminCustomersPage() {
                 <td className="px-4 py-3 tabular-nums text-slate-300">
                   ${calculateMRR(org.plan)}/mo
                 </td>
-                <td className="px-4 py-3 text-xs text-slate-500">
+                <td className="px-4 py-3 text-xs text-slate-400">
                   {org.stripe_customer_id ? 'Connected' : '—'}
                 </td>
-                <td className="px-4 py-3 text-xs text-slate-500">
+                <td className="px-4 py-3 text-xs text-slate-400">
                   {formatRelativeDate(org.created_at)}
                 </td>
               </tr>

@@ -7,6 +7,8 @@ import type { SentimentExtraction } from '@/lib/ai/schemas';
 import { FirstVisitTooltip } from '@/components/ui/FirstVisitTooltip';
 import { SentimentInterpretationPanel } from './_components/SentimentInterpretationPanel';
 
+export const metadata = { title: 'Your Reputation | LocalVector.ai' };
+
 // ---------------------------------------------------------------------------
 // Engine label mapping (matches AI Says page)
 // ---------------------------------------------------------------------------
@@ -160,7 +162,7 @@ function SentimentScoreCard({
 }) {
   return (
     <div className="rounded-xl bg-surface-dark border border-white/5 p-6" data-testid="sentiment-score-card">
-      <p className="text-xs font-semibold uppercase tracking-wider text-slate-500 font-mono">Overall Sentiment</p>
+      <p className="text-xs font-semibold uppercase tracking-wider text-slate-400 font-mono">Overall Sentiment</p>
       <div className="mt-3 flex items-baseline gap-3">
         <span className={`text-3xl font-bold font-mono ${sentimentColor(score)}`}>
           {score >= 0 ? '+' : ''}{score.toFixed(2)}
@@ -188,7 +190,7 @@ function DescriptorDisplay({
 
   return (
     <div className="rounded-xl bg-surface-dark border border-white/5 p-6" data-testid="descriptor-display">
-      <p className="text-xs font-semibold uppercase tracking-wider text-slate-500 font-mono">What AI Says About You</p>
+      <p className="text-xs font-semibold uppercase tracking-wider text-slate-400 font-mono">What AI Says About You</p>
 
       {positive.length > 0 && (
         <div className="mt-3">
@@ -238,7 +240,7 @@ function EngineBreakdownCard({
 
   return (
     <div className="rounded-xl bg-surface-dark border border-white/5 p-6" data-testid="engine-breakdown">
-      <p className="text-xs font-semibold uppercase tracking-wider text-slate-500 font-mono">Per-Engine Breakdown</p>
+      <p className="text-xs font-semibold uppercase tracking-wider text-slate-400 font-mono">Per-Engine Breakdown</p>
       <div className="mt-4 space-y-3">
         {engines
           .sort(([, a], [, b]) => b.averageScore - a.averageScore)
@@ -285,7 +287,7 @@ function SentimentTrendSummary({
 
   return (
     <div className="rounded-xl bg-surface-dark border border-white/5 p-6" data-testid="sentiment-trend">
-      <p className="text-xs font-semibold uppercase tracking-wider text-slate-500 font-mono">Sentiment Trend</p>
+      <p className="text-xs font-semibold uppercase tracking-wider text-slate-400 font-mono">Sentiment Trend</p>
       <p className="mt-3 text-sm text-slate-300">
         Sentiment has{' '}
         <span className={sentimentColor(delta)}>

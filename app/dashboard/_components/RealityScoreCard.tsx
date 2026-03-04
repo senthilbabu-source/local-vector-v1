@@ -65,8 +65,8 @@ function ScoreGauge({ score }: { score: number | null }) {
           <circle cx="50" cy="50" r={r} fill="none" strokeWidth="8" className="stroke-white/5" />
         </svg>
         <div className="relative text-center">
-          <span className="text-3xl font-bold tabular-nums leading-none text-slate-500">—</span>
-          <span className="block text-xs text-slate-600 leading-none mt-0.5">/100</span>
+          <span className="text-3xl font-bold tabular-nums leading-none text-slate-400">—</span>
+          <span className="block text-xs text-slate-500 leading-none mt-0.5">/100</span>
         </div>
       </div>
     );
@@ -101,7 +101,7 @@ function ScoreGauge({ score }: { score: number | null }) {
         <span className={['text-3xl font-bold tabular-nums leading-none', scoreColor(score)].join(' ')}>
           {score}
         </span>
-        <span className="block text-xs text-slate-500 leading-none mt-0.5">/100</span>
+        <span className="block text-xs text-slate-400 leading-none mt-0.5">/100</span>
       </div>
     </div>
   );
@@ -123,7 +123,7 @@ function ComponentBar({
       <div>
         <div className="flex items-center justify-between mb-1">
           <span className="text-xs text-slate-400">{label}</span>
-          <span className="text-xs font-medium text-slate-500">Pending</span>
+          <span className="text-xs font-medium text-slate-400">Pending</span>
         </div>
         <div className="h-1.5 w-full rounded-full bg-white/5" aria-hidden />
       </div>
@@ -182,7 +182,7 @@ export default function RealityScoreCard({
             </h2>
             <InfoTooltip content={TOOLTIP_CONTENT.realityScore} />
           </div>
-          <p className="text-xs text-slate-500 mt-0.5">{subline}</p>
+          <p className="text-xs text-slate-400 mt-0.5">{subline}</p>
         </div>
         <div className="flex items-center gap-3">
           <Link href="/dashboard/hallucinations" className="text-xs text-primary hover:underline flex items-center gap-1">
@@ -190,7 +190,7 @@ export default function RealityScoreCard({
             <ChevronRight className="h-3 w-3" />
           </Link>
           {/* Real last-scan timestamp — replaces the hardcoded "Updated just now" */}
-          <span className="text-xs font-medium text-slate-500 tabular-nums">
+          <span className="text-xs font-medium text-slate-400 tabular-nums">
             {lastAuditAt ? `Updated ${formatRelativeTime(lastAuditAt)}` : 'No scans yet'}
           </span>
         </div>
@@ -211,7 +211,7 @@ export default function RealityScoreCard({
 
       {/* ── AI Scan Health — replaces the fake hardcoded bot list ─── */}
       <div className="mt-4 pt-4 border-t border-white/5">
-        <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">
+        <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">
           AI Scan Health
         </p>
         {lastAuditAt ? (
