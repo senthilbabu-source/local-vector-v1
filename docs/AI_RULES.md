@@ -4271,19 +4271,21 @@ Sidebar nav groups are now collapsible to reduce scroll fatigue. "Overview" expa
 
 ### Architecture
 
-- **State**: `expandedGroups: Set<string>` in `Sidebar.tsx`. Initialized from `localStorage` (`lv_sidebar_expanded_groups`) with fallback to `['Overview']` + active group.
+- **State**: `expandedGroups: Set<string>` in `Sidebar.tsx`. Initialized via `getSSRExpandedGroups(pathname)` — pure function, no `localStorage` (SSR-safe). localStorage hydrated in a mount-only `useEffect`.
 - **Toggle**: Group headers changed from `<p>` to `<button>` with `ChevronRight` icon (rotates 90° when expanded). `aria-expanded` for accessibility.
-- **Persistence**: `localStorage.setItem()` on every toggle. `loadExpandedGroups()` reads on mount.
-- **Auto-expand**: `useEffect` on `pathname` adds active group to expanded set (never collapses user-closed groups).
+- **Persistence**: `localStorage.setItem()` on every toggle. Mount `useEffect` reads stored groups to restore user preference after hydration.
+- **Auto-expand**: Second `useEffect` on `pathname` adds active group to expanded set (never collapses user-closed groups).
 - **Animation**: CSS `max-h-[500px]/max-h-0` + `opacity` transition (200ms). No JS animation library.
 
 ### Rules
 
 1. `DEFAULT_EXPANDED = 'Overview'` — always in the initial expanded set when no localStorage exists.
-2. `getGroupForPath(pathname)` walks `NAV_GROUPS` using the same `exact`/prefix logic as `isActive()`.
-3. Group headers must keep `data-testid="sidebar-group-label"` and `role="group"` + `aria-labelledby` for existing test and a11y contracts.
-4. `localStorage` access is wrapped in try/catch — SSR and incognito safe.
-5. Collapsed groups use `max-h-0 opacity-0 overflow-hidden` — items remain in DOM for search/accessibility but are visually hidden.
+2. `getSSRExpandedGroups(pathname)` is the `useState` initializer — **must never access `localStorage`** or any browser API. This prevents hydration mismatch (server renders with defaults, client must match).
+3. `localStorage` is only read inside a mount-only `useEffect(() => { ... }, [])`. This ensures client hydration matches server HTML, then updates state post-mount.
+4. `getGroupForPath(pathname)` walks `NAV_GROUPS` using the same `exact`/prefix logic as `isActive()`.
+5. Group headers must keep `data-testid="sidebar-group-label"` and `role="group"` + `aria-labelledby` for existing test and a11y contracts.
+6. `localStorage` access is wrapped in try/catch — incognito safe.
+7. Collapsed groups use `max-h-0 opacity-0 overflow-hidden` — items remain in DOM for search/accessibility but are visually hidden.
 
 ### Key Files
 

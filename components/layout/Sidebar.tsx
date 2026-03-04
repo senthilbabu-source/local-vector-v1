@@ -425,17 +425,8 @@ function getGroupForPath(pathname: string): string | null {
   return null;
 }
 
-function loadExpandedGroups(pathname: string): Set<string> {
+function getSSRExpandedGroups(pathname: string): Set<string> {
   const activeGroup = getGroupForPath(pathname);
-  try {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored) {
-      const parsed: string[] = JSON.parse(stored);
-      const set = new Set(parsed);
-      if (activeGroup) set.add(activeGroup);
-      return set;
-    }
-  } catch { /* ignore */ }
   const defaults = new Set([DEFAULT_EXPANDED]);
   if (activeGroup) defaults.add(activeGroup);
   return defaults;
@@ -445,7 +436,21 @@ export default function Sidebar({ isOpen, onClose, displayName, orgName, plan, l
   const pathname = usePathname();
   const industryConfig = getIndustryConfig(orgIndustry);
   const [lockedItem, setLockedItem] = useState<NavItem | null>(null);
-  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(() => loadExpandedGroups(pathname));
+  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(() => getSSRExpandedGroups(pathname));
+
+  // Hydrate from localStorage after mount (SSR-safe)
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem(STORAGE_KEY);
+      if (stored) {
+        const parsed: string[] = JSON.parse(stored);
+        const set = new Set(parsed);
+        const activeGroup = getGroupForPath(pathname);
+        if (activeGroup) set.add(activeGroup);
+        setExpandedGroups(set);
+      }
+    } catch { /* ignore */ }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Auto-expand group when navigating to a page within it
   useEffect(() => {

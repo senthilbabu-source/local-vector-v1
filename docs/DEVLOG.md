@@ -10,7 +10,8 @@ Sidebar had 31 nav items across 5 groups — users had to scroll extensively. No
 
 ### Changes
 - **`components/layout/Sidebar.tsx`** — Group headers changed from `<p>` to `<button>` with `ChevronRight` icon. Added `expandedGroups` state (Set), `toggleGroup()` callback, `useEffect` for auto-expanding active group on route change. CSS `max-h` + opacity transition for smooth collapse animation.
-- **localStorage persistence** — Expanded groups saved to `lv_sidebar_expanded_groups`. Restored on mount. SSR/incognito-safe (try/catch).
+- **localStorage persistence** — Expanded groups saved to `lv_sidebar_expanded_groups`. Restored in mount-only `useEffect` (not during `useState` init). SSR/incognito-safe (try/catch).
+- **Hydration fix** — `useState` initializer (`getSSRExpandedGroups`) is a pure function with no `localStorage` access. localStorage is deferred to a mount-only `useEffect` to prevent server/client mismatch.
 
 ### Also in this commit (pre-existing fixes)
 - **`lib/supabase/server.ts`** — Added `autoRefreshToken: false, detectSessionInUrl: false` to both `createClient()` and `createServiceRoleClient()` auth config.
