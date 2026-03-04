@@ -9,6 +9,8 @@ export type {
   DistributionEngine,
   DistributionContext,
 } from './distribution-types';
+export type { DistributionEngineConfig } from './distribution-engines-config';
+export { DISTRIBUTION_ENGINES, getEngineLastActivity } from './distribution-engines-config';
 export { computeMenuHash } from './content-hasher';
 export { distributeMenu } from './distribution-orchestrator';
 export { indexNowEngine } from './engines/indexnow-engine';

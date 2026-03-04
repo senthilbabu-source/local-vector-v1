@@ -79,4 +79,8 @@ export interface MenuWorkspaceData {
   public_slug: string | null;
   human_verified: boolean;
   propagation_events: PropagationEvent[];
+  /** SHA-256 content hash from last distribution (null if never distributed). */
+  content_hash: string | null;
+  /** ISO-8601 timestamp of last distribution (null if never distributed). */
+  last_distributed_at: string | null;
 }

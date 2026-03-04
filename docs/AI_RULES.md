@@ -4180,3 +4180,47 @@ Push parsed menu data to Google Business Profile via Food Menus API. Real engine
 - `lib/distribution/distribution-types.ts` — `DistributionContext` with `items` + `supabase`
 
 ---
+
+## §198. Distribution UI Panel (Sprint DIST-3, 2026-03-04)
+
+Replace the manual `LinkInjectionModal` (copy-paste URL instructions) with an inline `DistributionPanel` showing per-engine status, one-click distribute, timestamps, and recent crawler activity.
+
+**Architecture:**
+- `lib/distribution/distribution-engines-config.ts` — SSOT for 6 engine display rows: Google (GBP), Bing/Copilot (IndexNow), Apple/Siri (BC sync), ChatGPT (passive), Perplexity (passive), Gemini (passive). `DistributionEngineConfig` interface. `getEngineLastActivity()` helper.
+- `app/dashboard/magic-menus/_components/DistributionPanel.tsx` — Inline panel (not modal) with 4 sections: header+CTA, engine status rows, crawler activity, URL reference.
+- `app/dashboard/magic-menus/actions.ts` — Two new server actions: `distributeMenuNow()` (awaits result, not fire-and-forget), `fetchDistributionStatus()` (returns stored hash, computed hash, propagation events, crawler hits).
+
+**Rules:**
+- Engine rows use `DISTRIBUTION_ENGINES` config — never hardcode engine display data in components.
+- Active engines (GBP, IndexNow, Apple BC) show "Pushed"/"Pending" based on propagation events.
+- Passive engines (ChatGPT, Perplexity, Gemini) show "Visited"/"Awaiting crawl" based on `crawler_hits` data.
+- "Up to date" state: when stored `content_hash` matches computed hash from current `extracted_data`, distribute button is replaced with a green "Up to date" label.
+- Content hash comparison done server-side in `fetchDistributionStatus()` — `computeMenuHash()` uses Node.js `crypto` (cannot run client-side).
+- `distributeMenuNow()` awaits `distributeMenu()` and returns `DistributionResult` to the UI. Calls `revalidatePath`.
+- `fetchDistributionStatus()` calls `fetchCrawlerAnalytics()` for bot visit data, returns top hits sorted by recency.
+- Crawler activity section shows top 5 bots with actual visits, formatted with `formatRelativeDate()`.
+- `MenuWorkspaceData` extended with `content_hash` and `last_distributed_at` (columns already existed in DB from §196 migration).
+- Page query and `saveExtractedMenu`/`simulateAIParsing` `.select()` calls updated to include new fields.
+- `LinkInjectionModal` no longer imported by `MenuWorkspace` — dead code (file kept, cleanup deferred).
+
+### Test Coverage
+
+- 22 Vitest unit tests: `src/__tests__/unit/distribution-panel.test.tsx` (jsdom)
+  - Config (3): 6 engines, active engines have propagationEvent, passive engines have null
+  - Helper (2): getEngineLastActivity returns latest match, returns null for passive
+  - Render (7): all 6 rows, Pushed/Pending badges, Visited/Awaiting crawl, timestamps, "Not yet distributed"
+  - Up-to-date (3): up-to-date label when hashes match, distribute button when differ, enabled on first distribution
+  - Distribute (3): calls action with menuId, "Distributing..." state, refreshes status after success
+  - Crawler (3): renders hits with times, empty state, top-5 limit
+  - URL (1): renders slug + copy button
+
+### Key Files
+
+- `lib/distribution/distribution-engines-config.ts` — `DISTRIBUTION_ENGINES`, `getEngineLastActivity()`, `DistributionEngineConfig`
+- `app/dashboard/magic-menus/_components/DistributionPanel.tsx` — inline panel component
+- `app/dashboard/magic-menus/actions.ts` — `distributeMenuNow()`, `fetchDistributionStatus()`
+- `app/dashboard/magic-menus/_components/MenuWorkspace.tsx` — wires DistributionPanel, removes LinkInjectionModal
+- `lib/types/menu.ts` — `MenuWorkspaceData` with `content_hash` + `last_distributed_at`
+- `lib/distribution/index.ts` — barrel exports for config
+
+---

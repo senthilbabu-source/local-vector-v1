@@ -12,7 +12,7 @@ LocalVector is an AEO/GEO SaaS platform that helps local businesses monitor and 
 - **Billing:** Stripe webhooks → `organizations.plan_tier` enum (`trial | starter | growth | agency`)
 - **Email:** Resend + React Email (`emails/`)
 - **Cache:** Upstash Redis (`lib/redis.ts`) — optional, all callers must degrade gracefully
-- **Testing:** Vitest (unit/integration in `src/__tests__/`), Playwright (E2E in `tests/e2e/`, 41 specs). Current: ~5806 tests, 380 files.
+- **Testing:** Vitest (unit/integration in `src/__tests__/`), Playwright (E2E in `tests/e2e/`, 41 specs). Current: ~5983 tests, 396 files.
 - **Monitoring:** Sentry (client, server, edge configs) — all catch blocks instrumented (Sprint A, AI_RULES §70)
 
 ## Architecture Rules
@@ -764,4 +764,4 @@ APPLE_MAPS_PRIVATE_KEY, APPLE_MAPS_KEY_ID, APPLE_MAPS_TEAM_ID
 
 ## Build History
 
-See `DEVLOG.md` (project root) and `docs/DEVLOG.md` for the complete sprint-by-sprint build log. Current sprint: DIST-2 (+ 135 sprints + FIX-1 through FIX-8 + Sprint A through Sprint O + P0-FIX-01 through P8-FIX-37 + Relevance Filter + DIST-1/DIST-2). AI_RULES: §1–§197 (197 sections). Production readiness: all audit issues resolved. **V1 complete.**
+See `DEVLOG.md` (project root) and `docs/DEVLOG.md` for the complete sprint-by-sprint build log. Current sprint: DIST-3 (+ 135 sprints + FIX-1 through FIX-8 + Sprint A through Sprint O + P0-FIX-01 through P8-FIX-37 + Relevance Filter + DIST-1/DIST-2/DIST-3). AI_RULES: §1–§198 (198 sections). Production readiness: all audit issues resolved. **V1 complete.**

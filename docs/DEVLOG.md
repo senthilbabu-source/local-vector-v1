@@ -4,6 +4,38 @@
 
 ---
 
+## 2026-03-04 — Distribution UI Panel (Sprint DIST-3, §198)
+
+Replace the manual LinkInjectionModal with an inline DistributionPanel showing per-engine status, one-click distribute, timestamps, and crawler activity.
+
+### Problem
+The "Distribute to AI Engines" button opened a modal telling users to manually copy a URL and paste it into Google. Misleading — DIST-1/DIST-2 already built real distribution engines (IndexNow, GBP push). Users had no visibility into what engines were active or when distribution last occurred.
+
+### New Files (3)
+- **`lib/distribution/distribution-engines-config.ts`** — SSOT for 6 engine display rows: Google (GBP), Bing/Copilot (IndexNow), Apple/Siri (BC sync), ChatGPT (passive), Perplexity (passive), Gemini (passive). `DistributionEngineConfig` interface + `getEngineLastActivity()` helper.
+- **`app/dashboard/magic-menus/_components/DistributionPanel.tsx`** — Inline panel with 4 sections: header+CTA ("Distribute Now" or "Up to date"), engine status rows (Pushed/Pending/Visited/Awaiting crawl), crawler activity (top 5 bots with relative times), URL reference with copy button.
+- **`src/__tests__/unit/distribution-panel.test.tsx`** — 22 tests (config 3, helper 2, render 7, up-to-date 3, action 3, crawler 3, URL 1).
+
+### Modified Files (5)
+- **`lib/types/menu.ts`** — `MenuWorkspaceData` extended with `content_hash: string | null` and `last_distributed_at: string | null`.
+- **`lib/distribution/index.ts`** — Barrel exports for `DISTRIBUTION_ENGINES`, `getEngineLastActivity`, `DistributionEngineConfig`.
+- **`app/dashboard/magic-menus/page.tsx`** — SELECT query extended with `content_hash, last_distributed_at`.
+- **`app/dashboard/magic-menus/actions.ts`** — Two new server actions: `distributeMenuNow()` (awaits result), `fetchDistributionStatus()` (returns hashes + crawler data). Updated `.select()` calls in `simulateAIParsing` and `saveExtractedMenu`.
+- **`app/dashboard/magic-menus/_components/MenuWorkspace.tsx`** — Replaced `LinkInjectionModal` import + modal state with inline `DistributionPanel`. Removed CTA button from `PublishedBanner`.
+
+### Tests
+- 22 new unit tests in `distribution-panel.test.tsx` (jsdom):
+  - Config (3): 6 engines, active have propagationEvent, passive have null
+  - Helper (2): getEngineLastActivity returns latest, null for passive
+  - Render (7): 6 rows, Pushed/Pending/Visited/Awaiting crawl badges, timestamps, empty state
+  - Up-to-date (3): up-to-date when hashes match, distribute when differ, enabled on first distribution
+  - Action (3): calls distributeMenuNow, "Distributing..." state, refreshes after success
+  - Crawler (3): renders hits, empty state, top-5 limit
+  - URL (1): slug + copy button
+- 0 regressions. 396 test files, 5983 tests passing.
+
+---
+
 ## 2026-03-04 — GBP Food Menus Push (Sprint DIST-2, §197)
 
 Push parsed menu data to Google Business Profile via the Food Menus API. Wired into Sprint 1 distribution orchestrator as a real engine adapter (replaces placeholder).

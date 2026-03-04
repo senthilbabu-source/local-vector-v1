@@ -60,7 +60,7 @@ async function fetchWorkspaceData(orgId: string): Promise<{
   const { data: menu } = (await supabase
     .from('magic_menus')
     .select(
-      'id, location_id, processing_status, extracted_data, extraction_confidence, is_published, public_slug, human_verified, propagation_events'
+      'id, location_id, processing_status, extracted_data, extraction_confidence, is_published, public_slug, human_verified, propagation_events, content_hash, last_distributed_at'
     )
     .eq('location_id', location.id)
     .order('created_at', { ascending: false })

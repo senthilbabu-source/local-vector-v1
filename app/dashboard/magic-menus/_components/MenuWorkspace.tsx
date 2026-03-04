@@ -4,7 +4,7 @@ import { useState } from 'react';
 import type { MenuWorkspaceData } from '@/lib/types/menu';
 import UploadState from './UploadState';
 import ReviewState from './ReviewState';
-import LinkInjectionModal from './LinkInjectionModal';
+import DistributionPanel from './DistributionPanel';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -93,11 +93,9 @@ function StepIndicator({ current }: { current: WorkspaceView }) {
 function PublishedBanner({
   menu,
   locationName,
-  onOpenModal,
 }: {
   menu: MenuWorkspaceData;
   locationName: string;
-  onOpenModal: () => void;
 }) {
   const injectionCount = menu.propagation_events.filter(
     (e) => e.event === 'link_injected'
@@ -157,14 +155,6 @@ function PublishedBanner({
           done={menu.propagation_events.some((e) => e.event === 'live_in_ai')}
         />
       </div>
-
-      {/* CTA */}
-      <button
-        onClick={onOpenModal}
-        className="inline-flex items-center gap-2 rounded-xl bg-electric-indigo/10 border border-electric-indigo/30 px-4 py-2.5 text-xs font-semibold text-electric-indigo hover:bg-electric-indigo/20 transition"
-      >
-        Distribute to AI Engines →
-      </button>
     </section>
   );
 }
@@ -205,7 +195,6 @@ export default function MenuWorkspace({
 }: MenuWorkspaceProps) {
   const [view, setView] = useState<WorkspaceView>(deriveInitialView(initialMenu));
   const [menu, setMenu] = useState<MenuWorkspaceData | null>(initialMenu);
-  const [showInjectionModal, setShowInjectionModal] = useState(false);
 
   return (
     <div>
@@ -233,39 +222,21 @@ export default function MenuWorkspace({
                 : prev
             );
             setView('published');
-            setShowInjectionModal(true);
           }}
         />
       )}
 
       {view === 'published' && menu && (
-        <PublishedBanner
-          menu={menu}
-          locationName={locationName}
-          onOpenModal={() => setShowInjectionModal(true)}
-        />
-      )}
-
-      {showInjectionModal && menu?.public_slug && (
-        <LinkInjectionModal
-          menuId={menu.id}
-          publicSlug={menu.public_slug}
-          onClose={() => setShowInjectionModal(false)}
-          onInjected={() => {
-            // Optimistically append the link_injected event
-            setMenu((prev) =>
-              prev
-                ? {
-                    ...prev,
-                    propagation_events: [
-                      ...prev.propagation_events,
-                      { event: 'link_injected', date: new Date().toISOString() },
-                    ],
-                  }
-                : prev
-            );
-          }}
-        />
+        <>
+          <PublishedBanner menu={menu} locationName={locationName} />
+          <DistributionPanel
+            menuId={menu.id}
+            publicSlug={menu.public_slug}
+            contentHash={menu.content_hash}
+            lastDistributedAt={menu.last_distributed_at}
+            propagationEvents={menu.propagation_events}
+          />
+        </>
       )}
     </div>
   );

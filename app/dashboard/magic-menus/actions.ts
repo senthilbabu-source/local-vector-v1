@@ -22,7 +22,9 @@ import { getModel, hasApiKey } from '@/lib/ai/providers';
 import { MenuOCRSchema, zodSchema, type MenuOCROutput } from '@/lib/ai/schemas';
 import type { Json } from '@/lib/supabase/database.types';
 import * as Sentry from '@sentry/nextjs';
-import { distributeMenu } from '@/lib/distribution';
+import { distributeMenu, computeMenuHash } from '@/lib/distribution';
+import type { DistributionResult } from '@/lib/distribution';
+import { fetchCrawlerAnalytics, type BotActivity } from '@/lib/data/crawler-analytics';
 
 // ---------------------------------------------------------------------------
 // Phase 18 — OpenAI menu extraction helper
@@ -378,7 +380,7 @@ export async function simulateAIParsing(
     })
     .eq('id', menuId)
     .select(
-      'id, location_id, processing_status, extracted_data, extraction_confidence, is_published, public_slug, human_verified, propagation_events'
+      'id, location_id, processing_status, extracted_data, extraction_confidence, is_published, public_slug, human_verified, propagation_events, content_hash, last_distributed_at'
     )
     .single()) as { data: MenuWorkspaceData | null; error: { message: string } | null };
 
@@ -535,7 +537,7 @@ async function saveExtractedMenu(
     })
     .eq('id', menuId)
     .select(
-      'id, location_id, processing_status, extracted_data, extraction_confidence, is_published, public_slug, human_verified, propagation_events',
+      'id, location_id, processing_status, extracted_data, extraction_confidence, is_published, public_slug, human_verified, propagation_events, content_hash, last_distributed_at',
     )
     .single()) as { data: MenuWorkspaceData | null; error: { message: string } | null };
 
@@ -765,6 +767,109 @@ export async function uploadMenuFile(
       error: 'AI could not extract menu items from this file. The file may be unreadable, too large, or in an unsupported format. Try the Gold Standard CSV template instead.',
     };
   }
+}
+
+// ---------------------------------------------------------------------------
+// distributeMenuNow — DIST-3: one-click distribution from DistributionPanel
+// ---------------------------------------------------------------------------
+
+/**
+ * Server Action: manually trigger distribution and return the result to the UI.
+ *
+ * Unlike `approveAndPublish()` which fires `distributeMenu()` as fire-and-forget,
+ * this action awaits the result so the DistributionPanel can update per-engine
+ * statuses immediately.
+ *
+ * SECURITY: auth check + org_id derived server-side.
+ */
+export async function distributeMenuNow(
+  menuId: string,
+): Promise<{ success: true; result: DistributionResult } | { success: false; error: string }> {
+  const ctx = await getSafeAuthContext();
+  if (!ctx?.orgId) return { success: false, error: 'Unauthorized' };
+
+  const supabase = await createClient();
+  const result = await distributeMenu(supabase, menuId, ctx.orgId);
+
+  revalidatePath('/dashboard/magic-menus');
+  return { success: true, result };
+}
+
+// ---------------------------------------------------------------------------
+// fetchDistributionStatus — DIST-3: read distribution state + crawler data
+// ---------------------------------------------------------------------------
+
+/**
+ * Server Action: fetch distribution-specific data for the DistributionPanel.
+ *
+ * Returns content hashes (stored + computed), timestamps, propagation events,
+ * and recent crawler hits. The computed hash is calculated server-side
+ * (Node.js crypto) so the client doesn't need to import the hasher.
+ *
+ * SECURITY: auth check + RLS org_isolation_select on magic_menus + crawler_hits.
+ */
+export async function fetchDistributionStatus(
+  menuId: string,
+): Promise<
+  | {
+      success: true;
+      contentHash: string | null;
+      computedHash: string | null;
+      lastDistributedAt: string | null;
+      propagationEvents: PropagationEvent[];
+      recentCrawlerHits: BotActivity[];
+    }
+  | { success: false; error: string }
+> {
+  const ctx = await getSafeAuthContext();
+  if (!ctx?.orgId) return { success: false, error: 'Unauthorized' };
+
+  const supabase = await createClient();
+
+  const { data: menu, error: fetchError } = (await supabase
+    .from('magic_menus')
+    .select('content_hash, last_distributed_at, propagation_events, extracted_data, location_id')
+    .eq('id', menuId)
+    .single()) as {
+    data: {
+      content_hash: string | null;
+      last_distributed_at: string | null;
+      propagation_events: PropagationEvent[];
+      extracted_data: MenuExtractedData | null;
+      location_id: string;
+    } | null;
+    error: unknown;
+  };
+
+  if (fetchError || !menu) {
+    return { success: false, error: 'Menu not found' };
+  }
+
+  // Compute current content hash server-side (Node.js crypto)
+  const computedHash = menu.extracted_data?.items?.length
+    ? computeMenuHash(menu.extracted_data.items)
+    : null;
+
+  // Fetch recent crawler activity for this org + location
+  const crawlerSummary = await fetchCrawlerAnalytics(
+    supabase as Parameters<typeof fetchCrawlerAnalytics>[0],
+    ctx.orgId,
+    menu.location_id,
+  );
+
+  // Filter to bots with actual visits, sorted by recency (already sorted by visitCount desc)
+  const recentCrawlerHits = crawlerSummary.bots
+    .filter((b) => b.lastVisitAt !== null)
+    .sort((a, b) => (b.lastVisitAt ?? '').localeCompare(a.lastVisitAt ?? ''));
+
+  return {
+    success: true,
+    contentHash: menu.content_hash,
+    computedHash,
+    lastDistributedAt: menu.last_distributed_at,
+    propagationEvents: menu.propagation_events ?? [],
+    recentCrawlerHits,
+  };
 }
 
 // ---------------------------------------------------------------------------
