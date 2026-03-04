@@ -82,7 +82,7 @@ async function importSingleLocation(orgId: string, gbpLocation: GBPLocation) {
     { onConflict: 'location_id,platform' },
   );
 
-  // Seed SOV queries for the new location
+  // Seed SOV queries for the new location (filtered by ground truth from GBP)
   const { seedSOVQueries } = await import('@/lib/services/sov-seed');
   await seedSOVQueries(
     {
@@ -92,6 +92,8 @@ async function importSingleLocation(orgId: string, gbpLocation: GBPLocation) {
       city: mapped.city,
       state: mapped.state,
       categories: null,
+      hours_data: mapped.hours_data ?? null,
+      amenities: mapped.amenities ?? null,
     },
     [],
     supabase,

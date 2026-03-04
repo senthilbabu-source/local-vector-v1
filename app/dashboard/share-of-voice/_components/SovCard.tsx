@@ -28,6 +28,9 @@ export type QueryWithEvals = {
   perplexityEval: SovEvalRow;
 };
 
+/** Relevance verdict + reason for gap queries, keyed by query ID. */
+export type QueryRelevanceMap = Record<string, { verdict: 'relevant' | 'not_applicable' | 'aspirational'; reason: string }>;
+
 interface Props {
   locationId: string;
   locationLabel: string;
@@ -39,6 +42,8 @@ interface Props {
   orgName?: string;
   /** Sprint 120: Location city for simulation context */
   locationCity?: string;
+  /** Ground truth relevance verdicts per query — empty when no ground truth available */
+  relevanceMap?: QueryRelevanceMap;
 }
 
 // ---------------------------------------------------------------------------
@@ -206,6 +211,7 @@ function QueryRow({
   hasBriefDraft,
   orgName,
   locationCity,
+  relevance,
 }: {
   query: QueryWithEvals;
   isRunPending: boolean;
@@ -219,6 +225,7 @@ function QueryRow({
   hasBriefDraft: boolean;
   orgName?: string;
   locationCity?: string;
+  relevance?: { verdict: 'relevant' | 'not_applicable' | 'aspirational'; reason: string };
 }) {
   // Aggregate competitors across both engines (deduplicated)
   const allCompetitors = Array.from(
@@ -237,11 +244,23 @@ function QueryRow({
 
   return (
     <div className="py-4 first:pt-0">
-      {/* Query text + pause/delete buttons */}
+      {/* Query text + relevance label + pause/delete buttons */}
       <div className="mb-2.5 flex items-start justify-between gap-2">
-        <p className="text-sm font-medium text-white leading-snug">
-          &ldquo;{query.query_text}&rdquo;
-        </p>
+        <div>
+          <p className="text-sm font-medium text-white leading-snug">
+            &ldquo;{query.query_text}&rdquo;
+          </p>
+          {relevance && relevance.verdict === 'not_applicable' && (
+            <p className="mt-0.5 text-xs text-slate-500" data-testid="relevance-not-applicable">
+              Not applicable — {relevance.reason}
+            </p>
+          )}
+          {relevance && relevance.verdict === 'aspirational' && (
+            <p className="mt-0.5 text-xs text-amber-400/70" data-testid="relevance-aspirational">
+              Aspirational — {relevance.reason}
+            </p>
+          )}
+        </div>
         <div className="flex shrink-0 items-center gap-1">
           <button
             type="button"
@@ -299,8 +318,8 @@ function QueryRow({
         />
       </div>
 
-      {/* Sprint 86: Generate Brief button for gap queries */}
-      {isGap && (
+      {/* Sprint 86: Generate Brief button for gap queries (only for relevant gaps) */}
+      {isGap && relevance?.verdict !== 'not_applicable' && (
         <div className="mt-2.5 pl-1">
           <GenerateBriefButton
             queryId={query.id}
@@ -361,7 +380,7 @@ function QueryRow({
 // SovCard
 // ---------------------------------------------------------------------------
 
-export default function SovCard({ locationId, locationLabel, queries, plan, briefDraftQueryIds = [], orgName, locationCity }: Props) {
+export default function SovCard({ locationId, locationLabel, queries, plan, briefDraftQueryIds = [], orgName, locationCity, relevanceMap = {} }: Props) {
   const briefDraftSet = new Set(briefDraftQueryIds);
   const canRun = canRunSovEvaluation(plan as 'trial' | 'starter' | 'growth' | 'agency');
 
@@ -457,6 +476,7 @@ export default function SovCard({ locationId, locationLabel, queries, plan, brie
               hasBriefDraft={briefDraftSet.has(query.id)}
               orgName={orgName}
               locationCity={locationCity}
+              relevance={relevanceMap[query.id]}
             />
           ))}
         </div>

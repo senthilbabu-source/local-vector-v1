@@ -100,7 +100,7 @@ export default function WeeklyDigest({ payload = defaultPayload }: WeeklyDigestP
     <Html>
       <Head />
       <Preview>
-        {`Your AI Visibility Report — ${payload.org_name}: ${payload.sov_trend.current_sov}% Share of Voice`}
+        {`Your AI Visibility Report — ${payload.org_name}: ${payload.sov_trend.current_sov}% AI Mentions`}
       </Preview>
       <Body style={main}>
         <Container style={container}>

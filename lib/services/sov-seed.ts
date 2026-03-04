@@ -15,14 +15,20 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Database } from '@/lib/supabase/database.types';
 import type { IndustryId } from '@/lib/industries/industry-config';
+import type { HoursData, Amenities } from '@/lib/types/ground-truth';
+import { scoreQueryRelevance } from '@/lib/relevance/query-relevance-filter';
+import type { QueryInput, BusinessGroundTruth } from '@/lib/relevance/types';
 
-interface LocationForSeed {
+export interface LocationForSeed {
   id: string;
   org_id: string;
   business_name: string;
   city: string | null;
   state: string | null;
   categories: string[] | null;
+  /** Optional ground truth — when provided, irrelevant queries are filtered out. */
+  hours_data?: HoursData | null;
+  amenities?: Amenities | null;
 }
 
 export interface CompetitorForSeed {
@@ -213,8 +219,33 @@ export async function seedSOVQueries(
     return true;
   });
 
+  // ── Ground truth relevance filter ──────────────────────────────────────
+  // When hours_data or amenities are available, filter out queries that are
+  // not applicable to this business (e.g., "brunch" for a dinner-only spot,
+  // "outdoor seating" for a business without a patio).
+  // Comparison and custom queries are always kept (Rule 1 in scoreQueryRelevance).
+  const hasGroundTruth = location.hours_data || location.amenities;
+  const filtered = hasGroundTruth
+    ? unique.filter((entry) => {
+        const queryInput: QueryInput = {
+          queryText: entry.text,
+          queryCategory: entry.category as QueryInput['queryCategory'],
+          occasionTag: entry.occasion_tag ?? null,
+        };
+        const groundTruth: BusinessGroundTruth = {
+          hoursData: location.hours_data ?? null,
+          amenities: location.amenities ?? null,
+          categories: location.categories ?? null,
+          operationalStatus: null,
+        };
+        const result = scoreQueryRelevance(queryInput, groundTruth);
+        // Keep relevant and aspirational; drop not_applicable
+        return result.verdict !== 'not_applicable';
+      })
+    : unique;
+
   // Insert all queries (idempotent via unique constraint on location_id + query_text)
-  const rows = unique.map((entry) => ({
+  const rows = filtered.map((entry) => ({
     org_id: location.org_id,
     location_id: location.id,
     query_text: entry.text.trim(),

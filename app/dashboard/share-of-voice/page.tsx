@@ -7,6 +7,9 @@ import { detectQueryGaps } from '@/lib/services/prompt-intelligence.service';
 import { computeCategoryBreakdown } from '@/lib/services/prompt-intelligence.service';
 import { canRunSovEvaluation, type PlanTier } from '@/lib/plan-enforcer';
 import type { QueryGap } from '@/lib/types/prompt-intelligence';
+import { scoreQueryRelevance } from '@/lib/relevance/query-relevance-filter';
+import type { BusinessGroundTruth, QueryInput, RelevanceVerdict } from '@/lib/relevance/types';
+import type { HoursData, Amenities, Categories } from '@/lib/types/ground-truth';
 import SovCard, { type QueryWithEvals } from './_components/SovCard';
 import SOVScoreRing from './_components/SOVScoreRing';
 import SOVTrendChart, { type SOVDataPoint } from '@/app/dashboard/_components/SOVTrendChart';
@@ -24,6 +27,9 @@ type LocationRow = {
   business_name: string;
   city: string | null;
   state: string | null;
+  hours_data: HoursData | null;
+  amenities: Amenities | null;
+  categories: Categories | null;
 };
 
 type QueryRow = {
@@ -66,7 +72,7 @@ async function fetchPageData(orgId: string) {
     await Promise.all([
       supabase
         .from('locations')
-        .select('id, business_name, city, state')
+        .select('id, business_name, city, state, hours_data, amenities, categories')
         .order('created_at', { ascending: true }),
 
       supabase
@@ -160,6 +166,11 @@ export default async function ShareOfVoicePage() {
   const { locations, queries, evaluations, visibilitySnapshots, firstMoverOpps, plan, orgName, briefDraftTriggerIds, pausedCount } =
     await fetchPageData(ctx.orgId);
 
+  // Check if any location is missing ground truth (hours or amenities)
+  const hasIncompleteGroundTruth = locations.some(
+    (loc) => !loc.hours_data || !loc.amenities,
+  );
+
   // ── Derive SOV metrics from visibility_analytics ─────────────────────────
   // Snapshots are ordered newest-first. Index 0 = latest, index 1 = previous.
   const latest = visibilitySnapshots[0] ?? null;
@@ -229,6 +240,35 @@ export default async function ShareOfVoicePage() {
           See how often AI apps mention your business when customers search.
         </p>
       </div>
+
+      {/* ── Ground truth completeness nudge ────────────────────────────────── */}
+      {hasIncompleteGroundTruth && (
+        <div
+          className="flex items-start gap-3 rounded-xl border border-amber-500/20 bg-amber-500/5 p-4"
+          data-testid="ground-truth-nudge"
+        >
+          <span className="mt-0.5 text-amber-400" aria-hidden>
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-5 w-5">
+              <path fillRule="evenodd" d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.17 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495ZM10 6a.75.75 0 0 1 .75.75v3.5a.75.75 0 0 1-1.5 0v-3.5A.75.75 0 0 1 10 6Zm0 9a1 1 0 1 0 0-2 1 1 0 0 0 0 2Z" clipRule="evenodd" />
+            </svg>
+          </span>
+          <div>
+            <p className="text-sm font-medium text-amber-300">
+              Complete your business hours and amenities
+            </p>
+            <p className="mt-0.5 text-xs text-slate-400">
+              We use your hours and amenities to filter out irrelevant queries and only show you
+              recommendations that actually apply to your business.
+            </p>
+            <a
+              href="/dashboard/settings/business-info"
+              className="mt-2 inline-block text-xs font-medium text-amber-400 hover:text-amber-300 transition-colors"
+            >
+              Update your business info →
+            </a>
+          </div>
+        </div>
+      )}
 
       {/* ── Sprint H: Verdict Panel — before any chart ────────────────────── */}
       <SOVVerdictPanel
@@ -377,7 +417,7 @@ export default async function ShareOfVoicePage() {
             </svg>
             <p className="mt-3 text-sm font-medium text-[#94A3B8]">No locations yet</p>
             <p className="mt-1 text-xs text-slate-400">
-              Add a location first to start tracking AI share of voice.
+              Add a location first to start tracking AI mentions.
             </p>
           </div>
         ) : (
@@ -389,6 +429,28 @@ export default async function ShareOfVoicePage() {
 
               // Queries for this location, preserving insertion order
               const locationQueries = queries.filter((q) => q.location_id === location.id);
+
+              // Build ground truth for relevance scoring
+              const locGroundTruth: BusinessGroundTruth = {
+                hoursData: location.hours_data ?? null,
+                amenities: location.amenities ?? null,
+                categories: location.categories ?? null,
+                operationalStatus: null,
+              };
+              const hasGT = location.hours_data || location.amenities;
+
+              // Compute relevance verdict per query
+              const relevanceMap: Record<string, { verdict: RelevanceVerdict; reason: string }> = {};
+              if (hasGT) {
+                for (const q of locationQueries) {
+                  const input: QueryInput = {
+                    queryText: q.query_text,
+                    queryCategory: q.query_category as QueryInput['queryCategory'],
+                  };
+                  const result = scoreQueryRelevance(input, locGroundTruth);
+                  relevanceMap[q.id] = { verdict: result.verdict, reason: result.reason };
+                }
+              }
 
               // For each query, find the latest eval per engine (evaluations is
               // already ordered newest-first so find() always returns the latest).
@@ -416,6 +478,7 @@ export default async function ShareOfVoicePage() {
                   briefDraftQueryIds={[...briefDraftTriggerIds]}
                   orgName={orgName}
                   locationCity={location.city ? `${location.city}, ${location.state}` : undefined}
+                  relevanceMap={relevanceMap}
                 />
               );
             })}

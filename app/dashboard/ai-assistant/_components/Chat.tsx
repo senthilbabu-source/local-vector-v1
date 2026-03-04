@@ -34,7 +34,7 @@ function ScoreCard({ data }: { data: any }) {
         <div className="rounded-xl bg-surface-dark border border-white/10 p-4 my-2">
             <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-3">AI Visibility Score</h4>
             <div className="grid grid-cols-2 gap-3">
-                <Metric label="Share of Voice" value={data.share_of_voice != null ? `${data.share_of_voice}%` : '—'} color="green" />
+                <Metric label="AI Mentions" value={data.share_of_voice != null ? `${data.share_of_voice}%` : '—'} color="green" />
                 <Metric label="Reality Score" value={data.reality_score ?? '—'} color="green" />
                 <Metric label="Accuracy" value={data.accuracy_score} color={data.accuracy_score >= 80 ? 'green' : 'red'} />
                 <Metric label="Open Alerts" value={data.open_hallucinations} color={data.open_hallucinations > 0 ? 'red' : 'green'} />

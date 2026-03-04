@@ -10,6 +10,9 @@
 
 'use client';
 
+import { useRouter } from 'next/navigation';
+import { useState, useTransition } from 'react';
+
 interface FirstMoverCardProps {
   id: string;
   queryText: string;       // from target_prompt
@@ -17,10 +20,15 @@ interface FirstMoverCardProps {
 }
 
 export default function FirstMoverCard({ id, queryText, createdAt }: FirstMoverCardProps) {
+  const router = useRouter();
+  const [dismissed, setDismissed] = useState(false);
+  const [isPending, startTransition] = useTransition();
   const dateLabel = new Date(createdAt).toLocaleDateString('en-US', {
     month: 'short',
     day: 'numeric',
   });
+
+  if (dismissed) return null;
 
   return (
     <div
@@ -57,17 +65,30 @@ export default function FirstMoverCard({ id, queryText, createdAt }: FirstMoverC
         <button
           type="button"
           className="rounded-lg bg-signal-green/10 px-3 py-1.5 text-xs font-semibold text-signal-green hover:bg-signal-green/20 transition-colors"
+          data-testid="first-mover-create-content"
           onClick={() => {
-            // Future: navigate to content creation
+            const url = `/dashboard/content-drafts/new?query=${encodeURIComponent(queryText)}&trigger=first_mover&draft_id=${id}`;
+            router.push(url);
           }}
         >
           Create Content
         </button>
         <button
           type="button"
-          className="rounded-lg bg-white/5 px-3 py-1.5 text-xs font-medium text-slate-400 hover:bg-white/10 transition-colors"
+          className="rounded-lg bg-white/5 px-3 py-1.5 text-xs font-medium text-slate-400 hover:bg-white/10 transition-colors disabled:opacity-50"
+          data-testid="first-mover-dismiss"
+          disabled={isPending}
           onClick={() => {
-            // Future: dismiss the alert
+            startTransition(async () => {
+              // Optimistic dismiss — hide immediately, persist in background
+              setDismissed(true);
+              try {
+                const res = await fetch(`/api/content-drafts/${id}/dismiss`, { method: 'POST' });
+                if (!res.ok) setDismissed(false);
+              } catch {
+                setDismissed(false);
+              }
+            });
           }}
         >
           Dismiss

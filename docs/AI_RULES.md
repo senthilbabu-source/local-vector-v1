@@ -3874,3 +3874,52 @@ The DB `menu_items.price_note` column existed but was not exposed in the extract
 **After `db reset`, delete `.next/` to clear `unstable_cache`.** The public menu page (`/m/[slug]`) uses `unstable_cache` with 1-hour TTL. A stale cached "not found" result persists across `db reset` because the cache lives in `.next/cache`, not in the DB.
 
 ---
+
+## §190. Business Ground Truth Relevance Filter (2026-03-03)
+
+**Problem:** Dashboard showed irrelevant recommendations — "brunch" queries for a dinner-only restaurant, "outdoor seating" for a business without a patio. Revenue calculator, digest emails, and sample data all included queries the business couldn't serve.
+
+### Architecture — `lib/relevance/`
+
+Pure-function relevance engine. Zero DB calls in the scoring path.
+
+**Types** (`lib/relevance/types.ts`):
+- `BusinessGroundTruth` — `hoursData`, `amenities`, `categories`, `operationalStatus`
+- `QueryInput` — `queryText`, `queryCategory`, `occasionTag`
+- `QueryRelevanceResult` — `verdict` (`relevant` | `not_applicable` | `aspirational`), `reason`, `confidence`
+
+**Scoring** (`lib/relevance/query-relevance-filter.ts`):
+- `scoreQueryRelevance(query, groundTruth)` — 6 rules in priority order:
+  1. Comparison/custom queries → always relevant
+  2. Closed businesses → everything not_applicable
+  3. Time-of-day check (morning queries vs dinner-only hours)
+  4. Amenity match (outdoor seating, parking, wifi, etc.)
+  5. Service check (delivery, takeout, catering, etc.)
+  6. Default → relevant (fail-open)
+- `scoreQueriesBatch(queries, groundTruth)` — batch scoring
+- `filterRelevantQueries(queries, groundTruth)` — returns only relevant + aspirational
+
+**Ground Truth Fetcher** (`lib/relevance/get-ground-truth.ts`):
+- `fetchLocationGroundTruth(supabase, locationId, orgId)` — single location
+- `fetchPrimaryGroundTruth(supabase, orgId)` — primary location for org-level surfaces
+
+### Wiring — 8 surfaces filtered
+
+1. **Query seeding** (`lib/services/sov-seed.ts`) — filters `not_applicable` before INSERT. `LocationForSeed` extended with `hours_data`, `amenities`. All 4 call sites updated.
+2. **SOV page** (`app/dashboard/share-of-voice/page.tsx`) — server-side relevance computation. Passes `relevanceMap` to `SovCard`.
+3. **Gap labels** (`SovCard.tsx`) — "Not applicable" (slate) / "Aspirational" (amber) labels on each query row.
+4. **Action suppression** (`SovCard.tsx`) — "Generate Brief" button hidden for `not_applicable` queries.
+5. **Revenue calculator** (`lib/data/revenue-impact.ts`) — 6th parallel query fetches ground truth. Only relevant gaps count toward lost revenue.
+6. **Digest emails** (`lib/digest/digest-service.ts`) — missed queries filtered through relevance before email.
+7. **Chat assistant** (`lib/tools/visibility-tools.ts`) — new `getBusinessContext` tool (5th tool). System prompt instructs never suggesting actions that conflict with business capabilities.
+8. **Sample data** (`lib/onboarding/sample-data.ts`) — replaced 4 irrelevant queries (outdoor seating, brunch, family friendly, catering) with universally applicable ones (date night, birthday dinner, great atmosphere, new restaurant).
+
+### Profile nudge
+SOV page shows "Complete your profile" banner when `hours_data` or `amenities` are null. `data-testid="ground-truth-nudge"`.
+
+### Test impact
+- 12 new tests in `sov-seed.test.ts` (ground truth filtering scenarios)
+- 3 existing test files updated: `FirstMoverCard.test.tsx` (+useRouter mock), `revenue-impact-data.test.ts` (6th parallel query), `visibility-tools.test.ts` (4→5 tools)
+- Zero regressions. 5745 tests passing, 376 files.
+
+---

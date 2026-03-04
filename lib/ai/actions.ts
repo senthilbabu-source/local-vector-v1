@@ -49,7 +49,7 @@ function buildSovPrompt(
   queryText: string
 ): string {
   const location = [city, state].filter(Boolean).join(', ');
-  return `You are a Share of Voice analyst measuring AI visibility for local businesses.
+  return `You are an AI Mentions analyst measuring AI visibility for local businesses.
 
 SEARCH QUERY: "${queryText}"
 
@@ -79,7 +79,7 @@ function mockSovResult(engine: SovEngine): SovResult {
     mentioned_competitors: [],
     raw_response: `[MOCK] Simulated ${engine} response. Configure ${
       engine === 'openai' ? 'OPENAI_API_KEY' : 'PERPLEXITY_API_KEY'
-    } in .env.local to run a real Share of Voice evaluation.`,
+    } in .env.local to run a real AI Mentions evaluation.`,
   };
 }
 
@@ -111,7 +111,7 @@ async function callOpenAI(prompt: string): Promise<SovResult> {
 async function callPerplexity(prompt: string): Promise<SovResult> {
   const { text } = await generateText({
     model: getModel('sov-query'),
-    system: 'You are a Share of Voice analyst. Always respond with valid JSON only.',
+    system: 'You are an AI Mentions analyst. Always respond with valid JSON only.',
     prompt,
     temperature: 0.3,
   });

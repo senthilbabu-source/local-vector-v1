@@ -50,6 +50,8 @@ function makeMockSupabase(opts: {
         chain.select = vi.fn().mockReturnValue(chain);
         chain.eq = vi.fn().mockReturnValue(chain);
         chain.single = vi.fn().mockResolvedValue({ data: locationData, error: null });
+        // Ground truth fetch uses .maybeSingle()
+        chain.maybeSingle = vi.fn().mockResolvedValue({ data: null, error: null });
         return chain;
       }
 
@@ -105,15 +107,16 @@ function makeMockSupabase(opts: {
 // ---------------------------------------------------------------------------
 
 describe('fetchRevenueImpact', () => {
-  it('1. runs 5 parallel queries', async () => {
+  it('1. runs 6 parallel queries (including ground truth)', async () => {
     const supabase = makeMockSupabase();
     await fetchRevenueImpact(supabase, TEST_ORG_ID, TEST_LOC_ID);
 
-    // locations, target_queries, sov_evaluations (x2), ai_hallucinations
+    // locations (x2: revenue config + ground truth), target_queries, sov_evaluations (x2), ai_hallucinations
     expect(supabase._mockFromCalls).toContain('locations');
     expect(supabase._mockFromCalls).toContain('target_queries');
     expect(supabase._mockFromCalls).toContain('ai_hallucinations');
     expect(supabase._mockFromCalls.filter((t) => t === 'sov_evaluations')).toHaveLength(2);
+    expect(supabase._mockFromCalls.filter((t) => t === 'locations')).toHaveLength(2);
   });
 
   it('2. scopes all queries by org_id', async () => {

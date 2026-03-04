@@ -16,6 +16,9 @@ import type {
   DigestMissedQuery,
   DigestFirstMoverAlert,
 } from './types';
+import { fetchPrimaryGroundTruth } from '@/lib/relevance/get-ground-truth';
+import { scoreQueryRelevance } from '@/lib/relevance/query-relevance-filter';
+import type { QueryInput } from '@/lib/relevance/types';
 
 /**
  * Computes the Monday of the current week (ISO week start).
@@ -105,6 +108,7 @@ export async function buildWeeklyDigestPayload(
     recentMissed,
     firstMoverDraft,
     orgTheme,
+    primaryGT,
   ] = await Promise.all([
     // 4a. Current SOV snapshot
     supabase
@@ -161,6 +165,9 @@ export async function buildWeeklyDigestPayload(
       .select('logo_url, primary_color, text_on_primary')
       .eq('org_id', orgId)
       .maybeSingle(),
+
+    // 9. Ground truth for relevance filtering
+    fetchPrimaryGroundTruth(supabase, orgId),
   ]);
 
   // Resolve SOV trend
@@ -200,24 +207,45 @@ export async function buildWeeklyDigestPayload(
     const bHas = Array.isArray(b.mentioned_competitors) && (b.mentioned_competitors as string[]).length > 0 ? 1 : 0;
     return bHas - aHas;
   });
-  const top3Missed = missedDeduped.slice(0, 3);
 
-  const missedQueryIds = top3Missed.map((r) => r.query_id);
+  // Resolve query text first so we can filter by relevance
+  const allMissedQueryIds = missedDeduped.map((r) => r.query_id);
   let missedQueries: DigestMissedQuery[] = [];
-  if (missedQueryIds.length > 0) {
+  if (allMissedQueryIds.length > 0) {
     const { data: queries } = await supabase
       .from('target_queries')
-      .select('id, query_text')
-      .in('id', missedQueryIds);
+      .select('id, query_text, query_category')
+      .in('id', allMissedQueryIds);
 
-    const queryMap = new Map((queries ?? []).map((q) => [q.id, q.query_text]));
-    missedQueries = top3Missed.map((r) => {
-      const competitors = (r.mentioned_competitors as string[] | null) ?? [];
-      return {
-        query_text: queryMap.get(r.query_id) ?? 'Unknown query',
-        competitor_cited: competitors[0] ?? null,
-      };
-    });
+    const queryMap = new Map((queries ?? []).map((q) => [q.id, q]));
+    const groundTruth = primaryGT?.groundTruth ?? null;
+
+    // Build full list, then filter by relevance, then take top 3
+    const allMissed = missedDeduped
+      .map((r) => {
+        const q = queryMap.get(r.query_id);
+        const competitors = (r.mentioned_competitors as string[] | null) ?? [];
+        return {
+          query_text: q?.query_text ?? 'Unknown query',
+          query_category: q?.query_category ?? 'discovery',
+          competitor_cited: competitors[0] ?? null,
+        };
+      })
+      .filter((m) => {
+        // Filter out queries not applicable to this business
+        if (!groundTruth) return true;
+        const queryInput: QueryInput = {
+          queryText: m.query_text,
+          queryCategory: m.query_category as QueryInput['queryCategory'],
+        };
+        const result = scoreQueryRelevance(queryInput, groundTruth);
+        return result.verdict !== 'not_applicable';
+      });
+
+    missedQueries = allMissed.slice(0, 3).map(({ query_text, competitor_cited }) => ({
+      query_text,
+      competitor_cited,
+    }));
   }
 
   // Resolve first mover alert

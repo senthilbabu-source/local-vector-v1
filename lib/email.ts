@@ -156,7 +156,7 @@ export async function sendSOVReport(
             <div style="font-size:48px;font-weight:700;color:${payload.shareOfVoice >= 50 ? '#16a34a' : payload.shareOfVoice >= 20 ? '#f59e0b' : '#dc2626'}">
               ${payload.shareOfVoice}%
             </div>
-            <div style="color:#64748b;font-size:14px">Share of Voice</div>
+            <div style="color:#64748b;font-size:14px">AI Mentions</div>
           </div>
           <div style="display:flex;justify-content:space-around;margin-top:16px;border-top:1px solid #e2e8f0;padding-top:16px">
             <div style="text-align:center">

@@ -55,7 +55,7 @@ export default function ContentFreshnessCard({ freshness }: ContentFreshnessCard
           href="/dashboard/share-of-voice"
           className={`mt-2 inline-flex items-center gap-1 text-xs font-medium transition ${hasCritical ? 'text-alert-crimson hover:text-alert-crimson/80' : 'text-alert-amber hover:text-alert-amber/80'}`}
         >
-          View SOV Details <ArrowRight className="h-3 w-3" />
+          View AI Mentions <ArrowRight className="h-3 w-3" />
         </Link>
       </div>
     );
@@ -82,7 +82,7 @@ export default function ContentFreshnessCard({ freshness }: ContentFreshnessCard
         href="/dashboard/share-of-voice"
         className="mt-2 inline-flex items-center gap-1 text-xs font-medium text-electric-indigo hover:text-electric-indigo/80 transition"
       >
-        View SOV Details <ArrowRight className="h-3 w-3" />
+        View AI Mentions <ArrowRight className="h-3 w-3" />
       </Link>
     </div>
   );

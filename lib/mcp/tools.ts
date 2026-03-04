@@ -94,7 +94,7 @@ export function registerLocalVectorTools(server: McpServer) {
     // ── Tool 2: get_sov_report ────────────────────────────────────────────
     server.tool(
         'get_sov_report',
-        'Get a Share of Voice report showing AI visibility trend over time. Returns historical SOV snapshots and query-level citation data.',
+        'Get an AI Mentions report showing AI visibility trend over time. Returns historical SOV snapshots and query-level citation data.',
         {
             business_name: z.string().describe('Business name to look up'),
             limit: z.number().int().min(1).max(52).default(12).describe('Number of snapshots to return (default 12)'),

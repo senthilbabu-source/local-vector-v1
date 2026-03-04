@@ -15,8 +15,14 @@
  */
 
 import React from 'react';
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
+
+// Mock next/navigation — FirstMoverCard uses useRouter for Create Content nav
+const pushMock = vi.fn();
+vi.mock('next/navigation', () => ({
+  useRouter: () => ({ push: pushMock }),
+}));
 
 import FirstMoverCard from '@/app/dashboard/share-of-voice/_components/FirstMoverCard';
 

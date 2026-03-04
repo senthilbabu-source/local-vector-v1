@@ -56,13 +56,14 @@ describe('makeVisibilityTools', () => {
         vi.clearAllMocks();
     });
 
-    it('returns 4 tool definitions', () => {
+    it('returns 5 tool definitions', () => {
         const tools = makeVisibilityTools('org-123');
-        expect(Object.keys(tools)).toHaveLength(4);
+        expect(Object.keys(tools)).toHaveLength(5);
         expect(tools).toHaveProperty('getVisibilityScore');
         expect(tools).toHaveProperty('getSOVTrend');
         expect(tools).toHaveProperty('getHallucinations');
         expect(tools).toHaveProperty('getCompetitorComparison');
+        expect(tools).toHaveProperty('getBusinessContext');
     });
 
     it('getVisibilityScore returns visibility_score type', async () => {

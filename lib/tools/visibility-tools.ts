@@ -15,6 +15,7 @@ import { tool } from 'ai';
 import { z } from 'zod';
 import { createServiceRoleClient } from '@/lib/supabase/server';
 import { zodSchema } from '@/lib/ai/schemas';
+import type { HoursData, Amenities } from '@/lib/types/ground-truth';
 
 // ---------------------------------------------------------------------------
 // Tool: getVisibilityScore
@@ -170,6 +171,57 @@ export function makeVisibilityTools(orgId: string) {
                         gap: d.gap,
                         recommendation: d.rec,
                     })),
+                };
+            },
+        }),
+
+        // -----------------------------------------------------------------------
+        // Tool: getBusinessContext
+        // -----------------------------------------------------------------------
+
+        getBusinessContext: tool({
+            description: 'Get this business\'s ground truth: name, hours, amenities, categories, and location. Use this to give business-aware recommendations.',
+            parameters: zodSchema(z.object({})),
+            execute: async () => {
+                const supabase = createServiceRoleClient();
+
+                const { data: location } = await supabase
+                    .from('locations')
+                    .select('business_name, city, state, hours_data, amenities, categories, operational_status')
+                    .eq('org_id', orgId)
+                    .eq('is_primary', true)
+                    .maybeSingle();
+
+                if (!location) {
+                    return {
+                        type: 'business_context' as const,
+                        available: false,
+                        message: 'No location configured yet.',
+                    };
+                }
+
+                const hours = location.hours_data as HoursData | null;
+                const amenities = location.amenities as Amenities | null;
+
+                return {
+                    type: 'business_context' as const,
+                    available: true,
+                    business_name: location.business_name,
+                    city: location.city,
+                    state: location.state,
+                    categories: location.categories ?? [],
+                    operational_status: location.operational_status ?? 'OPERATIONAL',
+                    hours: hours ?? {},
+                    amenities: amenities ? {
+                        outdoor_seating: amenities.has_outdoor_seating,
+                        alcohol: amenities.serves_alcohol,
+                        hookah: amenities.has_hookah,
+                        kid_friendly: amenities.is_kid_friendly,
+                        reservations: amenities.takes_reservations,
+                        live_music: amenities.has_live_music,
+                        dj: amenities.has_dj ?? false,
+                        private_rooms: amenities.has_private_rooms ?? false,
+                    } : {},
                 };
             },
         }),

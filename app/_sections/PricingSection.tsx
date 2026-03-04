@@ -49,7 +49,7 @@ export default function PricingSection() {
               },
               {
                 name: 'AI SHIELD', price: '$59', period: '/mo', sub: 'Go on offense.', popular: true,
-                features: ['Daily AI audits', 'Competitor Intercept analysis', 'AI Sentiment tracking', 'Content recommendations', 'Share of Voice tracking', 'Priority alerts', '1 location'],
+                features: ['Daily AI audits', 'Competitor Intercept analysis', 'AI Sentiment tracking', 'Content recommendations', 'AI Mentions tracking', 'Priority alerts', '1 location'],
                 cta: 'Get AI Shield \u2192', ctaStyle: 'green' as const, ctaHref: '/signup',
               },
               {

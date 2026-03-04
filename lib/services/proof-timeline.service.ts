@@ -378,7 +378,7 @@ export function buildProofTimeline(input: TimelineInput): ProofTimeline {
           type: 'sov_milestone',
           date: current.snapshot_date,
           title: 'SOV Milestone',
-          description: `Share of Voice jumped +${delta.toFixed(0)}pp — from ${(prev.share_of_voice * 100).toFixed(0)}% to ${(current.share_of_voice * 100).toFixed(0)}%`,
+          description: `AI Mentions jumped +${delta.toFixed(0)}pp — from ${(prev.share_of_voice * 100).toFixed(0)}% to ${(current.share_of_voice * 100).toFixed(0)}%`,
           icon: '📈',
           impact: 'milestone',
         });

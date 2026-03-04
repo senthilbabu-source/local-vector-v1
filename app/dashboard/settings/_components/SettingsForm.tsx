@@ -472,8 +472,8 @@ export default function SettingsForm({ displayName, email, orgName, plan, notify
           <Toggle
             checked={sovAlerts}
             onChange={setSovAlerts}
-            label="Share of Voice alerts"
-            description="Get notified about significant changes in your AI share of voice"
+            label="AI Mentions alerts"
+            description="Get notified about significant changes in your AI mentions"
           />
           <Toggle
             checked={scoreDropAlert}

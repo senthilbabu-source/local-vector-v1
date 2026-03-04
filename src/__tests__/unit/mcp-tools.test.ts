@@ -88,7 +88,7 @@ describe('MCP Tools Registration', () => {
     it('registers get_sov_report tool', () => {
         const tool = mockServer._tools.find((t) => t.name === 'get_sov_report');
         expect(tool).toBeDefined();
-        expect(tool!.description).toContain('Share of Voice');
+        expect(tool!.description).toContain('AI Mentions');
     });
 
     it('registers get_hallucinations tool', () => {

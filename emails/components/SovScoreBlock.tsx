@@ -23,7 +23,7 @@ export default function SovScoreBlock({ sovTrend }: SovScoreBlockProps) {
       <Text style={scoreNumber}>
         {sovTrend.current_sov}%
       </Text>
-      <Text style={scoreLabel}>Share of Voice</Text>
+      <Text style={scoreLabel}>AI Mentions</Text>
       <Text style={{ ...deltaStyle, color: trendColor }}>
         {trendArrow} {deltaText}
       </Text>

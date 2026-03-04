@@ -31,7 +31,7 @@ export default function SOVVerdictPanel({
         data-testid="sov-verdict-no-data"
       >
         <p className="text-sm text-muted-foreground">
-          Share of Voice data is collecting. Check back after Sunday&apos;s scan.
+          AI mentions data is collecting. Check back after Sunday&apos;s scan.
         </p>
       </div>
     );

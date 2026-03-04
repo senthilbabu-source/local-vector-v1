@@ -21,7 +21,7 @@ export default function SampleDashboard() {
       {/* SOV Score */}
       <div className="rounded-lg border border-white/10 bg-[#0A1628] p-6 text-center">
         <p className="text-xs font-medium uppercase tracking-wider text-slate-500">
-          Share of Voice
+          AI Mentions
         </p>
         <p data-testid="sample-sov-score" className="mt-1 text-5xl font-bold text-slate-100">
           {SAMPLE_SOV_DATA.share_of_voice}%

@@ -138,7 +138,7 @@ export default function WeeklyDigestEmail({
           {payload.sov.currentPercent !== null && (
             <Section style={metricRow}>
               <Text style={metricLabel}>
-                Share of Voice: {payload.sov.currentPercent.toFixed(0)}%
+                AI Mentions: {payload.sov.currentPercent.toFixed(0)}%
                 {payload.sov.delta !== null && (
                   <span style={{ ...deltaSpan, color: sovTrendColor }}>
                     {' '}

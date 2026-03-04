@@ -133,6 +133,8 @@ export async function saveGroundTruth(
           ...fullLocation,
           org_id: ctx.orgId,
           categories: fullLocation.categories as string[] | null,
+          hours_data: hoursPayload,
+          amenities: amenitiesPayload,
         },
         [],  // No competitors on day 1
         supabase,
@@ -414,7 +416,7 @@ export async function completeOnboarding(): Promise<ActionResult> {
     if (count === 0) {
       const { data: location } = await supabase
         .from('locations')
-        .select('id, business_name, city, state, categories')
+        .select('id, business_name, city, state, categories, hours_data, amenities')
         .eq('org_id', ctx.orgId)
         .eq('is_primary', true)
         .maybeSingle();
@@ -425,6 +427,8 @@ export async function completeOnboarding(): Promise<ActionResult> {
             ...location,
             org_id: ctx.orgId,
             categories: location.categories as string[] | null,
+            hours_data: location.hours_data as HoursData | null,
+            amenities: location.amenities as Amenities | null,
           },
           [],
           supabase,

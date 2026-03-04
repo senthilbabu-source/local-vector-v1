@@ -4,6 +4,40 @@
 
 ---
 
+## 2026-03-03 — Business Ground Truth Relevance Filter (§190)
+
+Made the entire dashboard actionable by filtering all recommendations, gaps, revenue calculations, and emails through business ground truth (hours, amenities, categories). A dinner-only restaurant no longer sees "brunch" queries; a business without a patio no longer sees "outdoor seating" gaps.
+
+### New: `lib/relevance/` — Pure Relevance Engine
+- **Created** `lib/relevance/types.ts` — `BusinessGroundTruth`, `QueryInput`, `QueryRelevanceResult`, `RelevanceVerdict`
+- **Created** `lib/relevance/query-relevance-filter.ts` — `scoreQueryRelevance()` (6-rule priority chain), `scoreQueriesBatch()`, `filterRelevantQueries()`
+- **Created** `lib/relevance/get-ground-truth.ts` — `fetchLocationGroundTruth()`, `fetchPrimaryGroundTruth()` (shared Supabase fetchers)
+- **Modified** `lib/relevance/index.ts` — public API exports
+
+### Wired: 8 Surfaces Filtered
+- **Modified** `lib/services/sov-seed.ts` — `LocationForSeed` extended with `hours_data`, `amenities`; filters `not_applicable` before INSERT
+- **Modified** `app/onboarding/actions.ts` — 2 call sites pass ground truth to `seedSOVQueries()`
+- **Modified** `app/onboarding/connect/actions.ts` — pass ground truth to `seedSOVQueries()`
+- **Modified** `app/api/auth/google/callback/route.ts` — pass ground truth to `seedSOVQueries()`
+- **Modified** `app/dashboard/share-of-voice/page.tsx` — server-side relevance map, profile nudge banner
+- **Modified** `app/dashboard/share-of-voice/_components/SovCard.tsx` — relevance labels + action suppression for `not_applicable`
+- **Modified** `app/dashboard/share-of-voice/_components/FirstMoverCard.tsx` — wired Create Content (router nav) + Dismiss (optimistic UI)
+- **Modified** `lib/data/revenue-impact.ts` — 6th parallel query (ground truth); only relevant gaps count
+- **Modified** `lib/digest/digest-service.ts` — missed queries filtered through relevance before email
+- **Modified** `lib/tools/visibility-tools.ts` — new `getBusinessContext` tool (5th tool)
+- **Modified** `app/api/chat/route.ts` — system prompt: use business context before recommendations
+- **Modified** `lib/onboarding/sample-data.ts` — replaced 4 irrelevant sample queries with universally applicable ones
+
+### Test Updates
+- **Modified** `src/__tests__/unit/sov-seed.test.ts` — +12 ground truth filtering tests
+- **Modified** `src/__tests__/unit/components/sov/FirstMoverCard.test.tsx` — +useRouter mock
+- **Modified** `src/__tests__/unit/revenue-impact-data.test.ts` — updated for 6th parallel query
+- **Modified** `src/__tests__/unit/visibility-tools.test.ts` — 4→5 tool definitions
+
+**Files changed:** 3 created, 16 modified, 12 new tests. Total: 379 files, 5,745 tests, 0 new failures. AI_RULES §190.
+
+---
+
 ## 2026-03-03 — Migration Ordering + Seed Hotfix for `db reset` (§189)
 
 Fixed 5 pre-existing issues that prevented `supabase db reset` from completing. Exposed by §188 menu update requiring a fresh seed load.

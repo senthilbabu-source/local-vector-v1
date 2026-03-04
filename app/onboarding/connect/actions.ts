@@ -113,7 +113,7 @@ export async function importGBPLocation(
     last_sync_at: new Date().toISOString(),
   }, { onConflict: 'location_id,platform' });
 
-  // 12. Seed SOV queries
+  // 12. Seed SOV queries (filtered by ground truth from GBP import)
   await seedSOVQueries(
     {
       id: location.id,
@@ -122,6 +122,8 @@ export async function importGBPLocation(
       city: mapped.city,
       state: mapped.state,
       categories: null,
+      hours_data: mapped.hours_data ?? null,
+      amenities: mapped.amenities ?? null,
     },
     [],
     supabase,

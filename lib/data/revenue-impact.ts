@@ -14,6 +14,9 @@ import {
   type RevenueImpactInput,
   type RevenueImpactResult,
 } from '@/lib/services/revenue-impact.service';
+import { fetchLocationGroundTruth } from '@/lib/relevance/get-ground-truth';
+import { scoreQueryRelevance } from '@/lib/relevance/query-relevance-filter';
+import type { QueryInput } from '@/lib/relevance/types';
 
 /**
  * Fetch revenue impact data and compute the estimate.
@@ -35,6 +38,7 @@ export async function fetchRevenueImpact(
     sovEvalsResult,
     hallucinationsResult,
     competitorEvalsResult,
+    groundTruth,
   ] = await Promise.all([
     // Revenue config from location
     supabase
@@ -73,6 +77,9 @@ export async function fetchRevenueImpact(
       .eq('org_id', orgId)
       .eq('location_id', locationId)
       .gte('created_at', thirtyDaysAgo.toISOString()),
+
+    // Ground truth for relevance filtering
+    fetchLocationGroundTruth(supabase, locationId, orgId),
   ]);
 
   // ── Revenue config ──
@@ -97,7 +104,7 @@ export async function fetchRevenueImpact(
     evalsByQuery.set(e.query_id, arr);
   }
 
-  const sovGaps = queries
+  const sovGapsUnfiltered = queries
     .map((q) => {
       const qEvals = evalsByQuery.get(q.id) ?? [];
       const engines = new Set(qEvals.map((e) => e.engine));
@@ -112,6 +119,19 @@ export async function fetchRevenueImpact(
       };
     })
     .filter((g) => g.missingEngineCount > 0);
+
+  // Filter out gaps for queries that are not applicable to this business.
+  // Only count revenue loss for queries the business can actually serve.
+  const sovGaps = groundTruth
+    ? sovGapsUnfiltered.filter((g) => {
+        const queryInput: QueryInput = {
+          queryText: g.queryText,
+          queryCategory: g.queryCategory as QueryInput['queryCategory'],
+        };
+        const result = scoreQueryRelevance(queryInput, groundTruth);
+        return result.verdict !== 'not_applicable';
+      })
+    : sovGapsUnfiltered;
 
   // ── Hallucinations ──
   const openHallucinations = (hallucinationsResult.data ?? []).map((h) => ({

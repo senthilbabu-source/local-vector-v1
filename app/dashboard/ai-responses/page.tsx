@@ -72,7 +72,7 @@ export default async function AIResponsesPage() {
             href="/dashboard/share-of-voice"
             className="mt-4 inline-flex items-center gap-1.5 rounded-lg border border-white/10 bg-surface-dark px-4 py-2 text-sm font-medium text-white transition hover:bg-white/5"
           >
-            Go to Share of Voice →
+            Go to AI Mentions →
           </a>
         </div>
       ) : (

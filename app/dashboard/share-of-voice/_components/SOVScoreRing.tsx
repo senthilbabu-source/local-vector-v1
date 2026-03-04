@@ -53,7 +53,7 @@ export default function SOVScoreRing({
         data-testid="sov-score-ring"
       >
         <h2 className="text-sm font-semibold text-white tracking-tight mb-4">
-          AI Share of Voice
+          AI Mentions
         </h2>
         <div className="flex items-center gap-6">
           <div className="relative flex h-28 w-28 shrink-0 items-center justify-center">
@@ -84,7 +84,7 @@ export default function SOVScoreRing({
       data-testid="sov-score-ring"
     >
       <h2 className="text-sm font-semibold text-white tracking-tight mb-4">
-        AI Share of Voice
+        AI Mentions
       </h2>
       <div className="flex items-center gap-6">
         {/* Circular gauge */}

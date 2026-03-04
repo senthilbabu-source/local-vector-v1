@@ -56,17 +56,17 @@ export const SAMPLE_SOV_DATA: SampleSovData = {
 /** Where the business was cited (4 motivating examples). */
 export const SAMPLE_CITATION_EXAMPLES: SampleCitation[] = [
   { query_text: 'best restaurant near downtown', label: 'Cited as top pick' },
-  { query_text: 'upscale dining experience near me', label: 'Cited as recommended' },
-  { query_text: 'places to eat with private events', label: 'Cited as option' },
-  { query_text: 'late night dining options', label: 'Cited in results' },
+  { query_text: 'top rated dining experience near me', label: 'Cited as recommended' },
+  { query_text: 'where to eat tonight', label: 'Cited as option' },
+  { query_text: 'best places to eat in my area', label: 'Cited in results' },
 ];
 
-/** Queries not yet winning (4 opportunities). */
+/** Queries not yet winning (4 universally applicable opportunities). */
 export const SAMPLE_MISSING_QUERIES: SampleMissedQuery[] = [
-  { query_text: 'restaurant with outdoor seating', label: 'Not yet cited — content opportunity' },
-  { query_text: 'best brunch spots this weekend', label: 'Not yet cited — content opportunity' },
-  { query_text: 'family friendly dining options', label: 'Not yet cited — content opportunity' },
-  { query_text: 'catering services for corporate events', label: 'Not yet cited — content opportunity' },
+  { query_text: 'best restaurant for a date night', label: 'Not yet cited — content opportunity' },
+  { query_text: 'where to celebrate a birthday dinner', label: 'Not yet cited — content opportunity' },
+  { query_text: 'top restaurants with great atmosphere', label: 'Not yet cited — content opportunity' },
+  { query_text: 'best new restaurant to try this week', label: 'Not yet cited — content opportunity' },
 ];
 
 /** One example content draft (pure display — not created in DB). */
@@ -79,7 +79,7 @@ export const SAMPLE_CONTENT_DRAFT: SampleContentDraft = {
 /** One example first mover alert. */
 export const SAMPLE_FIRST_MOVER_ALERT: SampleFirstMoverAlert = {
   query_text: 'restaurant for private events near me',
-  message: 'No business is being recommended for this query. Be first.',
+  message: 'No business is being recommended for this query yet. Create a blog post or FAQ page about your private events to get cited first.',
 };
 
 /**
