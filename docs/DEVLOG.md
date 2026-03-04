@@ -4,6 +4,25 @@
 
 ---
 
+## 2026-03-03 — Migration Ordering + Seed Hotfix for `db reset` (§189)
+
+Fixed 5 pre-existing issues that prevented `supabase db reset` from completing. Exposed by §188 menu update requiring a fresh seed load.
+
+### Migration Fixes
+- **Renamed** 3 duplicate migration timestamps (apple_bc/sprint_n, semantic_authority/draft_locks, corrections/hnsw) to unique versions
+- **Moved** `rls_gap_fill.sql` from `20260304100001` → `20260428100001` (after all referenced tables exist)
+- **Fixed** apple_bc + bing_places triggers: `set_updated_at()` → `update_updated_at_column()`
+- **Fixed** `onboarding_digest.sql` backfill: added `JOIN auth.users` to skip on fresh reset
+
+### Seed Fixes
+- **Fixed** `seed.sql` VAIO column names: `voice_query_stats` → `voice_queries_tracked` + `voice_citation_rate`
+- **Added** `v_user_id` + `v_auth_user_id` variables to Section 19 DO block (memberships vs auth.users FK)
+- **Fixed** `golden-tenant.ts`: `has_outdoor_seating: false` (5 locations) + llms-txt test update
+
+**Files changed:** 4 migrations renamed, 4 modified, 2 test/fixture files updated. `supabase db reset` now completes cleanly. AI_RULES §189.
+
+---
+
 ## 2026-03-03 — Real Menu Ground Truth + price_note Schema Enhancement (§188)
 
 Replaced 4 fictional BBQ items with 153 real Charcoal N Chill menu items from the owner's PDF menu. Added `price_note` field to the OCR extraction pipeline for tiered/refill pricing.

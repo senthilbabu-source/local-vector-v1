@@ -3844,3 +3844,33 @@ The DB `menu_items.price_note` column existed but was not exposed in the extract
 **Tests:** 2 new Vitest (parseCsvMenu.test.ts). Total: 378 files, 5,717 tests, 0 failures.
 
 ---
+
+## §189. Migration Ordering + Seed Hotfix for `db reset` (2026-03-03)
+
+**Problem:** `supabase db reset` was broken by 5 pre-existing issues accumulated across sprints. The menu ground truth update (§188) exposed these because it required a fresh `db reset` to load the new seed data.
+
+### Migration Fixes
+
+1. **Duplicate timestamps (3 pairs):** Supabase uses the numeric prefix as PK in `schema_migrations`. Three pairs collided:
+   - `20260310000001` — apple_bc + sprint_n_settings → sprint_n renamed to `20260310000003`
+   - `20260315000001` — activity_log + semantic_authority → semantic_authority renamed to `20260315000003`
+   - `20260321000002` — add_embedding_columns + corrections_settings → corrections renamed to `20260321000005`
+
+2. **RLS gap fill ordered too early:** `20260304100001_rls_gap_fill.sql` referenced 10 tables (entity_authority_citations, vaio_profiles, intent_discoveries, etc.) created in later migrations. Moved to `20260428100001`.
+
+3. **Wrong trigger function:** apple_bc + bing_places called `public.set_updated_at()` but the actual function is `public.update_updated_at_column()` (defined in initial_schema).
+
+4. **Onboarding backfill FK violation:** `20260320000001_onboarding_digest.sql` backfill INSERT tried `email_preferences` with `user_id` from memberships, but `auth.users` doesn't exist yet on fresh reset. Fixed with `JOIN auth.users u ON u.id = m.user_id` to produce 0 rows gracefully.
+
+### Seed Fixes
+
+5. **VAIO column names:** `voice_query_stats`, `gaps`, `issues` → `voice_queries_tracked`, `voice_citation_rate`, `voice_gaps`, `top_content_issues` (matching actual migration schema).
+
+6. **Missing variables:** Section 19 DO block used `v_user_id` and `v_public_user_id` without declaring them. Added `v_user_id` (public.users.id for memberships FK) and `v_auth_user_id` (auth.users.id for activity_log/onboarding FK).
+
+7. **Golden tenant fixture:** `has_outdoor_seating: true → false` (CNC has no patio). Updated in 5 locations in golden-tenant.ts + llms-txt-generator.test.ts.
+
+### Key Lesson
+**After `db reset`, delete `.next/` to clear `unstable_cache`.** The public menu page (`/m/[slug]`) uses `unstable_cache` with 1-hour TTL. A stale cached "not found" result persists across `db reset` because the cache lives in `.next/cache`, not in the DB.
+
+---
