@@ -97,13 +97,13 @@ describe('Sprint N — Settings Expansion', () => {
   describe('migration', () => {
     it('Sprint N migration file exists', () => {
       expect(
-        existsSync(join(ROOT, 'supabase/migrations/20260310000001_sprint_n_settings.sql')),
+        existsSync(join(ROOT, 'supabase/migrations/20260310000003_sprint_n_settings.sql')),
       ).toBe(true);
     });
 
     it('migration adds scan_day_of_week column', () => {
       const sql = readFileSync(
-        join(ROOT, 'supabase/migrations/20260310000001_sprint_n_settings.sql'),
+        join(ROOT, 'supabase/migrations/20260310000003_sprint_n_settings.sql'),
         'utf-8',
       );
       expect(sql).toContain('scan_day_of_week');
@@ -111,7 +111,7 @@ describe('Sprint N — Settings Expansion', () => {
 
     it('migration adds notify_score_drop_alert column', () => {
       const sql = readFileSync(
-        join(ROOT, 'supabase/migrations/20260310000001_sprint_n_settings.sql'),
+        join(ROOT, 'supabase/migrations/20260310000003_sprint_n_settings.sql'),
         'utf-8',
       );
       expect(sql).toContain('notify_score_drop_alert');
@@ -119,7 +119,7 @@ describe('Sprint N — Settings Expansion', () => {
 
     it('migration adds notify_new_competitor column', () => {
       const sql = readFileSync(
-        join(ROOT, 'supabase/migrations/20260310000001_sprint_n_settings.sql'),
+        join(ROOT, 'supabase/migrations/20260310000003_sprint_n_settings.sql'),
         'utf-8',
       );
       expect(sql).toContain('notify_new_competitor');

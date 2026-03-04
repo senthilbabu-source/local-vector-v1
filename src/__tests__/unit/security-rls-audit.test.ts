@@ -18,7 +18,7 @@ const migrationPath = join(
   process.cwd(),
   'supabase',
   'migrations',
-  '20260304100001_rls_gap_fill.sql',
+  '20260428100001_rls_gap_fill.sql',
 );
 
 let schemaSql: string;

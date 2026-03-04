@@ -10,6 +10,7 @@
 
 'use client';
 
+import * as Sentry from '@sentry/nextjs';
 import { useRouter } from 'next/navigation';
 import { useState, useTransition } from 'react';
 
@@ -85,7 +86,8 @@ export default function FirstMoverCard({ id, queryText, createdAt }: FirstMoverC
               try {
                 const res = await fetch(`/api/content-drafts/${id}/dismiss`, { method: 'POST' });
                 if (!res.ok) setDismissed(false);
-              } catch {
+              } catch (err) {
+                Sentry.captureException(err);
                 setDismissed(false);
               }
             });
