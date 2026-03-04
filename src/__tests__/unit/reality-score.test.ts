@@ -17,7 +17,7 @@
 // ---------------------------------------------------------------------------
 
 import { describe, it, expect } from 'vitest';
-import { deriveRealityScore } from '@/app/dashboard/page';
+import { deriveRealityScore } from '@/lib/services/reality-score.service';
 
 describe('deriveRealityScore', () => {
   it('returns realityScore=84 when 0 open alerts and visibility=60', () => {

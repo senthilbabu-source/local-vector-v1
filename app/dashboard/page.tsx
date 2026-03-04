@@ -69,39 +69,17 @@ import BenchmarkCard from './_components/BenchmarkCard';
 import UpgradeRedirectBanner from './_components/UpgradeRedirectBanner';
 // P1-FIX-05: Manual scan trigger
 import ManualScanTrigger from './_components/ManualScanTrigger';
+// P8-FIX-33: Reality Score v2 — trend chart + persistence
+import { deriveRealityScore } from '@/lib/services/reality-score.service';
+import RealityScoreTrendChart from './_components/RealityScoreTrendChart';
 
 export const metadata = { title: 'Dashboard | LocalVector.ai' };
 
 export type { HallucinationRow } from '@/lib/data/dashboard'; // re-export for AlertFeed.tsx
 
-// Reality Score derivation — Formula from Doc 03 §9:
-//   reality_score = (Visibility × 0.4) + (Accuracy × 0.4) + (DataHealth × 0.2)
-// Visibility: live from visibility_analytics.share_of_voice (Phase 5 SOV cron)
-// Accuracy:   100 with 0 open alerts; −15 per open alert, floor 40
-// Data Health: Sprint 124 — real 5-dimension completeness score from computeDataHealth()
-//   Falls back to simulationScore blend when data_health_score is null,
-//   falls back to 100 when neither is available.
-export function deriveRealityScore(
-  openAlertCount: number,
-  visibilityScore: number | null,
-  dataHealthScore?: number | null,
-  simulationScore?: number | null,
-) {
-  const accuracy = openAlertCount === 0 ? 100 : Math.max(40, 100 - openAlertCount * 15);
-  // Sprint 124: prefer real DataHealth score, fallback to simulation blend, fallback to 100
-  const dataHealth = dataHealthScore != null
-    ? dataHealthScore
-    : simulationScore != null
-      ? Math.round(100 * 0.5 + simulationScore * 0.5)
-      : 100;
-  if (visibilityScore === null) {
-    return { visibility: null, accuracy, dataHealth, realityScore: null };
-  }
-  const realityScore = Math.round(
-    visibilityScore * 0.4 + accuracy * 0.4 + dataHealth * 0.2
-  );
-  return { visibility: visibilityScore, accuracy, dataHealth, realityScore };
-}
+// P8-FIX-33: deriveRealityScore extracted to lib/services/reality-score.service.ts
+// Re-export here for backwards compatibility with existing consumers.
+export { deriveRealityScore } from '@/lib/services/reality-score.service';
 export default async function DashboardPage({
   searchParams,
 }: {
@@ -127,6 +105,7 @@ export default async function DashboardPage({
     benchmark, locationContext,
     draftsPending, draftsApproved, draftsMonthlyUsed, draftsMonthlyLimit,
     simulationScore, dataHealthScore,
+    realityScoreTrend, previousRealityScore,
   } = await fetchDashboardData(ctx.orgId ?? '', activeLocationId);
 
   // ── Sprint 77: Proof Timeline summary card (Sprint 100: uses active location)
@@ -315,7 +294,7 @@ export default async function DashboardPage({
         <div className="relative">
           <AIVisibilityPanel
             score={displayScores.realityScore}
-            previousScore={null}
+            previousScore={sampleMode ? null : previousRealityScore}
             benchmark={benchmark}
             orgCity={locationContext.city}
           />
@@ -343,6 +322,11 @@ export default async function DashboardPage({
         crawlerSummary={crawlerSummary}
         sampleMode={sampleMode}
       />
+
+      {/* ── P8-FIX-33: Reality Score Trend Chart (hidden in sample mode) ── */}
+      {!sampleMode && realityScoreTrend.length > 0 && (
+        <RealityScoreTrendChart data={realityScoreTrend} />
+      )}
 
       {/* ── Sprint 86: Content Drafts Panel (Growth+ only) ──────────────── */}
       {draftGated && (

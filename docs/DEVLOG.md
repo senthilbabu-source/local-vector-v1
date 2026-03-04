@@ -5411,3 +5411,38 @@ npx vitest run  # 369 files, 5578 tests — 0 failures
 ```
 
 ---
+
+## P8-FIX-33 — Reality Score v2: Trend Chart + Persistence (2026-03-03)
+
+**Objective:** Persist reality score snapshots to `visibility_scores` table after each SOV scan, and display a trend chart on the dashboard.
+
+### Changes
+
+**Extraction + Persistence:**
+- `lib/services/reality-score.service.ts` (NEW) — Extracted `deriveRealityScore()` from `app/dashboard/page.tsx`. Added `writeRealityScoreSnapshot()` which computes all components (visibility, accuracy, data health) + score delta and upserts to `visibility_scores`.
+- `app/dashboard/page.tsx` — Re-exports `deriveRealityScore` for backwards compat.
+
+**Cron Integration:**
+- `lib/inngest/functions/sov-cron.ts` — After `writeSOVResults()` in `processOrgSOV()`: fetches open hallucination count + location scores, calls `writeRealityScoreSnapshot()`. Non-critical try/catch.
+- `app/api/cron/sov/route.ts` — Same pattern in inline fallback path.
+
+**Trend Chart:**
+- `app/dashboard/_components/RealityScoreTrendChart.tsx` (NEW) — recharts AreaChart following SOVTrendChart pattern. Dark theme, custom tooltip, empty state, `role="img"` + sr-only data table (WCAG a11y).
+
+**Dashboard Integration:**
+- `lib/data/dashboard.ts` — Added `realityScoreTrend` (last 12 snapshots from `visibility_scores`) and `previousRealityScore` to `DashboardData`. New parallel query in `fetchDashboardData()`.
+- `app/dashboard/page.tsx` — Passes `previousRealityScore` to `AIVisibilityPanel` (was always `null`). Renders `RealityScoreTrendChart` after TopIssuesPanel (hidden in sample mode).
+
+### Tests
+- `reality-score-snapshot.test.ts` (NEW) — 8 tests: upsert shape, score_delta, onConflict, alert accuracy, simulation fallback, Sentry error capture, negative delta.
+- `reality-score-trend-chart.test.tsx` (NEW) — 5 tests: empty state, chart container, sr-only table row count, link, title.
+- `reality-score.test.ts` — Updated import from `@/app/dashboard/page` → `@/lib/services/reality-score.service`.
+- Total: 22 new tests (8 + 5 + 9 existing preserved).
+
+**AI_RULES:** §193
+
+```bash
+npx vitest run  # 384 files, 5828 tests — 0 failures
+```
+
+---

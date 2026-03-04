@@ -44,6 +44,7 @@ import { logCronStart, logCronComplete, logCronFailed } from '@/lib/services/cro
 import { notifyOrg, buildCronNotification } from '@/lib/realtime/notify-org';
 import { getOrCreateOrgSettings, shouldScanOrg } from '@/lib/settings';
 import { runMultiModelQuery } from '@/lib/services/multi-model-sov';
+import { writeRealityScoreSnapshot } from '@/lib/services/reality-score.service';
 
 // Force dynamic so Vercel never caches this route between cron invocations.
 export const dynamic = 'force-dynamic';
@@ -204,6 +205,35 @@ async function _runInlineSOVImpl(handle: { logId: string | null; startedAt: numb
           supabase,
         );
         summary.first_mover_alerts += firstMoverCount;
+
+        // P8-FIX-33: Persist reality score snapshot (non-critical)
+        try {
+          const locId = batch[0].location_id;
+          const { count: openCount } = await supabase
+            .from('ai_hallucinations')
+            .select('*', { count: 'exact', head: true })
+            .eq('org_id', orgId)
+            .eq('correction_status', 'open');
+          const { data: locScores } = await supabase
+            .from('locations')
+            .select('data_health_score, last_simulation_score')
+            .eq('id', locId)
+            .maybeSingle();
+          await writeRealityScoreSnapshot(
+            supabase,
+            orgId,
+            locId,
+            shareOfVoice / 100, // writeSOVResults returns 0–100, snapshot expects 0–1
+            openCount ?? 0,
+            locScores?.data_health_score ?? null,
+            locScores?.last_simulation_score ?? null,
+          );
+        } catch (err) {
+          Sentry.captureException(err, {
+            tags: { cron: 'sov', phase: 'reality-score-snapshot', sprint: 'P8-FIX-33' },
+            extra: { orgId },
+          });
+        }
 
         // Sprint 81: Sentiment extraction (non-critical)
         try {

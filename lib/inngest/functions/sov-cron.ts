@@ -40,6 +40,7 @@ import { detectQueryGaps } from '@/lib/services/prompt-intelligence.service';
 import { canRunAutopilot, canRunMultiModelSOV, type PlanTier } from '@/lib/plan-enforcer';
 import { createDraft, archiveExpiredOccasionDrafts } from '@/lib/autopilot/create-draft';
 import { getPendingRechecks, completeRecheck } from '@/lib/autopilot/post-publish';
+import { writeRealityScoreSnapshot } from '@/lib/services/reality-score.service';
 
 // ---------------------------------------------------------------------------
 // Plan-based query caps (Doc 04c §4.1)
@@ -131,6 +132,35 @@ export async function processOrgSOV(batch: OrgBatch): Promise<OrgSOVResult> {
     results,
     supabase,
   );
+
+  // P8-FIX-33: Persist reality score snapshot (non-critical)
+  try {
+    const locationId = batch.queries[0].location_id;
+    const { count: openCount } = await supabase
+      .from('ai_hallucinations')
+      .select('*', { count: 'exact', head: true })
+      .eq('org_id', batch.orgId)
+      .eq('correction_status', 'open');
+    const { data: locScores } = await supabase
+      .from('locations')
+      .select('data_health_score, last_simulation_score')
+      .eq('id', locationId)
+      .maybeSingle();
+    await writeRealityScoreSnapshot(
+      supabase,
+      batch.orgId,
+      locationId,
+      shareOfVoice / 100, // writeSOVResults returns 0–100, snapshot expects 0–1
+      openCount ?? 0,
+      locScores?.data_health_score ?? null,
+      locScores?.last_simulation_score ?? null,
+    );
+  } catch (err) {
+    Sentry.captureException(err, {
+      tags: { cron: 'sov', phase: 'reality-score-snapshot', sprint: 'P8-FIX-33' },
+      extra: { orgId: batch.orgId },
+    });
+  }
 
   // Sprint 81: Sentiment extraction (non-critical, runs after SOV data is safe)
   try {

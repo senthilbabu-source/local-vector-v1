@@ -85,6 +85,15 @@ export interface DashboardData {
   simulationScore: number | null;
   // Sprint 124: Cached DataHealth score from data-health-refresh cron
   dataHealthScore: number | null;
+  // P8-FIX-33: Reality Score trend (last 12 snapshots) + previous score for delta
+  realityScoreTrend: RealityScoreTrendPoint[];
+  previousRealityScore: number | null;
+}
+
+// P8-FIX-33: Data shape for RealityScoreTrendChart
+export interface RealityScoreTrendPoint {
+  date: string;
+  score: number;
 }
 
 // ---------------------------------------------------------------------------
@@ -385,6 +394,35 @@ export async function fetchDashboardData(orgId: string, locationId?: string | nu
     Sentry.captureException(err, { tags: { file: 'dashboard.ts', sprint: '124' } });
   }
 
+  // P8-FIX-33: Reality Score trend (last 12 snapshots) + previous score for delta
+  let realityScoreTrend: RealityScoreTrendPoint[] = [];
+  let previousRealityScore: number | null = null;
+  try {
+    let trendQuery = supabase
+      .from('visibility_scores')
+      .select('reality_score, snapshot_date')
+      .eq('org_id', orgId)
+      .not('reality_score', 'is', null)
+      .order('snapshot_date', { ascending: true })
+      .limit(12);
+    if (locationId) trendQuery = trendQuery.eq('location_id', locationId);
+
+    const { data: trendRows } = await trendQuery;
+    if (trendRows && trendRows.length > 0) {
+      realityScoreTrend = trendRows.map((r) => ({
+        date: r.snapshot_date,
+        score: Math.round(r.reality_score!),
+      }));
+      // Previous score = second-to-last for AIVisibilityPanel delta
+      if (trendRows.length >= 2) {
+        previousRealityScore = Math.round(trendRows[trendRows.length - 2].reality_score!);
+      }
+    }
+  } catch (err) {
+    Sentry.captureException(err, { tags: { file: 'dashboard.ts', sprint: 'P8-FIX-33' } });
+    // Trend data is non-critical — dashboard renders without it.
+  }
+
   return {
     openAlerts,
     fixedCount: fixedResult.count ?? 0,
@@ -418,5 +456,7 @@ export async function fetchDashboardData(orgId: string, locationId?: string | nu
     draftsMonthlyLimit,
     simulationScore,
     dataHealthScore,
+    realityScoreTrend,
+    previousRealityScore,
   };
 }

@@ -4002,3 +4002,26 @@ SOV page shows "Complete your profile" banner when `hours_data` or `amenities` a
 - `scripts/launch-verify.sh` — launch verification bash script
 
 ---
+
+## §193. Reality Score v2 — Trend Chart + Persistence (P8-FIX-33, 2026-03-03)
+
+### Architecture Rules
+
+1. **Score formula SSOT:** `deriveRealityScore()` lives in `lib/services/reality-score.service.ts`. The export in `app/dashboard/page.tsx` is a re-export for backwards compat. Never duplicate the formula.
+2. **Persistence:** `writeRealityScoreSnapshot()` upserts to `visibility_scores` (existing table — no migration needed) after every SOV scan. Called from `processOrgSOV()` in `lib/inngest/functions/sov-cron.ts` and the inline fallback in `app/api/cron/sov/route.ts`. Non-critical: wrapped in try/catch + Sentry.
+3. **Score delta:** Computed by fetching the previous row from `visibility_scores` before upserting. Null on first snapshot.
+4. **Trend chart:** `RealityScoreTrendChart` follows SOVTrendChart pattern: recharts AreaChart, dark theme, `role="img"` + sr-only data table (WCAG a11y), empty state.
+5. **Dashboard integration:** `fetchDashboardData()` returns `realityScoreTrend` (last 12 snapshots) and `previousRealityScore` (second-to-last). `AIVisibilityPanel` now receives real `previousScore` for the weekly delta display. Trend chart hidden in sample mode.
+6. **shareOfVoice units:** `writeSOVResults()` returns 0–100, but `writeRealityScoreSnapshot()` expects 0–1. The cron divides by 100 at the call site.
+
+### Key Files
+
+- `lib/services/reality-score.service.ts` — `deriveRealityScore()`, `writeRealityScoreSnapshot()`
+- `app/dashboard/_components/RealityScoreTrendChart.tsx` — trend chart component
+- `lib/data/dashboard.ts` — `RealityScoreTrendPoint` type, trend query in `fetchDashboardData()`
+- `lib/inngest/functions/sov-cron.ts` — snapshot call in `processOrgSOV()`
+- `app/api/cron/sov/route.ts` — snapshot call in inline fallback
+- `src/__tests__/unit/reality-score-snapshot.test.ts` — 8 tests
+- `src/__tests__/unit/reality-score-trend-chart.test.tsx` — 5 tests
+
+---
