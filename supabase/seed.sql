@@ -2754,3 +2754,356 @@ BEGIN
   ON CONFLICT (org_id) DO NOTHING;
 
 END $$;
+
+-- ═══════════════════════════════════════════════════════════════════════════
+-- Section 26: Seed Backfill — Reviews, Sentiment, Intent, Playbooks, etc.
+-- Fills every remaining empty dashboard page for golden tenant.
+-- ═══════════════════════════════════════════════════════════════════════════
+
+DO $$
+DECLARE
+  v_org_id      uuid := 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11';
+  v_location_id uuid;
+BEGIN
+  SELECT id INTO v_location_id
+    FROM public.locations
+   WHERE org_id = v_org_id AND is_primary = true
+   LIMIT 1;
+
+  IF v_location_id IS NULL THEN
+    RAISE NOTICE 'Section 26 seed backfill: no location found — skipping.';
+    RETURN;
+  END IF;
+
+  -- ── 26a. REVIEWS (6 rows) — /dashboard/reviews ─────────────────────────
+  INSERT INTO public.reviews (
+    platform_review_id, platform, location_id, org_id,
+    reviewer_name, rating, text, published_at,
+    sentiment_label, sentiment_score, keywords, topics,
+    response_status, response_draft
+  ) VALUES
+  (
+    'google-rev-001', 'google', v_location_id, v_org_id,
+    'Priya M.', 5,
+    'Absolutely love the hookah and the vibe! The butter chicken was incredible and the DJ on Friday nights is top-notch. Best spot in Alpharetta for a night out.',
+    NOW() - INTERVAL '3 days',
+    'positive', 0.92,
+    ARRAY['hookah', 'butter chicken', 'DJ', 'night out', 'vibe'],
+    '[{"topic": "food_quality", "sentiment": "positive"}, {"topic": "ambiance", "sentiment": "positive"}]'::jsonb,
+    'published',
+    'Thank you so much, Priya! We''re thrilled you enjoyed the hookah and butter chicken. See you next Friday!'
+  ),
+  (
+    'google-rev-002', 'google', v_location_id, v_org_id,
+    'Marcus T.', 4,
+    'Great food and awesome hookah selection. Only downside was the wait time on a Saturday night — about 45 minutes for a table. Worth it though.',
+    NOW() - INTERVAL '5 days',
+    'positive', 0.65,
+    ARRAY['food', 'hookah', 'wait time', 'Saturday'],
+    '[{"topic": "food_quality", "sentiment": "positive"}, {"topic": "wait_time", "sentiment": "negative"}]'::jsonb,
+    'draft_ready',
+    'Hi Marcus! Thank you for the kind words. We know Saturday nights can get busy — try our reservation system to skip the wait next time!'
+  ),
+  (
+    'google-rev-003', 'google', v_location_id, v_org_id,
+    'Jennifer L.', 3,
+    'The hookah was good but the food was just okay. Paneer chilli was bland compared to other Indian restaurants. Nice ambiance though.',
+    NOW() - INTERVAL '8 days',
+    'neutral', 0.10,
+    ARRAY['hookah', 'paneer chilli', 'bland', 'ambiance'],
+    '[{"topic": "food_quality", "sentiment": "negative"}, {"topic": "ambiance", "sentiment": "positive"}]'::jsonb,
+    'pending_draft',
+    NULL
+  ),
+  (
+    'yelp-rev-001', 'yelp', v_location_id, v_org_id,
+    'David K.', 5,
+    'This place is a hidden gem! The fusion menu is creative — tried the lamb chops and they were perfectly spiced. Hookah flavors are premium quality. Will be a regular.',
+    NOW() - INTERVAL '10 days',
+    'positive', 0.88,
+    ARRAY['fusion', 'lamb chops', 'hookah', 'hidden gem', 'spiced'],
+    '[{"topic": "food_quality", "sentiment": "positive"}, {"topic": "hookah", "sentiment": "positive"}]'::jsonb,
+    'published',
+    'Welcome to the family, David! The lamb chops are one of our favorites too. Can''t wait to see you again!'
+  ),
+  (
+    'yelp-rev-002', 'yelp', v_location_id, v_org_id,
+    'Sarah W.', 2,
+    'Came for the hookah which was fine, but the service was really slow. Waited 30 min for drinks and our server forgot our appetizer order. Disappointing for the price.',
+    NOW() - INTERVAL '12 days',
+    'negative', -0.72,
+    ARRAY['hookah', 'service', 'slow', 'drinks', 'price'],
+    '[{"topic": "service", "sentiment": "negative"}, {"topic": "value", "sentiment": "negative"}]'::jsonb,
+    'pending_approval',
+    'Hi Sarah, we sincerely apologize for the service issues during your visit. This is not the experience we aim for. We''d love to make it right — please reach out to us directly.'
+  ),
+  (
+    'google-rev-004', 'google', v_location_id, v_org_id,
+    'Raj P.', 4,
+    'Best hookah in the ATL area hands down. The private rooms are perfect for small gatherings. Food is solid Indo-American fusion. Cocktails could be stronger.',
+    NOW() - INTERVAL '14 days',
+    'positive', 0.58,
+    ARRAY['hookah', 'ATL', 'private rooms', 'fusion', 'cocktails'],
+    '[{"topic": "hookah", "sentiment": "positive"}, {"topic": "private_rooms", "sentiment": "positive"}, {"topic": "drinks", "sentiment": "negative"}]'::jsonb,
+    'skipped',
+    NULL
+  )
+  ON CONFLICT (platform_review_id, platform, location_id) DO NOTHING;
+
+  -- ── 26b. BRAND VOICE PROFILE — /dashboard/reviews (response generation) ──
+  INSERT INTO public.brand_voice_profiles (
+    location_id, org_id,
+    tone, formality, use_emojis, sign_off,
+    highlight_keywords, avoid_phrases, custom_instructions, derived_from
+  ) VALUES (
+    v_location_id, v_org_id,
+    'warm', 'casual', false, '— The Charcoal N Chill Team',
+    ARRAY['hookah', 'fusion', 'premium', 'Alpharetta', 'lounge', 'Indo-American'],
+    ARRAY['sorry for the inconvenience', 'per our policy', 'unfortunately'],
+    'Always mention our hookah experience and Indo-American fusion cuisine. Keep responses under 3 sentences for positive reviews.',
+    'website_copy'
+  )
+  ON CONFLICT (location_id) DO NOTHING;
+
+  -- ── 26c. INTENT DISCOVERIES (8 rows) — /dashboard/intent-discovery ──────
+  -- Valid themes: hours, events, offerings, comparison, occasion, location, other
+  INSERT INTO public.intent_discoveries (
+    org_id, location_id, run_id,
+    prompt, theme, client_cited, competitors_cited,
+    opportunity_score, brief_created, discovered_at
+  ) VALUES
+  (
+    v_org_id, v_location_id, 'e0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+    'Best hookah lounge for a birthday party in Alpharetta', 'events',
+    true, '{"Cloud 9 Lounge"}',
+    85, false, NOW() - INTERVAL '2 days'
+  ),
+  (
+    v_org_id, v_location_id, 'e0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+    'Late night restaurants open after midnight near Alpharetta', 'hours',
+    false, '{"Waffle House", "IHOP"}',
+    92, false, NOW() - INTERVAL '2 days'
+  ),
+  (
+    v_org_id, v_location_id, 'e0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+    'Indian fusion restaurant with hookah in Atlanta area', 'offerings',
+    true, '{"Chai Pani", "Botiwalla"}',
+    78, true, NOW() - INTERVAL '2 days'
+  ),
+  (
+    v_org_id, v_location_id, 'e0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+    'Where to smoke hookah with live music in GA', 'offerings',
+    true, '{"Cloud 9 Lounge", "Sahara Hookah"}',
+    65, false, NOW() - INTERVAL '2 days'
+  ),
+  (
+    v_org_id, v_location_id, 'e0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+    'Best cocktail lounges with food in Alpharetta', 'comparison',
+    false, '{"Seed Kitchen & Bar", "The Alley"}',
+    88, false, NOW() - INTERVAL '2 days'
+  ),
+  (
+    v_org_id, v_location_id, 'e0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+    'Private dining rooms for groups in North Atlanta', 'events',
+    false, '{"Del Frisco''s", "STK"}',
+    75, false, NOW() - INTERVAL '2 days'
+  ),
+  (
+    v_org_id, v_location_id, 'e0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+    'Hookah bar with Mediterranean food near Johns Creek', 'location',
+    true, '{}',
+    45, true, NOW() - INTERVAL '2 days'
+  ),
+  (
+    v_org_id, v_location_id, 'e0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+    'DJ nights and hookah in Alpharetta this weekend', 'occasion',
+    false, '{"Cloud 9 Lounge"}',
+    70, false, NOW() - INTERVAL '2 days'
+  )
+  ON CONFLICT DO NOTHING;
+
+  -- ── 26d. PLAYBOOK CACHE — /dashboard/playbooks ────────────────────────────
+  UPDATE public.locations SET
+    playbook_cache = '{
+      "openai": {
+        "engine": "openai",
+        "engineDisplayName": "ChatGPT",
+        "clientCitationRate": 0.42,
+        "topCompetitorRate": 0.58,
+        "gapPercent": 16,
+        "insufficientData": false,
+        "generatedAt": "2026-03-02T08:00:00Z",
+        "actions": [
+          {"id": "act-01", "title": "Add hookah menu details to website structured data", "priority": "high", "effort": "low", "estimatedImpact": 12, "category": "schema", "status": "pending"},
+          {"id": "act-02", "title": "Create a FAQ page answering top hookah queries", "priority": "high", "effort": "medium", "estimatedImpact": 10, "category": "content", "status": "pending"},
+          {"id": "act-03", "title": "Get listed on hookah-specific review sites", "priority": "medium", "effort": "medium", "estimatedImpact": 8, "category": "citation", "status": "pending"}
+        ]
+      },
+      "perplexity": {
+        "engine": "perplexity",
+        "engineDisplayName": "Perplexity",
+        "clientCitationRate": 0.55,
+        "topCompetitorRate": 0.35,
+        "gapPercent": -20,
+        "insufficientData": false,
+        "generatedAt": "2026-03-02T08:00:00Z",
+        "actions": [
+          {"id": "act-04", "title": "Maintain Yelp review velocity (currently strong)", "priority": "medium", "effort": "low", "estimatedImpact": 5, "category": "review", "status": "pending"},
+          {"id": "act-05", "title": "Add more source-cited content to website", "priority": "low", "effort": "medium", "estimatedImpact": 4, "category": "content", "status": "pending"}
+        ]
+      },
+      "google": {
+        "engine": "google",
+        "engineDisplayName": "Google AI",
+        "clientCitationRate": 0.30,
+        "topCompetitorRate": 0.65,
+        "gapPercent": 35,
+        "insufficientData": false,
+        "generatedAt": "2026-03-02T08:00:00Z",
+        "actions": [
+          {"id": "act-06", "title": "Claim and optimize Google Knowledge Panel", "priority": "critical", "effort": "low", "estimatedImpact": 18, "category": "entity", "status": "pending"},
+          {"id": "act-07", "title": "Push updated menu to Google Business Profile", "priority": "high", "effort": "low", "estimatedImpact": 14, "category": "distribution", "status": "pending"},
+          {"id": "act-08", "title": "Fix missing TripAdvisor and Apple Maps listings", "priority": "high", "effort": "medium", "estimatedImpact": 10, "category": "citation", "status": "pending"}
+        ]
+      }
+    }'::jsonb,
+    playbook_generated_at = NOW() - INTERVAL '2 days'
+  WHERE id = v_location_id;
+
+  -- ── 26e. ENRICH SOV EVALUATIONS — sentiment + sources ──────────────────
+  -- Update the OpenAI BBQ eval (c1eebc99-...) with sentiment + cited_sources
+  UPDATE public.sov_evaluations SET
+    sentiment_data = '{
+      "overall_score": 0.72,
+      "label": "positive",
+      "tone": "enthusiastic",
+      "descriptors": ["popular", "vibrant", "top-rated"],
+      "positive_themes": ["smoked brisket", "vibrant atmosphere", "loyal following"],
+      "negative_themes": []
+    }'::jsonb,
+    cited_sources = '[
+      {"name": "Yelp", "type": "review_site", "url": "https://www.yelp.com/biz/charcoal-n-chill-alpharetta"},
+      {"name": "Google Reviews", "type": "review_site", "url": "https://maps.google.com/?cid=527487414899304357"}
+    ]'::jsonb,
+    source_mentions = '{"yelp": 2, "google_reviews": 1, "tripadvisor": 0}'::jsonb
+  WHERE id = 'c1eebc99-9c0b-4ef8-bb6d-6bb9bd380a11';
+
+  -- Update the Perplexity BBQ eval (c5eebc99-...) with sentiment + cited_sources
+  UPDATE public.sov_evaluations SET
+    sentiment_data = '{
+      "overall_score": 0.85,
+      "label": "positive",
+      "tone": "recommending",
+      "descriptors": ["top destination", "premium", "loyal following"],
+      "positive_themes": ["smoked brisket", "premium hookah", "fusion cuisine"],
+      "negative_themes": []
+    }'::jsonb,
+    cited_sources = '[
+      {"name": "Yelp", "type": "review_site", "url": "https://www.yelp.com/biz/charcoal-n-chill-alpharetta"},
+      {"name": "Google Reviews", "type": "review_site", "url": "https://maps.google.com/?cid=527487414899304357"},
+      {"name": "TripAdvisor", "type": "review_site", "url": "https://tripadvisor.com"}
+    ]'::jsonb,
+    source_mentions = '{"yelp": 3, "google_reviews": 2, "tripadvisor": 1}'::jsonb
+  WHERE id = 'c5eebc99-9c0b-4ef8-bb6d-6bb9bd380a11';
+
+  -- Update the Perplexity hookah eval (c6eebc99-...) with sentiment + cited_sources
+  UPDATE public.sov_evaluations SET
+    sentiment_data = '{
+      "overall_score": 0.65,
+      "label": "positive",
+      "tone": "informative",
+      "descriptors": ["popular", "unique experience", "fusion"],
+      "positive_themes": ["premium hookah", "Indo-American fusion", "alternatives available"],
+      "negative_themes": ["crowded weekends"]
+    }'::jsonb,
+    cited_sources = '[
+      {"name": "Google Reviews", "type": "review_site", "url": "https://maps.google.com/?cid=527487414899304357"},
+      {"name": "TripAdvisor", "type": "review_site", "url": "https://tripadvisor.com"}
+    ]'::jsonb,
+    source_mentions = '{"google_reviews": 2, "tripadvisor": 1, "yelp": 0}'::jsonb
+  WHERE id = 'c6eebc99-9c0b-4ef8-bb6d-6bb9bd380a11';
+
+  -- Update the Google AI Overview BBQ eval (d0eebc99-...-a01) with sentiment
+  UPDATE public.sov_evaluations SET
+    sentiment_data = '{
+      "overall_score": 0.45,
+      "label": "neutral",
+      "tone": "factual",
+      "descriptors": ["unique fusion", "also popular"],
+      "positive_themes": ["fusion dining"],
+      "negative_themes": []
+    }'::jsonb,
+    cited_sources = '[
+      {"name": "Google Business Profile", "type": "first_party", "url": "https://maps.google.com/?cid=527487414899304357"}
+    ]'::jsonb,
+    source_mentions = '{"google_business_profile": 1}'::jsonb
+  WHERE id = 'd0eebc99-9c0b-4ef8-bb6d-6bb9bd380a01';
+
+  -- ── 26f. CITATION SOURCE INTELLIGENCE — more model_providers ────────────
+  -- Existing rows are all perplexity-sonar. Add openai + google-gemini rows.
+  INSERT INTO public.citation_source_intelligence (
+    business_category, city, state, platform,
+    citation_frequency, sample_query, sample_size, model_provider, measured_at
+  ) VALUES
+  (
+    'hookah lounge', 'Alpharetta', 'GA', 'google',
+    0.92,
+    'Best hookah lounge in Alpharetta GA',
+    20, 'openai-gpt4o', NOW() - INTERVAL '1 day'
+  ),
+  (
+    'hookah lounge', 'Alpharetta', 'GA', 'yelp',
+    0.68,
+    'Best hookah lounge in Alpharetta GA',
+    20, 'openai-gpt4o', NOW() - INTERVAL '1 day'
+  ),
+  (
+    'hookah lounge', 'Alpharetta', 'GA', 'tripadvisor',
+    0.35,
+    'Hookah bars near Alpharetta rated',
+    20, 'openai-gpt4o', NOW() - INTERVAL '1 day'
+  ),
+  (
+    'hookah lounge', 'Alpharetta', 'GA', 'google',
+    0.85,
+    'Best hookah lounge in Alpharetta GA',
+    18, 'google-gemini', NOW() - INTERVAL '1 day'
+  ),
+  (
+    'hookah lounge', 'Alpharetta', 'GA', 'yelp',
+    0.60,
+    'Best hookah lounge in Alpharetta GA',
+    18, 'google-gemini', NOW() - INTERVAL '1 day'
+  ),
+  (
+    'hookah lounge', 'Alpharetta', 'GA', 'tripadvisor',
+    0.50,
+    'Hookah bars near Alpharetta rated',
+    18, 'google-gemini', NOW() - INTERVAL '1 day'
+  )
+  ON CONFLICT (business_category, city, state, platform, model_provider) DO NOTHING;
+
+  -- ── 26g. VISIBILITY SCORES (3 rows) — Reality Score trend chart ─────────
+  INSERT INTO public.visibility_scores (
+    org_id, location_id,
+    visibility_score, accuracy_score, data_health_score, reality_score,
+    score_delta, snapshot_date
+  ) VALUES
+  (
+    v_org_id, v_location_id,
+    38.0, 62.0, 45.0, 44.0,
+    NULL, (CURRENT_DATE - INTERVAL '21 days')::date
+  ),
+  (
+    v_org_id, v_location_id,
+    40.0, 65.0, 50.0, 48.0,
+    4.0, (CURRENT_DATE - INTERVAL '14 days')::date
+  ),
+  (
+    v_org_id, v_location_id,
+    42.0, 68.0, 55.0, 52.0,
+    4.0, (CURRENT_DATE - INTERVAL '7 days')::date
+  )
+  ON CONFLICT (org_id, location_id, snapshot_date) DO NOTHING;
+
+END $$;

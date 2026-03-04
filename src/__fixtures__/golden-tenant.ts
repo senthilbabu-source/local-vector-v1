@@ -439,28 +439,34 @@ export const MOCK_CORRECTION_INPUT: import('@/lib/services/correction-generator.
  * Sprint 76 — Canonical cron_run_log fixtures for System Health dashboard tests.
  * UUIDs match supabase/seed.sql Section 21.
  */
+// Use relative dates so "within 7 days" tests never drift.
+const _cronSuccessAt = new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString();
+const _cronSuccessEnd = new Date(Date.now() - 2 * 24 * 60 * 60 * 1000 + 150_000).toISOString();
+const _cronFailedAt = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString();
+const _cronFailedEnd = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000 + 60_000).toISOString();
+
 export const MOCK_CRON_RUN_SUCCESS: import('@/lib/services/cron-health.service').CronRunRow = {
   id: 'f0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
   cron_name: 'audit',
-  started_at: '2026-02-26T08:00:00.000Z',
-  completed_at: '2026-02-26T08:02:30.000Z',
+  started_at: _cronSuccessAt,
+  completed_at: _cronSuccessEnd,
   duration_ms: 150000,
   status: 'success',
   summary: { orgs_processed: 5, hallucinations_found: 3 },
   error_message: null,
-  created_at: '2026-02-26T08:00:00.000Z',
+  created_at: _cronSuccessAt,
 };
 
 export const MOCK_CRON_RUN_FAILED: import('@/lib/services/cron-health.service').CronRunRow = {
   id: 'f1eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
   cron_name: 'sov',
-  started_at: '2026-02-25T07:00:00.000Z',
-  completed_at: '2026-02-25T07:01:00.000Z',
+  started_at: _cronFailedAt,
+  completed_at: _cronFailedEnd,
   duration_ms: 60000,
   status: 'failed',
   summary: null,
   error_message: 'Perplexity API rate limit exceeded',
-  created_at: '2026-02-25T07:00:00.000Z',
+  created_at: _cronFailedAt,
 };
 
 /**

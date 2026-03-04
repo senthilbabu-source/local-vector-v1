@@ -4292,3 +4292,30 @@ Sidebar nav groups are now collapsible to reduce scroll fatigue. "Overview" expa
 - `components/layout/Sidebar.tsx` — all changes (imports, helpers, state, JSX)
 
 ---
+
+## §201. Seed Data Backfill — 100% Page Coverage (2026-03-04)
+
+Golden tenant seed backfill to populate every dashboard page. No migrations, no code changes — seed data only (plus a fixture date-drift fix).
+
+### Architecture
+
+- **Section 26** appended to `supabase/seed.sql` — single `DO $$` block with all INSERTs and UPDATEs.
+- All new data uses subquery `SELECT id FROM locations WHERE org_id = v_org_id AND is_primary = true` for location_id (same pattern as existing sections).
+- `ON CONFLICT DO NOTHING` on every INSERT to stay idempotent.
+
+### Rules
+
+1. **Reviews seed** uses valid `platform` values (`google`/`yelp`) and valid `response_status` values per CHECK constraint. `platform_review_id` + `platform` + `location_id` must be unique.
+2. **Intent discoveries** `theme` must be one of: `hours`, `events`, `offerings`, `comparison`, `occasion`, `location`, `other` (CHECK constraint from migration `20260427000003`).
+3. **Playbook cache** is a JSONB column on `locations` — not a separate table. Each engine key has `actions[]` array with `id`, `title`, `priority`, `effort`, `estimatedImpact`, `category`, `status`.
+4. **SOV enrichment** adds `sentiment_data`, `cited_sources`, `source_mentions` JSONB to existing rows by UUID. Does not insert new sov_evaluations.
+5. **Citation source intelligence** has a composite unique constraint: `(business_category, city, state, platform, model_provider)`. New rows add `openai-gpt4o` and `google-gemini` providers (existing rows are `perplexity-sonar`).
+6. **Visibility scores** `(org_id, location_id, snapshot_date)` is unique. Snapshot dates use relative intervals (`CURRENT_DATE - INTERVAL '7 days'`).
+7. **Cron fixture dates** must be relative (`Date.now() - N * 86400000`) not hardcoded ISO strings. Hardcoded dates drift past the 7-day window and break `buildCronHealthSummary` tests.
+
+### Key Files
+
+- `supabase/seed.sql` — Section 26 (reviews, brand_voice, intent, playbooks, sentiment, citations, visibility_scores)
+- `src/__fixtures__/golden-tenant.ts` — `MOCK_CRON_RUN_SUCCESS` / `MOCK_CRON_RUN_FAILED` (relative dates)
+
+---

@@ -4,6 +4,46 @@
 
 ---
 
+## 2026-03-04 — Seed Data Backfill — 100% Page Coverage (§201)
+
+Audit revealed only 57% of dashboard pages showed real data with the golden tenant. Backfilled `supabase/seed.sql` Section 26 to populate every remaining empty page.
+
+### Changes
+
+**New seed data (Section 26 DO block):**
+- `reviews` (6 rows) — 4 Google + 2 Yelp reviews for Charcoal N Chill. Ratings 2–5, sentiment labels, keywords, topics. Response statuses: published (2), draft_ready (1), pending_draft (1), pending_approval (1), skipped (1).
+- `brand_voice_profiles` (1 row) — Warm/casual tone, CNC brand keywords (hookah, fusion, premium), avoid phrases.
+- `intent_discoveries` (8 rows) — Single run_id, themes: events/hours/offerings/comparison/occasion/location. Mix of client_cited true/false, opportunity scores 45–92.
+- `citation_source_intelligence` (6 rows) — Added openai-gpt4o + google-gemini model_provider rows for hookah lounge / Alpharetta / GA (existing had perplexity-sonar only).
+- `visibility_scores` (3 rows) — 3-week Reality Score trend (44 → 48 → 52) for trend chart.
+
+**Updated seed data:**
+- `locations` — Set `playbook_cache` JSONB with 3 engines (ChatGPT, Perplexity, Google AI) and `playbook_generated_at`. Each engine has citation rates, gap %, and 2–3 prioritized actions.
+- `sov_evaluations` (4 rows updated) — Added `sentiment_data`, `cited_sources`, `source_mentions` JSONB to OpenAI BBQ (c1), Perplexity BBQ (c5), Perplexity Hookah (c6), Google BBQ (d0-a01) evals.
+
+**Fixture fix (pre-existing time-drift bug):**
+- `src/__fixtures__/golden-tenant.ts` — `MOCK_CRON_RUN_SUCCESS` and `MOCK_CRON_RUN_FAILED` changed from hardcoded dates (`2026-02-25/26`) to relative dates (`Date.now() - 2/3 days`). Prevents `cron-health-service.test.ts` failures when the 7-day window drifts past the hardcoded dates. Fixes 4 tests.
+
+### Coverage
+
+| Metric | Before | After |
+|--------|--------|-------|
+| Pages with real data | 20/35 (57%) | 33/35 (94%) |
+| Remaining empty (by design) | — | AI Assistant (on-demand), Content Brief (no page) |
+
+### Tests
+- 0 new test files (seed-only change).
+- 4 pre-existing failures fixed (cron-health-service date drift).
+- 6005/6005 tests passing, 397/397 files.
+
+**AI_RULES:** §201
+
+```bash
+npx vitest run  # 397 files, 6005 tests — 0 failures
+```
+
+---
+
 ## 2026-03-04 — Collapsible Sidebar Groups (§200)
 
 Sidebar had 31 nav items across 5 groups — users had to scroll extensively. Now groups are collapsible: "Overview" expanded by default, others collapsed. The group containing the active page auto-expands on navigation.
