@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
@@ -37,6 +37,7 @@ import {
   Zap,
   Compass,
   Lock,
+  ChevronRight,
 } from 'lucide-react';
 import LogoutButton from '@/app/dashboard/_components/LogoutButton';
 import LocationSwitcher, { type LocationOption } from './LocationSwitcher';
@@ -410,10 +411,66 @@ function planLabel(plan: string | null): string {
   return getPlanDisplayName(plan);
 }
 
+const STORAGE_KEY = 'lv_sidebar_expanded_groups';
+const DEFAULT_EXPANDED = 'Overview';
+
+function getGroupForPath(pathname: string): string | null {
+  for (const group of NAV_GROUPS) {
+    for (const item of group.items) {
+      if (item.exact ? pathname === item.href : pathname === item.href || pathname.startsWith(item.href + '/')) {
+        return group.label;
+      }
+    }
+  }
+  return null;
+}
+
+function loadExpandedGroups(pathname: string): Set<string> {
+  const activeGroup = getGroupForPath(pathname);
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    if (stored) {
+      const parsed: string[] = JSON.parse(stored);
+      const set = new Set(parsed);
+      if (activeGroup) set.add(activeGroup);
+      return set;
+    }
+  } catch { /* ignore */ }
+  const defaults = new Set([DEFAULT_EXPANDED]);
+  if (activeGroup) defaults.add(activeGroup);
+  return defaults;
+}
+
 export default function Sidebar({ isOpen, onClose, displayName, orgName, plan, locations, selectedLocationId, badgeCounts, orgIndustry }: SidebarProps) {
   const pathname = usePathname();
   const industryConfig = getIndustryConfig(orgIndustry);
   const [lockedItem, setLockedItem] = useState<NavItem | null>(null);
+  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(() => loadExpandedGroups(pathname));
+
+  // Auto-expand group when navigating to a page within it
+  useEffect(() => {
+    const activeGroup = getGroupForPath(pathname);
+    if (activeGroup && !expandedGroups.has(activeGroup)) {
+      setExpandedGroups((prev) => {
+        const next = new Set(prev);
+        next.add(activeGroup);
+        return next;
+      });
+    }
+  }, [pathname]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const toggleGroup = useCallback((label: string) => {
+    setExpandedGroups((prev) => {
+      const next = new Set(prev);
+      if (next.has(label)) {
+        next.delete(label);
+      } else {
+        next.add(label);
+      }
+      try { localStorage.setItem(STORAGE_KEY, JSON.stringify([...next])); } catch { /* ignore */ }
+      return next;
+    });
+  }, []);
 
   function isActive(href: string, exact: boolean): boolean {
     if (href === '#') return false;
@@ -465,19 +522,29 @@ export default function Sidebar({ isOpen, onClose, displayName, orgName, plan, l
         <nav className="flex-1 overflow-y-auto px-3 py-4">
           {NAV_GROUPS.map((group) => {
             const groupId = `nav-group-${group.label.toLowerCase().replace(/\s+/g, '-')}`;
+            const isExpanded = expandedGroups.has(group.label);
+            const groupDisplayLabel = group.label === 'Content'
+              ? `Content & ${industryConfig.servicesNoun}`
+              : group.label;
             return (
-            <div key={group.label} className="mb-4" role="group" aria-labelledby={groupId}>
-              <p
+            <div key={group.label} className="mb-2" role="group" aria-labelledby={groupId}>
+              <button
+                type="button"
                 id={groupId}
                 data-testid="sidebar-group-label"
-                className="px-3 mb-1 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60 select-none"
+                onClick={() => toggleGroup(group.label)}
+                aria-expanded={isExpanded}
+                className="flex w-full items-center gap-1 px-3 mb-1 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60 select-none hover:text-muted-foreground transition-colors"
               >
-                {/* Sprint E: Dynamic group label for Content */}
-                {group.label === 'Content'
-                  ? `Content & ${industryConfig.servicesNoun}`
-                  : group.label}
-              </p>
-              <div className="space-y-0.5">
+                <ChevronRight
+                  className={['h-3 w-3 shrink-0 transition-transform duration-200', isExpanded ? 'rotate-90' : ''].join(' ')}
+                  aria-hidden="true"
+                />
+                {groupDisplayLabel}
+              </button>
+              <div
+                className={['space-y-0.5 overflow-hidden transition-all duration-200', isExpanded ? 'max-h-[500px] opacity-100' : 'max-h-0 opacity-0'].join(' ')}
+              >
                 {group.items.map((item) => {
                   const active = isActive(item.href, item.exact);
                   // Sprint E: Dynamic icon/label for Magic Menus based on org industry

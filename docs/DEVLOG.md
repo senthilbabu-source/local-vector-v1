@@ -4,6 +4,20 @@
 
 ---
 
+## 2026-03-04 — Collapsible Sidebar Groups (§200)
+
+Sidebar had 31 nav items across 5 groups — users had to scroll extensively. Now groups are collapsible: "Overview" expanded by default, others collapsed. The group containing the active page auto-expands on navigation.
+
+### Changes
+- **`components/layout/Sidebar.tsx`** — Group headers changed from `<p>` to `<button>` with `ChevronRight` icon. Added `expandedGroups` state (Set), `toggleGroup()` callback, `useEffect` for auto-expanding active group on route change. CSS `max-h` + opacity transition for smooth collapse animation.
+- **localStorage persistence** — Expanded groups saved to `lv_sidebar_expanded_groups`. Restored on mount. SSR/incognito-safe (try/catch).
+
+### Also in this commit (pre-existing fixes)
+- **`lib/supabase/server.ts`** — Added `autoRefreshToken: false, detectSessionInUrl: false` to both `createClient()` and `createServiceRoleClient()` auth config.
+- **`next.config.ts`** — Moved `serverActions.bodySizeLimit` inside `experimental` block (Next.js 16 convention).
+
+---
+
 ## 2026-03-04 — Server Actions body size limit (config fix)
 
 Menu uploads + AI parsing payloads exceed the Next.js default 1 MB Server Actions limit. Increased to 10 MB via `serverActions.bodySizeLimit` in `next.config.ts`.

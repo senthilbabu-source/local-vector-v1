@@ -30,6 +30,7 @@ export async function createClient() {
           }
         },
       },
+      auth: { autoRefreshToken: false, detectSessionInUrl: false },
     }
   );
 }
@@ -45,7 +46,7 @@ export function createServiceRoleClient() {
     process.env.SUPABASE_SERVICE_ROLE_KEY!,
     {
       cookies: { getAll: () => [], setAll: () => {} },
-      auth: { persistSession: false },
+      auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
     }
   );
 }
