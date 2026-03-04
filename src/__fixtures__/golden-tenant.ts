@@ -3178,3 +3178,79 @@ export const MOCK_MEDICAL_FAQ_INPUT: import('@/lib/faq/faq-generator').FAQGenera
   insurance_types: ['Delta Dental', 'Cigna', 'Aetna'],
   specialty_tags: ['Preventive', 'Cosmetic'],
 };
+
+// ---------------------------------------------------------------------------
+// P8-FIX-34 — Content Brief Prioritizer Fixtures
+// ---------------------------------------------------------------------------
+
+/**
+ * P8-FIX-34 — Mock QueryGap array for brief prioritizer tests.
+ */
+export const MOCK_QUERY_GAPS: import('@/lib/types/prompt-intelligence').QueryGap[] = [
+  {
+    gapType: 'competitor_discovered',
+    queryText: 'best hookah lounge Alpharetta',
+    queryCategory: 'discovery',
+    estimatedImpact: 'high',
+    suggestedAction: 'Create a dedicated landing page targeting this query.',
+  },
+  {
+    gapType: 'zero_citation_cluster',
+    queryText: 'private event venue near me',
+    queryCategory: 'near_me',
+    estimatedImpact: 'high',
+    suggestedAction: 'Publish FAQ content addressing this query cluster.',
+  },
+  {
+    gapType: 'untracked',
+    queryText: 'hookah bar with food Alpharetta',
+    queryCategory: 'discovery',
+    estimatedImpact: 'medium',
+    suggestedAction: 'Add this query to your tracking list.',
+  },
+  {
+    gapType: 'untracked',
+    queryText: 'charcoal n chill vs cloud 9',
+    queryCategory: 'comparison',
+    estimatedImpact: 'low',
+    suggestedAction: 'Monitor competitor mentions for this query.',
+  },
+];
+
+/**
+ * P8-FIX-34 — Mock DraftTrigger array for brief prioritizer tests.
+ */
+export const MOCK_DRAFT_TRIGGERS: import('@/lib/types/autopilot').DraftTrigger[] = [
+  {
+    triggerType: 'competitor_gap',
+    triggerId: 'trigger-001',
+    orgId: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+    locationId: 'b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+    context: {
+      targetQuery: 'best Indian food Alpharetta',
+      competitorName: 'Tandoori Nights',
+      winningFactor: 'Google reviews volume',
+    },
+  },
+  {
+    triggerType: 'prompt_missing',
+    triggerId: 'trigger-002',
+    orgId: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+    locationId: 'b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+    context: {
+      zeroCitationQueries: ['fusion restaurant Alpharetta', 'hookah and dinner near me'],
+      consecutiveZeroWeeks: 3,
+    },
+  },
+  {
+    triggerType: 'review_gap',
+    triggerId: 'trigger-003',
+    orgId: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+    locationId: 'b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+    context: {
+      topNegativeKeywords: ['slow service', 'wait time'],
+      negativeReviewCount: 5,
+      unansweredNegativeCount: 3,
+    },
+  },
+];

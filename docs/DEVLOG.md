@@ -4,6 +4,28 @@
 
 ---
 
+## 2026-03-03 — Content Brief Generator — Production Hardening (P8-FIX-34, §194)
+
+Content brief prioritization module, quality gate with graded thresholds, and GapAlertCard test coverage. Wires AEO quality scoring into the manual brief generation pipeline.
+
+### New Files (4)
+- **`lib/content-brief/brief-prioritizer.ts`** — Pure gap prioritizer: normalizes `QueryGap` and `DraftTrigger` into `BriefCandidate`, scores by gap type + impact + category, returns sorted list.
+- **`lib/content-brief/brief-quality-gate.ts`** — Pure quality assessment: wraps `scoreContentHeuristic()` with grade thresholds (`publish_ready` ≥75, `needs_review` ≥50, `low_quality` <50) and actionable suggestions.
+- **`lib/content-brief/index.ts`** — Barrel export.
+
+### Modified Files (2)
+- **`app/dashboard/share-of-voice/brief-actions.ts`** — `assessBriefQuality()` wired after content assembly; `aeo_score` now populated in `content_drafts` insert.
+- **`src/__fixtures__/golden-tenant.ts`** — `MOCK_QUERY_GAPS` (4 QueryGap objects), `MOCK_DRAFT_TRIGGERS` (3 DraftTrigger objects).
+
+### Tests
+- 14 new unit tests (`brief-prioritizer.test.ts`)
+- 15 new unit tests (`brief-quality-gate.test.ts`)
+- 10 new unit tests (`gap-alert-card.test.tsx`)
+- 0 regressions (67 related existing tests pass)
+- **~5854 tests passing, 385 files.** AI_RULES §194.
+
+---
+
 ## 2026-03-03 — Pre-Launch Checklist (P7-FIX-32, §192)
 
 Build-time env validation, health check endpoint, SEO infrastructure, and launch verification scripts for production deployment readiness.

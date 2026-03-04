@@ -764,4 +764,4 @@ APPLE_MAPS_PRIVATE_KEY, APPLE_MAPS_KEY_ID, APPLE_MAPS_TEAM_ID
 
 ## Build History
 
-See `DEVLOG.md` (project root) and `docs/DEVLOG.md` for the complete sprint-by-sprint build log. Current sprint: 135 (+ FIX-1 through FIX-8 + Sprint A through Sprint O + P0-FIX-01 through P7-FIX-31 + Relevance Filter). AI_RULES: §1–§190 (190 sections). Production readiness: all audit issues resolved. **V1 complete.**
+See `DEVLOG.md` (project root) and `docs/DEVLOG.md` for the complete sprint-by-sprint build log. Current sprint: 135 (+ FIX-1 through FIX-8 + Sprint A through Sprint O + P0-FIX-01 through P8-FIX-34 + Relevance Filter). AI_RULES: §1–§194 (194 sections). Production readiness: all audit issues resolved. **V1 complete.**

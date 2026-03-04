@@ -5,6 +5,7 @@ import { checkCredit, consumeCredit } from '@/lib/credits/credit-service';
 import { createClient } from '@/lib/supabase/server';
 import { buildBriefStructure } from '@/lib/services/content-brief-builder.service';
 import { generateBriefContent } from '@/lib/services/content-brief-generator.service';
+import { assessBriefQuality } from '@/lib/content-brief';
 import type { BriefStructure } from '@/lib/services/content-brief-builder.service';
 import type { ContentBrief } from '@/lib/ai/schemas';
 import { revalidatePath } from 'next/cache';
@@ -147,6 +148,13 @@ export async function generateContentBrief(
   // Assemble draft content
   const draftContent = await assembleDraftContent(structure, briefContent);
 
+  // P8-FIX-34: Quality gate scoring
+  const qualityVerdict = assessBriefQuality(draftContent, structure.titleTag, {
+    businessName: location.business_name,
+    city: location.city ?? null,
+    categories,
+  });
+
   // Save to content_drafts
   const { data: draft, error: insertError } = await supabase
     .from('content_drafts')
@@ -159,6 +167,7 @@ export async function generateContentBrief(
       draft_content: draftContent,
       target_prompt: query.query_text,
       content_type: structure.contentType,
+      aeo_score: qualityVerdict.score,
       status: 'draft',
     })
     .select('id')

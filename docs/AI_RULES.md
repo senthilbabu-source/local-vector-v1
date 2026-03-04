@@ -4025,3 +4025,35 @@ SOV page shows "Complete your profile" banner when `hours_data` or `amenities` a
 - `src/__tests__/unit/reality-score-trend-chart.test.tsx` — 5 tests
 
 ---
+
+## §194. Content Brief Generator — Production Hardening (P8-FIX-34, 2026-03-03)
+
+### Architecture Rules
+
+1. **Content brief module:** `lib/content-brief/` is the shared module for brief prioritization and quality gating. Barrel export from `index.ts`. Does NOT replace `lib/services/content-brief-builder.service.ts` or `content-brief-generator.service.ts` — those remain the brief structure/AI generation services.
+
+2. **Brief prioritizer:** `lib/content-brief/brief-prioritizer.ts` normalizes gaps from multiple sources (`QueryGap` from prompt-intelligence, `DraftTrigger` from autopilot) into a common `BriefCandidate` type. Pure functions — no I/O. Scoring: gap type weight (40pts) + impact weight (35pts) + category bonus (25pts) = 0–100.
+
+3. **Gap type weights:** `competitor_discovered`/`competitor_gap` = 40, `zero_citation_cluster` = 30, `prompt_missing` = 25, `review_gap` = 20, `schema_gap`/`voice_gap` = 15, `untracked` = 10.
+
+4. **Brief quality gate:** `lib/content-brief/brief-quality-gate.ts` wraps `scoreContentHeuristic()` from `lib/autopilot/score-content.ts` with grade thresholds. Grades: `publish_ready` (≥75), `needs_review` (≥50), `low_quality` (<50). Generates up to 3 actionable suggestions.
+
+5. **Manual brief pipeline scoring:** `brief-actions.ts` now calls `assessBriefQuality()` after content assembly and stores the score as `aeo_score` in `content_drafts`. Previously the manual path had no scoring (only autopilot path scored via `scoreContentHeuristic`).
+
+6. **Two brief generation paths remain separate:** Manual path uses `generateObject()` + `ContentBriefSchema` (structured output). Autopilot path uses `generateText()` + `AutopilotDraftSchema` (JSON parsing). Both produce `content_drafts` rows. Quality gate works with both.
+
+### Test Coverage
+
+- 14 Vitest unit tests: `src/__tests__/unit/brief-prioritizer.test.ts` (normalizeQueryGap 4, normalizeDraftTrigger 3, scoreBriefCandidate 3, prioritizeBriefCandidates 4)
+- 15 Vitest unit tests: `src/__tests__/unit/brief-quality-gate.test.ts` (assessBriefQuality 5, gradeFromScore 3, generateSuggestions 7)
+- 10 Vitest unit tests: `src/__tests__/unit/gap-alert-card.test.tsx` (gap type badges 3, content rendering 4, color assignments 3)
+
+### Key Files
+
+- `lib/content-brief/brief-prioritizer.ts` — `normalizeQueryGap()`, `normalizeDraftTrigger()`, `scoreBriefCandidate()`, `prioritizeBriefCandidates()`
+- `lib/content-brief/brief-quality-gate.ts` — `assessBriefQuality()`, `generateSuggestions()`, `gradeFromScore()`, `PUBLISH_READY_THRESHOLD`, `NEEDS_REVIEW_THRESHOLD`
+- `lib/content-brief/index.ts` — barrel export
+- `app/dashboard/share-of-voice/brief-actions.ts` — `assessBriefQuality()` wired into `generateContentBrief()`
+- `src/__fixtures__/golden-tenant.ts` — `MOCK_QUERY_GAPS`, `MOCK_DRAFT_TRIGGERS`
+
+---
