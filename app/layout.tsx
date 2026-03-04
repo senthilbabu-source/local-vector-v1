@@ -23,8 +23,26 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: 'LocalVector.ai — AI Audit Platform',
-  description: 'Monitor and fix AI hallucinations about your local business across every AI search engine.',
+  title: {
+    default: 'LocalVector.ai — AI Visibility for Local Businesses',
+    template: '%s | LocalVector.ai',
+  },
+  description:
+    'Know exactly how AI search engines see your business. Monitor, optimize, and protect your visibility on ChatGPT, Perplexity, Gemini, and more.',
+  metadataBase: new URL(
+    process.env.NEXT_PUBLIC_APP_URL ?? 'https://localvector.ai'
+  ),
+  openGraph: {
+    type: 'website',
+    images: ['/og-image.png'],
+  },
+  twitter: {
+    card: 'summary_large_image',
+  },
+  robots: {
+    index: true,
+    follow: true,
+  },
 };
 
 export default async function RootLayout({

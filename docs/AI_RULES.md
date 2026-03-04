@@ -3969,3 +3969,36 @@ SOV page shows "Complete your profile" banner when `hours_data` or `amenities` a
 - `app/dashboard/billing/layout.tsx` — metadata wrapper for client component page
 
 ---
+
+## §192. Pre-Launch Checklist (P7-FIX-32, 2026-03-03)
+
+### Architecture Rules
+
+1. **Env guard (build-time):** `lib/env-guard.ts` exports `assertEnvironment()` which validates 15 required env vars and blocks production builds using Stripe test keys (`sk_test_*`). Called from `next.config.ts` behind `if (process.env.NODE_ENV === 'production')` guard — never runs in dev or test.
+
+2. **Required env vars (15):** `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `STRIPE_SECRET_KEY`, `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`, `STRIPE_WEBHOOK_SECRET`, `STRIPE_PRICE_ID_STARTER`, `STRIPE_PRICE_ID_GROWTH`, `STRIPE_PRICE_ID_AGENCY_SEAT`, `RESEND_API_KEY`, `NEXT_PUBLIC_APP_URL`, `CRON_SECRET`, `NEXT_PUBLIC_SENTRY_DSN`, `INNGEST_EVENT_KEY`, `INNGEST_SIGNING_KEY`.
+
+3. **Health check endpoint:** `GET /api/health` — no auth, `dynamic = 'force-dynamic'`. Checks Supabase (`organizations` table via service role client) and Stripe (`balance.retrieve()`). Returns `{ status: 'ok'|'degraded', checks: { database, stripe }, timestamp, version }` with HTTP 200 or 503. Added to `RATE_LIMIT_BYPASS_PREFIXES` in `lib/rate-limit/types.ts`.
+
+4. **SEO infrastructure:** `app/robots.txt/route.ts` disallows `/dashboard/`, `/api/`, `/_next/`, `/admin/`. `app/sitemap.ts` lists `/`, `/privacy`, `/terms`. Both use `NEXT_PUBLIC_APP_URL` for base URL.
+
+5. **Production metadata:** `app/layout.tsx` metadata enhanced with `title.template` (`%s | LocalVector.ai`), `metadataBase`, `openGraph`, `twitter` card, `robots` index/follow.
+
+6. **Verification scripts:** `scripts/verify-stripe.ts` (run via `npx tsx`) checks live keys, price ID validity, webhook registration. `scripts/launch-verify.sh` (bash) checks redirects, security headers, route status codes, SSL validity.
+
+### Test Coverage
+- 4 Vitest unit tests: `src/__tests__/unit/env-guard.test.ts` (all vars present, missing vars, test key in prod, test key in dev)
+- 5 Vitest unit tests: `src/__tests__/unit/health-route.test.ts` (200 ok, 503 degraded, no auth, checks fields, timestamp+version)
+
+### Key Files
+- `lib/env-guard.ts` — `assertEnvironment()`, `REQUIRED_ENV_VARS`
+- `next.config.ts` — production-only `assertEnvironment()` call
+- `app/api/health/route.ts` — health check endpoint
+- `app/robots.txt/route.ts` — robots.txt
+- `app/sitemap.ts` — sitemap.xml
+- `app/layout.tsx` — production metadata
+- `lib/rate-limit/types.ts` — `/api/health` bypass
+- `scripts/verify-stripe.ts` — Stripe verification CLI
+- `scripts/launch-verify.sh` — launch verification bash script
+
+---

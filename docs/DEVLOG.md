@@ -4,6 +4,32 @@
 
 ---
 
+## 2026-03-03 — Pre-Launch Checklist (P7-FIX-32, §192)
+
+Build-time env validation, health check endpoint, SEO infrastructure, and launch verification scripts for production deployment readiness.
+
+### New Files (8)
+- **`lib/env-guard.ts`** — `assertEnvironment()` validates 15 required env vars, blocks Stripe test keys in production. Called from `next.config.ts` (production only).
+- **`app/api/health/route.ts`** — `GET /api/health` (no auth). Checks Supabase + Stripe connectivity. Returns 200/503 with `{ status, checks, timestamp, version }`.
+- **`app/robots.txt/route.ts`** — Dynamic robots.txt disallowing `/dashboard/`, `/api/`, `/_next/`, `/admin/`.
+- **`app/sitemap.ts`** — XML sitemap listing `/`, `/privacy`, `/terms`.
+- **`scripts/verify-stripe.ts`** — CLI script: live key check, price ID validation, webhook verification.
+- **`scripts/launch-verify.sh`** — Bash script: HTTP→HTTPS redirect, 5 security headers, route status codes, SSL validity.
+
+### Modified Files (4)
+- **`next.config.ts`** — `assertEnvironment()` call (production guard)
+- **`app/layout.tsx`** — Full production metadata (title template, metadataBase, openGraph, twitter, robots)
+- **`lib/rate-limit/types.ts`** — `/api/health` added to `RATE_LIMIT_BYPASS_PREFIXES`
+- **`.env.local.example`** — `VERCEL_GIT_COMMIT_SHA` documented
+
+### Tests
+- 4 new unit tests (`env-guard.test.ts`)
+- 5 new unit tests (`health-route.test.ts`)
+- 1 regression fixed: `env-completeness.test.ts` (`VERCEL_GIT_COMMIT_SHA` documented)
+- **5815 tests passing, 382 files.** AI_RULES §192.
+
+---
+
 ## 2026-03-03 — Accessibility WCAG 2.1 AA (P6-FIX-27, §191)
 
 Full WCAG 2.1 AA accessibility pass. Skip links, semantic landmarks, focus-visible rings, semantic tables, chart accessibility, modal focus trap, page titles, color contrast fixes, ARIA live regions, and decorative icon aria-hidden.

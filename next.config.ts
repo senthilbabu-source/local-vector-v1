@@ -6,6 +6,12 @@
 import type { NextConfig } from 'next';
 import { withSentryConfig } from '@sentry/nextjs';
 import { buildCSP, getCSPHeaderName } from './lib/security/csp';
+import { assertEnvironment } from './lib/env-guard';
+
+// P7-FIX-32: Block production builds with missing env vars or test Stripe keys
+if (process.env.NODE_ENV === 'production') {
+  assertEnvironment();
+}
 
 const securityHeaders = [
   { key: 'X-DNS-Prefetch-Control', value: 'on' },

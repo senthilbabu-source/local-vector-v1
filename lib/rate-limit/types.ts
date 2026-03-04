@@ -41,6 +41,7 @@ export const RATE_LIMIT_BYPASS_PREFIXES = [
   '/api/cron/', // Cron routes — protected by CRON_SECRET
   '/api/email/', // Unsubscribe links — must always work
   '/api/revalidate', // Cache revalidation — server-to-server
+  '/api/health', // Health check — monitoring must never be rate limited (P7-FIX-32)
 ] as const;
 
 // ---------------------------------------------------------------------------
