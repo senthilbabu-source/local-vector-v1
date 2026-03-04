@@ -4119,7 +4119,7 @@ Automated menu distribution to AI engines. Content hash prevents redundant pushe
 - `engineToEventName()` maps: `indexnow` → `indexnow_pinged`, `gbp` → `gbp_menu_pushed`, `apple_bc` → `apple_bc_synced`.
 - `PropagationEvent.event` union now includes `gbp_menu_pushed` + `apple_bc_synced`.
 - `approveAndPublish()` calls `distributeMenu()` (not `pingIndexNow()` directly).
-- GBP + Apple BC engines are placeholders (return `skipped`) until Sprint 2.
+- GBP engine implemented in §197 (Sprint DIST-2). Apple BC engine is placeholder (returns `skipped`) until Sprint 3.
 
 **Migration:**
 - `20260429000001_distribution_engine.sql`: `content_hash varchar(71)` + `last_distributed_at timestamptz` on `magic_menus`.
@@ -4137,9 +4137,46 @@ Automated menu distribution to AI engines. Content hash prevents redundant pushe
 - `lib/distribution/content-hasher.ts` — `computeMenuHash()` pure function
 - `lib/distribution/distribution-orchestrator.ts` — `distributeMenu()` core orchestration
 - `lib/distribution/engines/indexnow-engine.ts` — IndexNow adapter
-- `lib/distribution/engines/gbp-engine.ts` — GBP placeholder (Sprint 2)
+- `lib/distribution/engines/gbp-engine.ts` — GBP real adapter (see §197)
 - `lib/distribution/engines/apple-bc-engine.ts` — Apple BC placeholder (Sprint 2)
 - `lib/distribution/index.ts` — barrel export
 - `supabase/migrations/20260429000001_distribution_engine.sql` — migration
+
+---
+
+## §197. GBP Food Menus Push (Sprint DIST-2, 2026-03-04)
+
+Push parsed menu data to Google Business Profile via Food Menus API. Real engine adapter replacing Sprint 1 placeholder.
+
+**Architecture:**
+- `lib/gbp/gbp-menu-types.ts` — GBP API types: `GBPFoodMenu`, `GBPMenuSection`, `GBPMenuItem`, `GBPMoneyAmount`.
+- `lib/gbp/gbp-menu-mapper.ts` — Pure mapper: `mapMenuToGBPFoodMenu(items)` groups by category, maps prices. `parsePriceToMoney(price, currency?)` parses "$12.50" → `{currencyCode:'USD', units:'12', nanos:500000000}`.
+- `lib/gbp/gbp-menu-client.ts` — `pushMenuToGBP(orgId, locationGBPId, menu)`: service-role client, token refresh, PATCH foodMenus, 401 retry, Sentry. Never throws.
+- `lib/distribution/engines/gbp-engine.ts` — Real adapter: `resolveGBPLocationId()` checks `google_oauth_tokens` + `locations.google_location_name`. Skips if no GBP integration.
+
+**Rules:**
+- GBP engine only fires if: org has `google_oauth_tokens` row AND a location with non-null `google_location_name`.
+- Price parsing strips `$`, `€`, `£`, `¥`, commas, whitespace. Returns `undefined` for non-numeric (e.g. "Market Price").
+- Menu mapped as single menu with `menuName: 'Full Menu'`, sections sorted alphabetically by category.
+- `pushMenuToGBP()` never throws — returns `PushMenuResult { success, error? }`. Errors → Sentry.
+- Token refresh: pre-check via `isTokenExpired()` (5-min buffer), retry on 401 response.
+- `DistributionContext` extended with `items` (MenuExtractedItem[]) and `supabase` (SupabaseClient) — avoids duplicate DB fetch in engines.
+- Credit cost: 0 — GBP API is free.
+- Prerequisite: GBP API Basic Access approval. Until approved, engine works against mocks but won't fire in prod.
+
+### Test Coverage
+
+- 27 Vitest unit tests: `src/__tests__/unit/distribution-gbp-menu.test.ts`
+  - Mapper (12): `parsePriceToMoney` (7: $12.50, $8, no-sign, comma, empty, non-numeric, EUR), `mapMenuToGBPFoodMenu` (5: category grouping, price mapping, description, no-price, empty)
+  - Client (8): no token, PATCH URL+auth, success, 401 retry, 401 refresh fail, non-200, network→Sentry, pre-refresh
+  - Engine adapter (7): name, skip no token, skip no location, success, error, never throws, Sentry
+
+### Key Files
+
+- `lib/gbp/gbp-menu-types.ts` — GBP Food Menu API types
+- `lib/gbp/gbp-menu-mapper.ts` — `mapMenuToGBPFoodMenu()`, `parsePriceToMoney()`
+- `lib/gbp/gbp-menu-client.ts` — `pushMenuToGBP()`
+- `lib/distribution/engines/gbp-engine.ts` — real GBP adapter (was placeholder)
+- `lib/distribution/distribution-types.ts` — `DistributionContext` with `items` + `supabase`
 
 ---

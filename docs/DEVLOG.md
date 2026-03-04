@@ -4,6 +4,34 @@
 
 ---
 
+## 2026-03-04 — GBP Food Menus Push (Sprint DIST-2, §197)
+
+Push parsed menu data to Google Business Profile via the Food Menus API. Wired into Sprint 1 distribution orchestrator as a real engine adapter (replaces placeholder).
+
+### Problem
+Menu data parsed from uploads sat unused in the DB. Google/Gemini had no way to see what's on the menu unless the owner manually updated GBP.
+
+### New Files (4)
+- **`lib/gbp/gbp-menu-types.ts`** — `GBPFoodMenu`, `GBPMenuSection`, `GBPMenuItem`, `GBPMoneyAmount` matching GBP updateFoodMenus API.
+- **`lib/gbp/gbp-menu-mapper.ts`** — `mapMenuToGBPFoodMenu()`: groups by category, maps price strings → `{currencyCode, units, nanos}`, handles missing descriptions/prices. `parsePriceToMoney()` exported.
+- **`lib/gbp/gbp-menu-client.ts`** — `pushMenuToGBP(orgId, locationGBPId, menu)`: fetches OAuth token, refreshes if expired, PATCH foodMenus endpoint, 401 retry, Sentry on errors.
+- **`src/__tests__/unit/distribution-gbp-menu.test.ts`** — 27 tests (12 mapper, 8 client, 7 engine adapter).
+
+### Modified Files (4)
+- **`lib/distribution/engines/gbp-engine.ts`** — Replaced placeholder with real adapter: resolves GBP location → maps items → pushes via client. Skips if no GBP integration.
+- **`lib/distribution/distribution-types.ts`** — `DistributionContext` extended with `items` (MenuExtractedItem[]) + `supabase` (SupabaseClient) to avoid duplicate DB fetches in engines.
+- **`lib/distribution/distribution-orchestrator.ts`** — Passes `items` + `supabase` in context when dispatching engines.
+- **`src/__tests__/unit/distribution-indexnow-engine.test.ts`** — Updated `CTX` fixture with new context fields.
+
+### Tests
+- 27 new unit tests in `distribution-gbp-menu.test.ts`:
+  - Mapper (12): price parsing ($12.50 → units/nanos, $8 whole, no sign, comma, empty, non-numeric, custom currency), category grouping, description handling, missing price, empty menu.
+  - Client (8): no token error, correct PATCH URL+auth, success, 401 retry, 401 refresh failure, non-200 error, network error → Sentry, pre-refresh expired token.
+  - Engine adapter (7): name=gbp, skip no token, skip no location, success, error, never throws, Sentry capture.
+- 0 regressions. **5961 tests passing, 395 files.** AI_RULES §197.
+
+---
+
 ## 2026-03-04 — Distribution Engine Core (Sprint DIST-1, §196)
 
 Foundation for automated menu distribution to AI engines. Content hash for change detection, orchestrator with pluggable engine adapters, IndexNow adapter wired in, GBP + Apple BC placeholders for Sprint 2.

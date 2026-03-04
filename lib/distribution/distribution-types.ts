@@ -32,6 +32,10 @@ export interface DistributionContext {
   orgId: string;
   publicSlug: string;
   appUrl: string; // NEXT_PUBLIC_APP_URL
+  /** Menu items from extracted_data — avoids duplicate DB fetch in engine adapters. */
+  items: import('@/lib/types/menu').MenuExtractedItem[];
+  /** Supabase client for engines that need DB lookups (e.g. GBP location). */
+  supabase: import('@supabase/supabase-js').SupabaseClient;
 }
 
 /**

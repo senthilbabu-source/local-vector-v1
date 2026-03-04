@@ -83,7 +83,14 @@ export async function distributeMenu(
 
     // Step 4: Call each engine
     const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://app.localvector.ai';
-    const ctx: DistributionContext = { menuId, orgId, publicSlug, appUrl };
+    const ctx: DistributionContext = {
+      menuId,
+      orgId,
+      publicSlug,
+      appUrl,
+      items: extractedData.items,
+      supabase,
+    };
 
     const engineResults: EngineResult[] = await Promise.all(
       engines.map((engine) => engine.distribute(ctx)),

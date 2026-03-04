@@ -16,6 +16,8 @@ const CTX: DistributionContext = {
   orgId: 'org-1',
   publicSlug: 'charcoal-n-chill',
   appUrl: 'https://app.localvector.ai',
+  items: [{ id: 'i1', name: 'Test Item', category: 'Mains', confidence: 0.9 }],
+  supabase: {} as any,
 };
 
 describe('indexNowEngine', () => {
