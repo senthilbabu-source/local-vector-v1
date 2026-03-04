@@ -322,6 +322,7 @@ describe('TeamMembersTable accessibility', () => {
   let TeamMembersTable: React.ComponentType<{
     members: Array<{
       id: string;
+      org_id: string;
       user_id: string;
       full_name: string | null;
       email: string;
@@ -341,7 +342,7 @@ describe('TeamMembersTable accessibility', () => {
     render(
       <TeamMembersTable
         members={[
-          { id: '1', user_id: 'u1', full_name: 'Jane', email: 'jane@test.com', role: 'owner', joined_at: '2026-01-01T00:00:00Z' },
+          { id: '1', org_id: 'org-1', user_id: 'u1', full_name: 'Jane', email: 'jane@test.com', role: 'owner', joined_at: '2026-01-01T00:00:00Z' },
         ]}
         canRemove={true}
         currentUserId="u1"
@@ -355,7 +356,7 @@ describe('TeamMembersTable accessibility', () => {
     render(
       <TeamMembersTable
         members={[
-          { id: '1', user_id: 'u1', full_name: 'Jane', email: 'jane@test.com', role: 'owner', joined_at: '2026-01-01T00:00:00Z' },
+          { id: '1', org_id: 'org-1', user_id: 'u1', full_name: 'Jane', email: 'jane@test.com', role: 'owner', joined_at: '2026-01-01T00:00:00Z' },
         ]}
         canRemove={true}
         currentUserId="u1"
@@ -369,7 +370,7 @@ describe('TeamMembersTable accessibility', () => {
     render(
       <TeamMembersTable
         members={[
-          { id: '1', user_id: 'u1', full_name: 'Jane', email: 'jane@test.com', role: 'owner', joined_at: '2026-01-01T00:00:00Z' },
+          { id: '1', org_id: 'org-1', user_id: 'u1', full_name: 'Jane', email: 'jane@test.com', role: 'owner', joined_at: '2026-01-01T00:00:00Z' },
         ]}
         canRemove={true}
         currentUserId="u1"

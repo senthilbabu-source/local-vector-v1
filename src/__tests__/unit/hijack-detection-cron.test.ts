@@ -112,7 +112,7 @@ describe('GET /api/cron/hijack-detection', () => {
   });
 
   it('processes agency orgs and returns summary', async () => {
-    const orgs = [{ id: 'org-1', name: 'Test Org', plan: 'agency', owner_email: 'owner@test.com' }];
+    const orgs = [{ id: 'org-1', name: 'Test Org', plan: 'agency', owner_user_id: 'user-1' }];
     const locations = [{ id: 'loc-1', business_name: 'Test Biz', address_line1: '123 Main St', city: 'Atlanta', state: 'GA' }];
 
     // First call: orgs query
@@ -181,7 +181,7 @@ describe('GET /api/cron/hijack-detection', () => {
 
     (detectHijacking as ReturnType<typeof vi.fn>).mockReturnValue([criticalEvent]);
 
-    const orgs = [{ id: 'org-1', name: 'Test Org', plan: 'agency', owner_email: 'owner@test.com' }];
+    const orgs = [{ id: 'org-1', name: 'Test Org', plan: 'agency', owner_user_id: 'user-1' }];
     const locations = [{ id: 'loc-1', business_name: 'Test Biz', address_line1: '123 Main St', city: 'Atlanta', state: 'GA' }];
     const sovResults = [{ model_provider: 'perplexity_sonar', query_text: 'hookah', ai_response: 'response', cited: false }];
 
@@ -229,6 +229,15 @@ describe('GET /api/cron/hijack-detection', () => {
       if (table === 'hijacking_alerts') {
         return { insert: vi.fn().mockResolvedValue({ error: null }) };
       }
+      if (table === 'users') {
+        return {
+          select: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              maybeSingle: vi.fn().mockResolvedValue({ data: { email: 'owner@test.com' }, error: null }),
+            }),
+          }),
+        };
+      }
       return mockChain();
     });
 
@@ -246,7 +255,7 @@ describe('GET /api/cron/hijack-detection', () => {
   });
 
   it('handles empty SOV data gracefully', async () => {
-    const orgs = [{ id: 'org-1', name: 'Test', plan: 'agency', owner_email: null }];
+    const orgs = [{ id: 'org-1', name: 'Test', plan: 'agency', owner_user_id: null }];
     const locations = [{ id: 'loc-1', business_name: 'Test', address_line1: null, city: null, state: null }];
 
     mockFrom.mockImplementation((table: string) => {

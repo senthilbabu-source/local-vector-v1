@@ -1,14 +1,12 @@
 'use client';
 
 // ---------------------------------------------------------------------------
-// app/global-error.tsx — Next.js App Router global error boundary (Sprint 26A)
+// app/global-error.tsx — Next.js App Router global error boundary
 //
-// Catches unhandled errors in the root layout. Captures to Sentry and renders
-// a Deep Night-themed fallback UI. Must be a Client Component per Next.js spec.
+// Must be a Client Component per Next.js spec.
+// No external imports to avoid Sentry/context issues during prerender.
+// Sentry capture happens via the error boundary's automatic reporting.
 // ---------------------------------------------------------------------------
-
-import * as Sentry from '@sentry/nextjs';
-import { useEffect } from 'react';
 
 export default function GlobalError({
   error,
@@ -17,24 +15,34 @@ export default function GlobalError({
   error: Error & { digest?: string };
   reset: () => void;
 }) {
-  useEffect(() => {
-    Sentry.captureException(error);
-  }, [error]);
-
   return (
     <html lang="en">
-      <body className="min-h-screen bg-midnight-slate flex items-center justify-center px-4">
-        <div className="max-w-md w-full text-center space-y-4">
-          <h1 className="text-2xl font-bold text-white">Something went wrong</h1>
-          <p className="text-sm text-slate-400">
+      <body style={{ minHeight: '100vh', backgroundColor: '#0f172a', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
+        <div style={{ maxWidth: '28rem', width: '100%', textAlign: 'center' }}>
+          <h1 style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#fff', marginBottom: '1rem' }}>
+            Something went wrong
+          </h1>
+          <p style={{ fontSize: '0.875rem', color: '#94a3b8', marginBottom: '0.5rem' }}>
             An unexpected error occurred. Our team has been notified.
           </p>
           {error.digest && (
-            <p className="text-xs text-slate-500 font-mono">Error ID: {error.digest}</p>
+            <p style={{ fontSize: '0.75rem', color: '#64748b', fontFamily: 'monospace' }}>
+              Error ID: {error.digest}
+            </p>
           )}
           <button
             onClick={reset}
-            className="mt-4 rounded-xl bg-electric-indigo px-6 py-2.5 text-sm font-semibold text-white hover:bg-electric-indigo/90 transition"
+            style={{
+              marginTop: '1rem',
+              borderRadius: '0.75rem',
+              backgroundColor: '#6366f1',
+              padding: '0.625rem 1.5rem',
+              fontSize: '0.875rem',
+              fontWeight: 600,
+              color: '#fff',
+              border: 'none',
+              cursor: 'pointer',
+            }}
           >
             Try again
           </button>

@@ -4319,3 +4319,33 @@ Golden tenant seed backfill to populate every dashboard page. No migrations, no 
 - `src/__fixtures__/golden-tenant.ts` — `MOCK_CRON_RUN_SUCCESS` / `MOCK_CRON_RUN_FAILED` (relative dates)
 
 ---
+
+## §202. Build Verification & TypeScript Fix Sprint (2026-03-04)
+
+Full `npm run build && npx vitest run` verification pass. Fixed ~35 build errors across 51 files. All 6005 tests pass, build succeeds (41/41 pages).
+
+### Architecture
+
+- **`database.types.ts` must be regenerated** after any schema migration: `npx supabase gen types typescript --local > lib/supabase/database.types.ts 2>/dev/null` (redirect stderr to avoid Docker output contamination).
+- **Env-guard is Vercel-only.** `assertEnvironment()` in `next.config.ts` is gated on `process.env.VERCEL` — local builds skip the check. This allows `next build` to run without real Stripe/Inngest/Sentry credentials.
+- **Sentry config is conditional.** `withSentryConfig` wrapper only activates when `SENTRY_AUTH_TOKEN` is set AND `NODE_ENV === 'production'`. Local dev builds export raw `nextConfig`.
+
+### Rules
+
+1. **Never override NODE_ENV during `next build`.** Running `NODE_ENV=development npx next build` breaks Next.js 16's internal `/_global-error` prerender. The env-guard is now Vercel-only, so `npx next build` works locally without overrides.
+2. **Supabase `Json` type for DB writes.** When writing JSONB data via Supabase client, cast as `as unknown as Json` (import from `@/lib/supabase/database.types`). `Record<string, unknown>` is NOT assignable to the generated `Json` type.
+3. **Disambiguate Supabase FK joins.** When a table has multiple foreign keys to the same target (e.g., `memberships.user_id` and `memberships.invited_by` both → `users`), use the `!fk_column` hint: `.select('users!user_id(email)')`. Without it, PostgREST returns an ambiguous relationship error.
+4. **Next.js 16 'use server' files.** Every export in a `'use server'` file MUST be an `async` function. Non-async exports (constants, sync functions) cause build errors. Extract them to a separate utility file.
+5. **`force-dynamic` for auth-dependent pages.** Any page that calls `getSafeAuthContext()`, `createClient()`, or reads cookies/headers must have `export const dynamic = 'force-dynamic'` to prevent SSG prerender failures.
+6. **Stripe SDK v20 breaking change.** `subscription.current_period_end` was removed. Access via `subscription.items.data[0]?.current_period_end` instead.
+7. **Cron logger pattern.** `logCronStart()` returns a `CronLogHandle`. Pass the handle (NOT the cron name) as the first arg to `logCronComplete(handle, summary)` and `logCronFailed(handle, errorMessage)`.
+8. **`global-error.tsx` must be minimal.** No external imports, no React hooks, inline styles only. Next.js prerenders this page and complex dependencies break the prerender.
+
+### Key Files
+
+- `next.config.ts` — env-guard conditional, Sentry conditional
+- `lib/supabase/database.types.ts` — regenerated (4405 lines)
+- `lib/reviews/banned-phrases.ts` — extracted from 'use server' file
+- `app/global-error.tsx` — minimal client component
+
+---

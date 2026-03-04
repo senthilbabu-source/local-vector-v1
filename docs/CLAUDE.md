@@ -27,6 +27,9 @@ LocalVector is an AEO/GEO SaaS platform that helps local businesses monitor and 
 - **Sidebar plan gating:** NAV_ITEMS in `components/layout/Sidebar.tsx` have optional `minPlan` field. Locked items render as buttons with Lock icon → `UpgradeModal`. (P1-FIX-06, AI_RULES §175)
 - **Accessibility (WCAG 2.1 AA):** Skip link in DashboardShell, semantic landmarks, `aria-current="page"` on active nav, `aria-hidden="true"` on decorative icons, focus trap in UpgradeModal, `aria-live="polite"` on credits counter, semantic `<table>` elements, `role="img"` + sr-only data tables on charts. Contrast: use `text-slate-400` (not `text-slate-500`) on dark backgrounds. (P6-FIX-27, AI_RULES §191)
 - **Manual scan trigger:** Growth/Agency users can trigger on-demand SOV scans via `POST /api/sov/trigger-manual`. Rate-limited 1/hr/org. Inngest async. (P1-FIX-05, AI_RULES §177)
+- **Build verification:** `npx next build` must run WITHOUT `NODE_ENV=development` override — that breaks Next.js 16's `/_global-error` prerender. Env-guard is Vercel-only (`process.env.VERCEL`). Local builds need placeholder env vars in `.env.local`. (AI_RULES §202)
+- **Supabase Json type:** Use `as unknown as Json` (from `@/lib/supabase/database.types`) when writing JSONB via Supabase client. Never use `Record<string, unknown>` for DB writes. (AI_RULES §202)
+- **FK join disambiguation:** When a table has multiple FKs to the same target, use `!fk_column` hint: `.select('users!user_id(email)')`. (AI_RULES §202)
 
 ## Key Directories
 

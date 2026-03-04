@@ -4,6 +4,57 @@
 
 ---
 
+## 2026-03-04 — Build Verification & TypeScript Fix Sprint (§202)
+
+Production readiness verification: ran `npm run build && npx vitest run` and resolved every failure. 51 files modified, ~35 build errors fixed.
+
+### Root Cause
+
+The codebase had accumulated type-level drift between the Supabase schema, generated types, and application code. Additionally, a `NODE_ENV=development` override during `next build` caused the known Next.js 16 `/_global-error` prerender bug ([#87719](https://github.com/vercel/next.js/issues/87719)).
+
+### Changes
+
+**TypeScript / Type System (18 files):**
+- Regenerated `lib/supabase/database.types.ts` via `npx supabase gen types typescript --local` (includes `hijacking_alerts` table and other recent schema additions).
+- Fixed `Record<string, unknown>` → `as unknown as Json` in 11 files (Supabase DB write contexts require the `Json` type, not `Record<string, unknown>`): `authority-service.ts`, `cron-logger.ts`, `vaio-service.ts`, `nap-sync-service.ts`, `simulation-orchestrator.ts`, `activity-log-service.ts`, 5 cron routes.
+- Fixed ambiguous Supabase FK joins: `.select('users(email)')` → `.select('users!user_id(email)')` on `memberships` table (has two FKs: `user_id` and `invited_by`) — 4 cron files, `membership-service.ts` (3 occurrences), `settings/team/page.tsx`.
+
+**Next.js 16 Compatibility (5 files):**
+- Extracted `BANNED_PHRASES` and `hasBannedPhrases()` from `app/dashboard/reviews/actions.ts` ('use server' file) into new `lib/reviews/banned-phrases.ts` — Next.js 16 requires ALL exports in `'use server'` files to be async functions.
+- Added `export const dynamic = 'force-dynamic'` to `app/layout.tsx`, `app/dashboard/layout.tsx`, `app/dashboard/system-health/page.tsx`, `app/dashboard/agent-readiness/page.tsx`, `app/dashboard/settings/page.tsx` — prevents SSG prerender failures on auth-dependent pages.
+
+**Build Infrastructure (2 files):**
+- `next.config.ts` — env-guard now conditional on Vercel: `process.env.NODE_ENV === 'production' && process.env.VERCEL`. Local builds no longer need `NODE_ENV=development` override, which was the root cause of `/_global-error` prerender failure.
+- `next.config.ts` — Sentry `withSentryConfig` wrapper made conditional: only active when `SENTRY_AUTH_TOKEN` is set AND `NODE_ENV === 'production'`.
+
+**API & Data Fixes (6 files):**
+- `app/api/cron/hijack-detection/route.ts` — `owner_email` column doesn't exist; changed to `owner_user_id` + separate `users` table lookup for email on critical severity.
+- `app/api/cron/data-health-refresh/route.ts` — wrong cron logger args: `logCronFailed(CRON_NAME, runId, msg)` → `logCronFailed(runId, msg)` (3 calls fixed).
+- `app/api/onboarding/state/route.ts` — `ctx.org?.created_at` → `null` (SafeAuthContext has no `org` property).
+- `app/api/settings/danger/delete-org/route.ts` — `plan_status: 'pending_deletion'` → `'canceled'` (enum mismatch).
+- `app/dashboard/billing/actions.ts` — Stripe SDK v20: `subscription.current_period_end` → `subscription.items.data[0]?.current_period_end`.
+- `app/global-error.tsx` — Simplified to minimal 'use client' component with inline styles, no external imports.
+
+**Lib TypeScript Fixes (7 files):**
+- `lib/onboarding/onboarding-service.ts`, `lib/sample-data/sample-dashboard-data.ts`, `lib/sandbox/query-simulation-engine.ts`, `lib/sandbox/simulation-orchestrator.ts`, `lib/services/benchmark-service.ts`, `lib/services/data-health.service.ts`, `lib/services/embedding-service.ts` — various type errors (missing properties, `never` type casts, incorrect generics).
+
+**Test/Fixture Fixes (11 files):**
+- `src/__fixtures__/golden-tenant.ts` — 6 missing `corrected_at` fields, 7 VAIO type errors.
+- 10 test files updated for type compatibility and mock data alignment.
+
+### Tests
+- 0 new tests. All 6005/6005 pass, 397/397 files.
+- Build: TypeScript PASS, compilation PASS, static generation PASS (41/41 pages).
+
+**AI_RULES:** §202
+
+```bash
+npx vitest run  # 397 files, 6005 tests — 0 failures
+npx next build  # ✓ Compiled, ✓ TypeScript, ✓ 41/41 pages
+```
+
+---
+
 ## 2026-03-04 — Seed Data Backfill — 100% Page Coverage (§201)
 
 Audit revealed only 57% of dashboard pages showed real data with the golden tenant. Backfilled `supabase/seed.sql` Section 26 to populate every remaining empty page.

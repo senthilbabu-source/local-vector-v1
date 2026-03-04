@@ -17,6 +17,7 @@ import { NextResponse } from 'next/server';
 import { inngest } from '@/lib/inngest/client';
 import { logCronStart, logCronComplete, logCronFailed } from '@/lib/services/cron-logger';
 import { refreshStalePlaceDetails } from '@/lib/services/places-refresh';
+import type { Json } from '@/lib/supabase/database.types';
 
 export const dynamic = 'force-dynamic';
 
@@ -48,7 +49,7 @@ export async function GET(request: Request) {
   // ── Fallback: inline ──
   try {
     const result = await refreshStalePlaceDetails();
-    await logCronComplete(handle, result as unknown as Record<string, unknown>);
+    await logCronComplete(handle, result as unknown as Json);
     return NextResponse.json({ ok: true, ...result });
   } catch (err) {
     await logCronFailed(handle, err instanceof Error ? err.message : String(err));

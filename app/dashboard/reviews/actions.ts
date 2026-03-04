@@ -10,6 +10,7 @@ import { analyzeSentiment } from '@/lib/review-engine/sentiment-analyzer';
 import { deriveOrUpdateBrandVoice } from '@/lib/review-engine/brand-voice-profiler';
 import type { Review } from '@/lib/review-engine/types';
 import type { GroundTruth } from '@/lib/nap-sync/types';
+import { hasBannedPhrases } from '@/lib/reviews/banned-phrases';
 import * as Sentry from '@sentry/nextjs';
 
 // ---------------------------------------------------------------------------
@@ -17,30 +18,6 @@ import * as Sentry from '@sentry/nextjs';
 // ---------------------------------------------------------------------------
 
 export type ActionResult = { success: true } | { success: false; error: string };
-
-// ---------------------------------------------------------------------------
-// Banned phrases — Sprint 132 §164
-// ---------------------------------------------------------------------------
-
-export const BANNED_PHRASES = [
-  'as a valued customer',
-  "we're so sorry for any inconvenience",
-  'we value your feedback',
-  'we apologize for any inconvenience',
-  'thank you for bringing this to our attention',
-  'we strive to provide',
-  'your satisfaction is our priority',
-];
-
-export function hasBannedPhrases(text: string): { found: boolean; phrase: string | null } {
-  const lower = text.toLowerCase();
-  for (const phrase of BANNED_PHRASES) {
-    if (lower.includes(phrase.toLowerCase())) {
-      return { found: true, phrase };
-    }
-  }
-  return { found: false, phrase: null };
-}
 
 // ---------------------------------------------------------------------------
 // approveReviewResponse — set response_status = 'approved'

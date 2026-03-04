@@ -184,7 +184,7 @@ export async function markStepComplete(
   }
 
   if (error) {
-    throw new Error(`Failed to mark step complete: ${error.message}`);
+    throw new Error(`Failed to mark step complete: ${(error as { message: string }).message}`);
   }
 
   return {

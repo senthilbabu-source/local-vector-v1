@@ -30,7 +30,7 @@ export default async function TeamPage() {
       role,
       joined_at,
       created_at,
-      users (
+      users!user_id (
         id,
         email,
         full_name,

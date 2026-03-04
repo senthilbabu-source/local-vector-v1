@@ -19,6 +19,7 @@ import { AgentSEOTab } from './_components/AgentSEOTab';
 import { SCENARIO_DESCRIPTIONS, type CapabilityId } from '@/lib/agent-readiness/scenario-descriptions';
 import type { ActionAuditResult } from '@/lib/agent-seo/agent-seo-types';
 
+export const dynamic = 'force-dynamic';
 export const metadata = { title: 'AI Actions | LocalVector.ai' };
 
 // ── Page Component ────────────────────────────────────────────────────────

@@ -14,6 +14,7 @@ import { getSafeAuthContext } from '@/lib/auth';
 import { createClient } from '@/lib/supabase/server';
 import { detectDiscrepancies, type VerificationResult } from '@/lib/integrations/detect-discrepancies';
 import * as Sentry from '@sentry/nextjs';
+import type { Json } from '@/lib/supabase/database.types';
 
 const YELP_API_BASE = 'https://api.yelp.com/v3';
 const RATE_LIMIT_HOURS = 24;
@@ -188,7 +189,7 @@ async function upsertVerification(
       location_id: locationId,
       platform: 'yelp',
       verified_at: result.verifiedAt,
-      verification_result: result as unknown as Record<string, unknown>,
+      verification_result: result as unknown as Json,
       has_discrepancy: result.discrepancies.length > 0,
     },
     { onConflict: 'location_id,platform' },

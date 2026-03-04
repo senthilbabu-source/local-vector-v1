@@ -213,8 +213,8 @@ export function detectHallucinatedFacts(
 
   // Check dollar amounts
   const priceRegex = /\$\d+(?:\.\d{2})?/g;
-  const answerPrices = simulatedAnswer.match(priceRegex) || [];
-  const contentPrices = contentText.match(priceRegex) || [];
+  const answerPrices: string[] = simulatedAnswer.match(priceRegex) || [];
+  const contentPrices: string[] = contentText.match(priceRegex) || [];
   for (const price of answerPrices) {
     if (!contentPrices.includes(price)) {
       hallucinated.push(`Price: ${price}`);

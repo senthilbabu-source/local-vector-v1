@@ -7,7 +7,7 @@
 
 import * as Sentry from '@sentry/nextjs';
 import type { SupabaseClient } from '@supabase/supabase-js';
-import type { Database } from '@/lib/supabase/database.types';
+import type { Database, Json } from '@/lib/supabase/database.types';
 import { planSatisfies } from '@/lib/plan-enforcer';
 import { GBPNAPAdapter } from './adapters/gbp-adapter';
 import { YelpNAPAdapter } from './adapters/yelp-adapter';
@@ -151,7 +151,7 @@ export async function runNAPSync(
       org_id: orgId,
       platform: result.platform,
       fetch_status: result.status,
-      raw_nap_data: result.status === 'ok' ? (result.data as unknown as Record<string, unknown>) : null,
+      raw_nap_data: result.status === 'ok' ? (result.data as unknown as Json) : null,
       fetched_at: now,
     });
   }
@@ -163,7 +163,7 @@ export async function runNAPSync(
       org_id: d.org_id,
       platform: d.platform,
       status: d.status,
-      discrepant_fields: d.discrepant_fields as unknown as Record<string, unknown>,
+      discrepant_fields: d.discrepant_fields as unknown as Json,
       severity: d.severity,
       auto_correctable: d.auto_correctable,
       fix_instructions: d.fix_instructions ?? null,

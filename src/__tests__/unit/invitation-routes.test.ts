@@ -99,12 +99,13 @@ function mockAuthenticatedOwner() {
 }
 
 function createRequest(method: string, body?: unknown): NextRequest {
-  const init: RequestInit = { method };
+  const init: Record<string, unknown> = { method };
   if (body) {
     init.body = JSON.stringify(body);
     init.headers = { 'Content-Type': 'application/json' };
   }
-  return new NextRequest('http://localhost/api/team/invitations', init);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return new NextRequest('http://localhost/api/team/invitations', init as any);
 }
 
 // ---------------------------------------------------------------------------

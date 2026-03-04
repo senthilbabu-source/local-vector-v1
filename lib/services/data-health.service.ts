@@ -189,15 +189,16 @@ export async function computeDataHealth(
   const gbpImportSource = gbpCheck?.gbp_synced_at != null;
 
   // Description: check ground_truth_submissions for a description field
-  const { data: gtSub } = await supabase
-    .from('ground_truth_submissions')
+  // Table may not yet exist in generated types — cast to bypass strict checking
+  const { data: gtSub } = await (supabase
+    .from('ground_truth_submissions' as never)
     .select('fields')
     .eq('location_id', locationId)
     .order('created_at', { ascending: false })
     .limit(1)
-    .maybeSingle();
+    .maybeSingle() as unknown as Promise<{ data: { fields: Record<string, string> } | null }>);
 
-  const description = (gtSub?.fields as Record<string, string> | null)?.description ?? null;
+  const description = gtSub?.fields?.description ?? null;
 
   const locationData: LocationDataForHealth = {
     business_name: location.business_name,

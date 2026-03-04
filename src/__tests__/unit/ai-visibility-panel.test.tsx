@@ -51,7 +51,7 @@ describe('AIVisibilityPanel', () => {
       <AIVisibilityPanel
         score={80}
         previousScore={null}
-        benchmark={{ org_count: 15, avg_score: 65, min_score: 40, max_score: 95 }}
+        benchmark={{ city: 'Atlanta', industry: 'restaurant', org_count: 15, avg_score: 65, min_score: 40, max_score: 95 }}
         orgCity="Atlanta"
       />,
     );
@@ -64,7 +64,7 @@ describe('AIVisibilityPanel', () => {
       <AIVisibilityPanel
         score={50}
         previousScore={null}
-        benchmark={{ org_count: 12, avg_score: 65, min_score: 40, max_score: 95 }}
+        benchmark={{ city: 'Austin', industry: 'restaurant', org_count: 12, avg_score: 65, min_score: 40, max_score: 95 }}
         orgCity="Austin"
       />,
     );
@@ -83,7 +83,7 @@ describe('AIVisibilityPanel', () => {
       <AIVisibilityPanel
         score={72}
         previousScore={null}
-        benchmark={{ org_count: 5, avg_score: 60, min_score: 40, max_score: 80 }}
+        benchmark={{ city: 'Denver', industry: 'restaurant', org_count: 5, avg_score: 60, min_score: 40, max_score: 80 }}
         orgCity="Denver"
       />,
     );

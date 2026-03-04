@@ -11,6 +11,7 @@ import { getSafeAuthContext } from '@/lib/auth';
 import { createClient, createServiceRoleClient } from '@/lib/supabase/server';
 import { planSatisfies, type PlanTier } from '@/lib/plan-enforcer';
 import { fetchExistingSameAs } from '@/lib/authority/sameas-enricher';
+import type { Json } from '@/lib/supabase/database.types';
 
 export const dynamic = 'force-dynamic';
 
@@ -164,7 +165,7 @@ export async function POST(request: Request) {
     if (updated) {
       await serviceRole
         .from('page_schemas')
-        .update({ json_ld: jsonLd as unknown as Record<string, unknown> })
+        .update({ json_ld: jsonLd as unknown as Json })
         .eq('id', schema.id);
     }
 

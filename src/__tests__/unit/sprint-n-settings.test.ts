@@ -44,7 +44,7 @@ describe('Sprint N — Settings Expansion', () => {
       );
       expect(src).toContain('scan_day_of_week');
       // Validate range 0-6
-      expect(src).toMatch(/scan_day_of_week.*min\(0\).*max\(6\)/s);
+      expect(src).toMatch(/scan_day_of_week[\s\S]*min\(0\)[\s\S]*max\(6\)/);
     });
 
     it('has scan day select in the SettingsForm UI', () => {

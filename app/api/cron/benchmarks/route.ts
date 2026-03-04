@@ -15,6 +15,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServiceRoleClient } from '@/lib/supabase/server';
 import { logCronStart, logCronComplete, logCronFailed } from '@/lib/services/cron-logger';
 import { runBenchmarkComputation, getMostRecentSunday } from '@/lib/services/benchmark-service';
+import type { Json } from '@/lib/supabase/database.types';
 import * as Sentry from '@sentry/nextjs';
 
 export const dynamic = 'force-dynamic';
@@ -85,7 +86,7 @@ export async function POST(request: NextRequest) {
     };
 
     console.log('[cron-benchmarks]', summary);
-    await logCronComplete(handle, summary as unknown as Record<string, unknown>);
+    await logCronComplete(handle, summary as unknown as Json);
     return NextResponse.json(summary);
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);

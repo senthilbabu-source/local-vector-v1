@@ -15,6 +15,7 @@
 // ---------------------------------------------------------------------------
 
 import * as Sentry from '@sentry/nextjs';
+import type { Json } from '@/lib/supabase/database.types';
 import { NextRequest, NextResponse } from 'next/server';
 import { createServiceRoleClient } from '@/lib/supabase/server';
 import {
@@ -286,7 +287,7 @@ async function _runInlineSOVImpl(handle: { logId: string | null; startedAt: numb
 
         const { data: membershipRow } = await supabase
           .from('memberships')
-          .select('users(email)')
+          .select('users!user_id(email)')
           .eq('org_id', orgId)
           .eq('role', 'owner')
           .limit(1)
@@ -555,6 +556,6 @@ async function _runInlineSOVImpl(handle: { logId: string | null; startedAt: numb
   }
 
   console.log('[cron-sov] Inline run complete:', summary);
-  await logCronComplete(handle, summary as unknown as Record<string, unknown>);
+  await logCronComplete(handle, summary as unknown as Json);
   return NextResponse.json(summary);
 }

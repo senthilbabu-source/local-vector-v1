@@ -25,17 +25,20 @@ export const SAMPLE_HEALTH_SCORE: HealthScoreResult = {
   score: 61,
   grade: 'C',
   components: {
-    visibility: { label: 'How Often Mentioned', score: 47 },
-    accuracy:   { label: 'Info Accuracy',       score: 68 },
-    structure:  { label: 'Website Data',        score: 72 },
-    freshness:  { label: 'Info Freshness',      score: 55 },
+    visibility: { label: 'How Often Mentioned', score: 47, weight: 0.3 },
+    accuracy:   { label: 'Info Accuracy',       score: 68, weight: 0.25 },
+    structure:  { label: 'Website Data',        score: 72, weight: 0.25 },
+    freshness:  { label: 'Info Freshness',      score: 55, weight: 0.2 },
   },
   topRecommendation: {
     title: 'Fix 2 things AI gets wrong',
+    description: 'AI models are reporting incorrect facts about your business. Correcting these will improve your accuracy score.',
     estimatedImpact: 8,
+    component: 'accuracy',
     actionLabel: 'View Mistakes',
     actionHref: '/dashboard/hallucinations',
   },
+  recommendations: [],
 };
 
 // ── SOV Trend Chart ─────────────────────────────────────────────────────────

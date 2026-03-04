@@ -141,11 +141,14 @@ export async function backfillTable(
   const result: BackfillResult = { processed: 0, errors: 0 };
 
   // Fetch rows missing embeddings
-  const { data: rows, error: fetchError } = await supabase
+  // Dynamic table+column selection makes Supabase return GenericStringError — cast through unknown
+  const { data: rawRows, error: fetchError } = await supabase
     .from(table)
     .select(TABLE_SELECT_COLUMNS[table])
     .is('embedding', null)
     .limit(batchSize);
+
+  const rows = rawRows as unknown as Record<string, unknown>[] | null;
 
   if (fetchError || !rows || rows.length === 0) {
     return result;

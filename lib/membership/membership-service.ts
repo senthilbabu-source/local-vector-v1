@@ -44,7 +44,7 @@ export async function getOrgMembers(
       role,
       joined_at,
       created_at,
-      users (
+      users!user_id (
         id,
         email,
         full_name
@@ -135,7 +135,7 @@ export async function getMemberById(
       role,
       joined_at,
       created_at,
-      users (
+      users!user_id (
         id,
         email,
         full_name
@@ -188,7 +188,7 @@ export async function removeMember(
   // 1. Fetch the target member (including user info for audit log)
   const { data: member, error: fetchError } = await supabase
     .from('memberships')
-    .select('id, role, org_id, user_id, users ( email )')
+    .select('id, role, org_id, user_id, users!user_id ( email )')
     .eq('id', memberId)
     .eq('org_id', callerOrgId)
     .maybeSingle();

@@ -23,7 +23,7 @@ export async function GET() {
 
     const supabase = createServiceRoleClient();
     const orgPlan = (ctx.plan ?? 'trial') as PlanTier;
-    const state = await getOnboardingState(supabase, ctx.orgId, ctx.org?.created_at ?? null, orgPlan);
+    const state = await getOnboardingState(supabase, ctx.orgId, null, orgPlan);
 
     return NextResponse.json(state);
   } catch (err) {

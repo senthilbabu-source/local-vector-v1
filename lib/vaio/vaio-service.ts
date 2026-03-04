@@ -9,7 +9,7 @@
 
 import * as Sentry from '@sentry/nextjs';
 import type { SupabaseClient } from '@supabase/supabase-js';
-import type { Database } from '@/lib/supabase/database.types';
+import type { Database, Json } from '@/lib/supabase/database.types';
 import type {
   VAIORunResult,
   GroundTruthForVAIO,
@@ -202,11 +202,11 @@ export async function runVAIO(
         llms_txt_full: llmsTxtFull,
         llms_txt_generated_at: llmsTxtGenerated ? runAt : undefined,
         llms_txt_status: llmsTxtStatus,
-        crawler_audit: crawlerAudit as unknown as Record<string, unknown>,
+        crawler_audit: crawlerAudit as unknown as Json,
         voice_queries_tracked: totalVoiceQueries,
         voice_citation_rate: avgCitationRate,
-        voice_gaps: voiceGaps as unknown as Record<string, unknown>[],
-        top_content_issues: topIssues as unknown as Record<string, unknown>[],
+        voice_gaps: voiceGaps as unknown as Json[],
+        top_content_issues: topIssues as unknown as Json[],
         last_run_at: runAt,
       }, { onConflict: 'location_id' });
 

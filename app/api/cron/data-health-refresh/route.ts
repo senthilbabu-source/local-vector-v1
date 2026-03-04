@@ -43,7 +43,7 @@ export async function GET(request: NextRequest) {
       .eq('is_archived', false);
 
     if (fetchError || !locations) {
-      await logCronFailed(CRON_NAME, runId, fetchError?.message ?? 'No locations found');
+      await logCronFailed(runId, fetchError?.message ?? 'No locations found');
       return NextResponse.json({ error: 'Failed to fetch locations' }, { status: 500 });
     }
 
@@ -68,7 +68,7 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    await logCronComplete(CRON_NAME, runId, { updated, errors, total: locations.length });
+    await logCronComplete(runId, { updated, errors, total: locations.length });
 
     return NextResponse.json({
       ok: true,
@@ -78,7 +78,7 @@ export async function GET(request: NextRequest) {
     });
   } catch (err) {
     Sentry.captureException(err, { tags: { component: CRON_NAME, sprint: '124' } });
-    await logCronFailed(CRON_NAME, runId, err instanceof Error ? err.message : String(err));
+    await logCronFailed(runId, err instanceof Error ? err.message : String(err));
     return NextResponse.json({ error: 'Cron failed' }, { status: 500 });
   }
 }

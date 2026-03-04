@@ -203,7 +203,7 @@ export async function runBenchmarkComputation(
     `)
     .filter('snapshot_date', 'eq', weekOfStr)
     .not('share_of_voice', 'is', null)
-    .in('organizations.plan', PAID_PLAN_TIERS as unknown as string[])
+    .in('organizations.plan', PAID_PLAN_TIERS as unknown as readonly ('trial' | 'starter' | 'growth' | 'agency' | null)[])
     .eq('organizations.plan_status', 'active');
 
   if (error) {

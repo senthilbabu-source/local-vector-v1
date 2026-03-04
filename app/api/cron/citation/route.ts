@@ -35,6 +35,7 @@ import {
 import { normalizeCategoryLabel } from '@/lib/citation/citation-query-builder';
 import { planSatisfies } from '@/lib/plan-enforcer';
 import { logCronStart, logCronComplete, logCronFailed } from '@/lib/services/cron-logger';
+import type { Json } from '@/lib/supabase/database.types';
 
 // Force dynamic so Vercel never caches this route between cron invocations.
 export const dynamic = 'force-dynamic';
@@ -113,7 +114,7 @@ export async function GET(request: NextRequest) {
 
     if (!orgs || orgs.length === 0) {
       console.log('[cron-citation] No eligible orgs found (Growth+).');
-      await logCronComplete(handle, summary as unknown as Record<string, unknown>);
+      await logCronComplete(handle, summary as unknown as Json);
       return NextResponse.json(summary);
     }
 
@@ -230,6 +231,6 @@ export async function GET(request: NextRequest) {
   }
 
   console.log('[cron-citation] Run complete:', summary);
-  await logCronComplete(handle, summary as unknown as Record<string, unknown>);
+  await logCronComplete(handle, summary as unknown as Json);
   return NextResponse.json(summary);
 }

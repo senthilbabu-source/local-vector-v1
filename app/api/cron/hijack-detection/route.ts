@@ -39,7 +39,7 @@ export async function GET(request: NextRequest) {
     // 3. Fetch agency-tier orgs
     const { data: orgs, error: orgsError } = await supabase
       .from('organizations')
-      .select('id, name, plan, owner_email')
+      .select('id, name, plan, owner_user_id')
       .eq('plan', 'agency');
 
     if (orgsError) throw orgsError;
@@ -145,11 +145,17 @@ export async function GET(request: NextRequest) {
 
               totalNewAlerts++;
 
-              // 10. Send email for critical severity (one per alert, check email_sent_at)
-              if (event.severity === 'critical' && org.owner_email) {
+              // 10. Send email for critical severity
+              if (event.severity === 'critical' && org.owner_user_id) {
                 try {
+                  const { data: ownerUser } = await supabase
+                    .from('users')
+                    .select('email')
+                    .eq('id', org.owner_user_id)
+                    .maybeSingle();
+                  if (!ownerUser?.email) continue;
                   await sendHijackingAlert({
-                    to: org.owner_email,
+                    to: ownerUser.email,
                     businessName: event.ourBusiness,
                     competitorName: event.competitorName,
                     hijackType: event.hijackType,

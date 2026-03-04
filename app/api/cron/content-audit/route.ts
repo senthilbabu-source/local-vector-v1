@@ -223,6 +223,6 @@ async function _runInlineContentAuditImpl(handle: { logId: string | null; starte
     : 0;
 
   console.log('[cron-content-audit] Run complete:', summary);
-  await logCronComplete(handle, summary as unknown as Record<string, unknown>);
+  await logCronComplete(handle, summary as unknown as Json);
   return NextResponse.json(summary);
 }

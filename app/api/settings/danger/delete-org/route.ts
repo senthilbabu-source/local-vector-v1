@@ -87,7 +87,7 @@ export async function DELETE(request: NextRequest) {
       .from('organizations')
       .update({
         deletion_requested_at: now.toISOString(),
-        plan_status: 'pending_deletion',
+        plan_status: 'canceled',
       })
       .eq('id', ctx.orgId);
 

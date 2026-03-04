@@ -108,7 +108,7 @@ export async function processOrgAudit(org: { id: string; name: string }): Promis
     // Send email alert (fire-and-forget)
     const { data: membershipRow } = await supabase
       .from('memberships')
-      .select('users(email)')
+      .select('users!user_id(email)')
       .eq('org_id', org.id)
       .eq('role', 'owner')
       .limit(1)

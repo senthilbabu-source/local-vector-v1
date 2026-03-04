@@ -48,7 +48,7 @@ export async function logCronStart(cronName: string): Promise<CronLogHandle> {
  */
 export async function logCronComplete(
   handle: CronLogHandle,
-  summary: Record<string, unknown>,
+  summary: Json,
 ): Promise<void> {
   if (!handle.logId) return;
   try {
@@ -60,7 +60,7 @@ export async function logCronComplete(
         status: 'success',
         completed_at: new Date().toISOString(),
         duration_ms: durationMs,
-        summary: summary as unknown as Json,
+        summary,
       })
       .eq('id', handle.logId);
   } catch (err) {

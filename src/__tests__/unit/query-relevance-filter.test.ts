@@ -22,7 +22,7 @@ import { GOLDEN_TENANT } from '@/__fixtures__/golden-tenant';
 const CNC_GROUND_TRUTH: BusinessGroundTruth = {
   hoursData: GOLDEN_TENANT.location.hours_data as BusinessGroundTruth['hoursData'],
   amenities: GOLDEN_TENANT.location.amenities as BusinessGroundTruth['amenities'],
-  categories: GOLDEN_TENANT.location.categories as string[],
+  categories: GOLDEN_TENANT.location.categories as unknown as string[],
   operationalStatus: GOLDEN_TENANT.location.operational_status,
 };
 

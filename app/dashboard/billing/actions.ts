@@ -223,7 +223,9 @@ export async function getSubscriptionDetails(): Promise<SubscriptionDetails> {
     );
 
     return {
-      currentPeriodEnd: new Date(subscription.current_period_end * 1000).toISOString(),
+      currentPeriodEnd: subscription.items.data[0]?.current_period_end
+        ? new Date(subscription.items.data[0].current_period_end * 1000).toISOString()
+        : null,
       cancelAtPeriodEnd: subscription.cancel_at_period_end,
       status: subscription.status,
     };

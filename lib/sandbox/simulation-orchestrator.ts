@@ -7,13 +7,15 @@
 
 import * as Sentry from '@sentry/nextjs';
 import type { SupabaseClient } from '@supabase/supabase-js';
-import type { Database } from '@/lib/supabase/database.types';
+import type { Database, Json } from '@/lib/supabase/database.types';
 import type {
   SimulationInput,
   SimulationRun,
   SimulationHistoryEntry,
   SandboxGroundTruth,
   HallucinationRisk,
+  IngestionResult,
+  SimulationMode,
 } from './types';
 import { SANDBOX_LIMITS } from './types';
 import { analyzeContentIngestion } from './content-ingestion-analyzer';
@@ -63,9 +65,9 @@ export async function runSimulation(
     const runIngestion = modes.includes('ingestion');
     const runQuery = modes.includes('query') || modes.includes('gap_analysis');
 
-    let ingestionResult = null;
+    let ingestionResult: IngestionResult | null = null;
     let queryResults: SimulationRun['query_results'] = [];
-    let gapAnalysis = null;
+    let gapAnalysis: SimulationRun['gap_analysis'] = null;
     let totalInputTokens = 0;
     let totalOutputTokens = 0;
 
@@ -113,7 +115,7 @@ export async function runSimulation(
     }
 
     // 6. Compute scores
-    const ingestionAccuracy = ingestionResult?.accuracy_score ?? 0;
+    const ingestionAccuracy = (ingestionResult as IngestionResult | null)?.accuracy_score ?? 0;
     const queryCoverageRate = queryResults.length > 0
       ? queryResults.filter(r => r.answer_quality === 'complete' || r.answer_quality === 'partial').length / queryResults.length
       : 0;
@@ -135,10 +137,10 @@ export async function runSimulation(
         draft_id: input.draft_id ?? null,
         content_text: storedContent,
         content_word_count: contentWordCount,
-        modes_run: modes as string[],
-        ingestion_result: ingestionResult as unknown as Record<string, unknown> | null,
-        query_results: queryResults as unknown as Record<string, unknown>[],
-        gap_analysis: gapAnalysis as unknown as Record<string, unknown> | null,
+        modes_run: modes as SimulationMode[],
+        ingestion_result: ingestionResult as unknown as Json | null,
+        query_results: queryResults as unknown as Json[],
+        gap_analysis: gapAnalysis as unknown as Json | null,
         simulation_score: simulationScore,
         ingestion_accuracy: ingestionAccuracy,
         query_coverage_rate: queryCoverageRate,
@@ -174,7 +176,7 @@ export async function runSimulation(
       draft_id: input.draft_id ?? null,
       content_text: storedContent,
       content_word_count: contentWordCount,
-      modes_run: modes as string[],
+      modes_run: modes as SimulationMode[],
       ingestion_result: ingestionResult,
       query_results: queryResults,
       gap_analysis: gapAnalysis,
@@ -251,7 +253,7 @@ export async function getLatestSimulationRun(
     content_word_count: data.content_word_count,
     modes_run: data.modes_run as SimulationRun['modes_run'],
     ingestion_result: data.ingestion_result as SimulationRun['ingestion_result'],
-    query_results: (data.query_results ?? []) as SimulationRun['query_results'],
+    query_results: (data.query_results ?? []) as unknown as SimulationRun['query_results'],
     gap_analysis: data.gap_analysis as SimulationRun['gap_analysis'],
     simulation_score: data.simulation_score,
     ingestion_accuracy: data.ingestion_accuracy,

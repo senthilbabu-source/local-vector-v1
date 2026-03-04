@@ -15,7 +15,7 @@ import type { EntityWeaveInput } from '@/lib/reviews/entity-weaver';
 import { buildResponseSystemPrompt } from '@/lib/review-engine/response-generator';
 import type { BrandVoiceProfile, ReviewSentiment } from '@/lib/review-engine/types';
 import type { GroundTruth } from '@/lib/nap-sync/types';
-import { hasBannedPhrases } from '@/app/dashboard/reviews/actions';
+import { hasBannedPhrases } from '@/lib/reviews/banned-phrases';
 
 // ---------------------------------------------------------------------------
 // Helpers

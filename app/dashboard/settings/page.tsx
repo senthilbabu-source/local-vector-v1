@@ -10,6 +10,7 @@ import { getOrCreateOrgSettings } from '@/lib/settings';
 import type { OrgSettings } from '@/lib/settings/types';
 import { canManageApiKeys, type PlanTier } from '@/lib/plan-enforcer';
 
+export const dynamic = 'force-dynamic';
 export const metadata = { title: 'Settings | LocalVector.ai' };
 
 // ---------------------------------------------------------------------------

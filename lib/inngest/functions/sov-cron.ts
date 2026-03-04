@@ -217,7 +217,7 @@ export async function processOrgSOV(batch: OrgBatch): Promise<OrgSOVResult> {
   // Send weekly SOV report email (fire-and-forget)
   const { data: membershipRow } = await supabase
     .from('memberships')
-    .select('users(email)')
+    .select('users!user_id(email)')
     .eq('org_id', batch.orgId)
     .eq('role', 'owner')
     .limit(1)

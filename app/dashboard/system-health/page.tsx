@@ -4,6 +4,7 @@ import { fetchCronHealth } from '@/lib/data/cron-health';
 import type { CronRunRow, CronJobSummary } from '@/lib/services/cron-health.service';
 import { Activity, CheckCircle, AlertTriangle, Clock, XCircle } from 'lucide-react';
 
+export const dynamic = 'force-dynamic';
 export const metadata = { title: 'System Status | LocalVector.ai' };
 
 export default async function SystemHealthPage() {

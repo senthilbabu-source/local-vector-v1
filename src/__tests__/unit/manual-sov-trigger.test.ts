@@ -88,25 +88,25 @@ describe('manual scan trigger — response codes', () => {
   });
 
   it('409 applies to running status too', () => {
-    const currentStatus = 'running';
+    const currentStatus: string = 'running';
     const isInProgress = currentStatus === 'pending' || currentStatus === 'running';
     expect(isInProgress).toBe(true);
   });
 
   it('allows trigger when status is complete', () => {
-    const currentStatus = 'complete';
+    const currentStatus: string = 'complete';
     const isInProgress = currentStatus === 'pending' || currentStatus === 'running';
     expect(isInProgress).toBe(false);
   });
 
   it('allows trigger when status is failed', () => {
-    const currentStatus = 'failed';
+    const currentStatus: string = 'failed';
     const isInProgress = currentStatus === 'pending' || currentStatus === 'running';
     expect(isInProgress).toBe(false);
   });
 
   it('allows trigger when status is null (never triggered)', () => {
-    const currentStatus = null;
+    const currentStatus: string | null = null;
     const isInProgress = currentStatus === 'pending' || currentStatus === 'running';
     expect(isInProgress).toBe(false);
   });

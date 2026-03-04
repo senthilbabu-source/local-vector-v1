@@ -15,7 +15,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createServiceRoleClient } from '@/lib/supabase/server';
-import type { Database } from '@/lib/supabase/database.types';
+import type { Database, Json } from '@/lib/supabase/database.types';
 import {
   auditLocation,
   type DetectedHallucination,
@@ -203,7 +203,7 @@ async function _runInlineAuditImpl(handle: { logId: string | null; startedAt: nu
 
         const { data: membershipRow } = await supabase
           .from('memberships')
-          .select('users(email)')
+          .select('users!user_id(email)')
           .eq('org_id', org.id)
           .eq('role', 'owner')
           .limit(1)
@@ -310,6 +310,6 @@ async function _runInlineAuditImpl(handle: { logId: string | null; startedAt: nu
   }
 
   console.log('[cron-audit] Run complete:', summary);
-  await logCronComplete(handle, summary as unknown as Record<string, unknown>);
+  await logCronComplete(handle, summary as unknown as Json);
   return NextResponse.json(summary);
 }

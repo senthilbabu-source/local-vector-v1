@@ -7,7 +7,7 @@
 
 import * as Sentry from '@sentry/nextjs';
 import type { SupabaseClient } from '@supabase/supabase-js';
-import type { Database } from '@/lib/supabase/database.types';
+import type { Database, Json } from '@/lib/supabase/database.types';
 import { planSatisfies } from '@/lib/plan-enforcer';
 import { detectCitationSources } from './citation-source-detector';
 import { computeAuthorityScore, getVelocityLabel, countActivePlatforms, countSameAsUrls } from './entity-authority-scorer';
@@ -208,11 +208,11 @@ export async function runAuthorityMapping(
           tier1_count: tierBreakdown.tier1,
           tier2_count: tierBreakdown.tier2,
           tier3_count: tierBreakdown.tier3,
-          sameas_gaps: sameAsGaps as unknown as Record<string, unknown>,
+          sameas_gaps: sameAsGaps as unknown as Json,
           sameas_count: sameAsCount,
           citation_velocity: velocity,
           velocity_label: getVelocityLabel(velocity),
-          recommendations: recommendations as unknown as Record<string, unknown>,
+          recommendations: recommendations as unknown as Json,
           snapshot_at: now,
           last_run_at: now,
         },

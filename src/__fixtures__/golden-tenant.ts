@@ -1220,6 +1220,7 @@ export const MOCK_HALLUCINATION_ROWS: HallucinationAuditRow[] = [
     propagation_events: null,
     detected_at: '2026-02-25T14:30:00Z',
     created_at: '2026-02-25T14:30:00Z',
+    corrected_at: null,
     correction_query: null,
     verifying_since: null,
     follow_up_checked_at: null,
@@ -1245,6 +1246,7 @@ export const MOCK_HALLUCINATION_ROWS: HallucinationAuditRow[] = [
     propagation_events: null,
     detected_at: '2026-02-24T10:00:00Z',
     created_at: '2026-02-24T10:00:00Z',
+    corrected_at: null,
     correction_query: null,
     verifying_since: null,
     follow_up_checked_at: null,
@@ -1270,6 +1272,7 @@ export const MOCK_HALLUCINATION_ROWS: HallucinationAuditRow[] = [
     propagation_events: null,
     detected_at: '2026-02-23T09:00:00Z',
     created_at: '2026-02-23T09:00:00Z',
+    corrected_at: null,
     correction_query: null,
     verifying_since: null,
     follow_up_checked_at: null,
@@ -1295,6 +1298,7 @@ export const MOCK_HALLUCINATION_ROWS: HallucinationAuditRow[] = [
     propagation_events: null,
     detected_at: '2026-02-22T11:00:00Z',
     created_at: '2026-02-22T11:00:00Z',
+    corrected_at: null,
     correction_query: null,
     verifying_since: null,
     follow_up_checked_at: null,
@@ -1320,6 +1324,7 @@ export const MOCK_HALLUCINATION_ROWS: HallucinationAuditRow[] = [
     propagation_events: null,
     detected_at: '2026-02-21T16:00:00Z',
     created_at: '2026-02-21T16:00:00Z',
+    corrected_at: null,
     correction_query: null,
     verifying_since: null,
     follow_up_checked_at: null,
@@ -1345,6 +1350,7 @@ export const MOCK_HALLUCINATION_ROWS: HallucinationAuditRow[] = [
     propagation_events: null,
     detected_at: '2026-02-20T08:00:00Z',
     created_at: '2026-02-20T08:00:00Z',
+    corrected_at: null,
     correction_query: null,
     verifying_since: null,
     follow_up_checked_at: null,
@@ -2062,7 +2068,7 @@ export const MOCK_VOICE_QUERIES: VoiceQuery[] = [
     location_id: 'b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
     org_id: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
     query_text: 'Hey Google, where can I get hookah near me?',
-    query_category: 'near_me',
+    query_category: 'discovery',
     query_mode: 'voice',
     is_system_seeded: true,
     is_active: true,
@@ -2156,42 +2162,48 @@ export const MOCK_VOICE_QUERIES: VoiceQuery[] = [
 ];
 
 export const MOCK_VOICE_CONTENT_SCORE: VoiceContentScore = {
-  total: 68,
-  direct_answer: 22,
-  local_specificity: 18,
-  action_language: 15,
-  spoken_length: 13,
+  overall_score: 68,
+  avg_sentence_words: 14,
+  direct_answer_score: 22,
+  local_specificity_score: 18,
+  action_language_score: 15,
+  spoken_length_score: 13,
   issues: [
-    { type: 'low_action_language', severity: 'warning', message: 'Content lacks action verbs for voice commands' },
-    { type: 'too_long', severity: 'info', message: 'Content exceeds ideal spoken length (150 words)' },
+    { type: 'passive_voice_heavy', severity: 'warning', description: 'Content lacks action verbs for voice commands', fix: 'Add direct action language like "call", "visit", or "reserve"' },
+    { type: 'too_long', severity: 'info', description: 'Content exceeds ideal spoken length (150 words)', fix: 'Trim content to under 150 words for optimal voice delivery' },
   ],
 };
 
 export const MOCK_SPOKEN_PREVIEW: SpokenAnswerPreview = {
-  cleaned_text: 'Charcoal N Chill is a hookah lounge and Mediterranean restaurant located at 11950 Jones Bridge Road Suite 103 in Alpharetta Georgia. They offer specialty hookahs, Mediterranean small plates, and craft cocktails. Open Monday through Thursday from 4 PM to midnight, and Friday through Sunday from 2 PM to 2 AM. Call them at 678-555-0199 to reserve a table.',
+  content: 'Charcoal N Chill is a hookah lounge and Mediterranean restaurant located at 11950 Jones Bridge Road Suite 103 in Alpharetta Georgia. They offer specialty hookahs, Mediterranean small plates, and craft cocktails. Open Monday through Thursday from 4 PM to midnight, and Friday through Sunday from 2 PM to 2 AM. Call them at 678-555-0199 to reserve a table.',
+  cleaned_content: 'Charcoal N Chill is a hookah lounge and Mediterranean restaurant located at 11950 Jones Bridge Road Suite 103 in Alpharetta Georgia. They offer specialty hookahs, Mediterranean small plates, and craft cocktails. Open Monday through Thursday from 4 PM to midnight, and Friday through Sunday from 2 PM to 2 AM. Call them at 678-555-0199 to reserve a table.',
   word_count: 55,
-  estimated_seconds: 22,
-  voice_ready: true,
-  score: MOCK_VOICE_CONTENT_SCORE,
+  estimated_spoken_seconds: 22,
+  is_voice_ready: true,
+  issues: MOCK_VOICE_CONTENT_SCORE.issues,
+  reading_grade_level: 8,
 };
 
 export const MOCK_LLMS_TXT: LlmsTxtContent = {
   standard: '# Charcoal N Chill\n> Hookah lounge and Mediterranean restaurant in Alpharetta, GA\n\n## Location\n11950 Jones Bridge Road Ste 103, Alpharetta, GA 30005\n\n## Hours\nMonday–Thursday: 4 PM – 12 AM\nFriday–Sunday: 2 PM – 2 AM\n\n## Contact\nPhone: (678) 555-0199',
   full: '# Charcoal N Chill\n> Hookah lounge and Mediterranean restaurant in Alpharetta, GA\n\n## Location\n11950 Jones Bridge Road Ste 103, Alpharetta, GA 30005\n\n## Hours\nMonday–Thursday: 4 PM – 12 AM\nFriday–Sunday: 2 PM – 2 AM\n\n## Contact\nPhone: (678) 555-0199\n\n## Menu Highlights\nSpecialty hookahs, Mediterranean small plates, craft cocktails\n\n## What Customers Say\nGreat atmosphere, excellent hookah selection, friendly staff',
   generated_at: '2026-03-01T06:00:00Z',
-  version: '1.0',
+  version: 1,
 };
 
 export const MOCK_CRAWLER_AUDIT: AICrawlerAuditResult = {
-  crawlers_checked: 10,
-  allowed: 6,
-  blocked: 2,
-  not_specified: 2,
-  health_pct: 60,
-  details: [
-    { name: 'GPTBot', user_agent: 'GPTBot', used_by: 'ChatGPT + SearchGPT', impact: 'critical', status: 'allowed' },
-    { name: 'PerplexityBot', user_agent: 'PerplexityBot', used_by: 'Perplexity AI', impact: 'critical', status: 'allowed' },
-    { name: 'Google-Extended', user_agent: 'Google-Extended', used_by: 'Gemini + AI Overviews', impact: 'critical', status: 'allowed' },
+  website_url: 'https://charcoalnchill.com',
+  robots_txt_found: true,
+  robots_txt_url: 'https://charcoalnchill.com/robots.txt',
+  overall_health: 'partial',
+  blocked_count: 2,
+  allowed_count: 6,
+  missing_count: 2,
+  last_checked_at: '2026-03-01T06:00:00Z',
+  crawlers: [
+    { name: 'GPTBot', user_agent: 'GPTBot', used_by: 'ChatGPT + SearchGPT', impact: 'high', status: 'allowed' },
+    { name: 'PerplexityBot', user_agent: 'PerplexityBot', used_by: 'Perplexity AI', impact: 'high', status: 'allowed' },
+    { name: 'Google-Extended', user_agent: 'Google-Extended', used_by: 'Gemini + AI Overviews', impact: 'high', status: 'allowed' },
     { name: 'ClaudeBot', user_agent: 'ClaudeBot', used_by: 'Claude.ai', impact: 'high', status: 'allowed' },
     { name: 'anthropic-ai', user_agent: 'anthropic-ai', used_by: 'Claude API training', impact: 'medium', status: 'blocked' },
     { name: 'ChatGPT-User', user_agent: 'ChatGPT-User', used_by: 'ChatGPT live browsing', impact: 'high', status: 'allowed' },
@@ -2203,30 +2215,21 @@ export const MOCK_CRAWLER_AUDIT: AICrawlerAuditResult = {
 };
 
 export const MOCK_VAIO_PROFILE: VAIOProfile = {
-  id: 'vaio-001',
   location_id: 'b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
   org_id: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
   voice_readiness_score: 48,
-  llms_txt_standard: MOCK_LLMS_TXT.standard,
-  llms_txt_full: MOCK_LLMS_TXT.full,
-  llms_txt_generated_at: '2026-03-01T06:00:00Z',
   llms_txt_status: 'generated',
-  crawler_audit: MOCK_CRAWLER_AUDIT,
-  voice_query_stats: {
-    total_voice_queries: 8,
-    with_citation: 3,
-    zero_citation: 5,
-    avg_citation_rate: 0.375,
-  },
-  gaps: [
-    { category: 'action', query_count: 2, zero_citation_count: 2, consecutive_zero_weeks: 3 },
+  llms_txt_generated_at: '2026-03-01T06:00:00Z',
+  crawler_health: MOCK_CRAWLER_AUDIT,
+  voice_queries_tracked: 8,
+  voice_citation_rate: 0.375,
+  voice_gaps: [
+    { category: 'action', queries: ['Book a table at Charcoal N Chill', 'Reserve hookah at Charcoal N Chill'], weeks_at_zero: 3, suggested_content_type: 'faq_page', suggested_query_answer: 'You can book a table at Charcoal N Chill by calling 678-555-0199 or visiting our website.' },
   ],
-  issues: [
-    { type: 'low_action_language', severity: 'warning', message: 'Content lacks action verbs for voice commands' },
+  top_voice_score_issues: [
+    { type: 'passive_voice_heavy', severity: 'warning', description: 'Content lacks action verbs for voice commands', fix: 'Add direct action language like "call", "visit", or "reserve"' },
   ],
   last_run_at: '2026-03-01T06:00:00Z',
-  created_at: '2026-03-01T06:00:00Z',
-  updated_at: '2026-03-01T06:00:00Z',
 };
 
 // ── Sprint 110: AI Answer Simulation Sandbox ──────────────────────────────

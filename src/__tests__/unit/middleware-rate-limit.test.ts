@@ -9,8 +9,8 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import type { RateLimitResult } from '@/lib/rate-limit/types';
 
 // Mock the rate limiter
-const mockCheckRateLimit = vi.fn<() => Promise<RateLimitResult>>();
-const mockGetRateLimitHeaders = vi.fn<(result: RateLimitResult) => Record<string, string>>();
+const mockCheckRateLimit = vi.fn<(...args: unknown[]) => Promise<RateLimitResult>>();
+const mockGetRateLimitHeaders = vi.fn<(...args: unknown[]) => Record<string, string>>();
 
 vi.mock('@/lib/rate-limit/rate-limiter', () => ({
   checkRateLimit: (...args: unknown[]) => mockCheckRateLimit(...args),

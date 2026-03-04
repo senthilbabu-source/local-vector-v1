@@ -18,6 +18,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getSafeAuthContext } from '@/lib/auth';
 import { createClient } from '@/lib/supabase/server';
 import { detectDiscrepancies, type VerificationResult } from '@/lib/integrations/detect-discrepancies';
+import type { Json } from '@/lib/supabase/database.types';
 import * as Sentry from '@sentry/nextjs';
 
 const BING_LOCAL_SEARCH = 'https://dev.virtualearth.net/REST/v1/LocalSearch/';
@@ -234,7 +235,7 @@ async function upsertVerification(
       location_id: locationId,
       platform: 'bing',
       verified_at: result.verifiedAt,
-      verification_result: result as unknown as Record<string, unknown>,
+      verification_result: result as unknown as Json,
       has_discrepancy: result.discrepancies.length > 0,
     },
     { onConflict: 'location_id,platform' },

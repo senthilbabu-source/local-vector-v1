@@ -6,7 +6,7 @@
  */
 
 import type { SupabaseClient } from '@supabase/supabase-js';
-import type { Database } from '@/lib/supabase/database.types';
+import type { Database, Json } from '@/lib/supabase/database.types';
 import type { MemberRole } from '@/lib/membership/types';
 import type { ActivityLogEntry, ActivityLogPage, ActivityLogParams } from './types';
 
@@ -38,7 +38,7 @@ export async function logActivity(
         target_user_id: entry.target_user_id,
         target_email: entry.target_email,
         target_role: entry.target_role,
-        metadata: entry.metadata,
+        metadata: entry.metadata as unknown as Json,
       })
       .select()
       .single();
