@@ -149,3 +149,44 @@ export async function updateHallucinationStatus(
   revalidatePath('/dashboard/hallucinations');
   return { success: true };
 }
+
+// ---------------------------------------------------------------------------
+// P8-FIX-37: updateHijackingAlertStatus
+// ---------------------------------------------------------------------------
+
+export type HijackingStatus = 'new' | 'acknowledged' | 'resolved';
+
+/**
+ * Server Action: update the `status` of a hijacking alert row.
+ *
+ * SECURITY: RLS policy `hijacking_alerts_update_own` on `hijacking_alerts`
+ * ensures only rows belonging to the authenticated user's org can be updated.
+ */
+export async function updateHijackingAlertStatus(
+  alertId: string,
+  status: HijackingStatus,
+): Promise<ActionResult> {
+  const ctx = await getSafeAuthContext();
+  if (!ctx?.orgId) {
+    return { success: false, error: 'Unauthorized' };
+  }
+
+  const supabase = await createClient();
+
+  const resolvedAt = status === 'resolved' ? new Date().toISOString() : null;
+
+  const { error } = await supabase
+    .from('hijacking_alerts')
+    .update({
+      status,
+      ...(resolvedAt ? { resolved_at: resolvedAt } : {}),
+    })
+    .eq('id', alertId);
+
+  if (error) {
+    return { success: false, error: error.message };
+  }
+
+  revalidatePath('/dashboard/hallucinations');
+  return { success: true };
+}

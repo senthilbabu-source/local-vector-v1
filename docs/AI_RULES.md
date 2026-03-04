@@ -4057,3 +4057,45 @@ SOV page shows "Complete your profile" banner when `hours_data` or `amenities` a
 - `src/__fixtures__/golden-tenant.ts` — `MOCK_QUERY_GAPS`, `MOCK_DRAFT_TRIGGERS`
 
 ---
+
+## §195. Competitive Hijacking Alerts (P8-FIX-37, 2026-03-03)
+
+### Architecture Rules
+
+1. **Three hijack types:** `competitor_citation` (competitor appears instead of us, severity: high), `address_mix` (wrong address in AI response, severity: critical), `attribute_confusion` (competitor features attributed to our business, severity: medium).
+
+2. **Pure detection engine:** `lib/hijack/hijacking-detector.ts` exports pure functions — `detectHijacking()`, `detectCompetitorCitation()`, `detectAddressMix()`, `detectAttributeConfusion()`, `classifySeverity()`, `extractCompetitorName()`. No I/O, no side effects.
+
+3. **Data sources:** Detection reads from `sov_model_results` (cited boolean, ai_response) and `sov_evaluations` (mentioned_competitors JSONB). Does NOT use `aiDescriptions`/`aiMistakes` params from sprint prompt — those don't exist in real schema.
+
+4. **Schema adaptation:** Sprint prompt assumed `user_id` + `scan_id` columns. Real table uses `org_id` (org isolation) + `location_id` (multi-location). RLS via `current_user_org_id()` — standard 4-policy pattern.
+
+5. **Plan gate:** Agency-only. `canDetectHijacking()` in `lib/plan-enforcer.ts`. Non-agency orgs never see hijacking alerts section.
+
+6. **Cron:** `app/api/cron/hijack-detection/route.ts` runs Monday 9 AM UTC (2 hours after SOV cron). Kill switch: `STOP_HIJACK_DETECTION_CRON`. Processes only agency orgs.
+
+7. **Email:** `sendHijackingAlert()` in `lib/email.ts`. Critical severity triggers immediate email. No-ops without `RESEND_API_KEY`.
+
+8. **UI:** HijackingAlertsSection rendered at bottom of AI Mistakes page (`hallucinations/page.tsx`). Gated via `planSatisfies(userPlan, 'agency')`. HijackingAlertCard shows severity badge, engine+competitor headline, expandable evidence, actions (Acknowledge/Resolve/Fix Steps). HijackingFixModal shows per-type fix guidance.
+
+9. **Status transitions:** `new` → `acknowledged` → `resolved`. Server action `updateHijackingAlertStatus()` in `app/dashboard/actions.ts`. Sets `resolved_at` on resolve.
+
+### Test Coverage
+
+- 24 Vitest unit tests: `src/__tests__/unit/hijacking-detector.test.ts` (classifySeverity 3, detectCompetitorCitation 3, detectAddressMix 4, detectAttributeConfusion 4, extractCompetitorName 3, detectHijacking 7)
+- 7 Vitest unit tests: `src/__tests__/unit/hijack-detection-cron.test.ts` (auth guard 2, kill switch 1, processing 2, email 1, empty data 1)
+- 9 Vitest UI tests: `src/__tests__/unit/hijacking-alert-card.test.tsx` (severity 2, engine 1, competitor 1, buttons 2, modal 2, evidence 1)
+
+### Key Files
+
+- `lib/hijack/hijacking-detector.ts` — pure detection functions
+- `app/api/cron/hijack-detection/route.ts` — weekly Monday cron (26th cron)
+- `lib/email.ts` — `sendHijackingAlert()` function
+- `lib/plan-enforcer.ts` — `canDetectHijacking()` gate
+- `app/dashboard/actions.ts` — `updateHijackingAlertStatus()` server action
+- `app/dashboard/hallucinations/_components/HijackingAlertCard.tsx` — triage card
+- `app/dashboard/hallucinations/_components/HijackingFixModal.tsx` — fix guidance modal
+- `app/dashboard/hallucinations/_components/HijackingAlertsSection.tsx` — section wrapper
+- `supabase/migrations/20260428200001_hijacking_alerts.sql` — table + RLS + indexes
+
+---

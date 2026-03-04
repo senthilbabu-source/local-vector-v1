@@ -308,6 +308,18 @@ export function canManageApiKeys(plan: PlanTier): boolean {
 }
 
 // ---------------------------------------------------------------------------
+// P8-FIX-37 — Competitive Hijacking Detection
+// ---------------------------------------------------------------------------
+
+/**
+ * Hijacking Alerts — detect when AI confuses business with competitor.
+ * Agency-only: only Agency tier gets hijacking detection and alerts.
+ */
+export function canDetectHijacking(plan: PlanTier): boolean {
+  return plan === 'agency';
+}
+
+// ---------------------------------------------------------------------------
 // Sprint 111 — Org Membership Foundation
 // ---------------------------------------------------------------------------
 

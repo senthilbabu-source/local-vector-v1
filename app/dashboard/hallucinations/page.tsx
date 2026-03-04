@@ -2,7 +2,7 @@ import { redirect } from 'next/navigation';
 import { getSafeAuthContext } from '@/lib/auth';
 import { createClient } from '@/lib/supabase/server';
 import { buildTruthAuditResult, type EngineScore } from '@/lib/services/truth-audit.service';
-import { canExportData, type PlanTier } from '@/lib/plan-enforcer';
+import { canExportData, planSatisfies, type PlanTier } from '@/lib/plan-enforcer';
 import type { EvaluationEngine } from '@/lib/schemas/evaluations';
 import EvaluationCard, { type EngineEval } from './_components/EvaluationCard';
 import TruthScoreCard from './_components/TruthScoreCard';
@@ -15,6 +15,7 @@ import type { CorrectionStatus } from '../actions';
 import type { HallucinationRow } from '@/lib/data/dashboard';
 import TriageSwimlane from './_components/TriageSwimlane';
 import HallucinationsPageHeader from './_components/HallucinationsPageHeader';
+import HijackingAlertsSection from './_components/HijackingAlertsSection';
 
 export const metadata = { title: 'AI Mistakes | LocalVector.ai' };
 
@@ -334,6 +335,11 @@ export default async function HallucinationsPage() {
           </section>
         );
       })()}
+
+      {/* ── P8-FIX-37: Hijacking Alerts (Agency only) ─────────────────────── */}
+      {planSatisfies(userPlan, 'agency') && (
+        <HijackingAlertsSection />
+      )}
 
     </div>
   );

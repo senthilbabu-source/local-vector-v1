@@ -4,6 +4,39 @@
 
 ---
 
+## 2026-03-03 — Competitive Hijacking Alerts (P8-FIX-37, §195)
+
+Detects when AI engines confuse a business with a competitor. Three hijack types: competitor_citation (high), address_mix (critical), attribute_confusion (medium). Agency-only feature. Weekly cron + email alerts + dashboard UI.
+
+### Schema Adaptation
+Sprint prompt assumed `user_id` + `scan_id`. Adapted to `org_id` (org isolation) + `location_id` (multi-location). Detection reads from existing `sov_model_results` + `sov_evaluations` instead of non-existent `aiDescriptions`/`aiMistakes` params.
+
+### New Files (7)
+- **`supabase/migrations/20260428200001_hijacking_alerts.sql`** — Table + RLS (4 policies) + indexes.
+- **`lib/hijack/hijacking-detector.ts`** — Pure detection: `detectHijacking()`, `detectCompetitorCitation()`, `detectAddressMix()`, `detectAttributeConfusion()`, `classifySeverity()`, `extractCompetitorName()`.
+- **`app/api/cron/hijack-detection/route.ts`** — Weekly Monday 9 AM UTC cron (26th cron). Kill switch: `STOP_HIJACK_DETECTION_CRON`.
+- **`app/dashboard/hallucinations/_components/HijackingAlertCard.tsx`** — Triage card: severity badge, engine+competitor headline, expandable evidence, Acknowledge/Resolve/Fix Steps actions.
+- **`app/dashboard/hallucinations/_components/HijackingFixModal.tsx`** — Fix guidance modal with per-type steps (4 steps each).
+- **`app/dashboard/hallucinations/_components/HijackingAlertsSection.tsx`** — Server component: fetches+renders hijacking alerts.
+
+### Modified Files (8)
+- **`supabase/prod_schema.sql`** — Added `hijacking_alerts` table definition + RLS enablement.
+- **`lib/plan-enforcer.ts`** — Added `canDetectHijacking()` (agency-only gate).
+- **`lib/email.ts`** — Added `sendHijackingAlert()` (Resend, no-op without API key).
+- **`app/dashboard/actions.ts`** — Added `updateHijackingAlertStatus()` server action.
+- **`app/dashboard/hallucinations/page.tsx`** — Added HijackingAlertsSection (agency plan gate).
+- **`vercel.json`** — 26th cron entry.
+- **`.env.local.example`** — `STOP_HIJACK_DETECTION_CRON` documented.
+
+### Tests
+- 24 new unit tests (`hijacking-detector.test.ts`) — pure detection functions
+- 7 new unit tests (`hijack-detection-cron.test.ts`) — auth, kill switch, processing, email
+- 9 new UI tests (`hijacking-alert-card.test.tsx`) — severity, engine, modal, actions
+- Regressions fixed: cron count 25→26 (2 tests), RLS audit (prod_schema.sql)
+- 0 regressions. **5907 tests passing, 390 files.** AI_RULES §195.
+
+---
+
 ## 2026-03-03 — Content Brief Generator — Production Hardening (P8-FIX-34, §194)
 
 Content brief prioritization module, quality gate with graded thresholds, and GapAlertCard test coverage. Wires AEO quality scoring into the manual brief generation pipeline.

@@ -847,6 +847,31 @@ CREATE TABLE IF NOT EXISTS "public"."pending_gbp_imports" (
 ALTER TABLE "public"."pending_gbp_imports" OWNER TO "postgres";
 
 
+CREATE TABLE IF NOT EXISTS "public"."hijacking_alerts" (
+    "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
+    "org_id" "uuid" NOT NULL,
+    "location_id" "uuid" NOT NULL,
+    "engine" "text" NOT NULL,
+    "query_text" "text" NOT NULL,
+    "hijack_type" "text" NOT NULL,
+    "our_business" "text" NOT NULL,
+    "competitor_name" "text" NOT NULL,
+    "evidence_text" "text" NOT NULL,
+    "severity" "text" DEFAULT 'medium'::"text" NOT NULL,
+    "status" "text" DEFAULT 'new'::"text" NOT NULL,
+    "detected_at" timestamp with time zone DEFAULT "now"() NOT NULL,
+    "resolved_at" timestamp with time zone,
+    "email_sent_at" timestamp with time zone,
+    "created_at" timestamp with time zone DEFAULT "now"() NOT NULL,
+    CONSTRAINT "hijacking_alerts_hijack_type_check" CHECK (("hijack_type" = ANY (ARRAY['attribute_confusion'::"text", 'competitor_citation'::"text", 'address_mix'::"text"]))),
+    CONSTRAINT "hijacking_alerts_severity_check" CHECK (("severity" = ANY (ARRAY['critical'::"text", 'high'::"text", 'medium'::"text"]))),
+    CONSTRAINT "hijacking_alerts_status_check" CHECK (("status" = ANY (ARRAY['new'::"text", 'acknowledged'::"text", 'resolved'::"text"])))
+);
+
+
+ALTER TABLE "public"."hijacking_alerts" OWNER TO "postgres";
+
+
 CREATE TABLE IF NOT EXISTS "public"."sov_model_results" (
     "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
     "org_id" "uuid" NOT NULL,
@@ -1913,6 +1938,9 @@ ALTER TABLE "public"."entity_checks" ENABLE ROW LEVEL SECURITY;
 
 
 ALTER TABLE "public"."google_oauth_tokens" ENABLE ROW LEVEL SECURITY;
+
+
+ALTER TABLE "public"."hijacking_alerts" ENABLE ROW LEVEL SECURITY;
 
 
 ALTER TABLE "public"."listings" ENABLE ROW LEVEL SECURITY;

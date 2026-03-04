@@ -511,6 +511,80 @@ export async function sendCorrectionFollowUpAlert(
 }
 
 // ---------------------------------------------------------------------------
+// P8-FIX-37: Competitive Hijacking Alert Email
+// ---------------------------------------------------------------------------
+
+export interface HijackingAlertPayload {
+  to: string;
+  businessName: string;
+  competitorName: string;
+  hijackType: 'attribute_confusion' | 'competitor_citation' | 'address_mix';
+  engine: string;
+  queryCount: number;
+  dashboardUrl: string;
+}
+
+const HIJACK_TYPE_LABELS: Record<string, string> = {
+  competitor_citation: 'appearing in AI results',
+  address_mix: 'causing address confusion',
+  attribute_confusion: 'being confused with your business',
+};
+
+/**
+ * Sends a hijacking alert email when a competitor intercepts AI results.
+ *
+ * No-ops silently when RESEND_API_KEY is not configured.
+ * Errors are NOT swallowed — callers should wrap with .catch().
+ */
+export async function sendHijackingAlert(
+  payload: HijackingAlertPayload,
+): Promise<void> {
+  if (!process.env.RESEND_API_KEY) {
+    console.log(
+      `[email] RESEND_API_KEY absent — skipping hijacking alert for ${payload.businessName}`,
+    );
+    return;
+  }
+
+  const typeLabel = HIJACK_TYPE_LABELS[payload.hijackType] ?? 'intercepting AI results';
+  const subject = `⚠️ ${payload.competitorName} is ${typeLabel} meant for ${payload.businessName}`;
+
+  await getResend().emails.send({
+    from: 'LocalVector Alerts <alerts@localvector.ai>',
+    to: payload.to,
+    subject,
+    html: `
+      <div style="font-family:sans-serif;max-width:560px;margin:0 auto">
+        <h2 style="color:#dc2626">Competitor Hijacking Detected</h2>
+        <p>
+          <strong>${payload.competitorName}</strong> is ${typeLabel}
+          for <strong>${payload.businessName}</strong> on ${payload.engine}.
+        </p>
+        <div style="background:#fef2f2;border-left:4px solid #dc2626;padding:12px 16px;margin:16px 0;border-radius:4px">
+          <strong>Affected queries:</strong> ${payload.queryCount} query${payload.queryCount === 1 ? '' : 'ies'} impacted
+        </div>
+        <p>
+          This means AI users searching for your business may be directed to
+          a competitor instead. We recommend reviewing and taking corrective action.
+        </p>
+        <p>
+          <a
+            href="${payload.dashboardUrl}"
+            style="display:inline-block;background:#4f46e5;color:#fff;padding:12px 24px;border-radius:6px;text-decoration:none;font-weight:600"
+          >
+            View &amp; Fix on Dashboard →
+          </a>
+        </p>
+        <p style="color:#6b7280;font-size:12px;margin-top:24px">
+          You're receiving this because you have hijacking alerts enabled
+          for ${payload.businessName} on LocalVector.ai.
+        </p>
+      </div>
+    `,
+  });
+}
+
+// ---------------------------------------------------------------------------
 // Team Invitation Email (Sprint 112) — React Email template
 // ---------------------------------------------------------------------------
 
