@@ -65,7 +65,7 @@ test.describe('Team Members Page (Sprint 111)', () => {
   test('sidebar shows Team nav item', async ({ page }) => {
     await page.goto('/dashboard');
     await expect(
-      page.getByRole('heading', { name: /Dashboard/i, level: 1 })
+      page.getByRole('heading', { name: /Welcome/i, level: 1 })
     ).toBeVisible({ timeout: 10_000 });
 
     // Look for Team link in sidebar
@@ -76,7 +76,7 @@ test.describe('Team Members Page (Sprint 111)', () => {
   test('team nav link navigates to /dashboard/team', async ({ page }) => {
     await page.goto('/dashboard');
     await expect(
-      page.getByRole('heading', { name: /Dashboard/i, level: 1 })
+      page.getByRole('heading', { name: /Welcome/i, level: 1 })
     ).toBeVisible({ timeout: 10_000 });
 
     const teamLink = page.locator('a[href="/dashboard/team"]');

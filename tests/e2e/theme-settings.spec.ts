@@ -6,9 +6,12 @@
  */
 
 import { test, expect } from '@playwright/test';
+import path from 'path';
+
+const DEV_USER_STATE = path.join(__dirname, '../../.playwright/dev-user.json');
 
 test.describe('Theme Settings', () => {
-  test.use({ storageState: '.playwright/dev-session.json' });
+  test.use({ storageState: DEV_USER_STATE });
 
   test('Agency plan: shows full theme editor', async ({ page }) => {
     await page.goto('/dashboard/settings/theme');

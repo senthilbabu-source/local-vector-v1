@@ -27,13 +27,16 @@ import {
   getCurrentPlan,
   getSubscriptionDetails,
   getCreditsSummary,
+  getPaymentMethod,
   type CurrentPlanInfo,
   type SubscriptionDetails,
   type CreditsSummary,
+  type PaymentMethodInfo,
 } from './actions';
 import SeatManagementCard from './_components/SeatManagementCard';
 import SeatUsageCard from './_components/SeatUsageCard';
 import PlanComparisonTable from './_components/PlanComparisonTable';
+import InvoiceHistoryCard from './_components/InvoiceHistoryCard';
 import ActivityLogTable from '@/app/dashboard/team/_components/ActivityLogTable';
 import { getPlanDisplayName } from '@/lib/plan-display-names';
 
@@ -159,7 +162,7 @@ function CurrentPlanBadge({ planInfo }: { planInfo: CurrentPlanInfo | null }) {
   return (
     <div className="flex items-center justify-center gap-3">
       <span className="text-sm text-slate-400">Current plan:</span>
-      <span className="rounded-full bg-electric-indigo/15 px-3 py-0.5 text-xs font-semibold text-electric-indigo">
+      <span className="rounded-full bg-indigo-500/15 px-3 py-0.5 text-xs font-semibold text-indigo-400">
         {planLabel}
       </span>
       {isActive && (
@@ -337,6 +340,7 @@ export default function BillingPage() {
   const [planInfo, setPlanInfo] = useState<CurrentPlanInfo | null>(null);
   const [subDetails, setSubDetails] = useState<SubscriptionDetails | null>(null);
   const [creditsSummary, setCreditsSummary] = useState<CreditsSummary | null>(null);
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethodInfo | null>(null);
 
   useEffect(() => {
     getCurrentPlan()
@@ -353,6 +357,11 @@ export default function BillingPage() {
       .then(setCreditsSummary)
       .catch((err) => {
         Sentry.captureException(err, { tags: { component: 'billing-credits', sprint: 'P3-FIX-15' } });
+      });
+    getPaymentMethod()
+      .then(setPaymentMethod)
+      .catch((err) => {
+        Sentry.captureException(err, { tags: { component: 'billing-payment-method', sprint: '203' } });
       });
   }, []);
 
@@ -425,14 +434,36 @@ export default function BillingPage() {
                 })}
               </p>
             </div>
+            {/* §203: Payment method on file */}
+            {paymentMethod && (
+              <div>
+                <span className="text-slate-400">Payment method</span>
+                <p className="text-slate-200 capitalize">
+                  {paymentMethod.brand} ending in {paymentMethod.last4}
+                  <span className="ml-2 text-slate-500 text-xs">
+                    Exp {paymentMethod.expMonth}/{paymentMethod.expYear}
+                  </span>
+                </p>
+              </div>
+            )}
           </div>
+          {/* §203: Enhanced cancellation warning with exact end date */}
           {subDetails.cancelAtPeriodEnd && (
-            <p className="mt-3 text-xs text-alert-amber">
-              Your subscription will downgrade to Free at the end of the current period.
-            </p>
+            <div className="mt-3 rounded-lg border border-alert-amber/20 bg-alert-amber/5 p-3">
+              <p className="text-xs text-alert-amber font-semibold">Cancellation Scheduled</p>
+              <p className="text-xs text-slate-400 mt-1">
+                Your subscription will end on{' '}
+                {new Date(subDetails.currentPeriodEnd).toLocaleDateString('en-US', {
+                  month: 'long', day: 'numeric', year: 'numeric',
+                })}. You retain full access until then.
+              </p>
+            </div>
           )}
         </section>
       )}
+
+      {/* §203: Invoice History */}
+      <InvoiceHistoryCard />
 
       {/* P3-FIX-15: Credits Usage */}
       {creditsSummary?.balance && (

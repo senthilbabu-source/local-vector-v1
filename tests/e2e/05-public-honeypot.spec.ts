@@ -44,13 +44,14 @@ test.describe('05 — Public Honeypot: /m/charcoal-n-chill', () => {
     // in the Menu schema section, which would cause a strict mode violation.
     await expect(page.getByRole('heading', { name: 'Charcoal N Chill', level: 1 })).toBeVisible();
 
-    // Category headings from seed.sql §5.
-    await expect(page.getByText('Appetizers')).toBeVisible();
-    await expect(page.getByText('Grill')).toBeVisible();
+    // Category headings from seed.sql §5. Use .first() to avoid strict mode
+    // violations if text appears in multiple elements (heading + JSON-LD or menu items).
+    await expect(page.getByText('Appetizers').first()).toBeVisible();
+    await expect(page.getByText('Grill').first()).toBeVisible();
 
-    // Item names from seed.sql §6.
-    await expect(page.getByText('Chicken 65 (wet)')).toBeVisible();
-    await expect(page.getByText('Lamb Chops')).toBeVisible();
+    // Item names from seed.sql §6 (153 real CNC items per §188).
+    await expect(page.getByText('Chicken 65 (wet)').first()).toBeVisible();
+    await expect(page.getByText('Lamb Chops').first()).toBeVisible();
 
     // AI-readable data endpoints footer (PublicMenuPage.tsx).
     await expect(page.getByText('AI-readable data endpoints')).toBeVisible();

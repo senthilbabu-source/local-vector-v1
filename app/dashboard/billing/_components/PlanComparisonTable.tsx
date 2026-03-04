@@ -42,7 +42,7 @@ export default function PlanComparisonTable({ currentPlan }: PlanComparisonTable
                 className={cn(
                   'px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider',
                   plan === currentPlan
-                    ? 'bg-electric-indigo/10 text-electric-indigo'
+                    ? 'bg-indigo-500/10 text-indigo-400'
                     : 'text-slate-400'
                 )}
                 data-testid={`plan-column-${plan}`}
@@ -52,7 +52,7 @@ export default function PlanComparisonTable({ currentPlan }: PlanComparisonTable
                   {PLAN_PRICES[plan]}
                 </div>
                 {plan === currentPlan && (
-                  <div className="mt-1 inline-block rounded-full bg-electric-indigo/15 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-electric-indigo">
+                  <div className="mt-1 inline-block rounded-full bg-indigo-500/15 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-indigo-400">
                     Your Plan
                   </div>
                 )}

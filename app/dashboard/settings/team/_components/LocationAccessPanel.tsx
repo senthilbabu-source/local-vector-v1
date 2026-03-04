@@ -52,7 +52,7 @@ export default function LocationAccessPanel({
       case 'owner':
         return 'bg-yellow-500/10 text-yellow-400';
       case 'admin':
-        return 'bg-electric-indigo/10 text-electric-indigo';
+        return 'bg-indigo-500/10 text-indigo-400';
       default:
         return 'bg-slate-700 text-slate-300';
     }

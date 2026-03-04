@@ -38,8 +38,8 @@ test.describe('10 — AI Truth Audit', () => {
     // Should show "Truth Score" heading
     await expect(card.getByText('Truth Score')).toBeVisible();
 
-    // Should report 4 engines
-    await expect(card.getByText(/4 engines/)).toBeVisible();
+    // Should report 4 AI apps
+    await expect(card.getByText(/4 AI app/)).toBeVisible();
   });
 
   test('EngineComparisonGrid shows all 4 engines', async ({ page }) => {

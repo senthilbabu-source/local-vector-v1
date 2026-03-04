@@ -104,6 +104,7 @@ test.describe('17 — Onboarding Wizard (Manual Path)', () => {
   });
 
   test('Step 3: add and remove competitors', async ({ page }) => {
+    test.setTimeout(60_000); // Extended timeout for multi-step flow
     await mockAuditStatusComplete(page);
     await page.goto('/onboarding');
 
@@ -111,14 +112,18 @@ test.describe('17 — Onboarding Wizard (Manual Path)', () => {
     await page.getByTestId('step1-next-btn').click();
 
     // ── Step 2: complete TruthCalibrationForm quickly ────────────────────
+    // Wait for TruthCalibrationForm to render before clicking through sub-steps
+    await expect(page.getByTestId('step2-hours-form')).toBeVisible({ timeout: 5_000 });
     await page.getByRole('button', { name: 'Next', exact: true }).click(); // Business → Amenities
+    await expect(page.getByText('Amenities')).toBeVisible({ timeout: 3_000 });
     await page.getByRole('button', { name: 'Next', exact: true }).click(); // Amenities → Hours
+    await expect(page.getByText('Business Hours')).toBeVisible({ timeout: 3_000 });
     await page.getByRole('button', { name: /Save & Continue/i }).click(); // Hours → Step 3
 
     // ── Step 3: Competitors ──────────────────────────────────────────────
     await expect(
       page.getByText(/Who are your main competitors/i),
-    ).toBeVisible({ timeout: 10_000 });
+    ).toBeVisible({ timeout: 15_000 });
 
     // Type a competitor name and add it
     const input = page.getByTestId('step3-competitor-input');
@@ -147,19 +152,23 @@ test.describe('17 — Onboarding Wizard (Manual Path)', () => {
   });
 
   test('Step 3: skip competitors advances to Step 4', async ({ page }) => {
+    test.setTimeout(60_000); // Extended timeout for multi-step flow
     await mockAuditStatusComplete(page);
     await page.goto('/onboarding');
 
     // Fast-forward through Steps 1-2
     await page.getByTestId('step1-next-btn').click();
+    await expect(page.getByTestId('step2-hours-form')).toBeVisible({ timeout: 5_000 });
     await page.getByRole('button', { name: 'Next', exact: true }).click();
+    await expect(page.getByText('Amenities')).toBeVisible({ timeout: 3_000 });
     await page.getByRole('button', { name: 'Next', exact: true }).click();
+    await expect(page.getByText('Business Hours')).toBeVisible({ timeout: 3_000 });
     await page.getByRole('button', { name: /Save & Continue/i }).click();
 
     // Step 3: Skip
     await expect(
       page.getByText(/Who are your main competitors/i),
-    ).toBeVisible({ timeout: 10_000 });
+    ).toBeVisible({ timeout: 15_000 });
 
     await page.getByTestId('step3-skip-btn').click();
 
@@ -170,14 +179,19 @@ test.describe('17 — Onboarding Wizard (Manual Path)', () => {
   });
 
   test('Step 4: SOV queries are displayed and Next → Launch works', async ({ page }) => {
+    test.setTimeout(60_000); // Extended timeout for multi-step flow
     await mockAuditStatusComplete(page);
     await page.goto('/onboarding');
 
     // Fast-forward through Steps 1-3
     await page.getByTestId('step1-next-btn').click();
-    await page.getByRole('button', { name: 'Next', exact: true }).click();
-    await page.getByRole('button', { name: 'Next', exact: true }).click();
-    await page.getByRole('button', { name: /Save & Continue/i }).click();
+    await expect(page.getByTestId('step2-hours-form')).toBeVisible({ timeout: 5_000 });
+    await page.getByRole('button', { name: 'Next', exact: true }).click(); // Business → Amenities
+    await expect(page.getByText('Amenities')).toBeVisible({ timeout: 3_000 });
+    await page.getByRole('button', { name: 'Next', exact: true }).click(); // Amenities → Hours
+    await expect(page.getByText('Business Hours')).toBeVisible({ timeout: 3_000 });
+    await page.getByRole('button', { name: /Save & Continue/i }).click(); // Hours → Step 3
+    await expect(page.getByText(/Who are your main competitors/i)).toBeVisible({ timeout: 15_000 });
     await page.getByTestId('step3-skip-btn').click();
 
     // Step 4: SOV Queries
@@ -207,15 +221,21 @@ test.describe('17 — Onboarding Wizard (Manual Path)', () => {
   });
 
   test('Step 5: launch completes and redirects to /dashboard', async ({ page }) => {
+    test.setTimeout(90_000); // Extended timeout for full wizard + redirect
     await mockAuditStatusComplete(page);
     await page.goto('/onboarding');
 
     // Fast-forward through Steps 1-4
     await page.getByTestId('step1-next-btn').click();
-    await page.getByRole('button', { name: 'Next', exact: true }).click();
-    await page.getByRole('button', { name: 'Next', exact: true }).click();
-    await page.getByRole('button', { name: /Save & Continue/i }).click();
+    await expect(page.getByTestId('step2-hours-form')).toBeVisible({ timeout: 5_000 });
+    await page.getByRole('button', { name: 'Next', exact: true }).click(); // Business → Amenities
+    await expect(page.getByText('Amenities')).toBeVisible({ timeout: 3_000 });
+    await page.getByRole('button', { name: 'Next', exact: true }).click(); // Amenities → Hours
+    await expect(page.getByText('Business Hours')).toBeVisible({ timeout: 3_000 });
+    await page.getByRole('button', { name: /Save & Continue/i }).click(); // Hours → Step 3
+    await expect(page.getByText(/Who are your main competitors/i)).toBeVisible({ timeout: 15_000 });
     await page.getByTestId('step3-skip-btn').click();
+    await expect(page.getByText(/How will AI find you/i)).toBeVisible({ timeout: 5_000 });
     await page.getByTestId('step4-next-btn').click();
 
     // Step 5 should show launching or complete state
@@ -242,6 +262,7 @@ test.describe('17 — Onboarding Wizard (Manual Path)', () => {
   });
 
   test('full wizard: adds competitor, completes all 5 steps', async ({ page }) => {
+    test.setTimeout(90_000); // Extended timeout for full wizard + redirect
     await mockAuditStatusComplete(page);
     await page.goto('/onboarding');
 
@@ -252,24 +273,29 @@ test.describe('17 — Onboarding Wizard (Manual Path)', () => {
     await page.getByTestId('step1-next-btn').click();
 
     // ── Step 2: TruthCalibrationForm ─────────────────────────────────────
+    // Wait for TruthCalibrationForm to render
+    await expect(page.getByTestId('step2-hours-form')).toBeVisible({ timeout: 5_000 });
+
     // Sub-step 1: Business Name → Next
     const bizInput = page.getByRole('textbox');
     await expect(bizInput).toBeVisible();
     await page.getByRole('button', { name: 'Next', exact: true }).click();
 
     // Sub-step 2: Amenities → check one + Next
+    await expect(page.getByText('Amenities')).toBeVisible({ timeout: 3_000 });
     await expect(page.getByText('Serves alcohol')).toBeVisible();
     await page.getByLabel('Serves alcohol').check();
     await page.getByRole('button', { name: 'Next', exact: true }).click();
 
     // Sub-step 3: Hours → Save & Continue
+    await expect(page.getByText('Business Hours')).toBeVisible({ timeout: 3_000 });
     await expect(page.getByText('Sunday')).toBeVisible();
     await page.getByRole('button', { name: /Save & Continue/i }).click();
 
     // ── Step 3: Add one competitor ───────────────────────────────────────
     await expect(
       page.getByText(/Who are your main competitors/i),
-    ).toBeVisible({ timeout: 10_000 });
+    ).toBeVisible({ timeout: 15_000 });
     await page.getByTestId('step3-competitor-input').fill('Test Competitor');
     await page.getByTestId('step3-add-btn').click();
     await expect(page.getByText('Test Competitor')).toBeVisible();

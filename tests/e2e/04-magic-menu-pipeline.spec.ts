@@ -99,27 +99,24 @@ test.describe('04 — Magic Menu Pipeline: AI simulation → publish → modal',
     // ── 7. Publish ────────────────────────────────────────────────────────────
     await publishBtn.click();
 
-    // ── 8. Assert LinkInjectionModal appears ──────────────────────────────────
+    // ── 8. Assert DistributionPanel appears (replaced LinkInjectionModal in §198) ──
     // MenuWorkspace.tsx: after approveAndPublish() succeeds, onPublished() fires
-    // and renders LinkInjectionModal with the public slug.
-    const modal = page.getByRole('dialog', { name: 'Distribute to AI Engines' });
-    await expect(modal).toBeVisible({ timeout: 15_000 });
+    // and the view switches to 'published', rendering PublishedBanner + DistributionPanel.
+    const panel = page.getByTestId('distribution-panel');
+    await expect(panel).toBeVisible({ timeout: 15_000 });
 
-    // The modal displays the relative path "/m/{slug}" in a font-mono span.
-    const urlSpan = modal.locator('.font-mono');
+    // The panel displays the relative path "/m/{slug}" in a font-mono span.
+    const urlSection = page.getByTestId('distribution-url');
+    await expect(urlSection).toBeVisible();
+    const urlSpan = urlSection.locator('.font-mono');
     const menuPath = await urlSpan.textContent();
-    expect(menuPath).toMatch(/^\/m\//);
+    expect(menuPath).toMatch(/\/m\//);
 
-    // ── 9. Assert CTA elements are present ───────────────────────────────────
-    await expect(
-      modal.getByRole('link', { name: /Open Google Business Profile/i })
-    ).toBeVisible();
+    // ── 9. Assert DistributionPanel CTA elements are present ─────────────────
+    // Distribution Status header
+    await expect(panel.getByText('Distribution Status')).toBeVisible();
 
-    await expect(
-      modal.getByRole('button', { name: /I pasted this link into Google/i })
-    ).toBeVisible();
-
-    // Copy button is present.
-    await expect(modal.getByRole('button', { name: /Copy/i })).toBeVisible();
+    // Copy URL button is present
+    await expect(page.getByTestId('copy-url-button')).toBeVisible();
   });
 });

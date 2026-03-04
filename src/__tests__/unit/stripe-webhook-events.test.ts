@@ -33,6 +33,12 @@ vi.mock('@/lib/supabase/server', () => ({
   createServiceRoleClient: vi.fn(() => mockServiceClient),
 }));
 
+// §203: Mock webhook idempotency — always allow processing
+vi.mock('@/lib/stripe/webhook-idempotency', () => ({
+  isEventAlreadyProcessed: vi.fn().mockResolvedValue(false),
+  recordWebhookEvent: vi.fn().mockResolvedValue(undefined),
+}));
+
 // ---------------------------------------------------------------------------
 // Import under test (after mocks)
 // ---------------------------------------------------------------------------
@@ -48,7 +54,7 @@ const TEST_CUSTOMER_ID = 'cus_abc123def456';
 const TEST_SUBSCRIPTION_ID = 'sub_abc123def456';
 
 function mockStripeEvent(type: string, dataObject: Record<string, unknown>) {
-  return { type, data: { object: dataObject } } as unknown;
+  return { id: `evt_test_${Date.now()}`, type, data: { object: dataObject } } as unknown;
 }
 
 function makeWebhookRequest(body: string, sig = 'valid-sig'): NextRequest {

@@ -47,7 +47,7 @@ export function PositioningBanner() {
           shows how well AI represents your business.{' '}
           <Link
             href="/dashboard/ai-responses"
-            className="text-electric-indigo hover:underline font-medium"
+            className="text-indigo-400 hover:underline font-medium"
           >
             See what AI says about you &rarr;
           </Link>

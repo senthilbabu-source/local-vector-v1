@@ -3,15 +3,76 @@
 //
 // Tests the sidebar data-testid navigation links work correctly.
 // Clicks each nav item and verifies the correct page loads.
+// Since §200 (collapsible sidebar groups), only "Overview" is expanded by
+// default. Other groups must be expanded before clicking their items.
 //
 // Authentication: dev@ session (golden tenant, Growth plan).
 // ---------------------------------------------------------------------------
 
-import { test, expect } from '@playwright/test';
+import { test, expect, type Page } from '@playwright/test';
 import path from 'path';
 
 const DEV_USER_STATE = path.join(__dirname, '../../.playwright/dev-user.json');
 test.use({ storageState: DEV_USER_STATE });
+
+// ---------------------------------------------------------------------------
+// Helper: expand a sidebar group by clicking its header button
+// ---------------------------------------------------------------------------
+
+const NAV_TO_GROUP: Record<string, string> = {
+  'nav-dashboard': 'Overview',
+  'nav-alerts': 'Overview',
+  'nav-share-of-voice': 'How AI Sees You',
+  'nav-cluster-map': 'How AI Sees You',
+  'nav-ai-says': 'How AI Sees You',
+  'nav-ai-sentiment': 'How AI Sees You',
+  'nav-ai-sources': 'How AI Sees You',
+  'nav-bot-activity': 'How AI Sees You',
+  'nav-menu': 'Content',
+  'nav-magic-menu': 'Content',
+  'nav-content': 'Content',
+  'nav-content-calendar': 'Content',
+  'nav-page-audits': 'Content',
+  'nav-citations': 'Content',
+  'nav-proof-timeline': 'Content',
+  'nav-compete': 'Insights',
+  'nav-revenue-impact': 'Insights',
+  'nav-benchmarks': 'Insights',
+  'nav-agent-readiness': 'Insights',
+  'nav-entity-health': 'Insights',
+  'nav-playbooks': 'Insights',
+  'nav-intent-discovery': 'Insights',
+  'nav-ai-assistant': 'Admin',
+  'nav-listings': 'Admin',
+  'nav-locations': 'Admin',
+  'nav-system-health': 'Admin',
+  'nav-settings': 'Admin',
+  'nav-chat-widget': 'Admin',
+  'nav-team': 'Admin',
+  'nav-domain': 'Admin',
+  'nav-billing': 'Admin',
+};
+
+export async function expandSidebarGroup(page: Page, testId: string) {
+  const groupName = NAV_TO_GROUP[testId];
+  if (!groupName || groupName === 'Overview') return; // Overview is expanded by default
+
+  const groupButtons = page.getByTestId('sidebar-group-label');
+  const count = await groupButtons.count();
+  for (let i = 0; i < count; i++) {
+    const btn = groupButtons.nth(i);
+    const text = await btn.textContent();
+    // Content group has dynamic suffix like "Content & Dishes"
+    if (text && (text.trim() === groupName || text.trim().startsWith(groupName))) {
+      const expanded = await btn.getAttribute('aria-expanded');
+      if (expanded !== 'true') {
+        await btn.click();
+        await page.waitForTimeout(250);
+      }
+      break;
+    }
+  }
+}
 
 test.describe('14 — Sidebar navigation', () => {
 
@@ -50,6 +111,9 @@ test.describe('14 — Sidebar navigation', () => {
   for (const { testId, url, heading } of navTests) {
     test(`sidebar link ${testId} navigates to ${url}`, async ({ page }) => {
       await page.goto('/dashboard');
+
+      // Expand the sidebar group containing this nav item (§200: collapsible groups)
+      await expandSidebarGroup(page, testId);
 
       await page.getByTestId(testId).click();
       await expect(page).toHaveURL(new RegExp(url.replace(/\//g, '\\/')));

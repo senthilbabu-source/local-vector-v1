@@ -77,14 +77,14 @@ test.describe('03 — Dashboard: Fear-First layout with open alerts', () => {
 
   // ── Quick Stats row ───────────────────────────────────────────────────────
 
-  test('Quick Stats shows correct open/fixed counts', async ({ page }) => {
+  test('Sprint G stat panels are visible on dashboard', async ({ page }) => {
     await page.goto('/dashboard');
 
-    // 2 open alerts → "Open alerts" QuickStat label. Use exact:true to avoid
-    // matching "2 open alerts are lowering your Accuracy score" in RealityScoreCard.
-    await expect(page.getByText('Open alerts', { exact: true })).toBeVisible();
-    // 1 fixed alert in seed → "Hallucinations fixed" QuickStat label.
-    await expect(page.getByText('Hallucinations fixed', { exact: true })).toBeVisible();
+    // Sprint G replaced Quick Stats with 4 stat panels
+    await expect(page.locator('[data-testid="ai-visibility-panel"]')).toBeVisible();
+    await expect(page.locator('[data-testid="wrong-facts-panel"]')).toBeVisible();
+    await expect(page.locator('[data-testid="ai-bot-access-panel"]')).toBeVisible();
+    await expect(page.locator('[data-testid="last-scan-panel"]')).toBeVisible();
   });
 
   // ── Mobile hamburger sidebar ──────────────────────────────────────────────
@@ -114,7 +114,14 @@ test.describe('03 — Dashboard: Fear-First layout with open alerts', () => {
   test('Listings nav item navigates to /dashboard/integrations', async ({ page }) => {
     await page.goto('/dashboard');
 
-    // "Listings" is the nav label for /dashboard/integrations (Sidebar.tsx NAV_ITEMS).
+    // §200: Listings is in the Admin group (collapsed by default). Expand it first.
+    const adminGroup = page.getByTestId('sidebar-group-label').filter({ hasText: /Admin/i });
+    const expanded = await adminGroup.getAttribute('aria-expanded');
+    if (expanded !== 'true') {
+      await adminGroup.click();
+      await page.waitForTimeout(250);
+    }
+
     await page.getByRole('link', { name: 'Listings' }).click();
 
     await page.waitForURL('**/dashboard/integrations**', { timeout: 10_000 });

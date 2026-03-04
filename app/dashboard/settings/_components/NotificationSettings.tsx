@@ -72,10 +72,11 @@ export default function NotificationSettings({ settings }: NotificationSettingsP
       </label>
 
       <div>
-        <label className="block text-xs text-slate-400 mb-1">
+        <label htmlFor="sov-threshold" className="block text-xs text-slate-400 mb-1">
           SOV drop alert threshold (%)
         </label>
         <input
+          id="sov-threshold"
           type="number"
           min={1}
           max={20}

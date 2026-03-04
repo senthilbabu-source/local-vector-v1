@@ -2950,6 +2950,8 @@ export type Database = {
         Row: {
           ai_audits_used_this_month: number | null
           audit_frequency: string | null
+          canceled_at: string | null
+          cancellation_reason: string | null
           created_at: string | null
           current_billing_period_start: string | null
           deletion_reason: string | null
@@ -2990,6 +2992,8 @@ export type Database = {
         Insert: {
           ai_audits_used_this_month?: number | null
           audit_frequency?: string | null
+          canceled_at?: string | null
+          cancellation_reason?: string | null
           created_at?: string | null
           current_billing_period_start?: string | null
           deletion_reason?: string | null
@@ -3030,6 +3034,8 @@ export type Database = {
         Update: {
           ai_audits_used_this_month?: number | null
           audit_frequency?: string | null
+          canceled_at?: string | null
+          cancellation_reason?: string | null
           created_at?: string | null
           current_billing_period_start?: string | null
           deletion_reason?: string | null

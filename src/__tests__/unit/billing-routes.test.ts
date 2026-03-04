@@ -47,6 +47,12 @@ vi.mock('@/lib/supabase/server', () => ({
   createClient: vi.fn().mockResolvedValue({ from: vi.fn() }),
 }));
 
+// §203: Mock webhook idempotency — always allow processing
+vi.mock('@/lib/stripe/webhook-idempotency', () => ({
+  isEventAlreadyProcessed: vi.fn().mockResolvedValue(false),
+  recordWebhookEvent: vi.fn().mockResolvedValue(undefined),
+}));
+
 vi.mock('@/lib/auth/org-roles', () => ({
   roleSatisfies: (...args: unknown[]) => mockRoleSatisfies(...args),
 }));

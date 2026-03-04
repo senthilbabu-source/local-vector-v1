@@ -45,8 +45,8 @@ test.describe('20 — Seat Billing: Plans & Pricing (Sprint 99)', () => {
     await page.goto('/dashboard/billing');
 
     await expect(page.getByRole('heading', { name: 'Starter' })).toBeVisible({ timeout: 10_000 });
-    await expect(page.getByRole('heading', { name: 'Growth' })).toBeVisible();
-    await expect(page.getByRole('heading', { name: 'Agency' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'AI Shield' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Brand Fortress' })).toBeVisible();
   });
 
   test('current plan badge loads and shows plan name', async ({ page }) => {
@@ -64,12 +64,12 @@ test.describe('20 — Seat Billing: Plans & Pricing (Sprint 99)', () => {
     // If plan info fails to load (auth issue in test env), that's acceptable
   });
 
-  test('Growth tier card shows Current Plan indicator when plan loaded', async ({ page }) => {
+  test('AI Shield tier card shows Current Plan indicator when plan loaded', async ({ page }) => {
     await page.goto('/dashboard/billing');
 
     // Wait for plan info to potentially load
     await expect(
-      page.getByRole('heading', { name: 'Growth' }),
+      page.getByRole('heading', { name: 'AI Shield' }),
     ).toBeVisible({ timeout: 10_000 });
 
     // The "Current Plan" text appears on the matching tier card after
@@ -159,7 +159,7 @@ test.describe('20 — Seat Billing: Checkout & Banners (Sprint 99)', () => {
     ).toBeVisible({ timeout: 10_000 });
   });
 
-  test('Growth tier has signal-green highlight and Most Popular badge', async ({ page }) => {
+  test('AI Shield tier has signal-green highlight and Most Popular badge', async ({ page }) => {
     await page.goto('/dashboard/billing');
 
     // Growth tier card uses border-signal-green class for highlight
@@ -186,7 +186,7 @@ test.describe('20 — Seat Billing: Upload User (Sprint 99)', () => {
     ).toBeVisible({ timeout: 10_000 });
 
     await expect(page.getByRole('heading', { name: 'Starter' })).toBeVisible();
-    await expect(page.getByRole('heading', { name: 'Growth' })).toBeVisible();
-    await expect(page.getByRole('heading', { name: 'Agency' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'AI Shield' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Brand Fortress' })).toBeVisible();
   });
 });

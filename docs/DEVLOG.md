@@ -4,6 +4,49 @@
 
 ---
 
+## 2026-03-04 — Stripe Customer Portal Self-Service (§203)
+
+Bulletproof Stripe Customer Portal: programmatic portal configuration, webhook idempotency, cancellation tracking, invoice history, payment method display, and billing error boundary.
+
+### Changes
+
+**Portal Configuration:**
+- `scripts/setup-stripe-portal.ts` (NEW) — CLI script to create Stripe Billing Portal Configuration programmatically (`npx tsx scripts/setup-stripe-portal.ts`). Enables: payment method update, invoice history, subscription cancel (at period end + cancellation reasons), subscription update (price/quantity with prorations). Outputs `STRIPE_PORTAL_CONFIGURATION_ID=bpc_...`.
+- `app/dashboard/billing/actions.ts` — `createPortalSession()` now passes `configuration` param when `STRIPE_PORTAL_CONFIGURATION_ID` env var is present. Backward-compatible: absent env var = Stripe Dashboard defaults.
+- `.env.local.example` — Added `STRIPE_PORTAL_CONFIGURATION_ID`.
+
+**Webhook Idempotency:**
+- `lib/stripe/webhook-idempotency.ts` (NEW) — `isEventAlreadyProcessed()` (SELECT check, fail-open) + `recordWebhookEvent()` (INSERT after dispatch, fire-and-forget). Uses existing `stripe_webhook_events` table with UNIQUE constraint on `stripe_event_id`.
+- `app/api/webhooks/stripe/route.ts` — Added idempotency guard before event dispatch. Records processed events after handler execution.
+
+**Cancellation Tracking:**
+- `supabase/migrations/20260430000001_cancellation_tracking.sql` (NEW) — `canceled_at timestamptz` + `cancellation_reason text` on `organizations`.
+- `lib/supabase/database.types.ts` — Regenerated with new columns.
+- `app/api/webhooks/stripe/route.ts` — `handleSubscriptionUpdated()` sets `canceled_at` + `cancellation_reason` when `cancel_at_period_end` is true; clears both on reactivation.
+- `app/dashboard/billing/actions.ts` — Extended `SubscriptionDetails` with `cancelAt`.
+- `app/dashboard/billing/page.tsx` — Styled amber cancellation card with exact end date.
+
+**Invoice History:**
+- `app/dashboard/billing/actions.ts` — `getInvoiceHistory()` server action (last 12 invoices via `stripe.invoices.list()`).
+- `app/dashboard/billing/_components/InvoiceHistoryCard.tsx` (NEW) — Client component with table display (date, amount, status, PDF download, hosted invoice link). `data-testid="invoice-history"`.
+
+**Payment Method Display:**
+- `app/dashboard/billing/actions.ts` — `getPaymentMethod()` server action (customer → default_payment_method → card brand/last4/exp).
+- `app/dashboard/billing/page.tsx` — Payment method row in Subscription Details section.
+
+**Error Boundary:**
+- `app/dashboard/billing/error.tsx` (NEW) — Billing-specific error boundary (CreditCard icon, Sentry capture, retry + support link).
+
+### Tests
+- 37 new unit tests (`src/__tests__/unit/stripe-portal-billing.test.ts`): Webhook Idempotency (7), Portal Configuration (4), Invoice History (8), Payment Method (7), Cancellation Tracking (6), Error Boundary (3), InvoiceHistoryCard (2).
+- 2 new E2E tests (`tests/e2e/billing.spec.ts`): invoice history absent without Stripe config, manage subscription button demo mode.
+- 4 existing test files updated with `webhook-idempotency` mock + `event.id` in mock events.
+- All ~6042/6042 pass, 398/398 files.
+
+**AI_RULES:** §203
+
+---
+
 ## 2026-03-04 — Build Verification & TypeScript Fix Sprint (§202)
 
 Production readiness verification: ran `npm run build && npx vitest run` and resolved every failure. 51 files modified, ~35 build errors fixed.

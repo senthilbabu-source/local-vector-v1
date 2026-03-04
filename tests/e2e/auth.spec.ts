@@ -60,6 +60,7 @@ test('login page shows alert-crimson error on invalid credentials', async ({
   await page.click('button[type="submit"]');
 
   // Wait for our error banner to appear (API round-trip to local Supabase).
+  // The error div has role="alert" and classes containing alert-crimson.
   // Filter by text to avoid the hidden Next.js route announcer
   // (<div role="alert" id="__next-route-announcer__">) which also has role=alert.
   const errorAlert = page
@@ -67,9 +68,11 @@ test('login page shows alert-crimson error on invalid credentials', async ({
     .filter({ hasText: /invalid|unable to sign in|credentials/i });
   await expect(errorAlert).toBeVisible({ timeout: 10_000 });
 
-  // The error banner must use alert-crimson design token classes
-  // (bg-alert-crimson/10 and text-alert-crimson are set in login/page.tsx)
-  await expect(errorAlert).toHaveClass(/alert-crimson/);
+  // The error banner must use alert-crimson design token classes.
+  // Use attribute check for reliability across Tailwind compilation modes.
+  const classAttr = await errorAlert.getAttribute('class');
+  expect(classAttr).toBeTruthy();
+  expect(classAttr!).toContain('alert-crimson');
 });
 
 // ---------------------------------------------------------------------------

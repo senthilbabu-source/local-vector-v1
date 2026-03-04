@@ -231,7 +231,7 @@ export default function AIAnswerPreviewWidget() {
           <span
             className={cn(
               'absolute right-2 top-1/2 -translate-y-1/2 text-[10px] tabular-nums',
-              charCount > MAX_CHARS - 20 ? 'text-amber-400' : 'text-slate-500',
+              charCount > MAX_CHARS - 20 ? 'text-amber-400' : 'text-slate-400',
             )}
           >
             {charCount}/{MAX_CHARS}

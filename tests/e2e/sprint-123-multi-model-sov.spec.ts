@@ -8,10 +8,13 @@
  */
 
 import { test, expect } from '@playwright/test';
+import path from 'path';
+
+const DEV_USER_STATE = path.join(__dirname, '../../.playwright/dev-user.json');
+test.use({ storageState: DEV_USER_STATE });
 
 test.describe('Sprint 123: Multi-Model SOV', () => {
   test.beforeEach(async ({ page }) => {
-    // Navigate to SOV page (authenticated via stored session)
     await page.goto('/dashboard/share-of-voice');
     await page.waitForLoadState('networkidle');
   });

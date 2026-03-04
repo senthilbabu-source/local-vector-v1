@@ -146,8 +146,8 @@ test.describe('Sprint G — Charts on detail pages', () => {
     await page.goto('/dashboard/share-of-voice');
 
     // The SOV page should have the trend chart
-    // Look for the chart heading text
-    await expect(page.getByText('SOV Trend', { exact: false })).toBeVisible();
+    // Look for the chart heading text (renamed from "SOV Trend" to "AI Mention Trend")
+    await expect(page.getByText('AI Mention Trend', { exact: false })).toBeVisible();
   });
 
   test('HallucinationsByModel chart is present on the hallucinations page', async ({ page }) => {

@@ -3,8 +3,8 @@
 //
 // Validates that the integrations page shows honest sync states:
 //   • GBP: real OAuth status
-//   • Yelp/TripAdvisor: "Manual" badge with URL input
-//   • Apple/Bing/Facebook: "Coming Soon" badge, grayed out
+//   • Yelp/TripAdvisor/Bing: "Manual" badge with URL input
+//   • Apple/Facebook: "Coming Soon" badge, grayed out
 //   • Info banner explaining manual tracking
 //
 // Authentication: dev@ session (golden tenant, Growth plan).
@@ -42,12 +42,12 @@ test.describe('Sprint C — Honest Listings State', () => {
     await expect(manualBadge).toBeVisible();
   });
 
-  test('Bing row shows Coming Soon badge', async ({ page }) => {
+  test('Bing row shows Manual badge', async ({ page }) => {
     const bingRow = page.getByTestId('platform-row-bing');
     await expect(bingRow).toBeVisible();
-    const badge = bingRow.getByTestId('coming-soon-badge');
+    const badge = bingRow.getByTestId('manual-badge');
     await expect(badge).toBeVisible();
-    await expect(badge).toContainText('Coming Soon');
+    await expect(badge).toContainText('Manual');
   });
 
   test('Apple row shows Coming Soon badge', async ({ page }) => {

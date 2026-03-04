@@ -49,12 +49,12 @@ test.describe('Sprint L — Listings Verification', () => {
     await expect(btn).toBeEnabled();
   });
 
-  test('Bing row still shows Coming Soon (not verification-capable)', async ({ page }) => {
+  test('Bing row shows Manual badge and has verification section', async ({ page }) => {
     await page.goto('/dashboard/integrations');
-    // Bing should show "Coming Soon" badge, not a verification section
+    // Bing is now manual_url with verifiable: true (Sprint M)
     await expect(page.getByText('Bing Places for Business')).toBeVisible();
     const bingVerification = page.getByTestId('listing-verification-bing');
-    await expect(bingVerification).toHaveCount(0);
+    await expect(bingVerification).toBeVisible();
   });
 });
 
@@ -72,7 +72,8 @@ test.describe('Sprint L — Sample Data Components', () => {
     const bannerCount = await sampleBanner.count();
     // If banner is present, it means sample mode is active (which is OK for new orgs)
     // Just verify the page loaded without crash
-    await expect(page.getByText(/Dashboard|AI Visibility/)).toBeVisible();
+    // "Dashboard" is visible in the sidebar (Overview group, expanded by default)
+    await expect(page.getByText(/Dashboard|Welcome/)).toBeVisible();
     expect(bannerCount).toBeDefined(); // smoke check — no crash
   });
 });
@@ -84,16 +85,34 @@ test.describe('Sprint L — Sample Data Components', () => {
 test.describe('Sprint L — GuidedTour Nav Targets', () => {
   test('nav-share-of-voice testid present in sidebar', async ({ page }) => {
     await page.goto('/dashboard');
+    // §200: Sidebar groups are collapsible — expand "How AI Sees You" first
+    const group = page.getByTestId('sidebar-group-label').filter({ hasText: /How AI Sees You/i });
+    if ((await group.getAttribute('aria-expanded')) !== 'true') {
+      await group.click();
+      await page.waitForTimeout(250);
+    }
     await expect(page.getByTestId('nav-share-of-voice')).toBeVisible();
   });
 
   test('nav-citations testid present in sidebar', async ({ page }) => {
     await page.goto('/dashboard');
+    // §200: Sidebar groups are collapsible — expand "Content" first
+    const group = page.getByTestId('sidebar-group-label').filter({ hasText: /^Content/i });
+    if ((await group.getAttribute('aria-expanded')) !== 'true') {
+      await group.click();
+      await page.waitForTimeout(250);
+    }
     await expect(page.getByTestId('nav-citations')).toBeVisible();
   });
 
   test('nav-revenue-impact testid present in sidebar', async ({ page }) => {
     await page.goto('/dashboard');
+    // §200: Sidebar groups are collapsible — expand "Insights" first
+    const group = page.getByTestId('sidebar-group-label').filter({ hasText: /Insights/i });
+    if ((await group.getAttribute('aria-expanded')) !== 'true') {
+      await group.click();
+      await page.waitForTimeout(250);
+    }
     await expect(page.getByTestId('nav-revenue-impact')).toBeVisible();
   });
 

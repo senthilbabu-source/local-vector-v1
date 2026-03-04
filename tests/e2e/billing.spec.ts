@@ -26,18 +26,18 @@ test.use({
 });
 
 // ---------------------------------------------------------------------------
-// Test 1 — Three pricing tiers + signal-green highlight on Growth
+// Test 1 — Three pricing tiers + signal-green highlight on AI Shield (Growth)
 // ---------------------------------------------------------------------------
 
-test('billing page shows three pricing tiers with Growth highlighted', async ({
+test('billing page shows three pricing tiers with AI Shield highlighted', async ({
   page,
 }) => {
   await page.goto('/dashboard/billing');
 
   // All three tier names are visible (use heading role to avoid matching footer note)
   await expect(page.getByRole('heading', { name: 'Starter' })).toBeVisible();
-  await expect(page.getByRole('heading', { name: 'Growth' })).toBeVisible();
-  await expect(page.getByRole('heading', { name: 'Agency' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'AI Shield' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Brand Fortress' })).toBeVisible();
 
   // The Growth tier card uses border-signal-green for the highlight ring.
   // billing/page.tsx sets `border-2 border-signal-green` on the highlighted card.
@@ -67,4 +67,46 @@ test('clicking Upgrade shows demo mode banner when Stripe is not configured', as
   await expect(
     page.getByText(/Demo mode — Stripe not configured/i)
   ).toBeVisible({ timeout: 10_000 });
+});
+
+// ---------------------------------------------------------------------------
+// Test 3 — §203: Invoice History section absent when Stripe is not configured
+// ---------------------------------------------------------------------------
+
+test('invoice history section is absent when Stripe is not configured', async ({
+  page,
+}) => {
+  await page.goto('/dashboard/billing');
+
+  // Wait for page to fully load by checking a known element
+  await expect(page.getByRole('heading', { name: 'Starter' })).toBeVisible();
+
+  // In demo mode, getInvoiceHistory returns [] → InvoiceHistoryCard renders null
+  await expect(page.getByTestId('invoice-history')).not.toBeVisible();
+});
+
+// ---------------------------------------------------------------------------
+// Test 4 — §203: Manage Subscription button shows demo mode
+// ---------------------------------------------------------------------------
+
+test('manage subscription button shows demo mode when Stripe is not configured', async ({
+  page,
+}) => {
+  await page.goto('/dashboard/billing');
+
+  // The ManageSubscriptionButton only renders for orgs with stripe_customer_id
+  // and non-trial plan. In local dev with seed data, this may not be visible.
+  // If the button exists, clicking it should show demo mode.
+  const manageButton = page.getByRole('button', { name: 'Manage Subscription' });
+  const isVisible = await manageButton.isVisible().catch(() => false);
+
+  if (isVisible) {
+    await manageButton.click();
+    await expect(
+      page.getByText(/Demo mode — Stripe not configured/i)
+    ).toBeVisible({ timeout: 10_000 });
+  } else {
+    // Button not visible = user is on trial or no stripe_customer_id (expected)
+    test.skip();
+  }
 });

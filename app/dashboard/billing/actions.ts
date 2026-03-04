@@ -144,9 +144,14 @@ export async function createPortalSession(): Promise<PortalResult> {
   // ── Create the Portal Session ─────────────────────────────────────────────
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000';
 
+  // §203: Pass portal configuration ID when available for version-controlled
+  // portal features (cancel-at-period-end, invoice history, payment method).
   const portalSession = await getStripe().billingPortal.sessions.create({
     customer: org.stripe_customer_id,
     return_url: `${appUrl}/dashboard/billing`,
+    ...(process.env.STRIPE_PORTAL_CONFIGURATION_ID && {
+      configuration: process.env.STRIPE_PORTAL_CONFIGURATION_ID,
+    }),
   });
 
   return { url: portalSession.url, demo: false };
@@ -191,6 +196,7 @@ export async function getCurrentPlan(): Promise<CurrentPlanInfo> {
 export interface SubscriptionDetails {
   currentPeriodEnd: string | null;
   cancelAtPeriodEnd: boolean;
+  cancelAt: string | null;
   status: string | null;
 }
 
@@ -200,7 +206,7 @@ export interface SubscriptionDetails {
  */
 export async function getSubscriptionDetails(): Promise<SubscriptionDetails> {
   if (!process.env.STRIPE_SECRET_KEY) {
-    return { currentPeriodEnd: null, cancelAtPeriodEnd: false, status: null };
+    return { currentPeriodEnd: null, cancelAtPeriodEnd: false, cancelAt: null, status: null };
   }
 
   const auth = await getAuthContext();
@@ -214,7 +220,7 @@ export async function getSubscriptionDetails(): Promise<SubscriptionDetails> {
     .single();
 
   if (!org?.stripe_subscription_id) {
-    return { currentPeriodEnd: null, cancelAtPeriodEnd: false, status: null };
+    return { currentPeriodEnd: null, cancelAtPeriodEnd: false, cancelAt: null, status: null };
   }
 
   try {
@@ -227,11 +233,14 @@ export async function getSubscriptionDetails(): Promise<SubscriptionDetails> {
         ? new Date(subscription.items.data[0].current_period_end * 1000).toISOString()
         : null,
       cancelAtPeriodEnd: subscription.cancel_at_period_end,
+      cancelAt: subscription.cancel_at
+        ? new Date(subscription.cancel_at * 1000).toISOString()
+        : null,
       status: subscription.status,
     };
   } catch (err) {
     Sentry.captureException(err, { tags: { component: 'getSubscriptionDetails', sprint: 'P3-FIX-15' } });
-    return { currentPeriodEnd: null, cancelAtPeriodEnd: false, status: null };
+    return { currentPeriodEnd: null, cancelAtPeriodEnd: false, cancelAt: null, status: null };
   }
 }
 
@@ -259,4 +268,117 @@ export async function getCreditsSummary(): Promise<CreditsSummary> {
   ]);
 
   return { balance, recentHistory };
+}
+
+// ---------------------------------------------------------------------------
+// §203: Invoice History — fetch recent invoices from Stripe
+// ---------------------------------------------------------------------------
+
+export interface InvoiceItem {
+  id: string;
+  date: string;
+  amountDue: number; // cents
+  status: string;
+  pdfUrl: string | null;
+  hostedUrl: string | null;
+}
+
+/**
+ * Fetches the 12 most recent invoices from Stripe.
+ * Returns empty array when Stripe is unavailable (demo mode).
+ */
+export async function getInvoiceHistory(): Promise<InvoiceItem[]> {
+  if (!process.env.STRIPE_SECRET_KEY) return [];
+
+  const auth = await getAuthContext();
+  const orgId = auth.orgId;
+
+  const supabase = await createClient();
+  const { data: org } = await supabase
+    .from('organizations')
+    .select('stripe_customer_id')
+    .eq('id', orgId)
+    .single();
+
+  if (!org?.stripe_customer_id) return [];
+
+  try {
+    const invoices = await getStripe().invoices.list({
+      customer: org.stripe_customer_id,
+      limit: 12,
+    });
+
+    return invoices.data.map((inv) => ({
+      id: inv.id,
+      date: new Date(inv.created * 1000).toISOString(),
+      amountDue: inv.amount_due,
+      status: inv.status ?? 'unknown',
+      pdfUrl: inv.invoice_pdf ?? null,
+      hostedUrl: inv.hosted_invoice_url ?? null,
+    }));
+  } catch (err) {
+    Sentry.captureException(err, {
+      tags: { component: 'getInvoiceHistory', sprint: '203' },
+    });
+    return [];
+  }
+}
+
+// ---------------------------------------------------------------------------
+// §203: Payment Method — fetch default payment method from Stripe
+// ---------------------------------------------------------------------------
+
+export interface PaymentMethodInfo {
+  brand: string;
+  last4: string;
+  expMonth: number;
+  expYear: number;
+}
+
+/**
+ * Fetches the customer's default payment method from Stripe.
+ * Returns null when Stripe is unavailable or no payment method is set.
+ */
+export async function getPaymentMethod(): Promise<PaymentMethodInfo | null> {
+  if (!process.env.STRIPE_SECRET_KEY) return null;
+
+  const auth = await getAuthContext();
+  const orgId = auth.orgId;
+
+  const supabase = await createClient();
+  const { data: org } = await supabase
+    .from('organizations')
+    .select('stripe_customer_id')
+    .eq('id', orgId)
+    .single();
+
+  if (!org?.stripe_customer_id) return null;
+
+  try {
+    const customer = await getStripe().customers.retrieve(org.stripe_customer_id);
+    if ((customer as Stripe.DeletedCustomer).deleted) return null;
+
+    const activeCustomer = customer as Stripe.Customer;
+    const defaultPmId =
+      typeof activeCustomer.invoice_settings?.default_payment_method === 'string'
+        ? activeCustomer.invoice_settings.default_payment_method
+        : (activeCustomer.invoice_settings?.default_payment_method as Stripe.PaymentMethod | null)?.id ?? null;
+
+    if (!defaultPmId) return null;
+
+    const pm = await getStripe().paymentMethods.retrieve(defaultPmId);
+    if (!pm.card) return null;
+
+    return {
+      brand: pm.card.brand,
+      last4: pm.card.last4,
+      expMonth: pm.card.exp_month,
+      expYear: pm.card.exp_year,
+    };
+  } catch (err) {
+    Sentry.captureException(err, {
+      tags: { component: 'getPaymentMethod', sprint: '203' },
+    });
+    return null;
+  }
 }

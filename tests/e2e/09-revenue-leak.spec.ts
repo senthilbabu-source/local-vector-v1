@@ -38,13 +38,16 @@ test.describe('09 — Revenue Leak Scorecard', () => {
   test('breakdown chips show three cost components', async ({ page }) => {
     await page.goto('/dashboard');
 
-    const chips = page.getByTestId('breakdown-chip');
+    const card = page.getByTestId('revenue-leak-card');
+    await expect(card).toBeVisible();
+
+    const chips = card.getByTestId('breakdown-chip');
     await expect(chips).toHaveCount(3);
 
-    // Verify the three labels
-    await expect(page.getByText('Inaccuracies')).toBeVisible();
-    await expect(page.getByText('SOV Gap')).toBeVisible();
-    await expect(page.getByText('Competitor Steal')).toBeVisible();
+    // Verify the three labels (scoped to card to avoid LeakBreakdownChart duplicates)
+    await expect(card.getByText('Inaccuracies')).toBeVisible();
+    await expect(card.getByText('SOV Gap')).toBeVisible();
+    await expect(card.getByText('Competitor Steal')).toBeVisible();
   });
 
   test('Configure Revenue Inputs link navigates to settings page', async ({ page }) => {

@@ -38,7 +38,7 @@ const ENGINE_CONFIG: Record<EvaluationEngine, { label: string; badge: string; ba
   perplexity: {
     label: 'Perplexity Sonar',
     badge: 'PX',
-    badgeClass: 'bg-electric-indigo/15 text-electric-indigo',
+    badgeClass: 'bg-indigo-500/15 text-indigo-400',
   },
   anthropic: {
     label: 'Anthropic Claude',

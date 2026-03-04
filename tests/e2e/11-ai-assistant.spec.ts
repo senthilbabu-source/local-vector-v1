@@ -36,7 +36,7 @@ test.describe('11 — AI Assistant page', () => {
     await page.goto('/dashboard/ai-assistant');
 
     // Quick-action suggestion buttons appear when chat is empty
-    await expect(page.getByRole('button', { name: /What.*visibility score/i })).toBeVisible();
+    await expect(page.getByRole('button', { name: /How visible.*business/i })).toBeVisible();
     await expect(page.getByRole('button', { name: /open hallucinations/i })).toBeVisible();
     await expect(page.getByRole('button', { name: /competitors/i })).toBeVisible();
     await expect(page.getByRole('button', { name: /SOV trend/i })).toBeVisible();
@@ -54,7 +54,7 @@ test.describe('11 — AI Assistant page', () => {
     await page.goto('/dashboard/ai-assistant');
 
     await expect(
-      page.getByText(/Ask questions about your AI visibility/i)
+      page.getByText(/Ask questions about how AI sees your business/i)
     ).toBeVisible();
   });
 });

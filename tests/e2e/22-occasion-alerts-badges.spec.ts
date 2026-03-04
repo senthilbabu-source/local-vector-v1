@@ -271,6 +271,13 @@ test.describe('22 — Occasion Alerts: Sidebar Badges (Sprint 101)', () => {
       page.getByRole('heading', { name: /Welcome back/i }),
     ).toBeVisible({ timeout: 10_000 });
 
+    // Expand the "Content" sidebar group (collapsed by default since §200)
+    const contentGroup = page.getByTestId('sidebar-group-label').filter({ hasText: /Content/i });
+    if ((await contentGroup.getAttribute('aria-expanded')) !== 'true') {
+      await contentGroup.click();
+      await page.waitForTimeout(250);
+    }
+
     // Badge may or may not be visible depending on seed data state
     const badge = page.locator('[data-testid="sidebar-badge-content-drafts"]');
     const isVisible = await badge.isVisible().catch(() => false);
@@ -291,6 +298,13 @@ test.describe('22 — Occasion Alerts: Sidebar Badges (Sprint 101)', () => {
     await expect(
       page.getByRole('heading', { name: /Welcome back/i }),
     ).toBeVisible({ timeout: 10_000 });
+
+    // Expand the "How AI Sees You" sidebar group (collapsed by default since §200)
+    const aiGroup = page.getByTestId('sidebar-group-label').filter({ hasText: /How AI Sees You/i });
+    if ((await aiGroup.getAttribute('aria-expanded')) !== 'true') {
+      await aiGroup.click();
+      await page.waitForTimeout(250);
+    }
 
     // SOV/visibility badge
     const badge = page.locator('[data-testid="sidebar-badge-visibility"]');
@@ -318,9 +332,9 @@ test.describe('22 — Occasion Alerts: Cross-User Isolation (Sprint 101)', () =>
     ).toBeVisible({ timeout: 10_000 });
 
     // Upload user's dashboard should render without showing dev@ user's data
-    // Quick Stats section should be present
+    // WrongFactsPanel (AI Mistakes) should be present in the stat panels
     await expect(
-      page.getByText('Open alerts', { exact: true }),
+      page.locator('[data-testid="wrong-facts-panel"]'),
     ).toBeVisible();
   });
 

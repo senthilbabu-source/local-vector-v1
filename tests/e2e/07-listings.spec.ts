@@ -64,6 +64,12 @@ test.describe('07 — Listings page', () => {
 
   test('can navigate to Listings page from sidebar', async ({ page }) => {
     await page.goto('/dashboard');
+    // §200: Listings is in Admin group (collapsed by default)
+    const group = page.getByTestId('sidebar-group-label').filter({ hasText: /Admin/i });
+    if ((await group.getAttribute('aria-expanded')) !== 'true') {
+      await group.click();
+      await page.waitForTimeout(250);
+    }
     await page.getByRole('link', { name: 'Listings' }).click();
     await expect(page).toHaveURL(/\/dashboard\/integrations/);
     await expect(

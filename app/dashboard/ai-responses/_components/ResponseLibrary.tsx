@@ -50,7 +50,7 @@ export default function ResponseLibrary({ entries }: Props) {
               className={[
                 'rounded-lg px-3 py-1.5 text-xs font-medium transition',
                 isActive
-                  ? 'bg-electric-indigo/15 text-electric-indigo'
+                  ? 'bg-indigo-500/15 text-indigo-400'
                   : 'bg-white/5 text-slate-400 hover:bg-white/10 hover:text-white',
               ].join(' ')}
             >

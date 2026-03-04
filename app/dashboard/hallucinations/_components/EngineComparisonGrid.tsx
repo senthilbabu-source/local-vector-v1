@@ -20,7 +20,7 @@ const ENGINE_META: Record<EvaluationEngine, { label: string; badge: string; badg
   perplexity: {
     label: 'Perplexity',
     badge: 'PX',
-    badgeClass: 'bg-electric-indigo/15 text-electric-indigo',
+    badgeClass: 'bg-indigo-500/15 text-indigo-400',
   },
   anthropic: {
     label: 'Anthropic',

@@ -6,6 +6,10 @@
 // ---------------------------------------------------------------------------
 
 import { test, expect } from '@playwright/test';
+import path from 'path';
+
+const DEV_USER_STATE = path.join(__dirname, '../../.playwright/dev-user.json');
+test.use({ storageState: DEV_USER_STATE });
 
 test.describe('Sprint 122: Benchmark Comparisons', () => {
   test.beforeEach(async ({ page }) => {

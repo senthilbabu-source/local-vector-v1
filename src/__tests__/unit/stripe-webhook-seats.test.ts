@@ -32,6 +32,12 @@ vi.mock('@/lib/supabase/server', () => ({
   createServiceRoleClient: vi.fn(() => mockServiceClient),
 }));
 
+// §203: Mock webhook idempotency — always allow processing
+vi.mock('@/lib/stripe/webhook-idempotency', () => ({
+  isEventAlreadyProcessed: vi.fn().mockResolvedValue(false),
+  recordWebhookEvent: vi.fn().mockResolvedValue(undefined),
+}));
+
 // Mock the seat manager functions
 const mockSyncSeatLimit = vi.fn();
 const mockCalculateOverage = vi.fn();

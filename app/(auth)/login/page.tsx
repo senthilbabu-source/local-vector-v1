@@ -131,7 +131,7 @@ export default function LoginPage() {
         </div>
 
         {/* Footer stat */}
-        <p style={{ fontSize: 11, color: '#475569', fontFamily: 'var(--font-jetbrains-mono), monospace' }}>
+        <p style={{ fontSize: 11, color: '#94A3B8', fontFamily: 'var(--font-jetbrains-mono), monospace' }}>
           Protecting 1,200+ restaurant brands from AI hallucinations.
         </p>
       </section>

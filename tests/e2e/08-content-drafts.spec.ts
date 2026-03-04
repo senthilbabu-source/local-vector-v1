@@ -42,6 +42,12 @@ test.describe('08 — Content Drafts page', () => {
 
   test('can navigate to Content Drafts from sidebar', async ({ page }) => {
     await page.goto('/dashboard');
+    // §200: Posts is in Content group (collapsed by default)
+    const group = page.getByTestId('sidebar-group-label').filter({ hasText: /Content/i });
+    if ((await group.getAttribute('aria-expanded')) !== 'true') {
+      await group.click();
+      await page.waitForTimeout(250);
+    }
     await page.getByRole('link', { name: 'Posts' }).click();
     await expect(page).toHaveURL(/\/dashboard\/content-drafts/);
     await expect(

@@ -505,7 +505,7 @@ export default function Sidebar({ isOpen, onClose, displayName, orgName, plan, l
               <p className="truncate text-sm font-semibold text-white leading-none tracking-tight">
                 LocalVector<span className="text-signal-green">.ai</span>
               </p>
-              <p className="mt-0.5 truncate text-xs text-slate-500">{orgName}</p>
+              <p className="mt-0.5 truncate text-xs text-slate-400">{orgName}</p>
             </div>
           </div>
           {/* Close button — mobile only */}
@@ -539,7 +539,7 @@ export default function Sidebar({ isOpen, onClose, displayName, orgName, plan, l
                 data-testid="sidebar-group-label"
                 onClick={() => toggleGroup(group.label)}
                 aria-expanded={isExpanded}
-                className="flex w-full items-center gap-1 px-3 mb-1 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60 select-none hover:text-muted-foreground transition-colors"
+                className="flex w-full items-center gap-1 px-3 mb-1 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/80 select-none hover:text-muted-foreground transition-colors"
               >
                 <ChevronRight
                   className={['h-3 w-3 shrink-0 transition-transform duration-200', isExpanded ? 'rotate-90' : ''].join(' ')}
@@ -580,7 +580,7 @@ export default function Sidebar({ isOpen, onClose, displayName, orgName, plan, l
                         data-testid={`nav-${item.testId}`}
                         onClick={() => setLockedItem(item as NavItem)}
                         aria-label={`${displayLabel} — requires ${getPlanDisplayName((item as NavItem).minPlan!)} plan`}
-                        className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-slate-600 hover:bg-white/5 hover:text-slate-500 transition cursor-pointer"
+                        className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-slate-400 hover:bg-white/5 hover:text-slate-300 transition cursor-pointer"
                       >
                         <Icon className="h-4 w-4 shrink-0 opacity-50" aria-hidden="true" />
                         {displayLabel}

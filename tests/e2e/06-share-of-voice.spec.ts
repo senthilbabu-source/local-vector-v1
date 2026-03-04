@@ -56,6 +56,12 @@ test.describe('06 — Share of Voice page', () => {
 
   test('can navigate to SOV page from sidebar', async ({ page }) => {
     await page.goto('/dashboard');
+    // §200: AI Mentions is in "How AI Sees You" group (collapsed by default)
+    const group = page.getByTestId('sidebar-group-label').filter({ hasText: /How AI Sees You/i });
+    if ((await group.getAttribute('aria-expanded')) !== 'true') {
+      await group.click();
+      await page.waitForTimeout(250);
+    }
     await page.getByRole('link', { name: 'AI Mentions' }).click();
     await expect(page).toHaveURL(/\/dashboard\/share-of-voice/);
     await expect(

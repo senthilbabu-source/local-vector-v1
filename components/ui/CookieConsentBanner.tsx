@@ -40,14 +40,14 @@ export default function CookieConsentBanner() {
       <div className="mx-auto flex max-w-5xl items-center justify-between gap-4">
         <p className="text-xs text-slate-400 sm:text-sm">
           We use essential cookies to keep you logged in. No tracking or advertising cookies.{' '}
-          <Link href="/privacy" className="text-electric-indigo hover:underline">
+          <Link href="/privacy" className="text-indigo-400 underline hover:text-indigo-300">
             Privacy Policy
           </Link>
         </p>
         <button
           type="button"
           onClick={handleDismiss}
-          className="shrink-0 rounded-md bg-electric-indigo px-4 py-1.5 text-xs font-medium text-white hover:bg-electric-indigo/90 transition"
+          className="shrink-0 rounded-md bg-indigo-700 px-4 py-1.5 text-xs font-medium text-white hover:bg-indigo-600 transition"
           data-testid="cookie-consent-dismiss"
         >
           Got it

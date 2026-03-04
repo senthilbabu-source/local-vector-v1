@@ -2,9 +2,9 @@
 // sprint-o-smoke.spec.ts — Sprint O: V1 Complete E2E Smoke Tests
 //
 // Validates:
-//   • M4 — Revenue Impact form: restaurant-appropriate defaults, placeholders, help text
+//   • M4 — Lost Sales form: restaurant-appropriate defaults, placeholders, help text
 //   • L3 — Content Flow: DraftSourceTag, calendar breadcrumb
-//   • N4 — Benchmark: card rendering, sample mode exclusion
+//   • N4 — Local Comparison: card rendering, sample mode exclusion
 //   • Cron auth guard: /api/cron/benchmarks without secret → 401
 //
 // Authentication: dev@ session (golden tenant, Growth plan).
@@ -17,11 +17,11 @@ const DEV_USER_STATE = path.join(__dirname, '../../.playwright/dev-user.json');
 test.use({ storageState: DEV_USER_STATE });
 
 // ---------------------------------------------------------------------------
-// M4 — Revenue Impact Defaults
+// M4 — Lost Sales Defaults
 // ---------------------------------------------------------------------------
 
-test.describe('Sprint O — Revenue Impact Defaults (M4)', () => {
-  test('revenue-impact form loads with non-zero avgCustomerValue', async ({ page }) => {
+test.describe('Sprint O — Lost Sales Defaults (M4)', () => {
+  test('lost-sales form loads with non-zero avgCustomerValue', async ({ page }) => {
     await page.goto('/dashboard/revenue-impact');
     const input = page.locator('input[name="avgCustomerValue"]');
     await expect(input).toBeVisible();
@@ -108,13 +108,13 @@ test.describe('Sprint O — Content Flow Clarity (L3)', () => {
 });
 
 // ---------------------------------------------------------------------------
-// N4 — Benchmark Comparison
+// N4 — Local Comparison
 // ---------------------------------------------------------------------------
 
-test.describe('Sprint O — Benchmark Comparison (N4)', () => {
-  test('dashboard loads with benchmark card', async ({ page }) => {
+test.describe('Sprint O — Local Comparison (N4)', () => {
+  test('dashboard loads with local comparison card', async ({ page }) => {
     await page.goto('/dashboard');
-    // The benchmark card should be present (either collecting or ready state)
+    // The local comparison card should be present (either collecting or ready state)
     const benchmarkCard = page.getByTestId('benchmark-comparison-card');
     const cardCount = await benchmarkCard.count();
     // Card may not render if org has no city — that's valid
@@ -123,7 +123,7 @@ test.describe('Sprint O — Benchmark Comparison (N4)', () => {
     }
   });
 
-  test('benchmark card shows city name in title', async ({ page }) => {
+  test('local comparison card shows city name in title', async ({ page }) => {
     await page.goto('/dashboard');
     const benchmarkCard = page.getByTestId('benchmark-comparison-card');
     const cardCount = await benchmarkCard.count();
@@ -133,7 +133,7 @@ test.describe('Sprint O — Benchmark Comparison (N4)', () => {
     }
   });
 
-  test('benchmark card shows either collecting or ready state', async ({ page }) => {
+  test('local comparison card shows either collecting or ready state', async ({ page }) => {
     await page.goto('/dashboard');
     const benchmarkCard = page.getByTestId('benchmark-comparison-card');
     const cardCount = await benchmarkCard.count();
@@ -166,12 +166,12 @@ test.describe('Sprint O — Regression Spot Checks', () => {
     await expect(page.getByText(/Welcome back/)).toBeVisible();
   });
 
-  test('hallucinations page loads', async ({ page }) => {
+  test('AI Mistakes page loads', async ({ page }) => {
     await page.goto('/dashboard/hallucinations');
     await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
   });
 
-  test('share-of-voice page loads', async ({ page }) => {
+  test('AI Mentions page loads', async ({ page }) => {
     await page.goto('/dashboard/share-of-voice');
     await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
   });

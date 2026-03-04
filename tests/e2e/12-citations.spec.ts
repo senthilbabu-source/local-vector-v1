@@ -37,6 +37,12 @@ test.describe('12 — Citations page', () => {
 
   test('can navigate to Citations from sidebar', async ({ page }) => {
     await page.goto('/dashboard');
+    // §200: Citations is in Content group (collapsed by default)
+    const group = page.getByTestId('sidebar-group-label').filter({ hasText: /Content/i });
+    if ((await group.getAttribute('aria-expanded')) !== 'true') {
+      await group.click();
+      await page.waitForTimeout(250);
+    }
     await page.getByTestId('nav-citations').click();
     await expect(page).toHaveURL(/\/dashboard\/citations/);
     await expect(

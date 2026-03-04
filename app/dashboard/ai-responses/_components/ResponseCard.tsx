@@ -8,7 +8,7 @@ import EngineResponseBlock from './EngineResponseBlock';
 // ---------------------------------------------------------------------------
 
 const CATEGORY_CONFIG: Record<string, { label: string; className: string }> = {
-  discovery: { label: 'Discovery', className: 'bg-electric-indigo/10 text-electric-indigo ring-electric-indigo/20' },
+  discovery: { label: 'Discovery', className: 'bg-indigo-500/10 text-indigo-400 ring-indigo-500/20' },
   comparison: { label: 'Comparison', className: 'bg-alert-amber/10 text-alert-amber ring-alert-amber/20' },
   near_me: { label: 'Near Me', className: 'bg-signal-green/10 text-signal-green ring-signal-green/20' },
   occasion: { label: 'Occasion', className: 'bg-alert-crimson/10 text-alert-crimson ring-alert-crimson/20' },

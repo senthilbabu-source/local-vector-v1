@@ -4349,3 +4349,41 @@ Full `npm run build && npx vitest run` verification pass. Fixed ~35 build errors
 - `app/global-error.tsx` — minimal client component
 
 ---
+
+## §203. Stripe Customer Portal Self-Service (2026-03-04)
+
+Bulletproof Stripe Customer Portal: programmatic portal configuration, webhook idempotency, cancellation tracking, invoice history, payment method display, billing error boundary.
+
+### Architecture
+
+- **Portal Configuration Script.** `scripts/setup-stripe-portal.ts` — one-time CLI script that creates a Stripe Billing Portal Configuration via SDK. Outputs `STRIPE_PORTAL_CONFIGURATION_ID`. Features: cancel-at-period-end with reason feedback, invoice history, payment method update, subscription update with proration.
+- **Webhook Idempotency.** `lib/stripe/webhook-idempotency.ts` — `isEventAlreadyProcessed()` SELECT check before dispatch, `recordWebhookEvent()` INSERT after dispatch (fire-and-forget). Uses existing `stripe_webhook_events` table (UNIQUE on `stripe_event_id`). Fail-open on DB errors.
+- **Cancellation Tracking.** Migration `20260430000001` adds `canceled_at` + `cancellation_reason` to `organizations`. Webhook `handleSubscriptionUpdated()` captures `cancellation_details.reason` from Stripe when `cancel_at_period_end` is true, clears on reactivation.
+- **Invoice History.** `getInvoiceHistory()` server action fetches last 12 invoices via `stripe.invoices.list()`. `InvoiceHistoryCard` client component renders table with PDF download + hosted invoice links.
+- **Payment Method Display.** `getPaymentMethod()` server action fetches default payment method (brand + last4 + expiry). Displayed in Subscription Details section.
+- **Billing Error Boundary.** `app/dashboard/billing/error.tsx` — CreditCard icon, "Billing Unavailable" heading, Sentry capture, support email link.
+
+### Rules
+
+1. **Portal config ID is optional.** When `STRIPE_PORTAL_CONFIGURATION_ID` is absent, `createPortalSession()` omits the `configuration` param — Stripe falls back to Dashboard defaults. Zero-regression for existing deployments.
+2. **Webhook idempotency is fail-open.** If `isEventAlreadyProcessed()` throws (DB error), the event is processed anyway. Better to double-process than silently drop.
+3. **`recordWebhookEvent()` is fire-and-forget.** Called with `void` prefix — never blocks the 200 response. UNIQUE constraint handles race conditions from concurrent identical events.
+4. **Cancellation fields are nullable.** `canceled_at` and `cancellation_reason` are cleared to `null` when a subscription is reactivated (`cancel_at_period_end: false`).
+5. **Invoice/payment method actions fail gracefully.** Both return empty/null on any Stripe API error — billing page still renders without these sections.
+
+### Key Files
+
+- `scripts/setup-stripe-portal.ts` — portal configuration script
+- `lib/stripe/webhook-idempotency.ts` — idempotency helpers
+- `supabase/migrations/20260430000001_cancellation_tracking.sql` — DB columns
+- `app/dashboard/billing/_components/InvoiceHistoryCard.tsx` — invoice UI
+- `app/dashboard/billing/error.tsx` — billing error boundary
+- `app/dashboard/billing/actions.ts` — portal config, invoices, payment method, cancelAt
+- `app/api/webhooks/stripe/route.ts` — idempotency + cancellation tracking
+
+### Tests
+
+- 45 unit tests: `src/__tests__/unit/stripe-portal-billing.test.ts`
+- 2 E2E tests: `tests/e2e/billing.spec.ts`
+
+---

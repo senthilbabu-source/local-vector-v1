@@ -102,7 +102,7 @@ test.describe('Sprint K — Sidebar Groups (H4)', () => {
   test('sidebar has at least 4 group label elements', async ({ page }) => {
     await page.goto('/dashboard');
     const groupLabels = page.getByTestId('sidebar-group-label');
-    await expect(groupLabels).toHaveCount(5); // Overview, AI Visibility, Content & Menu, Intelligence, Admin
+    await expect(groupLabels).toHaveCount(5); // Overview, How AI Sees You, Content, Insights, Admin
   });
 
   test('group label "Overview" is visible in sidebar', async ({ page }) => {
@@ -122,11 +122,14 @@ test.describe('Sprint K — Sidebar Groups (H4)', () => {
 
   test('all nav items still present (no items removed from nav)', async ({ page }) => {
     await page.goto('/dashboard');
-    // Check a representative subset of nav items are present
+    // Check a representative subset of nav items are present in the DOM.
+    // Note: sidebar groups are collapsible (§200) — only Overview is expanded
+    // by default on /dashboard. Items in collapsed groups exist but are hidden.
     await expect(page.getByTestId('nav-dashboard')).toBeVisible();
     await expect(page.getByTestId('nav-alerts')).toBeVisible();
-    await expect(page.getByTestId('nav-billing')).toBeVisible();
-    await expect(page.getByTestId('nav-settings')).toBeVisible();
+    // Admin group items exist in DOM but may be collapsed — check count instead of visibility
+    await expect(page.getByTestId('nav-billing')).toHaveCount(1);
+    await expect(page.getByTestId('nav-settings')).toHaveCount(1);
   });
 });
 

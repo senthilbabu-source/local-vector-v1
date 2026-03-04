@@ -95,7 +95,7 @@ export default function LocationCard({ location, isOwner }: LocationCardProps) {
           {location.is_primary && (
             <span
               data-testid={`location-primary-badge-${location.id}`}
-              className="rounded-full bg-electric-indigo/10 px-2 py-0.5 text-xs font-medium text-electric-indigo ring-1 ring-inset ring-electric-indigo/20"
+              className="rounded-full bg-indigo-500/10 px-2 py-0.5 text-xs font-medium text-indigo-400 ring-1 ring-inset ring-indigo-500/20"
             >
               Primary
             </span>

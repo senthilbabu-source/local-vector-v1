@@ -101,6 +101,7 @@ function Toggle({
         type="button"
         role="switch"
         aria-checked={checked}
+        aria-label={label}
         onClick={() => onChange(!checked)}
         data-testid={testId}
         className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors ${
@@ -426,6 +427,7 @@ export default function SettingsForm({ displayName, email, orgName, plan, notify
             </p>
           </div>
           <select
+            aria-label="Weekly scan day"
             value={scanDayOfWeek}
             onChange={(e) => setScanDayOfWeek(Number(e.target.value))}
             className="rounded-xl border border-white/10 bg-midnight-slate px-3 py-1.5 text-sm text-white"
@@ -501,6 +503,7 @@ export default function SettingsForm({ displayName, email, orgName, plan, notify
           </div>
           <div className="flex items-center gap-2">
             <select
+              aria-label="Score drop alert threshold"
               value={scoreDropThreshold}
               onChange={(e) => setScoreDropThreshold(Number(e.target.value))}
               className="rounded-xl border border-white/10 bg-midnight-slate px-2 py-1 text-sm text-white"

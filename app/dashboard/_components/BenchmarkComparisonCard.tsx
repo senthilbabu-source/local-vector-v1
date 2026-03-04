@@ -100,6 +100,9 @@ export default function BenchmarkComparisonCard({
               style={{
                 width: `${Math.min(100, (orgCount / MIN_DISPLAY_THRESHOLD) * 100)}%`,
               }}
+              role="progressbar"
+              aria-valuenow={orgCount}
+              aria-valuemax={MIN_DISPLAY_THRESHOLD}
               aria-label={`${orgCount} of ${MIN_DISPLAY_THRESHOLD} businesses`}
             />
           </div>

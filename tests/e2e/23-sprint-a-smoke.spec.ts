@@ -60,7 +60,7 @@ test.describe('H4 — Sidebar group headers', () => {
 
     // Key group names that must exist
     await expect(page.getByTestId('sidebar-group-label').filter({ hasText: /Overview/i })).toBeVisible();
-    await expect(page.getByTestId('sidebar-group-label').filter({ hasText: /Visibility/i })).toBeVisible();
+    await expect(page.getByTestId('sidebar-group-label').filter({ hasText: /How AI Sees You/i })).toBeVisible();
     await expect(page.getByTestId('sidebar-group-label').filter({ hasText: /Content/i })).toBeVisible();
   });
 });

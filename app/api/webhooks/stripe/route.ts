@@ -40,6 +40,7 @@ import Stripe from 'stripe';
 import { createServiceRoleClient } from '@/lib/supabase/server';
 import { syncSeatsFromStripe } from '@/lib/billing/seat-billing-service';
 import { resolvePlanTierFromPriceId } from '@/lib/stripe/plan-tier-resolver';
+import { isEventAlreadyProcessed, recordWebhookEvent } from '@/lib/stripe/webhook-idempotency';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Database } from '@/lib/supabase/database.types';
 
@@ -164,6 +165,20 @@ async function handleSubscriptionUpdated(
     updatePayload.plan = resolvedTier;
   } else if (subscription.status === 'canceled' || subscription.status === 'unpaid') {
     updatePayload.plan = 'trial';
+  }
+
+  // §203: Cancellation tracking — capture cancel_at_period_end + cancellation reason
+  if (subscription.cancel_at_period_end) {
+    updatePayload.canceled_at = new Date().toISOString();
+    const details = (subscription as unknown as { cancellation_details?: { reason?: string } })
+      .cancellation_details;
+    if (details?.reason) {
+      updatePayload.cancellation_reason = details.reason;
+    }
+  } else {
+    // Reactivated — clear cancellation metadata
+    updatePayload.canceled_at = null;
+    updatePayload.cancellation_reason = null;
   }
 
   // Sync seat_limit if we got a quantity and subscription is not canceled/unpaid
@@ -315,6 +330,14 @@ export async function POST(request: NextRequest) {
   // ── Dispatch ──────────────────────────────────────────────────────────────
   const supabase = createServiceRoleClient();
 
+  // §203: Idempotency — skip if this event was already processed
+  if (await isEventAlreadyProcessed(supabase, event.id)) {
+    console.log('[stripe-webhook] Duplicate event — skipping:', event.id);
+    return NextResponse.json({ received: true });
+  }
+
+  let handlerError: string | null = null;
+
   try {
     switch (event.type) {
       case 'checkout.session.completed':
@@ -353,8 +376,26 @@ export async function POST(request: NextRequest) {
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     console.error('[stripe-webhook] Handler threw:', msg);
+    handlerError = msg;
+
+    // Record the failed event before returning 500
+    void recordWebhookEvent(supabase, {
+      stripeEventId: event.id,
+      eventType: event.type,
+      orgId: null,
+      error: handlerError,
+    });
+
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
+
+  // §203: Record successful processing for idempotency audit trail
+  void recordWebhookEvent(supabase, {
+    stripeEventId: event.id,
+    eventType: event.type,
+    orgId: null,
+    error: null,
+  });
 
   return NextResponse.json({ received: true });
 }

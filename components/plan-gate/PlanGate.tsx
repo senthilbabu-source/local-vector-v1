@@ -89,7 +89,7 @@ export function PlanGate({
           {/* Required plan badge */}
           <span
             data-testid="plan-gate-plan-badge"
-            className="inline-block mb-3 px-3 py-1 rounded-full text-xs font-semibold bg-electric-indigo/10 text-electric-indigo uppercase tracking-wide"
+            className="inline-block mb-3 px-3 py-1 rounded-full text-xs font-semibold bg-indigo-500/10 text-indigo-400 uppercase tracking-wide"
           >
             {planLabel} Plan
           </span>

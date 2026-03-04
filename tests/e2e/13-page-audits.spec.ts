@@ -36,6 +36,12 @@ test.describe('13 — Page Audits page', () => {
 
   test('can navigate to Page Audits from sidebar', async ({ page }) => {
     await page.goto('/dashboard');
+    // §200: Page Audits is in Content group (collapsed by default)
+    const group = page.getByTestId('sidebar-group-label').filter({ hasText: /Content/i });
+    if ((await group.getAttribute('aria-expanded')) !== 'true') {
+      await group.click();
+      await page.waitForTimeout(250);
+    }
     await page.getByTestId('nav-page-audits').click();
     await expect(page).toHaveURL(/\/dashboard\/page-audits/);
     await expect(
