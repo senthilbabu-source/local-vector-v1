@@ -8,6 +8,7 @@ const NAV_LINKS = [
   { href: '/admin/api-usage', label: 'API Usage' },
   { href: '/admin/cron-health', label: 'Cron Health' },
   { href: '/admin/revenue', label: 'Revenue' },
+  { href: '/admin/distribution-health', label: 'Distribution' },
 ];
 
 /**

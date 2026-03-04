@@ -4224,3 +4224,43 @@ Replace the manual `LinkInjectionModal` (copy-paste URL instructions) with an in
 - `lib/distribution/index.ts` — barrel exports for config
 
 ---
+
+## §199. Verification Pipeline (Sprint DIST-4, 2026-03-04)
+
+Automated verification that menu distribution actually worked: crawl detection from `crawler_hits` + citation matching from SOV evaluation responses.
+
+### Architecture
+
+- **Pure detection functions** in `lib/distribution/verification-service.ts`: `hasCrawledEvent()`, `hasLiveInAIEvent()`, `matchMenuItemsInResponses()`. No I/O — fully testable.
+- **I/O functions**: `detectCrawlHits()` queries `crawler_hits` by `menu_id`. `detectCitationMatches()` fetches last 7 days of `sov_evaluations.raw_response` and runs substring matching.
+- **Main entry**: `verifyMenuPropagation(supabase, menuId, orgId)` — fetches menu, runs crawl + citation checks, appends `'crawled'` and/or `'live_in_ai'` propagation events if detected and not already recorded. Non-critical (never throws).
+- **Admin stats**: `getDistributionHealthStats()` aggregates across all published menus for admin dashboard.
+
+### Rules
+
+1. Citation matching is **case-insensitive substring** match — not ML. Same pattern as `sov-engine.service.ts` business name matching.
+2. Skip menu item names shorter than 3 characters to avoid false positives.
+3. **Event dedup**: always check existing `propagation_events` before appending `'crawled'` or `'live_in_ai'`. Never duplicate events.
+4. **Non-critical**: verification never blocks SOV cron. All errors caught + Sentry-tagged with `{ sprint: 'DIST-4' }`.
+5. **Zero new crons**: wired into existing SOV cron (both Inngest `processOrgSOV` and inline `_runInlineSOVImpl`), after source extraction, before occasion engine.
+6. **7-day SOV window**: citation matching queries `sov_evaluations` from last 7 days only (one weekly scan cycle).
+7. Admin page at `/admin/distribution-health` uses `createServiceRoleClient()`. Added to `AdminNav` NAV_LINKS.
+
+### Test Coverage
+
+- 22 new tests in `verification-service.test.ts`:
+  - Pure functions (11): hasCrawledEvent (2), hasLiveInAIEvent (2), matchMenuItemsInResponses (7)
+  - I/O functions (5): detectCrawlHits (3), detectCitationMatches (2)
+  - Integration (4): verifyMenuPropagation (4)
+  - Admin aggregation (2): getDistributionHealthStats (2)
+
+### Key Files
+
+- `lib/distribution/verification-service.ts` — core verification logic (pure + I/O)
+- `lib/distribution/index.ts` — barrel exports
+- `lib/inngest/functions/sov-cron.ts` — Inngest SOV path wiring
+- `app/api/cron/sov/route.ts` — inline fallback SOV path wiring
+- `app/admin/distribution-health/page.tsx` — admin dashboard page
+- `app/admin/_components/AdminNav.tsx` — nav entry (5 links)
+
+---

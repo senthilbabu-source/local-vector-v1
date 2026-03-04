@@ -41,6 +41,7 @@ import { canRunAutopilot, canRunMultiModelSOV, type PlanTier } from '@/lib/plan-
 import { createDraft, archiveExpiredOccasionDrafts } from '@/lib/autopilot/create-draft';
 import { getPendingRechecks, completeRecheck } from '@/lib/autopilot/post-publish';
 import { writeRealityScoreSnapshot } from '@/lib/services/reality-score.service';
+import { verifyMenuPropagation } from '@/lib/distribution/verification-service';
 
 // ---------------------------------------------------------------------------
 // Plan-based query caps (Doc 04c §4.1)
@@ -190,6 +191,24 @@ export async function processOrgSOV(batch: OrgBatch): Promise<OrgSOVResult> {
   } catch (err) {
     const sourceMsg = err instanceof Error ? err.message : String(err);
     console.error(`[inngest-sov] Source extraction failed for org ${batch.orgId}:`, sourceMsg);
+  }
+
+  // DIST-4: Menu propagation verification (non-critical)
+  try {
+    const { data: publishedMenus } = await supabase
+      .from('magic_menus')
+      .select('id')
+      .eq('org_id', batch.orgId)
+      .eq('is_published', true);
+
+    for (const menu of publishedMenus ?? []) {
+      await verifyMenuPropagation(supabase, menu.id, batch.orgId);
+    }
+  } catch (err) {
+    Sentry.captureException(err, {
+      tags: { cron: 'sov', phase: 'menu-verification', sprint: 'DIST-4' },
+      extra: { orgId: batch.orgId },
+    });
   }
 
   let occasionDrafts = 0;

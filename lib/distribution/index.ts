@@ -16,3 +16,10 @@ export { distributeMenu } from './distribution-orchestrator';
 export { indexNowEngine } from './engines/indexnow-engine';
 export { gbpEngine } from './engines/gbp-engine';
 export { appleBcEngine } from './engines/apple-bc-engine';
+export { verifyMenuPropagation, getDistributionHealthStats } from './verification-service';
+export type {
+  CrawlDetectionResult,
+  CitationMatchResult,
+  VerificationResult,
+  DistributionHealthStats,
+} from './verification-service';

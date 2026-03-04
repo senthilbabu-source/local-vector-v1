@@ -4,6 +4,33 @@
 
 ---
 
+## 2026-03-04 — Verification Pipeline (Sprint DIST-4, §199)
+
+Automated verification that menu distribution actually worked. Checks crawler_hits for bot visits and SOV evaluation answers for menu item citations. Auto-populates "Crawled" and "Live in AI" propagation pills.
+
+### Problem
+No way to confirm distribution actually worked. The "Crawled" and "Live in AI" propagation pills in the DistributionPanel (DIST-3) were never auto-populated — users had no feedback on whether AI engines actually picked up their menu data.
+
+### New Files (2)
+- **`lib/distribution/verification-service.ts`** — Pure functions: `hasCrawledEvent()`, `hasLiveInAIEvent()`, `matchMenuItemsInResponses()` (case-insensitive substring match, skips names < 3 chars). I/O: `detectCrawlHits()` (queries `crawler_hits` by `menu_id`), `detectCitationMatches()` (last 7 days `sov_evaluations.raw_response`), `verifyMenuPropagation()` (main entry: crawl + citation → append events with dedup), `getDistributionHealthStats()` (admin aggregation).
+- **`app/admin/distribution-health/page.tsx`** — Server Component with 4 AdminStatCards (total orgs, % distributed, % crawled, % live-in-AI) + funnel breakdown section.
+
+### Modified Files (4)
+- **`lib/distribution/index.ts`** — Barrel exports for `verifyMenuPropagation`, `getDistributionHealthStats`, types.
+- **`lib/inngest/functions/sov-cron.ts`** — Wired `verifyMenuPropagation()` after source extraction (non-critical try/catch + Sentry).
+- **`app/api/cron/sov/route.ts`** — Same wiring in inline fallback path.
+- **`app/admin/_components/AdminNav.tsx`** — Added "Distribution" nav link (4→5 links).
+
+### Tests
+- 22 new unit tests in `verification-service.test.ts`:
+  - Pure (11): hasCrawledEvent (2), hasLiveInAIEvent (2), matchMenuItemsInResponses (7 — exact, case-insensitive, no match, short names, multiple, null, empty)
+  - I/O (5): detectCrawlHits (3 — hits/no-hits/dedup), detectCitationMatches (2 — positive/negative)
+  - Integration (4): verifyMenuPropagation (crawled append, live_in_ai append, dedup skip, non-published null)
+  - Admin (2): getDistributionHealthStats (percentages, zero-division)
+- 0 regressions.
+
+---
+
 ## 2026-03-04 — Distribution UI Panel (Sprint DIST-3, §198)
 
 Replace the manual LinkInjectionModal with an inline DistributionPanel showing per-engine status, one-click distribute, timestamps, and crawler activity.

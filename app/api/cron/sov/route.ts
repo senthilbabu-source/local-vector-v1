@@ -45,6 +45,7 @@ import { notifyOrg, buildCronNotification } from '@/lib/realtime/notify-org';
 import { getOrCreateOrgSettings, shouldScanOrg } from '@/lib/settings';
 import { runMultiModelQuery } from '@/lib/services/multi-model-sov';
 import { writeRealityScoreSnapshot } from '@/lib/services/reality-score.service';
+import { verifyMenuPropagation } from '@/lib/distribution/verification-service';
 
 // Force dynamic so Vercel never caches this route between cron invocations.
 export const dynamic = 'force-dynamic';
@@ -263,6 +264,24 @@ async function _runInlineSOVImpl(handle: { logId: string | null; startedAt: numb
         } catch (err) {
           Sentry.captureException(err, { tags: { cron: 'sov', phase: 'source-extraction', sprint: 'A' }, extra: { orgId } });
           // Source extraction is non-critical
+        }
+
+        // DIST-4: Menu propagation verification (non-critical)
+        try {
+          const { data: publishedMenus } = await supabase
+            .from('magic_menus')
+            .select('id')
+            .eq('org_id', orgId)
+            .eq('is_published', true);
+
+          for (const menu of publishedMenus ?? []) {
+            await verifyMenuPropagation(supabase, menu.id, orgId);
+          }
+        } catch (err) {
+          Sentry.captureException(err, {
+            tags: { cron: 'sov', phase: 'menu-verification', sprint: 'DIST-4' },
+            extra: { orgId },
+          });
         }
 
         const { data: membershipRow } = await supabase
