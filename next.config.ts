@@ -31,6 +31,10 @@ const securityHeaders = [
 
 const nextConfig: NextConfig = {
   // P5-FIX-24: Performance optimizations
+  // Menu uploads + AI parsing payloads can exceed the 1 MB default
+  serverActions: {
+    bodySizeLimit: '10mb',
+  },
   experimental: {
     // Tree-shake barrel exports for smaller bundles
     optimizePackageImports: [

@@ -4,6 +4,12 @@
 
 ---
 
+## 2026-03-04 — Server Actions body size limit (config fix)
+
+Menu uploads + AI parsing payloads exceed the Next.js default 1 MB Server Actions limit. Increased to 10 MB via `serverActions.bodySizeLimit` in `next.config.ts`.
+
+---
+
 ## 2026-03-04 — Verification Pipeline (Sprint DIST-4, §199)
 
 Automated verification that menu distribution actually worked. Checks crawler_hits for bot visits and SOV evaluation answers for menu item citations. Auto-populates "Crawled" and "Live in AI" propagation pills.
