@@ -4099,3 +4099,47 @@ SOV page shows "Complete your profile" banner when `hours_data` or `amenities` a
 - `supabase/migrations/20260428200001_hijacking_alerts.sql` — table + RLS + indexes
 
 ---
+
+## §196. Distribution Engine Core (Sprint DIST-1, 2026-03-04)
+
+Automated menu distribution to AI engines. Content hash prevents redundant pushes. Pluggable engine adapters via `DistributionEngine` interface.
+
+**Architecture:**
+- `lib/distribution/` module: types → content-hasher (pure) → engine adapters → orchestrator → barrel export.
+- Pattern follows `lib/apple-bc/` adapter model.
+- `distributeMenu(supabase, menuId, orgId, engines?)` is the single entry point.
+- Engines run in parallel via `Promise.all`. Partial failures don't block other engines.
+- Fire-and-forget from `approveAndPublish()` — never blocks publish.
+
+**Rules:**
+- Content hash: `computeMenuHash()` strips `confidence` + `image_url` (volatile), sorts items by `id`, sorts keys per item. Format: `sha256-{64hex}`.
+- If hash matches stored `content_hash` → return `no_changes`, skip all engines.
+- On success: update `content_hash`, `last_distributed_at`, append propagation events.
+- Engine adapters must never throw. Return `EngineResult` with `status: 'success'|'skipped'|'error'`.
+- `engineToEventName()` maps: `indexnow` → `indexnow_pinged`, `gbp` → `gbp_menu_pushed`, `apple_bc` → `apple_bc_synced`.
+- `PropagationEvent.event` union now includes `gbp_menu_pushed` + `apple_bc_synced`.
+- `approveAndPublish()` calls `distributeMenu()` (not `pingIndexNow()` directly).
+- GBP + Apple BC engines are placeholders (return `skipped`) until Sprint 2.
+
+**Migration:**
+- `20260429000001_distribution_engine.sql`: `content_hash varchar(71)` + `last_distributed_at timestamptz` on `magic_menus`.
+
+### Test Coverage
+
+- 8 Vitest unit tests: `src/__tests__/unit/distribution-content-hasher.test.ts` (format, sort-independent, strips confidence, strips image_url, stable empty, nulls, different hashes, price_note)
+- 10 Vitest unit tests: `src/__tests__/unit/distribution-orchestrator.test.ts` (no_changes, distribute, first distribution, errors x3, event recording, partial failure, DB update, Sentry)
+- 5 Vitest unit tests: `src/__tests__/unit/distribution-indexnow-engine.test.ts` (success, error, skipped, URL, never throws)
+- 4 Vitest unit tests: `src/__tests__/unit/distribution-publish-flow.test.ts` (calls distributeMenu, null slug, failure doesn't block, correct args)
+
+### Key Files
+
+- `lib/distribution/distribution-types.ts` — `EngineResult`, `DistributionResult`, `DistributionContext`, `DistributionEngine`
+- `lib/distribution/content-hasher.ts` — `computeMenuHash()` pure function
+- `lib/distribution/distribution-orchestrator.ts` — `distributeMenu()` core orchestration
+- `lib/distribution/engines/indexnow-engine.ts` — IndexNow adapter
+- `lib/distribution/engines/gbp-engine.ts` — GBP placeholder (Sprint 2)
+- `lib/distribution/engines/apple-bc-engine.ts` — Apple BC placeholder (Sprint 2)
+- `lib/distribution/index.ts` — barrel export
+- `supabase/migrations/20260429000001_distribution_engine.sql` — migration
+
+---

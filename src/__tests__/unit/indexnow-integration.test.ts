@@ -109,17 +109,21 @@ describe('pingIndexNow', () => {
 });
 
 // ---------------------------------------------------------------------------
-// § 2 — approveAndPublish calls pingIndexNow (magic-menus)
+// § 2 — approveAndPublish calls distributeMenu (magic-menus)
 // ---------------------------------------------------------------------------
 
-describe('approveAndPublish → IndexNow ping', () => {
-  const mockPingIndexNow = vi.fn().mockResolvedValue(true);
+describe('approveAndPublish → distributeMenu', () => {
+  const mockDistributeMenu = vi.fn().mockResolvedValue({
+    status: 'distributed',
+    engineResults: [{ engine: 'indexnow', status: 'success' }],
+    contentHash: 'sha256-abc',
+    distributedAt: '2026-03-04T00:00:00.000Z',
+  });
 
   beforeEach(() => {
     vi.resetModules();
     vi.restoreAllMocks();
 
-    // Set env for IndexNow
     process.env.NEXT_PUBLIC_APP_URL = 'https://app.localvector.ai';
 
     vi.doMock('next/cache', () => ({ revalidatePath: vi.fn() }));
@@ -127,11 +131,8 @@ describe('approveAndPublish → IndexNow ping', () => {
       getSafeAuthContext: vi.fn().mockResolvedValue({ orgId: 'org-1', userId: 'u-1' }),
     }));
     vi.doMock('@sentry/nextjs', () => ({ captureException: vi.fn() }));
-    vi.doMock('@/lib/indexnow', () => ({ pingIndexNow: mockPingIndexNow }));
+    vi.doMock('@/lib/distribution', () => ({ distributeMenu: mockDistributeMenu }));
 
-    // Mock Supabase — approveAndPublish does:
-    //   from('magic_menus').select(...).eq('id', menuId).single()  (read)
-    //   from('magic_menus').update({...}).eq('id', menuId)          (write)
     const mockSingle = vi.fn().mockResolvedValue({
       data: { public_slug: 'charcoal-n-chill', propagation_events: [] },
       error: null,
@@ -151,7 +152,6 @@ describe('approveAndPublish → IndexNow ping', () => {
       }),
     }));
 
-    // Mock other imports used by magic-menus/actions.ts
     vi.doMock('@/lib/credits/credit-service', () => ({
       checkCredit: vi.fn().mockResolvedValue({ ok: true }),
       consumeCredit: vi.fn(),
@@ -173,16 +173,18 @@ describe('approveAndPublish → IndexNow ping', () => {
     vi.doMock('@/lib/utils/parsePosExport', () => ({ parsePosExportWithGPT4o: vi.fn() }));
   });
 
-  it('calls pingIndexNow with /m/[slug] URL after successful publish', async () => {
+  it('calls distributeMenu after successful publish', async () => {
     const mod = await import('@/app/dashboard/magic-menus/actions');
     await mod.approveAndPublish('menu-1');
 
-    expect(mockPingIndexNow).toHaveBeenCalledWith([
-      'https://app.localvector.ai/m/charcoal-n-chill',
-    ]);
+    expect(mockDistributeMenu).toHaveBeenCalledWith(
+      expect.anything(), // supabase client
+      'menu-1',
+      'org-1',
+    );
   });
 
-  it('does not call pingIndexNow when public_slug is null', async () => {
+  it('does not call distributeMenu when public_slug is null', async () => {
     vi.resetModules();
 
     vi.doMock('next/cache', () => ({ revalidatePath: vi.fn() }));
@@ -190,7 +192,7 @@ describe('approveAndPublish → IndexNow ping', () => {
       getSafeAuthContext: vi.fn().mockResolvedValue({ orgId: 'org-1', userId: 'u-1' }),
     }));
     vi.doMock('@sentry/nextjs', () => ({ captureException: vi.fn() }));
-    vi.doMock('@/lib/indexnow', () => ({ pingIndexNow: mockPingIndexNow }));
+    vi.doMock('@/lib/distribution', () => ({ distributeMenu: mockDistributeMenu }));
     vi.doMock('@/lib/credits/credit-service', () => ({
       checkCredit: vi.fn().mockResolvedValue({ ok: true }),
       consumeCredit: vi.fn(),
@@ -211,7 +213,6 @@ describe('approveAndPublish → IndexNow ping', () => {
     vi.doMock('@/lib/utils/parseCsvMenu', () => ({ parseLocalVectorCsv: vi.fn() }));
     vi.doMock('@/lib/utils/parsePosExport', () => ({ parsePosExportWithGPT4o: vi.fn() }));
 
-    // Supabase returns null slug
     const mockSingle = vi.fn().mockResolvedValue({
       data: { public_slug: null, propagation_events: [] },
       error: null,
@@ -230,10 +231,10 @@ describe('approveAndPublish → IndexNow ping', () => {
       }),
     }));
 
-    mockPingIndexNow.mockClear();
+    mockDistributeMenu.mockClear();
     const { approveAndPublish } = await import('@/app/dashboard/magic-menus/actions');
     await approveAndPublish('menu-1');
 
-    expect(mockPingIndexNow).not.toHaveBeenCalled();
+    expect(mockDistributeMenu).not.toHaveBeenCalled();
   });
 });

@@ -55,9 +55,11 @@ export interface MenuExtractedData {
  *   crawled          — middleware recorded a verified bot hit (crawler_hits table)
  *   indexed          — confirmed indexed by Google / Bing
  *   live_in_ai       — confirmed cited by ChatGPT / Perplexity
+ *   gbp_menu_pushed  — menu items pushed to Google Business Profile via Food Menus API
+ *   apple_bc_synced  — listing synced to Apple Business Connect
  */
 export interface PropagationEvent {
-  event: 'published' | 'link_injected' | 'indexnow_pinged' | 'crawled' | 'indexed' | 'live_in_ai';
+  event: 'published' | 'link_injected' | 'indexnow_pinged' | 'crawled' | 'indexed' | 'live_in_ai' | 'gbp_menu_pushed' | 'apple_bc_synced';
   date: string;  // ISO-8601
 }
 

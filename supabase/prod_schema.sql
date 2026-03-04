@@ -712,6 +712,8 @@ CREATE TABLE IF NOT EXISTS "public"."magic_menus" (
     "ai_readability_score" double precision,
     "llms_txt_content" "text",
     "propagation_events" "jsonb" DEFAULT '[]'::"jsonb",
+    "content_hash" character varying(71),
+    "last_distributed_at" timestamp with time zone,
     "created_at" timestamp with time zone DEFAULT "now"(),
     "updated_at" timestamp with time zone DEFAULT "now"(),
     CONSTRAINT "magic_menus_ai_readability_score_check" CHECK ((("ai_readability_score" >= (0)::double precision) AND ("ai_readability_score" <= (100)::double precision)))

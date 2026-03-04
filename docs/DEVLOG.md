@@ -4,6 +4,40 @@
 
 ---
 
+## 2026-03-04 — Distribution Engine Core (Sprint DIST-1, §196)
+
+Foundation for automated menu distribution to AI engines. Content hash for change detection, orchestrator with pluggable engine adapters, IndexNow adapter wired in, GBP + Apple BC placeholders for Sprint 2.
+
+### Problem
+IndexNow fired on every publish even if menu hadn't changed. No central coordinator. No event recording for `indexnow_pinged`. "Distribute to AI Engines" button was manual copy/paste.
+
+### New Files (9)
+- **`lib/distribution/distribution-types.ts`** — `EngineResult`, `DistributionResult`, `DistributionContext`, `DistributionEngine` interface.
+- **`lib/distribution/content-hasher.ts`** — `computeMenuHash()`: deterministic SHA-256, strips volatile fields (confidence, image_url), sort-independent.
+- **`lib/distribution/distribution-orchestrator.ts`** — `distributeMenu()`: hash check → engine dispatch → event recording → DB persist. Never throws.
+- **`lib/distribution/engines/indexnow-engine.ts`** — Wraps `pingIndexNow()` as `DistributionEngine` adapter.
+- **`lib/distribution/engines/gbp-engine.ts`** — Placeholder no-op (Sprint 2).
+- **`lib/distribution/engines/apple-bc-engine.ts`** — Placeholder no-op (Sprint 2).
+- **`lib/distribution/index.ts`** — Barrel export.
+- **`supabase/migrations/20260429000001_distribution_engine.sql`** — Adds `content_hash varchar(71)` + `last_distributed_at timestamptz` to `magic_menus`.
+
+### Modified Files (4)
+- **`lib/types/menu.ts`** — Added `gbp_menu_pushed` + `apple_bc_synced` to `PropagationEvent.event` union.
+- **`app/dashboard/magic-menus/actions.ts`** — Replaced `pingIndexNow()` with `distributeMenu()` in `approveAndPublish()`.
+- **`supabase/prod_schema.sql`** — Added 2 columns to `magic_menus` table.
+- **`src/__tests__/unit/indexnow-integration.test.ts`** — Section 2 updated: asserts `distributeMenu` called instead of `pingIndexNow`.
+
+### Tests
+- 27 new unit tests across 4 files:
+  - `distribution-content-hasher.test.ts` — 8 tests (deterministic hash, sort-independent, strips volatile fields, empty array, price_note)
+  - `distribution-orchestrator.test.ts` — 10 tests (no_changes on same hash, distribute on diff, first distribution, error cases, event recording, partial failure, Sentry)
+  - `distribution-indexnow-engine.test.ts` — 5 tests (success/error/skipped, URL construction, never throws)
+  - `distribution-publish-flow.test.ts` — 4 tests (calls distributeMenu, null slug skip, failure doesn't block, correct args)
+- Regression fix: `indexnow-integration.test.ts` section 2 updated (pingIndexNow → distributeMenu)
+- 0 regressions. **5934 tests passing, 394 files.** AI_RULES §196.
+
+---
+
 ## 2026-03-03 — Competitive Hijacking Alerts (P8-FIX-37, §195)
 
 Detects when AI engines confuse a business with a competitor. Three hijack types: competitor_citation (high), address_mix (critical), attribute_confusion (medium). Agency-only feature. Weekly cron + email alerts + dashboard UI.
