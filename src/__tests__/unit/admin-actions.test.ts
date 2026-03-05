@@ -154,7 +154,6 @@ beforeEach(() => {
   process.env.NEXT_PUBLIC_APP_URL = 'http://localhost:3000';
   process.env.STRIPE_SECRET_KEY = 'sk_test_fake';
   mockCookieGet.mockReturnValue(undefined);
-  // @ts-expect-error -- global fetch mock
   global.fetch = mockFetch;
 });
 

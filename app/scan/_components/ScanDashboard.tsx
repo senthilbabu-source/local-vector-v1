@@ -318,9 +318,9 @@ export default function ScanDashboard({ result }: Props) {
                 </div>
                 <p className="text-sm leading-relaxed" style={{ color: '#CBD5E1' }}>
                   <span className="font-semibold" style={{ color: '#F1F5F9' }}>{result.engine}</span>{' '}
-                  currently describes{' '}
-                  <span className="font-semibold" style={{ color: '#F1F5F9' }}>&ldquo;{result.businessName}&rdquo;</span>{' '}
-                  accurately. AI hallucinations can appear at any time — monitoring keeps you protected.
+                  shows accurate data today.{' '}
+                  AI knowledge bases refresh every 48–72 hours — the next refresh could introduce wrong hours, a closed status, or outdated menu prices.{' '}
+                  You won&apos;t know until a customer doesn&apos;t show up.
                 </p>
               </div>
             )}
@@ -335,20 +335,94 @@ export default function ScanDashboard({ result }: Props) {
                     <path d="M9 3.5a5.5 5.5 0 100 11 5.5 5.5 0 000-11zM2 9a7 7 0 1112.452 4.391l3.328 3.329a.75.75 0 11-1.06 1.06l-3.329-3.328A7 7 0 012 9z" />
                   </svg>
                   <p className="text-base font-bold" style={{ color: '#CBD5E1' }}>
-                    Zero AI Visibility
+                    Invisible to AI Search
                   </p>
                 </div>
                 <p className="text-sm leading-relaxed" style={{ color: '#94A3B8' }}>
-                  <span className="font-semibold" style={{ color: '#CBD5E1' }}>{result.engine}</span>{' '}
-                  has no data for{' '}
+                  ChatGPT, Perplexity, and Gemini handle millions of restaurant questions daily.
+                  None of them have data for{' '}
                   <span className="font-semibold" style={{ color: '#CBD5E1' }}>&ldquo;{result.businessName}&rdquo;</span>.
-                  Customers searching AI assistants won&apos;t find you — costing you revenue silently.
+                  While competitors get recommended, you don&apos;t exist — and you&apos;re losing customers to them right now.
                 </p>
               </div>
             )}
           </Reveal>
         </div>
       </section>
+
+      {/* ── 1b. Multi-model pending strip ───────────────────────────────── */}
+      {/* result.status is never 'invalid' here — early return above handles that case */}
+      <section className="px-4" style={{ backgroundColor: '#050A15' }}>
+          <div className="lv-section" style={{ paddingTop: 0, paddingBottom: 48 }}>
+            <Reveal>
+              <div className="lv-card" style={{ padding: 24 }}>
+                <div className="flex items-center justify-between mb-5">
+                  <div>
+                    <SectionLabel>AI Model Coverage</SectionLabel>
+                    <p className="text-sm font-semibold" style={{ color: '#F1F5F9' }}>
+                      Scanned 1 of 5 AI models
+                    </p>
+                  </div>
+                  <span
+                    className="text-xs font-semibold rounded-md px-2.5 py-1"
+                    style={{
+                      color: '#00F5A0',
+                      background: 'rgba(0,245,160,0.12)',
+                      fontFamily: 'var(--font-jetbrains-mono), monospace',
+                    }}
+                  >
+                    Live
+                  </span>
+                </div>
+                <div className="space-y-3">
+                  {/* Perplexity Sonar — real result (checked) */}
+                  <div
+                    className="flex items-center gap-3 rounded-xl px-4 py-3"
+                    style={{ background: 'rgba(0,245,160,0.06)', border: '1px solid rgba(0,245,160,0.15)' }}
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"
+                      className="h-4 w-4 shrink-0" style={{ color: '#00F5A0' }} aria-hidden>
+                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z" clipRule="evenodd" />
+                    </svg>
+                    <span className="text-sm font-semibold" style={{ color: '#F1F5F9' }}>Perplexity Sonar</span>
+                    <span
+                      className="ml-auto text-xs font-semibold rounded-md px-2 py-0.5"
+                      style={{
+                        color: '#00F5A0',
+                        background: 'rgba(0,245,160,0.12)',
+                        fontFamily: 'var(--font-jetbrains-mono), monospace',
+                      }}
+                    >
+                      Scanned
+                    </span>
+                  </div>
+                  {/* Locked models */}
+                  {(['ChatGPT', 'Google Gemini', 'Claude', 'Microsoft Copilot'] as const).map((model) => (
+                    <div key={model} className="relative overflow-hidden rounded-xl">
+                      <LockPill />
+                      <div
+                        className="flex items-center gap-3 px-4 py-3 select-none"
+                        style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)' }}
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor"
+                          className="h-4 w-4 shrink-0 text-slate-600" aria-hidden>
+                          <path fillRule="evenodd" d="M8 1a3.5 3.5 0 0 0-3.5 3.5V7A1.5 1.5 0 0 0 3 8.5v5A1.5 1.5 0 0 0 4.5 15h7a1.5 1.5 0 0 0 1.5-1.5v-5A1.5 1.5 0 0 0 11 7V4.5A3.5 3.5 0 0 0 8 1Zm2 6V4.5a2 2 0 1 0-4 0V7h4Z" clipRule="evenodd" />
+                        </svg>
+                        <span className="text-sm font-semibold text-slate-600">{model}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <p
+                  className="mt-4 text-xs"
+                  style={{ color: '#475569', fontFamily: 'var(--font-jetbrains-mono), monospace' }}
+                >
+                  Unlock full model scan with a free account
+                </p>
+              </div>
+            </Reveal>
+          </div>
+        </section>
 
       {/* ── 2. KPI Section ───────────────────────────────────────────────── */}
       <section
@@ -377,7 +451,7 @@ export default function ScanDashboard({ result }: Props) {
               </span>
             </div>
           </Reveal>
-          <div className="lv-grid2 mb-12">
+          <div className="lv-grid2 mb-6">
             <Reveal delay={0}>
               <RealMentionsCard mentions={mentions} />
             </Reveal>
@@ -385,6 +459,11 @@ export default function ScanDashboard({ result }: Props) {
               <RealSentimentCard sentiment={sentiment} />
             </Reveal>
           </div>
+
+          {/* Row 1b: Locked revenue impact card (full width) */}
+          <Reveal delay={160}>
+            <LockedRevenueCard mentions={mentions} status={result.status} />
+          </Reveal>
 
           {/* Row 2: Locked numerical scores — require continuous monitoring */}
           <Reveal delay={200}>
@@ -405,15 +484,15 @@ export default function ScanDashboard({ result }: Props) {
           <div className="lv-grid2">
             <Reveal delay={250}>
               <LockedScoreCard
-                title="AI Visibility Score"
-                abbr="AVS"
+                title="AI Health Score"
+                abbr="AHS"
                 description="How often AI cites your business accurately"
               />
             </Reveal>
             <Reveal delay={400}>
               <LockedScoreCard
-                title="Citation Integrity"
-                abbr="CI"
+                title="Platform Coverage"
+                abbr="PC"
                 description="AI accuracy on hours, address, and menu"
               />
             </Reveal>
@@ -537,7 +616,7 @@ export default function ScanDashboard({ result }: Props) {
                 />
               ) : (
                 <LockedFixItem
-                  title="Inject verified NAP data via Magic Menu"
+                  title="Push verified data via Distribution Engine to 6+ AI platforms"
                   description="Convert your menu + hours into structured data AI models trust"
                 />
               )}
@@ -910,6 +989,50 @@ function FallbackIssueCard({ result }: { result: ScanDisplayData }) {
           </p>
         </div>
       </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// LockedRevenueCard — blurred revenue impact card (full width, below Row 1)
+// ---------------------------------------------------------------------------
+
+function LockedRevenueCard({
+  mentions,
+  status,
+}: {
+  mentions: 'none' | 'low' | 'medium' | 'high';
+  status: 'fail' | 'pass' | 'not_found';
+}) {
+  const isHighRisk = status === 'not_found' || mentions === 'none' || mentions === 'low';
+  const isMedRisk  = !isHighRisk && mentions === 'medium';
+
+  const accentColor  = isHighRisk ? '#EF4444' : isMedRisk ? '#FFB800' : '#94A3B8';
+  const accentBorder = isHighRisk ? '#EF4444' : isMedRisk ? '#FFB800' : '#94A3B8';
+  const redactColor  = isHighRisk ? '#EF4444' : isMedRisk ? '#FFB800' : '#94A3B8';
+
+  return (
+    <div
+      className="lv-card relative overflow-hidden mb-12"
+      style={{ borderLeft: `3px solid ${accentBorder}` }}
+    >
+      <LockOverlay text="Sign up to see your estimated revenue impact" />
+      {/* Background content (behind lock overlay) */}
+      <p
+        className="text-xs font-bold uppercase mb-1"
+        style={{ color: '#475569', letterSpacing: '0.14em', fontFamily: 'var(--font-jetbrains-mono), monospace' }}
+      >
+        Estimated Monthly Revenue at Risk
+      </p>
+      <p
+        className="font-extrabold select-none tabular-nums mb-2"
+        style={{ fontSize: 'clamp(28px,3.5vw,40px)', color: redactColor, fontFamily: 'var(--font-jetbrains-mono), monospace' }}
+      >
+        ████ / mo
+      </p>
+      <p style={{ fontSize: 12, color: accentColor }}>
+        Based on your AI visibility level and typical restaurant traffic in your market
+      </p>
     </div>
   );
 }

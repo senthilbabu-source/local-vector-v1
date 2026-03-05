@@ -101,7 +101,7 @@ describe('runFreeScan — is_closed branching (AI_RULES §21)', () => {
     if (result.status === 'fail') {
       expect(result.claim_text).toBe('Permanently Closed');
       expect(result.expected_truth).toBe('Open');
-      expect(result.engine).toBe('ChatGPT');
+      expect(result.engine).toBe('Perplexity Sonar');
       expect(result.business_name).toBe('Biryani World Fusion and Grill');
     }
   });
@@ -112,7 +112,7 @@ describe('runFreeScan — is_closed branching (AI_RULES §21)', () => {
     const result = await runFreeScan(makeForm());
     expect(result).toEqual({
       status:                    'pass',
-      engine:                    'ChatGPT',
+      engine:                    'Perplexity Sonar',
       business_name:             'Biryani World Fusion and Grill',
       mentions_volume:           'low',     // Zod default
       sentiment:                 'neutral',  // Zod default
@@ -221,7 +221,7 @@ describe('runFreeScan — is_closed branching (AI_RULES §21)', () => {
     const result = await runFreeScan(makeForm('Ghost Kitchen'));
     expect(result).toEqual({
       status:        'not_found',
-      engine:        'ChatGPT',
+      engine:        'Perplexity Sonar',
       business_name: 'Ghost Kitchen',
     });
   });
@@ -377,7 +377,7 @@ describe('runFreeScan — is_closed branching (AI_RULES §21)', () => {
     const result = await runFreeScan(makeForm('Ghost Kitchen'));
     expect(result).toEqual({
       status:        'not_found',
-      engine:        'ChatGPT',
+      engine:        'Perplexity Sonar',
       business_name: 'Ghost Kitchen',
     });
   });

@@ -37,12 +37,12 @@ export default function HeroSection() {
             description:
               'LocalVector.ai detects and fixes AI hallucinations about local businesses — ' +
               'when ChatGPT, Perplexity, or Gemini spread false information about hours, ' +
-              'location, or menu. Features: automated daily AI auditing, AI Visibility Score ' +
+              'location, or menu. Features: automated daily AI auditing, AI Health Score ' +
               'tracking, competitor intercept analysis, and structured data distribution.',
             featureList: [
               'AI Hallucination Detection (ChatGPT, Gemini, Perplexity)',
-              'AI Visibility Score (AVS) — Proprietary Metric',
-              'PDF Menu to Schema.org Conversion',
+              'AI Health Score — Track your AI visibility over time',
+              'Menu Distribution to ChatGPT, Perplexity, Gemini & more',
               'Competitor AI Recommendation Intercept',
               'NAP Listing Distribution to Big 6 Platforms',
               'Reality Score Dashboard',

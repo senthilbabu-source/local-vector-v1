@@ -4459,3 +4459,46 @@ Admin panel upgrade from read-only to full write capability. 6 server actions be
 - 29 unit tests: `src/__tests__/unit/content-drafts-export.test.ts`
 
 ---
+
+
+## §207 — Viral Scanner Conversion Polish (Sprint P2-7a)
+
+### What Changed
+
+1. **Engine name corrected.** All `engine: 'ChatGPT'` values in `app/actions/marketing.ts` changed to `engine: 'Perplexity Sonar'` — the actual API being called. Affected: `_demoFallbackForTesting()`, `_singlePerplexityCall()` (not_found path, pass path, fail path, text-detection fail path, text-detection pass path, empty-response path).
+
+2. **Scan message updated.** `ViralScanner.tsx` `SCAN_MESSAGES[4]`: "Calculating AI Visibility Score (AVS)..." → "Calculating AI Health Score...".
+
+3. **Terminology standardised.** `ScanDashboard.tsx` locked score card 1: title "AI Visibility Score" + abbr "AVS" → "AI Health Score" + "AHS". Locked score card 2: title "Citation Integrity" + abbr "CI" → "Platform Coverage" + "PC". Locked fix item 3: "Inject verified NAP data via Magic Menu" → "Push verified data via Distribution Engine to 6+ AI platforms".
+
+4. **PASS banner reframed.** Old: "currently describes … accurately. AI hallucinations can appear at any time — monitoring keeps you protected." New: "shows accurate data today. AI knowledge bases refresh every 48–72 hours — the next refresh could introduce wrong hours, a closed status, or outdated menu prices. You won't know until a customer doesn't show up."
+
+5. **NOT_FOUND reframed.** Heading: "Zero AI Visibility" → "Invisible to AI Search". Body now names ChatGPT, Perplexity, and Gemini explicitly and adds "while competitors get recommended, you don't exist" urgency framing.
+
+6. **Multi-model pending strip added.** New section between alert banner (§1) and KPI section (§2). Dark card with "AI Model Coverage" header + "Scanned 1 of 5 AI models" subtitle. Perplexity Sonar shown as live/checked (green). ChatGPT, Google Gemini, Claude, Microsoft Copilot shown as locked rows using the existing `LockPill` component. Footer note: "Unlock full model scan with a free account". Unconditional (no `result.status !== 'invalid'` guard needed — TypeScript narrows that case away at the top of the component via early return).
+
+7. **Locked revenue impact card added.** Full-width card below Row 1 KPI cards, before Row 2 locked scores. Uses existing `LockOverlay` component. Title: "Estimated Monthly Revenue at Risk". Blurred `████ / mo` in red (none/low or not_found), amber (medium), slate (high). Subtext: "Based on your AI visibility level and typical restaurant traffic in your market". Lock text: "Sign up to see your estimated revenue impact". Border-left accent matches risk colour.
+
+8. **HeroSection JSON-LD updated.** featureList[1]: "AI Visibility Score (AVS) — Proprietary Metric" → "AI Health Score — Track your AI visibility over time". featureList[2]: "PDF Menu to Schema.org Conversion" → "Menu Distribution to ChatGPT, Perplexity, Gemini & more". description: "AI Visibility Score tracking" → "AI Health Score tracking".
+
+### Rules
+
+1. **Engine string in `marketing.ts` is `'Perplexity Sonar'`**, not `'ChatGPT'`. Every result variant (not_found, pass, fail, text-detection fallbacks) returns this value.
+2. **`LockedRevenueCard` uses ternary literals only** for colour selection (AI_RULES §12). No template strings with variable interpolation.
+3. **Multi-model strip renders unconditionally** after the early-return guard — never wrap in `result.status !== 'invalid'` because TypeScript flags it as unintentional comparison.
+4. **`LockPill` is used inline** for the locked model rows inside the multi-model strip — same component already used for locked issue items.
+
+### Key Files
+
+- `app/actions/marketing.ts` — engine name fix (all return paths)
+- `app/_components/ViralScanner.tsx` — SCAN_MESSAGES[4]
+- `app/scan/_components/ScanDashboard.tsx` — terminology, copy, multi-model strip, revenue card
+- `app/_sections/HeroSection.tsx` — JSON-LD featureList + description
+
+### Tests
+
+- `src/__tests__/unit/free-scan-pass.test.ts` — all `engine: 'ChatGPT'` assertions updated to `'Perplexity Sonar'` (31 tests, all pass)
+- Pre-existing: `src/__tests__/unit/admin-actions.test.ts` — removed stale `@ts-expect-error` directive (line 157)
+- 6111/6111 vitest tests pass, 0 regressions
+
+---

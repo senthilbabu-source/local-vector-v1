@@ -228,7 +228,7 @@ function extractJson(text: string): string | null {
 export async function _demoFallbackForTesting(businessName: string): Promise<ScanResult> {
   return {
     status:          'fail',
-    engine:          'ChatGPT',
+    engine:          'Perplexity Sonar',
     severity:        'critical',
     claim_text:      'Permanently Closed',
     expected_truth:  'Open',
@@ -323,7 +323,7 @@ async function _singlePerplexityCall(params: SingleCallParams): Promise<ScanResu
 
   // ── Sprint 36c: empty response = no AI coverage ──────────────────────────
   if (!raw) {
-    return { status: 'not_found', engine: 'ChatGPT', business_name: businessName };
+    return { status: 'not_found', engine: 'Perplexity Sonar', business_name: businessName };
   }
 
   // ── JSON parse path (production + MSW mock) ──────────────────────────────
@@ -360,14 +360,14 @@ async function _singlePerplexityCall(params: SingleCallParams): Promise<ScanResu
         // not_found has no AI coverage by definition — new fields are not applicable
         return {
           status:        'not_found',
-          engine:        'ChatGPT',
+          engine:        'Perplexity Sonar',
           business_name: businessName,
         };
       }
       if (!parsed.data.is_closed) {
         return {
           status:                    'pass',
-          engine:                    'ChatGPT',
+          engine:                    'Perplexity Sonar',
           business_name:             businessName,
           mentions_volume:           parsed.data.mentions_volume,
           sentiment:                 parsed.data.sentiment,
@@ -377,7 +377,7 @@ async function _singlePerplexityCall(params: SingleCallParams): Promise<ScanResu
       }
       return {
         status:                    'fail',
-        engine:                    'ChatGPT',
+        engine:                    'Perplexity Sonar',
         severity:                  parsed.data.severity,
         claim_text:                parsed.data.claim_text,
         expected_truth:            parsed.data.expected_truth,
@@ -407,7 +407,7 @@ async function _singlePerplexityCall(params: SingleCallParams): Promise<ScanResu
     // Hard-code new fields on text-detection path — no structured data available
     return {
       status:                    'fail',
-      engine:                    'ChatGPT',
+      engine:                    'Perplexity Sonar',
       severity:                  'critical',
       claim_text:                'Permanently Closed',
       expected_truth:            'Open',
@@ -430,7 +430,7 @@ async function _singlePerplexityCall(params: SingleCallParams): Promise<ScanResu
   ) {
     return {
       status:                    'pass',
-      engine:                    'ChatGPT',
+      engine:                    'Perplexity Sonar',
       business_name:             businessName,
       mentions_volume:           'low',
       sentiment:                 'neutral',

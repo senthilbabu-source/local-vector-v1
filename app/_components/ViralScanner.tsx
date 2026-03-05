@@ -50,7 +50,7 @@ const SCAN_MESSAGES = [
   'Scanning ChatGPT-4o Knowledge Graph...',
   'Analyzing Sentiment on Perplexity & Gemini...',
   'Cross-referencing 50+ Local RAG Sources...',
-  'Calculating AI Visibility Score (AVS)...',
+  'Calculating AI Health Score...',
   'Finalizing AI Audit Report...',
 ] as const;
 

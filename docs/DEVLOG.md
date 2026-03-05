@@ -5873,3 +5873,53 @@ npx vitest run  # 384 files, 5828 tests — 0 failures
 ```
 
 ---
+
+## Sprint P2-7a — Viral Scanner Conversion Polish (2026-03-04)
+
+**AI_RULES:** §207
+
+### Changes
+
+**Engine name corrected (`app/actions/marketing.ts`):**
+- All `engine: 'ChatGPT'` → `engine: 'Perplexity Sonar'` across every return path in `_singlePerplexityCall()` (not_found empty-response, is_unknown, pass, fail) + all text-detection fallbacks (fail path, pass path) + `_demoFallbackForTesting()`.
+
+**Scan messages (`app/_components/ViralScanner.tsx`):**
+- `SCAN_MESSAGES[4]`: "Calculating AI Visibility Score (AVS)..." → "Calculating AI Health Score..."
+
+**Terminology (`app/scan/_components/ScanDashboard.tsx`):**
+- Locked score card 1: title "AI Visibility Score" + abbr "AVS" → "AI Health Score" + "AHS"
+- Locked score card 2: title "Citation Integrity" + abbr "CI" → "Platform Coverage" + "PC"
+- Locked fix item 3: "Inject verified NAP data via Magic Menu" → "Push verified data via Distribution Engine to 6+ AI platforms"
+
+**Pass banner reframed (`ScanDashboard.tsx`):**
+- Old: "currently describes … accurately. AI hallucinations can appear at any time — monitoring keeps you protected."
+- New: "shows accurate data today. AI knowledge bases refresh every 48–72 hours — the next refresh could introduce wrong hours, a closed status, or outdated menu prices. You won't know until a customer doesn't show up."
+
+**NOT_FOUND reframed (`ScanDashboard.tsx`):**
+- Heading: "Zero AI Visibility" → "Invisible to AI Search"
+- Body: names ChatGPT/Perplexity/Gemini explicitly + "while competitors get recommended, you don't exist" urgency
+
+**Multi-model pending strip added (new section §1b between alert banner and KPI section):**
+- `ScanDashboard.tsx` — dark `lv-card` with "AI Model Coverage" SectionLabel + "Scanned 1 of 5 AI models" subtitle
+- Perplexity Sonar: green checkmark row (live result)
+- ChatGPT, Google Gemini, Claude, Microsoft Copilot: locked rows using existing `LockPill` component
+- Footer: "Unlock full model scan with a free account"
+
+**Locked revenue impact card added (full-width, below Row 1, above Row 2 locked scores):**
+- New `LockedRevenueCard` component using existing `LockOverlay`
+- Red `████ / mo` for none/low mentions or not_found status; amber for medium; slate for high
+- Lock text: "Sign up to see your estimated revenue impact"
+- Subtext: "Based on your AI visibility level and typical restaurant traffic in your market"
+
+**JSON-LD updated (`app/_sections/HeroSection.tsx`):**
+- featureList[1]: "AI Visibility Score (AVS) — Proprietary Metric" → "AI Health Score — Track your AI visibility over time"
+- featureList[2]: "PDF Menu to Schema.org Conversion" → "Menu Distribution to ChatGPT, Perplexity, Gemini & more"
+- description: "AI Visibility Score tracking" → "AI Health Score tracking"
+
+### Tests
+- `src/__tests__/unit/free-scan-pass.test.ts` — all `engine: 'ChatGPT'` assertions → `'Perplexity Sonar'` (31 tests)
+- `src/__tests__/unit/admin-actions.test.ts` — removed stale `@ts-expect-error` directive (pre-existing issue, line 157)
+- `npx tsc --noEmit` — 0 errors
+- `npx vitest run` — 400 files, 6111 tests, 0 failures
+
+---
