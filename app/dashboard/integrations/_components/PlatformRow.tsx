@@ -10,7 +10,7 @@
 //   coming_soon (apple, bing, facebook) — "Coming Soon" badge, grayed out
 // ---------------------------------------------------------------------------
 
-import { useState, useTransition, useRef } from 'react';
+import { useState, useTransition, useRef, useEffect } from 'react';
 import { Globe, ExternalLink } from 'lucide-react';
 import { toggleIntegration, syncPlatform, savePlatformUrl } from '../actions';
 import { getListingHealth, healthBadge } from '../_utils/health';
@@ -123,6 +123,10 @@ function formatSyncTime(iso: string): string {
 export default function PlatformRow({ locationId, platform, integration }: Props) {
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  const [syncedLabel, setSyncedLabel] = useState<string | null>(null);
+  useEffect(() => {
+    if (integration?.last_sync_at) setSyncedLabel(formatSyncTime(integration.last_sync_at));
+  }, [integration?.last_sync_at]);
   const [urlSaved, setUrlSaved] = useState(false);
 
   // Local URL state — initialised from DB; user edits in-place, saved on blur
@@ -323,9 +327,9 @@ export default function PlatformRow({ locationId, platform, integration }: Props
           <p className="text-xs text-slate-400">{config.description}</p>
 
           {/* Last sync time */}
-          {integration?.last_sync_at && (
+          {syncedLabel && (
             <p className="mt-0.5 text-xs text-slate-500">
-              Last synced: {formatSyncTime(integration.last_sync_at)}
+              Last synced: {syncedLabel}
             </p>
           )}
         </div>
