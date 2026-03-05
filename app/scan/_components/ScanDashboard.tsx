@@ -29,6 +29,7 @@ import type { ScanDisplayData, IssueCategory } from '../_utils/scan-params';
 import { getAccuracyIssueCategories } from '../_utils/scan-params';
 import Reveal from '@/app/_components/Reveal';
 import Bar from '@/app/_components/Bar';
+import EmailCaptureForm from './EmailCaptureForm';
 
 // ---------------------------------------------------------------------------
 // Props
@@ -651,10 +652,10 @@ export default function ScanDashboard({ result }: Props) {
           }}
         />
 
-        <div className="lv-section relative text-center">
+        <div className="lv-section relative">
           <Reveal>
             <h2
-              className="font-extrabold leading-tight mb-4"
+              className="font-extrabold leading-tight mb-4 text-center"
               style={{ fontSize: 'clamp(26px,4vw,44px)', letterSpacing: '-0.03em', color: '#F1F5F9' }}
             >
               Your AI profile is live.
@@ -663,32 +664,45 @@ export default function ScanDashboard({ result }: Props) {
             </h2>
           </Reveal>
           <Reveal delay={120}>
-            <p className="text-base mb-9" style={{ color: '#94A3B8' }}>
+            <p className="text-base mb-9 text-center" style={{ color: '#94A3B8' }}>
               Claim your AI profile. Fix the lies. Monitor forever.
             </p>
           </Reveal>
-          <Reveal delay={240}>
-            <a
-              href="/signup"
-              className="lv-btn-green"
-              style={{ display: 'inline-block', fontSize: 15, padding: '16px 40px' }}
-            >
-              Claim My AI Profile — Start Free
-            </a>
-            <p
-              className="mt-3"
-              style={{ fontSize: 11, color: '#475569', fontFamily: 'var(--font-jetbrains-mono), monospace' }}
-            >
-              No credit card required &middot; Cancel anytime
-            </p>
-            <div className="mt-5">
+
+          {/* Email capture — Sprint P2-7b */}
+          <Reveal delay={200}>
+            <div className="mx-auto mb-8" style={{ maxWidth: 560 }}>
+              {result.status !== 'invalid' && (
+                <EmailCaptureForm
+                  businessName={result.businessName}
+                  scanStatus={result.status}
+                />
+              )}
+            </div>
+          </Reveal>
+
+          {/* Secondary: skip email, go straight to signup */}
+          <Reveal delay={320}>
+            <div className="text-center">
+              <p className="text-xs mb-3" style={{ color: '#475569', fontFamily: 'var(--font-jetbrains-mono), monospace' }}>
+                Ready to fix it now?
+              </p>
               <a
-                href="/"
+                href="/signup"
                 className="lv-btn-outline"
-                style={{ display: 'inline-block', padding: '8px 24px', fontSize: 13 }}
+                style={{ display: 'inline-block', padding: '10px 28px', fontSize: 13 }}
               >
-                ← Run Another Scan
+                Claim My AI Profile — Start Free
               </a>
+              <div className="mt-5">
+                <a
+                  href="/"
+                  className="lv-btn-outline"
+                  style={{ display: 'inline-block', padding: '8px 24px', fontSize: 13 }}
+                >
+                  ← Run Another Scan
+                </a>
+              </div>
             </div>
           </Reveal>
         </div>

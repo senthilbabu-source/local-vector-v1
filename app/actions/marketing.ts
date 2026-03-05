@@ -44,6 +44,7 @@ import { headers } from 'next/headers';
 import { getRedis } from '@/lib/redis';
 import { z } from 'zod';
 import * as Sentry from '@sentry/nextjs';
+import { createServiceRoleClient } from '@/lib/supabase/server';
 
 // ---------------------------------------------------------------------------
 // Public types
@@ -98,6 +99,50 @@ export type ScanResult =
       status:  'unavailable';
       reason:  'no_api_key' | 'api_error';
     };
+
+// ---------------------------------------------------------------------------
+// captureLeadEmail — Sprint P2-7b: viral scanner email capture
+//
+// Inserts an email + business name + scan status into scan_leads via service role.
+// Service role bypasses RLS so this works even though the table has no policies.
+// Returns { ok: true } on success, { ok: false } on validation failure or DB error.
+// Never throws — all errors are captured via Sentry.
+// ---------------------------------------------------------------------------
+
+const VALID_SCAN_STATUSES = ['fail', 'pass', 'not_found'] as const;
+
+export async function captureLeadEmail(
+  formData: FormData
+): Promise<{ ok: boolean }> {
+  const email        = (formData.get('email')        as string | null)?.trim().toLowerCase() ?? '';
+  const businessName = (formData.get('businessName') as string | null)?.trim() ?? '';
+  const scanStatus   = (formData.get('scanStatus')   as string | null)?.trim() ?? '';
+
+  // Basic validation — never insert junk rows
+  if (!email || !email.includes('@') || email.length > 254) return { ok: false };
+  if (!(VALID_SCAN_STATUSES as readonly string[]).includes(scanStatus))  return { ok: false };
+  if (!businessName)                                                      return { ok: false };
+
+  try {
+    const supabase = createServiceRoleClient();
+    const { error } = await (
+      supabase.from as unknown as (t: string) => ReturnType<typeof supabase.from>
+    )('scan_leads').insert({
+      email,
+      business_name: businessName,
+      scan_status:   scanStatus,
+    });
+
+    if (error) {
+      Sentry.captureException(error, { tags: { file: 'marketing.ts', action: 'captureLeadEmail' } });
+      return { ok: false };
+    }
+    return { ok: true };
+  } catch (err) {
+    Sentry.captureException(err, { tags: { file: 'marketing.ts', action: 'captureLeadEmail' } });
+    return { ok: false };
+  }
+}
 
 // ---------------------------------------------------------------------------
 // Rate limiting — 5 scans per IP per 24 hours (AI_RULES §17: .catch pattern)
