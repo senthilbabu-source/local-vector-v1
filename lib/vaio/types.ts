@@ -156,6 +156,39 @@ export interface VoiceQueryTemplate {
   intent: 'find' | 'reserve' | 'compare' | 'confirm';
 }
 
+// ── Mission Board (Sprint 2) ───────────────────────────────────────────────
+
+export interface MissionStep {
+  label: string;
+  detail?: string;
+}
+
+export interface Mission {
+  id: string;
+  title: string;
+  subtitle: string;
+  pts_gain: number;
+  component: keyof ScoreBreakdown;
+  steps: MissionStep[];
+  status: 'open' | 'done';
+}
+
+/** Minimal input shape for generateMissions() — subset of the profile */
+export interface MissionGeneratorInput {
+  breakdown: ScoreBreakdown;
+  llms_txt_status: 'generated' | 'not_generated' | 'stale';
+  voice_gaps: Array<{
+    category: string;
+    queries: string[];
+    weeks_at_zero: number;
+    suggested_query_answer: string;
+  }>;
+  top_content_issues: Array<{
+    description: string;
+    fix: string;
+  }>;
+}
+
 // ── Ground Truth (re-export) ───────────────────────────────────────────────
 
 export interface GroundTruthForVAIO {

@@ -11,4 +11,5 @@ export { VOICE_QUERY_TEMPLATES, instantiateVoiceTemplate, seedVoiceQueriesForLoc
 export { generateLlmsTxt, buildStandardLlmsTxt, buildFullLlmsTxt, formatHoursForVoice } from './llms-txt-generator';
 export { auditAICrawlerAccess, parseRobotsTxtForAgent, KNOWN_AI_CRAWLERS, generateRobotsTxtFix } from './ai-crawler-auditor';
 export { detectVoiceGaps, triggerVoiceGapDrafts, buildSuggestedAnswer } from './voice-gap-detector';
+export { generateMissions } from './mission-generator';
 export * from './types';

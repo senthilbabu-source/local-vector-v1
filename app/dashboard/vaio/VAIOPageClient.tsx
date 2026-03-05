@@ -6,12 +6,14 @@
 // Sprint 109: VAIO
 // Sprint §208: Animated score card with breakdown bars, milestone track,
 //              coaching message, and revenue stakes line.
+// Sprint 2:   Mission Board — "Replace the report with a coach"
+//             Score card → Mission Board (top 3 missions) → Raw details
 // ---------------------------------------------------------------------------
 
 import { useEffect, useState, useRef, useCallback } from 'react';
 import {
   Mic, ShieldCheck, ShieldAlert, ShieldX,
-  Loader2, Copy, Check, AlertTriangle,
+  Loader2, Copy, Check, AlertTriangle, ChevronDown, ChevronRight,
 } from 'lucide-react';
 import type { ScoreBreakdown } from '@/lib/vaio/types';
 import {
@@ -21,12 +23,14 @@ import {
   SCORE_BAR_ITEMS,
   barColor,
 } from '@/lib/vaio/score-card-helpers';
+import { generateMissions } from '@/lib/vaio/mission-generator';
+import { MissionBoard } from './_components/MissionBoard';
 
 interface VAIOProfile {
   voice_readiness_score: number;
   llms_txt_standard: string | null;
   llms_txt_full: string | null;
-  llms_txt_status: string;
+  llms_txt_status: 'generated' | 'not_generated' | 'stale';
   llms_txt_generated_at: string | null;
   crawler_audit: {
     overall_health: string;
@@ -90,6 +94,7 @@ export default function VAIOPageClient() {
   const [loading, setLoading] = useState(true);
   const [running, setRunning] = useState(false);
   const [copied, setCopied] = useState<string | null>(null);
+  const [rawOpen, setRawOpen] = useState(false);
 
   // 4a — prev score ref for delta animation
   const prevScoreRef = useRef<number | null>(null);
@@ -215,6 +220,17 @@ export default function VAIOPageClient() {
 
   const breakdown = profile?.score_breakdown ?? null;
 
+  // Compute missions from profile + breakdown (Sprint 2)
+  const missions =
+    profile && breakdown
+      ? generateMissions({
+          breakdown,
+          llms_txt_status: profile.llms_txt_status,
+          voice_gaps: profile.voice_gaps,
+          top_content_issues: profile.top_content_issues,
+        })
+      : [];
+
   return (
     <div className="mx-auto max-w-5xl space-y-6 p-6">
       {/* Page Header */}
@@ -332,129 +348,171 @@ export default function VAIOPageClient() {
         </p>
       </div>
 
-      {/* AI Crawler Audit */}
-      {profile?.crawler_audit && (
-        <div className="rounded-xl border border-white/5 bg-surface-dark p-5" data-testid="vaio-crawler-audit">
-          <h2 className="mb-3 text-xs font-semibold uppercase tracking-wider text-slate-400">
-            AI Crawler Access
-          </h2>
-          <div className="space-y-2">
-            {profile.crawler_audit.crawlers.map((c) => (
-              <div key={c.user_agent} className="flex items-center justify-between text-sm">
-                <div className="flex items-center gap-2">
-                  {crawlerIcon(c.status)}
-                  <span className="text-slate-300">{c.name}</span>
-                  <span className="text-xs text-slate-400">({c.used_by})</span>
+      {/* Mission Board (Sprint 2) */}
+      {profile && missions.length > 0 && (
+        <MissionBoard
+          missions={missions}
+          profile={{
+            llms_txt_standard: profile.llms_txt_standard,
+            crawler_audit: profile.crawler_audit,
+            voice_gaps: profile.voice_gaps,
+            top_content_issues: profile.top_content_issues,
+          }}
+          queries={queries}
+        />
+      )}
+
+      {/* Raw Details — collapsed accordion (power-user view) */}
+      {profile && (
+        <div
+          className="rounded-xl border border-white/5 bg-surface-dark"
+          data-testid="vaio-raw-details"
+        >
+          <button
+            onClick={() => setRawOpen((v) => !v)}
+            className="flex w-full items-center justify-between p-4 text-left"
+            aria-expanded={rawOpen}
+          >
+            <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+              Technical Details
+            </span>
+            {rawOpen ? (
+              <ChevronDown className="h-4 w-4 text-slate-500" />
+            ) : (
+              <ChevronRight className="h-4 w-4 text-slate-500" />
+            )}
+          </button>
+
+          {rawOpen && (
+            <div className="space-y-5 border-t border-white/5 p-5">
+
+              {/* AI Crawler Audit */}
+              {profile.crawler_audit && (
+                <div data-testid="vaio-crawler-audit">
+                  <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-slate-400">
+                    AI Crawler Access
+                  </h3>
+                  <div className="space-y-2">
+                    {profile.crawler_audit.crawlers.map((c) => (
+                      <div key={c.user_agent} className="flex items-center justify-between text-sm">
+                        <div className="flex items-center gap-2">
+                          {crawlerIcon(c.status)}
+                          <span className="text-slate-300">{c.name}</span>
+                          <span className="text-xs text-slate-400">({c.used_by})</span>
+                        </div>
+                        <span className={`text-xs ${
+                          c.status === 'allowed' ? 'text-green-400' :
+                          c.status === 'blocked' ? 'text-red-400' :
+                          'text-slate-400'
+                        }`}>
+                          {c.status === 'allowed' ? 'Allowed' :
+                           c.status === 'blocked' ? 'Blocked' : 'Not specified'}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
-                <span className={`text-xs ${
-                  c.status === 'allowed' ? 'text-green-400' :
-                  c.status === 'blocked' ? 'text-red-400' :
-                  'text-slate-400'
-                }`}>
-                  {c.status === 'allowed' ? 'Allowed' :
-                   c.status === 'blocked' ? 'Blocked' : 'Not specified'}
-                </span>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
+              )}
 
-      {/* Voice Queries */}
-      {queries.length > 0 && (
-        <div className="rounded-xl border border-white/5 bg-surface-dark p-5" data-testid="vaio-voice-queries">
-          <h2 className="mb-3 text-xs font-semibold uppercase tracking-wider text-slate-400">
-            Voice Queries ({queries.length})
-          </h2>
-          <div className="space-y-1.5">
-            {queries.map((q) => (
-              <div key={q.id} className="flex items-center justify-between text-sm">
-                <span className="text-slate-300 truncate max-w-md">&ldquo;{q.query_text}&rdquo;</span>
-                <div className="flex items-center gap-3">
-                  <span className="text-xs text-slate-400 capitalize">{q.query_category}</span>
-                  <span className={`font-mono text-xs ${
-                    q.citation_rate !== null && q.citation_rate > 0
-                      ? 'text-green-400' : 'text-slate-400'
-                  }`}>
-                    {q.citation_rate !== null ? `${Math.round(q.citation_rate * 100)}%` : '—'}
-                  </span>
+              {/* Voice Queries */}
+              {queries.length > 0 && (
+                <div data-testid="vaio-voice-queries">
+                  <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-slate-400">
+                    Voice Queries ({queries.length})
+                  </h3>
+                  <div className="space-y-1.5">
+                    {queries.map((q) => (
+                      <div key={q.id} className="flex items-center justify-between text-sm">
+                        <span className="text-slate-300 truncate max-w-md">&ldquo;{q.query_text}&rdquo;</span>
+                        <div className="flex items-center gap-3">
+                          <span className="text-xs text-slate-400 capitalize">{q.query_category}</span>
+                          <span className={`font-mono text-xs ${
+                            q.citation_rate !== null && q.citation_rate > 0
+                              ? 'text-green-400' : 'text-slate-400'
+                          }`}>
+                            {q.citation_rate !== null ? `${Math.round(q.citation_rate * 100)}%` : '—'}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
+              )}
 
-      {/* Voice Gaps */}
-      {profile?.voice_gaps && profile.voice_gaps.length > 0 && (
-        <div className="rounded-xl border border-amber-400/20 bg-surface-dark p-5" data-testid="vaio-voice-gaps">
-          <div className="mb-3 flex items-center gap-1.5">
-            <AlertTriangle className="h-4 w-4 text-amber-400" />
-            <h2 className="text-xs font-semibold uppercase tracking-wider text-amber-400">
-              Voice Gaps
-            </h2>
-          </div>
-          <div className="space-y-3">
-            {profile.voice_gaps.map((gap, i) => (
-              <div key={i} className="rounded-lg border border-white/5 bg-white/[0.02] p-3">
-                <p className="text-xs font-medium text-amber-400 capitalize mb-1">
-                  {gap.category} — {gap.weeks_at_zero} weeks at zero citations
-                </p>
-                <p className="text-xs text-slate-400 mb-2">
-                  {gap.queries.length} queries getting zero AI citations
-                </p>
-                <p className="text-xs text-slate-400 italic">
-                  Suggested answer: &ldquo;{gap.suggested_query_answer}&rdquo;
-                </p>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* llms.txt Preview */}
-      {profile?.llms_txt_standard && (
-        <div className="rounded-xl border border-white/5 bg-surface-dark p-5" data-testid="vaio-llms-txt">
-          <div className="mb-3 flex items-center justify-between">
-            <h2 className="text-xs font-semibold uppercase tracking-wider text-slate-400">
-              AI Business Profile
-            </h2>
-            <button
-              onClick={() => handleCopy(profile.llms_txt_standard!, 'standard')}
-              className="inline-flex items-center gap-1 text-xs text-electric-indigo hover:text-electric-indigo/80"
-              data-testid="vaio-copy-llms-txt"
-            >
-              {copied === 'standard' ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
-              {copied === 'standard' ? 'Copied' : 'Copy'}
-            </button>
-          </div>
-          <pre className="max-h-64 overflow-auto rounded-lg bg-black/30 p-3 text-xs text-slate-300 font-mono whitespace-pre-wrap">
-            {profile.llms_txt_standard}
-          </pre>
-        </div>
-      )}
-
-      {/* Content Issues */}
-      {profile?.top_content_issues && profile.top_content_issues.length > 0 && (
-        <div className="rounded-xl border border-white/5 bg-surface-dark p-5" data-testid="vaio-issues">
-          <h2 className="mb-3 text-xs font-semibold uppercase tracking-wider text-slate-400">
-            Voice Content Issues
-          </h2>
-          <div className="space-y-2">
-            {profile.top_content_issues.map((issue, i) => (
-              <div key={i} className="flex items-start gap-2 text-sm">
-                <span className={`mt-0.5 inline-block h-1.5 w-1.5 rounded-full flex-shrink-0 ${
-                  issue.severity === 'critical' ? 'bg-red-400' :
-                  issue.severity === 'warning' ? 'bg-amber-400' :
-                  'bg-slate-500'
-                }`} />
-                <div>
-                  <p className="text-slate-300">{issue.description}</p>
-                  <p className="text-xs text-slate-400">{issue.fix}</p>
+              {/* Voice Gaps */}
+              {profile.voice_gaps.length > 0 && (
+                <div data-testid="vaio-voice-gaps">
+                  <div className="mb-3 flex items-center gap-1.5">
+                    <AlertTriangle className="h-4 w-4 text-amber-400" />
+                    <h3 className="text-xs font-semibold uppercase tracking-wider text-amber-400">
+                      Voice Gaps
+                    </h3>
+                  </div>
+                  <div className="space-y-3">
+                    {profile.voice_gaps.map((gap, i) => (
+                      <div key={i} className="rounded-lg border border-white/5 bg-white/[0.02] p-3">
+                        <p className="text-xs font-medium text-amber-400 capitalize mb-1">
+                          {gap.category} — {gap.weeks_at_zero} weeks at zero citations
+                        </p>
+                        <p className="text-xs text-slate-400 mb-2">
+                          {gap.queries.length} queries getting zero AI citations
+                        </p>
+                        <p className="text-xs text-slate-400 italic">
+                          Suggested answer: &ldquo;{gap.suggested_query_answer}&rdquo;
+                        </p>
+                      </div>
+                    ))}
+                  </div>
                 </div>
-              </div>
-            ))}
-          </div>
+              )}
+
+              {/* llms.txt Preview */}
+              {profile.llms_txt_standard && (
+                <div data-testid="vaio-llms-txt">
+                  <div className="mb-3 flex items-center justify-between">
+                    <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+                      AI Business Profile
+                    </h3>
+                    <button
+                      onClick={() => handleCopy(profile.llms_txt_standard!, 'standard')}
+                      className="inline-flex items-center gap-1 text-xs text-electric-indigo hover:text-electric-indigo/80"
+                      data-testid="vaio-copy-llms-txt"
+                    >
+                      {copied === 'standard' ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
+                      {copied === 'standard' ? 'Copied' : 'Copy'}
+                    </button>
+                  </div>
+                  <pre className="max-h-64 overflow-auto rounded-lg bg-black/30 p-3 text-xs text-slate-300 font-mono whitespace-pre-wrap">
+                    {profile.llms_txt_standard}
+                  </pre>
+                </div>
+              )}
+
+              {/* Content Issues */}
+              {profile.top_content_issues.length > 0 && (
+                <div data-testid="vaio-issues">
+                  <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-slate-400">
+                    Voice Content Issues
+                  </h3>
+                  <div className="space-y-2">
+                    {profile.top_content_issues.map((issue, i) => (
+                      <div key={i} className="flex items-start gap-2 text-sm">
+                        <span className={`mt-0.5 inline-block h-1.5 w-1.5 rounded-full flex-shrink-0 ${
+                          issue.severity === 'critical' ? 'bg-red-400' :
+                          issue.severity === 'warning' ? 'bg-amber-400' :
+                          'bg-slate-500'
+                        }`} />
+                        <div>
+                          <p className="text-slate-300">{issue.description}</p>
+                          <p className="text-xs text-slate-400">{issue.fix}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       )}
     </div>

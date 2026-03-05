@@ -4,6 +4,44 @@
 
 ---
 
+## 2026-03-05 — VAIO Mission Board (§210)
+
+Replaces the 6 equal-weight raw-data sections with a prioritised coaching view.
+Second sprint of the VAIO coaching arc (§208–§210).
+
+**New files:**
+- `lib/vaio/mission-generator.ts` — Pure `generateMissions(input: MissionGeneratorInput): Mission[]`. Builds one mission per score component (crawler_access, llms_txt, voice_citation, content_quality). Sorts by `pts_gain` desc; done missions trail at end. Returns up to 5.
+- `app/dashboard/vaio/_components/MissionCard.tsx` — Two-level expandable card: header click opens numbered step list (with per-step detail text); "Show supporting data" sub-toggle reveals the relevant raw section (crawler rows / llms.txt preview / gaps+queries / content issues).
+- `app/dashboard/vaio/_components/MissionBoard.tsx` — Renders top 3 missions with "Your Next Moves" header and pts-available summary. First open mission auto-expands.
+- `src/__tests__/unit/vaio-mission-generator.test.ts` — 27 new tests.
+
+**Modified files:**
+- `lib/vaio/types.ts` — Added `MissionStep`, `Mission`, `MissionGeneratorInput` interfaces.
+- `lib/vaio/index.ts` — Exports `generateMissions`.
+- `app/dashboard/vaio/VAIOPageClient.tsx` — Restructured: Score card (unchanged) → MissionBoard → "Technical Details" collapsed accordion (all 6 original sections preserved for power users).
+
+**Structure shift (BEFORE → AFTER):**
+- BEFORE: 6 equal-weight sections stacked below score card.
+- AFTER: Score card → 3 prioritised MissionCards → collapsed "Technical Details" accordion.
+- Raw sections live only inside mission card "Show supporting data" expansions and the bottom accordion.
+
+**Test count: 27 new tests. 0 regressions. AI_RULES §210.**
+
+---
+
+## 2026-03-05 — Scanner Prompt Rewrite: Real Accuracy Audit (§209)
+
+The free scanner was asking "is this restaurant marked as permanently closed?" — a question almost never wrong, producing `pass` for 95%+ of scans. Rewrote to audit five real accuracy vectors: hours, address, phone, cuisine type, and local AI recommendation visibility.
+
+**Modified files:**
+- `app/actions/marketing.ts` — system prompt rewritten (`is_closed=true` = any factual error), user prompt asks 5 explicit vectors, `hasIssues` branching (`is_closed || accuracy_issues.length > 0` → `fail`)
+- `src/mocks/handlers.ts` — MSW Perplexity handler now returns realistic wrong-hours scenario instead of "Permanently Closed"
+- `src/__tests__/unit/free-scan-pass.test.ts` — 4 tests updated to reflect new branching
+
+**Test count: 0 new tests (4 updated). 6153/6153 pass, 0 regressions. AI_RULES §209.**
+
+---
+
 ## 2026-03-05 — VAIO Score Foundation (§208)
 
 Transforms the Voice Search score card from a static number into an animated,
