@@ -1,6 +1,7 @@
 export const dynamic = 'force-dynamic';
 
 import { redirect } from 'next/navigation';
+import { cookies } from 'next/headers';
 import { getSafeAuthContext } from '@/lib/auth';
 import { createClient } from '@/lib/supabase/server';
 import DashboardShell from '@/components/layout/DashboardShell';
@@ -148,6 +149,11 @@ export default async function DashboardLayout({
     }
   }
 
+  // ── Sprint §204: Impersonation detection ──────────────────────────────────
+  const cookieStore = await cookies();
+  const impersonatingOrgId = cookieStore.get('lv_admin_impersonating')?.value ?? null;
+  const isImpersonating = !!impersonatingOrgId;
+
   // ── Render ────────────────────────────────────────────────────────────────
   const displayName = ctx.fullName ?? ctx.email.split('@')[0];
   const orgName = ctx.orgName ?? 'Your Organization';
@@ -166,6 +172,8 @@ export default async function DashboardLayout({
       userId={ctx.userId}
       userEmail={ctx.email}
       userRole={(ctx.role ?? null) as import('@/lib/membership/types').MemberRole | null}
+      isImpersonating={isImpersonating}
+      impersonatingOrgName={isImpersonating ? orgName : undefined}
     >
       {children}
       <DashboardFooter />

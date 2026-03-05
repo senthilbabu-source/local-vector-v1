@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { createServiceRoleClient } from '@/lib/supabase/server';
 import { getPlanDisplayName } from '@/lib/plan-display-names';
 import { formatRelativeDate } from '@/lib/admin/format-relative-date';
@@ -69,6 +70,7 @@ export default async function AdminCustomersPage() {
               <th className="px-4 py-3">MRR</th>
               <th className="px-4 py-3">Stripe</th>
               <th className="px-4 py-3">Created</th>
+              <th className="px-4 py-3"></th>
             </tr>
           </thead>
           <tbody>
@@ -91,6 +93,15 @@ export default async function AdminCustomersPage() {
                 </td>
                 <td className="px-4 py-3 text-xs text-slate-400">
                   {formatRelativeDate(org.created_at)}
+                </td>
+                <td className="px-4 py-3">
+                  <Link
+                    href={`/admin/customers/${org.id}`}
+                    className="text-xs text-electric-indigo hover:text-electric-indigo/80 transition"
+                    data-testid="customer-view-link"
+                  >
+                    View &rarr;
+                  </Link>
                 </td>
               </tr>
             ))}

@@ -115,16 +115,30 @@
 
 ---
 
-## 8. Admin Pages (5 min, requires ADMIN_EMAILS)
+## 8. Admin Pages (10 min, requires ADMIN_EMAILS)
 
 | # | Page | What to verify |
 |---|------|---------------|
 | 1 | Non-admin visits `/admin` | Redirected to `/dashboard` |
-| 2 | `/admin/customers` | Org list with plan, MRR |
-| 3 | `/admin/api-usage` | API call counts per org |
-| 4 | `/admin/cron-health` | 26 crons listed with last run status |
-| 5 | `/admin/revenue` | MRR breakdown |
-| 6 | `/admin/distribution-health` | Crawl/citation funnel stats |
+| 2 | `/admin/customers` | Org list with plan, MRR, "View →" link per row |
+| 3 | `/admin/customers/[orgId]` | Stat cards (plan, MRR, credits, members, locations), Stripe IDs, locations list, audit log |
+| 4 | `/admin/api-usage` | API call counts per org |
+| 5 | `/admin/cron-health` | 26 crons listed with last run status + "Run Now" button per cron |
+| 6 | `/admin/revenue` | MRR breakdown |
+| 7 | `/admin/distribution-health` | Crawl/citation funnel stats |
+
+### 8a. Admin Write Operations (5 min)
+
+| # | Action | What to verify |
+|---|--------|---------------|
+| 1 | Change Plan (customer detail) | Dropdown + reason text, submit updates plan badge |
+| 2 | Grant Credits (customer detail) | Enter amount > 0, submit adds credits (zero disabled) |
+| 3 | Cancel Subscription | Confirm dialog + "immediate" toggle, submits without error |
+| 4 | Impersonate Org | Click "Impersonate" → amber banner appears at top of dashboard |
+| 5 | Impersonation banner | Shows org name, "Exit Impersonation" button visible |
+| 6 | Exit impersonation | Click "Exit Impersonation" → banner disappears, back to admin org |
+| 7 | Force cron run | Click "Run Now" on a cron → toast shows success/error result |
+| 8 | Audit log | After any action, audit log section on customer detail page shows new entry |
 
 ---
 
@@ -172,6 +186,6 @@
 
 ---
 
-**Total estimated time: ~55 minutes**
+**Total estimated time: ~65 minutes**
 
 **Pass criteria:** All steps complete without console errors, no blank pages, no hydration mismatches, all navigation works, plan gating blocks correctly.

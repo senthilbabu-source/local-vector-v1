@@ -4,6 +4,51 @@
 
 ---
 
+## 2026-03-04 — Admin Write Operations (§204)
+
+Admin panel upgrade from read-only to full write capability: 6 server actions (plan override, subscription cancel, force cron run, impersonate start/stop, grant credits), customer detail page, audit logging, and impersonation banner.
+
+### Changes
+
+**Migration:**
+- `supabase/migrations/20260304200001_admin_audit_log.sql` (NEW) — `admin_audit_log` table (UUID PK, admin_email, action, target_org_id FK, details JSONB, created_at). RLS enabled with zero policies = service-role only. Indexes on `created_at DESC` and `target_org_id`.
+
+**Admin Guard + Audit Logging:**
+- `lib/admin/admin-guard.ts` (NEW) — `assertAdmin()` verifies caller in ADMIN_EMAILS + resolves public user ID. `logAdminAction()` inserts audit trail via service-role (never throws).
+- `lib/admin/known-crons.ts` (NEW) — SSOT list of 26 cron names + `isKnownCron()` type guard.
+
+**Server Actions:**
+- `lib/admin/admin-actions.ts` (NEW) — 6 server actions:
+  - `adminOverridePlan(orgId, newPlan, reason)` — updates org plan + syncs api_credits limit
+  - `adminCancelSubscription(orgId, immediate)` — Stripe API cancel or DB fallback
+  - `adminForceCronRun(cronName)` — HTTP request to cron endpoint with CRON_SECRET
+  - `adminStartImpersonation(targetOrgId)` — temp viewer membership + cookie session switch
+  - `adminStopImpersonation()` — deletes temp membership + restores admin cookies
+  - `adminGrantCredits(orgId, amount)` — increases credits_limit + logs to credit_usage_log
+
+**Customer Detail Page:**
+- `app/admin/customers/[orgId]/page.tsx` (NEW) — Server Component via `createServiceRoleClient()`. Shows org info, stat cards (plan/MRR/credits/members/locations/created), Stripe IDs, locations list, admin actions, audit log history.
+- `app/admin/customers/_components/CustomerActions.tsx` (NEW) — Client Component with 4 action sections: Change Plan (dropdown + reason), Grant Credits (number input), Cancel Subscription (confirm dialog + immediate toggle), Impersonate button.
+- `app/admin/customers/page.tsx` (MODIFIED) — Added "View →" link column to customer list table.
+
+**Force Cron Run:**
+- `app/admin/cron-health/_components/ForceRunButton.tsx` (NEW) — Per-cron "Run Now" button with pending state and result toast.
+- `app/admin/cron-health/page.tsx` (MODIFIED) — Added ForceRunButton to each cron card.
+
+**Impersonation Banner:**
+- `components/admin/ImpersonationBanner.tsx` (NEW) — Fixed amber banner at top of viewport. "Exit Impersonation" button calls `adminStopImpersonation()`.
+- `components/layout/DashboardShell.tsx` (MODIFIED) — Added `isImpersonating`/`impersonatingOrgName` props, conditional `pt-10` padding, renders ImpersonationBanner.
+- `app/dashboard/layout.tsx` (MODIFIED) — Reads `lv_admin_impersonating` cookie, passes impersonation state to DashboardShell.
+
+### Tests
+- 40 new unit tests (`src/__tests__/unit/admin-actions.test.ts`): assertAdmin (5), logAdminAction (2), adminOverridePlan (5), adminCancelSubscription (5), adminForceCronRun (5), adminStartImpersonation (6), adminStopImpersonation (5), adminGrantCredits (5), isKnownCron (2).
+- 8 new E2E tests (`tests/e2e/admin-write-ops.spec.ts`): View links, detail page render, action forms, force-run buttons, cancel confirmation, stat cards, zero amount disabled, back navigation.
+- All ~6082/6082 pass, 399/399 files.
+
+**AI_RULES:** §204
+
+---
+
 ## 2026-03-04 — Stripe Customer Portal Self-Service (§203)
 
 Bulletproof Stripe Customer Portal: programmatic portal configuration, webhook idempotency, cancellation tracking, invoice history, payment method display, and billing error boundary.

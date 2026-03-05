@@ -4387,3 +4387,41 @@ Bulletproof Stripe Customer Portal: programmatic portal configuration, webhook i
 - 2 E2E tests: `tests/e2e/billing.spec.ts`
 
 ---
+
+## §204. Admin Write Operations (2026-03-04)
+
+### Architecture
+
+Admin panel upgrade from read-only to full write capability. 6 server actions behind `assertAdmin()` guard + `admin_audit_log` table for complete audit trail. Impersonation via temporary membership + cookie-based session switching.
+
+### Rules
+
+1. **All admin mutations go through `assertAdmin()`.** Centralized guard in `lib/admin/admin-guard.ts` verifies caller email is in `ADMIN_EMAILS`, resolves their public user ID. Throws on unauthorized access.
+2. **Every admin action logs to `admin_audit_log`.** `logAdminAction()` inserts via service-role client. Never throws — audit failure must not block the action. Table has RLS enabled with zero policies (service-role only).
+3. **`admin_audit_log` is not in generated types.** Use the cast pattern: `(supabase.from as unknown as (t: string) => ReturnType<typeof supabase.from>)('admin_audit_log')` until types are regenerated after migration.
+4. **Impersonation uses temporary memberships.** `adminStartImpersonation()` creates a `viewer` role membership + sets 3 cookies (`lv_active_org`, `lv_admin_impersonating`, `lv_admin_original_org`). `adminStopImpersonation()` deletes the membership + restores cookies. Seat count briefly increments — acceptable since Stripe sync only runs on webhook events.
+5. **Force cron validates against `KNOWN_CRONS`.** `lib/admin/known-crons.ts` is the SSOT list of 26 cron names. `isKnownCron()` type guard prevents arbitrary endpoint calls.
+6. **Plan override syncs credit limits.** `adminOverridePlan()` updates both `organizations.plan` and `api_credits.credits_limit` via `getCreditLimit()` from `lib/credits/credit-limits.ts`.
+7. **Stripe cancellation has two modes.** `immediate: true` calls `stripe.subscriptions.cancel()`, `immediate: false` calls `stripe.subscriptions.update({ cancel_at_period_end: true })`. Falls back to direct DB update when no Stripe subscription exists.
+8. **Customer detail page uses service-role.** `app/admin/customers/[orgId]/page.tsx` calls `createServiceRoleClient()` to bypass RLS. Shows org info, stats, Stripe IDs, locations, admin actions, and audit log history.
+9. **Impersonation banner pushes layout down.** `DashboardShell` adds `pt-10` class when `isImpersonating` is true. `ImpersonationBanner` is fixed `z-50` amber bar at top.
+
+### Key Files
+
+- `supabase/migrations/20260304200001_admin_audit_log.sql` — audit log table
+- `lib/admin/admin-guard.ts` — `assertAdmin()` + `logAdminAction()`
+- `lib/admin/admin-actions.ts` — 6 server actions (plan override, cancel, cron, impersonate start/stop, grant credits)
+- `lib/admin/known-crons.ts` — SSOT cron name list + `isKnownCron()` guard
+- `app/admin/customers/[orgId]/page.tsx` — customer detail page (server component)
+- `app/admin/customers/_components/CustomerActions.tsx` — action forms (client component)
+- `app/admin/cron-health/_components/ForceRunButton.tsx` — per-cron "Run Now" button
+- `components/admin/ImpersonationBanner.tsx` — impersonation banner + exit button
+- `components/layout/DashboardShell.tsx` — impersonation banner integration
+- `app/dashboard/layout.tsx` — impersonation cookie detection
+
+### Tests
+
+- 40 unit tests: `src/__tests__/unit/admin-actions.test.ts`
+- 8 E2E tests: `tests/e2e/admin-write-ops.spec.ts`
+
+---

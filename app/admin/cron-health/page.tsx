@@ -1,5 +1,6 @@
 import { createServiceRoleClient } from '@/lib/supabase/server';
 import { formatRelativeDate } from '@/lib/admin/format-relative-date';
+import ForceRunButton from './_components/ForceRunButton';
 
 /**
  * StatusDot — colored circle for cron run status. Sprint D (L1).
@@ -56,6 +57,7 @@ export default async function AdminCronHealthPage() {
                 {lastRun && <StatusDot status={lastRun.status} />}
                 <span className="text-xs text-slate-400">{successRate}% success (last 10)</span>
               </div>
+              <ForceRunButton cronName={cron} />
             </div>
           );
         })}

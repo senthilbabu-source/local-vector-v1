@@ -7,6 +7,7 @@ import GuidedTour from '@/app/dashboard/_components/GuidedTour';
 import PresenceAvatars from '@/app/dashboard/_components/PresenceAvatars';
 import RealtimeNotificationToast from '@/app/dashboard/_components/RealtimeNotificationToast';
 import type { LocationOption } from './LocationSwitcher';
+import ImpersonationBanner from '@/components/admin/ImpersonationBanner';
 import type { PresenceUser } from '@/lib/realtime/types';
 import type { MemberRole } from '@/lib/membership/types';
 
@@ -29,6 +30,9 @@ interface DashboardShellProps {
   userId?: string | null;
   userEmail?: string | null;
   userRole?: MemberRole | null;
+  // Sprint §204: Admin impersonation
+  isImpersonating?: boolean;
+  impersonatingOrgName?: string;
 }
 
 // ---------------------------------------------------------------------------
@@ -54,6 +58,8 @@ export default function DashboardShell({
   userId,
   userEmail,
   userRole,
+  isImpersonating,
+  impersonatingOrgName,
 }: DashboardShellProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
@@ -71,7 +77,12 @@ export default function DashboardShell({
   }, [userId, userEmail, userRole, displayName]);
 
   return (
-    <div className="flex h-screen overflow-hidden bg-midnight-slate">
+    <div className={`flex h-screen overflow-hidden bg-midnight-slate ${isImpersonating ? 'pt-10' : ''}`}>
+
+      {/* Sprint §204: Impersonation banner */}
+      {isImpersonating && impersonatingOrgName && (
+        <ImpersonationBanner orgName={impersonatingOrgName} />
+      )}
 
       {/* P6-FIX-27: Skip to main content link */}
       <a

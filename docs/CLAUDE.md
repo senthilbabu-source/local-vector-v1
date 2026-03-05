@@ -12,7 +12,7 @@ LocalVector is an AEO/GEO SaaS platform that helps local businesses monitor and 
 - **Billing:** Stripe webhooks → `organizations.plan_tier` enum (`trial | starter | growth | agency`)
 - **Email:** Resend + React Email (`emails/`)
 - **Cache:** Upstash Redis (`lib/redis.ts`) — optional, all callers must degrade gracefully
-- **Testing:** Vitest (unit/integration in `src/__tests__/`), Playwright (E2E in `tests/e2e/`, 41 specs). Current: ~6042 tests, 398 files.
+- **Testing:** Vitest (unit/integration in `src/__tests__/`), Playwright (E2E in `tests/e2e/`, 42 specs). Current: ~6082 tests, 399 files.
 - **Monitoring:** Sentry (client, server, edge configs) — all catch blocks instrumented (Sprint A, AI_RULES §70)
 
 ## Architecture Rules
@@ -53,7 +53,7 @@ app/dashboard/share-of-voice/   — SOV page + Content Brief Generator (Sprint 8
 app/dashboard/cluster-map/     — AI Visibility Cluster Map (Sprint 87)
 app/dashboard/settings/team/  — Team Management page (Sprint 98)
 app/(public)/invite/[token]/  — Invite acceptance page (Sprint 98)
-app/admin/                    — Admin dashboard: customers, API usage, cron health, revenue (Sprint D)
+app/admin/                    — Admin dashboard: customers (list + detail), API usage, cron health, revenue (Sprint D + §204)
 app/onboarding/connect/       — GBP OAuth interstitial + location picker (Sprint 89)
 lib/industries/              — Industry config SSOT: getIndustryConfig(), 4 verticals (Sprint E, §85)
 lib/schema-generator/        — Pure JSON-LD generators: FAQ, Hours, LocalBusiness, ReserveAction, OrderAction, Medical/Dental (Sprint 70/84/E)
@@ -77,6 +77,9 @@ lib/data/benchmarks.ts        — Benchmark data layer: fetchBenchmark for city+
 lib/entity-health/platform-descriptions.ts — Platform jargon→consequence translation layer (Sprint J, §105)
 lib/agent-readiness/scenario-descriptions.ts — Capability jargon→scenario translation layer (Sprint J, §106)
 lib/admin/format-relative-date.ts — Intl.RelativeTimeFormat utility for admin pages (Sprint D, §81)
+lib/admin/admin-guard.ts      — Admin auth guard: assertAdmin() + logAdminAction() (§204)
+lib/admin/admin-actions.ts     — 6 admin server actions: plan override, cancel, cron, impersonate, credits (§204)
+lib/admin/known-crons.ts       — SSOT list of 26 cron names + isKnownCron() type guard (§204)
 lib/nap-sync/          — NAP Sync Engine: adapters (GBP/Yelp/Apple Maps/Bing), discrepancy detector, health score, push corrections, orchestrator (Sprint 105, §124-§126)
 lib/invitations/       — Token-based invitation flow: types, service, email builder (Sprint 112, §146)
 lib/mcp/               — MCP server tool registrations
