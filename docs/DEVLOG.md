@@ -4,6 +4,28 @@
 
 ---
 
+## 2026-03-04 — Fresh User Journey E2E Tests (§206)
+
+P1-5: Covers the signup form end-to-end — the gap where `auth.spec.ts` only tested rendering and existing onboarding specs skipped the signup form entirely.
+
+### Changes
+
+**New E2E spec:**
+- `tests/e2e/fresh-user-journey.spec.ts` (NEW) — 4 tests across 3 describe groups:
+  - **Client-side validation (2 tests):** Empty submit → Zod inline errors (full_name + password). Weak password → password field error only.
+  - **Server-side error (mocked, 1 test):** `page.route()` intercepts POST `/api/auth/register` → returns 409 → verifies "Email already registered" `role="alert"` banner. Mocking bypasses the proxy rate limiter that fires before the duplicate check in the real environment.
+  - **Post-signup navigation (mocked, 1 test):** `page.route()` intercepts register (201) + login (200) → submit form → verifies URL leaves `/signup` (client's `router.push('/onboarding/connect')` fires). Unauthenticated context; proxy redirects the server request to `/login` which confirms client navigation succeeded.
+
+### Key design decisions
+- **Rate-limiter bypass via `page.route()`:** The proxy middleware rate-limits `/api/auth/register` by IP. All previous test runs contribute to the sliding window. Mocking at the browser level intercepts before the network, so tests are stable across consecutive runs.
+- **No user creation / no afterAll cleanup:** No real accounts are created. Three of four tests are pure client-side; the fourth uses only mocked API responses.
+- **Middleware redirect behavior documented in comments:** `proxy.ts` redirects `user && isAuthPage` to `/dashboard`, so the e2e-tester@ session cannot be used with `/signup` navigation. Tests are unauthenticated for the signup form.
+
+### Tests
+- 4 new Playwright E2E tests (`tests/e2e/fresh-user-journey.spec.ts`). All pass.
+
+---
+
 ## 2026-03-04 — Content Drafts Copy/Export (§205)
 
 Two new user-facing features for content drafts: clipboard copy on every draft card + detail page, and bulk CSV export for Growth+ users.
