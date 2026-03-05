@@ -4,6 +4,35 @@
 
 ---
 
+## 2026-03-04 — Content Drafts Copy/Export (§205)
+
+Two new user-facing features for content drafts: clipboard copy on every draft card + detail page, and bulk CSV export for Growth+ users.
+
+### Changes
+
+**CSV Builder:**
+- `lib/exports/csv-builder.ts` (MODIFIED) — Added `ContentDraftExportRow` interface + `buildContentDraftsCSV()` pure function. 8-column CSV (Title, Content, Status, Type, Trigger, AEO Score, Target Prompt, Created). Reuses existing `escapeCSVValue`/`sanitizeCSVField`. RFC 4180, CRLF, 500-char content truncation, formula injection prevention.
+
+**Server Action:**
+- `app/dashboard/content-drafts/actions.ts` (MODIFIED) — Added `exportDraftsAction()` server action. Growth+ plan gate via `canExportData()`. Optional `status_filter` (Zod-validated). 1000-row cap. Read-only (no `revalidatePath`). Sentry capture on DB error.
+
+**Copy Button:**
+- `app/dashboard/content-drafts/_components/ContentDraftCard.tsx` (MODIFIED) — Added `CopyButton` sub-component. Uses `navigator.clipboard.writeText()` + 2s "Copied!" state. No plan gate. Copy/Check lucide icons. Available on all draft statuses.
+- `app/dashboard/content-drafts/[id]/_components/CopyDraftButton.tsx` (NEW) — Same copy pattern as a standalone client component for the detail page.
+- `app/dashboard/content-drafts/[id]/page.tsx` (MODIFIED) — Imports and renders `CopyDraftButton` in the header row.
+
+**Export Button:**
+- `app/dashboard/content-drafts/_components/ExportDraftsButton.tsx` (NEW) — Client component. Disabled with tooltip for trial/starter. Growth+ triggers `exportDraftsAction()` → Blob download (`text/csv`). Filename: `content-drafts-YYYY-MM-DD.csv`. Inline error banner on failure.
+- `app/dashboard/content-drafts/page.tsx` (MODIFIED) — Header row split into flex justify-between. `ExportDraftsButton` added right side, receives `plan` + `statusFilter`.
+
+### Tests
+- 29 new unit tests (`src/__tests__/unit/content-drafts-export.test.ts`): buildContentDraftsCSV pure function (17), exportDraftsAction server action (12).
+- All 6111/6111 tests pass, 400/400 files.
+
+**AI_RULES:** §205
+
+---
+
 ## 2026-03-04 — Admin Write Operations (§204)
 
 Admin panel upgrade from read-only to full write capability: 6 server actions (plan override, subscription cancel, force cron run, impersonate start/stop, grant credits), customer detail page, audit logging, and impersonation banner.

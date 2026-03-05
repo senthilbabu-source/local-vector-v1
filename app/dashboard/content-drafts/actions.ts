@@ -4,7 +4,8 @@ import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
 import { createServiceRoleClient } from '@/lib/supabase/server';
 import { getSafeAuthContext } from '@/lib/auth';
-import { canRunAutopilot } from '@/lib/plan-enforcer';
+import { canRunAutopilot, canExportData } from '@/lib/plan-enforcer';
+import { buildContentDraftsCSV, type ContentDraftExportRow } from '@/lib/exports/csv-builder';
 import { scoreContentHeuristic } from '@/lib/autopilot/score-content';
 import { publishAsDownload } from '@/lib/autopilot/publish-download';
 import { publishToGBP } from '@/lib/autopilot/publish-gbp';
@@ -507,4 +508,66 @@ export async function publishDraft(formData: FormData): Promise<PublishActionRes
     const msg = err instanceof Error ? err.message : 'Publish failed';
     return { success: false, error: msg };
   }
+}
+
+// ---------------------------------------------------------------------------
+// exportDraftsAction — Server Action (§205, read-only, Growth+)
+// ---------------------------------------------------------------------------
+
+export type ExportDraftsResult =
+  | { success: true; csv: string; count: number }
+  | { success: false; error: string };
+
+const ExportDraftsSchema = z.object({
+  status_filter: z.enum(['draft', 'approved', 'published', 'rejected', 'archived']).optional(),
+});
+
+export async function exportDraftsAction(formData: FormData): Promise<ExportDraftsResult> {
+  const ctx = await getSafeAuthContext();
+  if (!ctx?.orgId) {
+    return { success: false, error: 'Unauthorized' };
+  }
+
+  const parsed = ExportDraftsSchema.safeParse({
+    status_filter: formData.get('status_filter') || undefined,
+  });
+  if (!parsed.success) {
+    return { success: false, error: 'Invalid status filter' };
+  }
+
+  const supabase = await createClient();
+
+  const { data: org } = await supabase
+    .from('organizations')
+    .select('plan')
+    .eq('id', ctx.orgId)
+    .single();
+
+  const plan = org?.plan ?? 'trial';
+  if (!canExportData(plan)) {
+    return { success: false, error: 'Upgrade to Growth to export content drafts' };
+  }
+
+  let query = supabase
+    .from('content_drafts')
+    .select(
+      'id, draft_title, draft_content, status, content_type, trigger_type, aeo_score, target_prompt, created_at'
+    )
+    .eq('org_id', ctx.orgId)
+    .order('created_at', { ascending: false });
+
+  if (parsed.data.status_filter) {
+    query = query.eq('status', parsed.data.status_filter);
+  }
+
+  const { data, error } = await query.limit(1000);
+
+  if (error) {
+    Sentry.captureException(error, { tags: { action: 'exportDraftsAction', sprint: '205' } });
+    return { success: false, error: error.message };
+  }
+
+  const rows = (data ?? []) as ContentDraftExportRow[];
+  const csv = buildContentDraftsCSV(rows);
+  return { success: true, csv, count: rows.length };
 }

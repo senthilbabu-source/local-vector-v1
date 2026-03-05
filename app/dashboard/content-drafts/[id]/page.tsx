@@ -14,6 +14,7 @@ import { getSafeAuthContext } from '@/lib/auth';
 import { createClient } from '@/lib/supabase/server';
 import DraftEditor from './_components/DraftEditor';
 import PublishDropdown from './_components/PublishDropdown';
+import CopyDraftButton from './_components/CopyDraftButton';
 
 export const metadata = { title: 'Post Details | LocalVector.ai' };
 
@@ -198,7 +199,8 @@ export default async function DraftDetailPage({
           {draft.draft_title}
         </h1>
 
-        <div className="flex flex-wrap items-center gap-4 text-xs text-slate-400">
+        <div className="flex flex-wrap items-center justify-between gap-3 mt-3">
+          <div className="flex flex-wrap items-center gap-4 text-xs text-slate-400">
           {draft.aeo_score != null && (
             <span className={`font-semibold tabular-nums ${aeoColor(draft.aeo_score)}`}>
               AEO Score: {draft.aeo_score}
@@ -233,6 +235,8 @@ export default async function DraftDetailPage({
               })}
             </span>
           )}
+          </div>
+          <CopyDraftButton content={draft.draft_content} />
         </div>
       </div>
 

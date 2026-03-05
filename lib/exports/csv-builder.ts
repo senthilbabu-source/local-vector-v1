@@ -1,7 +1,8 @@
 // ---------------------------------------------------------------------------
-// lib/exports/csv-builder.ts — Pure CSV builder for hallucination exports
+// lib/exports/csv-builder.ts — Pure CSV builders for hallucination + draft exports
 //
 // Sprint 95 — CSV Export (Gap #73).
+// Sprint §205 — Content Drafts CSV Export.
 // RFC 4180 compliant (CRLF line endings). Formula injection prevention.
 // Pure functions — no I/O, no side effects, zero mocks needed in tests.
 // ---------------------------------------------------------------------------
@@ -138,6 +139,97 @@ export function buildHallucinationCSV(
       escapeCSVValue(statusLabel(row.correction_status)),
       escapeCSVValue(row.detected_at),
       escapeCSVValue(String(row.occurrence_count ?? 1)),
+    ].join(',');
+  });
+
+  return headerLine + '\r\n' + dataLines.join('\r\n');
+}
+
+// ---------------------------------------------------------------------------
+// Content Drafts CSV export (§205)
+// ---------------------------------------------------------------------------
+
+export interface ContentDraftExportRow {
+  id: string;
+  draft_title: string;
+  draft_content: string;
+  status: string;
+  content_type: string;
+  trigger_type: string;
+  aeo_score: number | null;
+  target_prompt: string | null;
+  created_at: string;
+}
+
+const DRAFT_CSV_HEADERS = [
+  'Title',
+  'Content',
+  'Status',
+  'Type',
+  'Trigger',
+  'AEO Score',
+  'Target Prompt',
+  'Created',
+];
+
+const DRAFT_STATUS_LABELS: Record<string, string> = {
+  draft: 'Draft',
+  approved: 'Approved',
+  published: 'Published',
+  rejected: 'Rejected',
+  archived: 'Archived',
+};
+
+const DRAFT_TYPE_LABELS: Record<string, string> = {
+  faq_page: 'FAQ Page',
+  occasion_page: 'Occasion Page',
+  blog_post: 'Blog Post',
+  landing_page: 'Landing Page',
+  gbp_post: 'GBP Post',
+};
+
+const DRAFT_TRIGGER_LABELS: Record<string, string> = {
+  manual: 'Manual',
+  occasion: 'Occasion',
+  first_mover: 'First Mover',
+  prompt_missing: 'Prompt Gap',
+  competitor_gap: 'Competitor Gap',
+  review_gap: 'Review Gap',
+  schema_gap: 'Schema Gap',
+  hallucination_correction: 'Hallucination Fix',
+};
+
+/**
+ * Build a CSV string from content draft rows.
+ * RFC 4180 compliant with CRLF line endings.
+ * draft_content is truncated at maxContentLength (default 500) to prevent
+ * runaway file sizes.
+ */
+export function buildContentDraftsCSV(
+  rows: ContentDraftExportRow[],
+  options?: { maxContentLength?: number },
+): string {
+  const maxLen = options?.maxContentLength ?? 500;
+  const headerLine = DRAFT_CSV_HEADERS.join(',');
+
+  if (rows.length === 0) {
+    return headerLine;
+  }
+
+  const dataLines = rows.map((row) => {
+    const content = row.draft_content.length > maxLen
+      ? row.draft_content.slice(0, maxLen)
+      : row.draft_content;
+
+    return [
+      escapeCSVValue(row.draft_title),
+      escapeCSVValue(content),
+      escapeCSVValue(DRAFT_STATUS_LABELS[row.status] ?? row.status),
+      escapeCSVValue(DRAFT_TYPE_LABELS[row.content_type] ?? row.content_type),
+      escapeCSVValue(DRAFT_TRIGGER_LABELS[row.trigger_type] ?? row.trigger_type),
+      escapeCSVValue(row.aeo_score !== null ? String(row.aeo_score) : 'N/A'),
+      escapeCSVValue(row.target_prompt),
+      escapeCSVValue(row.created_at),
     ].join(',');
   });
 

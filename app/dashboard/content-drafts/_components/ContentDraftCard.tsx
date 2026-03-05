@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from 'react';
 import Link from 'next/link';
-import { CalendarDays } from 'lucide-react';
+import { CalendarDays, Copy, Check } from 'lucide-react';
 import { approveDraft, rejectDraft, archiveDraft, publishDraft } from '../actions';
 import type { PublishActionResult } from '../actions';
 import { DraftSourceTag } from './DraftSourceTag';
@@ -97,6 +97,35 @@ function targetLabel(target: PublishTarget): string {
     case 'download':
       return 'Download';
   }
+}
+
+// ---------------------------------------------------------------------------
+// CopyButton — copies draft_content to clipboard (no plan gate, §205)
+// ---------------------------------------------------------------------------
+
+function CopyButton({ content }: { content: string }) {
+  const [copied, setCopied] = useState(false);
+
+  async function handleCopy() {
+    await navigator.clipboard.writeText(content);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={handleCopy}
+      className="inline-flex items-center gap-1 rounded-md bg-white/5 px-3 py-1 text-xs font-semibold text-slate-400 hover:bg-white/10 transition"
+      data-testid="copy-draft-btn"
+      aria-label="Copy draft content to clipboard"
+    >
+      {copied
+        ? <><Check className="h-3 w-3 text-signal-green" aria-hidden="true" /><span className="text-signal-green">Copied!</span></>
+        : <><Copy className="h-3 w-3" aria-hidden="true" />Copy</>
+      }
+    </button>
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -289,6 +318,7 @@ export default function ContentDraftCard({ draft, occasionName }: ContentDraftCa
         </div>
 
         <div className="flex items-center gap-2">
+          <CopyButton content={draft.draft_content} />
           {isDraft && (
             <>
               <button

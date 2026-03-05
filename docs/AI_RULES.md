@@ -4425,3 +4425,37 @@ Admin panel upgrade from read-only to full write capability. 6 server actions be
 - 8 E2E tests: `tests/e2e/admin-write-ops.spec.ts`
 
 ---
+
+## §205. Content Drafts Copy/Export (2026-03-04)
+
+### Architecture
+
+- **Copy button (all plans).** `CopyButton` sub-component in `ContentDraftCard` and standalone `CopyDraftButton` on the detail page. Uses `navigator.clipboard.writeText(draft_content)` + 2s "Copied!" state reset — the established codebase pattern (same as `CorrectionPanel`, `ApiKeySettings`, etc.). No plan gate.
+- **CSV export (Growth+).** `exportDraftsAction()` server action returns a CSV string. `ExportDraftsButton` client component triggers a Blob download client-side. Plan gate via `canExportData()` from `lib/plan-enforcer.ts`. `buildContentDraftsCSV()` pure function in `lib/exports/csv-builder.ts` — extends the existing builder pattern.
+- **Status filter forwarded.** `ExportDraftsButton` receives the current `?status=` filter from the page and passes it to the action — exports exactly what the user sees.
+
+### Rules
+
+1. **Copy button has NO plan gate.** Clipboard access is UX convenience. Users who can see a draft can copy it regardless of plan.
+2. **CSV export uses `canExportData()` from `lib/plan-enforcer.ts`.** Never inline the tier check. Disabled button + `title` tooltip for trial/starter.
+3. **`exportDraftsAction` is read-only.** No `revalidatePath()` call — fetches only.
+4. **Blob download is 100% client-side.** No server file storage. CSV string → `Blob` → `URL.createObjectURL` → `<a>` click → `URL.revokeObjectURL`.
+5. **Content truncated at 500 chars in CSV.** Prevents runaway file sizes for orgs with many long drafts. Same default as `buildHallucinationCSV`.
+6. **1000-row cap on `exportDraftsAction`.** Prevents memory exhaustion. Applied via `.limit(1000)` after the optional status filter `.eq()` — not before.
+7. **`buildContentDraftsCSV` is a pure function.** No I/O, no side effects. Zero mocks needed in tests. Reuses `escapeCSVValue` + `sanitizeCSVField` from the same file.
+
+### Key Files
+
+- `lib/exports/csv-builder.ts` — `ContentDraftExportRow` interface + `buildContentDraftsCSV()`
+- `app/dashboard/content-drafts/actions.ts` — `exportDraftsAction()` + `ExportDraftsResult` type
+- `app/dashboard/content-drafts/_components/ContentDraftCard.tsx` — `CopyButton` sub-component
+- `app/dashboard/content-drafts/_components/ExportDraftsButton.tsx` — export client component
+- `app/dashboard/content-drafts/[id]/_components/CopyDraftButton.tsx` — detail page copy button
+- `app/dashboard/content-drafts/page.tsx` — `ExportDraftsButton` wired into header
+- `app/dashboard/content-drafts/[id]/page.tsx` — `CopyDraftButton` wired into header
+
+### Tests
+
+- 29 unit tests: `src/__tests__/unit/content-drafts-export.test.ts`
+
+---

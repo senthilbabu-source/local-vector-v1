@@ -20,6 +20,7 @@ import { markSectionSeen } from '@/lib/badges/badge-counts';
 import ContentDraftCard, { type ContentDraftRow } from './_components/ContentDraftCard';
 import DraftFilterTabs from './_components/DraftFilterTabs';
 import OccasionTimeline, { type OccasionWithCountdown } from './_components/OccasionTimeline';
+import ExportDraftsButton from './_components/ExportDraftsButton';
 
 export const metadata = { title: 'Posts | LocalVector.ai' };
 
@@ -189,12 +190,15 @@ export default async function ContentDraftsPage({
       )}
 
       {/* ── Page header ────────────────────────────────────────────── */}
-      <div>
-        <h1 className="text-xl font-semibold text-white">Posts Ready for Review</h1>
-        <p className="mt-0.5 text-sm text-slate-400">
-          AI-generated content waiting for your review. Approve drafts to publish
-          them to your website or Google Business Profile.
-        </p>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 className="text-xl font-semibold text-white">Posts Ready for Review</h1>
+          <p className="mt-0.5 text-sm text-slate-400">
+            AI-generated content waiting for your review. Approve drafts to publish
+            them to your website or Google Business Profile.
+          </p>
+        </div>
+        <ExportDraftsButton plan={plan} statusFilter={statusFilter} />
       </div>
 
       {/* ── Plan-gated content (blur teaser for Starter/Trial) ───── */}
