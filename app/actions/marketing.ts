@@ -325,26 +325,30 @@ async function _singlePerplexityCall(params: SingleCallParams): Promise<ScanResu
         {
           role: 'system',
           content: [
-            'You are a business AI-presence auditor.',
+            'You are a restaurant AI-presence auditor.',
             'Respond ONLY with a valid JSON object — no markdown, no explanation.',
             'Schema: { "is_closed": boolean, "is_unknown": boolean, "claim_text": string, "expected_truth": string, "severity": "critical"|"high"|"medium", "mentions_volume": "none"|"low"|"medium"|"high", "sentiment": "positive"|"neutral"|"negative", "accuracy_issues": [string], "accuracy_issue_categories": [string] }',
-            'is_unknown=true if you cannot find any AI-model coverage for this business at all.',
-            'If AI models report this business as permanently closed: is_closed=true, claim_text="Permanently Closed", expected_truth="Open".',
-            'If AI models report it as open (correctly): is_closed=false, claim_text="Open", expected_truth="Open".',
-            'mentions_volume: "none"=no AI data about this business, "low"=brief mentions only, "medium"=moderate detail, "high"=prominently described with rich context.',
-            'sentiment: "positive"=AI describes the business favorably/premium, "neutral"=factual/no strong tone, "negative"=AI describes it unfavorably/budget.',
-            'accuracy_issues: Up to 3 short strings (max 80 chars each) describing specific inaccuracies AI states about this business (e.g. "AI reports Monday hours as 9am-5pm"). Empty array [] if none.',
-            'accuracy_issue_categories: A parallel array of the SAME LENGTH as accuracy_issues. Each entry is one of: "hours", "address", "menu", "phone", or "other". Classifies the type of inaccuracy described by the corresponding accuracy_issues entry.',
+            'is_unknown=true ONLY if you find no information about this restaurant in any AI model or search result.',
+            'is_closed=true if AI models state ANY inaccurate fact about this restaurant: wrong hours, wrong address, wrong phone number, wrong cuisine type, marked as permanently closed, or not appearing in local AI recommendations at all.',
+            'is_closed=false ONLY if all AI-stated information about this restaurant is accurate and it appears in relevant local searches.',
+            'claim_text: the single most impactful wrong fact AI is stating (e.g. "Hours listed as Mon-Fri 9am-5pm", "Address shown as 123 Old St", "Listed as permanently closed", "Not found in local restaurant searches").',
+            'expected_truth: the correct fact, or "Verify current information on website" if you cannot confirm the exact correct value.',
+            'mentions_volume: "none"=no AI data about this restaurant, "low"=sparse/brief mentions, "medium"=moderate coverage across platforms, "high"=prominently featured with rich detail.',
+            'sentiment: overall tone of how AI describes this restaurant — "positive"=favorable/recommended, "neutral"=factual only, "negative"=unfavorable or avoid.',
+            'accuracy_issues: Up to 3 specific inaccuracies AI states (max 80 chars each). E.g. ["AI lists hours as Mon-Fri 9am-5pm", "AI shows outdated address on Main St", "Not recommended for pizza searches in city"]. Empty [] if all facts are accurate.',
+            'accuracy_issue_categories: Parallel array SAME LENGTH as accuracy_issues. Each entry: "hours", "address", "menu", "phone", or "other".',
+            'severity: "critical"=wrong address or phone (customer cannot find or reach restaurant), "high"=wrong hours (customer arrives when closed or misses the window), "medium"=wrong cuisine type, menu inaccuracy, or missing from local recommendations.',
             'Severity MUST be lowercase: critical, high, or medium.',
           ].join(' '),
         },
         {
           role: 'user',
           content: (() => {
-            const urlCtx = url ? ` (website: ${url})` : '';
-            return address
-              ? `Does ChatGPT or other AI models incorrectly report "${businessName}" located at "${address}"${urlCtx} as permanently closed?`
-              : `Does ChatGPT or other AI models incorrectly report "${businessName}"${city ? ` in ${city}` : ''}${urlCtx} as permanently closed?`;
+            const urlCtx = url ? ` Website: ${url}.` : '';
+            const locationCtx = address
+              ? `located at "${address}"`
+              : city ? `in ${city}` : '';
+            return `Audit the AI presence of restaurant "${businessName}" ${locationCtx}.${urlCtx} Search for what AI models (ChatGPT, Google, Perplexity) currently say about this restaurant. Check: (1) what hours are listed — are they correct? (2) what address appears — is it current? (3) is the phone number correct? (4) is the cuisine type accurate? (5) does it appear in AI recommendations when someone searches for restaurants in the area? Report any factual inaccuracies or visibility gaps you find.`;
           })(),
         },
       ],
@@ -409,7 +413,12 @@ async function _singlePerplexityCall(params: SingleCallParams): Promise<ScanResu
           business_name: businessName,
         };
       }
-      if (!parsed.data.is_closed) {
+      // Fail if is_closed=true OR the model found accuracy issues even without flagging is_closed.
+      // Perplexity sometimes returns is_closed=false but still populates accuracy_issues — treat
+      // any non-empty accuracy_issues as a fail so real problems (wrong hours, wrong address) are
+      // never silently swallowed into a misleading "pass" result.
+      const hasIssues = parsed.data.is_closed || parsed.data.accuracy_issues.length > 0;
+      if (!hasIssues) {
         return {
           status:                    'pass',
           engine:                    'Perplexity Sonar',
@@ -424,7 +433,11 @@ async function _singlePerplexityCall(params: SingleCallParams): Promise<ScanResu
         status:                    'fail',
         engine:                    'Perplexity Sonar',
         severity:                  parsed.data.severity,
-        claim_text:                parsed.data.claim_text,
+        // When is_closed=true the model sets a meaningful claim_text.
+        // When accuracy_issues drove the fail (is_closed=false), use the first issue as the headline.
+        claim_text:                parsed.data.is_closed
+                                     ? parsed.data.claim_text
+                                     : parsed.data.accuracy_issues[0],
         expected_truth:            parsed.data.expected_truth,
         business_name:             businessName,
         mentions_volume:           parsed.data.mentions_volume,

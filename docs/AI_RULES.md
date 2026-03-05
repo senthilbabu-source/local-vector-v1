@@ -4502,3 +4502,50 @@ Admin panel upgrade from read-only to full write capability. 6 server actions be
 - 6111/6111 vitest tests pass, 0 regressions
 
 ---
+
+## §209 — Scanner Prompt Rewrite: Real Accuracy Audit (2026-03-05)
+
+### Problem
+
+The free scanner was asking Perplexity one question: "Is this restaurant incorrectly marked as permanently closed?" Almost no open restaurant is ever reported as permanently closed by AI, so 95%+ of scans returned `status: 'pass'` with "No Hallucinations Detected." The scanner was not detecting real problems.
+
+Real hallucinations that hurt restaurants:
+- Wrong hours (AI says 9am–5pm, restaurant opens at 5pm)
+- Wrong/outdated address
+- Wrong phone number
+- Wrong cuisine type
+- Not appearing in AI recommendations for local searches
+
+### What Changed
+
+1. **System prompt rewritten.** `is_closed=true` now means "AI states ANY inaccurate fact" — wrong hours, wrong address, wrong phone, wrong cuisine, permanently closed, or invisible in local recommendations. `is_closed=false` only when all AI-stated facts are confirmed accurate. `claim_text` is now the specific wrong fact ("Hours listed as Mon-Fri 9am-5pm"), not just "Permanently Closed."
+
+2. **User prompt rewritten.** Now asks Perplexity to audit five vectors explicitly: hours accuracy, address accuracy, phone number accuracy, cuisine type accuracy, and local recommendation visibility. Previously only asked "is it marked as closed?"
+
+3. **Branching fix.** Added a second trigger for `fail` status: `accuracy_issues.length > 0` → `fail` even when `is_closed=false`. Perplexity sometimes under-sets `is_closed` while still finding issues. When this happens, `accuracy_issues[0]` becomes the `claim_text` headline.
+
+4. **MSW handler updated.** Mock now returns a realistic wrong-hours scenario (`claim_text: 'Hours listed as Mon-Fri 9am-5pm'`, `severity: 'high'`, `accuracy_issue_categories: ['hours']`) instead of `'Permanently Closed'`. E2E tests now exercise realistic failure paths.
+
+### Rules
+
+1. **`is_closed` semantics changed.** `is_closed=true` means any factual AI error, not just physical closure status. The Zod schema field name stays the same.
+2. **Branching is `hasIssues = is_closed || accuracy_issues.length > 0`.** Both conditions produce `fail`. When `is_closed=false` but accuracy_issues exist, `claim_text` = `accuracy_issues[0]`.
+3. **Pass requires clean bill of health.** `status: 'pass'` only when `is_closed=false` AND `accuracy_issues.length === 0`.
+4. **Text-detection fallback unchanged.** Still catches "permanently closed" / "is open" keyword families as a last resort when JSON parse fails entirely.
+
+### Key Files
+
+- `app/actions/marketing.ts` — system prompt, user prompt, `hasIssues` branching
+- `src/mocks/handlers.ts` — MSW Perplexity handler (wrong-hours mock)
+- `src/__tests__/unit/free-scan-pass.test.ts` — 4 tests updated
+
+### Tests
+
+- 4 tests updated in `free-scan-pass.test.ts`:
+  - "propagates accuracy_issues" → renamed + now asserts `fail`
+  - "propagates accuracy_issue_categories" → renamed + now asserts `fail`
+  - "truncates verbose accuracy_issues" → now asserts `fail`
+  - "best-of-2 prefers higher mentions_volume" → `highPayload.accuracy_issues` cleared (was accidentally non-empty)
+- 6153/6153 vitest tests pass, 0 regressions
+
+---

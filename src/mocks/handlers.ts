@@ -183,20 +183,20 @@ const perplexityHandler = http.post(
           index: 0,
           message: {
             role: 'assistant',
-            // Phase 18: runFreeScan requests JSON output via its system prompt.
-            // Returning JSON here lets the server action take the clean JSON parse
-            // path. Values map directly to the ScanResult fields the Playwright
-            // test asserts: claim_text="Permanently Closed", expected_truth="Open".
+            // Prompt rewrite (§209): scanner now audits real accuracy vectors —
+            // hours, address, phone, cuisine, local recommendations — not just closure.
+            // This mock returns a realistic wrong-hours scenario so E2E tests exercise
+            // the full fail-path UI (hallucination card, revenue card, multi-model strip).
             content: JSON.stringify({
               is_closed:                 true,
               is_unknown:                false,
-              claim_text:                'Permanently Closed',
-              expected_truth:            'Open',
-              severity:                  'critical',
-              mentions_volume:           'low',    // Sprint 34: real AI-presence fields
-              sentiment:                 'negative',
-              accuracy_issues:           [],
-              accuracy_issue_categories: [],       // Sprint 35
+              claim_text:                'Hours listed as Mon-Fri 9am-5pm',
+              expected_truth:            'Verify current hours on website',
+              severity:                  'high',
+              mentions_volume:           'low',
+              sentiment:                 'neutral',
+              accuracy_issues:           ['AI lists hours as Mon-Fri 9am–5pm'],
+              accuracy_issue_categories: ['hours'],
             }),
           },
           finish_reason: 'stop',

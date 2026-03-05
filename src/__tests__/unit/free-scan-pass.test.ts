@@ -258,15 +258,19 @@ describe('runFreeScan — is_closed branching (AI_RULES §21)', () => {
     }
   });
 
-  it('propagates accuracy_issues from Perplexity response to ScanResult', async () => {
+  it('accuracy_issues present with is_closed=false escalates to fail (new branching)', async () => {
+    // §209 branching fix: accuracy_issues.length > 0 → fail even when is_closed=false.
+    // Perplexity sometimes under-sets is_closed while still populating accuracy_issues.
+    // The first accuracy_issue becomes claim_text on this path.
     mockPerplexityOk({
-      is_closed: false, claim_text: 'Open', expected_truth: 'Open', severity: 'medium',
+      is_closed: false, claim_text: 'Open', expected_truth: 'Verify current hours on website', severity: 'medium',
       mentions_volume: 'medium', sentiment: 'neutral',
       accuracy_issues: ['AI reports Monday hours as closed'],
     });
     const result = await runFreeScan(makeForm('Healthy Spot'));
-    expect(result.status).toBe('pass');
-    if (result.status === 'pass') {
+    expect(result.status).toBe('fail');
+    if (result.status === 'fail') {
+      expect(result.claim_text).toBe('AI reports Monday hours as closed');
       expect(result.accuracy_issues).toEqual(['AI reports Monday hours as closed']);
     }
   });
@@ -283,16 +287,17 @@ describe('runFreeScan — is_closed branching (AI_RULES §21)', () => {
 
   // ── Sprint 35: accuracy_issue_categories propagation ─────────────────────
 
-  it('propagates accuracy_issue_categories from Perplexity response to ScanResult', async () => {
+  it('accuracy_issue_categories propagate to fail result when is_closed=false but issues present', async () => {
+    // §209 branching fix: accuracy_issues present → fail regardless of is_closed flag.
     mockPerplexityOk({
-      is_closed: false, claim_text: 'Open', expected_truth: 'Open', severity: 'medium',
+      is_closed: false, claim_text: 'Open', expected_truth: 'Verify current hours on website', severity: 'medium',
       mentions_volume: 'medium', sentiment: 'neutral',
       accuracy_issues: ['AI reports Monday as closed'],
       accuracy_issue_categories: ['hours'],
     });
     const result = await runFreeScan(makeForm('Healthy Spot'));
-    expect(result.status).toBe('pass');
-    if (result.status === 'pass') {
+    expect(result.status).toBe('fail');
+    if (result.status === 'fail') {
       expect(result.accuracy_issue_categories).toEqual(['hours']);
     }
   });
@@ -507,8 +512,9 @@ describe('runFreeScan — is_closed branching (AI_RULES §21)', () => {
       accuracy_issue_categories: ['hours', 'address', 'menu', 'phone'],
     });
     const result = await runFreeScan(makeForm('Verbose Restaurant'));
-    expect(result.status).toBe('pass');
-    if (result.status === 'pass') {
+    // §209: accuracy_issues.length > 0 → fail. Truncation still applies on the fail path.
+    expect(result.status).toBe('fail');
+    if (result.status === 'fail') {
       // Should truncate to 3 items, each capped at 120 chars
       expect(result.accuracy_issues).toHaveLength(3);
       expect(result.accuracy_issues[0]).toHaveLength(120);
@@ -583,7 +589,7 @@ describe('runFreeScan — is_closed branching (AI_RULES §21)', () => {
     const highPayload = {
       is_closed: false, is_unknown: false, claim_text: 'Open', expected_truth: 'Open',
       severity: 'medium', mentions_volume: 'high', sentiment: 'positive',
-      accuracy_issues: ['AI says closed Mondays'], accuracy_issue_categories: ['hours'],
+      accuracy_issues: [], accuracy_issue_categories: [],
     };
     vi.stubGlobal('fetch', vi.fn().mockImplementation(async () => {
       callCount++;
