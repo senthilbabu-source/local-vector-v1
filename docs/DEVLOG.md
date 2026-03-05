@@ -4,6 +4,53 @@
 
 ---
 
+## 2026-03-05 — VAIO Score Foundation (§208)
+
+Transforms the Voice Search score card from a static number into an animated,
+context-driven coaching header. First of three sprints (§208–§210) refactoring
+the VAIO page into a gamified coaching experience.
+
+**Modified files:**
+- `lib/vaio/types.ts` — Added `ScoreBreakdown` interface; added `score_breakdown: ScoreBreakdown | null` to `VAIOProfile`
+- `lib/vaio/vaio-service.ts` — `computeVoiceReadinessScore()` now returns `{ total: number } & ScoreBreakdown` instead of `number`; upsert now includes `score_breakdown` JSONB field opportunistically (no migration)
+- `app/api/vaio/status/route.ts` — Imports `computeVoiceReadinessScore`, derives `score_breakdown` on-the-fly from stored fields and merges into returned profile
+- `app/dashboard/vaio/VAIOPageClient.tsx` — Score card section rewritten: animated count-up (requestAnimationFrame, easeOutCubic, 900ms), 4 staggered breakdown bars (2×2 grid, CSS width transition 600ms, 150ms stagger), milestone track (0→70→100 with user dot), personalised coaching message (weakest component), revenue stakes line; `prefers-reduced-motion` respected throughout
+
+**New files:**
+- `lib/vaio/score-card-helpers.ts` — Pure helper functions: `getMilestoneLabel()`, `getWeakestComponent()`, `getCoachingMessage()`, `getRevenueStakesLine()`, `SCORE_BAR_ITEMS`, `barColor()`
+- `src/__tests__/unit/vaio-score-foundation.test.ts` — 18 new tests
+
+**Test count: 18 new tests. 0 regressions. AI_RULES §208.**
+
+---
+
+## 2026-03-04 — Viral Scanner Email Capture (§207)
+
+Lower-friction middle step between scan results and /signup: captures email before pushing users to create an account, with the promise of a "full 5-model AI audit" report by email.
+
+### Changes
+
+**DB Migration:**
+- `supabase/migrations/20260305000002_scan_leads.sql` (NEW) — `scan_leads` table (`id`, `email`, `business_name`, `scan_status` with check constraint, `created_at`). RLS enabled, no policies — insert-only via service role, no client read/write.
+
+**Server Action:**
+- `app/actions/marketing.ts` (MODIFIED) — Added `captureLeadEmail(formData)` exported server action. Validates email (@ present, ≤254 chars), business_name (non-empty), scan_status (in allowlist). Inserts to `scan_leads` via `createServiceRoleClient()` using the `(supabase.from as unknown as ...)` cast pattern (table not in generated types). Fail-open: all errors captured to Sentry, never throws. Returns `{ ok: boolean }`.
+
+**Client Component:**
+- `app/scan/_components/EmailCaptureForm.tsx` (NEW) — 3-state `'use client'` component (idle → loading → success/error). Email input + hidden `businessName`/`scanStatus` fields. Uses `useTransition` + `captureLeadEmail`. Success state shows captured email back to user + `/signup` CTA. Error state has `role="alert"` for accessibility. Matches ScanDashboard design system (JetBrains Mono labels, `lv-btn-green`, `lv-btn-outline`, `#050A15` palette).
+
+**ScanDashboard wire-up:**
+- `app/scan/_components/ScanDashboard.tsx` (MODIFIED) — Imported `EmailCaptureForm`. Section 5 CTA restructured: `EmailCaptureForm` is primary CTA (maxWidth 560, centered), "Claim My AI Profile — Start Free" demoted to secondary outline link below. "← Run Another Scan" unchanged.
+
+### Tests
+- 14 new unit tests (`src/__tests__/unit/scan-leads-action.test.ts`): validation (7), DB insert (5), exception handling (2).
+- 10 new component tests (`src/__tests__/unit/email-capture-form.test.tsx`): idle render (6), success state (2), error state (2).
+- 24 new tests total. All pass.
+
+**AI_RULES:** §207
+
+---
+
 ## 2026-03-04 — Fresh User Journey E2E Tests (§206)
 
 P1-5: Covers the signup form end-to-end — the gap where `auth.spec.ts` only tested rendering and existing onboarding specs skipped the signup form entirely.

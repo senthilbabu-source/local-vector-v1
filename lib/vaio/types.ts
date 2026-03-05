@@ -115,6 +115,7 @@ export interface VAIOProfile {
   voice_gaps: VoiceGap[];
   top_voice_score_issues: VoiceContentIssue[];
   last_run_at: string | null;
+  score_breakdown: ScoreBreakdown | null;
 }
 
 export interface VAIORunResult {
@@ -136,6 +137,15 @@ export const VOICE_SCORE_WEIGHTS = {
   voice_citation:   30,
   content_quality:  20,
 } as const;
+
+// ── Score Breakdown ────────────────────────────────────────────────────────
+
+export interface ScoreBreakdown {
+  llms_txt: number;        // 0–25 actual pts earned
+  crawler_access: number;  // 0–25 actual pts earned
+  voice_citation: number;  // 0–30 actual pts earned
+  content_quality: number; // 0–20 actual pts earned
+}
 
 // ── Voice Query Template ───────────────────────────────────────────────────
 

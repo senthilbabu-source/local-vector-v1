@@ -17,6 +17,7 @@ import type {
   VoiceGap,
   VoiceContentIssue,
   LlmsPageUrl,
+  ScoreBreakdown,
   VOICE_SCORE_WEIGHTS as ScoreWeightsType,
 } from './types';
 import { VOICE_SCORE_WEIGHTS } from './types';
@@ -187,34 +188,47 @@ export async function runVAIO(
     }
 
     // ── 9. Compute voice readiness score ───────────────────────────────
-    const voiceReadinessScore = computeVoiceReadinessScore(
+    const scoreResult = computeVoiceReadinessScore(
       llmsTxtStatus, crawlerHealth, avgCitationRate, avgContentScore,
     );
 
     // ── 10. Upsert vaio_profiles ───────────────────────────────────────
+    const baseUpsert = {
+      location_id: locationId,
+      org_id: orgId,
+      voice_readiness_score: scoreResult.total,
+      llms_txt_standard: llmsTxtStandard,
+      llms_txt_full: llmsTxtFull,
+      llms_txt_generated_at: llmsTxtGenerated ? runAt : undefined,
+      llms_txt_status: llmsTxtStatus,
+      crawler_audit: crawlerAudit as unknown as Json,
+      voice_queries_tracked: totalVoiceQueries,
+      voice_citation_rate: avgCitationRate,
+      voice_gaps: voiceGaps as unknown as Json[],
+      top_content_issues: topIssues as unknown as Json[],
+      last_run_at: runAt,
+    };
+    // score_breakdown stored opportunistically — column added in §208 without migration.
+    // Column may not exist in older DB instances; error is silently ignored.
     await supabase
       .from('vaio_profiles')
-      .upsert({
-        location_id: locationId,
-        org_id: orgId,
-        voice_readiness_score: voiceReadinessScore,
-        llms_txt_standard: llmsTxtStandard,
-        llms_txt_full: llmsTxtFull,
-        llms_txt_generated_at: llmsTxtGenerated ? runAt : undefined,
-        llms_txt_status: llmsTxtStatus,
-        crawler_audit: crawlerAudit as unknown as Json,
-        voice_queries_tracked: totalVoiceQueries,
-        voice_citation_rate: avgCitationRate,
-        voice_gaps: voiceGaps as unknown as Json[],
-        top_content_issues: topIssues as unknown as Json[],
-        last_run_at: runAt,
-      }, { onConflict: 'location_id' });
+      .upsert(
+        Object.assign({}, baseUpsert, {
+          score_breakdown: {
+            llms_txt: scoreResult.llms_txt,
+            crawler_access: scoreResult.crawler_access,
+            voice_citation: scoreResult.voice_citation,
+            content_quality: scoreResult.content_quality,
+          } as unknown as Json,
+        }) as unknown as typeof baseUpsert,
+        { onConflict: 'location_id' },
+      );
 
     // ── 11. Update locations ───────────────────────────────────────────
     await supabase
       .from('locations')
       .update({
-        voice_readiness_score: voiceReadinessScore,
+        voice_readiness_score: scoreResult.total,
         vaio_last_run_at: runAt,
       })
       .eq('id', locationId);
@@ -223,7 +237,7 @@ export async function runVAIO(
     return {
       location_id: locationId,
       org_id: orgId,
-      voice_readiness_score: voiceReadinessScore,
+      voice_readiness_score: scoreResult.total,
       voice_queries_seeded: voiceQueriesSeeded,
       voice_gaps_found: voiceGaps.length,
       autopilot_drafts_triggered: autopilotDraftsTriggered,
@@ -252,7 +266,7 @@ export function computeVoiceReadinessScore(
   crawlerHealth: 'healthy' | 'partial' | 'blocked' | 'unknown',
   avgVoiceCitationRate: number,
   avgContentScore: number,
-): number {
+): { total: number } & ScoreBreakdown {
   // llms.txt score (max 25)
   let llmsScore = 0;
   if (llmsTxtStatus === 'generated') llmsScore = VOICE_SCORE_WEIGHTS.llms_txt;
@@ -270,7 +284,13 @@ export function computeVoiceReadinessScore(
   // Content quality score (max 20)
   const contentScore = Math.round((avgContentScore / 100) * VOICE_SCORE_WEIGHTS.content_quality);
 
-  return Math.min(100, llmsScore + crawlerScore + citationScore + contentScore);
+  return {
+    total: Math.min(100, llmsScore + crawlerScore + citationScore + contentScore),
+    llms_txt: llmsScore,
+    crawler_access: crawlerScore,
+    voice_citation: citationScore,
+    content_quality: contentScore,
+  };
 }
 
 // ---------------------------------------------------------------------------
