@@ -21,9 +21,11 @@ interface MissionBoardProps {
   missions: Mission[];
   profile: MissionCardProfile;
   queries: VoiceQueryRow[];
+  /** §210 — mission IDs that just became 'done' after a scan (pulse green) */
+  justCompletedMissions?: Set<string>;
 }
 
-export function MissionBoard({ missions, profile, queries }: MissionBoardProps) {
+export function MissionBoard({ missions, profile, queries, justCompletedMissions }: MissionBoardProps) {
   const topMissions = missions.slice(0, 3);
 
   if (topMissions.length === 0) return null;
@@ -56,6 +58,7 @@ export function MissionBoard({ missions, profile, queries }: MissionBoardProps) 
             profile={profile}
             queries={queries}
             defaultOpen={i === 0 && mission.status === 'open'}
+            pulseGreen={justCompletedMissions?.has(mission.id) ?? false}
             data-testid={`mission-card-${i}`}
           />
         ))}

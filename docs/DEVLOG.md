@@ -4,6 +4,26 @@
 
 ---
 
+## 2026-03-05 — Sprint §210: Live Scan Experience + Query Diagnostic
+
+**Goal:** Make "Run Voice Check" feel rewarding and make failing queries actionable.
+
+**New files:**
+- `app/dashboard/vaio/_components/ScanOverlay.tsx` — Fixed full-screen overlay during scan. Three sequential stages: "Checking AI crawler access…" → "Reading your voice queries…" → "Scoring your content…" (1.5s / 3.0s transitions). Completed stages get checkmarks, current stage spins.
+- `app/dashboard/vaio/_components/QueryDrawer.tsx` — Right-side slide-in panel for 0%-citation queries. Shows query text, plain-English fail reason (by category), pre-written suggested answer from matching VoiceGap, and "Use this answer" button that copies Q&A in llms.txt-compatible format. Closes on Escape, X button, or backdrop click.
+
+**Modified files:**
+- `app/dashboard/vaio/VAIOPageClient.tsx` — Added `scanPhase` state (0/1/2/null) driving overlay; `deltaScore` state for post-scan badge (▲ +N pts / No change, auto-dismissed after 5s); `justCompletedMissions` state for pulse detection; `selectedQuery` state for drawer. `fetchStatus` now returns data so `handleRunScan` can read new score synchronously. Failing (0% or null) query rows in Technical Details are now `<button>` elements that open the drawer. Hint text added above query list.
+- `app/dashboard/vaio/_components/MissionBoard.tsx` — Accepts `justCompletedMissions?: Set<string>` and forwards to each MissionCard.
+- `app/dashboard/vaio/_components/MissionCard.tsx` — Accepts `pulseGreen?: boolean`; applies green ring (`ring-2 ring-green-400/20 border-green-400/60`) when a mission just became done post-scan.
+- `src/__fixtures__/golden-tenant.ts` — Added `score_breakdown` field to `MOCK_VAIO_PROFILE` (required by updated `VAIOProfile` type).
+
+**Tests:** 20 new tests in `src/__tests__/unit/vaio-scan-experience.test.tsx` (jsdom). ScanOverlay: 5 (hidden/shown, stage 0/1/2 indicator states). QueryDrawer: 11 (null=hidden, query text, 4 category fail reasons, gap match, no-gap fallback, copy Q&A format, X/backdrop close). Delta badge: 2 (positive/zero). Clickable rows: 2 (failing=button, passing=div).
+
+**Test counts:** 6200 total (405 files), all passing. AI_RULES §210.
+
+---
+
 ## 2026-03-05 — VAIO Mission Board (§210)
 
 Replaces the 6 equal-weight raw-data sections with a prioritised coaching view.

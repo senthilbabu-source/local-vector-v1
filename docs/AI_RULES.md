@@ -4503,6 +4503,50 @@ Admin panel upgrade from read-only to full write capability. 6 server actions be
 
 ---
 
+## §210 — Sprint §210: Live Scan Experience + Query Diagnostic (2026-03-05)
+
+### ScanOverlay
+- `ScanOverlay` renders a fixed `z-50` backdrop with three sequential scan stages.
+- `scanPhase: number | null` — 0/1/2 = active stage index; null = overlay hidden.
+- Stage timings: phase 0 immediate → phase 1 at 1500ms → phase 2 at 3000ms (setTimeout).
+- After `fetchStatus` resolves + 500ms grace: `setScanPhase(null)` + `setRunning(false)`.
+- Stage i < scanPhase = done (checkmark); i === scanPhase = current (spinner); i > scanPhase = pending (dot).
+- Always clear stage timeouts in the `finally` block to prevent state leaks.
+
+### Delta Badge
+- `deltaScore: number | null` state. Computed in `handleRunScan` from `data.profile.voice_readiness_score - prevScoreRef.current`.
+- `setDeltaScore(delta)` then `setTimeout(() => setDeltaScore(null), 5000)` for auto-dismiss.
+- Renders inline in score card: `▲ +N pts` (green) or `No change` (slate).
+- `data-testid="vaio-score-delta"`.
+
+### Mission Pulse
+- Before scan: capture `prevStatusMap = new Map(missions.map(m => [m.id, m.status]))`.
+- After scan: run `generateMissions()` with new profile to get fresh missions.
+- Missions where `status === 'done' && prevStatusMap.get(id) === 'open'` are "just completed".
+- `justCompletedMissions: Set<string>` passed to `MissionBoard` → each `MissionCard`.
+- MissionCard: `pulseGreen` prop → `ring-2 ring-green-400/20 border-green-400/60` for 3s.
+
+### Failing Query Drawer
+- `QueryDrawer` is a fixed right panel (`w-[400px]`, z-50) with a z-40 backdrop.
+- `selectedQuery: VoiceQueryRow | null` — null = drawer hidden.
+- Failing = `citation_rate === null || citation_rate === 0`.
+- Rows with `isFailing=true` render as `<button data-testid="failing-query-row">` with `onClick={() => setSelectedQuery(q)}`.
+- `FAIL_REASONS` map: discovery, action, comparison, information — plain English, category-specific.
+- Suggested answer = `voiceGaps.find(g => g.category === query.query_category)?.suggested_query_answer`.
+- "Use this answer" copies `Q: {query_text}\nA: {suggested_query_answer}` (llms.txt Q&A format).
+- Hint text above query list: "Click any 0% row to see why it's failing and get a suggested fix."
+- Close on Escape (keydown listener), backdrop click, or X button.
+
+### `fetchStatus` return value
+- Modified to `return data` (previously `return void`).
+- Allows `handleRunScan` to read new score synchronously without waiting for state update.
+
+### Tests
+- `src/__tests__/unit/vaio-scan-experience.test.tsx` — 20 tests, jsdom.
+- `src/__fixtures__/golden-tenant.ts` — added `score_breakdown` to `MOCK_VAIO_PROFILE`.
+
+---
+
 ## §209 — Scanner Prompt Rewrite: Real Accuracy Audit (2026-03-05)
 
 ### Problem

@@ -2230,6 +2230,12 @@ export const MOCK_VAIO_PROFILE: VAIOProfile = {
     { type: 'passive_voice_heavy', severity: 'warning', description: 'Content lacks action verbs for voice commands', fix: 'Add direct action language like "call", "visit", or "reserve"' },
   ],
   last_run_at: '2026-03-01T06:00:00Z',
+  score_breakdown: {
+    llms_txt: 25,
+    crawler_access: 12,
+    voice_citation: 8,
+    content_quality: 3,
+  },
 };
 
 // ── Sprint 110: AI Answer Simulation Sandbox ──────────────────────────────

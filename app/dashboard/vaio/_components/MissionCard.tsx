@@ -242,6 +242,8 @@ interface MissionCardProps {
   profile: MissionCardProfile;
   queries: VoiceQueryRow[];
   defaultOpen?: boolean;
+  /** §210 — briefly pulse with a green ring when this mission just became done */
+  pulseGreen?: boolean;
   'data-testid'?: string;
 }
 
@@ -250,6 +252,7 @@ export function MissionCard({
   profile,
   queries,
   defaultOpen = false,
+  pulseGreen = false,
   'data-testid': testId,
 }: MissionCardProps) {
   const [isOpen, setIsOpen] = useState(defaultOpen);
@@ -271,10 +274,12 @@ export function MissionCard({
 
   return (
     <div
-      className={`rounded-xl border bg-surface-dark transition-colors ${
-        isDone
-          ? 'border-green-500/20'
-          : 'border-white/5 hover:border-white/10'
+      className={`rounded-xl border bg-surface-dark transition-all ${
+        pulseGreen
+          ? 'border-green-400/60 ring-2 ring-green-400/20'
+          : isDone
+            ? 'border-green-500/20'
+            : 'border-white/5 hover:border-white/10'
       }`}
       data-testid={testId ?? `mission-card-${mission.component}`}
     >
