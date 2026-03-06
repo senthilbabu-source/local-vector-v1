@@ -16,12 +16,12 @@ ALTER TABLE ai_hallucinations
   ADD COLUMN IF NOT EXISTS revenue_recovered_monthly numeric(10,2),
   ADD COLUMN IF NOT EXISTS fix_guidance_category text;
 
--- Backfill fixed_at from corrected/fixed rows using updated_at as proxy
+-- Backfill fixed_at from corrected/fixed rows using created_at as proxy
 UPDATE ai_hallucinations
-  SET fixed_at = updated_at
+  SET fixed_at = created_at
   WHERE correction_status IN ('corrected', 'fixed')
     AND fixed_at IS NULL
-    AND updated_at IS NOT NULL;
+    AND created_at IS NOT NULL;
 
 -- Backfill verified_at from rows already confirmed fixed by the cron
 UPDATE ai_hallucinations
