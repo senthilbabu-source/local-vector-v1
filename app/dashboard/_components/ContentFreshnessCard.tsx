@@ -28,8 +28,8 @@ export default function ContentFreshnessCard({ freshness }: ContentFreshnessCard
 
   // Declining — show alert
   if (freshness.trend === 'declining') {
-    const topAlert = freshness.alerts[0];
-    const hasCritical = freshness.alerts.some((a) => a.severity === 'critical');
+    const topAlert = freshness.alerts?.[0];
+    const hasCritical = freshness.alerts?.some((a) => a.severity === 'critical') ?? false;
 
     return (
       <div className={`rounded-xl border px-4 py-3 ${hasCritical ? 'border-alert-crimson/20 bg-alert-crimson/5' : 'border-alert-amber/20 bg-alert-amber/5'}`}>

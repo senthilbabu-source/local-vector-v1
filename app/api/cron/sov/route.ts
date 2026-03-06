@@ -403,7 +403,7 @@ async function _runInlineSOVImpl(handle: { logId: string | null; startedAt: numb
               .eq('id', orgId)
               .single();
 
-            if (orgRow?.notify_sov_alerts && ownerEmail) {
+            if (orgRow?.notify_sov_alerts && ownerEmail && freshness.alerts.length > 0) {
               const topAlert = freshness.alerts[0];
               await sendFreshnessAlert({
                 to: ownerEmail,
@@ -491,7 +491,7 @@ async function _runInlineSOVImpl(handle: { logId: string | null; startedAt: numb
           queryText: q.query_text,
           queryId: q.id,
           orgId,
-          orgName: q.locations.business_name,
+          orgName: q.locations?.business_name ?? 'Unknown',
           locationId: q.location_id,
           planTier: plan,
           weekOf: new Date(),

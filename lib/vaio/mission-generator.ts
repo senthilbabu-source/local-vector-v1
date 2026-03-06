@@ -118,8 +118,8 @@ function buildVoiceCitationMission(
           ? `Fix ${voice_gaps.length} content gap${voice_gaps.length !== 1 ? 's' : ''}`
           : 'Create content that directly answers voice queries',
       detail:
-        topGap != null
-          ? `Your longest gap: "${topGap.queries[0] ?? ''}" — ${topGap.weeks_at_zero} week${topGap.weeks_at_zero !== 1 ? 's' : ''} at zero AI citations. Suggested answer: "${topGap.suggested_query_answer}"`
+        topGap?.queries?.[0] != null
+          ? `Your longest gap: "${topGap.queries[0]}" — ${topGap.weeks_at_zero} week${topGap.weeks_at_zero !== 1 ? 's' : ''} at zero AI citations. Suggested answer: "${topGap.suggested_query_answer}"`
           : 'Focus on question-and-answer formatted content for common customer queries.',
     },
     {

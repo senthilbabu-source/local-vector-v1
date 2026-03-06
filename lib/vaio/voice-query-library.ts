@@ -101,7 +101,7 @@ export async function seedVoiceQueriesForLocation(
   orgId: string,
   planTier: string,
 ): Promise<{ seeded: number; skipped_dedup: number }> {
-  const category = groundTruth.categories[0] ?? 'restaurant';
+  const category = groundTruth.categories?.[0] ?? 'restaurant';
 
   // Starter: priority 1 only (max 8). Growth+: priority 1 + 2.
   const maxPriority = planSatisfies(planTier, 'growth') ? 2 : 1;

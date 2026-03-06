@@ -150,7 +150,7 @@ export async function runInterceptForCompetitor(
   const { orgId, locationId, businessName, categories, city, state, competitor } = params;
 
   // ── Build query string ──────────────────────────────────────────────────
-  const primaryCategory = categories[0] ?? 'restaurant';
+  const primaryCategory = categories?.[0] ?? 'restaurant';
   const cityState       = [city, state].filter(Boolean).join(', ');
   const queryAsked      = `Best ${primaryCategory} in ${cityState}`;
 

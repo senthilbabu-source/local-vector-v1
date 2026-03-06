@@ -148,7 +148,7 @@ export async function runSOVQuery(
   }
   // Fuzzy match: case-insensitive substring check.
   // "Charcoal N Chill" matches "charcoal n chill", "Charcoal n Chill Hookah Lounge", etc.
-  const businessName = query.locations.business_name.toLowerCase();
+  const businessName = (query.locations?.business_name ?? '').toLowerCase();
   const ourBusinessCited = businesses.some(
     (b) => b.toLowerCase().includes(businessName) || businessName.includes(b.toLowerCase())
   );
@@ -204,7 +204,7 @@ export async function runGoogleGroundedSOVQuery(
   });
 
   // Fuzzy match: same logic as runSOVQuery
-  const businessName = query.locations.business_name.toLowerCase();
+  const businessName = (query.locations?.business_name ?? '').toLowerCase();
   const responseLower = text.toLowerCase();
   const ourBusinessCited =
     responseLower.includes(businessName) || businessName.includes(responseLower);
@@ -275,7 +275,7 @@ export async function runCopilotSOVQuery(
   });
 
   // Fuzzy match: same logic as runGoogleGroundedSOVQuery
-  const businessName = query.locations.business_name.toLowerCase();
+  const businessName = (query.locations?.business_name ?? '').toLowerCase();
   const responseLower = text.toLowerCase();
   const ourBusinessCited =
     responseLower.includes(businessName) || businessName.includes(responseLower);

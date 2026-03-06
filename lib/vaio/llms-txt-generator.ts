@@ -44,7 +44,7 @@ export function buildStandardLlmsTxt(
 
   // Header
   lines.push(`# ${gt.name}`);
-  lines.push(`> ${gt.name} is a ${gt.categories[0] ?? 'local business'} in ${gt.city}, ${gt.state}, located at ${gt.address}.`);
+  lines.push(`> ${gt.name} is a ${gt.categories?.[0] ?? 'local business'} in ${gt.city}, ${gt.state}, located at ${gt.address}.`);
   if (gt.description) {
     const firstSentence = gt.description.split(/[.!?]/)[0];
     if (firstSentence) lines.push(`> ${firstSentence.trim()}.`);

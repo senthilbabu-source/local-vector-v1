@@ -137,7 +137,7 @@ export function buildSuggestedAnswer(
         const formattedHours = formatHoursForVoice(hours);
         return `${name} in ${city} is open ${formattedHours}.`;
       }
-      return `${name} is a ${categories[0] ?? 'local business'} located in ${city}.`;
+      return `${name} is a ${categories?.[0] ?? 'local business'} located in ${city}.`;
     }
     case 'action': {
       const parts = [`${name} is located at ${address} in ${city}.`];
@@ -152,13 +152,13 @@ export function buildSuggestedAnswer(
         .map(([k]) => k.replace(/^(has_|is_|serves_)/, '').replace(/_/g, ' '))
         .slice(0, 3);
       const amenityStr = topAmenities.length > 0 ? `, offering ${topAmenities.join(', ')}` : '';
-      return `${name} is a ${categories[0] ?? 'local business'} in ${city}${amenityStr}.`;
+      return `${name} is a ${categories?.[0] ?? 'local business'} in ${city}${amenityStr}.`;
     }
     case 'comparison': {
       if (topReviewKeywords && topReviewKeywords.length > 0) {
         return `${name} in ${city} is known for ${topReviewKeywords.slice(0, 3).join(', ')}.`;
       }
-      return `${name} is a popular ${categories[0] ?? 'destination'} in ${city}.`;
+      return `${name} is a popular ${categories?.[0] ?? 'destination'} in ${city}.`;
     }
     default:
       return `${name} is located in ${city}.`;

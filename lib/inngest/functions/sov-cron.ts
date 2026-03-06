@@ -136,6 +136,7 @@ export async function processOrgSOV(batch: OrgBatch): Promise<OrgSOVResult> {
 
   // P8-FIX-33: Persist reality score snapshot (non-critical)
   try {
+    if (!batch.queries.length) throw new Error('No queries in batch');
     const locationId = batch.queries[0].location_id;
     const { count: openCount } = await supabase
       .from('ai_hallucinations')
@@ -165,7 +166,7 @@ export async function processOrgSOV(batch: OrgBatch): Promise<OrgSOVResult> {
 
   // Sprint 81: Sentiment extraction (non-critical, runs after SOV data is safe)
   try {
-    const businessName = batch.queries[0].locations?.business_name ?? '';
+    const businessName = batch.queries[0]?.locations?.business_name ?? '';
     if (businessName && evaluationIds.length > 0) {
       const sentimentMap = await extractSOVSentiment(
         evaluationIds.map(e => ({ evaluationId: e.id, rawResponse: e.rawResponse, engine: e.engine })),
@@ -180,7 +181,7 @@ export async function processOrgSOV(batch: OrgBatch): Promise<OrgSOVResult> {
 
   // Sprint 82: Source mention extraction (non-critical, runs after sentiment)
   try {
-    const businessName = batch.queries[0].locations?.business_name ?? '';
+    const businessName = batch.queries[0]?.locations?.business_name ?? '';
     if (businessName && evaluationIds.length > 0) {
       const mentionsMap = await extractSOVSourceMentions(
         evaluationIds.map(e => ({ evaluationId: e.id, rawResponse: e.rawResponse, engine: e.engine })),
@@ -227,7 +228,7 @@ export async function processOrgSOV(batch: OrgBatch): Promise<OrgSOVResult> {
     membershipRow?.users as { email: string } | null
   )?.email;
 
-  const businessName = batch.queries[0].locations?.business_name ?? 'Your Business';
+  const businessName = batch.queries[0]?.locations?.business_name ?? 'Your Business';
 
   if (ownerEmail) {
     // Compute SOV delta from visibility_analytics
@@ -301,8 +302,10 @@ export async function processOrgSOV(batch: OrgBatch): Promise<OrgSOVResult> {
 
   // Occasion Engine sub-step (non-critical)
   try {
-    const locationId = batch.queries[0].location_id;
-    const loc = batch.queries[0].locations as { business_name: string; city: string | null; state: string | null; categories?: string[] } | undefined;
+    const firstQuery = batch.queries[0];
+    if (!firstQuery) throw new Error('No queries in batch');
+    const locationId = firstQuery.location_id;
+    const loc = firstQuery.locations as { business_name: string; city: string | null; state: string | null; categories?: string[] } | undefined;
     const locationCategories: string[] = loc?.categories ?? ['restaurant'];
     const city = loc?.city ?? '';
     const state = loc?.state ?? '';
@@ -328,7 +331,9 @@ export async function processOrgSOV(batch: OrgBatch): Promise<OrgSOVResult> {
 
   // Prompt Intelligence sub-step (non-critical)
   try {
-    const locationId = batch.queries[0].location_id;
+    const firstQuery = batch.queries[0];
+    if (!firstQuery) throw new Error('No queries in batch');
+    const locationId = firstQuery.location_id;
     const gaps = await detectQueryGaps(batch.orgId, locationId, supabase);
     gapsDetected = gaps.length;
 

@@ -84,7 +84,7 @@ function crawlerIcon(status: string) {
 // ── Detail sections (one per component) ──────────────────────────────────
 
 function CrawlerDetail({ crawlerAudit }: { crawlerAudit: CrawlerAudit | null }) {
-  if (!crawlerAudit) return null;
+  if (!crawlerAudit?.crawlers?.length) return null;
   return (
     <div className="mt-3 space-y-2" data-testid="mission-detail-crawler">
       {crawlerAudit.crawlers.map((c) => (
