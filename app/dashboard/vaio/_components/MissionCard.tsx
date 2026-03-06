@@ -170,7 +170,7 @@ function VoiceCitationDetail({
                 {gap.category} — {gap.weeks_at_zero} week{gap.weeks_at_zero !== 1 ? 's' : ''} at zero citations
               </p>
               <p className="text-xs text-slate-400 mb-1.5">
-                {gap.queries.length} queries getting zero AI mentions
+                {gap.queries?.length ?? 0} queries getting zero AI mentions
               </p>
               <p className="text-xs text-slate-400 italic">
                 Suggested: &ldquo;{gap.suggested_query_answer}&rdquo;
