@@ -238,6 +238,7 @@ async function handleSubscriptionDeleted(
   }
 
   // Downgrade to trial + canceled status + reset seat_limit (Sprint 99)
+  // §211: capture churned_at timestamp for churn analytics (FEEDBACK-INFRA.md §3)
   const { error } = await supabase
     .from('organizations')
     .update({
@@ -246,6 +247,7 @@ async function handleSubscriptionDeleted(
       seat_limit: 1,
       seat_overage_count: 0,
       seats_updated_at: new Date().toISOString(),
+      churned_at: new Date().toISOString(),
     })
     .eq('stripe_customer_id', stripeCustomerId);
 

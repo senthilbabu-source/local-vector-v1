@@ -20,50 +20,59 @@ test.use({ storageState: DEV_USER_STATE });
 // ---------------------------------------------------------------------------
 
 const NAV_TO_GROUP: Record<string, string> = {
-  'nav-dashboard': 'Overview',
-  'nav-alerts': 'Overview',
-  'nav-share-of-voice': 'How AI Sees You',
-  'nav-cluster-map': 'How AI Sees You',
-  'nav-ai-says': 'How AI Sees You',
-  'nav-ai-sentiment': 'How AI Sees You',
-  'nav-ai-sources': 'How AI Sees You',
-  'nav-bot-activity': 'How AI Sees You',
-  'nav-menu': 'Content',
-  'nav-magic-menu': 'Content',
-  'nav-content': 'Content',
-  'nav-content-calendar': 'Content',
-  'nav-page-audits': 'Content',
-  'nav-citations': 'Content',
-  'nav-proof-timeline': 'Content',
-  'nav-compete': 'Insights',
-  'nav-revenue-impact': 'Insights',
-  'nav-benchmarks': 'Insights',
-  'nav-agent-readiness': 'Insights',
-  'nav-entity-health': 'Insights',
-  'nav-playbooks': 'Insights',
-  'nav-intent-discovery': 'Insights',
-  'nav-ai-assistant': 'Admin',
-  'nav-listings': 'Admin',
-  'nav-locations': 'Admin',
-  'nav-system-health': 'Admin',
-  'nav-settings': 'Admin',
-  'nav-chat-widget': 'Admin',
-  'nav-team': 'Admin',
-  'nav-domain': 'Admin',
-  'nav-billing': 'Admin',
+  // Today (expanded by default)
+  'nav-dashboard':          'Today',
+  'nav-alerts':             'Today',
+  'nav-ai-sentiment':       'Today',
+  // How AI Sees You
+  'nav-share-of-voice':     'How AI Sees You',
+  'nav-ai-says':            'How AI Sees You',
+  'nav-ai-assistant':       'How AI Sees You',
+  'nav-voice-readiness':    'How AI Sees You',
+  // Grow Your Presence
+  'nav-menu':               'Grow Your Presence',
+  'nav-magic-menu':         'Grow Your Presence',
+  'nav-content':            'Grow Your Presence',
+  'nav-content-calendar':   'Grow Your Presence',
+  'nav-revenue-impact':     'Grow Your Presence',
+  // Competitive Edge
+  'nav-compete':            'Competitive Edge',
+  'nav-benchmarks':         'Competitive Edge',
+  'nav-listings':           'Competitive Edge',
+  // Advanced
+  'nav-page-audits':        'Advanced',
+  'nav-citations':          'Advanced',
+  'nav-ai-sources':         'Advanced',
+  'nav-cluster-map':        'Advanced',
+  'nav-bot-activity':       'Advanced',
+  'nav-proof-timeline':     'Advanced',
+  'nav-entity-health':      'Advanced',
+  'nav-agent-readiness':    'Advanced',
+  'nav-system-health':      'Advanced',
+  'nav-playbooks':          'Advanced',
+  'nav-intent-discovery':   'Advanced',
+  // Account
+  'nav-settings':           'Account',
+  'nav-team':               'Account',
+  'nav-domain':             'Account',
+  'nav-billing':            'Account',
+  'nav-locations':          'Account',
+  'nav-chat-widget':        'Account',
 };
 
 export async function expandSidebarGroup(page: Page, testId: string) {
   const groupName = NAV_TO_GROUP[testId];
-  if (!groupName || groupName === 'Overview') return; // Overview is expanded by default
+  if (!groupName || groupName === 'Today') return; // Today is expanded by default
 
   const groupButtons = page.getByTestId('sidebar-group-label');
   const count = await groupButtons.count();
   for (let i = 0; i < count; i++) {
     const btn = groupButtons.nth(i);
     const text = await btn.textContent();
-    // Content group has dynamic suffix like "Content & Dishes"
-    if (text && (text.trim() === groupName || text.trim().startsWith(groupName))) {
+    // "Grow Your Presence" renders as "Grow with [noun]" for different industries
+    const t = text.trim();
+    const matches = t === groupName || (groupName === 'Grow Your Presence' && t.startsWith('Grow'));
+    if (text && matches) {
       const expanded = await btn.getAttribute('aria-expanded');
       if (expanded !== 'true') {
         await btn.click();
@@ -77,32 +86,30 @@ export async function expandSidebarGroup(page: Page, testId: string) {
 test.describe('14 — Sidebar navigation', () => {
 
   const navTests = [
-    // ── Overview ─────────────────────────────────────────────────────────
+    // ── Today ────────────────────────────────────────────────────────────
     { testId: 'nav-dashboard', url: '/dashboard', heading: /Welcome back/i },
     { testId: 'nav-alerts', url: '/dashboard/hallucinations', heading: /Things AI Gets Wrong/i },
-    // ── How AI Sees You ─────────────────────────────────────────────────────
-    { testId: 'nav-share-of-voice', url: '/dashboard/share-of-voice', heading: /How Often AI Recommends/i },
-    { testId: 'nav-cluster-map', url: '/dashboard/cluster-map', heading: /Where You Stand/i },
-    { testId: 'nav-ai-says', url: '/dashboard/ai-responses', heading: /AI Says|Responses/i },
     { testId: 'nav-ai-sentiment', url: '/dashboard/sentiment', heading: /How AI Describes/i },
-    { testId: 'nav-ai-sources', url: '/dashboard/source-intelligence', heading: /What AI Reads/i },
-    { testId: 'nav-bot-activity', url: '/dashboard/crawler-analytics', heading: /Who.*Checking.*Website/i },
-    // ── Content ────────────────────────────────────────────────────
+    // ── How AI Sees You ──────────────────────────────────────────────────
+    { testId: 'nav-share-of-voice', url: '/dashboard/share-of-voice', heading: /How Often AI Recommends/i },
+    { testId: 'nav-ai-says', url: '/dashboard/ai-responses', heading: /AI Says|Responses/i },
+    { testId: 'nav-ai-assistant', url: '/dashboard/ai-assistant', heading: /Assistant/i },
+    // ── Grow Your Presence ────────────────────────────────────────────────
     { testId: 'nav-magic-menu', url: '/dashboard/magic-menus', heading: /Magic Menu|Magic Services/i },
     { testId: 'nav-content', url: '/dashboard/content-drafts', heading: /Posts Ready for Review/i },
     { testId: 'nav-content-calendar', url: '/dashboard/content-calendar', heading: /Upcoming Opportunities/i },
+    { testId: 'nav-revenue-impact', url: '/dashboard/revenue-impact', heading: /What This Costs/i },
+    // ── Competitive Edge ──────────────────────────────────────────────────
+    { testId: 'nav-compete', url: '/dashboard/compete', heading: /You vs Competitors/i },
+    { testId: 'nav-benchmarks', url: '/dashboard/benchmarks', heading: /How You Compare/i },
+    { testId: 'nav-listings', url: '/dashboard/integrations', heading: /Listings/i },
+    // ── Advanced ──────────────────────────────────────────────────────────
     { testId: 'nav-page-audits', url: '/dashboard/page-audits', heading: /Website Checkup/i },
     { testId: 'nav-citations', url: '/dashboard/citations', heading: /Who.*Talking About You/i },
+    { testId: 'nav-bot-activity', url: '/dashboard/crawler-analytics', heading: /Who.*Checking.*Website/i },
     { testId: 'nav-proof-timeline', url: '/dashboard/proof-timeline', heading: /When AI Noticed/i },
-    // ── Insights ──────────────────────────────────────────────────────
-    { testId: 'nav-compete', url: '/dashboard/compete', heading: /You vs Competitors/i },
-    { testId: 'nav-revenue-impact', url: '/dashboard/revenue-impact', heading: /What This Costs/i },
-    { testId: 'nav-benchmarks', url: '/dashboard/benchmarks', heading: /How You Compare/i },
-    { testId: 'nav-agent-readiness', url: '/dashboard/agent-readiness', heading: /Can AI Book/i },
     { testId: 'nav-entity-health', url: '/dashboard/entity-health', heading: /Know Your Business|Entity Health/i },
-    // ── Admin ─────────────────────────────────────────────────────────────
-    { testId: 'nav-ai-assistant', url: '/dashboard/ai-assistant', heading: /Assistant/i },
-    { testId: 'nav-listings', url: '/dashboard/integrations', heading: /Listings/i },
+    // ── Account ───────────────────────────────────────────────────────────
     { testId: 'nav-locations', url: '/dashboard/settings/locations', heading: /Locations/i },
     { testId: 'nav-settings', url: '/dashboard/settings', heading: /Settings/i },
     { testId: 'nav-billing', url: '/dashboard/billing', heading: /Billing|Plan/i },

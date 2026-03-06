@@ -13,6 +13,7 @@ import { canRunIntentDiscovery } from '@/lib/plan-enforcer';
 import type { PlanTier } from '@/lib/plan-enforcer';
 import { getActiveLocationId } from '@/lib/location/active-location';
 import IntentDiscoveryClient from './IntentDiscoveryClient';
+import QuestionsCoachHero from './_components/QuestionsCoachHero';
 
 export const metadata = { title: 'Missing Questions | LocalVector.ai' };
 
@@ -129,12 +130,39 @@ export default async function IntentDiscoveryPage() {
     }
   }
 
+  const topGapPrompt = gaps[0]?.prompt ?? null;
+
   return (
-    <IntentDiscoveryClient
-      gaps={gaps}
-      coveredCount={coveredCount}
-      latestRunDate={latestRun?.discovered_at ?? null}
-      diminishingReturns={gaps.length < 5}
-    />
+    <div data-testid="intent-discovery-page" className="max-w-3xl space-y-5">
+      {/* Page header */}
+      <div>
+        <h1 className="text-xl font-semibold text-white tracking-tight">
+          Questions You're Missing
+        </h1>
+        <p className="mt-0.5 text-sm text-slate-400">
+          Discover what customers are asking AI that you don&apos;t have an answer for.
+          {latestRun?.discovered_at && (
+            <span className="ml-2 text-slate-500">
+              Last scan: {new Date(latestRun.discovered_at).toLocaleDateString()}
+            </span>
+          )}
+        </p>
+      </div>
+
+      {/* S13: Questions coaching hero */}
+      <QuestionsCoachHero
+        gapCount={gaps.length}
+        coveredCount={coveredCount}
+        topGapPrompt={topGapPrompt}
+      />
+
+      {/* Gap cards + actions */}
+      <IntentDiscoveryClient
+        gaps={gaps}
+        coveredCount={coveredCount}
+        latestRunDate={latestRun?.discovered_at ?? null}
+        diminishingReturns={gaps.length < 5}
+      />
+    </div>
   );
 }

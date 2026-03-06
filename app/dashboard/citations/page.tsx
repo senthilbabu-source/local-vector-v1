@@ -14,8 +14,7 @@ import type { CitationSourceIntelligence, TenantListing } from '@/lib/types/cita
 import { PlanGate } from '@/components/plan-gate/PlanGate';
 import CitationGapScore from './_components/CitationGapScore';
 import PlatformCitationBar from './_components/PlatformCitationBar';
-import TopGapCard from './_components/TopGapCard';
-import CitationsSummaryPanel from './_components/CitationsSummaryPanel';
+import PlatformsCoachHero from './_components/PlatformsCoachHero';
 
 export const metadata = { title: 'Platforms | LocalVector.ai' };
 
@@ -146,25 +145,18 @@ export default async function CitationsPage() {
 
       {/* ── Plan-gated content (blur teaser for Starter/Trial) ─────── */}
       <PlanGate requiredPlan="growth" currentPlan={plan} feature="Citation Gap Analysis">
-        {/* ── Sprint H: Citation Health Summary ──────────────────────── */}
-        <CitationsSummaryPanel
-          totalPlatforms={platforms.length}
-          coveredCount={gapSummary.platformsCovered}
-          gapCount={gapSummary.platformsThatMatter - gapSummary.platformsCovered}
+        {/* ── S11: Platforms coaching hero ────────────────────────────── */}
+        <PlatformsCoachHero
           gapScore={gapSummary.gapScore}
+          platformsCovered={gapSummary.platformsCovered}
+          platformsThatMatter={gapSummary.platformsThatMatter}
+          topGapPlatform={gapSummary.topGap?.platform ?? null}
+          topGapAction={gapSummary.topGap?.action ?? null}
+          topGapFrequency={gapSummary.topGap?.citationFrequency ?? null}
         />
 
-        {/* ── Top Gap Card — #1 uncovered platform ───────────────────── */}
-        {gapSummary.topGap && (
-          <TopGapCard
-            platform={gapSummary.topGap.platform}
-            citationFrequency={gapSummary.topGap.citationFrequency}
-            action={gapSummary.topGap.action}
-          />
-        )}
-
         {/* ── Score Ring + Platform Bars ─────────────────────────────── */}
-        <div className="mt-6 grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div id="platform-detail" className="mt-6 grid grid-cols-1 lg:grid-cols-2 gap-6">
           <CitationGapScore
             gapScore={gapSummary.gapScore}
             platformsCovered={gapSummary.platformsCovered}

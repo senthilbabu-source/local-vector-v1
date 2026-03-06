@@ -5,8 +5,7 @@ import { buildTruthAuditResult, type EngineScore } from '@/lib/services/truth-au
 import { canExportData, planSatisfies, type PlanTier } from '@/lib/plan-enforcer';
 import type { EvaluationEngine } from '@/lib/schemas/evaluations';
 import EvaluationCard, { type EngineEval } from './_components/EvaluationCard';
-import TruthScoreCard from './_components/TruthScoreCard';
-import EngineComparisonGrid from './_components/EngineComparisonGrid';
+import AIAccuracyHero from './_components/AIAccuracyHero';
 import StatusDropdown from './_components/StatusDropdown';
 import ExportButtons from '../_components/ExportButtons';
 import HallucinationsByModel from '../_components/HallucinationsByModel';
@@ -158,6 +157,48 @@ export default async function HallucinationsPage() {
   const userPlan = (ctx.plan ?? 'trial') as PlanTier;
   const exportAllowed = canExportData(userPlan);
 
+  // ── Triage partitioning (computed at page level for hero + swimlane) ──
+  const SEVERITY_ORDER: Record<string, number> = { critical: 0, high: 1, medium: 2, low: 3 };
+
+  const triageAlerts: HallucinationRow[] = hallucinations.map((h) => ({
+    id: h.id,
+    severity: h.severity as HallucinationRow['severity'],
+    category: h.category,
+    model_provider: h.model_provider as HallucinationRow['model_provider'],
+    claim_text: h.claim_text,
+    expected_truth: h.expected_truth,
+    correction_status: h.correction_status as HallucinationRow['correction_status'],
+    first_detected_at: h.first_detected_at ?? h.detected_at,
+    last_seen_at: h.last_seen_at ?? h.detected_at,
+    occurrence_count: h.occurrence_count ?? 1,
+    follow_up_result: h.follow_up_result ?? null,
+  }));
+
+  const fixNowAlerts = triageAlerts
+    .filter((a) => a.correction_status === 'open')
+    .sort((a, b) => (SEVERITY_ORDER[a.severity] ?? 9) - (SEVERITY_ORDER[b.severity] ?? 9));
+
+  const inProgressAlerts = triageAlerts.filter(
+    (a) => a.correction_status === 'verifying' || a.correction_status === 'corrected',
+  );
+
+  const resolvedAlerts = triageAlerts
+    .filter(
+      (a) =>
+        a.correction_status === 'fixed' ||
+        a.correction_status === 'dismissed' ||
+        a.correction_status === 'recurring',
+    )
+    .slice(0, 10);
+
+  const topIssue = fixNowAlerts[0]
+    ? {
+        claim_text: fixNowAlerts[0].claim_text,
+        severity: fixNowAlerts[0].severity,
+        model_provider: fixNowAlerts[0].model_provider,
+      }
+    : null;
+
   return (
     <div className="space-y-8">
 
@@ -172,15 +213,15 @@ export default async function HallucinationsPage() {
         <ExportButtons canExport={exportAllowed} />
       </div>
 
-      {/* ── Truth Score + Engine Comparison ───────────────────────────────── */}
-      <div className="grid gap-4 sm:grid-cols-2">
-        <TruthScoreCard
-          score={truthResult.engines_reporting > 0 ? truthResult.truth_score : null}
-          consensus={truthResult.consensus}
-          enginesReporting={truthResult.engines_reporting}
-        />
-        <EngineComparisonGrid engineScores={truthResult.engine_scores} />
-      </div>
+      {/* ── S3: AI Accuracy coaching hero ─────────────────────────────── */}
+      <AIAccuracyHero
+        score={truthResult.engines_reporting > 0 ? truthResult.truth_score : null}
+        enginesReporting={truthResult.engines_reporting}
+        engineScores={truthResult.engine_scores}
+        topIssue={topIssue}
+        openCount={fixNowAlerts.length}
+        resolvedCount={resolvedAlerts.length}
+      />
 
       {/* ── AI Evaluation Audit Cards ────────────────────────────────────── */}
       <section>
@@ -268,73 +309,44 @@ export default async function HallucinationsPage() {
         />
       )}
 
-      {/* ── Sprint H: Hallucination Triage Queue ─────────────────────────── */}
-      {(() => {
-        // Cast to HallucinationRow shape for AlertCard compatibility
-        const triageAlerts: HallucinationRow[] = hallucinations.map((h) => ({
-          id: h.id,
-          severity: h.severity as HallucinationRow['severity'],
-          category: h.category,
-          model_provider: h.model_provider as HallucinationRow['model_provider'],
-          claim_text: h.claim_text,
-          expected_truth: h.expected_truth,
-          correction_status: h.correction_status as HallucinationRow['correction_status'],
-          first_detected_at: h.first_detected_at ?? h.detected_at,
-          last_seen_at: h.last_seen_at ?? h.detected_at,
-          occurrence_count: h.occurrence_count ?? 1,
-          follow_up_result: h.follow_up_result ?? null,
-        }));
+      {/* ── Hallucination Triage Queue ───────────────────────────────────── */}
+      <section className="space-y-4" id="fix-now">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h2 className="text-sm font-semibold uppercase tracking-wide text-[#94A3B8]">
+              Fix Your AI Mistakes
+            </h2>
+            <HallucinationsPageHeader
+              openCount={fixNowAlerts.length}
+              resolvedCount={resolvedAlerts.length}
+            />
+          </div>
+        </div>
 
-        // Partition into swimlanes — sorted by severity for Fix Now
-        const SEVERITY_ORDER: Record<string, number> = { critical: 0, high: 1, medium: 2, low: 3 };
-        const fixNowAlerts = triageAlerts
-          .filter((a) => a.correction_status === 'open')
-          .sort((a, b) => (SEVERITY_ORDER[a.severity] ?? 9) - (SEVERITY_ORDER[b.severity] ?? 9));
-        const inProgressAlerts = triageAlerts.filter((a) => a.correction_status === 'verifying' || a.correction_status === 'corrected');
-        const resolvedAlerts = triageAlerts
-          .filter((a) => a.correction_status === 'fixed' || a.correction_status === 'dismissed' || a.correction_status === 'recurring')
-          .slice(0, 10);
-
-        return (
-          <section className="space-y-4">
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <h2 className="text-sm font-semibold uppercase tracking-wide text-[#94A3B8]">
-                  Fix Your AI Mistakes
-                </h2>
-                <HallucinationsPageHeader
-                  openCount={fixNowAlerts.length}
-                  resolvedCount={resolvedAlerts.length}
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 gap-6 lg:grid-cols-3" data-testid="triage-grid">
-              <TriageSwimlane
-                title="Fix Now"
-                count={fixNowAlerts.length}
-                alerts={fixNowAlerts}
-                emptyMessage="No open issues — you're all clear"
-                data-testid="swimlane-fix-now"
-              />
-              <TriageSwimlane
-                title="In Progress"
-                count={inProgressAlerts.length}
-                alerts={inProgressAlerts}
-                emptyMessage="Corrections you submit appear here while being verified"
-                data-testid="swimlane-in-progress"
-              />
-              <TriageSwimlane
-                title="Resolved"
-                count={resolvedAlerts.length}
-                alerts={resolvedAlerts}
-                emptyMessage="Fixed issues will appear here"
-                data-testid="swimlane-resolved"
-              />
-            </div>
-          </section>
-        );
-      })()}
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3" data-testid="triage-grid">
+          <TriageSwimlane
+            title="Fix Now"
+            count={fixNowAlerts.length}
+            alerts={fixNowAlerts}
+            emptyMessage="No open issues — you're all clear"
+            data-testid="swimlane-fix-now"
+          />
+          <TriageSwimlane
+            title="In Progress"
+            count={inProgressAlerts.length}
+            alerts={inProgressAlerts}
+            emptyMessage="Corrections you submit appear here while being verified"
+            data-testid="swimlane-in-progress"
+          />
+          <TriageSwimlane
+            title="Resolved"
+            count={resolvedAlerts.length}
+            alerts={resolvedAlerts}
+            emptyMessage="Fixed issues will appear here"
+            data-testid="swimlane-resolved"
+          />
+        </div>
+      </section>
 
       {/* ── P8-FIX-37: Hijacking Alerts (Agency only) ─────────────────────── */}
       {planSatisfies(userPlan, 'agency') && (

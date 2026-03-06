@@ -1,9 +1,10 @@
 import { redirect } from 'next/navigation';
-import { Star, MessageSquareText } from 'lucide-react';
+import { MessageSquareText } from 'lucide-react';
 import { getSafeAuthContext } from '@/lib/auth';
 import { createClient } from '@/lib/supabase/server';
 import { planSatisfies } from '@/lib/plan-enforcer';
 import ReviewCard from './_components/ReviewCard';
+import ReviewsCoachHero from './_components/ReviewsCoachHero';
 
 export const metadata = { title: 'Reviews | LocalVector.ai' };
 
@@ -78,33 +79,13 @@ export default async function ReviewsPage() {
         </p>
       </div>
 
-      {/* Summary strip */}
-      <div className="flex flex-wrap gap-4">
-        <div className="rounded-xl bg-surface-dark px-4 py-3 ring-1 ring-white/5">
-          <p className="text-xs text-slate-400">Total Reviews</p>
-          <p className="mt-0.5 text-2xl font-bold tabular-nums text-white">
-            {stats.total}
-          </p>
-        </div>
-        <div className="rounded-xl bg-surface-dark px-4 py-3 ring-1 ring-white/5">
-          <p className="text-xs text-slate-400">Avg Rating</p>
-          <p className="mt-0.5 text-2xl font-bold tabular-nums text-alert-amber">
-            {stats.avgRating > 0 ? stats.avgRating.toFixed(1) : '--'}
-          </p>
-        </div>
-        <div className="rounded-xl bg-surface-dark px-4 py-3 ring-1 ring-white/5">
-          <p className="text-xs text-slate-400">Needs Response</p>
-          <p className="mt-0.5 text-2xl font-bold tabular-nums text-alert-crimson">
-            {stats.pending}
-          </p>
-        </div>
-        <div className="rounded-xl bg-surface-dark px-4 py-3 ring-1 ring-white/5">
-          <p className="text-xs text-slate-400">Published</p>
-          <p className="mt-0.5 text-2xl font-bold tabular-nums text-truth-emerald">
-            {stats.published}
-          </p>
-        </div>
-      </div>
+      {/* S9: Reviews coaching hero */}
+      <ReviewsCoachHero
+        avgRating={stats.avgRating}
+        total={stats.total}
+        pending={stats.pending}
+        published={stats.published}
+      />
 
       {/* Empty state */}
       {reviews.length === 0 && (
@@ -118,7 +99,7 @@ export default async function ReviewsPage() {
 
       {/* Needs Response section */}
       {needsResponse.length > 0 && (
-        <section>
+        <section id="needs-response">
           <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-[#94A3B8]">
             Needs Response ({needsResponse.length})
           </h2>

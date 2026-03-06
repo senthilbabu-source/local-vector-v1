@@ -37,50 +37,13 @@ export default function IntentDiscoveryClient({
   diminishingReturns,
 }: IntentDiscoveryClientProps) {
   return (
-    <div data-testid="intent-discovery-page" className="max-w-3xl space-y-5">
-      <div>
-        <h1 className="text-xl font-semibold text-white tracking-tight">
-          Questions You're Missing
-        </h1>
-        <p className="mt-0.5 text-sm text-slate-400">
-          Discover what customers are asking AI that you don't have an answer for.
-          {latestRunDate && (
-            <span className="ml-2 text-slate-400">
-              Last run: {new Date(latestRunDate).toLocaleDateString()}
-            </span>
-          )}
-        </p>
-      </div>
-
-      {/* Summary stats */}
-      <div className="flex gap-4">
-        <div className="rounded-2xl border border-white/5 bg-surface-dark px-5 py-3 flex-1 text-center">
-          <div className="text-2xl font-bold text-red-400">{gaps.length}</div>
-          <div className="text-xs text-slate-400">Gaps Found</div>
-        </div>
-        <div className="rounded-2xl border border-white/5 bg-surface-dark px-5 py-3 flex-1 text-center">
-          <div className="text-2xl font-bold text-emerald-400">
-            {coveredCount}
-          </div>
-          <div className="text-xs text-slate-400">Covered</div>
-        </div>
-      </div>
-
+    <div className="space-y-5">
       {/* Diminishing returns banner */}
       {diminishingReturns && gaps.length > 0 && (
         <div className="rounded-2xl border border-amber-500/20 bg-amber-500/5 p-4">
           <p className="text-xs text-amber-400">
             Only {gaps.length} new gaps found. Consider reducing to monthly
             discovery runs.
-          </p>
-        </div>
-      )}
-
-      {/* No data state */}
-      {gaps.length === 0 && coveredCount === 0 && (
-        <div className="rounded-2xl border border-white/5 bg-surface-dark p-8 text-center">
-          <p className="text-sm text-slate-400">
-            No intent discoveries yet. Discovery runs weekly on Thursdays.
           </p>
         </div>
       )}

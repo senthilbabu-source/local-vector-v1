@@ -310,72 +310,88 @@ export const NAV_ITEMS = [
 ];
 
 // ---------------------------------------------------------------------------
-// Grouped navigation — Sprint A (H4)
+// Grouped navigation — S1 Sidebar Rebuild (coaching-first structure)
 // ---------------------------------------------------------------------------
 
 type NavItem = (typeof NAV_ITEMS)[number] & { minPlan?: 'growth' | 'agency' };
 
 export const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
   {
-    label: 'Overview',
+    // The 3 things an owner checks every day
+    label: 'Today',
     items: NAV_ITEMS.filter((i) =>
-      ['/dashboard', '/dashboard/hallucinations'].includes(i.href),
+      [
+        '/dashboard',
+        '/dashboard/hallucinations',
+        '/dashboard/sentiment',
+      ].includes(i.href),
     ),
   },
   {
+    // How AI apps perceive and talk about the restaurant
     label: 'How AI Sees You',
     items: NAV_ITEMS.filter((i) =>
       [
         '/dashboard/share-of-voice',
-        '/dashboard/cluster-map',
         '/dashboard/ai-responses',
-        '/dashboard/sentiment',
-        '/dashboard/source-intelligence',
-        '/dashboard/crawler-analytics',
+        '/dashboard/ai-assistant',
         '/dashboard/vaio',
       ].includes(i.href),
     ),
   },
   {
-    label: 'Content',
+    // Actions that directly grow presence — menu, content, revenue context
+    label: 'Grow Your Presence',
     items: NAV_ITEMS.filter((i) =>
       [
         '/dashboard/magic-menus',
         '/dashboard/content-drafts',
         '/dashboard/content-calendar',
-        '/dashboard/page-audits',
-        '/dashboard/citations',
-        '/dashboard/proof-timeline',
+        '/dashboard/revenue-impact',
       ].includes(i.href),
     ),
   },
   {
-    label: 'Insights',
+    // Competitive position and listing health
+    label: 'Competitive Edge',
     items: NAV_ITEMS.filter((i) =>
       [
         '/dashboard/compete',
-        '/dashboard/revenue-impact',
         '/dashboard/benchmarks',
-        '/dashboard/agent-readiness',
+        '/dashboard/integrations',
+      ].includes(i.href),
+    ),
+  },
+  {
+    // Technical / power-user pages — collapsed by default
+    label: 'Advanced',
+    items: NAV_ITEMS.filter((i) =>
+      [
+        '/dashboard/page-audits',
+        '/dashboard/citations',
+        '/dashboard/source-intelligence',
+        '/dashboard/cluster-map',
+        '/dashboard/crawler-analytics',
+        '/dashboard/proof-timeline',
         '/dashboard/entity-health',
+        '/dashboard/agent-readiness',
+        '/dashboard/system-health',
         '/dashboard/playbooks',
         '/dashboard/intent-discovery',
       ].includes(i.href),
     ),
   },
   {
-    label: 'Admin',
+    // Account management
+    label: 'Account',
     items: NAV_ITEMS.filter((i) =>
       [
-        '/dashboard/ai-assistant',
-        '/dashboard/integrations',
-        '/dashboard/settings/locations',
-        '/dashboard/system-health',
         '/dashboard/settings',
-        '/dashboard/settings/widget',
         '/dashboard/team',
         '/dashboard/settings/domain',
         '/dashboard/billing',
+        '/dashboard/settings/locations',
+        '/dashboard/settings/widget',
       ].includes(i.href),
     ),
   },
@@ -412,7 +428,7 @@ function planLabel(plan: string | null): string {
 }
 
 const STORAGE_KEY = 'lv_sidebar_expanded_groups';
-const DEFAULT_EXPANDED = 'Overview';
+const DEFAULT_EXPANDED = 'Today';
 
 function getGroupForPath(pathname: string): string | null {
   for (const group of NAV_GROUPS) {
@@ -528,8 +544,8 @@ export default function Sidebar({ isOpen, onClose, displayName, orgName, plan, l
           {NAV_GROUPS.map((group) => {
             const groupId = `nav-group-${group.label.toLowerCase().replace(/\s+/g, '-')}`;
             const isExpanded = expandedGroups.has(group.label);
-            const groupDisplayLabel = group.label === 'Content'
-              ? `Content & ${industryConfig.servicesNoun}`
+            const groupDisplayLabel = group.label === 'Grow Your Presence'
+              ? `Grow with ${industryConfig.servicesNoun}`
               : group.label;
             return (
             <div key={group.label} className="mb-2" role="group" aria-labelledby={groupId}>

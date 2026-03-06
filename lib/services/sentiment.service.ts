@@ -140,33 +140,39 @@ export function aggregateSentiment(
     };
   }
 
-  // Average score
-  const averageScore = withSentiment.reduce((sum, e) => sum + e.sentiment_data.score, 0) / withSentiment.length;
+  // Average score (guard: score may be null in older seed rows)
+  const scoredRows = withSentiment.filter(e => typeof e.sentiment_data.score === 'number' && !isNaN(e.sentiment_data.score));
+  const averageScore = scoredRows.length > 0
+    ? scoredRows.reduce((sum, e) => sum + e.sentiment_data.score, 0) / scoredRows.length
+    : 0;
 
   // Frequency counts for labels and tones
   const labelCounts = countFrequencies(withSentiment.map(e => e.sentiment_data.label));
   const toneCounts = countFrequencies(withSentiment.map(e => e.sentiment_data.tone));
 
-  // Descriptor aggregation
+  // Descriptor aggregation (guard: older rows may lack descriptors field)
   const allPositive: string[] = [];
   const allNegative: string[] = [];
   for (const e of withSentiment) {
-    allPositive.push(...e.sentiment_data.descriptors.positive);
-    allNegative.push(...e.sentiment_data.descriptors.negative);
+    allPositive.push(...(e.sentiment_data.descriptors?.positive ?? []));
+    allNegative.push(...(e.sentiment_data.descriptors?.negative ?? []));
   }
 
   // Per-engine breakdown
   const byEngine: SentimentSummary['byEngine'] = {};
   const engineGroups = groupBy(withSentiment, e => e.engine);
   for (const [engine, evals] of Object.entries(engineGroups)) {
-    const engineAvg = evals.reduce((s, e) => s + e.sentiment_data.score, 0) / evals.length;
+    const scoredEvals = evals.filter(e => typeof e.sentiment_data.score === 'number' && !isNaN(e.sentiment_data.score));
+    const engineAvg = scoredEvals.length > 0
+      ? scoredEvals.reduce((s, e) => s + e.sentiment_data.score, 0) / scoredEvals.length
+      : 0;
     const engineLabels = countFrequencies(evals.map(e => e.sentiment_data.label));
     const engineTones = countFrequencies(evals.map(e => e.sentiment_data.tone));
     const enginePositive: string[] = [];
     const engineNegative: string[] = [];
     for (const e of evals) {
-      enginePositive.push(...e.sentiment_data.descriptors.positive);
-      engineNegative.push(...e.sentiment_data.descriptors.negative);
+      enginePositive.push(...(e.sentiment_data.descriptors?.positive ?? []));
+      engineNegative.push(...(e.sentiment_data.descriptors?.negative ?? []));
     }
     byEngine[engine] = {
       averageScore: Math.round(engineAvg * 100) / 100,

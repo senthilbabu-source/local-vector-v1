@@ -93,9 +93,11 @@ function StepIndicator({ current }: { current: WorkspaceView }) {
 function PublishedBanner({
   menu,
   locationName,
+  onReplace,
 }: {
   menu: MenuWorkspaceData;
   locationName: string;
+  onReplace: () => void;
 }) {
   const injectionCount = menu.propagation_events.filter(
     (e) => e.event === 'link_injected'
@@ -107,7 +109,8 @@ function PublishedBanner({
       className="rounded-2xl bg-surface-dark border border-white/5 p-6 space-y-5"
     >
       {/* Success header */}
-      <div className="flex items-start gap-4">
+      <div className="flex items-start justify-between gap-4">
+        <div className="flex items-start gap-4">
         <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-truth-emerald/15">
           <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -133,6 +136,13 @@ function PublishedBanner({
             indexed for AI engines.
           </p>
         </div>
+        </div>
+        <button
+          onClick={onReplace}
+          className="shrink-0 text-xs text-slate-400 hover:text-white transition-colors underline underline-offset-2"
+        >
+          Replace menu
+        </button>
       </div>
 
       {/* Propagation status */}
@@ -228,7 +238,7 @@ export default function MenuWorkspace({
 
       {view === 'published' && menu && (
         <>
-          <PublishedBanner menu={menu} locationName={locationName} />
+          <PublishedBanner menu={menu} locationName={locationName} onReplace={() => setView('upload')} />
           <DistributionPanel
             menuId={menu.id}
             publicSlug={menu.public_slug}

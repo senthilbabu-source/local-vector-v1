@@ -21,20 +21,25 @@ const INDEXNOW_ENDPOINT = 'https://api.indexnow.org/IndexNow';
  */
 export async function pingIndexNow(
   urls: string[],
-  host: string = 'schema.localvector.ai',
+  host?: string,
 ): Promise<boolean> {
   const key = process.env.INDEXNOW_API_KEY;
   if (!key) return false;
   if (urls.length === 0) return false;
+
+  // Derive host from NEXT_PUBLIC_APP_URL so local dev and production both work.
+  // Falls back to schema.localvector.ai for legacy callers that don't set APP_URL.
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://schema.localvector.ai';
+  const resolvedHost = host ?? new URL(appUrl).hostname;
 
   try {
     const response = await fetch(INDEXNOW_ENDPOINT, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json; charset=utf-8' },
       body: JSON.stringify({
-        host,
+        host:        resolvedHost,
         key,
-        keyLocation: `https://${host}/${key}.txt`,
+        keyLocation: `${appUrl}/${key}.txt`,
         urlList: urls,
       }),
       signal: AbortSignal.timeout(10_000),

@@ -7,6 +7,7 @@ import { getSafeAuthContext } from '@/lib/auth';
 import { createClient } from '@/lib/supabase/server';
 import type { MenuWorkspaceData } from '@/lib/types/menu';
 import MenuWorkspace from './_components/MenuWorkspace';
+import MenuCoachHero from './_components/MenuCoachHero';
 import { getIndustryConfig } from '@/lib/industries/industry-config';
 
 export const metadata = { title: 'Menu | LocalVector.ai' };
@@ -100,7 +101,15 @@ export default async function MagicMenusPage() {
         </p>
       </div>
 
+      {/* ── S7: Menu coaching hero ────────────────────────────────── */}
+      <MenuCoachHero
+        menu={menu}
+        locationName={location?.business_name ?? 'your business'}
+        industryNoun={industryConfig.servicesNoun.toLowerCase()}
+      />
+
       {/* ── Workspace ─────────────────────────────────────────────── */}
+      <div id="workspace">
       {!location ? (
         // No primary location yet — guide the user
         <div className="rounded-2xl bg-surface-dark border border-white/5 px-6 py-10 text-center">
@@ -123,6 +132,7 @@ export default async function MagicMenusPage() {
           initialMenu={menu}
         />
       )}
+      </div>
 
     </div>
   );

@@ -115,20 +115,22 @@ export default async function DashboardLayout({
     }
   }
 
-  // ── Sprint E: Fetch org industry for sidebar config ────────────────────────
+  // ── Sprint E + §211: Fetch org industry + created_at ─────────────────────
   let orgIndustry: string | null = null;
+  let orgCreatedAt: string | null = null;
   if (ctx.orgId) {
     try {
       const industrySupa = await createClient();
       const { data: orgRow } = await industrySupa
         .from('organizations')
-        .select('industry')
+        .select('industry, created_at')
         .eq('id', ctx.orgId)
         .maybeSingle();
       orgIndustry = (orgRow as { industry?: string | null } | null)?.industry ?? null;
+      orgCreatedAt = (orgRow as { created_at?: string | null } | null)?.created_at ?? null;
     } catch (err) {
       Sentry.captureException(err, { tags: { file: 'dashboard/layout.tsx', sprint: 'E' } });
-      // Industry fetch failure is non-critical — defaults to restaurant
+      // Industry/created_at fetch failure is non-critical
     }
   }
 
@@ -168,6 +170,7 @@ export default async function DashboardLayout({
       badgeCounts={badgeCounts}
       credits={credits}
       orgIndustry={orgIndustry}
+      orgCreatedAt={orgCreatedAt}
       orgId={ctx.orgId ?? null}
       userId={ctx.userId}
       userEmail={ctx.email}

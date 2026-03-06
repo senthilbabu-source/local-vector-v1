@@ -13,6 +13,7 @@ import { PlanGate } from '@/components/plan-gate/PlanGate';
 import AuditScoreOverview from './_components/AuditScoreOverview';
 import PageAuditCardWrapper from './_components/PageAuditCardWrapper';
 import AddPageAuditForm from './_components/AddPageAuditForm';
+import WebsiteCheckupCoachHero from './_components/WebsiteCheckupCoachHero';
 import type { PageAuditRecommendation } from '@/lib/page-audit/auditor';
 
 export const metadata = { title: 'Website Checkup | LocalVector.ai' };
@@ -115,6 +116,20 @@ export default async function PageAuditsPage() {
     : 0;
   const latestAuditDate = audits[0]?.last_audited_at ?? null;
 
+  // Lowest-scoring page for the coaching card
+  const lowestAudit = audits.reduce<typeof audits[0] | null>((worst, a) => {
+    if (a.overall_score === null) return worst;
+    if (!worst || (worst.overall_score ?? 0) > a.overall_score) return a;
+    return worst;
+  }, null);
+  const lowestPage = lowestAudit
+    ? {
+        url: lowestAudit.page_url,
+        score: lowestAudit.overall_score ?? 0,
+        topRecommendation: (lowestAudit.recommendations?.[0] as PageAuditRecommendation | undefined)?.issue ?? null,
+      }
+    : null;
+
   return (
     <div className="space-y-8">
       {/* ── Page header ─────────────────────────────────────────────────── */}
@@ -136,6 +151,13 @@ export default async function PageAuditsPage() {
             <AddPageAuditForm />
           </div>
         </details>
+
+        {/* ── S12: Website Checkup coaching hero ───────────────────── */}
+        <WebsiteCheckupCoachHero
+          avgScore={avgScore}
+          total={audits.length}
+          lowestPage={lowestPage}
+        />
 
         {/* ── Score Overview ────────────────────────────────────────── */}
         <AuditScoreOverview

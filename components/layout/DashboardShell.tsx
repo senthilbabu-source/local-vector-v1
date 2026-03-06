@@ -8,6 +8,7 @@ import PresenceAvatars from '@/app/dashboard/_components/PresenceAvatars';
 import RealtimeNotificationToast from '@/app/dashboard/_components/RealtimeNotificationToast';
 import type { LocationOption } from './LocationSwitcher';
 import ImpersonationBanner from '@/components/admin/ImpersonationBanner';
+import TrialWarningBanner from '@/components/dashboard/TrialWarningBanner';
 import type { PresenceUser } from '@/lib/realtime/types';
 import type { MemberRole } from '@/lib/membership/types';
 
@@ -33,6 +34,8 @@ interface DashboardShellProps {
   // Sprint §204: Admin impersonation
   isImpersonating?: boolean;
   impersonatingOrgName?: string;
+  // §211: Trial warning banner
+  orgCreatedAt?: string | null;
 }
 
 // ---------------------------------------------------------------------------
@@ -60,6 +63,7 @@ export default function DashboardShell({
   userRole,
   isImpersonating,
   impersonatingOrgName,
+  orgCreatedAt,
 }: DashboardShellProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
@@ -133,6 +137,8 @@ export default function DashboardShell({
 
         {/* Main content area */}
         <main id="main-content" tabIndex={-1} className="flex-1 overflow-y-auto p-4 sm:p-6 bg-midnight-slate">
+          {/* §211: Trial warning banner — shown 7–14 days into trial */}
+          <TrialWarningBanner plan={plan} orgCreatedAt={orgCreatedAt ?? null} />
           {children}
         </main>
       </div>

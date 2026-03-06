@@ -21,6 +21,7 @@ import ContentDraftCard, { type ContentDraftRow } from './_components/ContentDra
 import DraftFilterTabs from './_components/DraftFilterTabs';
 import OccasionTimeline, { type OccasionWithCountdown } from './_components/OccasionTimeline';
 import ExportDraftsButton from './_components/ExportDraftsButton';
+import PostsCoachHero from './_components/PostsCoachHero';
 
 export const metadata = { title: 'Posts | LocalVector.ai' };
 
@@ -163,8 +164,9 @@ export default async function ContentDraftsPage({
 
   // Summary counts (across all drafts, not just filtered)
   const allDrafts = statusFilter ? await fetchPageData(ctx.orgId) : drafts;
-  const draftCount = allDrafts.filter((d) => d.status === 'draft').length;
-  const approvedCount = allDrafts.filter((d) => d.status === 'approved').length;
+  const draftCount     = allDrafts.filter((d) => d.status === 'draft').length;
+  const approvedCount  = allDrafts.filter((d) => d.status === 'approved').length;
+  const publishedCount = allDrafts.filter((d) => d.status === 'published').length;
 
   return (
     <div className="space-y-6">
@@ -203,27 +205,13 @@ export default async function ContentDraftsPage({
 
       {/* ── Plan-gated content (blur teaser for Starter/Trial) ───── */}
       <PlanGate requiredPlan="growth" currentPlan={plan} feature="Content Drafts">
-        {/* ── Summary strip ────────────────────────────────────────── */}
-        <div className="flex flex-wrap gap-4">
-          <div className="rounded-xl bg-surface-dark px-4 py-3 ring-1 ring-white/5">
-            <p className="text-xs text-slate-400">Pending Review</p>
-            <p className="mt-0.5 text-2xl font-bold tabular-nums text-amber-400">
-              {draftCount}
-            </p>
-          </div>
-          <div className="rounded-xl bg-surface-dark px-4 py-3 ring-1 ring-white/5">
-            <p className="text-xs text-slate-400">Approved</p>
-            <p className="mt-0.5 text-2xl font-bold tabular-nums text-emerald-400">
-              {approvedCount}
-            </p>
-          </div>
-          <div className="rounded-xl bg-surface-dark px-4 py-3 ring-1 ring-white/5">
-            <p className="text-xs text-slate-400">Total Drafts</p>
-            <p className="mt-0.5 text-2xl font-bold tabular-nums text-white">
-              {allDrafts.length}
-            </p>
-          </div>
-        </div>
+        {/* ── S10: Posts coaching hero ─────────────────────────────── */}
+        <PostsCoachHero
+          total={allDrafts.length}
+          draftCount={draftCount}
+          approvedCount={approvedCount}
+          publishedCount={publishedCount}
+        />
 
         {/* ── Upcoming Occasions ────────────────────────────────────── */}
         <div className="mt-6">
@@ -239,7 +227,7 @@ export default async function ContentDraftsPage({
         </div>
 
         {/* ── Draft cards ──────────────────────────────────────────── */}
-        <div className="mt-6">
+        <div id="drafts" className="mt-6">
           {drafts.length === 0 ? (
             <div
               data-testid="content-drafts-empty-state"

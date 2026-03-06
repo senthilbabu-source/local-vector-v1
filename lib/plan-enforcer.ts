@@ -342,3 +342,19 @@ export function canAddMember(planTier: string, currentSeatCount: number): boolea
   if (max === null) return true;
   return currentSeatCount < max;
 }
+
+/**
+ * Maximum number of active SOV target queries per location.
+ * Prevents unbounded query growth that causes AI cost runaway.
+ * Enforced at target_queries insert time.
+ * Reference: AI-COST-MODEL.md §5 — Risk 1 (SOV cron volume).
+ */
+export function getMaxActiveQueriesPerLocation(plan: PlanTier): number {
+  const limits: Record<PlanTier, number> = {
+    trial:   15,
+    starter: 20,
+    growth:  40,
+    agency:  100,
+  };
+  return limits[plan];
+}

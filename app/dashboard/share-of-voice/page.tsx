@@ -11,12 +11,11 @@ import { scoreQueryRelevance } from '@/lib/relevance/query-relevance-filter';
 import type { BusinessGroundTruth, QueryInput, RelevanceVerdict } from '@/lib/relevance/types';
 import type { HoursData, Amenities, Categories } from '@/lib/types/ground-truth';
 import SovCard, { type QueryWithEvals } from './_components/SovCard';
-import SOVScoreRing from './_components/SOVScoreRing';
 import SOVTrendChart, { type SOVDataPoint } from '@/app/dashboard/_components/SOVTrendChart';
 import FirstMoverCard from './_components/FirstMoverCard';
 import GapAlertCard from './_components/GapAlertCard';
 import CategoryBreakdownChart from './_components/CategoryBreakdownChart';
-import SOVVerdictPanel from './_components/SOVVerdictPanel';
+import AIVisibilityHero, { type EngineStats } from './_components/AIVisibilityHero';
 
 export const metadata = { title: 'AI Mentions | LocalVector.ai' };
 
@@ -206,6 +205,17 @@ export default async function ShareOfVoicePage() {
     }
   }
 
+  // ── S8: Scan streak — consecutive weeks with visibility data ─────────────
+  // Snapshots ordered newest-first. Count how many are within 8 days of the prior.
+  let scanStreak = visibilitySnapshots.length > 0 ? 1 : 0;
+  for (let i = 0; i < visibilitySnapshots.length - 1; i++) {
+    const curr = new Date(visibilitySnapshots[i].snapshot_date);
+    const prev = new Date(visibilitySnapshots[i + 1].snapshot_date);
+    const daysDiff = (curr.getTime() - prev.getTime()) / (1000 * 60 * 60 * 24);
+    if (daysDiff <= 8) scanStreak++;
+    else break;
+  }
+
   // ── Trend chart data (oldest → newest for left-to-right rendering) ───────
   const trendData: SOVDataPoint[] = [...visibilitySnapshots]
     .reverse()
@@ -213,6 +223,28 @@ export default async function ShareOfVoicePage() {
       date: s.snapshot_date,
       sov: Math.round(s.share_of_voice * 1000) / 10, // 0.333 → 33.3
     }));
+
+  // ── Per-engine citation stats for AIVisibilityHero ───────────────────────
+  // Deduplicate to latest eval per (query_id, engine), then aggregate.
+  const latestPerQueryEngine = new Map<string, SovEvalRow>();
+  for (const e of evaluations) {
+    const key = `${e.query_id}:${e.engine}`;
+    if (!latestPerQueryEngine.has(key)) latestPerQueryEngine.set(key, e);
+  }
+  const rawEngineStats: Record<string, { cited: number; total: number }> = {};
+  for (const e of latestPerQueryEngine.values()) {
+    if (!rawEngineStats[e.engine]) rawEngineStats[e.engine] = { cited: 0, total: 0 };
+    rawEngineStats[e.engine].total++;
+    if (e.rank_position !== null) rawEngineStats[e.engine].cited++;
+  }
+  const engineStats: Record<string, EngineStats> = {};
+  for (const [engine, s] of Object.entries(rawEngineStats)) {
+    engineStats[engine] = {
+      pct: s.total > 0 ? (s.cited / s.total) * 100 : 0,
+      citedQueries: s.cited,
+      totalQueries: s.total,
+    };
+  }
 
   // ── Prompt Intelligence gap detection (Growth/Agency only) ────────────────
   let gaps: QueryGap[] = [];
@@ -272,67 +304,16 @@ export default async function ShareOfVoicePage() {
         </div>
       )}
 
-      {/* ── Sprint H: Verdict Panel — before any chart ────────────────────── */}
-      <SOVVerdictPanel
-        currentPct={shareOfVoice}
-        previousPct={previous ? previous.share_of_voice * 100 : null}
-        topCompetitor={topCompetitor}
+      {/* ── S5: AI Visibility coaching hero ──────────────────────────────── */}
+      <AIVisibilityHero
+        shareOfVoice={shareOfVoice}
+        weekOverWeekDeltaPct={weekOverWeekDelta !== null ? weekOverWeekDelta * 100 : null}
         totalQueries={queries.length}
+        topCompetitor={topCompetitor}
+        engineStats={engineStats}
+        nextScanLabel={`Sunday, ${nextSundayLabel()}`}
+        scanStreak={scanStreak}
       />
-
-      {/* ── Aggregate SOV Score Ring ──────────────────────────────────────── */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <SOVScoreRing
-          shareOfVoice={shareOfVoice}
-          citationRate={citationRate}
-          weekOverWeekDelta={weekOverWeekDelta}
-        />
-        <div className="rounded-2xl bg-surface-dark border border-white/5 p-5">
-          <h2 className="text-sm font-semibold text-white tracking-tight mb-4">
-            Quick Stats
-          </h2>
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <span className="text-xs text-slate-400">Queries Tracked</span>
-              <span className="text-sm font-semibold text-white tabular-nums">
-                {queries.length}
-              </span>
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="text-xs text-slate-400">Locations</span>
-              <span className="text-sm font-semibold text-white tabular-nums">
-                {locations.length}
-              </span>
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="text-xs text-slate-400">Last Scan</span>
-              <span className="text-sm font-medium text-slate-300 tabular-nums">
-                {latest
-                  ? new Date(latest.snapshot_date).toLocaleDateString('en-US', {
-                      month: 'short',
-                      day: 'numeric',
-                      year: 'numeric',
-                    })
-                  : `Runs Sunday, ${nextSundayLabel()}`}
-              </span>
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="text-xs text-slate-400">First Mover Opps</span>
-              <span className="text-sm font-semibold text-amber-400 tabular-nums">
-                {firstMoverOpps.length}
-              </span>
-            </div>
-            {pausedCount > 0 && (
-              <div className="flex items-center justify-between">
-                <span className="text-xs text-slate-400">Paused Queries</span>
-                <span className="text-sm font-medium text-slate-400 tabular-nums">
-                  {pausedCount}
-                </span>
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
 
       {/* ── SOV Trend Chart ──────────────────────────────────────────────── */}
       <SOVTrendChart data={trendData} title="AI Mention Trend (Last 12 Weeks)" />
@@ -361,7 +342,7 @@ export default async function ShareOfVoicePage() {
 
       {/* ── Prompt Intelligence: Category Breakdown + Gap Alerts ────────── */}
       {isGrowthPlus && queries.length > 0 && (
-        <section>
+        <section id="gaps">
           <h2 className="text-sm font-semibold text-white tracking-tight mb-3">
             Search Insights
             {gaps.length > 0 && (
@@ -396,7 +377,7 @@ export default async function ShareOfVoicePage() {
       )}
 
       {/* ── Query Library (existing per-location SovCards) ─────────────── */}
-      <section>
+      <section id="queries">
         <h2 className="text-sm font-semibold text-white tracking-tight mb-3">
           What We're Tracking
         </h2>

@@ -195,6 +195,52 @@ body {
   50%      { box-shadow: 0 0 30px rgba(0,245,160,0.25), 0 0 60px rgba(0,245,160,0.15); }
 }
 
+/* ── Coaching Dashboard keyframes (§210+) ─────────────────────────── */
+
+/* Continuous horizontal scroll — AI Quote Ticker strip */
+@keyframes lv-marquee {
+  0%   { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+/* Slow ambient breathe for score orb background radial glow */
+@keyframes lv-orb-breathe {
+  0%, 100% { opacity: 0.12; transform: scale(1); }
+  50%       { opacity: 0.26; transform: scale(1.07); }
+}
+
+/* Staggered slide-up reveal for KPI status chips */
+@keyframes lv-chip-enter {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Brief glow flash when score count-up finishes */
+@keyframes lv-count-flash {
+  0%, 100% { text-shadow: none; }
+  40%       { text-shadow: 0 0 28px currentColor; }
+}
+
+/* Subtle double-beat pulse on the reputation warmth cursor dot */
+@keyframes lv-heartbeat {
+  0%, 100% { transform: scale(1); }
+  30%       { transform: scale(1.35); }
+  50%       { transform: scale(1); }
+  65%       { transform: scale(1.15); }
+  80%       { transform: scale(1); }
+}
+
+/* ── S8: prefers-reduced-motion — stop all lv- animations ──────── */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
 /* ── Design System utility classes (DESIGN-SYSTEM.md) ──────────── */
 
 .lv-card {

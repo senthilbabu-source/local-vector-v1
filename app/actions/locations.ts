@@ -22,6 +22,7 @@ import {
   type UpdateLocationInput,
 } from '@/lib/schemas/locations';
 import { LOCATION_COOKIE } from '@/lib/location/active-location';
+import { triggerFirstScan } from '@/lib/sov/first-scan';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -123,6 +124,13 @@ export async function addLocation(
 
   if (error || !inserted) {
     return { success: false, error: error?.message ?? 'Failed to create location' };
+  }
+
+  // PLG-MECHANICS.md §2: fire-and-forget first scan for the primary location.
+  // Bypasses Growth+ gate — every new org gets one immediate scan so activation
+  // (finding the first AI mistake) doesn't depend on the Sunday SOV cron.
+  if (isPrimary) {
+    void triggerFirstScan(ctx.orgId, ctx.userId);
   }
 
   revalidatePath('/dashboard');

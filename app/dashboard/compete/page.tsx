@@ -7,7 +7,7 @@ import AddCompetitorForm from './_components/AddCompetitorForm';
 import CompetitorChip from './_components/CompetitorChip';
 import RunAnalysisButton from './_components/RunAnalysisButton';
 import InterceptCard from './_components/InterceptCard';
-import CompeteVerdictPanel from './_components/CompeteVerdictPanel';
+import CompeteCoachHero from './_components/CompeteCoachHero';
 
 export const metadata = { title: 'Competitors | LocalVector.ai' };
 
@@ -137,7 +137,7 @@ export default async function CompetePage() {
       </div>
 
       {/* ── Competitor management ────────────────────────────────────────── */}
-      <section className="rounded-xl border border-white/10 bg-surface-dark p-5 space-y-4">
+      <section id="competitors" className="rounded-xl border border-white/10 bg-surface-dark p-5 space-y-4">
         <div className="flex items-center justify-between">
           <h2 className="text-sm font-semibold text-slate-300">Competitors</h2>
           <span className="text-xs text-slate-400">{competitors.length}/{maxAllowed} tracked</span>
@@ -154,7 +154,7 @@ export default async function CompetePage() {
         <AddCompetitorForm currentCount={competitors.length} maxAllowed={maxAllowed} />
       </section>
 
-      {/* ── Sprint H: Win/Loss Verdict ─────────────────────────────────── */}
+      {/* ── S6: Compete coaching hero ──────────────────────────────────── */}
       {(() => {
         const winCount = intercepts.filter(
           (i) => i.winner === businessName,
@@ -162,11 +162,25 @@ export default async function CompetePage() {
         const lossCount = intercepts.filter(
           (i) => i.winner !== null && i.winner !== businessName,
         ).length;
+
+        // Find which competitor beats us most
+        const lossCounts: Record<string, number> = {};
+        for (const i of intercepts) {
+          if (i.winner !== null && i.winner !== businessName) {
+            lossCounts[i.competitor_name] = (lossCounts[i.competitor_name] ?? 0) + 1;
+          }
+        }
+        const topLosingEntry = Object.entries(lossCounts).sort((a, b) => b[1] - a[1])[0];
+        const topLosingCompetitor = topLosingEntry
+          ? { name: topLosingEntry[0], lossCount: topLosingEntry[1] }
+          : null;
+
         return (
-          <CompeteVerdictPanel
+          <CompeteCoachHero
             winCount={winCount}
             lossCount={lossCount}
-            totalIntercepts={intercepts.length}
+            businessName={businessName}
+            topLosingCompetitor={topLosingCompetitor}
           />
         );
       })()}
@@ -188,7 +202,7 @@ export default async function CompetePage() {
       )}
 
       {/* ── Intercept results ────────────────────────────────────────────── */}
-      <section className="space-y-4">
+      <section id="intercepts" className="space-y-4">
         {intercepts.length > 0 ? (
           intercepts.map((i) => (
             <InterceptCard key={i.id} intercept={i} myBusiness={businessName} />

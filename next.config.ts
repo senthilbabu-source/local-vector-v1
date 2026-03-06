@@ -59,6 +59,17 @@ const nextConfig: NextConfig = {
   async headers() {
     return [{ source: '/(.*)', headers: securityHeaders }];
   },
+  // IndexNow key file verification: /{key}.txt → /api/indexnow-key
+  async rewrites() {
+    const key = process.env.INDEXNOW_API_KEY;
+    if (!key) return [];
+    return [
+      {
+        source: `/${key}.txt`,
+        destination: '/api/indexnow-key',
+      },
+    ];
+  },
 };
 
 // Sentry config wrapper disabled during build due to known Next.js 16 bug:

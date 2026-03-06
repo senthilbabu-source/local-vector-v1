@@ -351,6 +351,22 @@ export default function ScanDashboard({ result }: Props) {
         </div>
       </section>
 
+      {/* ── 1b-pre. Email capture — above fold for fail results (§211 PLG) */}
+      {result.status === 'fail' && (
+        <section className="px-4" style={{ backgroundColor: '#050A15' }}>
+          <div className="lv-section" style={{ paddingTop: 0, paddingBottom: 32 }}>
+            <Reveal>
+              <div className="mx-auto" style={{ maxWidth: 560 }}>
+                <EmailCaptureForm
+                  businessName={result.businessName}
+                  scanStatus={result.status}
+                />
+              </div>
+            </Reveal>
+          </div>
+        </section>
+      )}
+
       {/* ── 1b. Multi-model pending strip ───────────────────────────────── */}
       {/* result.status is never 'invalid' here — early return above handles that case */}
       <section className="px-4" style={{ backgroundColor: '#050A15' }}>
@@ -672,12 +688,10 @@ export default function ScanDashboard({ result }: Props) {
           {/* Email capture — Sprint P2-7b */}
           <Reveal delay={200}>
             <div className="mx-auto mb-8" style={{ maxWidth: 560 }}>
-              {result.status !== 'invalid' && (
-                <EmailCaptureForm
-                  businessName={result.businessName}
-                  scanStatus={result.status}
-                />
-              )}
+              <EmailCaptureForm
+                businessName={result.businessName}
+                scanStatus={result.status}
+              />
             </div>
           </Reveal>
 

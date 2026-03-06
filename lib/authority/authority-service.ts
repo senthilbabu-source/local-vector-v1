@@ -19,6 +19,7 @@ import type {
   EntityAuthorityProfile,
   AuthorityMappingResult,
 } from './types';
+import { checkCitationNAP } from './citation-nap-checker';
 
 /**
  * Builds Ground Truth from a locations table row.
@@ -189,6 +190,38 @@ export async function runAuthorityMapping(
     } catch (err) {
       errors.push(`Failed to upsert citation: ${citation.url}`);
     }
+  }
+
+  // 11.5 Check NAP consistency on discovered long-tail sameas candidates
+  try {
+    const citationNAPResults = await checkCitationNAP(citations, groundTruth);
+    if (citationNAPResults.length > 0) {
+      // Remove stale long-tail rows from previous runs (official platform rows are untouched)
+      await supabase
+        .from('nap_discrepancies')
+        .delete()
+        .eq('location_id', locationId)
+        .not('platform', 'in', '("google","yelp","apple_maps","bing")');
+
+      await supabase.from('nap_discrepancies').insert(
+        citationNAPResults.map((r) => ({
+          location_id: locationId,
+          org_id: orgId,
+          platform: r.domain,
+          status: 'discrepancy' as const,
+          discrepant_fields: r.discrepant_fields as unknown as Json,
+          severity: r.severity,
+          auto_correctable: false,
+          fix_instructions: r.fix_instructions,
+          detected_at: now,
+        })),
+      );
+    }
+  } catch (err) {
+    errors.push('Failed to check citation NAP consistency');
+    Sentry.captureException(err, {
+      tags: { file: 'authority-service.ts', sprint: '211' },
+    });
   }
 
   // 12. Upsert to entity_authority_profiles

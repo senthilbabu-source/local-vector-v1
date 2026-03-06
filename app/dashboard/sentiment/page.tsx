@@ -4,8 +4,8 @@ import { createClient } from '@/lib/supabase/server';
 import { fetchSentimentSummary, fetchSentimentTrend } from '@/lib/data/sentiment';
 import { PlanGate } from '@/components/plan-gate/PlanGate';
 import type { SentimentExtraction } from '@/lib/ai/schemas';
-import { FirstVisitTooltip } from '@/components/ui/FirstVisitTooltip';
 import { SentimentInterpretationPanel } from './_components/SentimentInterpretationPanel';
+import CustomerLoveHero from './_components/CustomerLoveHero';
 
 export const metadata = { title: 'Your Reputation | LocalVector.ai' };
 
@@ -94,51 +94,33 @@ export default async function SentimentPage() {
 
   return (
     <div className="space-y-6">
-      {/* Sprint E: First-visit tooltip */}
-      <FirstVisitTooltip
-        pageKey="ai-sentiment"
-        title="What is AI Sentiment?"
-        content="Beyond whether AI mentions you, this page tracks how AI describes you. Positive sentiment ('popular,' 'highly rated') boosts conversion. Negative or neutral sentiment can be corrected by updating your citation sources and business description."
-      />
-
       <div>
         <h1 className="text-xl font-semibold text-white">How AI Describes You</h1>
         <p className="mt-0.5 text-sm text-[#94A3B8]">
-          How AI engines describe your business — tone, descriptors, and recommendation strength.
+          How AI apps talk about your restaurant — and how to make it warmer.
         </p>
       </div>
 
       {/* ── Plan-gated content (blur teaser for Starter/Trial) ─────── */}
       <PlanGate requiredPlan="growth" currentPlan={plan} feature="AI Sentiment Tracker">
-        {/* Sprint I: Interpretation panel — before charts */}
+        {/* S2: Reputation hero — warmth meter with coaching */}
+        <CustomerLoveHero summary={summary} trend={trend} />
+
+        {/* Per-model breakdown + actionable callouts */}
         <SentimentInterpretationPanel summary={summary} />
 
-        {/* Overall Sentiment */}
-        <SentimentScoreCard
-          score={summary.averageScore}
-          label={summary.dominantLabel}
-          tone={summary.dominantTone}
-          evaluationCount={summary.evaluationCount}
+        {/* Descriptors — all positive and negative words */}
+        <DescriptorDisplay
+          positive={summary.topPositive}
+          negative={summary.topNegative}
         />
 
-        {/* Descriptors */}
-        <div className="mt-6">
-          <DescriptorDisplay
-            positive={summary.topPositive}
-            negative={summary.topNegative}
-          />
-        </div>
-
         {/* Per-Engine Breakdown */}
-        <div className="mt-6">
-          <EngineBreakdownCard byEngine={summary.byEngine} />
-        </div>
+        <EngineBreakdownCard byEngine={summary.byEngine} />
 
         {/* Sentiment Trend */}
         {trend.length >= 2 && (
-          <div className="mt-6">
-            <SentimentTrendSummary trend={trend} />
-          </div>
+          <SentimentTrendSummary trend={trend} />
         )}
       </PlanGate>
     </div>
@@ -148,36 +130,6 @@ export default async function SentimentPage() {
 // ---------------------------------------------------------------------------
 // Sub-Components
 // ---------------------------------------------------------------------------
-
-function SentimentScoreCard({
-  score,
-  label,
-  tone,
-  evaluationCount,
-}: {
-  score: number;
-  label: SentimentExtraction['label'];
-  tone: SentimentExtraction['tone'];
-  evaluationCount: number;
-}) {
-  return (
-    <div className="rounded-xl bg-surface-dark border border-white/5 p-6" data-testid="sentiment-score-card">
-      <p className="text-xs font-semibold uppercase tracking-wider text-slate-400 font-mono">Overall Sentiment</p>
-      <div className="mt-3 flex items-baseline gap-3">
-        <span className={`text-3xl font-bold font-mono ${sentimentColor(score)}`}>
-          {score >= 0 ? '+' : ''}{score.toFixed(2)}
-        </span>
-        <span className={`text-sm font-medium ${sentimentColor(score)}`}>
-          {formatLabel(label)}
-        </span>
-      </div>
-      <div className="mt-2 flex items-center gap-4 text-xs text-slate-400">
-        <span>Tone: {formatTone(tone)}</span>
-        <span>Based on {evaluationCount} evaluations (30 days)</span>
-      </div>
-    </div>
-  );
-}
 
 function DescriptorDisplay({
   positive,
@@ -280,21 +232,43 @@ function SentimentTrendSummary({
 }: {
   trend: Array<{ weekStart: string; averageScore: number; evaluationCount: number }>;
 }) {
-  const latest = trend[trend.length - 1];
+  const latest   = trend[trend.length - 1];
   const earliest = trend[0];
-  const delta = latest.averageScore - earliest.averageScore;
-  const direction = delta > 0 ? 'improved' : delta < 0 ? 'declined' : 'remained stable';
+
+  // Guard: older seed rows may have null/undefined scores → NaN
+  const latestScore   = latest?.averageScore   ?? null;
+  const earliestScore = earliest?.averageScore ?? null;
+  const delta = (latestScore !== null && earliestScore !== null)
+    ? latestScore - earliestScore
+    : null;
+
+  // Determine current vibe from the latest score
+  const currentScore = latestScore ?? 0;
+  const currentlyPositive = currentScore > 0.3;
+  const currentlyNegative = currentScore < -0.3;
+
+  // Plain-English verdict — coherent with current state, no raw numbers
+  const { headline, detail, colorClass } =
+    delta === null
+      ? { headline: 'Checking your trend…',        detail: 'Not enough data yet to show a weekly direction.',                                                                                                                                          colorClass: 'text-slate-400'      }
+      : delta > 0.05
+        ? { headline: 'AI is warming up to you',   detail: 'AI apps have started describing your restaurant more positively over the past few weeks. Keep it up.',                                                                                       colorClass: 'text-signal-green'   }
+        : delta < -0.05
+          ? { headline: 'AI tone is slipping',     detail: 'AI apps have started describing you less favourably recently. Check your AI Mistakes page — fixing wrong facts usually turns this around quickly.',                                           colorClass: 'text-alert-crimson'  }
+          : currentlyNegative
+            ? { headline: 'Consistently negative', detail: 'AI apps have described you unfavourably for the past few weeks and it hasn\'t improved yet. Fixing wrong hours or facts on your AI Mistakes page is the fastest way to change this.',       colorClass: 'text-alert-crimson'  }
+            : currentlyPositive
+              ? { headline: 'Consistently positive', detail: 'AI apps have spoken warmly about your restaurant for the past few weeks. Your reputation is solid.',                                                                                       colorClass: 'text-signal-green'   }
+              : { headline: 'Holding in the middle', detail: 'AI apps have been neutral about your restaurant for the past few weeks. A few positive updates to your menu or hours description can push this into "Loved" territory.',                   colorClass: 'text-alert-amber'    };
 
   return (
-    <div className="rounded-xl bg-surface-dark border border-white/5 p-6" data-testid="sentiment-trend">
-      <p className="text-xs font-semibold uppercase tracking-wider text-slate-400 font-mono">Sentiment Trend</p>
-      <p className="mt-3 text-sm text-slate-300">
-        Sentiment has{' '}
-        <span className={sentimentColor(delta)}>
-          {direction} {delta !== 0 ? `${delta > 0 ? '+' : ''}${delta.toFixed(2)}` : ''}
-        </span>
-        {' '}over the past {trend.length} weeks ({earliest.weekStart} to {latest.weekStart}).
+    <div className="rounded-xl bg-surface-dark border border-white/5 p-5" data-testid="sentiment-trend">
+      <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-3"
+         style={{ fontFamily: 'var(--font-jetbrains-mono, monospace)' }}>
+        Week-over-week trend
       </p>
+      <p className={`text-sm font-semibold ${colorClass}`}>{headline}</p>
+      <p className="mt-1 text-xs text-slate-400 leading-relaxed">{detail}</p>
     </div>
   );
 }

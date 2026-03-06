@@ -25,6 +25,7 @@ import { ListingVerificationRow } from './_components/ListingVerificationRow';
 import { getListingHealth } from './_utils/health';
 import { PLATFORM_SYNC_CONFIG } from '@/lib/integrations/platform-config';
 import type { VerificationResult } from '@/lib/integrations/detect-discrepancies';
+import ListingsCoachHero from './_components/ListingsCoachHero';
 
 export const metadata = { title: 'Listings | LocalVector.ai' };
 
@@ -157,11 +158,26 @@ async function fetchWordPressStatus(locationId: string): Promise<{
 // Page
 // ---------------------------------------------------------------------------
 
-export default async function IntegrationsPage() {
+const GBP_ERROR_MESSAGES: Record<string, string> = {
+  gbp_denied:       'You cancelled the Google connection. Try again when you\'re ready.',
+  gbp_no_accounts:  'Google connected, but no Business Profile was found on that account. Make sure your business is claimed at business.google.com, then try again.',
+  gbp_no_locations: 'Your Google Business Profile account has no locations yet. Add your business location at business.google.com first.',
+  gbp_failed:       'Something went wrong connecting to Google. Please try again — if it keeps failing, check that your Google Business Profile is verified.',
+};
+
+export default async function IntegrationsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ gbp_connected?: string; gbp_error?: string }>;
+}) {
   const ctx = await getSafeAuthContext();
   if (!ctx || !ctx.orgId) {
     redirect('/login');
   }
+
+  const params = await searchParams;
+  const gbpConnectedParam = params.gbp_connected === 'true';
+  const gbpErrorParam     = params.gbp_error ?? null;
 
   const locations = await fetchPageData();
   const gbp = await fetchGBPStatus(ctx.orgId);
@@ -205,6 +221,36 @@ export default async function IntegrationsPage() {
         </div>
       </div>
 
+      {/* ── GBP OAuth result banners ───────────────────────────────────── */}
+      {gbpConnectedParam && (
+        <div
+          className="flex items-start gap-3 rounded-lg border border-signal-green/25 bg-signal-green/5 px-4 py-3 text-sm"
+          data-testid="gbp-success-banner"
+        >
+          <span className="mt-0.5 text-signal-green" aria-hidden="true">✓</span>
+          <div>
+            <p className="font-semibold text-signal-green">Google Business Profile connected</p>
+            <p className="mt-0.5 text-xs text-signal-green/70">
+              Your location data and hours are now syncing automatically.
+            </p>
+          </div>
+        </div>
+      )}
+      {gbpErrorParam && (
+        <div
+          className="flex items-start gap-3 rounded-lg border border-alert-amber/25 bg-alert-amber/5 px-4 py-3 text-sm"
+          data-testid="gbp-error-banner"
+        >
+          <span className="mt-0.5 text-alert-amber" aria-hidden="true">⚠</span>
+          <div>
+            <p className="font-semibold text-alert-amber">Google connection issue</p>
+            <p className="mt-0.5 text-xs text-alert-amber/80">
+              {GBP_ERROR_MESSAGES[gbpErrorParam] ?? 'Something went wrong. Please try connecting again.'}
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* ── Listings info banner (Sprint C: honest state) ────────────── */}
       <div
         className="rounded-lg border border-blue-500/20 bg-blue-500/5 px-4 py-3 text-sm text-blue-300"
@@ -219,45 +265,13 @@ export default async function IntegrationsPage() {
         </p>
       </div>
 
-      {/* ── Summary strip ──────────────────────────────────────────── */}
-      {locations.length > 0 && (
-        <div className="flex flex-wrap gap-4">
-          <div className="rounded-xl bg-surface-dark px-4 py-3 ring-1 ring-white/5">
-            <p className="text-xs text-slate-400">Locations</p>
-            <p className="mt-0.5 text-2xl font-bold tabular-nums text-white">
-              {locations.length}
-            </p>
-          </div>
-          <div className="rounded-xl bg-surface-dark px-4 py-3 ring-1 ring-white/5">
-            <p className="text-xs text-slate-400">Platforms connected</p>
-            <p className="mt-0.5 text-2xl font-bold tabular-nums text-emerald-400">
-              {totalConnected}
-            </p>
-          </div>
-          <div className="rounded-xl bg-surface-dark px-4 py-3 ring-1 ring-white/5">
-            <p className="text-xs text-slate-400">Not connected</p>
-            <p className="mt-0.5 text-2xl font-bold tabular-nums text-slate-400">
-              {totalPossible - totalConnected}
-            </p>
-          </div>
-          {healthyCount > 0 && (
-            <div className="rounded-xl bg-surface-dark px-4 py-3 ring-1 ring-white/5">
-              <p className="text-xs text-slate-400">Healthy</p>
-              <p className="mt-0.5 text-2xl font-bold tabular-nums text-emerald-400">
-                {healthyCount}
-              </p>
-            </div>
-          )}
-          {needsAttentionCount > 0 && (
-            <div className="rounded-xl bg-surface-dark px-4 py-3 ring-1 ring-white/5">
-              <p className="text-xs text-slate-400">Needs attention</p>
-              <p className="mt-0.5 text-2xl font-bold tabular-nums text-amber-400">
-                {needsAttentionCount}
-              </p>
-            </div>
-          )}
-        </div>
-      )}
+      {/* ── S7: Listings coaching hero ─────────────────────────────── */}
+      <ListingsCoachHero
+        totalConnected={totalConnected}
+        totalPossible={totalPossible}
+        needsAttentionCount={needsAttentionCount}
+        hasLocations={locations.length > 0}
+      />
 
       {/* ── GBP Connect section ────────────────────────────────────── */}
       <div className="overflow-hidden rounded-xl bg-surface-dark ring-1 ring-white/5">
@@ -332,6 +346,7 @@ export default async function IntegrationsPage() {
       )}
 
       {/* ── Location cards ─────────────────────────────────────────── */}
+      <div id="platforms">
       {locations.map((location) => {
         const { connected, pct } = napCoverage(location.location_integrations);
         const locationLabel = [location.business_name, location.city, location.state]
@@ -404,6 +419,8 @@ export default async function IntegrationsPage() {
           </div>
         );
       })}
+
+      </div>
 
       {/* ── Informational footer note ───────────────────────────────── */}
       {locations.length > 0 && (
