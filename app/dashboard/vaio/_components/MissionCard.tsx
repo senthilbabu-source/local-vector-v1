@@ -268,9 +268,9 @@ export function MissionCard({
       : mission.component === 'llms_txt'
         ? Boolean(profile.llms_txt_standard)
         : mission.component === 'voice_citation'
-          ? profile.voice_gaps.length > 0 || queries.length > 0
+          ? (profile.voice_gaps ?? []).length > 0 || queries.length > 0
           : mission.component === 'content_quality'
-            ? profile.top_content_issues.some((i) => i.description)
+            ? (profile.top_content_issues ?? []).some((i) => i.description)
             : false;
 
   return (

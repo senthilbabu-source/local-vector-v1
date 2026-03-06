@@ -128,7 +128,7 @@ function AlertList({ data }: { data: any }) {
                 {data.filter === 'all' ? 'All' : data.filter === 'open' ? 'Open' : 'Fixed'} Hallucinations ({data.total})
             </h4>
             <div className="space-y-2">
-                {data.items.map((h: any, i: number) => (
+                {(data.items ?? []).map((h: any, i: number) => (
                     <div key={i} className="rounded-lg bg-midnight-slate/50 border border-white/5 p-3">
                         <div className="flex items-center gap-2 mb-1.5">
                             <span className={`text-[10px] font-bold uppercase px-1.5 py-0.5 rounded ${severityColors[h.severity] ?? ''}`}>

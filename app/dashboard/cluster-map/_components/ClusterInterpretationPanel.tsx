@@ -37,7 +37,7 @@ export function ClusterInterpretationPanel({ data }: ClusterInterpretationPanelP
   // Determine position interpretation
   const mentionRate = selfPoint.brandAuthority; // 0-100
   const accuracy = selfPoint.factAccuracy; // 0-100
-  const sovPct = Math.round(selfPoint.sov * 100);
+  const sovPct = Math.round((selfPoint.sov ?? 0) * 100);
 
   // Find top competitor (highest brand authority)
   const competitors = data.points

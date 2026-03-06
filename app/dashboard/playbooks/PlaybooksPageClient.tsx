@@ -130,7 +130,7 @@ export default function PlaybooksPageClient({
 
               {/* Action cards */}
               <div className="space-y-3">
-                {activePlaybook.actions.map((action) => (
+                {(activePlaybook.actions ?? []).map((action) => (
                   <div
                     key={action.signalId}
                     className="rounded-2xl border border-white/5 bg-surface-dark p-4 space-y-2"

@@ -58,7 +58,7 @@ export default async function AdminApiUsagePage() {
           </thead>
           <tbody>
             {rows.map((row) => {
-              const usagePercent = Math.round((row.credits_used / row.credits_limit) * 100);
+              const usagePercent = row.credits_limit > 0 ? Math.round((row.credits_used / row.credits_limit) * 100) : 0;
               const rowClass = usagePercent >= 100
                 ? 'bg-red-500/5 border-red-500/20'
                 : usagePercent >= 80

@@ -42,7 +42,7 @@ export function deriveTechnicalFindings(
   if (!crawlerSummary) return findings;
 
   // Add up to 2 bot blind-spot findings
-  const blindSpots = crawlerSummary.blindSpots.slice(0, 2);
+  const blindSpots = (crawlerSummary.blindSpots ?? []).slice(0, 2);
   for (const bot of blindSpots) {
     findings.push({
       type: 'bot_blind_spot',

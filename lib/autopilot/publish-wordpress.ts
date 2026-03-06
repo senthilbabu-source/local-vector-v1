@@ -60,7 +60,10 @@ export async function publishToWordPress(
   }
 
   // Normalize site URL — handles trailing slashes safely
-  const apiUrl = new URL('/wp-json/wp/v2/pages', config.siteUrl).href;
+  let apiUrl: string;
+  try { apiUrl = new URL('/wp-json/wp/v2/pages', config.siteUrl).href; } catch (_err) {
+    throw new Error(`Invalid WordPress site URL: "${config.siteUrl}". Check your site URL in Settings → Integrations.`);
+  }
 
   // Convert content to WP blocks
   const wpContent = contentToWPBlocks(draft.draft_content);

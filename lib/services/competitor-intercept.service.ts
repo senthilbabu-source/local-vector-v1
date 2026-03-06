@@ -75,7 +75,9 @@ async function callPerplexityHeadToHead(
     temperature: 0.3,
   });
 
-  return PerplexityHeadToHeadSchema.parse(JSON.parse(text));
+  let parsed: unknown;
+  try { parsed = JSON.parse(text); } catch (_err) { parsed = {}; }
+  return PerplexityHeadToHeadSchema.parse(parsed);
 }
 
 // ---------------------------------------------------------------------------

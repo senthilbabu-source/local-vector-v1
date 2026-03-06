@@ -44,8 +44,10 @@ function inferPageType(url: string): PageType {
   if (lower.match(/\/about/)) return 'about';
   if (lower.match(/\/faq|\/questions/)) return 'faq';
   if (lower.match(/\/event/)) return 'events';
-  const path = new URL(url).pathname;
-  if (path === '/' || path === '' || path === '/index.html') return 'homepage';
+  try {
+    const path = new URL(url).pathname;
+    if (path === '/' || path === '' || path === '/index.html') return 'homepage';
+  } catch (_err) { /* malformed URL */ }
   return 'other';
 }
 

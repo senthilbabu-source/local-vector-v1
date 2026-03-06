@@ -161,12 +161,12 @@ export default function SimulationResultsModal({ isOpen, onClose, run }: Simulat
                       )}
                       {q.answer_quality === 'wrong' && (
                         <p className="text-xs text-red-400 mt-0.5">
-                          WRONG — {q.facts_hallucinated.length > 0 ? q.facts_hallucinated[0] : 'contains incorrect facts'}
+                          WRONG — {(q.facts_hallucinated ?? []).length > 0 ? q.facts_hallucinated[0] : 'contains incorrect facts'}
                         </p>
                       )}
                       {(q.answer_quality === 'complete' || q.answer_quality === 'partial') && (
                         <p className="text-xs text-slate-400 mt-0.5 truncate">
-                          {q.simulated_answer.slice(0, 100)}{q.simulated_answer.length > 100 ? '...' : ''}
+                          {(q.simulated_answer ?? '').slice(0, 100)}{(q.simulated_answer ?? '').length > 100 ? '...' : ''}
                         </p>
                       )}
                     </div>
@@ -189,7 +189,7 @@ export default function SimulationResultsModal({ isOpen, onClose, run }: Simulat
             </p>
 
             {/* Recommended additions */}
-            {gaps.recommended_additions && (gaps.recommended_additions as ContentAddition[]).length > 0 && (
+            {Array.isArray(gaps.recommended_additions) && gaps.recommended_additions.length > 0 && (
               <div className="space-y-2">
                 <p className="text-xs font-medium text-slate-400 uppercase">Priority Additions to Close Gaps:</p>
                 {(gaps.recommended_additions as ContentAddition[]).map((addition, idx) => (

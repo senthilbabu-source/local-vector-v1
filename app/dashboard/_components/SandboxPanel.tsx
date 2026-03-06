@@ -111,12 +111,13 @@ export default function SandboxPanel({ isGrowthPlan }: SandboxPanelProps) {
         }),
       });
 
-      const json = await res.json();
-
       if (!res.ok) {
+        const json = await res.json().catch(() => ({}));
         setError(json.message || json.error || 'Simulation failed');
         return;
       }
+
+      const json = await res.json();
 
       setLastRun(json.run);
       setShowResults(true);

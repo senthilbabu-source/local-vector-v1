@@ -220,7 +220,7 @@ export async function verifyHallucinationFix(
   // ── Determine new status ──────────────────────────────────────────────────
   // If any returned hallucination's claim_text loosely matches the original,
   // the issue is still present → keep as 'open'. Otherwise → 'fixed'.
-  const originalClaimLower = (hallucination.claim_text as string).toLowerCase();
+  const originalClaimLower = ((hallucination.claim_text as string) ?? '').toLowerCase();
   const stillPresent = freshHallucinations.some((h) =>
     h.claim_text.toLowerCase().includes(originalClaimLower.slice(0, 20))
   );

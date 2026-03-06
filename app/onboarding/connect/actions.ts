@@ -70,7 +70,7 @@ export async function importGBPLocation(
   }
 
   // 7. Extract location by index
-  const locations = pending.locations_data as unknown as GBPLocation[];
+  const locations = Array.isArray(pending.locations_data) ? (pending.locations_data as unknown as GBPLocation[]) : [];
   if (locationIndex < 0 || locationIndex >= locations.length) {
     return { success: false, error: `Invalid location index: ${locationIndex}` };
   }

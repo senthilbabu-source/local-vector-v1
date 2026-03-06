@@ -30,7 +30,10 @@ export async function pingIndexNow(
   // Derive host from NEXT_PUBLIC_APP_URL so local dev and production both work.
   // Falls back to schema.localvector.ai for legacy callers that don't set APP_URL.
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://schema.localvector.ai';
-  const resolvedHost = host ?? new URL(appUrl).hostname;
+  let resolvedHost = host;
+  if (!resolvedHost) {
+    try { resolvedHost = new URL(appUrl).hostname; } catch (_err) { resolvedHost = 'schema.localvector.ai'; }
+  }
 
   try {
     const response = await fetch(INDEXNOW_ENDPOINT, {

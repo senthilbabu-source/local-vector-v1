@@ -190,7 +190,7 @@ export default async function IntegrationsPage({
   // Overall connected count across all locations × all 6 platforms
   const totalConnected = locations.reduce(
     (n, loc) =>
-      n + loc.location_integrations.filter((i) => i.status === 'connected').length,
+      n + (loc.location_integrations ?? []).filter((i) => i.status === 'connected').length,
     0
   );
   const totalPossible = locations.length * BIG_6_PLATFORMS.length;
@@ -200,7 +200,7 @@ export default async function IntegrationsPage({
   let needsAttentionCount = 0;
   for (const loc of locations) {
     for (const platform of BIG_6_PLATFORMS) {
-      const row = loc.location_integrations.find((i) => i.platform === platform) ?? null;
+      const row = (loc.location_integrations ?? []).find((i) => i.platform === platform) ?? null;
       const health = getListingHealth(row);
       if (health === 'healthy') healthyCount++;
       else if (health === 'stale' || health === 'missing_url') needsAttentionCount++;

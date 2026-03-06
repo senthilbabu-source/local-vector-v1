@@ -88,7 +88,7 @@ export default async function InvitePage({ params, searchParams }: InvitePagePro
         initialState={initialState}
         invalidReason={initialState === 'invalid' ? invalidReason : undefined}
         orgName={org?.name}
-        inviterName={inviter?.full_name ?? inviter?.email?.split('@')[0]}
+        inviterName={inviter?.full_name ?? inviter?.email?.split('@')[0] ?? 'Your teammate'}
         role={roleLabel}
         inviteEmail={invitation?.email}
       />

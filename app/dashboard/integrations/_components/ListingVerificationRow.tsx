@@ -90,7 +90,7 @@ export function ListingVerificationRow({
           )}
           {hasDiscrepancies && (
             <span className="text-[10px] text-red-400">
-              {result!.discrepancies.length} discrepanc{result!.discrepancies.length === 1 ? 'y' : 'ies'} found
+              {result?.discrepancies?.length ?? 0} discrepanc{(result?.discrepancies?.length ?? 0) === 1 ? 'y' : 'ies'} found
             </span>
           )}
         </div>
@@ -199,7 +199,7 @@ export function ListingVerificationRow({
           <p className="text-[10px] font-semibold uppercase tracking-wide text-red-400">
             Discrepancies found
           </p>
-          {result!.discrepancies.map((d: Discrepancy, i: number) => (
+          {(result?.discrepancies ?? []).map((d: Discrepancy, i: number) => (
             <div key={i} className="text-xs space-y-0.5">
               <p className="font-medium text-red-300">{d.field}</p>
               <p className="text-red-400/80">

@@ -5334,3 +5334,34 @@ Removed all circular "Fix with AI" links and misleading credit-cost claims acros
 - `issue-descriptions.test.ts` — Updated: `fixLabel` = `'Fix this →'`, `costsCredit` = `false`.
 - `wave1-s14-fix-guidance.test.ts` — Added: 2 new tests for `status` + `amenity` categories.
 - **94 tests pass across 4 affected files. Zero regressions.**
+
+## §234. Comprehensive Runtime Safety Audit — 45 Fixes Across 35 Files
+
+Exhaustive sweep of all `app/`, `components/`, `lib/` for every category of runtime crash risk. Extends §232 (16 fixes) with 45 total fixes across 5 waves.
+
+### Categories Fixed
+1. **JSONB null guards** — Supabase JSONB columns typed as arrays but nullable at runtime. Always use `?? []` or `Array.isArray()`.
+2. **Non-null assertions** — `result!.field` replaced with `result?.field ?? fallback`.
+3. **JSON.parse without try-catch** — AI responses and user input can be malformed. Always wrap in try-catch.
+4. **new URL() without try-catch** — User-provided URLs and env vars can be malformed. Always wrap in try-catch.
+5. **Division by zero** — DB values can be 0 (e.g., `credits_limit`). Guard with `> 0` check.
+6. **fetch .json() before .ok check** — Non-JSON error responses (502 proxy) throw SyntaxError. Check `.ok` first.
+7. **Arithmetic on nullable** — `undefined * 100` = NaN, renders "NaN" in UI. Use `?? 0`.
+8. **String methods on nullable** — `.toFixed()`, `.toLowerCase()`, `.split()` on null/undefined crash. Use `?? ''` or `?? 0`.
+9. **JSONB cast without Array.isArray()** — `as Type[]` on non-array JSONB (object, string) crashes `.map()`. Use `Array.isArray()` guard.
+
+### Rules
+- **JSONB arrays:** Never trust `as Type[]` cast on JSONB. Always `Array.isArray(data.field) ? (data.field as Type[]) : []`.
+- **JSONB objects:** Always guard nested access with `?.` even after truthy check (e.g., `obj.crawlers?.map()`).
+- **AI responses:** Always wrap `JSON.parse()` in try-catch when parsing LLM output.
+- **User URLs:** Always wrap `new URL()` in try-catch when input comes from DB or user config.
+- **Fetch safety:** Always check `res.ok` before calling `res.json()`. For error bodies, use `res.json().catch(() => ({}))`.
+- **Division:** Always guard divisors from DB with `> 0` before dividing.
+- **Arithmetic display:** Always `?? 0` on nullable numbers before math, and `?? 0` before `.toFixed()`.
+- **formatHour pattern:** Time formatting functions must accept `null | undefined` and return a fallback like `'—'`.
+
+### Audit Report
+Full findings documented in `docs/RUNTIME-SAFETY-AUDIT.md` with per-file line numbers and fix descriptions.
+
+### Test Verification
+- **6630 tests pass, 427 test files, zero regressions** after all 5 waves.

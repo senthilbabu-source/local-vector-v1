@@ -4,6 +4,61 @@
 
 ---
 
+## 2026-03-06 — Comprehensive Runtime Safety Audit: 45 fixes across 35 files (§234)
+
+**Goal:** Exhaustive sweep of all runtime crash risks — JSONB nullability, unsafe casts, JSON.parse, new URL(), division by zero, fetch safety, arithmetic on nullable, string methods on nullable.
+
+**5 waves of fixes:**
+
+| Wave | Fixes | Category |
+|------|-------|----------|
+| 1 | 10 | JSONB null guards, string safety, non-null assertions |
+| 2 | 4 | Component props, clipboard API, display strings |
+| 3 | 6 | JSON.parse try-catch, new URL() try-catch |
+| 4 | 13 | Division by zero, Array.isArray(), fetch .ok, arithmetic |
+| 5 | 12 | propagation_events, VAIO JSONB, integrations join, formatHour |
+
+**Modified files (35):**
+- `app/dashboard/magic-menus/_components/MenuCoachHero.tsx` — propagation_events `?? []`
+- `app/dashboard/magic-menus/_components/MenuWorkspace.tsx` — propagation_events `?? []` (5 sites)
+- `app/dashboard/_components/PresenceAvatars.tsx` — empty email guard
+- `app/dashboard/integrations/_components/ListingVerificationRow.tsx` — removed `result!` assertions
+- `app/dashboard/ai-assistant/_components/Chat.tsx` — AI tool response `items ?? []`
+- `app/dashboard/playbooks/PlaybooksPageClient.tsx` — JSONB `actions ?? []`
+- `app/dashboard/_components/ReviewInboxPanel.tsx` — `avg_rating ?? 0`
+- `app/dashboard/_components/TopIssuesPanel.tsx` — `blindSpots ?? []`
+- `app/dashboard/vaio/_components/MissionCard.tsx` — `voice_gaps ?? []`, `top_content_issues ?? []`
+- `app/dashboard/vaio/VAIOPageClient.tsx` — `.ok` check, `voice_gaps ?? []`, `crawlers ?? []`, `top_content_issues ?? []`
+- `app/m/[slug]/page.tsx` — `price != null`, `Array.isArray(faq_cache)`, formatHour null guard
+- `app/m/[slug]/llms.txt/route.ts` — fmt12h null guard
+- `app/dashboard/hallucinations/actions.ts` — `claim_text ?? ''`
+- `app/dashboard/_components/SimulationResultsModal.tsx` — JSONB `?? []`, `Array.isArray()`
+- `app/dashboard/_components/SchemaHealthPanel.tsx` — clipboard `?.` + snippet null guard
+- `app/dashboard/_components/SandboxPanel.tsx` — `.ok` before `.json()`
+- `lib/review-engine/response-generator.ts` — `reviewer_name ?? ''`
+- `app/(public)/invite/[token]/page.tsx` — inviterName fallback
+- `app/dashboard/settings/actions.ts` — JSON.parse try-catch
+- `lib/services/competitor-intercept.service.ts` — JSON.parse try-catch
+- `lib/inngest/functions/content-audit-cron.ts` — new URL try-catch
+- `app/api/cron/content-audit/route.ts` — new URL try-catch
+- `lib/indexnow.ts` — new URL try-catch
+- `lib/autopilot/publish-wordpress.ts` — new URL try-catch
+- `app/admin/api-usage/page.tsx` — division by zero guard
+- `app/onboarding/connect/select/page.tsx` — `Array.isArray(locations_data)`
+- `app/onboarding/connect/actions.ts` — `Array.isArray(locations_data)`
+- `app/actions/faq.ts` — `Array.isArray(faq_cache)`, `Array.isArray(faq_excluded_hashes)`
+- `app/dashboard/compete/_components/VulnerabilityAlertCard.tsx` — `new Date()` null guard
+- `app/dashboard/billing/_components/SeatUsageCard.tsx` — `?? 0` before `.toFixed()`
+- `app/dashboard/billing/_components/InvoiceHistoryCard.tsx` — `?? 0` before `.toFixed()`
+- `app/dashboard/cluster-map/_components/ClusterInterpretationPanel.tsx` — `sov ?? 0`
+- `app/dashboard/integrations/page.tsx` — `location_integrations ?? []` join guard
+
+**New doc:** `docs/RUNTIME-SAFETY-AUDIT.md` — full audit report with all findings, fix descriptions, and patterns verified safe.
+
+**Test result:** 6630 tests, 427 files — ALL PASS. Zero regressions.
+
+---
+
 ## 2026-03-06 — Fix CTA Honesty Sweep (§233)
 
 **Goal:** Remove all circular links and misleading "Fix with AI" buttons that sent restaurant owners in circles with no actual fix.

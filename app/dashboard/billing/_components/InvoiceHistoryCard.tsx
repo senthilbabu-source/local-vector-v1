@@ -61,7 +61,7 @@ export default function InvoiceHistoryCard() {
                   })}
                 </td>
                 <td className="py-2 pr-4 tabular-nums">
-                  ${(inv.amountDue / 100).toFixed(2)}
+                  ${((inv.amountDue ?? 0) / 100).toFixed(2)}
                 </td>
                 <td className="py-2 pr-4 capitalize">{inv.status}</td>
                 <td className="py-2 text-right">

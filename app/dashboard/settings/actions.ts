@@ -192,7 +192,7 @@ export async function updateAIMonitoringPrefs(formData: FormData): Promise<Actio
 
   const models = formData.get('monitored_ai_models');
   const parsed = AIMonitoringSchema.safeParse({
-    monitored_ai_models: typeof models === 'string' ? JSON.parse(models) : [],
+    monitored_ai_models: typeof models === 'string' ? (() => { try { return JSON.parse(models); } catch (_err) { return []; } })() : [],
     scan_day_of_week: Number(formData.get('scan_day_of_week') ?? 0),
   });
   if (!parsed.success) {

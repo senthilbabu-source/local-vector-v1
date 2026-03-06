@@ -245,9 +245,9 @@ export async function getFAQPreview(
 
   if (error || !data) return { success: false, error: 'Location not found' };
 
-  const allPairs = (data.faq_cache as unknown as FAQPair[]) ?? [];
+  const allPairs = Array.isArray(data.faq_cache) ? (data.faq_cache as unknown as FAQPair[]) : [];
   const excludedHashes = new Set(
-    (data.faq_excluded_hashes as string[]) ?? [],
+    Array.isArray(data.faq_excluded_hashes) ? (data.faq_excluded_hashes as string[]) : [],
   );
 
   const preview: FAQPreviewPair[] = allPairs.map((pair) => ({

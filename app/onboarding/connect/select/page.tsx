@@ -38,7 +38,7 @@ export default async function SelectLocationPage() {
   if (pending.org_id !== ctx.orgId) redirect('/onboarding/connect');
   if (new Date(pending.expires_at) < new Date()) redirect('/onboarding/connect');
 
-  const locations = pending.locations_data as unknown as GBPLocation[];
+  const locations = Array.isArray(pending.locations_data) ? (pending.locations_data as unknown as GBPLocation[]) : [];
 
   return (
     <div className="min-h-screen bg-midnight-slate flex items-center justify-center p-4">

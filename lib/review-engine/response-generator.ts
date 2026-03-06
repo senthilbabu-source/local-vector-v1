@@ -223,7 +223,7 @@ function generateTemplateResponse(
   sentiment: ReviewSentiment,
   brandVoice: BrandVoiceProfile,
 ): ReviewResponseDraft {
-  const firstName = review.reviewer_name.split(' ')[0] || review.reviewer_name;
+  const firstName = (review.reviewer_name ?? '').split(' ')[0] || 'there';
   let draft: string;
 
   if (sentiment.label === 'negative') {

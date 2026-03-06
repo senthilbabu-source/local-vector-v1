@@ -134,6 +134,7 @@ export default function VAIOPageClient() {
   const fetchStatus = useCallback(async (): Promise<StatusData | null> => {
     try {
       const res = await fetch('/api/vaio/status');
+      if (!res.ok) return null;
       const data: StatusData = await res.json();
       setProfile(data.profile);
       setQueries(data.voice_queries ?? []);
@@ -499,7 +500,7 @@ export default function VAIOPageClient() {
                       AI Crawler Access
                     </h3>
                     <div className="space-y-2">
-                      {profile.crawler_audit.crawlers.map((c) => (
+                      {(profile.crawler_audit.crawlers ?? []).map((c) => (
                         <div key={c.user_agent} className="flex items-center justify-between text-sm">
                           <div className="flex items-center gap-2">
                             {crawlerIcon(c.status)}
@@ -579,7 +580,7 @@ export default function VAIOPageClient() {
                 )}
 
                 {/* Voice Gaps */}
-                {profile.voice_gaps.length > 0 && (
+                {(profile.voice_gaps ?? []).length > 0 && (
                   <div data-testid="vaio-voice-gaps">
                     <div className="mb-3 flex items-center gap-1.5">
                       <AlertTriangle className="h-4 w-4 text-amber-400" />
@@ -588,7 +589,7 @@ export default function VAIOPageClient() {
                       </h3>
                     </div>
                     <div className="space-y-3">
-                      {profile.voice_gaps.map((gap, i) => (
+                      {(profile.voice_gaps ?? []).map((gap, i) => (
                         <div key={i} className="rounded-lg border border-white/5 bg-white/[0.02] p-3">
                           <p className="text-xs font-medium text-amber-400 capitalize mb-1">
                             {gap.category} — {gap.weeks_at_zero} weeks at zero citations
@@ -628,13 +629,13 @@ export default function VAIOPageClient() {
                 )}
 
                 {/* Content Issues */}
-                {profile.top_content_issues.filter((i) => i.description).length > 0 && (
+                {(profile.top_content_issues ?? []).filter((i) => i.description).length > 0 && (
                   <div data-testid="vaio-issues">
                     <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-slate-400">
                       Voice Content Issues
                     </h3>
                     <div className="space-y-2">
-                      {profile.top_content_issues.filter((i) => i.description).map((issue, i) => (
+                      {(profile.top_content_issues ?? []).filter((i) => i.description).map((issue, i) => (
                         <div key={i} className="flex items-start gap-2 text-sm">
                           <span className={`mt-0.5 inline-block h-1.5 w-1.5 rounded-full flex-shrink-0 ${
                             issue.severity === 'critical' ? 'bg-red-400' :

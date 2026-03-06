@@ -126,7 +126,8 @@ function formatPrice(price: number, currency: string): string {
  * Converts a 24h time string ("17:00") to 12h display ("5:00 PM").
  * Pure arithmetic — no locale-dependent date APIs, no hydration mismatch.
  */
-function formatHour(time: string): string {
+function formatHour(time: string | null | undefined): string {
+  if (!time) return '—';
   const [hStr, mStr] = time.split(':');
   const h = parseInt(hStr ?? '0', 10);
   const m = parseInt(mStr ?? '0', 10);
@@ -226,7 +227,7 @@ function buildMenuSchema(
           name:    item.name,
         };
         if (item.description) mi.description = item.description;
-        if (item.price !== null) {
+        if (item.price != null) {
           mi.offers = {
             '@type':         'Offer',
             price:           item.price.toFixed(2),
@@ -352,8 +353,8 @@ export default async function PublicMenuPage({
   const menuSchema       = buildMenuSchema(menuDisplayName, categories);
 
   // ── FAQ schema (Sprint 128) ───────────────────────────────────────────
-  const rawFaqCache = (loc?.faq_cache as FAQPair[] | null) ?? [];
-  const excludedHashes = (loc?.faq_excluded_hashes as string[]) ?? [];
+  const rawFaqCache = Array.isArray(loc?.faq_cache) ? (loc.faq_cache as unknown as FAQPair[]) : [];
+  const excludedHashes = Array.isArray(loc?.faq_excluded_hashes) ? (loc.faq_excluded_hashes as string[]) : [];
   const faqPairs = rawFaqCache.length > 0
     ? applyExclusions(rawFaqCache, excludedHashes)
     : [];

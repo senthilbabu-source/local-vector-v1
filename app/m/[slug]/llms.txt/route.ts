@@ -95,7 +95,8 @@ type MenuRow = {
  * Formats a 24h time string to 12h display.
  * e.g. "17:00" → "5:00 PM"
  */
-function fmt12h(time: string): string {
+function fmt12h(time: string | null | undefined): string {
+  if (!time) return '—';
   const [hStr, mStr] = time.split(':');
   const h = parseInt(hStr ?? '0', 10);
   const m = parseInt(mStr ?? '0', 10);

@@ -164,7 +164,7 @@ export default function ReviewInboxPanel({ isGrowthPlan }: ReviewInboxPanelProps
           <h2 className="text-base font-semibold text-white">Review Intelligence</h2>
           {stats && (
             <span className="text-sm text-slate-400">
-              Avg: {stats.avg_rating.toFixed(1)}{'\u2605'} | {stats.total_reviews} total reviews
+              Avg: {(stats.avg_rating ?? 0).toFixed(1)}{'\u2605'} | {stats.total_reviews} total reviews
             </span>
           )}
         </div>

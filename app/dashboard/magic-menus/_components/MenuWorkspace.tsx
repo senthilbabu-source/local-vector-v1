@@ -99,7 +99,8 @@ function PublishedBanner({
   locationName: string;
   onReplace: () => void;
 }) {
-  const injectionCount = menu.propagation_events.filter(
+  const events = menu.propagation_events ?? [];
+  const injectionCount = events.filter(
     (e) => e.event === 'link_injected'
   ).length;
 
@@ -149,7 +150,7 @@ function PublishedBanner({
       <div className="flex flex-wrap gap-3">
         <PropagationPill
           label="Published"
-          done={menu.propagation_events.some((e) => e.event === 'published')}
+          done={events.some((e) => e.event === 'published')}
         />
         <PropagationPill
           label="Link injected"
@@ -158,11 +159,11 @@ function PublishedBanner({
         />
         <PropagationPill
           label="Crawled"
-          done={menu.propagation_events.some((e) => e.event === 'crawled')}
+          done={events.some((e) => e.event === 'crawled')}
         />
         <PropagationPill
           label="Live in AI"
-          done={menu.propagation_events.some((e) => e.event === 'live_in_ai')}
+          done={events.some((e) => e.event === 'live_in_ai')}
         />
       </div>
     </section>
@@ -244,7 +245,7 @@ export default function MenuWorkspace({
             publicSlug={menu.public_slug}
             contentHash={menu.content_hash}
             lastDistributedAt={menu.last_distributed_at}
-            propagationEvents={menu.propagation_events}
+            propagationEvents={menu.propagation_events ?? []}
           />
         </>
       )}

@@ -88,7 +88,7 @@ const TIER: Record<MenuTier, TierCfg> = {
 function getTier(menu: MenuWorkspaceData | null): MenuTier {
   if (!menu || menu.processing_status === 'failed') return 'none';
   if (!menu.is_published) return 'in-review';
-  const hasDistributed = menu.propagation_events.some(
+  const hasDistributed = (menu.propagation_events ?? []).some(
     (e) => e.event === 'live_in_ai' || e.event === 'indexnow_pinged' || e.event === 'gbp_menu_pushed',
   );
   if (hasDistributed) return 'live-distributed';
@@ -106,7 +106,7 @@ export default function MenuCoachHero({ menu, locationName, industryNoun }: Menu
   const shouldCelebrate = tier === 'live-distributed';
 
   const itemCount = menu?.extracted_data?.items?.length ?? null;
-  const isLiveInAI = menu?.propagation_events.some((e) => e.event === 'live_in_ai') ?? false;
+  const isLiveInAI = (menu?.propagation_events ?? []).some((e) => e.event === 'live_in_ai');
 
   return (
     <div

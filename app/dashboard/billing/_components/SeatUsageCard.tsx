@@ -67,8 +67,8 @@ export default function SeatUsageCard() {
 
   const isAgency = state.plan_tier === 'agency';
   const additionalSeats = Math.max(0, state.current_seat_count - 1);
-  const monthlyCostDollars = (state.monthly_seat_cost_cents / 100).toFixed(2);
-  const perSeatDollars = (state.per_seat_price_cents / 100).toFixed(2);
+  const monthlyCostDollars = ((state.monthly_seat_cost_cents ?? 0) / 100).toFixed(2);
+  const perSeatDollars = ((state.per_seat_price_cents ?? 0) / 100).toFixed(2);
 
   return (
     <div data-testid="seat-usage-card" className="rounded-2xl border border-white/5 bg-surface-dark p-6 space-y-4">

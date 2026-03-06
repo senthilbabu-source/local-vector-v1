@@ -259,7 +259,7 @@ export default function SchemaHealthPanel({ isGrowthPlan }: SchemaHealthPanelPro
                       <span className="text-xs font-medium">Embed Code</span>
                       <div className="flex gap-2">
                         <button
-                          onClick={() => navigator.clipboard.writeText(page.embed_snippet!)}
+                          onClick={() => page.embed_snippet && navigator.clipboard?.writeText(page.embed_snippet)}
                           className="flex items-center gap-1 text-xs hover:opacity-80"
                           data-testid={`schema-copy-${page.page_type}`}
                         >
