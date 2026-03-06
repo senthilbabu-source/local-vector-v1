@@ -98,6 +98,8 @@ export interface DashboardData {
   // S16: Current + previous visibility_scores snapshots for score attribution popover
   currentScoreSnapshot: ScoreSnapshot | null;
   prevScoreSnapshot: ScoreSnapshot | null;
+  // S18: NAP health score for Business Info Accuracy KPI chip
+  napScore: number | null;
 }
 
 // P8-FIX-33: Data shape for RealityScoreTrendChart
@@ -398,17 +400,20 @@ export async function fetchDashboardData(orgId: string, locationId?: string | nu
   const draftsMonthlyLimit = getDraftLimit(orgPlan);
 
   // Sprint 110 + 124: Fetch simulation score + cached DataHealth for Reality Score
+  // S18: NAP health score for Business Info Accuracy KPI chip
   let simulationScore: number | null = null;
   let dataHealthScore: number | null = null;
+  let napScore: number | null = null;
   try {
     if (locationId) {
       const { data: simLoc } = await supabase
         .from('locations')
-        .select('last_simulation_score, data_health_score')
+        .select('last_simulation_score, data_health_score, nap_health_score' as 'last_simulation_score, data_health_score')
         .eq('id', locationId)
         .maybeSingle();
       simulationScore = simLoc?.last_simulation_score ?? null;
       dataHealthScore = simLoc?.data_health_score ?? null;
+      napScore = (simLoc as unknown as { nap_health_score: number | null } | null)?.nap_health_score ?? null;
     }
   } catch (err) {
     Sentry.captureException(err, { tags: { file: 'dashboard.ts', sprint: '124' } });
@@ -541,5 +546,7 @@ export async function fetchDashboardData(orgId: string, locationId?: string | nu
     // S16: Score snapshots for attribution popover
     currentScoreSnapshot,
     prevScoreSnapshot,
+    // S18: Business Info Accuracy KPI chip
+    napScore,
   };
 }

@@ -11,6 +11,7 @@ import { publishAsDownload } from '@/lib/autopilot/publish-download';
 import { publishToGBP } from '@/lib/autopilot/publish-gbp';
 import { publishToWordPress } from '@/lib/autopilot/publish-wordpress';
 import { schedulePostPublishRecheck } from '@/lib/autopilot/post-publish';
+import { capturePrePublishRank } from '@/lib/services/publish-rank.service';
 import { pingIndexNow } from '@/lib/indexnow';
 import type { AutopilotLocationContext } from '@/lib/types/autopilot';
 import { z } from 'zod';
@@ -415,6 +416,11 @@ export async function publishDraft(formData: FormData): Promise<PublishActionRes
         .eq('id', draft.id)
         .eq('org_id', ctx.orgId);
 
+      // S17: Capture pre-publish SOV rank (fire-and-forget — never blocks publish)
+      void capturePrePublishRank(supabase, draft.id, ctx.orgId).catch((err) => {
+        Sentry.captureException(err, { tags: { file: 'actions.ts', sprint: 'S17' } });
+      });
+
       // Schedule post-publish re-check
       if (draft.target_prompt && draft.location_id) {
         await schedulePostPublishRecheck(draft.id, draft.location_id, draft.target_prompt);
@@ -437,6 +443,11 @@ export async function publishDraft(formData: FormData): Promise<PublishActionRes
         })
         .eq('id', draft.id)
         .eq('org_id', ctx.orgId);
+
+      // S17: Capture pre-publish SOV rank (fire-and-forget)
+      void capturePrePublishRank(supabase, draft.id, ctx.orgId).catch((err) => {
+        Sentry.captureException(err, { tags: { file: 'actions.ts', sprint: 'S17' } });
+      });
 
       if (draft.target_prompt && draft.location_id) {
         await schedulePostPublishRecheck(draft.id, draft.location_id, draft.target_prompt);
@@ -487,6 +498,11 @@ export async function publishDraft(formData: FormData): Promise<PublishActionRes
         })
         .eq('id', draft.id)
         .eq('org_id', ctx.orgId);
+
+      // S17: Capture pre-publish SOV rank (fire-and-forget)
+      void capturePrePublishRank(supabase, draft.id, ctx.orgId).catch((err) => {
+        Sentry.captureException(err, { tags: { file: 'actions.ts', sprint: 'S17' } });
+      });
 
       if (draft.target_prompt && draft.location_id) {
         await schedulePostPublishRecheck(draft.id, draft.location_id, draft.target_prompt);

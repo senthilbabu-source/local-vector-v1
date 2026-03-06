@@ -522,19 +522,25 @@ describe('markInterceptActionComplete', () => {
   });
 
   it('updates action_status to completed with org_id scope', async () => {
-    // Explicit chain: update(payload).eq('id').eq('org_id') → { error: null }
+    // S19: when completing, code first fetches gap_analysis, then updates.
+    // Mock handles select().eq().eq().single() for the pre-fetch
+    // and update().eq().eq() for the status update.
     const finalEq  = vi.fn().mockResolvedValue({ error: null });
     const firstEq  = vi.fn().mockReturnValue({ eq: finalEq });
     const updateOp = vi.fn().mockReturnValue({ eq: firstEq });
+    const single   = vi.fn().mockResolvedValue({ data: { gap_analysis: null }, error: null });
+    const eqEq     = vi.fn().mockReturnValue({ single });
+    const eqId     = vi.fn().mockReturnValue({ eq: eqEq });
+    const selectOp = vi.fn().mockReturnValue({ eq: eqId });
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     vi.mocked(createClient as any).mockResolvedValue({
-      from: vi.fn().mockReturnValue({ update: updateOp }),
+      from: vi.fn().mockReturnValue({ update: updateOp, select: selectOp }),
     });
 
     const result = await markInterceptActionComplete(INTERCEPT_ID, 'completed');
 
     expect(result).toEqual({ success: true });
-    expect(updateOp).toHaveBeenCalledWith({ action_status: 'completed' });
+    expect(updateOp).toHaveBeenCalledWith(expect.objectContaining({ action_status: 'completed' }));
   });
 
   it('updates action_status to dismissed', async () => {
@@ -554,13 +560,17 @@ describe('markInterceptActionComplete', () => {
   });
 
   it('calls revalidatePath on success', async () => {
-    // Explicit chain: update(payload).eq('id').eq('org_id') → { error: null }
+    // S19: when completing, code first fetches gap_analysis, then updates.
     const finalEq  = vi.fn().mockResolvedValue({ error: null });
     const firstEq  = vi.fn().mockReturnValue({ eq: finalEq });
     const updateOp = vi.fn().mockReturnValue({ eq: firstEq });
+    const single   = vi.fn().mockResolvedValue({ data: { gap_analysis: null }, error: null });
+    const eqEq     = vi.fn().mockReturnValue({ single });
+    const eqId     = vi.fn().mockReturnValue({ eq: eqEq });
+    const selectOp = vi.fn().mockReturnValue({ eq: eqId });
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     vi.mocked(createClient as any).mockResolvedValue({
-      from: vi.fn().mockReturnValue({ update: updateOp }),
+      from: vi.fn().mockReturnValue({ update: updateOp, select: selectOp }),
     });
 
     await markInterceptActionComplete(INTERCEPT_ID, 'completed');

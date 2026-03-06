@@ -1,7 +1,8 @@
 import { redirect } from 'next/navigation';
 import { getSafeAuthContext } from '@/lib/auth';
 import { createClient } from '@/lib/supabase/server';
-import { fetchSentimentSummary, fetchSentimentTrend } from '@/lib/data/sentiment';
+import { fetchSentimentSummary, fetchSentimentTrend, fetchErrorDetectionDates, annotateTrendWithErrors } from '@/lib/data/sentiment';
+import SentimentTrendChart from './_components/SentimentTrendChart';
 import { PlanGate } from '@/components/plan-gate/PlanGate';
 import type { SentimentExtraction } from '@/lib/ai/schemas';
 import { SentimentInterpretationPanel } from './_components/SentimentInterpretationPanel';
@@ -73,10 +74,12 @@ export default async function SentimentPage() {
     );
   }
 
-  const [summary, trend] = await Promise.all([
+  const [summary, trend, errorDates] = await Promise.all([
     fetchSentimentSummary(supabase, ctx.orgId, locationId),
     fetchSentimentTrend(supabase, ctx.orgId, locationId),
+    fetchErrorDetectionDates(supabase, ctx.orgId, locationId),
   ]);
+  const annotatedTrend = annotateTrendWithErrors(trend, errorDates);
 
   if (summary.evaluationCount === 0) {
     return (
@@ -118,9 +121,12 @@ export default async function SentimentPage() {
         {/* Per-Engine Breakdown */}
         <EngineBreakdownCard byEngine={summary.byEngine} />
 
-        {/* Sentiment Trend */}
+        {/* Sentiment Trend Chart (S21) */}
         {trend.length >= 2 && (
-          <SentimentTrendSummary trend={trend} />
+          <>
+            <SentimentTrendChart data={annotatedTrend} />
+            <SentimentTrendSummary trend={trend} />
+          </>
         )}
       </PlanGate>
     </div>

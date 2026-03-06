@@ -6303,3 +6303,72 @@ Committed: `d70bf19` — 70 files, 12,552 insertions.
 - **Build: `npx next build` passes — 41/41 static pages**
 
 ---
+
+---
+
+## §217–§221 — Wave 2: Closing the Loop (2026-03-06)
+
+**5 sprints: S17–S21 | 74 new tests | 6468 total | 0 regressions**
+
+### S17 — Content → SOV Feedback Loop
+- Migration: `pre_publish_rank` + `post_publish_rank` on `content_drafts`
+- `lib/services/publish-rank.service.ts` — pure helpers + `capturePrePublishRank` (fire-and-forget at publish) + `backfillPostPublishRanks` (cron hook)
+- `PostImpactPanel` on draft detail page — 3 states: null / waiting / full before→after comparison
+- 19 unit tests
+
+### S18 — Business Info Accuracy (5th KPI Chip)
+- `nap_health_score` from `locations` table → 5th `WeeklyKPIChip`
+- Thresholds: ≥80 good / ≥50 warn / <50 bad / null pending
+- Grid updated to `xl:grid-cols-5`
+- 11 unit tests + fixed 3 regression assertions (coaching-heroes + wave1)
+
+### S19 — Competitor Gap Before/After
+- Migration: `pre_action_gap jsonb` + `action_completed_at timestamptz` on `competitor_intercepts`
+- `markInterceptActionComplete()` snapshots `gap_analysis` when completing (not dismissing)
+- `InterceptCard` before/after comparison bars — grey "before" vs green/red "after"
+- 11 unit tests + fixed 2 competitor-actions regression tests
+
+### S20 — Wins Feed on Main Dashboard
+- Migration: `wins` table with RLS
+- `lib/services/wins.service.ts` — `createHallucinationWin` + `getRecentWins`
+- Fire-and-forget win creation wired into `markHallucinationCorrected`
+- `WinCard` + `RecentWinsSection` — section 5 on dashboard (hidden when empty)
+- `/dashboard/wins` full list page + Sidebar "Wins" entry (Star icon, Today group)
+- 20 unit tests + fixed sentry-sweep regression (bare catch → Sentry.captureException)
+
+### S21 — Sentiment Trend Chart
+- `annotateTrendWithErrors()` pure function — Sunday-based week start grouping
+- `fetchErrorDetectionDates()` I/O — queries `ai_hallucinations.first_detected_at`
+- `SentimentTrendChart` — recharts AreaChart, gradient green/red, diamond error markers, prefers-reduced-motion support
+- 13 unit tests (8 pure + 5 component)
+
+### Files changed (new):
+- `supabase/migrations/20260502000001_content_draft_publish_ranks.sql`
+- `supabase/migrations/20260502000002_competitor_action_tracking.sql`
+- `supabase/migrations/20260502000003_wins.sql`
+- `lib/services/publish-rank.service.ts`
+- `lib/services/wins.service.ts`
+- `app/dashboard/content-drafts/[id]/_components/PostImpactPanel.tsx`
+- `app/dashboard/_components/WinCard.tsx`
+- `app/dashboard/_components/RecentWinsSection.tsx`
+- `app/dashboard/wins/page.tsx`
+- `app/dashboard/sentiment/_components/SentimentTrendChart.tsx`
+- `src/__tests__/unit/wave2-s17-sov-feedback.test.ts`
+- `src/__tests__/unit/wave2-s18-nap-chip.test.tsx`
+- `src/__tests__/unit/wave2-s19-competitor-gap.test.tsx`
+- `src/__tests__/unit/wave2-s20-wins-feed.test.tsx`
+- `src/__tests__/unit/wave2-s21-sentiment-chart.test.tsx`
+
+### Files changed (modified):
+- `lib/data/dashboard.ts` — `napScore` field
+- `lib/data/sentiment.ts` — `annotateTrendWithErrors` + `fetchErrorDetectionDates`
+- `lib/corrections/correction-service.ts` — wins fire-and-forget
+- `app/dashboard/_components/WeeklyKPIChips.tsx` — 5th chip
+- `app/dashboard/compete/_components/InterceptCard.tsx` — before/after panel
+- `app/dashboard/compete/actions.ts` — gap snapshot on complete
+- `app/dashboard/compete/page.tsx` — `pre_action_gap` in type + select
+- `app/dashboard/content-drafts/actions.ts` — `capturePrePublishRank` fire-and-forget
+- `app/dashboard/content-drafts/[id]/page.tsx` — `PostImpactPanel` + new type fields
+- `app/dashboard/sentiment/page.tsx` — `SentimentTrendChart` integration
+- `app/dashboard/page.tsx` — `RecentWinsSection` + wins fetch
+- `components/layout/Sidebar.tsx` — Wins nav item + Star import

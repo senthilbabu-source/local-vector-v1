@@ -1,14 +1,15 @@
 // ---------------------------------------------------------------------------
-// WeeklyKPIChips — 4 horizontal at-a-glance status pills
+// WeeklyKPIChips — 5 horizontal at-a-glance status pills
 //
-// Lets a restaurant owner scan their four key numbers in under 2 seconds
+// Lets a restaurant owner scan their five key numbers in under 2 seconds
 // without clicking into any sub-page.
 //
 // Chips (left → right):
-//   1. AI Accuracy        — derived from open hallucination count
-//   2. AI Visibility      — derived from visibilityScore (SOV %)
-//   3. AI Crawlers        — derived from crawler blind-spot count
-//   4. Revenue Recovered  — S15: sum of revenue_recovered_monthly for fixed alerts
+//   1. AI Accuracy          — derived from open hallucination count
+//   2. AI Visibility        — derived from visibilityScore (SOV %)
+//   3. AI Crawlers          — derived from crawler blind-spot count
+//   4. Revenue Recovered    — S15: sum of revenue_recovered_monthly for fixed alerts
+//   5. Business Info Accuracy — S18: nap_health_score from locations (0–100)
 //
 // Each chip is a full-click Link so everything is actionable.
 // Staggered slide-up entry via lv-chip-enter (globals.css).
@@ -26,6 +27,8 @@ interface WeeklyKPIChipsProps {
   crawlerSummary: CrawlerSummary | null;
   /** S15: monthly revenue recovered from fixed hallucinations */
   revenueRecoveredMonthly?: number;
+  /** S18: NAP health score (0–100) from locations table; null = not yet run */
+  napScore?: number | null;
 }
 
 type ChipStatus = 'good' | 'warn' | 'bad' | 'neutral';
@@ -55,6 +58,7 @@ function buildChips(
   visibilityScore: number | null,
   crawlerSummary: CrawlerSummary | null,
   revenueRecoveredMonthly: number,
+  napScore: number | null,
 ): Chip[] {
   // ── Chip 1: AI Accuracy ─────────────────────────────────────────────────
   const accuracy: Chip =
@@ -91,7 +95,17 @@ function buildChips(
       ? { icon: '$', label: 'Revenue Recovered', value: 'None yet',       hint: 'Fix AI mistakes to recover', status: 'neutral', href: '/dashboard/revenue-impact' }
       : { icon: '↑', label: 'Revenue Recovered', value: `$${Math.round(revenueRecoveredMonthly)}/mo`, hint: 'From AI corrections', status: 'good', href: '/dashboard/revenue-impact' };
 
-  return [accuracy, visibility, crawlers, recovered];
+  // ── Chip 5: Business Info Accuracy (S18) ─────────────────────────────────
+  const napChip: Chip =
+    napScore === null
+      ? { icon: '⟳', label: 'Business Info Accuracy', value: 'Pending',    hint: 'Scan not yet run',         status: 'neutral', href: '/dashboard/integrations' }
+      : napScore >= 80
+        ? { icon: '✓', label: 'Business Info Accuracy', value: `${napScore}/100`, hint: 'Listings consistent',  status: 'good',    href: '/dashboard/integrations' }
+        : napScore >= 50
+          ? { icon: '⚠', label: 'Business Info Accuracy', value: `${napScore}/100`, hint: 'Some mismatches',    status: 'warn',    href: '/dashboard/integrations' }
+          : { icon: '!', label: 'Business Info Accuracy', value: `${napScore}/100`, hint: 'Fix listing errors', status: 'bad',     href: '/dashboard/integrations' };
+
+  return [accuracy, visibility, crawlers, recovered, napChip];
 }
 
 // ─── Component ──────────────────────────────────────────────────────────────
@@ -101,12 +115,13 @@ export default function WeeklyKPIChips({
   visibilityScore,
   crawlerSummary,
   revenueRecoveredMonthly = 0,
+  napScore = null,
 }: WeeklyKPIChipsProps) {
-  const chips = buildChips(openAlertCount, visibilityScore, crawlerSummary, revenueRecoveredMonthly);
+  const chips = buildChips(openAlertCount, visibilityScore, crawlerSummary, revenueRecoveredMonthly, napScore);
 
   return (
     <div
-      className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4"
+      className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5"
       role="list"
       aria-label="Weekly status overview"
     >

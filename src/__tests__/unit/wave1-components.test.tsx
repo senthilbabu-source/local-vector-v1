@@ -197,12 +197,12 @@ describe('WeeklyKPIChips — Revenue Recovered chip (S15)', () => {
     WeeklyKPIChips = mod.default;
   });
 
-  it('renders 4 chips total', () => {
+  it('renders 5 chips total (S18 added Business Info Accuracy chip)', () => {
     const { container } = render(
       <WeeklyKPIChips openAlertCount={0} visibilityScore={75} crawlerSummary={null} revenueRecoveredMonthly={100} />,
     );
     const links = container.querySelectorAll('a[role="listitem"]');
-    expect(links.length).toBe(4);
+    expect(links.length).toBe(5);
   });
 
   it('4th chip shows Revenue Recovered label', () => {

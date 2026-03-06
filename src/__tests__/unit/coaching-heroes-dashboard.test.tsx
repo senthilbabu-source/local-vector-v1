@@ -98,10 +98,10 @@ describe('AIQuoteTicker', () => {
 // ═══════════════════════════════════════════════════════════════════════════
 
 describe('WeeklyKPIChips', () => {
-  it('renders a list with 4 chip items (S15: added Revenue Recovered chip)', () => {
-    render(<WeeklyKPIChips openAlertCount={0} visibilityScore={null} crawlerSummary={null} />);
+  it('renders a list with 5 chip items (S18: added Business Info Accuracy chip)', () => {
+    render(<WeeklyKPIChips openAlertCount={0} visibilityScore={75} crawlerSummary={null} />);
     const chips = screen.getAllByRole('listitem');
-    expect(chips).toHaveLength(4);
+    expect(chips).toHaveLength(5);
   });
 
   // ── AI Accuracy chip ──────────────────────────────────────────────────────
@@ -125,7 +125,8 @@ describe('WeeklyKPIChips', () => {
 
   it('shows "Pending" visibility chip when visibilityScore=null', () => {
     render(<WeeklyKPIChips openAlertCount={0} visibilityScore={null} crawlerSummary={null} />);
-    expect(screen.getByText('Pending')).toBeDefined();
+    // Multiple "Pending" chips may appear (AI Visibility + Business Info Accuracy)
+    expect(screen.getAllByText('Pending').length).toBeGreaterThanOrEqual(1);
   });
 
   it('shows score percentage for visibility chip when score provided', () => {

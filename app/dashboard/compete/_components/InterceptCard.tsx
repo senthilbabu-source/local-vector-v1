@@ -16,6 +16,7 @@ interface Intercept {
   gap_magnitude:    string | null;
   suggested_action: string | null;
   action_status:    string;
+  pre_action_gap:   GapAnalysis | null;
 }
 
 interface InterceptCardProps {
@@ -115,8 +116,65 @@ export default function InterceptCard({ intercept, myBusiness }: InterceptCardPr
         </div>
       )}
 
-      {/* Suggested action */}
-      {intercept.suggested_action && (
+      {/* S19: Before/After gap comparison — shown after action is completed */}
+      {intercept.action_status === 'completed' &&
+        intercept.pre_action_gap &&
+        intercept.gap_analysis && (
+        <div
+          className="rounded-lg border border-white/8 bg-white/[0.02] px-4 py-3 space-y-2"
+          data-testid="before-after-gap"
+        >
+          <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">
+            Gap before vs. after your action
+          </p>
+          {/* Before row */}
+          <div className="space-y-0.5">
+            <div className="flex justify-between text-[10px] text-slate-500">
+              <span>Before</span>
+              <span>{myBusiness}: {intercept.pre_action_gap.your_mentions} / {intercept.competitor_name}: {intercept.pre_action_gap.competitor_mentions}</span>
+            </div>
+            <div className="h-1.5 w-full rounded-full bg-white/5 overflow-hidden">
+              <div
+                className="h-full rounded-full bg-slate-500"
+                style={{
+                  width: `${Math.min(
+                    100,
+                    (intercept.pre_action_gap.your_mentions /
+                      Math.max(intercept.pre_action_gap.competitor_mentions, 1)) * 100,
+                  )}%`,
+                }}
+              />
+            </div>
+          </div>
+          {/* After row */}
+          <div className="space-y-0.5">
+            <div className="flex justify-between text-[10px] text-slate-500">
+              <span>After</span>
+              <span>{myBusiness}: {intercept.gap_analysis.your_mentions} / {intercept.competitor_name}: {intercept.gap_analysis.competitor_mentions}</span>
+            </div>
+            <div className="h-1.5 w-full rounded-full bg-white/5 overflow-hidden">
+              <div
+                className={[
+                  'h-full rounded-full',
+                  intercept.gap_analysis.your_mentions >= intercept.pre_action_gap.your_mentions
+                    ? 'bg-signal-green'
+                    : 'bg-alert-crimson',
+                ].join(' ')}
+                style={{
+                  width: `${Math.min(
+                    100,
+                    (intercept.gap_analysis.your_mentions /
+                      Math.max(intercept.gap_analysis.competitor_mentions, 1)) * 100,
+                  )}%`,
+                }}
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Suggested action — shown while pending */}
+      {intercept.suggested_action && intercept.action_status === 'pending' && (
         <div className="rounded-lg border border-signal-green/20 bg-signal-green/5 px-4 py-3">
           <p className="text-xs font-semibold text-signal-green mb-1">Your action this week</p>
           <p className="text-sm text-slate-300">{intercept.suggested_action}</p>

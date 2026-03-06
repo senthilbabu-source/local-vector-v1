@@ -280,9 +280,27 @@ export async function markInterceptActionComplete(
 
   const supabase = await createClient();
 
+  // S19: When completing (not dismissing), snapshot the current gap_analysis
+  // as pre_action_gap so we can show a before/after comparison later.
+  const updatePayload: Record<string, unknown> = { action_status: parsed.data.status };
+
+  if (parsed.data.status === 'completed') {
+    const { data: current } = await supabase
+      .from('competitor_intercepts')
+      .select('gap_analysis')
+      .eq('id', interceptId)
+      .eq('org_id', ctx.orgId)
+      .single();
+
+    if (current?.gap_analysis) {
+      updatePayload.pre_action_gap = current.gap_analysis;
+    }
+    updatePayload.action_completed_at = new Date().toISOString();
+  }
+
   const { error } = await supabase
     .from('competitor_intercepts')
-    .update({ action_status: parsed.data.status })
+    .update(updatePayload)
     .eq('id', interceptId)
     .eq('org_id', ctx.orgId);
 

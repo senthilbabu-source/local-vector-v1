@@ -4940,3 +4940,84 @@ Fetched from `visibility_scores` table — latest 2 rows ordered by `snapshot_da
 - **Total: 6394 tests, 410 files — all pass**
 
 ---
+
+## §217 — S17: Content → SOV Feedback Loop (Wave 2)
+
+**Migration:** `supabase/migrations/20260502000001_content_draft_publish_ranks.sql` — adds `pre_publish_rank numeric(5,2)` and `post_publish_rank numeric(5,2)` to `content_drafts`.
+
+**New service:** `lib/services/publish-rank.service.ts`
+- `rankToPercent(rank)` — pure, converts 0.0–1.0 fraction → 0–100 int; returns null for null.
+- `buildImpactLabel(prePct, postPct)` — pure, returns `{ label, improved }` or null.
+- `capturePrePublishRank(supabase, draftId, orgId)` — I/O, only runs for `trigger_type='prompt_missing'` drafts; reads `sov_evaluations.rank_position` via `trigger_id`; writes `pre_publish_rank`. Fire-and-forget safe.
+- `backfillPostPublishRanks(supabase, orgId)` — I/O, called from SOV cron; finds published drafts with pre set and post null, published > 7 days ago; writes `post_publish_rank`. Returns count updated.
+
+**Wire-up:** `app/dashboard/content-drafts/actions.ts` — all 3 publish paths call `capturePrePublishRank` fire-and-forget.
+
+**New component:** `app/dashboard/content-drafts/[id]/_components/PostImpactPanel.tsx` — shown only when `isPublished`; 3 states: null render (wrong trigger_type), "Gathering data…" (pre set, post null, max 14 days), full comparison (both set). `data-testid="post-impact-panel"`.
+
+**Page update:** `app/dashboard/content-drafts/[id]/page.tsx` — `DraftDetail` type extended with `pre_publish_rank`, `post_publish_rank`; `PostImpactPanel` rendered in right sidebar.
+
+---
+
+## §218 — S18: Business Info Accuracy — 5th KPI Chip (Wave 2)
+
+**Spec:** 5th chip on `WeeklyKPIChips` showing `nap_health_score` from `locations` table.
+
+- `lib/data/dashboard.ts` — `DashboardData.napScore: number | null` added; `locations` query extended with `nap_health_score` (cast pattern — not in database.types.ts); `napScore` returned.
+- `app/dashboard/_components/WeeklyKPIChips.tsx` — `napScore?: number | null` prop; `buildChips()` 5th chip: ≥80=good "Listings consistent", ≥50=warn "Some mismatches", <50=bad "Fix listing errors", null=neutral "Pending"; links to `/dashboard/integrations`. Grid: `lg:grid-cols-4 xl:grid-cols-5`.
+- `app/dashboard/page.tsx` — `napScore` destructured + passed as `napScore={sampleMode ? null : napScore}`.
+
+---
+
+## §219 — S19: Competitor Gap Before/After (Wave 2)
+
+**Migration:** `supabase/migrations/20260502000002_competitor_action_tracking.sql` — adds `pre_action_gap jsonb` and `action_completed_at timestamptz` to `competitor_intercepts`.
+
+**Action update:** `markInterceptActionComplete()` — when `status='completed'`, pre-fetches current `gap_analysis` and stores as `pre_action_gap` + sets `action_completed_at = now()`. Dismissed path skips pre-fetch.
+
+**UI update:** `InterceptCard.tsx` — before/after comparison panel (`data-testid="before-after-gap"`) shown when `action_status='completed'` AND `pre_action_gap` AND `gap_analysis` both set. Before bar: grey, After bar: green (improved) or red (regressed). Suggested action only shown when `action_status='pending'`.
+
+**Page update:** `app/dashboard/compete/page.tsx` — `InterceptRow.pre_action_gap` added to type and select query.
+
+---
+
+## §220 — S20: Wins Feed on Main Dashboard (Wave 2)
+
+**Migration:** `supabase/migrations/20260502000003_wins.sql` — `wins` table (id, org_id, win_type, title, detail, revenue_impact, created_at). RLS: select/insert own org. Index on `(org_id, created_at DESC)`.
+
+**Service:** `lib/services/wins.service.ts`
+- `createHallucinationWin(supabase, orgId, claimText, revenueImpact?)` — inserts win; truncates claimText to 117+ellipsis if > 120 chars; fire-and-forget safe.
+- `getRecentWins(supabase, orgId, limit=5)` — returns `WinRow[]`, never throws.
+
+**Wire-up:** `lib/corrections/correction-service.ts` — fire-and-forget `createHallucinationWin()` after `markHallucinationCorrected()` step 5.
+
+**Components:**
+- `app/dashboard/_components/WinCard.tsx` — single win entry with CheckCircle2, title, detail, revenue impact, relative time ("Today"/"Yesterday"/"N days ago"). `data-testid="win-card"`.
+- `app/dashboard/_components/RecentWinsSection.tsx` — returns null when empty; shows wins list + "See all →" link to `/dashboard/wins`. `data-testid="recent-wins-section"`.
+
+**Dashboard wire-up:** `app/dashboard/page.tsx` — `getRecentWins(supabaseForWins, ctx.orgId, 5)` in non-critical try/catch; `RecentWinsSection` rendered after `TopIssuesPanel` as section 5. Sentry on catch.
+
+**Wins page:** `app/dashboard/wins/page.tsx` — auth-gated, fetches 50 wins, empty state with Trophy icon + link to AI Mistakes.
+
+**Sidebar:** `Wins` nav item added (icon: `Star`), placed in "Today" group; `href=/dashboard/wins`, `testId='wins'`.
+
+---
+
+## §221 — S21: Sentiment Trend Chart (Wave 2)
+
+**New functions in `lib/data/sentiment.ts`:**
+- `annotateTrendWithErrors(trend, errorDetectionDates)` — pure; groups `errorDetectionDates` by Sunday-based week start (`getWeekStart()`); marks matching trend points `hasNewError: true`.
+- `fetchErrorDetectionDates(supabase, orgId, locationId, options?)` — I/O; queries `ai_hallucinations.first_detected_at` scoped to org/location for last N weeks.
+
+**New component:** `app/dashboard/sentiment/_components/SentimentTrendChart.tsx` — recharts `AreaChart`. Gradient fill: green above 0, red below. `ReferenceLine` at y=0. Red diamond dots on `hasNewError` weeks. Custom tooltip with score + plain-English label. `prefers-reduced-motion` disables animation. `data-testid="sentiment-trend-chart"`. Min 2 data points required.
+
+**Sentiment page update:** `app/dashboard/sentiment/page.tsx` — `fetchErrorDetectionDates` + `annotateTrendWithErrors` → `annotatedTrend`; `SentimentTrendChart data={annotatedTrend}` rendered before `SentimentTrendSummary` when `trend.length >= 2`.
+
+### Wave 2 final test counts
+- `wave2-s17-sov-feedback.test.ts` — 19 tests (rankToPercent 6, buildImpactLabel 7, capturePrePublishRank 5, backfillPostPublishRanks 2)
+- `wave2-s18-nap-chip.test.tsx` — 11 tests (jsdom, 5th chip derivation + boundary cases)
+- `wave2-s19-competitor-gap.test.tsx` — 11 tests (jsdom, before/after panel visibility + content)
+- `wave2-s20-wins-feed.test.tsx` — 20 tests (jsdom, service 9, WinCard 6, RecentWinsSection 5)
+- `wave2-s21-sentiment-chart.test.tsx` — 13 tests (annotateTrendWithErrors 8, SentimentTrendChart 5)
+- **Total Wave 2: 74 new tests**
+- **Grand total: 6468 tests, 415 files — all pass**

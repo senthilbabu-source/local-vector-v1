@@ -15,6 +15,7 @@ import { createClient } from '@/lib/supabase/server';
 import DraftEditor from './_components/DraftEditor';
 import PublishDropdown from './_components/PublishDropdown';
 import CopyDraftButton from './_components/CopyDraftButton';
+import PostImpactPanel from './_components/PostImpactPanel';
 
 export const metadata = { title: 'Post Details | LocalVector.ai' };
 
@@ -40,6 +41,8 @@ type DraftDetail = {
   approved_at: string | null;
   created_at: string;
   updated_at: string;
+  pre_publish_rank: number | null;
+  post_publish_rank: number | null;
 };
 
 type LocationInfo = {
@@ -283,6 +286,16 @@ export default async function DraftDetailPage({
               </div>
             </dl>
           </div>
+
+          {/* S17: Post-publish SOV impact (only for published prompt_missing drafts) */}
+          {isPublished && (
+            <PostImpactPanel
+              triggerType={draft.trigger_type}
+              prePublishRank={draft.pre_publish_rank}
+              postPublishRank={draft.post_publish_rank}
+              targetPrompt={draft.target_prompt}
+            />
+          )}
 
           {/* Actions */}
           <div className="rounded-xl border border-white/5 bg-surface-dark p-5">

@@ -25,12 +25,14 @@ import { ScanCompleteBanner } from '@/components/dashboard/ScanCompleteBanner';
 import UpgradeRedirectBanner from './_components/UpgradeRedirectBanner';
 import ManualScanTrigger from './_components/ManualScanTrigger';
 import TopIssuesPanel from './_components/TopIssuesPanel';
+import RecentWinsSection from './_components/RecentWinsSection';
 import AIQuoteTicker from './_components/AIQuoteTicker';
 import PulseScoreOrb from './_components/PulseScoreOrb';
 import CoachBriefCard from './_components/CoachBriefCard';
 import WeeklyKPIChips from './_components/WeeklyKPIChips';
 import ScoreAttributionPopover from './_components/ScoreAttributionPopover';
 import { deriveRealityScore } from '@/lib/services/reality-score.service';
+import { getRecentWins, type WinRow } from '@/lib/services/wins.service';
 
 export const metadata = { title: 'Dashboard | LocalVector.ai' };
 
@@ -66,6 +68,7 @@ export default async function DashboardPage({
     revenueRecoveredMonthly,
     currentScoreSnapshot,
     prevScoreSnapshot,
+    napScore,
   } = await fetchDashboardData(ctx.orgId ?? '', activeLocationId);
 
   const scores    = deriveRealityScore(openAlerts.length, visibilityScore, dataHealthScore, simulationScore);
@@ -84,6 +87,17 @@ export default async function DashboardPage({
   const isNewOrg = orgCreatedAt
     ? Date.now() - new Date(orgCreatedAt).getTime() < 30 * 24 * 60 * 60 * 1000
     : false;
+
+  // S20: Wins feed (non-critical — fail silently)
+  let recentWins: WinRow[] = [];
+  if (ctx.orgId && !sampleMode) {
+    try {
+      const supabaseForWins = await createClient();
+      recentWins = await getRecentWins(supabaseForWins, ctx.orgId, 5);
+    } catch (err) {
+      Sentry.captureException(err, { tags: { component: 'wins-feed', sprint: 'S20' } });
+    }
+  }
 
   // Onboarding + data resolver
   let onboardingState = null;
@@ -205,6 +219,7 @@ export default async function DashboardPage({
           visibilityScore={sampleMode ? SAMPLE_VISIBILITY_SCORE : visibilityScore}
           crawlerSummary={sampleMode ? null : crawlerSummary}
           revenueRecoveredMonthly={sampleMode ? 0 : revenueRecoveredMonthly}
+          napScore={sampleMode ? null : napScore}
         />
         {sampleMode && <SampleDataBadge />}
       </div>
@@ -217,6 +232,11 @@ export default async function DashboardPage({
         crawlerSummary={crawlerSummary}
         sampleMode={sampleMode}
       />
+
+      {/* ════════════════════════════════════════════════════════════════════
+          5. WINS — celebrate every fix; motivates continued engagement
+          ════════════════════════════════════════════════════════════════════ */}
+      <RecentWinsSection wins={recentWins} />
 
     </div>
   );

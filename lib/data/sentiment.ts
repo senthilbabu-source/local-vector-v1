@@ -93,3 +93,55 @@ function getWeekStart(date: Date): Date {
   d.setHours(0, 0, 0, 0);
   return d;
 }
+
+/**
+ * S21: Annotate sentiment trend data with weeks that had a new hallucination.
+ *
+ * Queries ai_hallucinations.first_detected_at to find weeks where a new
+ * error first appeared. Groups detections by week and marks matching
+ * trend points with hasNewError=true.
+ *
+ * Pure function: callers supply the error detection timestamps.
+ */
+export function annotateTrendWithErrors(
+  trend: Array<{ weekStart: string; averageScore: number; evaluationCount: number }>,
+  errorDetectionDates: string[],
+): Array<{ weekStart: string; averageScore: number; evaluationCount: number; hasNewError: boolean }> {
+  const errorWeeks = new Set<string>();
+  for (const dateStr of errorDetectionDates) {
+    const weekStart = getWeekStart(new Date(dateStr)).toISOString().split('T')[0];
+    errorWeeks.add(weekStart);
+  }
+
+  return trend.map((point) => ({
+    ...point,
+    hasNewError: errorWeeks.has(point.weekStart),
+  }));
+}
+
+/**
+ * S21: Fetch ai_hallucinations first_detected_at timestamps for the last N weeks.
+ * Used to annotate the sentiment trend chart with error detection markers.
+ */
+export async function fetchErrorDetectionDates(
+  supabase: SupabaseClient<Database>,
+  orgId: string,
+  locationId: string,
+  options?: { weekCount?: number },
+): Promise<string[]> {
+  const weekCount = options?.weekCount ?? 12;
+  const cutoff = new Date();
+  cutoff.setDate(cutoff.getDate() - weekCount * 7);
+
+  const { data } = await supabase
+    .from('ai_hallucinations')
+    .select('first_detected_at' as 'id')
+    .eq('org_id', orgId)
+    .eq('location_id', locationId)
+    .gte('first_detected_at' as 'id', cutoff.toISOString())
+    .not('first_detected_at' as 'id', 'is', null);
+
+  return (data ?? []).map(
+    (row) => (row as unknown as { first_detected_at: string }).first_detected_at,
+  );
+}

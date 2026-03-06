@@ -32,6 +32,7 @@ type InterceptRow = {
   gap_magnitude:    string | null;
   suggested_action: string | null;
   action_status:    string;
+  pre_action_gap:   { competitor_mentions: number; your_mentions: number } | null;
 };
 
 // ---------------------------------------------------------------------------
@@ -78,7 +79,7 @@ async function fetchPageData(orgId: string): Promise<{
     supabase
       .from('competitor_intercepts')
       .select(
-        'id, competitor_name, query_asked, winner, winner_reason, winning_factor, gap_analysis, gap_magnitude, suggested_action, action_status'
+        'id, competitor_name, query_asked, winner, winner_reason, winning_factor, gap_analysis, gap_magnitude, suggested_action, action_status, pre_action_gap'
       )
       .eq('org_id', orgId)
       .order('created_at', { ascending: false })

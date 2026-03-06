@@ -15,6 +15,8 @@ import {
   buildCorrectionDraftTitle,
 } from './correction-brief-prompt';
 import type { CorrectionFollowUp, CorrectionResult } from './types';
+import { getRevenueImpactBySeverity } from '@/lib/hallucinations/fix-guidance';
+import { createHallucinationWin } from '@/lib/services/wins.service';
 
 // ---------------------------------------------------------------------------
 // markHallucinationCorrected
@@ -29,7 +31,7 @@ export async function markHallucinationCorrected(
   // 1. Fetch hallucination — verify ownership
   const { data: hallucination, error: fetchErr } = await supabase
     .from('ai_hallucinations')
-    .select('id, claim_text, expected_truth, correction_status, org_id')
+    .select('id, claim_text, expected_truth, correction_status, org_id, severity, category')
     .eq('id', hallucinationId)
     .eq('org_id', orgId)
     .maybeSingle();
@@ -43,14 +45,29 @@ export async function markHallucinationCorrected(
     throw new Error('already_corrected');
   }
 
+  // S14: Snapshot revenue impact at fix time so the recovery counter never drifts
+  const revenueRecovered = getRevenueImpactBySeverity(
+    (hallucination as unknown as { severity: string }).severity,
+  );
+
+  // S14: fix_guidance_category maps category → FIX_GUIDANCE lookup key
+  const rawCategory = (hallucination as unknown as { category: string | null }).category;
+  const fixGuidanceCategory = rawCategory ? rawCategory.toLowerCase() : null;
+
   // 3. Update status to corrected
+  const now = new Date().toISOString();
   const { error: updateErr } = await supabase
     .from('ai_hallucinations')
     .update({
       correction_status: 'corrected',
-      corrected_at: new Date().toISOString(),
+      corrected_at: now,
+      // S14: fixed_at records when user submitted the correction; cleared if recurring
+      fixed_at: now,
+      // S14: snapshotted at fix time — never recomputed after this point
+      revenue_recovered_monthly: revenueRecovered > 0 ? revenueRecovered : null,
+      fix_guidance_category: fixGuidanceCategory,
       resolution_notes: notes ?? null,
-    })
+    } as never)
     .eq('id', hallucinationId);
 
   if (updateErr) {
@@ -94,6 +111,16 @@ export async function markHallucinationCorrected(
     orgName,
     notes,
   );
+
+  // S20: Record this fix as a win (fire-and-forget, never blocks correction flow)
+  void createHallucinationWin(
+    supabase,
+    orgId,
+    hallucination.claim_text,
+    revenueRecovered > 0 ? revenueRecovered : null,
+  ).catch((err) => {
+    Sentry.captureException(err, { tags: { fn: 'createHallucinationWin', sprint: 'S20' } });
+  });
 
   return {
     follow_up: typedFollowUp,
