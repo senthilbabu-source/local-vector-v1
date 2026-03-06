@@ -4792,3 +4792,74 @@ Added Section 1b-pre between the Alert Banner section and the AI Model Coverage 
 5. **`bing_places_connections` and `bing_places_sync_log` DB tables** — still exist in schema (no migration to drop them — data preservation). They are simply no longer written to by application code.
 
 ---
+
+## §214 — Coaching Component Unit Test Patterns (2026-03-06)
+
+Unit tests for the 16 coaching hero components follow a fixed pattern. Reference when adding new heroes or writing tests for existing ones.
+
+### Test Environment
+
+All coaching tests use `@vitest-environment jsdom` + `@testing-library/react`. Heroes are pure server components so no special async handling is needed.
+
+### Required Mocks
+
+```typescript
+// Always mock — ConfettiTrigger imports sessionStorage (not available in jsdom by default)
+vi.mock('@/components/ui/ConfettiTrigger', () => ({ default: () => null }));
+
+// Always mock — Next.js Link is not renderable in jsdom; convert to plain <a>
+vi.mock('next/link', () => ({
+  default: ({ href, children, ...rest }: { href: string; children: React.ReactNode; [k: string]: unknown }) => (
+    <a href={href} {...rest}>{children}</a>
+  ),
+}));
+
+// Mock if the hero uses InfoTooltip
+vi.mock('@/components/ui/InfoTooltip', () => ({ InfoTooltip: () => null }));
+```
+
+### Three Gotchas
+
+1. **aria-hidden content** — Scrolling tickers and decorative text containers use `aria-hidden="true"`. `screen.getByText()` will NOT find them. Use `container.textContent` instead:
+   ```typescript
+   expect(container.textContent).toContain('accurate hours');
+   ```
+
+2. **Link with role override** — `WeeklyKPIChips` renders `<Link role="listitem">`. `getAllByRole('link')` returns nothing. Use `getAllByRole('listitem')` and check `.getAttribute('href')`.
+
+3. **Ambiguous numbers** — Numbers like `3` or `5` often appear in both the orb AND the stats row. `getByText('3')` throws "found multiple elements". Test the unique label text instead:
+   ```typescript
+   // WRONG: screen.getByText('5')  — matches orb + stats row
+   // RIGHT: test the unique label
+   expect(screen.getByText('unanswered')).toBeDefined(); // QuestionsCoachHero
+   expect(screen.getByText('to review')).toBeDefined();  // PostsCoachHero
+   ```
+
+### PulseScoreOrb — Client Component
+
+`PulseScoreOrb` uses `requestAnimationFrame` for count-up animation. The mock must be **no-op only** — never call the callback synchronously.
+
+```typescript
+// CORRECT — no-op: records ID but never fires callback
+globalThis.requestAnimationFrame = (_cb: FrameRequestCallback) => {
+  return ++rafId;
+};
+
+// WRONG — causes infinite recursion: elapsed = ts - ts = 0, progress never reaches 1
+globalThis.requestAnimationFrame = (cb: FrameRequestCallback) => {
+  cb(99999); // ← DO NOT DO THIS
+  return rafId;
+};
+```
+
+Grades (`All Clear` / `Some Issues` / `Needs Attention`), delta text, streak badge, and benchmark all derive from **props** — they render synchronously regardless of animation state. No `act()` wrapping needed for prop-derived assertions.
+
+### Test File Inventory
+
+| File | Tests | Covers |
+|------|-------|--------|
+| `src/__tests__/unit/coaching-heroes-pages.test.tsx` | 92 | AIAccuracyHero, LostSalesHero, AIVisibilityHero, CompeteCoachHero, ListingsCoachHero, MenuCoachHero, ReviewsCoachHero, CustomerLoveHero, PostsCoachHero, PlatformsCoachHero, WebsiteCheckupCoachHero, QuestionsCoachHero |
+| `src/__tests__/unit/coaching-heroes-dashboard.test.tsx` | 25 | AIQuoteTicker, WeeklyKPIChips, CoachBriefCard |
+| `src/__tests__/unit/pulse-score-orb.test.tsx` | 13 | PulseScoreOrb (client) |
+
+---

@@ -6107,3 +6107,123 @@ npx vitest run  # 384 files, 5828 tests — 0 failures
 - `npx vitest run` — 400 files, 6111 tests, 0 failures
 
 ---
+
+---
+
+## §208 — VAIO Score Foundation (2026-03-05)
+
+**AI_RULES:** §208
+
+- `ScoreBreakdown` interface added to `lib/vaio/types.ts`
+- `computeVoiceReadinessScore()` now returns `{ total } & ScoreBreakdown`
+- `lib/vaio/score-card-helpers.ts` (NEW) — `getMilestoneLabel`, `getCoachingMessage`, `getRevenueStakesLine`, `SCORE_BAR_ITEMS`, `barColor`
+- `VAIOPageClient.tsx` score card: count-up animation (rAF, easeOutCubic, 900ms), 4 staggered bars (CSS transition 600ms, 150ms stagger), milestone track, coaching message, revenue stakes
+- 18 new tests + 11 existing updated to `.total`
+
+```
+npx vitest run  # ~6160 tests — 0 failures
+```
+
+---
+
+## §209 — Scanner Prompt Rewrite: Real Accuracy Audit (2026-03-05)
+
+**AI_RULES:** §209
+
+- `app/actions/marketing.ts` — system prompt rewritten: `is_closed=true` = any factual AI error (wrong hours/address/phone/cuisine/not in results)
+- User prompt checks 5 vectors explicitly
+- Branching fix: `hasIssues = is_closed || accuracy_issues.length > 0` → `fail`; `is_closed=false` but issues present → `claim_text = accuracy_issues[0]`
+- MSW handler updated to realistic wrong-hours mock
+- 4 unit tests updated
+
+---
+
+## §210 — Live Scan Experience + Query Diagnostic (2026-03-05)
+
+**AI_RULES:** §210
+
+**New files:**
+- `ScanOverlay.tsx` — 3-stage progress overlay (phase 0/1/2 at 1.5s/3s, checkmarks for done stages)
+- `QueryDrawer.tsx` — right-side panel for 0% queries: fail reason, suggested VoiceGap answer, "Use this answer" copies `Q:\nA:` format
+
+**Modified:**
+- `VAIOPageClient.tsx` — scanPhase state drives overlay, deltaScore badge (▲ +N pts / No change, 5s auto-dismiss), justCompletedMissions pulse (green ring on MissionCard), 0% rows are `<button>` opening drawer
+- `MissionBoard.tsx` + `MissionCard.tsx` — `pulseGreen` prop
+- `golden-tenant.ts` — added `score_breakdown` to `MOCK_VAIO_PROFILE`
+
+20 new tests (jsdom).
+
+```
+npx vitest run  # ~6200 tests, 405 files — 0 failures
+```
+
+---
+
+## §211 — Coaching Dashboard Transformation S3–S13 (2026-03-05)
+
+**AI_RULES:** §211
+
+Full "head coach" persona across all 13 dashboard pages. Each page gets a coaching hero: tier-based orb, plain-English headlines, specific action cards, CSS-only animations.
+
+**New coaching hero components:**
+
+| Page | Component | Tiers |
+|------|-----------|-------|
+| /dashboard/hallucinations | `AIAccuracyHero` | spot-on/mostly-right/a-few-errors/needs-fixing/no-data |
+| /dashboard/revenue-impact | `LostSalesHero` | high-stakes/worth-fixing/small-gap/covered |
+| /dashboard/share-of-voice | `AIVisibilityHero` | leading/in-the-game/being-missed/invisible/no-data |
+| /dashboard/compete | `CompeteCoachHero` | winning/competitive/losing/no-data |
+| /dashboard/integrations | `ListingsCoachHero` | covered/partial/thin/none/no-locations |
+| /dashboard/magic-menus | `MenuCoachHero` | live-distributed/live/in-review/none |
+| /dashboard/reviews | `ReviewsCoachHero` | loved/solid/mixed/at-risk/no-data |
+| /dashboard/sentiment | `CustomerLoveHero` | loved/getting-there/needs-care |
+| /dashboard/content-drafts | `PostsCoachHero` | on-fire/incoming/all-clear/building |
+| /dashboard/citations | `PlatformsCoachHero` | covered/good/gaps/invisible/no-data |
+| /dashboard/page-audits | `WebsiteCheckupCoachHero` | excellent/good/needs-work/not-ready/no-pages |
+| /dashboard/intent-discovery | `QuestionsCoachHero` | winning/mostly/gaps/missing/no-data |
+
+**Main dashboard components (NEW):**
+- `AIQuoteTicker` — scrolling marquee of AI claim_text or positive copy
+- `WeeklyKPIChips` — 3 status chips linking to hallucinations/share-of-voice/crawler-analytics
+- `CoachBriefCard` — weekly mission card with `deriveMissions()` priority logic
+- `PulseScoreOrb` (client) — count-up animation (rAF, 1400ms, easeOutQuint), 3 ping rings, streak badge, benchmark delta
+
+**Unit tests (130 new, all pass) — AI_RULES §214:**
+- `coaching-heroes-pages.test.tsx` — 92 tests
+- `coaching-heroes-dashboard.test.tsx` — 25 tests
+- `pulse-score-orb.test.tsx` — 13 tests (no-op RAF mock pattern)
+
+**Also:** `ConfettiTrigger.tsx` (NEW) — sessionStorage-gated confetti, fires once per session per `storageKey`.
+
+```
+npx vitest run  # ~6330 tests, 408 files — 0 failures
+```
+
+Committed: `d70bf19` — 70 files, 12,552 insertions.
+
+---
+
+## §212 — PLG Mechanics Implementation (2026-03-05)
+
+**AI_RULES:** §212
+
+- Migration `20260306000002_plg_mechanics.sql`: `scan_leads` gets `email_sequence_step` + `converted_at`; `organizations` gets `churn_reason` + `churned_at`; `locations` gets `public_share_token uuid DEFAULT gen_random_uuid()` + unique index
+- `lib/plan-enforcer.ts` — `getMaxActiveQueriesPerLocation()`: trial=15, starter=20, growth=40, agency=100
+- `lib/sov/first-scan.ts` (NEW) — first-scan auto-trigger bypass for Trial accounts (idempotent, sets pending before dispatch, fire-and-forget)
+- `lib/authority/citation-nap-checker.ts` (NEW) — NAP consistency checker across citation platforms
+- 365 new unit tests for citation-nap-checker
+
+---
+
+## §213 — Bing Places Write API Retirement (2026-03-05)
+
+**AI_RULES:** §213
+
+- Removed `lib/bing-places/` module entirely (Bing Partner API `api.bingplaces.com/v1` retired)
+- Apple BC cron: removed Bing push call
+- `app/dashboard/settings/connections/page.tsx`: removed Bing connection section
+- Cron count: 26 → 25 (update any test asserting `vercelJson.crons.length`)
+- Read-only NAP verification (`verify-bing` route, `BingNAPAdapter`) retained — uses separate `BING_MAPS_KEY`/`BING_SEARCH_API_KEY`
+- Bing remains `manual_url` in `platform-config.ts` — users manage at bingplaces.com
+
+---
