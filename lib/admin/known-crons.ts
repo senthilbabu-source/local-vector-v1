@@ -26,7 +26,6 @@ export const KNOWN_CRONS = [
   'data-health-refresh',
   'faq-regeneration',
   'apple-bc-sync',
-  'bing-sync',
   'agent-seo-audit',
   'playbook-generation',
   'intent-discovery',

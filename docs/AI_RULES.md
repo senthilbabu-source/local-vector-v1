@@ -4593,3 +4593,202 @@ Real hallucinations that hurt restaurants:
 - 6153/6153 vitest tests pass, 0 regressions
 
 ---
+
+## §211 — Coaching Hero System: S9–S13 (2026-03-05)
+
+### Overview
+
+Five dashboard pages were given the coaching hero treatment: Reviews (S9), Posts/Content Drafts (S10), Platforms/Citations (S11), Website Checkup/Page Audits (S12), and Missing Questions/Intent Discovery (S13). Each hero is a **pure server component** — no state, no effects — with CSS-only animations and a `ConfettiTrigger` client island for milestone moments.
+
+### Pattern Rules
+
+Every coaching hero **must** follow this exact architecture:
+
+1. **Pure server component.** No `'use client'`, no hooks, no side effects. All logic is deterministic given props.
+2. **Two-column layout.** Left: score/metric orb (shrink-0). Right: tier label + headline + detail + stats row + progress bar + coaching action card.
+3. **Tier system.** 4–5 tiers keyed by a severity enum. Each tier has: `label`, `headline`, `detail`, `textHex` (hex color), `ringRgba`, `glowRgba`, `pulse` (boolean — triggers lv-ping rings).
+4. **CSS animations only.** Three animation names from `globals.css`:
+   - `lv-scan` — linear sweep on top edge `h-[2px]` bar
+   - `lv-orb-breathe` — radial glow on card background
+   - `lv-ping` — expansion rings, red tiers only (`pulse: true`)
+5. **ConfettiTrigger.** Import from `@/components/ui/ConfettiTrigger`. `fire={boolean}` + unique `storageKey` string. Fires once per session. Only green/positive milestones trigger it.
+6. **Coaching action card.** Bottom of right column. Two states: (a) next action to take with anchor-link CTA, or (b) all-clear confirmation (emerald, checkmark).
+
+### Tier Color System
+
+| Tier | Color | Hex | Pulse |
+|------|-------|-----|-------|
+| Excellent / Winning / Covered | Emerald | `#00F5A0` | No |
+| Good / Solid | Blue | `#60A5FA` | No |
+| Gaps / Mixed / Needs Work | Amber | `#FFB800` | No |
+| At Risk / Invisible / Not Ready / Missing | Red | `#ef4444` | Yes |
+| No Data / No Pages | Slate | `#64748B` | No |
+
+### Component Inventory (S9–S13)
+
+| Sprint | Hero File | Page | Orb Metric | Confetti Condition |
+|--------|-----------|------|-----------|-------------------|
+| S9 | `app/dashboard/reviews/_components/ReviewsCoachHero.tsx` | Reviews | Star rating (★ 4.2) | `pending === 0 && published > 0` |
+| S10 | `app/dashboard/content-drafts/_components/PostsCoachHero.tsx` | Posts | Draft count ("to review") or published count | `draftCount === 0 && total > 0` |
+| S11 | `app/dashboard/citations/_components/PlatformsCoachHero.tsx` | Platforms | gapScore (0–100) | `gapScore >= 100` |
+| S12 | `app/dashboard/page-audits/_components/WebsiteCheckupCoachHero.tsx` | Website Checkup | avgScore | `avgScore >= 80 && total > 0` |
+| S13 | `app/dashboard/intent-discovery/_components/QuestionsCoachHero.tsx` | Questions | gapCount or coveredCount | `gapCount === 0 && coveredCount > 0` |
+
+### Placement Rules
+
+- Heroes render **before** data tables/lists in their respective pages.
+- Heroes render **inside** plan gates when applicable (e.g., PlatformsCoachHero is inside `<PlanGate>`).
+- For pages that mix server + client components (e.g., IntentDiscovery), the hero must render in the **server page.tsx** above the client component — you cannot import server components into client components.
+- When adding a hero, **remove** any flat summary stat cards it replaces (avoid data duplication).
+
+### Server/Client Boundary (S13 Specific)
+
+`IntentDiscoveryClient` is a `'use client'` component. `QuestionsCoachHero` is a server component. To avoid the server-in-client import error:
+- `page.tsx` renders `<QuestionsCoachHero>` directly (server layer).
+- `page.tsx` wraps everything in `<div data-testid="intent-discovery-page">`.
+- `IntentDiscoveryClient` removes its own header, stats strip, and `data-testid` wrapper — the page owns the outer shell.
+
+### prefers-reduced-motion
+
+All CSS animations collapse to `0.01ms` via the existing `globals.css` media query. No hero-specific handling needed.
+
+### Files Modified (S9–S13)
+
+**New files:**
+- `app/dashboard/reviews/_components/ReviewsCoachHero.tsx`
+- `app/dashboard/content-drafts/_components/PostsCoachHero.tsx`
+- `app/dashboard/citations/_components/PlatformsCoachHero.tsx`
+- `app/dashboard/page-audits/_components/WebsiteCheckupCoachHero.tsx`
+- `app/dashboard/intent-discovery/_components/QuestionsCoachHero.tsx`
+
+**Modified files:**
+- `app/dashboard/reviews/page.tsx` — removed flat stat strip, added ReviewsCoachHero, added `id="needs-response"` anchor
+- `app/dashboard/content-drafts/page.tsx` — removed flat stat strip, added PostsCoachHero, added `id="drafts"` anchor
+- `app/dashboard/citations/page.tsx` — removed CitationsSummaryPanel/TopGapCard, added PlatformsCoachHero, moved `id="platform-detail"` to grid div
+- `app/dashboard/page-audits/page.tsx` — added WebsiteCheckupCoachHero, computed `lowestPage` via reduce
+- `app/dashboard/intent-discovery/page.tsx` — added QuestionsCoachHero, added outer wrapper div, computed `topGapPrompt`
+- `app/dashboard/intent-discovery/IntentDiscoveryClient.tsx` — removed page header, stat cards, data-testid wrapper
+
+Also in this sprint: `app/dashboard/magic-menus/_components/MenuWorkspace.tsx` — added "Replace menu" button to `PublishedBanner` (top-right, underlined link style) that calls `onReplace={() => setView('upload')}`. Fixes the issue where a seed menu in `published` state with `extracted_data = NULL` gave users no way to reach the upload UI.
+
+---
+
+## §212 — PLG Mechanics Implementation (2026-03-05)
+
+**Goal:** Implement the 6 code action items surfaced across the pre-launch documentation sprint (docs/PLG-MECHANICS.md), executed in dependency order as a single sprint.
+
+### Migration — `supabase/migrations/20260306000002_plg_mechanics.sql`
+
+Three ALTER TABLE statements:
+- `scan_leads`: added `email_sequence_step integer NOT NULL DEFAULT 0` + `converted_at timestamptz`
+- `organizations`: added `churn_reason text` + `churned_at timestamptz` (IF NOT EXISTS guards)
+- `locations`: added `public_share_token uuid NOT NULL DEFAULT gen_random_uuid()` + unique index
+
+### `lib/plan-enforcer.ts` — `getMaxActiveQueriesPerLocation()`
+
+Added after `canAddMember()`:
+- `trial`: 15, `starter`: 20, `growth`: 40, `agency`: 100
+- Controls SOV cron query volume per location — primary AI cost driver
+
+### `lib/sov/first-scan.ts` — First-scan auto-trigger bypass
+
+New server-side dispatcher that allows Trial accounts to trigger their first SOV scan without the Growth+ plan gate:
+- No-ops if `last_manual_scan_triggered_at` is already set (idempotent)
+- Sets `manual_scan_status: 'pending'` before dispatching to avoid race conditions
+- Dispatches `manual/sov.triggered` Inngest event with `isFirstScan: true`
+- Fire-and-forget: errors captured via Sentry only, never rethrow
+- Uses `createServiceRoleClient()` — bypasses user RLS entirely
+
+### `app/actions/locations.ts` — Wire first-scan trigger on primary location create
+
+Added `void triggerFirstScan(ctx.orgId, ctx.userId)` call after successful isPrimary location insert, before `revalidatePath`. Only fires for primary locations (the trigger that represents "business setup complete").
+
+### `app/api/webhooks/stripe/route.ts` — Track churn timestamp
+
+In `handleSubscriptionDeleted`: added `churned_at: new Date().toISOString()` to the update payload alongside the existing `plan: 'trial'`, `plan_status: 'canceled'`, `seat_limit: 1`.
+
+### `components/dashboard/TrialWarningBanner.tsx` — 7-day trial warning
+
+Client component shown to trial-plan users between day 7 and day 14 of their org lifetime:
+- `daysSince()` pure function for age calculation
+- Renders `daysLeft = 14 - age` countdown
+- Shows open hallucination count from `openHallucinationCount` prop if > 0
+- sessionStorage dismiss (`lv_trial_warning_dismissed`) — never reads in initial state (prevents hydration mismatch per §200 lesson)
+- `role="alert"` for accessibility, amber border/bg styling
+- "Upgrade to Starter →" links to `/dashboard/billing`
+
+### `app/dashboard/layout.tsx` — Supply orgCreatedAt to DashboardShell
+
+Extended org query from `select('industry')` to `select('industry, created_at')`. Passes `orgCreatedAt={orgCreatedAt}` to `<DashboardShell>`.
+
+### `components/layout/DashboardShell.tsx` — Render TrialWarningBanner
+
+Added `orgCreatedAt?: string | null` to `DashboardShellProps`. Destructured in function params. Renders `<TrialWarningBanner plan={plan} orgCreatedAt={orgCreatedAt ?? null} />` at top of `<main id="main-content">`, above `{children}`.
+
+### `app/scan/_components/ScanDashboard.tsx` — EmailCaptureForm above fold for fail results
+
+Added Section 1b-pre between the Alert Banner section and the AI Model Coverage strip. Renders `<EmailCaptureForm>` immediately after the hallucination detection banner **only when `result.status === 'fail'`**. The existing bottom-of-page form remains for all statuses. PLG target: 15% scan→email capture rate.
+
+### Implementation Rules
+
+1. **First-scan bypass ONLY via `lib/sov/first-scan.ts`** — never modify the Growth+ guard on `POST /api/sov/trigger-manual`. The user-facing manual trigger and the auto-trigger are separate code paths.
+2. **`getMaxActiveQueriesPerLocation()` is the SSOT for per-location SOV query volume** — wire into SOV cron loop's LIMIT clause before scaling beyond 100 orgs.
+3. **`public_share_token` is org-isolated but publicly readable** — no auth required to fetch the VAIO score page for a location by token. RLS must allow SELECT on `locations` by `public_share_token` without membership check (future route).
+4. **`churn_reason` is set by the Stripe webhook** (`handleSubscriptionDeleted`), NOT by any user-facing UI — prevents self-report bias in churn data.
+5. **Trial warning window is strictly 7–14 days** — before day 7 is too early (users are still onboarding), after day 14 the trial has typically ended.
+6. **EmailCaptureForm above fold is `fail`-only** — `pass` and `not_found` results get only the bottom-of-page form. The high-urgency hallucination result is the conversion moment.
+
+---
+
+## §213 — Bing Places Write API Retirement (2026-03-05)
+
+**Goal:** Remove the Bing Places Partner API write sync infrastructure (API retired by Microsoft, no Azure Maps equivalent). Bing remains a `manual_url` platform for NAP verification reads only.
+
+### What was removed
+
+**Files deleted:**
+- `lib/bing-places/` — entire write module (bing-places-client.ts, bing-places-mapper.ts, bing-places-types.ts, index.ts)
+- `app/actions/bing-places.ts` — connect/disconnect/manual-sync server actions
+- `app/api/cron/bing-sync/route.ts` — nightly 4 AM UTC Agency sync cron
+- `src/__tests__/unit/bing-places.test.ts` — 22 tests for the deleted write code
+
+**Registrations removed:**
+- `vercel.json` — `/api/cron/bing-sync` cron entry removed (cron count: 26 → 25)
+- `lib/admin/known-crons.ts` — `'bing-sync'` removed from KNOWN_CRONS
+- `.env.local.example` — `BING_PLACES_API_KEY` and `BING_SYNC_CRON_DISABLED` removed
+
+### What was modified
+
+**`lib/sync/sync-orchestrator.ts`:**
+- Removed `import { syncOneBingLocation }` from deleted module
+- Removed entire Bing Places sync block (DB query + sync call + result recording)
+- Removed `// Continue to Bing regardless` comment from Apple BC catch
+- Added NOTE comment: Bing Places write API retired — Bing is now manual_url only
+
+**`app/dashboard/settings/connections/page.tsx`:**
+- Removed `BingConnectionRow` interface
+- Removed `bingConnections` DB query (was fetching `bing_places_connections` table)
+- Removed `bingRows`, `connectedBingLocationIds`, `unclaimedBingLocations` variables
+- Removed entire `bing-places-section` JSX section (connection status + unclaimed rows)
+- Updated subtitle copy from "Apple Maps, Bing, and more" to "Apple Maps and more"
+
+**`src/__tests__/unit/sprint-f-registration.test.ts` + `sprint-n-registration.test.ts`:**
+- Updated `expect(vercelJson.crons.length).toBe(26)` → `.toBe(25)` in both files
+
+### What was NOT changed
+
+- `app/api/integrations/verify-bing/route.ts` — read-only NAP check via `BING_MAPS_KEY` (VirtualEarth LocalSearch) — kept as-is
+- `lib/nap-sync/adapters/bing-adapter.ts` — read-only NAP data fetch via `BING_SEARCH_API_KEY` — kept as-is
+- `lib/integrations/platform-config.ts` — Bing already `manual_url` with `verifiable: true` since Sprint M — no change needed
+- `lib/distribution/distribution-engines-config.ts` — Bing/Copilot entry uses IndexNow (not Bing Places API) — no change needed
+- `BING_MAPS_KEY` and `BING_SEARCH_API_KEY` — both retained for read-only NAP verification
+
+### Implementation Rules
+
+1. **Bing is `manual_url` only** — no programmatic write/push to Bing listings. Users manage their Bing listing manually at bingplaces.com.
+2. **NAP verification reads remain active** — `verify-bing` route + `BingNAPAdapter` both use separate read-only APIs (`BING_MAPS_KEY` / `BING_SEARCH_API_KEY`) that are not affected by the Bing Places Partner API retirement.
+3. **Do NOT restore `lib/bing-places/`** — the write API endpoint (`api.bingplaces.com/v1`) is retired. Microsoft has not announced an Azure Maps replacement for listing management writes.
+4. **Cron count is now 25** — update any test asserting `vercelJson.crons.length` to 25.
+5. **`bing_places_connections` and `bing_places_sync_log` DB tables** — still exist in schema (no migration to drop them — data preservation). They are simply no longer written to by application code.
+
+---

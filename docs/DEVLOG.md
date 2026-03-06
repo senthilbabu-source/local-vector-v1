@@ -4,6 +4,85 @@
 
 ---
 
+## 2026-03-05 — Bing Places Write API Retirement (§213)
+
+**Goal:** Remove the Bing Places Partner API write sync infrastructure. Microsoft retired the Bing Places Partner API (`api.bingplaces.com/v1`) with no Azure Maps equivalent for listing management. Bing remains a `manual_url` platform — NAP verification reads are unaffected.
+
+**Deleted files:**
+- `lib/bing-places/` — entire write module (client, mapper, types, barrel)
+- `app/actions/bing-places.ts` — connect/disconnect/manual-sync server actions
+- `app/api/cron/bing-sync/route.ts` — nightly 4 AM UTC Agency sync cron
+- `src/__tests__/unit/bing-places.test.ts` — 22 tests for deleted write code
+
+**Modified files:**
+- `lib/sync/sync-orchestrator.ts` — removed `syncOneBingLocation` import + Bing sync block. NOTE comment added.
+- `app/dashboard/settings/connections/page.tsx` — removed `BingConnectionRow` interface, `bing_places_connections` query, `bingRows`/`unclaimedBingLocations` variables, `bing-places-section` JSX.
+- `vercel.json` — removed `bing-sync` cron entry (count: 26 → 25)
+- `lib/admin/known-crons.ts` — removed `'bing-sync'` from KNOWN_CRONS
+- `.env.local.example` — removed `BING_PLACES_API_KEY` and `BING_SYNC_CRON_DISABLED`
+- `src/__tests__/unit/sprint-f-registration.test.ts` + `sprint-n-registration.test.ts` — updated cron count assertion 26 → 25
+
+**Unchanged (read-only Bing still active):**
+- `app/api/integrations/verify-bing/route.ts` — NAP check via `BING_MAPS_KEY` (VirtualEarth LocalSearch)
+- `lib/nap-sync/adapters/bing-adapter.ts` — NAP reads via `BING_SEARCH_API_KEY`
+- `lib/integrations/platform-config.ts` — Bing already `manual_url` + `verifiable: true`
+- `lib/distribution/distribution-engines-config.ts` — Bing/Copilot entry uses IndexNow, not Bing Places API
+
+**Pattern:** Retiring a write API integration — delete the entire module, unregister the cron, clean up env vars, update tests. Read-only paths (NAP verification) are separate APIs and stay. AI_RULES §213.
+
+---
+
+## 2026-03-05 — PLG Mechanics Implementation (§212)
+
+**Goal:** Implement the 6 code action items from `docs/PLG-MECHANICS.md` in dependency order as a single sprint.
+
+**Migration (`supabase/migrations/20260306000002_plg_mechanics.sql`):**
+- `scan_leads`: `email_sequence_step integer DEFAULT 0`, `converted_at timestamptz`
+- `organizations`: `churn_reason text`, `churned_at timestamptz`
+- `locations`: `public_share_token uuid DEFAULT gen_random_uuid()` + unique index
+
+**New files:**
+- `lib/sov/first-scan.ts` — Trial account first-scan bypass: service-role dispatch of `manual/sov.triggered` Inngest event, idempotent (no-ops if already triggered), race-condition-safe (sets `manual_scan_status: 'pending'` before dispatch), fire-and-forget Sentry-only error capture
+- `components/dashboard/TrialWarningBanner.tsx` — Amber `role="alert"` banner: day 7–14 of trial, shows countdown + hallucination count if >0, sessionStorage dismiss, links to billing
+
+**Modified files:**
+- `lib/plan-enforcer.ts` — Added `getMaxActiveQueriesPerLocation()`: trial=15, starter=20, growth=40, agency=100
+- `app/actions/locations.ts` — `void triggerFirstScan()` fire-and-forget on isPrimary location insert
+- `app/api/webhooks/stripe/route.ts` — `churned_at` added to `handleSubscriptionDeleted` update payload
+- `app/dashboard/layout.tsx` — Extended org query to include `created_at`; passes `orgCreatedAt` to DashboardShell
+- `components/layout/DashboardShell.tsx` — `orgCreatedAt` prop added + `<TrialWarningBanner>` rendered above children in main
+- `app/scan/_components/ScanDashboard.tsx` — `EmailCaptureForm` injected above fold (Section 1b-pre) for `fail` results only; bottom form retained for all statuses
+
+**Pattern:** Dependency order — migration → plan-enforcer → first-scan.ts → locations.ts → stripe webhook → TrialWarningBanner → DashboardShell wiring → ScanDashboard repositioning. AI_RULES §212.
+
+---
+
+## 2026-03-05 — Coaching Heroes S9–S13 + Replace Menu Fix (§211)
+
+**Goal:** Give every dashboard page the coaching persona treatment — animated score orb, tiered feedback, confetti on milestones, and a single next-action card.
+
+**New coaching hero components:**
+- `app/dashboard/reviews/_components/ReviewsCoachHero.tsx` — Reviews (S9). Tiers: loved/solid/mixed/at-risk/no-data. Orb: star rating (★ 4.2). Confetti: all reviews responded.
+- `app/dashboard/content-drafts/_components/PostsCoachHero.tsx` — Posts (S10). Tiers: on-fire/incoming/all-clear/building. Orb: pending draft count. Confetti: zero drafts pending.
+- `app/dashboard/citations/_components/PlatformsCoachHero.tsx` — Platforms (S11). Tiers: covered/good/gaps/invisible/no-data. Orb: gapScore 0–100. Confetti: 100% coverage.
+- `app/dashboard/page-audits/_components/WebsiteCheckupCoachHero.tsx` — Website Checkup (S12). Tiers: excellent/good/needs-work/not-ready/no-pages. Orb: avgScore. Confetti: avg ≥ 80.
+- `app/dashboard/intent-discovery/_components/QuestionsCoachHero.tsx` — Questions (S13). Tiers: winning/mostly/gaps/missing/no-data. Orb: gap count or covered count. Confetti: zero unanswered.
+
+**Modified page files:**
+- `app/dashboard/reviews/page.tsx` — removed flat 4-card stat strip, added ReviewsCoachHero, added `id="needs-response"` anchor.
+- `app/dashboard/content-drafts/page.tsx` — removed flat 3-card stat strip, added PostsCoachHero, added `id="drafts"` anchor.
+- `app/dashboard/citations/page.tsx` — removed CitationsSummaryPanel + TopGapCard, added PlatformsCoachHero, `id="platform-detail"` moved to grid div.
+- `app/dashboard/page-audits/page.tsx` — added WebsiteCheckupCoachHero above AuditScoreOverview, computed `lowestPage` via reduce.
+- `app/dashboard/intent-discovery/page.tsx` — added QuestionsCoachHero (server), outer wrapper div, `topGapPrompt` derived from gaps[0].
+- `app/dashboard/intent-discovery/IntentDiscoveryClient.tsx` — removed page header, stat cards, data-testid wrapper (now owned by page.tsx server shell).
+
+**Replace menu fix:**
+- `app/dashboard/magic-menus/_components/MenuWorkspace.tsx` — Added `onReplace: () => void` prop to `PublishedBanner`. "Replace menu" underlined link in banner top-right calls `onReplace(() => setView('upload'))`. Fixes: seed menu with `processing_status='published'` and `extracted_data=NULL` was stuck in published view with no way to reach the upload UI.
+
+**Pattern:** Pure server components. CSS animations only (lv-scan, lv-orb-breathe, lv-ping). ConfettiTrigger client island. Red tiers get lv-ping expansion rings. prefers-reduced-motion collapses all animations via globals.css. AI_RULES §211.
+
+---
+
 ## 2026-03-05 — Sprint §210: Live Scan Experience + Query Diagnostic
 
 **Goal:** Make "Run Voice Check" feel rewarding and make failing queries actionable.

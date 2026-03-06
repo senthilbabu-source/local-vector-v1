@@ -5,14 +5,13 @@
 //
 // CRITICAL RULES (AI_RULES §163):
 // - syncLocationToAll() is the ONLY entry point for multi-platform sync
-// - Never call apple-bc-client or bing-places-client directly from action files
-// - Partial failure isolation: Apple failure does NOT block Bing
+// - Never call apple-bc-client directly from action files
 // - All errors are logged to Sentry independently
+// NOTE: Bing Places write API retired — Bing is now manual_url only (see platform-config.ts)
 
 import * as Sentry from '@sentry/nextjs';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { syncOneLocation } from '@/lib/apple-bc/apple-bc-client';
-import { syncOneBingLocation } from '@/lib/bing-places/bing-places-client';
 import { buildABCLocation } from '@/lib/apple-bc/apple-bc-mapper';
 
 export interface OrchestratorResult {
@@ -64,26 +63,6 @@ export async function syncLocationToAll(
     } catch (err) {
       Sentry.captureException(err, { tags: { orchestrator: 'apple_bc', locationId } });
       result.platforms.apple_bc = { status: 'error', error: err instanceof Error ? err.message : 'unknown' };
-      // Continue to Bing regardless
-    }
-
-    // Bing Places
-    try {
-      const { data: bingConn } = await db.from('bing_places_connections')
-        .select('bing_listing_id')
-        .eq('location_id', locationId)
-        .eq('claim_status', 'claimed')
-        .maybeSingle();
-
-      if (bingConn?.bing_listing_id) {
-        const bingResult = await syncOneBingLocation(locationRow, bingConn.bing_listing_id);
-        result.platforms.bing = { status: bingResult.status, fieldsUpdated: bingResult.fieldsUpdated };
-      } else {
-        result.platforms.bing = { status: 'not_connected' };
-      }
-    } catch (err) {
-      Sentry.captureException(err, { tags: { orchestrator: 'bing', locationId } });
-      result.platforms.bing = { status: 'error', error: err instanceof Error ? err.message : 'unknown' };
     }
   } catch (err) {
     // Top-level catch — truly never throws. Critical for fire-and-forget usage.

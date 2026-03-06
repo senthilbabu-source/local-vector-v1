@@ -23,7 +23,7 @@ LocalVector is an AEO/GEO SaaS platform that helps local businesses monitor and 
 - **Plan display names live in `lib/plan-display-names.ts`.** Never inline plan tier display logic (e.g., `capitalize(plan)`) — always use `getPlanDisplayName()`. Maps: trial→The Audit, starter→Starter, growth→AI Shield, agency→Brand Fortress, null→Free. (AI_RULES §71)
 - **AI providers are centralized.** Never call AI APIs directly — use `getModel(key)` from `lib/ai/providers.ts`. Mock fallbacks activate when API keys are absent.
 - **RLS pattern:** Every tenant-scoped table has `org_isolation_select/insert/update/delete` policies using `org_id = public.current_user_org_id()`.
-- **Cron routes** live in `app/api/cron/` and require `Authorization: Bearer <CRON_SECRET>` header. Each has a kill switch env var. 25 crons registered in `vercel.json`, 9 in `CRON_REGISTRY`.
+- **Cron routes** live in `app/api/cron/` and require `Authorization: Bearer <CRON_SECRET>` header. Each has a kill switch env var. 25 crons registered in `vercel.json`, 9 in `CRON_REGISTRY`. (Note: bing-sync retired §213)
 - **Sidebar plan gating:** NAV_ITEMS in `components/layout/Sidebar.tsx` have optional `minPlan` field. Locked items render as buttons with Lock icon → `UpgradeModal`. (P1-FIX-06, AI_RULES §175)
 - **Accessibility (WCAG 2.1 AA):** Skip link in DashboardShell, semantic landmarks, `aria-current="page"` on active nav, `aria-hidden="true"` on decorative icons, focus trap in UpgradeModal, `aria-live="polite"` on credits counter, semantic `<table>` elements, `role="img"` + sr-only data tables on charts. Contrast: use `text-slate-400` (not `text-slate-500`) on dark backgrounds. (P6-FIX-27, AI_RULES §191)
 - **Manual scan trigger:** Growth/Agency users can trigger on-demand SOV scans via `POST /api/sov/trigger-manual`. Rate-limited 1/hr/org. Inngest async. (P1-FIX-05, AI_RULES §177)
@@ -34,7 +34,7 @@ LocalVector is an AEO/GEO SaaS platform that helps local businesses monitor and 
 ## Key Directories
 
 ```
-app/api/cron/          — Automated pipelines (sov, audit, content-audit, weekly-digest, correction-follow-up, correction-rescan, benchmarks, nap-sync, schema-drift, review-sync, autopilot, apple-bc-sync, bing-sync)
+app/api/cron/          — Automated pipelines (sov, audit, content-audit, weekly-digest, correction-follow-up, correction-rescan, benchmarks, nap-sync, schema-drift, review-sync, autopilot, apple-bc-sync)
 app/(auth)/            — Auth pages (login, register, forgot-password, reset-password)
 app/dashboard/         — Authenticated dashboard pages (each has error.tsx boundary)
 app/dashboard/citations/     — Citation Gap Dashboard (Sprint 58A)
@@ -79,7 +79,7 @@ lib/agent-readiness/scenario-descriptions.ts — Capability jargon→scenario tr
 lib/admin/format-relative-date.ts — Intl.RelativeTimeFormat utility for admin pages (Sprint D, §81)
 lib/admin/admin-guard.ts      — Admin auth guard: assertAdmin() + logAdminAction() (§204)
 lib/admin/admin-actions.ts     — 6 admin server actions: plan override, cancel, cron, impersonate, credits (§204)
-lib/admin/known-crons.ts       — SSOT list of 26 cron names + isKnownCron() type guard (§204)
+lib/admin/known-crons.ts       — SSOT list of 25 cron names + isKnownCron() type guard (§204)
 lib/nap-sync/          — NAP Sync Engine: adapters (GBP/Yelp/Apple Maps/Bing), discrepancy detector, health score, push corrections, orchestrator (Sprint 105, §124-§126)
 lib/invitations/       — Token-based invitation flow: types, service, email builder (Sprint 112, §146)
 lib/mcp/               — MCP server tool registrations
@@ -105,12 +105,9 @@ app/api/settings/              — Org settings CRUD + API key management + dang
 app/api/hallucinations/[id]/correct/ — Mark hallucination corrected + schedule rescan (Sprint 121, §155)
 app/api/cron/correction-rescan/     — Daily re-scan of pending corrections (Sprint 121, §155)
 lib/apple-bc/                      — Apple Business Connect sync pipeline: ES256 JWT auth, mapper, diff, client (Sprint 130, §162)
-lib/bing-places/                   — Bing Places sync pipeline: API key auth, mapper, client (Sprint 131, §163)
 lib/sync/sync-orchestrator.ts      — Unified multi-platform sync entry point: syncLocationToAll() (Sprint 131, §163)
 app/api/cron/apple-bc-sync/        — Nightly Apple BC sync, 3:30 AM UTC, Agency-only (Sprint 130, §162)
-app/api/cron/bing-sync/            — Nightly Bing Places sync, 4:00 AM UTC, Agency-only (Sprint 131, §163)
 app/actions/apple-bc.ts            — Connect/disconnect/manual-sync Apple BC (Sprint 130, §162)
-app/actions/bing-places.ts         — Connect/disconnect/manual-sync Bing Places (Sprint 131, §163)
 app/dashboard/settings/connections/ — Per-location connection management UI (Sprint 130, §162)
 components/ui/UpgradeModal.tsx — Plan-locked feature modal: Lock icon + plan name + billing CTA (P1-FIX-06, §175)
 app/dashboard/_components/ManualScanTrigger.tsx — On-demand SOV scan button: poll status, Growth+ gate (P1-FIX-05, §177)

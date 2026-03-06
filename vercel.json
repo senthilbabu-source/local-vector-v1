@@ -81,10 +81,6 @@
       "schedule": "30 3 * * *"
     },
     {
-      "path": "/api/cron/bing-sync",
-      "schedule": "0 4 * * *"
-    },
-    {
       "path": "/api/cron/agent-seo-audit",
       "schedule": "0 8 * * 1"
     },
