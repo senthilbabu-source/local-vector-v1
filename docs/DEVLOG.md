@@ -4,6 +4,26 @@
 
 ---
 
+## 2026-03-06 — Runtime Safety Audit: 16 null-guard fixes (§232)
+
+**Goal:** Comprehensive audit of unsafe property/array accesses that crash when DB data doesn't match TypeScript interfaces.
+
+**Modified files (10):**
+- `lib/inngest/functions/sov-cron.ts` — 7× `batch.queries[0]` guarded with `?.[0]` or early `if (!firstQuery)` checks
+- `lib/services/sov-engine.service.ts` — 3× `query.locations.business_name` → `query.locations?.business_name ?? ''`
+- `app/api/cron/sov/route.ts` — `freshness.alerts[0]` length guard + `q.locations?.business_name` optional chaining
+- `lib/vaio/mission-generator.ts` — `topGap.queries[0]` → `topGap?.queries?.[0]` guard
+- `app/dashboard/vaio/_components/MissionCard.tsx` — `crawlerAudit.crawlers.map` → `crawlerAudit?.crawlers?.length` guard
+- `app/dashboard/_components/ContentFreshnessCard.tsx` — `freshness.alerts[0]` → `freshness.alerts?.[0]`
+- `lib/vaio/voice-gap-detector.ts` — 3× `categories[0]` → `categories?.[0]`
+- `lib/vaio/llms-txt-generator.ts` — `gt.categories[0]` → `gt.categories?.[0]`
+- `lib/vaio/voice-query-library.ts` — `groundTruth.categories[0]` → `groundTruth.categories?.[0]`
+- `lib/services/competitor-intercept.service.ts` — `categories[0]` → `categories?.[0]`
+
+**Test result:** 6630 tests, 427 files — ALL PASS. Zero regressions.
+
+---
+
 ## 2026-03-06 — "What AI Is Talking About" on Magic Menu page (§231)
 
 **Goal:** Surface menu item AI demand signals on the main Magic Menu page instead of hiding them inside the detail page.

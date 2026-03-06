@@ -5241,6 +5241,36 @@ Fetched from `visibility_scores` table — latest 2 rows ordered by `snapshot_da
 
 ---
 
+## §232 — Runtime Safety: Defensive Null Guards for DB Data
+
+### Rule
+All property access on data originating from Supabase (JSONB columns, relational JOINs, array fields) MUST use optional chaining (`?.`) or explicit length/null checks before accessing nested properties, array elements, or calling array methods (`.map()`, `.filter()`, `.some()`).
+
+### Patterns
+```typescript
+// BAD — crashes when DB data doesn't match TypeScript interface
+const name = query.locations.business_name.toLowerCase();
+const first = items[0].category;
+data.crawlers.map(c => c.name);
+
+// GOOD — defensive access
+const name = (query.locations?.business_name ?? '').toLowerCase();
+const first = items?.[0]?.category ?? 'default';
+(data.crawlers ?? []).map(c => c.name);
+// or guard early:
+if (!data?.crawlers?.length) return null;
+```
+
+### Why
+TypeScript interfaces assume data shape matches the type, but Supabase JSONB columns, nullable JOINs, and empty arrays can produce `undefined` at runtime. The two original crashes were:
+1. `topGap.queries[0]` — `queries` was `undefined` despite `VoiceGap.queries: string[]` type
+2. `crawlerAudit.crawlers.map()` — `crawlers` was `undefined` despite `CrawlerAudit.crawlers` type
+
+### Files fixed (commit `335ec54`)
+10 files, 16 unsafe accesses patched. High-priority: sov-cron.ts (7), sov-engine.service.ts (3), cron/sov/route.ts (2). Medium: 4 VAIO/service files with `categories[0]`.
+
+---
+
 ## §231 — "What AI Is Talking About" — Menu Demand Signals on Main Page
 
 ### Problem
