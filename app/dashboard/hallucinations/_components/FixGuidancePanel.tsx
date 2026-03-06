@@ -20,10 +20,12 @@ import { getFixGuidance } from '@/lib/hallucinations/fix-guidance';
 
 interface FixGuidancePanelProps {
   category: string | null | undefined;
+  /** When true, panel starts expanded so fix steps are visible immediately */
+  defaultOpen?: boolean;
 }
 
-export default function FixGuidancePanel({ category }: FixGuidancePanelProps) {
-  const [open, setOpen] = useState(false);
+export default function FixGuidancePanel({ category, defaultOpen = false }: FixGuidancePanelProps) {
+  const [open, setOpen] = useState(defaultOpen);
   const guidance = getFixGuidance(category);
 
   if (!guidance) return null;

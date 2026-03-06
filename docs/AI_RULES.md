@@ -2180,7 +2180,7 @@ Hallucinations page (`/dashboard/hallucinations`) replaced the flat Flagged Hall
 - **Swimlane partitioning:** "Fix Now" = `correction_status === 'open'` (sorted by severity: critical → high → medium → low). "In Progress" = `correction_status === 'verifying'`. "Resolved" = `fixed | dismissed | recurring` (capped at 10).
 - **AlertCard always uses `describeAlert()` from `lib/issue-descriptions.ts`.** No hardcoded alert copy in AlertCard. AI_RULES §93 still applies.
 - **DismissAlertButton** reuses existing `updateHallucinationStatus()` server action from `app/dashboard/actions.ts`. No new server actions created.
-- **Status→action mapping:** open → "Fix with AI" + "Dismiss". verifying → follow-up status banner. fixed → green "Fixed" text. recurring → "Try again →" link.
+- **Status→action mapping:** open → FixGuidancePanel (expanded) + "Mark Corrected" + "Dismiss". verifying → follow-up status banner + FixGuidancePanel (collapsed). fixed → green "Fixed" text. recurring → "Mark Corrected" + "Dismiss" (resubmit correction).
 - **HallucinationsPageHeader** shows verdict: 0 open → green "No wrong facts". >0 → red count + "Fix these..."
 - No new DB tables, migrations, crons, or API routes. Pure front-end.
 
@@ -5299,3 +5299,38 @@ The S24 demand signals feature (`DemandInsightPanel`) was built but hidden insid
 - Items shorter than 3 characters are excluded by `countItemMentions()` (unchanged from S24)
 - 90-day window for SOV raw_response scanning (unchanged from S24)
 - Top 5 items maximum shown on main page
+
+## §233. Fix CTA Honesty Sweep
+
+Removed all circular "Fix with AI" links and misleading credit-cost claims across the dashboard. Restaurant owners now see actionable fix steps immediately instead of being sent in circles.
+
+### Problems Fixed
+1. **Circular "Fix with AI" link** — AlertCard linked to `/dashboard/hallucinations` (same page). Removed entirely.
+2. **Circular "Try again →" link** — recurring alerts linked to same page. Replaced with Mark Corrected + Dismiss.
+3. **Misleading "Fix with AI" label** — implied automated AI fix; actual fix is manual platform updates. Renamed to "Fix this →".
+4. **Fake credit cost** — `costsCredit: true` displayed "1 credit" but no credit was consumed. Set to `false`.
+5. **Hidden fix steps** — FixGuidancePanel collapsed by default, buried below misleading button. Now expanded by default for open alerts.
+6. **Missing fix guidance for "status"** category (e.g., "permanently closed") — added 4-step guidance.
+7. **Missing fix guidance for "amenity"** category (e.g., wrong outdoor seating) — added 4-step guidance.
+
+### Rules
+- **No circular links:** CTAs must never link to the page the user is already on. If an action is inline, use a button, not a navigation link.
+- **No misleading labels:** CTA text must accurately describe what happens. "Fix with AI" implies automation — only use if the system actually fixes something.
+- **No fake costs:** `costsCredit` must only be `true` if clicking actually consumes a credit.
+- **Fix steps visible by default:** FixGuidancePanel uses `defaultOpen={true}` for open alerts so restaurant owners see what to do immediately.
+- **Every hallucination category must have fix guidance:** If `describeAlert()` covers a category, `FIX_GUIDANCE` in `fix-guidance.ts` must also cover it. Current: hours, closed, address, phone, menu, cuisine, status, amenity (8 categories).
+- **TopIssuesPanel "Fix this →"** is valid cross-page navigation from dashboard → hallucinations page. The label is honest — it says "fix this" and takes you to the page where fix steps are shown.
+
+### Modified Files
+- `lib/issue-descriptions.ts` — `fixLabel` type: `'Fix with AI'` → `'Fix this →'`. All `costsCredit: true` → `false`.
+- `lib/hallucinations/fix-guidance.ts` — Added `status` + `amenity` categories (8 total).
+- `app/dashboard/hallucinations/_components/AlertCard.tsx` — Removed "Fix with AI" Link + "Try again" Link. FixGuidancePanel `defaultOpen={status === 'open'}`. Recurring status now shows Mark Corrected + Dismiss.
+- `app/dashboard/hallucinations/_components/FixGuidancePanel.tsx` — Added `defaultOpen` prop.
+- `app/dashboard/_components/TopIssuesPanel.tsx` — Renamed "Fix with AI" → "Fix this →". Removed Sparkles icon. Removed fake "1 credit" indicator.
+
+### Tests
+- `alert-card.test.tsx` — Updated: asserts no "Fix with AI" text, verifies Mark Corrected + Dismiss for open/recurring.
+- `top-issues-panel.test.tsx` — Updated: asserts "Fix this" text instead of "Fix with AI".
+- `issue-descriptions.test.ts` — Updated: `fixLabel` = `'Fix this →'`, `costsCredit` = `false`.
+- `wave1-s14-fix-guidance.test.ts` — Added: 2 new tests for `status` + `amenity` categories.
+- **94 tests pass across 4 affected files. Zero regressions.**

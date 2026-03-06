@@ -114,6 +114,39 @@ export const FIX_GUIDANCE: Record<string, FixGuidance> = {
     ],
     estimatedDays: 18,
   },
+
+  status: {
+    category: 'status',
+    title: 'Correct your business status',
+    steps: [
+      'Log into Google Business Profile and verify you are NOT marked as "Permanently Closed" or "Temporarily Closed"',
+      'Post a recent update or photo to show your business is active',
+      'Verify your hours are current — stale hours signal inactivity to AI',
+      'Check Yelp and TripAdvisor for the same "closed" status and correct it',
+    ],
+    platforms: [
+      { name: 'Google Business Profile', url: 'https://business.google.com' },
+      { name: 'Yelp for Business', url: 'https://biz.yelp.com' },
+    ],
+    estimatedDays: 7,
+    urgencyNote: 'CRITICAL — AI telling customers you are closed sends them to competitors immediately',
+  },
+
+  amenity: {
+    category: 'amenity',
+    title: 'Correct your amenity information',
+    steps: [
+      'Log into Google Business Profile → Edit profile → More → Amenities',
+      'Update incorrect amenity details (outdoor seating, parking, Wi-Fi, etc.)',
+      'Check Yelp "Amenities and More" section and update if needed',
+      'Update your own website to match — AI cross-references multiple sources',
+    ],
+    platforms: [
+      { name: 'Google Business Profile', url: 'https://business.google.com' },
+      { name: 'Yelp for Business', url: 'https://biz.yelp.com' },
+    ],
+    estimatedDays: 10,
+  },
 };
 
 /**

@@ -11,8 +11,7 @@
 import { describeAlert, getModelName, mapSeverity } from '@/lib/issue-descriptions';
 import type { HallucinationRow } from '@/lib/data/dashboard';
 import type { CorrectionStatus } from '../../actions';
-import { Sparkles, AlertTriangle } from 'lucide-react';
-import Link from 'next/link';
+import { AlertTriangle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import DismissAlertButton from './DismissAlertButton';
 import CorrectButton from './CorrectButton';
@@ -133,23 +132,15 @@ export default function AlertCard({ alert, isResolved = false, avgTicket = 55, m
         </div>
       )}
 
-      {/* S14: Category-specific fix guidance — only for actionable statuses */}
+      {/* S14: Category-specific fix guidance — expanded by default for open alerts */}
       {(status === 'open' || status === 'verifying') && (
-        <FixGuidancePanel category={alert.fix_guidance_category} />
+        <FixGuidancePanel category={alert.fix_guidance_category} defaultOpen={status === 'open'} />
       )}
 
       {/* Actions — one per status */}
       <div className="mt-3 flex items-center gap-3 flex-wrap">
         {status === 'open' && (
           <>
-            <Link
-              href={`/dashboard/hallucinations`}
-              className="inline-flex items-center gap-1 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
-              data-testid={`alert-fix-${alert.id}`}
-            >
-              <Sparkles className="h-3 w-3" aria-hidden="true" />
-              Fix with AI
-            </Link>
             <CorrectButton hallucinationId={alert.id} claimText={alert.claim_text} />
             <DismissAlertButton alertId={alert.id} />
           </>
@@ -165,12 +156,10 @@ export default function AlertCard({ alert, isResolved = false, avgTicket = 55, m
           </span>
         )}
         {status === 'recurring' && (
-          <Link
-            href="/dashboard/hallucinations"
-            className="text-xs text-primary underline hover:text-primary/80"
-          >
-            Try again →
-          </Link>
+          <>
+            <CorrectButton hallucinationId={alert.id} claimText={alert.claim_text} />
+            <DismissAlertButton alertId={alert.id} />
+          </>
         )}
       </div>
     </div>

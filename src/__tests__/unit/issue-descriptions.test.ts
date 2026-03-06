@@ -35,7 +35,7 @@ describe('describeAlert()', () => {
     it('returns severity=critical for a critical hours alert', () => {
       const result = describeAlert(makeAlert({ category: 'hours', severity: 'critical' }));
       expect(result.severity).toBe('critical');
-      expect(result.fixLabel).toBe('Fix with AI');
+      expect(result.fixLabel).toBe('Fix this →');
     });
 
     it('includes model name and claim_text when both present', () => {
@@ -59,9 +59,9 @@ describe('describeAlert()', () => {
       expect(result.headline).toContain('incorrect business hours');
     });
 
-    it('costsCredit is true for hours alerts', () => {
+    it('costsCredit is false for hours alerts', () => {
       const result = describeAlert(makeAlert({ category: 'hours' }));
-      expect(result.costsCredit).toBe(true);
+      expect(result.costsCredit).toBe(false);
     });
   });
 
@@ -105,9 +105,9 @@ describe('describeAlert()', () => {
   // ── Wrong menu ──────────────────────────────────────────────────────────
 
   describe('category: menu', () => {
-    it('returns fixLabel=Fix with AI', () => {
+    it('returns fixLabel=Fix this →', () => {
       const result = describeAlert(makeAlert({ category: 'menu', severity: 'medium' }));
-      expect(result.fixLabel).toBe('Fix with AI');
+      expect(result.fixLabel).toBe('Fix this →');
     });
 
     it('maps medium severity to warning', () => {
@@ -139,9 +139,9 @@ describe('describeAlert()', () => {
   // ── Amenity ─────────────────────────────────────────────────────────────
 
   describe('category: amenity', () => {
-    it('returns costsCredit=true', () => {
+    it('returns costsCredit=false', () => {
       const result = describeAlert(makeAlert({ category: 'amenity' }));
-      expect(result.costsCredit).toBe(true);
+      expect(result.costsCredit).toBe(false);
     });
   });
 

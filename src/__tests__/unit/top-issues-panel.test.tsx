@@ -10,10 +10,6 @@ vi.mock('next/link', () => ({
   ),
 }));
 
-vi.mock('lucide-react', () => ({
-  Sparkles: () => <span data-testid="sparkles-icon">sparkles</span>,
-}));
-
 import TopIssuesPanel from '@/app/dashboard/_components/TopIssuesPanel';
 
 function makeAlert(overrides: Partial<HallucinationRow> = {}): HallucinationRow {
@@ -86,7 +82,7 @@ describe('TopIssuesPanel', () => {
     expect(screen.getByTestId('top-issue-row-0')).toBeDefined();
   });
 
-  it('"Fix with AI" button present for issues with fixLabel=Fix with AI', () => {
+  it('"Fix this" button present for hallucination issues', () => {
     render(
       <TopIssuesPanel
         alerts={[makeAlert({ category: 'hours' })]}
@@ -95,7 +91,7 @@ describe('TopIssuesPanel', () => {
       />,
     );
     expect(screen.getByTestId('top-issue-fix-0')).toBeDefined();
-    expect(screen.getByTestId('top-issue-fix-0').textContent).toContain('Fix with AI');
+    expect(screen.getByTestId('top-issue-fix-0').textContent).toContain('Fix this');
   });
 
   it('"How to fix" link present for technical findings', () => {

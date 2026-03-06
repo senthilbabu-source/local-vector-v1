@@ -9,7 +9,6 @@
  */
 
 import Link from 'next/link';
-import { Sparkles } from 'lucide-react';
 import type { HallucinationRow } from '@/lib/data/dashboard';
 import type { CrawlerSummary } from '@/lib/data/crawler-analytics';
 import {
@@ -64,8 +63,8 @@ const SAMPLE_ISSUES: DisplayIssue[] = [
         'ChatGPT says "Closes at 10pm on weekends" — the truth is "Open until 2am on weekends"',
       severity: 'critical',
       fixHref: '/dashboard/hallucinations',
-      fixLabel: 'Fix with AI',
-      costsCredit: true,
+      fixLabel: 'Fix this →',
+      costsCredit: false,
       category: 'AI search',
     },
   },
@@ -75,8 +74,8 @@ const SAMPLE_ISSUES: DisplayIssue[] = [
         'Perplexity is showing incorrect menu or pricing information',
       severity: 'warning',
       fixHref: '/dashboard/hallucinations',
-      fixLabel: 'Fix with AI',
-      costsCredit: true,
+      fixLabel: 'Fix this →',
+      costsCredit: false,
       category: 'AI search',
     },
   },
@@ -151,23 +150,19 @@ function IssueRow({
             >
               {description.category}
             </span>
-            {description.costsCredit && (
-              <span className="text-[10px] text-slate-500">· 1 credit</span>
-            )}
           </div>
         </div>
       </div>
 
       {/* CTA */}
       <div className="shrink-0 mt-1">
-        {description.fixLabel === 'Fix with AI' ? (
+        {description.fixLabel === 'Fix this →' ? (
           <Link
             href={description.fixHref}
             className="inline-flex items-center gap-1.5 rounded-md bg-electric-indigo px-3 py-1.5 text-xs font-medium text-white hover:bg-electric-indigo/90 transition-colors whitespace-nowrap"
             data-testid={`top-issue-fix-${index}`}
           >
-            <Sparkles className="h-3 w-3" aria-hidden="true" />
-            Fix with AI
+            Fix this →
           </Link>
         ) : (
           <Link

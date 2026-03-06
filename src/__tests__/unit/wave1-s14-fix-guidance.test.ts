@@ -46,6 +46,22 @@ describe('getFixGuidance', () => {
     expect(g).not.toBeNull();
   });
 
+  it('returns guidance for "status" category', () => {
+    const g = getFixGuidance('status');
+    expect(g).not.toBeNull();
+    expect(g!.category).toBe('status');
+    expect(g!.steps.length).toBeGreaterThan(0);
+    expect(g!.urgencyNote).toBeDefined();
+  });
+
+  it('returns guidance for "amenity" category', () => {
+    const g = getFixGuidance('amenity');
+    expect(g).not.toBeNull();
+    expect(g!.category).toBe('amenity');
+    expect(g!.steps.length).toBeGreaterThan(0);
+    expect(g!.platforms.length).toBeGreaterThan(0);
+  });
+
   it('is case-insensitive — "HOURS" returns same as "hours"', () => {
     expect(getFixGuidance('HOURS')).toEqual(getFixGuidance('hours'));
   });

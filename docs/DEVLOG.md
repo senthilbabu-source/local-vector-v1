@@ -4,6 +4,34 @@
 
 ---
 
+## 2026-03-06 — Fix CTA Honesty Sweep (§233)
+
+**Goal:** Remove all circular links and misleading "Fix with AI" buttons that sent restaurant owners in circles with no actual fix.
+
+**7 problems fixed:**
+1. AlertCard "Fix with AI" → circular link to same page (removed)
+2. AlertCard "Try again →" → circular link to same page (replaced with Mark Corrected + Dismiss)
+3. "Fix with AI" label → misleading, implies automation (renamed to "Fix this →")
+4. `costsCredit: true` → fake "1 credit" indicator, nothing consumed (set to false)
+5. FixGuidancePanel collapsed by default → actual fix steps hidden (now expanded for open alerts)
+6. No fix guidance for "status" category (added 4-step guidance)
+7. No fix guidance for "amenity" category (added 4-step guidance)
+
+**Modified files (9):**
+- `lib/issue-descriptions.ts` — fixLabel `'Fix with AI'` → `'Fix this →'`, costsCredit → false
+- `lib/hallucinations/fix-guidance.ts` — +2 categories: status, amenity (8 total)
+- `app/dashboard/hallucinations/_components/AlertCard.tsx` — removed circular Link, FixGuidancePanel defaultOpen
+- `app/dashboard/hallucinations/_components/FixGuidancePanel.tsx` — added defaultOpen prop
+- `app/dashboard/_components/TopIssuesPanel.tsx` — renamed label, removed Sparkles icon, removed credit indicator
+- `src/__tests__/unit/alert-card.test.tsx` — updated assertions
+- `src/__tests__/unit/top-issues-panel.test.tsx` — updated assertions
+- `src/__tests__/unit/issue-descriptions.test.ts` — updated expectations
+- `src/__tests__/unit/wave1-s14-fix-guidance.test.ts` — +2 tests for new categories
+
+**Test result:** 94 tests across 4 affected files — ALL PASS. Zero regressions.
+
+---
+
 ## 2026-03-06 — Runtime Safety Audit: 16 null-guard fixes (§232)
 
 **Goal:** Comprehensive audit of unsafe property/array accesses that crash when DB data doesn't match TypeScript interfaces.

@@ -8,13 +8,6 @@ import { render, screen } from '@testing-library/react';
 import AlertCard from '@/app/dashboard/hallucinations/_components/AlertCard';
 import type { HallucinationRow } from '@/lib/data/dashboard';
 
-// Mock next/link to render plain <a>
-vi.mock('next/link', () => ({
-  default: ({ href, children, ...props }: { href: string; children: React.ReactNode; [k: string]: unknown }) => (
-    <a href={href} {...props}>{children}</a>
-  ),
-}));
-
 // Mock the server action used by DismissAlertButton
 vi.mock('@/app/dashboard/actions', () => ({
   updateHallucinationStatus: vi.fn(),
@@ -81,23 +74,15 @@ describe('AlertCard', () => {
   });
 
   // Actions by status
-  it('status=open shows Fix with AI button', () => {
+  it('status=open shows Mark Corrected and Dismiss buttons (no circular link)', () => {
     render(<AlertCard alert={makeAlert({ correction_status: 'open' })} />);
-    expect(screen.getByText('Fix with AI')).toBeDefined();
-  });
-
-  it('status=open shows Dismiss button', () => {
-    render(<AlertCard alert={makeAlert({ correction_status: 'open' })} />);
+    expect(screen.getByText('Mark Corrected')).toBeDefined();
     expect(screen.getByText('Dismiss')).toBeDefined();
+    // No misleading "Fix with AI" circular link
+    expect(screen.queryByText('Fix with AI')).toBeNull();
   });
 
-  it('Fix with AI links to /dashboard/hallucinations', () => {
-    render(<AlertCard alert={makeAlert({ correction_status: 'open' })} />);
-    const link = screen.getByTestId('alert-fix-alert-1');
-    expect(link.getAttribute('href')).toBe('/dashboard/hallucinations');
-  });
-
-  it('status=verifying shows verification text (no Fix button)', () => {
+  it('status=verifying shows verification text (no action buttons)', () => {
     render(
       <AlertCard
         alert={makeAlert({
@@ -107,18 +92,19 @@ describe('AlertCard', () => {
       />,
     );
     expect(screen.getByText(/Verification in progress/)).toBeDefined();
-    expect(screen.queryByText('Fix with AI')).toBeNull();
+    expect(screen.queryByText('Mark Corrected')).toBeNull();
   });
 
-  it('status=fixed shows Fixed text (no Fix button)', () => {
+  it('status=fixed shows Fixed text (no action buttons)', () => {
     render(<AlertCard alert={makeAlert({ correction_status: 'fixed' })} />);
     expect(screen.getByText(/Fixed/)).toBeDefined();
-    expect(screen.queryByText('Fix with AI')).toBeNull();
+    expect(screen.queryByText('Mark Corrected')).toBeNull();
   });
 
-  it('status=recurring shows Try again link', () => {
+  it('status=recurring shows Mark Corrected and Dismiss (no circular link)', () => {
     render(<AlertCard alert={makeAlert({ correction_status: 'recurring' })} />);
-    expect(screen.getByText('Try again →')).toBeDefined();
+    expect(screen.getByText('Mark Corrected')).toBeDefined();
+    expect(screen.getByText('Dismiss')).toBeDefined();
   });
 
   // S14: FixGuidancePanel integration

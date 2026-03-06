@@ -26,8 +26,8 @@ export interface IssueDescription {
   /** Where to go to fix this */
   fixHref: string;
   /** Label for the fix CTA */
-  fixLabel: 'Fix with AI' | 'How to fix →' | 'View details →';
-  /** True if "Fix with AI" uses a credit */
+  fixLabel: 'Fix this →' | 'How to fix →' | 'View details →';
+  /** Whether this action consumes an API credit */
   costsCredit: boolean;
   /** Category tag shown as a small badge */
   category: 'AI search' | 'Site health' | 'Listings' | 'Content';
@@ -79,8 +79,8 @@ export function describeAlert(alert: HallucinationRow): IssueDescription {
           : `${modelName} is showing incorrect business hours`,
         severity,
         fixHref: '/dashboard/hallucinations',
-        fixLabel: 'Fix with AI',
-        costsCredit: true,
+        fixLabel: 'Fix this →',
+        costsCredit: false,
         category: 'AI search',
       };
 
@@ -92,8 +92,8 @@ export function describeAlert(alert: HallucinationRow): IssueDescription {
         subtext: 'Customers following these directions will never arrive.',
         severity,
         fixHref: '/dashboard/hallucinations',
-        fixLabel: 'Fix with AI',
-        costsCredit: true,
+        fixLabel: 'Fix this →',
+        costsCredit: false,
         category: 'AI search',
       };
 
@@ -104,8 +104,8 @@ export function describeAlert(alert: HallucinationRow): IssueDescription {
           : `${modelName} has an incorrect phone number for your business`,
         severity,
         fixHref: '/dashboard/hallucinations',
-        fixLabel: 'Fix with AI',
-        costsCredit: true,
+        fixLabel: 'Fix this →',
+        costsCredit: false,
         category: 'AI search',
       };
 
@@ -116,8 +116,8 @@ export function describeAlert(alert: HallucinationRow): IssueDescription {
           : `${modelName} is showing incorrect menu or pricing information`,
         severity,
         fixHref: '/dashboard/hallucinations',
-        fixLabel: 'Fix with AI',
-        costsCredit: true,
+        fixLabel: 'Fix this →',
+        costsCredit: false,
         category: 'AI search',
       };
 
@@ -129,8 +129,8 @@ export function describeAlert(alert: HallucinationRow): IssueDescription {
         subtext: 'Customers who see this will go somewhere else.',
         severity,
         fixHref: '/dashboard/hallucinations',
-        fixLabel: 'Fix with AI',
-        costsCredit: true,
+        fixLabel: 'Fix this →',
+        costsCredit: false,
         category: 'AI search',
       };
 
@@ -141,8 +141,8 @@ export function describeAlert(alert: HallucinationRow): IssueDescription {
           : `${modelName} has incorrect information about your amenities`,
         severity,
         fixHref: '/dashboard/hallucinations',
-        fixLabel: 'Fix with AI',
-        costsCredit: true,
+        fixLabel: 'Fix this →',
+        costsCredit: false,
         category: 'AI search',
       };
 
