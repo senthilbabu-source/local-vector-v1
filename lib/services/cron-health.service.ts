@@ -60,6 +60,11 @@ export const CRON_REGISTRY: CronRegistryEntry[] = [
   { cronName: 'benchmarks', label: 'Local Comparison Update', schedule: 'Weekly Sun 3 AM EST' },
   { cronName: 'schema-drift', label: 'Website Data Check', schedule: '1st of Month 4 AM UTC' },
   { cronName: 'review-sync', label: 'Review Update', schedule: 'Weekly Sun 1 AM UTC' },
+  { cronName: 'degradation-check', label: 'AI Accuracy Degradation', schedule: 'Daily 6 AM UTC' },
+  { cronName: 'correction-benchmarks', label: 'Correction Benchmarks', schedule: 'Weekly Mon 4 AM UTC' },
+  { cronName: 'ai-shopper', label: 'AI Shopper Simulation', schedule: 'Weekly Wed 5 AM UTC' },
+  { cronName: 'competitor-vulnerability', label: 'Competitor Vulnerability', schedule: 'Weekly Tue 8 AM UTC' },
+  { cronName: 'monthly-report', label: 'Monthly Report', schedule: '1st of Month 9 AM UTC' },
 ];
 
 // ---------------------------------------------------------------------------

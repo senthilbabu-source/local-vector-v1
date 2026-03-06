@@ -102,6 +102,8 @@ export interface DashboardData {
   napScore: number | null;
   // S20: Accuracy snapshots for health streak computation
   accuracySnapshots: { accuracy_score: number | null; snapshot_date: string }[];
+  // S22: Recent degradation event for banner
+  degradationEvent: { model_provider: string; detected_at: string; affected_org_count: number } | null;
 }
 
 // P8-FIX-33: Data shape for RealityScoreTrendChart
@@ -489,6 +491,29 @@ export async function fetchDashboardData(orgId: string, locationId?: string | nu
     Sentry.captureException(err, { tags: { file: 'dashboard.ts', sprint: 'S20' } });
   }
 
+  // ── S22: Recent AI model degradation event for banner ──
+  let degradationEvent: { model_provider: string; detected_at: string; affected_org_count: number } | null = null;
+  try {
+    const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+    const { data: degRows } = await supabase
+      .from('ai_model_degradation_events' as 'cron_run_log')
+      .select('model_provider, detected_at, affected_org_count' as 'cron_name, created_at, duration_ms')
+      .gte('detected_at' as 'created_at', sevenDaysAgo)
+      .order('detected_at' as 'created_at', { ascending: false })
+      .limit(1);
+    if (degRows && degRows.length > 0) {
+      const row = degRows[0] as unknown as { model_provider: string; detected_at: string; affected_org_count: number };
+      degradationEvent = {
+        model_provider: row.model_provider,
+        detected_at: row.detected_at,
+        affected_org_count: row.affected_org_count,
+      };
+    }
+  } catch (err) {
+    Sentry.captureException(err, { tags: { file: 'dashboard.ts', sprint: 'S22' } });
+    // Degradation event is non-critical — dashboard renders without it.
+  }
+
   // ── S16: Current + previous visibility_scores snapshots for score attribution ──
   let currentScoreSnapshot: ScoreSnapshot | null = null;
   let prevScoreSnapshot: ScoreSnapshot | null = null;
@@ -571,5 +596,7 @@ export async function fetchDashboardData(orgId: string, locationId?: string | nu
     napScore,
     // S20: Health streak accuracy snapshots
     accuracySnapshots,
+    // S22: Recent degradation event for banner
+    degradationEvent,
   };
 }

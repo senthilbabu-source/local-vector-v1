@@ -326,68 +326,60 @@ type NavItem = (typeof NAV_ITEMS)[number] & { minPlan?: 'growth' | 'agency' };
 
 export const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
   {
-    // The 3 things an owner checks every day
+    // Daily check: dashboard, errors, revenue impact
     label: 'Today',
     items: NAV_ITEMS.filter((i) =>
       [
         '/dashboard',
         '/dashboard/hallucinations',
-        '/dashboard/wins',
-        '/dashboard/sentiment',
-      ].includes(i.href),
-    ),
-  },
-  {
-    // How AI apps perceive and talk about the restaurant
-    label: 'How AI Sees You',
-    items: NAV_ITEMS.filter((i) =>
-      [
-        '/dashboard/share-of-voice',
-        '/dashboard/ai-responses',
-        '/dashboard/ai-assistant',
-        '/dashboard/vaio',
-      ].includes(i.href),
-    ),
-  },
-  {
-    // Actions that directly grow presence — menu, content, revenue context
-    label: 'Grow Your Presence',
-    items: NAV_ITEMS.filter((i) =>
-      [
-        '/dashboard/magic-menus',
-        '/dashboard/content-drafts',
-        '/dashboard/content-calendar',
         '/dashboard/revenue-impact',
       ].includes(i.href),
     ),
   },
   {
-    // Competitive position and listing health
-    label: 'Competitive Edge',
+    // Weekly cadence: mentions, competitors, voice search, menu
+    label: 'This Week',
     items: NAV_ITEMS.filter((i) =>
       [
+        '/dashboard/share-of-voice',
         '/dashboard/compete',
-        '/dashboard/benchmarks',
-        '/dashboard/integrations',
+        '/dashboard/vaio',
+        '/dashboard/magic-menus',
       ].includes(i.href),
     ),
   },
   {
-    // Technical / power-user pages — collapsed by default
+    // Monthly cadence: content, calendar, platforms, benchmarks, playbooks
+    label: 'This Month',
+    items: NAV_ITEMS.filter((i) =>
+      [
+        '/dashboard/content-drafts',
+        '/dashboard/content-calendar',
+        '/dashboard/integrations',
+        '/dashboard/benchmarks',
+        '/dashboard/entity-health',
+      ].includes(i.href),
+    ),
+  },
+  {
+    // Power-user / technical pages — collapsed by default
     label: 'Advanced',
     items: NAV_ITEMS.filter((i) =>
       [
+        '/dashboard/agent-readiness',
         '/dashboard/page-audits',
-        '/dashboard/citations',
+        '/dashboard/ai-responses',
+        '/dashboard/ai-assistant',
+        '/dashboard/crawler-analytics',
         '/dashboard/source-intelligence',
         '/dashboard/cluster-map',
-        '/dashboard/crawler-analytics',
         '/dashboard/proof-timeline',
-        '/dashboard/entity-health',
-        '/dashboard/agent-readiness',
         '/dashboard/system-health',
         '/dashboard/playbooks',
         '/dashboard/intent-discovery',
+        '/dashboard/citations',
+        '/dashboard/sentiment',
+        '/dashboard/wins',
       ].includes(i.href),
     ),
   },

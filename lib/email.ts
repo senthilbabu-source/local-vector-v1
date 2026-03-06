@@ -600,6 +600,50 @@ export interface InvitationEmailPayload extends InvitationEmailProps {
  * No-ops silently when RESEND_API_KEY is not configured.
  * Errors ARE thrown — callers should catch if email failure is non-fatal.
  */
+// ---------------------------------------------------------------------------
+// S22: AI Model Degradation Alert
+// ---------------------------------------------------------------------------
+
+export interface DegradationAlertData {
+  modelProvider: string;
+  affectedOrgCount: number;
+}
+
+export async function sendDegradationAlert(
+  to: string,
+  data: DegradationAlertData,
+): Promise<void> {
+  if (!process.env.RESEND_API_KEY) {
+    console.log(`[email] RESEND_API_KEY absent — skipping degradation alert to ${to}`);
+    return;
+  }
+
+  const modelName = data.modelProvider.includes('openai') ? 'ChatGPT'
+    : data.modelProvider.includes('perplexity') ? 'Perplexity'
+    : data.modelProvider.includes('gemini') ? 'Gemini'
+    : data.modelProvider;
+
+  await getResend().emails.send({
+    from: 'LocalVector Alerts <alerts@localvector.ai>',
+    to,
+    subject: `AI Model Alert: ${modelName} appears to have updated`,
+    html: `
+      <h2>AI Model Alert</h2>
+      <p>${modelName} appears to have updated its knowledge base. This is not your fault.</p>
+      <p><strong>${data.affectedOrgCount}</strong> businesses on LocalVector saw new errors this week.</p>
+      <p>Here's what to do:</p>
+      <ol>
+        <li>Check your <a href="https://app.localvector.ai/dashboard/hallucinations">AI Mistakes page</a> for any new errors</li>
+        <li>If you see new issues, they may resolve on their own as the model stabilizes</li>
+        <li>We will notify you when we confirm the update has settled</li>
+      </ol>
+      <p>— The LocalVector Team</p>
+    `,
+  });
+
+  console.log(`[email] Degradation alert sent to ${to} for model ${data.modelProvider}`);
+}
+
 export async function sendInvitationEmail(
   payload: InvitationEmailPayload
 ): Promise<void> {
@@ -620,4 +664,79 @@ export async function sendInvitationEmail(
   });
 
   console.log(`[email] Invitation email sent to ${to} for org ${payload.orgName}`);
+}
+
+// ---------------------------------------------------------------------------
+// S27: Monthly AI Health Report
+// ---------------------------------------------------------------------------
+
+export interface MonthlyReportEmailData {
+  month: string;
+  winsCount: number;
+  fixedHallucinationsCount: number;
+  revenueRecoveredMonthly: number;
+  realityScoreDelta: number | null;
+  sovDelta: number | null;
+  openAlertCount: number;
+  openAlertDollarImpact: number;
+  ytdRecoveryTotal: number;
+  ytdErrorsCaught: number;
+  ytdAvgDetectionDays: number | null;
+}
+
+export async function sendMonthlyReport(
+  to: string,
+  report: MonthlyReportEmailData,
+): Promise<void> {
+  if (!process.env.RESEND_API_KEY) {
+    console.log(`[email] RESEND_API_KEY absent — skipping monthly report to ${to}`);
+    return;
+  }
+
+  const scoreTrend = report.realityScoreDelta !== null
+    ? report.realityScoreDelta >= 0 ? `+${report.realityScoreDelta}` : `${report.realityScoreDelta}`
+    : 'N/A';
+
+  const sovTrend = report.sovDelta !== null
+    ? report.sovDelta >= 0 ? `+${report.sovDelta}%` : `${report.sovDelta}%`
+    : 'N/A';
+
+  await getResend().emails.send({
+    from: 'LocalVector <reports@localvector.ai>',
+    to,
+    subject: `Your AI Health Report — ${report.month}`,
+    html: `
+      <div style="font-family:system-ui,sans-serif;max-width:600px;margin:0 auto;padding:24px;">
+        <h1 style="font-size:20px;margin-bottom:4px;">Monthly AI Health Report</h1>
+        <p style="color:#64748b;font-size:14px;">${report.month}</p>
+
+        <h2 style="font-size:16px;margin-top:24px;">Wins This Month</h2>
+        <ul style="color:#334155;font-size:14px;">
+          <li>${report.fixedHallucinationsCount} AI errors fixed</li>
+          <li>$${Math.round(report.revenueRecoveredMonthly).toLocaleString()} revenue recovered</li>
+          <li>AI Score trend: ${scoreTrend}</li>
+          <li>AI Mentions trend: ${sovTrend}</li>
+        </ul>
+
+        <h2 style="font-size:16px;margin-top:24px;">Still Outstanding</h2>
+        <ul style="color:#334155;font-size:14px;">
+          <li>${report.openAlertCount} open alerts</li>
+          <li>$${Math.round(report.openAlertDollarImpact).toLocaleString()}/mo potential impact</li>
+        </ul>
+
+        <h2 style="font-size:16px;margin-top:24px;">Year-to-Date</h2>
+        <ul style="color:#334155;font-size:14px;">
+          <li>$${Math.round(report.ytdRecoveryTotal).toLocaleString()} total recovery</li>
+          <li>${report.ytdErrorsCaught} errors caught</li>
+          ${report.ytdAvgDetectionDays !== null ? `<li>Avg ${report.ytdAvgDetectionDays} days to detect</li>` : ''}
+        </ul>
+
+        <p style="margin-top:24px;font-size:12px;color:#94a3b8;">
+          <a href="${process.env.NEXT_PUBLIC_APP_URL ?? 'https://app.localvector.ai'}/dashboard" style="color:#4f46e5;">View Dashboard</a>
+        </p>
+      </div>
+    `,
+  });
+
+  console.log(`[email] Monthly report sent to ${to} for ${report.month}`);
 }

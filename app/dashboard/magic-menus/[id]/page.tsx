@@ -5,6 +5,10 @@ import { createClient } from '@/lib/supabase/server';
 import AddCategoryModal from './_components/AddCategoryModal';
 import AddItemModal from './_components/AddItemModal';
 import PublishToggle from '../_components/PublishToggle';
+import AIDemandBadge from '../_components/AIDemandBadge';
+import DemandInsightPanel from '../_components/DemandInsightPanel';
+import { analyzeMenuDemand } from '@/lib/menu-intelligence/demand-analyzer';
+import { getActiveLocationId } from '@/lib/location/active-location';
 
 export const metadata = { title: 'Menu Details | LocalVector.ai' };
 
@@ -142,6 +146,16 @@ export default async function MenuEditorPage({
   const { id } = await params;
   const { menu, categories } = await fetchMenuAndCategories(id);
 
+  // S24: Fetch AI demand signals for menu items
+  const supabaseForDemand = await createClient();
+  const activeLocationId = ctx.orgId
+    ? await getActiveLocationId(supabaseForDemand, ctx.orgId)
+    : null;
+  const demandResults = activeLocationId && ctx.orgId
+    ? await analyzeMenuDemand(supabaseForDemand, activeLocationId, ctx.orgId)
+    : [];
+  const demandMap = new Map(demandResults.map((r) => [r.item_id, r.mention_count]));
+
   // If RLS filtered it out (different org) or it doesn't exist, show 404
   if (!menu) {
     notFound();
@@ -240,6 +254,9 @@ export default async function MenuEditorPage({
         </div>
       </div>
 
+      {/* ── S24: AI Demand Insight Panel ─────────────────────────── */}
+      <DemandInsightPanel demandResults={demandResults} />
+
       {/* ── Category List ────────────────────────────────────────── */}
       <div className="space-y-4">
         {/* Header row */}
@@ -322,11 +339,14 @@ export default async function MenuEditorPage({
                 <tbody className="divide-y divide-white/5">
                   {category.menu_items.map((item) => (
                     <tr key={item.id} className="transition hover:bg-white/5">
-                      {/* Name */}
+                      {/* Name + AI Demand Badge */}
                       <td className="py-3 pl-5 pr-3">
-                        <span className="text-sm font-medium text-white">
-                          {item.name}
-                        </span>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="text-sm font-medium text-white">
+                            {item.name}
+                          </span>
+                          <AIDemandBadge itemId={item.id} mentionCount={demandMap.get(item.id) ?? 0} />
+                        </div>
                       </td>
 
                       {/* Description */}

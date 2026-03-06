@@ -358,3 +358,17 @@ export function getMaxActiveQueriesPerLocation(plan: PlanTier): number {
   };
   return limits[plan];
 }
+
+/**
+ * S25: AI Shopper Simulation — Growth+ only.
+ */
+export function canRunAIShopper(plan: PlanTier): boolean {
+  return planSatisfies(plan, 'growth');
+}
+
+/**
+ * S26: Competitor Vulnerability Window — Growth+ only.
+ */
+export function canRunCompetitorVulnerability(plan: PlanTier): boolean {
+  return planSatisfies(plan, 'growth');
+}

@@ -99,6 +99,26 @@
     {
       "path": "/api/cron/hijack-detection",
       "schedule": "0 9 * * 1"
+    },
+    {
+      "path": "/api/cron/degradation-check",
+      "schedule": "0 10 * * 1"
+    },
+    {
+      "path": "/api/cron/correction-benchmarks",
+      "schedule": "0 5 * * 6"
+    },
+    {
+      "path": "/api/cron/ai-shopper",
+      "schedule": "0 5 * * 3"
+    },
+    {
+      "path": "/api/cron/competitor-vulnerability",
+      "schedule": "0 8 * * 2"
+    },
+    {
+      "path": "/api/cron/monthly-report",
+      "schedule": "0 9 1 * *"
     }
   ]
 }

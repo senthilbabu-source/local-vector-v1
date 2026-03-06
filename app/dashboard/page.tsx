@@ -38,6 +38,10 @@ import { detectScoreMilestone, formatMilestoneMessage } from '@/lib/services/sco
 import HealthStreakBadge from './_components/HealthStreakBadge';
 import MilestoneCelebration from './_components/MilestoneCelebration';
 import FixSpotlightCard, { type SpotlightFix } from './_components/FixSpotlightCard';
+import DegradationAlertBanner from './_components/DegradationAlertBanner';
+import FirstScanRevealCard from './_components/FirstScanRevealCard';
+import ConsistencyScoreCard from './_components/ConsistencyScoreCard';
+import { fetchConsistencyScore } from '@/lib/services/consistency-score.service';
 
 export const metadata = { title: 'Dashboard | LocalVector.ai' };
 
@@ -75,6 +79,7 @@ export default async function DashboardPage({
     prevScoreSnapshot,
     napScore,
     accuracySnapshots,
+    degradationEvent,
   } = await fetchDashboardData(ctx.orgId ?? '', activeLocationId);
 
   const scores    = deriveRealityScore(openAlerts.length, visibilityScore, dataHealthScore, simulationScore);
@@ -141,6 +146,17 @@ export default async function DashboardPage({
     }
   }
 
+  // S28: Consistency Score
+  let consistencyData: Awaited<ReturnType<typeof fetchConsistencyScore>> = null;
+  if (ctx.orgId && activeLocationId && !sampleMode) {
+    try {
+      const supabaseForConsistency = await createClient();
+      consistencyData = await fetchConsistencyScore(supabaseForConsistency, ctx.orgId, activeLocationId);
+    } catch (err) {
+      Sentry.captureException(err, { tags: { component: 'consistency-score', sprint: 'S28' } });
+    }
+  }
+
   // Onboarding + data resolver
   let onboardingState = null;
   let dataResolverResult: DataResolverResult | null = null;
@@ -181,6 +197,16 @@ export default async function DashboardPage({
   return (
     <div className="space-y-5">
 
+      {/* ── S27: First scan reveal overlay (shown once for new orgs) ────── */}
+      {dataResolverResult?.isFirstScanRecent && !sampleMode && (
+        <FirstScanRevealCard
+          sovPercent={visibilityScore}
+          errorCount={openAlerts.length}
+          monthlyImpact={revenueRecoveredMonthly ?? 0}
+          criticalClaimText={openAlerts[0]?.claim_text ?? null}
+        />
+      )}
+
       {/* ── S20: Milestone celebration overlay (auto-dismiss 3s) ────────── */}
       {milestone && (
         <MilestoneCelebration milestone={milestone.threshold} message={milestoneMessage} />
@@ -200,6 +226,9 @@ export default async function DashboardPage({
         </div>
         <HealthStreakBadge streak={healthStreak.currentStreak} />
       </div>
+
+      {/* ── S22: AI model degradation alert (cross-org spike detection) ── */}
+      <DegradationAlertBanner event={degradationEvent} />
 
       {/* ── Situational banners (each only appears in one specific context) ── */}
       {dataResolverResult?.isFirstScanRecent && <ScanCompleteBanner isFirstScanRecent />}
@@ -273,6 +302,19 @@ export default async function DashboardPage({
         />
         {sampleMode && <SampleDataBadge />}
       </div>
+
+      {/* ── S28: Consistency Score Card ─────────────────────────────────── */}
+      {consistencyData && !sampleMode && (
+        <ConsistencyScoreCard
+          score={consistencyData.consistencyScore}
+          nameScore={consistencyData.nameScore}
+          addressScore={consistencyData.addressScore}
+          phoneScore={consistencyData.phoneScore}
+          hoursScore={consistencyData.hoursScore}
+          menuScore={consistencyData.menuScore}
+          previousScore={consistencyData.previousScore}
+        />
+      )}
 
       {/* ════════════════════════════════════════════════════════════════════
           4. FIXES — What to do about it (max 5, "See all →" link to /hallucinations)

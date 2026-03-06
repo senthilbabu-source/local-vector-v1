@@ -31,6 +31,11 @@ export const KNOWN_CRONS = [
   'intent-discovery',
   'hijack-detection',
   'data-cleanup',
+  'degradation-check',
+  'correction-benchmarks',
+  'ai-shopper',
+  'competitor-vulnerability',
+  'monthly-report',
 ] as const;
 
 export type KnownCron = (typeof KNOWN_CRONS)[number];

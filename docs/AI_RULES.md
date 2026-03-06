@@ -5087,3 +5087,154 @@ Fetched from `visibility_scores` table — latest 2 rows ordered by `snapshot_da
 - `s21-urgency-links.spec.ts` — 4 E2E scenarios (fix links, href validation, entity-health page, hallucinations page)
 - **Total Wave 3: 56 new unit tests + 8 E2E scenarios**
 - **Grand total: 6524 tests, 419 files — all pass**
+
+---
+
+## §224 — S22: AI Accuracy Degradation Alerts (Wave 4)
+
+**Pure analytics:** `lib/analytics/degradation-detector.ts`
+- `computeRollingStats(series: number[])` — returns `{ mean, stddev, sampleCount }`. Empty → zeroes. Single → stddev=0.
+- `isDegraded(current, stats)` — returns true when `current > mean + 2*stddev` AND `stddev > 0` AND `sampleCount >= 2`.
+- Population stddev (not sample).
+
+**I/O layer:** `lib/analytics/degradation-detector.ts`
+- `fetchDegradationData(supabase, orgId)` — 90-day `ai_hallucinations` weekly error rates.
+- `checkAndAlertDegradation(supabase, orgId)` — computes stats, checks degradation, inserts `degradation_alerts` row if triggered.
+
+**Dashboard:** `app/dashboard/_components/DegradationAlertBanner.tsx`
+- Amber dismissable banner. SessionStorage `lv_degradation_alert_{id}_dismissed`.
+- Rendered on main dashboard when alert exists and not in sample mode.
+
+**Migration:** `20260503000001_degradation_alerts.sql` — `degradation_alerts` table with org RLS.
+
+**Cron:** `app/api/cron/degradation-check/route.ts` — daily 6 AM UTC. Kill switch: `STOP_DEGRADATION_CHECK_CRON`.
+
+---
+
+## §225 — S23: Correction Effectiveness Database (Wave 4)
+
+**Pure analytics:** `lib/analytics/correction-benchmark.ts`
+- `computeMedian(arr)` — empty → 0.
+- `computeP75(arr)` — 75th percentile via linear interpolation.
+- `buildBenchmarks(rows: CorrectionRow[])` — groups by `${model_provider}_${fix_guidance_category}` key. Computes `avg_days_to_fix`, `median_days_to_fix`, `p75_days_to_fix`, `recurrence_rate`, `sample_size`. Skips rows with no resolved date (no `fixed_at` and no `verified_at`). Null category → `"unknown"`.
+- `computePercentileRank(days, entry)` — returns null when entry undefined or `sample_size < 30`. Returns 99 for 0 days. Otherwise linear interpolation against median/p75.
+
+**Cache layer:** `lib/analytics/correction-benchmark.cache.ts`
+- Read/write to `correction_benchmark_cache` table. TTL 7 days.
+
+**Dashboard:** `app/dashboard/hallucinations/_components/CorrectionBenchmarkPanel.tsx`
+- Shows "Your fix: N days" vs "Industry avg: M days" with percentile rank badge.
+
+**Migration:** `20260503000002_correction_benchmarks.sql` — `correction_benchmark_cache` table with org RLS.
+
+**Cron:** `app/api/cron/correction-benchmarks/route.ts` — weekly Monday 4 AM UTC. Kill switch: `STOP_CORRECTION_BENCHMARKS_CRON`.
+
+---
+
+## §226 — S24: Menu Intelligence Demand Signals (Wave 4)
+
+**Pure analytics:** `lib/menu-intelligence/demand-analyzer.ts`
+- `countItemMentions(itemName, responses)` — case-insensitive substring match. Skips items < 3 chars. Counts ALL occurrences per response (not 1 per response).
+
+**Dashboard:** `app/dashboard/menu/_components/DemandSignalsPanel.tsx`
+- Shows top menu items by AI mention count with trend indicators.
+- Wired into menu page when SOV evaluation data exists.
+
+---
+
+## §227 — S25: AI Shopper Simulation (Wave 4)
+
+**Scenario engine:** `lib/ai-shopper/shopper-scenarios.ts`
+- `SHOPPER_SCENARIOS: Record<string, ShopperScenario>` — 4 scenarios: `discovery`, `hours`, `menu`, `reservation`.
+- Each scenario has `type`, `turns` array with prompt templates, `groundTruthFields` list.
+- `buildTurnPrompts(scenarioKey, context)` — returns prompts array with `{city}` interpolation. Empty for unknown scenario.
+
+**Evaluation:** `lib/ai-shopper/shopper-evaluator.ts`
+- `evaluateTurnAccuracy(turnNumber, response, groundTruth)` — returns `TurnEvaluation { turn, passed, accuracy_issues[] }`. Checks for "permanently closed", wrong phone, wrong address patterns.
+- `identifyFailureTurn(evaluations)` — returns `FailureTurnResult { failedAtTurn: number | null, totalTurns, summary }`.
+
+**Runner:** `lib/ai-shopper/shopper-runner.ts`
+- `runShopperSimulation(supabase, orgId, locationId, scenario)` — runs multi-turn conversation against AI model, evaluates each turn, stores results.
+
+**Plan gate:** `canRunAIShopper()` in `lib/plan-enforcer.ts` — Growth+ only.
+
+**Cron:** `app/api/cron/ai-shopper/route.ts` — weekly Wednesday 5 AM UTC. Kill switch: `STOP_AI_SHOPPER_CRON`.
+
+---
+
+## §228 — S26: Competitor Vulnerability Window (Wave 4)
+
+**Pure detection:** `lib/competitor/vulnerability-detector.ts`
+- `analyzeCompetitorContext(competitorName, rawResponse)` — scans for 3 vulnerability types:
+  - `hours_inconsistency`: "hours may vary", "check before visiting", "call ahead"
+  - `closed_signal`: "permanently closed", "temporarily closed"
+  - `negative_context`: "complaints", "poor service", "inconsistent"
+- Case-insensitive competitor name match. Returns empty if competitor not mentioned or empty inputs.
+- `evidenceSnippet` capped at 200 chars.
+
+**I/O:** `detectCompetitorVulnerabilities(supabase, orgId, locationId)` — queries 30-day SOV evaluations, deduplicates by competitor+type.
+
+**Dashboard:** `app/dashboard/compete/_components/VulnerabilityAlertCard.tsx`
+- Amber card with competitor name, type label, days remaining, dismiss, CTA link.
+- Agency-only on compete page.
+
+**Migration:** `20260503000003_competitor_vulnerability.sql` — `competitor_vulnerability_alerts` table with org RLS.
+
+**Cron:** `app/api/cron/competitor-vulnerability/route.ts` — weekly Tuesday 8 AM UTC. Agency-only. Kill switch: `STOP_COMPETITOR_VULNERABILITY_CRON`.
+
+**Plan gate:** `canRunCompetitorVulnerability()` in `lib/plan-enforcer.ts` — Growth+ only.
+
+---
+
+## §229 — S27: First 24 Hours Reveal + Monthly Report (Wave 4)
+
+**Monthly report service:** `lib/services/monthly-report.service.ts`
+- `generateMonthlyReport(supabase, orgId, locationId, month)` — returns `MonthlyReport` with wins count, fixed hallucinations, revenue recovered, score deltas, SOV deltas, open alerts, YTD totals. Parallel queries. Never throws (catch returns zeroed report).
+
+**Email:** `lib/email.ts` — `sendMonthlyReport(to, report)` with inline HTML template (Wins, Outstanding, Year-to-Date sections).
+
+**Dashboard:** `app/dashboard/_components/FirstScanRevealCard.tsx`
+- Full-screen overlay with stats grid (AI Mentions %, Errors Found, Monthly Impact).
+- Critical claim quote. "See your personalized fix plan" CTA.
+- SessionStorage `lv_first_reveal_shown` dedup. 300ms fade-in.
+
+**Migration:** `20260503000004_monthly_report.sql` — `notify_monthly_report boolean DEFAULT true` and `first_scan_completed_at timestamptz` on organizations.
+
+**Cron:** `app/api/cron/monthly-report/route.ts` — monthly 1st at 9 AM UTC. Growth+ orgs. Respects `notify_monthly_report` preference. Kill switch: `STOP_MONTHLY_REPORT_CRON`.
+
+---
+
+## §230 — S28: Cross-Platform Consistency Score + Integration Pass (Wave 4)
+
+**Pure scoring:** `lib/services/consistency-score.service.ts`
+- `computeConsistencyFromDiscrepancies(fields, hasPlatforms)` — weighted formula:
+  - name: 30pts, address: 25pts, phone: 20pts, hours: 15pts, menu: 10pts
+  - Case-insensitive field matching with aliases (business_name, telephone, opening_hours).
+  - Returns `{ consistency_score, nameScore, addressScore, phoneScore, hoursScore, menuScore }`.
+  - Returns 0 when no platforms configured.
+
+**I/O:** `computeConsistencyScore(supabase, orgId, locationId)` reads nap_discrepancies + entity_checks. `writeConsistencySnapshot()` upserts. `fetchConsistencyScore()` returns latest + previous for trend.
+
+**Dashboard:** `app/dashboard/_components/ConsistencyScoreCard.tsx`
+- Score display with 5 sub-score bars. Trend vs last week (TrendingUp/TrendingDown/Minus).
+- Color coding: green >= 80, amber >= 50, red < 50.
+
+**Sidebar reorganization:** `components/layout/Sidebar.tsx`
+- 5 outcome-based groups: Today, This Week, This Month, Advanced, Account.
+- Replaces previous 6-group structure.
+
+**Migration:** `20260503000005_consistency_scores.sql` — `consistency_scores` table with UNIQUE (org_id, location_id, snapshot_date), org RLS.
+
+**NAP sync cron integration:** Fire-and-forget consistency score computation after NAP sync completes.
+
+### Wave 4 test counts
+- `wave4-s22-degradation.test.ts` — 12 tests (computeRollingStats 6, isDegraded 6)
+- `wave4-s23-correction-benchmarks.test.ts` — 15 tests (computeMedian 4, computeP75 2, buildBenchmarks 7, computePercentileRank 4)
+- `wave4-s24-menu-demand.test.ts` — 7 tests (countItemMentions: case-insensitive, min length, empty, substring, occurrences)
+- `wave4-s25-ai-shopper.test.ts` — 15 tests (SHOPPER_SCENARIOS 2, buildTurnPrompts 4, evaluateTurnAccuracy 4, identifyFailureTurn 3, plan gates 2)
+- `wave4-s26-competitor-vulnerability.test.ts` — 12 tests (analyzeCompetitorContext: 4 signal types, empty inputs, evidence truncation, multiple signals, case-insensitive)
+- `wave4-s27-monthly-report.test.ts` — 8 tests (MonthlyReport type shape, cron registration)
+- `wave4-s28-consistency-score.test.ts` — 19 tests (computeConsistencyFromDiscrepancies 14, NAV_GROUPS 1, cron registration 2, plan gates 2)
+- `s22-s28-wave4.spec.ts` — 5 E2E scenarios (dashboard, compete, consistency, sidebar groups, first reveal)
+- **Total Wave 4: 88 new unit tests + 5 E2E scenarios**
+- **Grand total: 6617 tests, 426 files — all pass**

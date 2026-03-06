@@ -9,6 +9,7 @@ import * as Sentry from '@sentry/nextjs';
 import { NextRequest, NextResponse } from 'next/server';
 import { createServiceRoleClient } from '@/lib/supabase/server';
 import { runNAPSyncForAllLocations } from '@/lib/nap-sync/nap-sync-service';
+import { computeConsistencyScore, writeConsistencySnapshot } from '@/lib/services/consistency-score.service';
 
 export const dynamic = 'force-dynamic';
 
@@ -32,6 +33,22 @@ export async function GET(request: NextRequest) {
   try {
     const supabase = createServiceRoleClient();
     const result = await runNAPSyncForAllLocations(supabase);
+
+    // S28: Fire-and-forget consistency score computation after NAP sync
+    void (async () => {
+      try {
+        const { data: locs } = await supabase
+          .from('locations')
+          .select('id, org_id')
+          .eq('is_primary', true);
+        for (const loc of locs ?? []) {
+          const score = await computeConsistencyScore(supabase, loc.org_id, loc.id);
+          await writeConsistencySnapshot(supabase, loc.org_id, loc.id, score);
+        }
+      } catch (err) {
+        Sentry.captureException(err, { tags: { component: 'consistency-score', sprint: 'S28' } });
+      }
+    })();
 
     const durationMs = Date.now() - startTime;
     console.log('[cron-nap-sync] Complete:', { ...result, duration_ms: durationMs });

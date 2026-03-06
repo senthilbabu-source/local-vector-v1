@@ -9,6 +9,7 @@ const NAV_LINKS = [
   { href: '/admin/cron-health', label: 'Cron Health' },
   { href: '/admin/revenue', label: 'Revenue' },
   { href: '/admin/distribution-health', label: 'Distribution' },
+  { href: '/admin/correction-benchmarks', label: 'Benchmarks' },
 ];
 
 /**

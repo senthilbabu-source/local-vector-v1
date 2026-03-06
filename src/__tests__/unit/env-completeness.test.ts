@@ -143,6 +143,26 @@ describe('.env.local.example completeness', () => {
     it('STOP_TOKEN_REFRESH_CRON is documented', () => {
       expect(envExampleVars.has('STOP_TOKEN_REFRESH_CRON')).toBe(true);
     });
+
+    it('STOP_DEGRADATION_CHECK_CRON is documented', () => {
+      expect(envExampleVars.has('STOP_DEGRADATION_CHECK_CRON')).toBe(true);
+    });
+
+    it('STOP_CORRECTION_BENCHMARKS_CRON is documented', () => {
+      expect(envExampleVars.has('STOP_CORRECTION_BENCHMARKS_CRON')).toBe(true);
+    });
+
+    it('STOP_AI_SHOPPER_CRON is documented', () => {
+      expect(envExampleVars.has('STOP_AI_SHOPPER_CRON')).toBe(true);
+    });
+
+    it('STOP_COMPETITOR_VULNERABILITY_CRON is documented', () => {
+      expect(envExampleVars.has('STOP_COMPETITOR_VULNERABILITY_CRON')).toBe(true);
+    });
+
+    it('STOP_MONTHLY_REPORT_CRON is documented', () => {
+      expect(envExampleVars.has('STOP_MONTHLY_REPORT_CRON')).toBe(true);
+    });
   });
 
   describe('all production env vars are documented', () => {

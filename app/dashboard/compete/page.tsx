@@ -8,6 +8,7 @@ import CompetitorChip from './_components/CompetitorChip';
 import RunAnalysisButton from './_components/RunAnalysisButton';
 import InterceptCard from './_components/InterceptCard';
 import CompeteCoachHero from './_components/CompeteCoachHero';
+import VulnerabilityAlertCard from './_components/VulnerabilityAlertCard';
 
 export const metadata = { title: 'Competitors | LocalVector.ai' };
 
@@ -19,6 +20,16 @@ type CompetitorRow = {
   id:                 string;
   competitor_name:    string;
   competitor_address: string | null;
+};
+
+type VulnerabilityAlertRow = {
+  id: string;
+  competitor_name: string;
+  vulnerability_type: string;
+  evidence_snippet: string | null;
+  strategic_suggestion: string | null;
+  expires_at: string;
+  dismissed_at: string | null;
 };
 
 type InterceptRow = {
@@ -62,10 +73,11 @@ function UpgradeGate() {
 // Data fetching
 // ---------------------------------------------------------------------------
 
-async function fetchPageData(orgId: string): Promise<{
+async function fetchPageData(orgId: string, isAgency: boolean): Promise<{
   competitors:  CompetitorRow[];
   intercepts:   InterceptRow[];
   businessName: string;
+  vulnerabilities: VulnerabilityAlertRow[];
 }> {
   const supabase = await createClient();
 
@@ -93,10 +105,26 @@ async function fetchPageData(orgId: string): Promise<{
       .maybeSingle(),
   ]);
 
+  // S26: Fetch vulnerability alerts for agency orgs
+  let vulnerabilities: VulnerabilityAlertRow[] = [];
+  if (isAgency) {
+    const now = new Date().toISOString();
+    const { data: vulnData } = await supabase
+      .from('competitor_vulnerability_alerts' as 'cron_run_log')
+      .select('id, competitor_name, vulnerability_type, evidence_snippet, strategic_suggestion, expires_at, dismissed_at' as 'id')
+      .eq('org_id', orgId)
+      .gt('expires_at' as 'started_at', now)
+      .is('dismissed_at' as 'started_at', null)
+      .order('detected_at' as 'started_at', { ascending: false })
+      .limit(10);
+    vulnerabilities = (vulnData as unknown as VulnerabilityAlertRow[]) ?? [];
+  }
+
   return {
     competitors:  (compResult.data as CompetitorRow[]) ?? [],
     intercepts:   (interceptResult.data as InterceptRow[]) ?? [],
     businessName: (locResult.data?.business_name as string | undefined) ?? 'Your Business',
+    vulnerabilities,
   };
 }
 
@@ -123,7 +151,8 @@ export default async function CompetePage() {
     return <UpgradeGate />;
   }
 
-  const { competitors, intercepts, businessName } = await fetchPageData(ctx.orgId);
+  const isAgency = plan === 'agency';
+  const { competitors, intercepts, businessName, vulnerabilities } = await fetchPageData(ctx.orgId, isAgency);
   const maxAllowed = maxCompetitors(plan);
 
   return (
@@ -185,6 +214,15 @@ export default async function CompetePage() {
           />
         );
       })()}
+
+      {/* ── S26: Vulnerability alerts (Agency only) ──────────────────────── */}
+      {vulnerabilities.length > 0 && (
+        <section className="space-y-3">
+          {vulnerabilities.map((v) => (
+            <VulnerabilityAlertCard key={v.id} alert={v} />
+          ))}
+        </section>
+      )}
 
       {/* ── Analyses ─────────────────────────────────────────────────────── */}
       {competitors.length > 0 && (

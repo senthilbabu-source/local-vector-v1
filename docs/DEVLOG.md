@@ -4,6 +4,78 @@
 
 ---
 
+## 2026-03-06 — Wave 4: Advanced Intelligence (§224–§230)
+
+**Goal:** 7 sprints of advanced intelligence features: degradation detection, correction benchmarks, menu demand signals, AI shopper simulation, competitor vulnerability detection, monthly reporting, and cross-platform consistency scoring.
+
+**New files (services + analytics):**
+- `lib/analytics/degradation-detector.ts` — rolling mean/stddev + 2-sigma degradation detection
+- `lib/analytics/correction-benchmark.ts` — median, P75, buildBenchmarks, percentileRank for correction effectiveness
+- `lib/analytics/correction-benchmark.cache.ts` — TTL cache layer for benchmark results
+- `lib/menu-intelligence/demand-analyzer.ts` — countItemMentions for AI response mining
+- `lib/ai-shopper/shopper-scenarios.ts` — 4 multi-turn shopper scenarios (discovery/hours/menu/reservation)
+- `lib/ai-shopper/shopper-evaluator.ts` — turn-by-turn accuracy evaluation
+- `lib/ai-shopper/shopper-runner.ts` — orchestrator for AI shopper simulation
+- `lib/competitor/vulnerability-detector.ts` — 3 vulnerability types (hours_inconsistency/closed_signal/negative_context)
+- `lib/services/monthly-report.service.ts` — parallel-query monthly report generator (wins, fixes, revenue, deltas)
+- `lib/services/consistency-score.service.ts` — weighted consistency formula (name 30, address 25, phone 20, hours 15, menu 10)
+
+**New files (UI):**
+- `app/dashboard/_components/DegradationAlertBanner.tsx` — amber dismissable degradation banner
+- `app/dashboard/_components/FirstScanRevealCard.tsx` — full-screen first-scan overlay with stats
+- `app/dashboard/_components/ConsistencyScoreCard.tsx` — 5 sub-score bars with trend
+- `app/dashboard/hallucinations/_components/CorrectionBenchmarkPanel.tsx` — fix time vs industry avg
+- `app/dashboard/menu/_components/DemandSignalsPanel.tsx` — top menu items by AI mention count
+- `app/dashboard/compete/_components/VulnerabilityAlertCard.tsx` — competitor vulnerability amber card
+
+**New files (crons):**
+- `app/api/cron/degradation-check/route.ts` — daily 6 AM UTC
+- `app/api/cron/correction-benchmarks/route.ts` — weekly Mon 4 AM UTC
+- `app/api/cron/ai-shopper/route.ts` — weekly Wed 5 AM UTC
+- `app/api/cron/competitor-vulnerability/route.ts` — weekly Tue 8 AM UTC, Agency-only
+- `app/api/cron/monthly-report/route.ts` — monthly 1st 9 AM UTC, Growth+
+
+**Migrations:**
+- `20260503000001_degradation_alerts.sql` — degradation_alerts table
+- `20260503000002_correction_benchmarks.sql` — correction_benchmark_cache table
+- `20260503000003_competitor_vulnerability.sql` — competitor_vulnerability_alerts table
+- `20260503000004_monthly_report.sql` — notify_monthly_report + first_scan_completed_at on organizations
+- `20260503000005_consistency_scores.sql` — consistency_scores table
+
+**Modified files:**
+- `lib/plan-enforcer.ts` — added `canRunAIShopper()`, `canRunCompetitorVulnerability()` (Growth+)
+- `lib/admin/known-crons.ts` — 25→30 cron names
+- `lib/services/cron-health.service.ts` — 9→14 CRON_REGISTRY entries
+- `lib/email.ts` — added `sendMonthlyReport()` function
+- `app/dashboard/page.tsx` — integrated DegradationAlertBanner, FirstScanRevealCard, ConsistencyScoreCard
+- `app/dashboard/compete/page.tsx` — added VulnerabilityAlertCard for Agency users
+- `app/api/cron/nap-sync/route.ts` — fire-and-forget consistency score computation
+- `components/layout/Sidebar.tsx` — reorganized to 5 outcome-based groups (Today/This Week/This Month/Advanced/Account)
+- `vercel.json` — 25→30 crons
+- `.env.local.example` — 5 new STOP_* kill switch vars
+
+**Regression fixes:**
+- `sprint-f-registration.test.ts` — cron count 25→30, CRON_REGISTRY 9→14
+- `sprint-n-registration.test.ts` — cron count 25→30
+- `cron-health-service.test.ts` — CRON_REGISTRY count 9→14
+- `cron-health-data.test.ts` — jobs count 9→14
+- `env-completeness.test.ts` — 5 new STOP_* env var tests
+- 14 bare `} catch {` blocks fixed with `Sentry.captureException(err)` across 8 files
+
+**New test files:**
+- `src/__tests__/unit/wave4-s22-degradation.test.ts` — 12 tests
+- `src/__tests__/unit/wave4-s23-correction-benchmarks.test.ts` — 15 tests
+- `src/__tests__/unit/wave4-s24-menu-demand.test.ts` — 7 tests
+- `src/__tests__/unit/wave4-s25-ai-shopper.test.ts` — 15 tests
+- `src/__tests__/unit/wave4-s26-competitor-vulnerability.test.ts` — 12 tests
+- `src/__tests__/unit/wave4-s27-monthly-report.test.ts` — 8 tests
+- `src/__tests__/unit/wave4-s28-consistency-score.test.ts` — 19 tests
+- `tests/e2e/s22-s28-wave4.spec.ts` — 5 E2E scenarios
+- **Total Wave 4: 88 new unit tests + 5 E2E scenarios**
+- **Grand total: 6617 tests, 426 files — all pass**
+
+---
+
 ## 2026-03-06 — Wave 3: Health Streak + Milestones + Urgency + Fix Links (§222–§223)
 
 **Goal:** Add gamification, urgency, and actionable fix links to the coaching dashboard. Two sprints: S20 (Health Streak + Score Milestones + Fix Spotlight) and S21 (Day-of-Week Urgency + External Fix Links).
