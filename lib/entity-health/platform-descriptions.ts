@@ -28,6 +28,8 @@ export interface PlatformDescription {
   whenIncomplete: string;
   /** What UNCHECKED means */
   whenUnchecked: string;
+  /** S21: External URL to claim/fix this platform listing */
+  fix_url?: string;
 }
 
 export const PLATFORM_DESCRIPTIONS: Record<EntityPlatform, PlatformDescription> = {
@@ -41,6 +43,7 @@ export const PLATFORM_DESCRIPTIONS: Record<EntityPlatform, PlatformDescription> 
       'Google has some information about your business, but it\'s incomplete. Customers may get partial or outdated answers.',
     whenUnchecked:
       'We haven\'t checked whether Google recognizes your business yet.',
+    fix_url: 'https://search.google.com/search-console',
   },
 
   google_business_profile: {
@@ -53,6 +56,7 @@ export const PLATFORM_DESCRIPTIONS: Record<EntityPlatform, PlatformDescription> 
       'Your Google Business Profile exists but is missing key information. AI models may give customers incomplete answers about your hours or services.',
     whenUnchecked:
       'We haven\'t checked your Google Business Profile status yet.',
+    fix_url: 'https://business.google.com',
   },
 
   yelp: {
@@ -65,6 +69,7 @@ export const PLATFORM_DESCRIPTIONS: Record<EntityPlatform, PlatformDescription> 
       'Your Yelp listing exists but is incomplete. AI models may show outdated information from your Yelp page.',
     whenUnchecked:
       'We haven\'t checked whether your Yelp listing is claimed.',
+    fix_url: 'https://biz.yelp.com',
   },
 
   tripadvisor: {
@@ -77,6 +82,7 @@ export const PLATFORM_DESCRIPTIONS: Record<EntityPlatform, PlatformDescription> 
       'Your TripAdvisor listing exists but is missing information like photos, hours, or menu.',
     whenUnchecked:
       'We haven\'t checked your TripAdvisor listing status.',
+    fix_url: 'https://www.tripadvisor.com/Owners',
   },
 
   apple_maps: {
@@ -89,6 +95,7 @@ export const PLATFORM_DESCRIPTIONS: Record<EntityPlatform, PlatformDescription> 
       'Your Apple Maps listing exists but is missing key details. Siri may give customers incomplete information.',
     whenUnchecked:
       'We haven\'t checked your Apple Maps listing status.',
+    fix_url: 'https://businessconnect.apple.com',
   },
 
   bing_places: {
@@ -101,6 +108,7 @@ export const PLATFORM_DESCRIPTIONS: Record<EntityPlatform, PlatformDescription> 
       'Your Bing Places listing exists but is incomplete. Copilot may give customers partial or outdated information.',
     whenUnchecked:
       'We haven\'t checked your Bing Places listing status.',
+    fix_url: 'https://www.bingplaces.com',
   },
 
   wikidata: {
@@ -113,6 +121,7 @@ export const PLATFORM_DESCRIPTIONS: Record<EntityPlatform, PlatformDescription> 
       'Your Wikidata entry exists but is incomplete.',
     whenUnchecked:
       'We haven\'t checked your Wikidata status. This is optional for most businesses.',
+    fix_url: 'https://www.wikidata.org/wiki/Special:NewItem',
   },
 };
 

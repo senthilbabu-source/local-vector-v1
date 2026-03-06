@@ -12,6 +12,7 @@ import { Globe, ExternalLink, CheckCircle2, XCircle, AlertTriangle, CircleDashed
 import EntityStatusDropdown from './_components/EntityStatusDropdown';
 import { EntityHealthVerdictPanel } from './_components/EntityHealthVerdictPanel';
 import { PLATFORM_DESCRIPTIONS, getPlatformConsequence } from '@/lib/entity-health/platform-descriptions';
+import { getPlatformFixLink } from '@/lib/entity-health/platform-fix-links';
 
 export const metadata = { title: 'AI Recognition | LocalVector.ai' };
 
@@ -203,15 +204,24 @@ function PlatformRow({ info, status, metadata }: PlatformRowProps) {
               <li key={i} className="text-xs text-slate-400">{step}</li>
             ))}
           </ol>
-          <a
-            href={info.claimUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="mt-2 inline-flex items-center gap-1 text-xs font-medium text-electric-indigo hover:text-electric-indigo/80 transition"
-          >
-            {status === 'incomplete' ? 'Update Listing' : 'Claim Listing'}{' '}
-            <ExternalLink className="h-3 w-3" />
-          </a>
+          {(() => {
+            const fixLink = getPlatformFixLink(info.key);
+            const href = fixLink?.url ?? info.claimUrl;
+            const label = fixLink
+              ? `Claim on ${fixLink.label}`
+              : (status === 'incomplete' ? 'Update Listing' : 'Claim Listing');
+            return (
+              <a
+                href={href}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-2 inline-flex items-center gap-1 text-xs font-medium text-electric-indigo hover:text-electric-indigo/80 transition"
+                data-testid={`platform-fix-link-${info.key}`}
+              >
+                {label} <ExternalLink className="h-3 w-3" />
+              </a>
+            );
+          })()}
         </div>
       )}
     </div>

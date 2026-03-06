@@ -100,6 +100,8 @@ export interface DashboardData {
   prevScoreSnapshot: ScoreSnapshot | null;
   // S18: NAP health score for Business Info Accuracy KPI chip
   napScore: number | null;
+  // S20: Accuracy snapshots for health streak computation
+  accuracySnapshots: { accuracy_score: number | null; snapshot_date: string }[];
 }
 
 // P8-FIX-33: Data shape for RealityScoreTrendChart
@@ -468,6 +470,25 @@ export async function fetchDashboardData(orgId: string, locationId?: string | nu
     // Revenue recovery is non-critical — dashboard renders without it.
   }
 
+  // ── S20: Health Streak — accuracy_score snapshots for clean-week computation ──
+  let accuracySnapshots: { accuracy_score: number | null; snapshot_date: string }[] = [];
+  try {
+    let accuracyQuery = supabase
+      .from('visibility_scores')
+      .select('accuracy_score, snapshot_date' as 'snapshot_date, reality_score')
+      .eq('org_id', orgId)
+      .order('snapshot_date', { ascending: true })
+      .limit(52);
+    if (locationId) accuracyQuery = accuracyQuery.eq('location_id', locationId);
+
+    const { data: accRows } = await accuracyQuery;
+    if (accRows) {
+      accuracySnapshots = accRows as unknown as { accuracy_score: number | null; snapshot_date: string }[];
+    }
+  } catch (err) {
+    Sentry.captureException(err, { tags: { file: 'dashboard.ts', sprint: 'S20' } });
+  }
+
   // ── S16: Current + previous visibility_scores snapshots for score attribution ──
   let currentScoreSnapshot: ScoreSnapshot | null = null;
   let prevScoreSnapshot: ScoreSnapshot | null = null;
@@ -548,5 +569,7 @@ export async function fetchDashboardData(orgId: string, locationId?: string | nu
     prevScoreSnapshot,
     // S18: Business Info Accuracy KPI chip
     napScore,
+    // S20: Health streak accuracy snapshots
+    accuracySnapshots,
   };
 }

@@ -33,6 +33,11 @@ import WeeklyKPIChips from './_components/WeeklyKPIChips';
 import ScoreAttributionPopover from './_components/ScoreAttributionPopover';
 import { deriveRealityScore } from '@/lib/services/reality-score.service';
 import { getRecentWins, type WinRow } from '@/lib/services/wins.service';
+import { computeHealthStreak } from '@/lib/services/health-streak.service';
+import { detectScoreMilestone, formatMilestoneMessage } from '@/lib/services/score-milestone.service';
+import HealthStreakBadge from './_components/HealthStreakBadge';
+import MilestoneCelebration from './_components/MilestoneCelebration';
+import FixSpotlightCard, { type SpotlightFix } from './_components/FixSpotlightCard';
 
 export const metadata = { title: 'Dashboard | LocalVector.ai' };
 
@@ -69,6 +74,7 @@ export default async function DashboardPage({
     currentScoreSnapshot,
     prevScoreSnapshot,
     napScore,
+    accuracySnapshots,
   } = await fetchDashboardData(ctx.orgId ?? '', activeLocationId);
 
   const scores    = deriveRealityScore(openAlerts.length, visibilityScore, dataHealthScore, simulationScore);
@@ -87,6 +93,42 @@ export default async function DashboardPage({
   const isNewOrg = orgCreatedAt
     ? Date.now() - new Date(orgCreatedAt).getTime() < 30 * 24 * 60 * 60 * 1000
     : false;
+
+  // S20: Health Streak — clean weeks with accuracy_score >= 85
+  const healthStreak = sampleMode
+    ? { currentStreak: 0, longestStreak: 0, isOnStreak: false }
+    : computeHealthStreak(accuracySnapshots);
+
+  // S20: Score Milestone — detect threshold crossings (50/60/70/80/90)
+  const milestone = sampleMode
+    ? null
+    : detectScoreMilestone(displayScores.realityScore, previousRealityScore);
+  const milestoneMessage = milestone
+    ? formatMilestoneMessage(milestone, locationContext.city)
+    : '';
+
+  // S20: Fix Spotlight — high-value fix in the last 7 days
+  let spotlightFix: SpotlightFix | null = null;
+  if (!sampleMode && ctx.orgId) {
+    try {
+      const supabaseForSpotlight = await createClient();
+      const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+      const { data: spotlightRows } = await supabaseForSpotlight
+        .from('ai_hallucinations')
+        .select('id, category, model_provider, revenue_recovered_monthly, fixed_at' as 'id, category, model_provider')
+        .in('correction_status', ['fixed', 'corrected'])
+        .gte('fixed_at' as 'first_detected_at', sevenDaysAgo)
+        .gte('revenue_recovered_monthly' as 'occurrence_count', 100)
+        .order('revenue_recovered_monthly' as 'occurrence_count', { ascending: false })
+        .limit(1);
+      if (spotlightRows && spotlightRows.length > 0) {
+        const row = spotlightRows[0] as unknown as SpotlightFix;
+        spotlightFix = row;
+      }
+    } catch (err) {
+      Sentry.captureException(err, { tags: { component: 'fix-spotlight', sprint: 'S20' } });
+    }
+  }
 
   // S20: Wins feed (non-critical — fail silently)
   let recentWins: WinRow[] = [];
@@ -139,16 +181,24 @@ export default async function DashboardPage({
   return (
     <div className="space-y-5">
 
+      {/* ── S20: Milestone celebration overlay (auto-dismiss 3s) ────────── */}
+      {milestone && (
+        <MilestoneCelebration milestone={milestone.threshold} message={milestoneMessage} />
+      )}
+
       {/* ── Header ───────────────────────────────────────────────────────── */}
-      <div>
-        <h1 className="text-xl font-semibold text-white tracking-tight">
-          Welcome back, {firstName}
-        </h1>
-        <p className="mt-0.5 text-sm text-slate-400">
-          {openAlerts.length > 0
-            ? `${openAlerts.length} AI ${openAlerts.length === 1 ? 'error' : 'errors'} need your attention today.`
-            : 'AI is representing your restaurant accurately right now.'}
-        </p>
+      <div className="flex items-start justify-between">
+        <div>
+          <h1 className="text-xl font-semibold text-white tracking-tight">
+            Welcome back, {firstName}
+          </h1>
+          <p className="mt-0.5 text-sm text-slate-400">
+            {openAlerts.length > 0
+              ? `${openAlerts.length} AI ${openAlerts.length === 1 ? 'error' : 'errors'} need your attention today.`
+              : 'AI is representing your restaurant accurately right now.'}
+          </p>
+        </div>
+        <HealthStreakBadge streak={healthStreak.currentStreak} />
       </div>
 
       {/* ── Situational banners (each only appears in one specific context) ── */}
@@ -234,8 +284,9 @@ export default async function DashboardPage({
       />
 
       {/* ════════════════════════════════════════════════════════════════════
-          5. WINS — celebrate every fix; motivates continued engagement
+          5. SPOTLIGHT + WINS — celebrate every fix
           ════════════════════════════════════════════════════════════════════ */}
+      {spotlightFix && <FixSpotlightCard fix={spotlightFix} />}
       <RecentWinsSection wins={recentWins} />
 
     </div>

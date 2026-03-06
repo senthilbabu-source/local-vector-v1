@@ -45,3 +45,35 @@ For multi-test personas, save session to `.playwright/growth-user.json` like exi
 - Real AI API responses → MSW mocks
 
 **Key insight:** Separate "how the plan gets set" (unit test) from "what happens after" (E2E test). Create user via Admin API, set plan via service role, then drive browser through onboarding and dashboard.
+
+---
+
+## 3. Product Expansion & Naming Strategy
+
+**Status:** Parked (2026-03-06)
+
+**Context:** LocalVector is currently restaurant-focused. The question arose whether to brand it as "LocalVector — Restaurant Edition" as we expand to other verticals.
+
+**Decision:** Keep the platform name as plain "LocalVector". Use taglines on marketing copy only, not in the product itself.
+
+- **Now:** Tagline = "AI Visibility for Restaurants"
+- **Next vertical:** Swap tagline to "AI Visibility for Local Businesses"
+- **Never:** Bake "Restaurant Edition" into the domain, product nav, or database schema
+
+**What needs abstracting when we expand beyond restaurants:**
+
+| Area | Current (restaurant) | Future (generic) |
+|------|---------------------|-----------------|
+| Menu/food concepts | `menu_items`, Magic Menus, food categories | "catalog" or "offerings" |
+| `industry_type` enum | restaurant-centric values | add: retail, salon, clinic, etc. |
+| SOV seed queries | dining/cuisine prompts | industry-specific query templates |
+| Coaching hero content | food/revenue framing | configurable per vertical |
+| `lib/industries/industry-config.ts` | 2 active (restaurant, medical_dental) | extend here first |
+
+**Target markets in order:**
+1. Restaurants (current — USA)
+2. Medical/Dental (stub already built — Sprint E, `lib/industries/`)
+3. Other local services: salons, gyms, retail, auto
+4. International expansion (English-first markets: UK, Canada, Australia)
+
+**Engineering impact:** Low — the multi-vertical abstraction layer (`lib/industries/`) already exists. Main work is SOV seed query templates and coaching content per vertical.

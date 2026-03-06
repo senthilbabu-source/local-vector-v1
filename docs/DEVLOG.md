@@ -4,6 +4,46 @@
 
 ---
 
+## 2026-03-06 — Wave 3: Health Streak + Milestones + Urgency + Fix Links (§222–§223)
+
+**Goal:** Add gamification, urgency, and actionable fix links to the coaching dashboard. Two sprints: S20 (Health Streak + Score Milestones + Fix Spotlight) and S21 (Day-of-Week Urgency + External Fix Links).
+
+**New files:**
+- `lib/services/health-streak.service.ts` — pure `computeHealthStreak()`, consecutive weeks with accuracy_score >= 85
+- `lib/services/score-milestone.service.ts` — pure `detectScoreMilestone()` + `formatMilestoneMessage()`, thresholds 50/60/70/80/90
+- `lib/hallucinations/urgency.ts` — pure `computeUrgency()`, Tue/Wed/Thu + critical/high only, revenue formula
+- `lib/entity-health/platform-fix-links.ts` — SSOT `PLATFORM_FIX_LINKS` (7 platforms) + `getPlatformFixLink()`
+- `app/dashboard/_components/HealthStreakBadge.tsx` — Flame icon + streak count, hidden when < 2
+- `app/dashboard/_components/MilestoneCelebration.tsx` — CSS-only confetti overlay, 3s auto-dismiss, sessionStorage dedup
+- `app/dashboard/_components/FixSpotlightCard.tsx` — green trophy card for recent high-value fixes, localStorage dismiss
+
+**Modified files:**
+- `app/globals.css` — `@keyframes confetti` + `@keyframes scaleIn` CSS animations
+- `lib/data/dashboard.ts` — `accuracySnapshots` field, fetches 52 weekly snapshots from visibility_scores
+- `app/dashboard/page.tsx` — health streak, milestone, spotlight fix computation + rendering
+- `app/api/cron/correction-follow-up/route.ts` — fire-and-forget `createHallucinationWin()` on fixed status
+- `app/dashboard/hallucinations/_components/AlertCard.tsx` — urgency badge ("Fix before Friday — $X at stake")
+- `lib/entity-health/platform-descriptions.ts` — added `fix_url` to PlatformDescription interface
+- `app/dashboard/entity-health/page.tsx` — dynamic fix links via `getPlatformFixLink()` SSOT
+
+**New test files:**
+- `src/__tests__/unit/health-streak.test.ts` — 13 tests
+- `src/__tests__/unit/score-milestone.test.ts` — 16 tests
+- `src/__tests__/unit/day-of-week-urgency.test.ts` — 15 tests
+- `src/__tests__/unit/platform-fix-links.test.ts` — 12 tests
+- `tests/e2e/s20-gamification.spec.ts` — 4 E2E scenarios
+- `tests/e2e/s21-urgency-links.spec.ts` — 4 E2E scenarios
+
+**Decisions:**
+- CSS-only confetti (no `canvas-confetti` dependency) to keep bundle small
+- `prefers-reduced-motion` → static card instead of animation
+- No new migrations — all data from existing `visibility_scores`, `ai_hallucinations`, `wins` tables
+- Urgency only on Tue/Wed/Thu (gives 1–3 business days before weekend)
+
+**AI_RULES §222–§223.** 56 new unit tests + 8 E2E. **Grand total: 6524 tests, 419 files — all pass.**
+
+---
+
 ## 2026-03-05 — Bing Places Write API Retirement (§213)
 
 **Goal:** Remove the Bing Places Partner API write sync infrastructure. Microsoft retired the Bing Places Partner API (`api.bingplaces.com/v1`) with no Azure Maps equivalent for listing management. Bing remains a `manual_url` platform — NAP verification reads are unaffected.

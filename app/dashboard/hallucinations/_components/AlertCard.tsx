@@ -11,12 +11,13 @@
 import { describeAlert, getModelName, mapSeverity } from '@/lib/issue-descriptions';
 import type { HallucinationRow } from '@/lib/data/dashboard';
 import type { CorrectionStatus } from '../../actions';
-import { Sparkles } from 'lucide-react';
+import { Sparkles, AlertTriangle } from 'lucide-react';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
 import DismissAlertButton from './DismissAlertButton';
 import CorrectButton from './CorrectButton';
 import FixGuidancePanel from './FixGuidancePanel';
+import { computeUrgency } from '@/lib/hallucinations/urgency';
 
 const SEVERITY_STYLES = {
   critical: {
@@ -40,12 +41,20 @@ interface AlertCardProps {
   alert: HallucinationRow;
   /** When true, renders BeforeAfterCard-style layout (used in Resolved column) */
   isResolved?: boolean;
+  /** S21: Revenue config for urgency computation */
+  avgTicket?: number;
+  monthlyCover?: number;
 }
 
-export default function AlertCard({ alert, isResolved = false }: AlertCardProps) {
+export default function AlertCard({ alert, isResolved = false, avgTicket = 55, monthlyCover = 1800 }: AlertCardProps) {
   void isResolved; // consumed by TriageSwimlane to conditionally render BeforeAfterCard instead
   // Sprint G: all copy comes from here — no hardcoded strings
   const description = describeAlert(alert);
+
+  // S21: Day-of-week urgency for open critical/high alerts
+  const urgency = alert.correction_status === 'open'
+    ? computeUrgency(alert.severity, alert.first_detected_at, avgTicket, monthlyCover)
+    : null;
 
   // Map DB severity (critical/high/medium/low) → UI severity (critical/warning/info)
   const uiSeverity = mapSeverity(alert.severity);
@@ -83,6 +92,17 @@ export default function AlertCard({ alert, isResolved = false }: AlertCardProps)
           </span>
         )}
       </div>
+
+      {/* S21: Urgency badge — only Tue/Wed/Thu + critical/high + open */}
+      {urgency && (
+        <div
+          className="mb-2 flex items-center gap-1.5 rounded-md bg-alert-crimson/10 border border-alert-crimson/20 px-3 py-1.5 text-xs font-medium text-alert-crimson"
+          data-testid="urgency-badge"
+        >
+          <AlertTriangle className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+          Fix before Friday &mdash; ${urgency.revenueAtStake.toLocaleString()} at stake this weekend
+        </div>
+      )}
 
       {/* Plain-English headline — from describeAlert() */}
       <p className="text-sm font-medium text-foreground leading-snug">

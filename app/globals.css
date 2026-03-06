@@ -230,6 +230,18 @@ body {
   80%       { transform: scale(1); }
 }
 
+/* ── S20: Gamification keyframes ──────────────────────────────── */
+
+@keyframes confetti {
+  0%   { transform: translateY(0) translateX(0) rotate(0deg); opacity: 1; }
+  100% { transform: translateY(90vh) translateX(var(--confetti-x, 0)) rotate(var(--confetti-r, 360deg)); opacity: 0; }
+}
+
+@keyframes scaleIn {
+  0%   { transform: scale(0.8); opacity: 0; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
 /* ── S8: prefers-reduced-motion — stop all lv- animations ──────── */
 @media (prefers-reduced-motion: reduce) {
   *,

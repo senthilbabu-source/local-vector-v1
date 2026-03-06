@@ -34,6 +34,13 @@ export interface FollowUpResult {
   stillHallucinating: boolean;
 }
 
+// S14: When the cron confirms a fix propagated, it calls this to record verified_at
+// on the hallucination row. When recurring, fixed_at is cleared (error is back).
+export interface VerificationUpdate {
+  hallucinationId: string;
+  verified: boolean; // true = fixed confirmed, false = recurring
+}
+
 // ---------------------------------------------------------------------------
 // Main check function
 // ---------------------------------------------------------------------------

@@ -5021,3 +5021,69 @@ Fetched from `visibility_scores` table — latest 2 rows ordered by `snapshot_da
 - `wave2-s21-sentiment-chart.test.tsx` — 13 tests (annotateTrendWithErrors 8, SentimentTrendChart 5)
 - **Total Wave 2: 74 new tests**
 - **Grand total: 6468 tests, 415 files — all pass**
+
+---
+
+## §222 — S20 (Wave 3): Health Streak + Score Milestones + Fix Spotlight
+
+**Pure services (no I/O — callers pass Supabase client):**
+
+`lib/services/health-streak.service.ts`
+- `computeHealthStreak(snapshots: WeeklySnapshot[]): HealthStreak` — pure. Counts consecutive weeks where `accuracy_score >= 85` (CLEAN_THRESHOLD). Returns `{ currentStreak, longestStreak, isOnStreak }`. Handles null/empty/unsorted input gracefully.
+- `WeeklySnapshot` interface: `{ accuracy_score: number | null; snapshot_date: string }`.
+
+`lib/services/score-milestone.service.ts`
+- `detectScoreMilestone(current, previous): Milestone | null` — pure. Checks thresholds `[90, 80, 70, 60, 50]` in descending order. Returns first where `current >= threshold && previous < threshold`. Returns null for null inputs, decreases, or no crossing.
+- `formatMilestoneMessage(milestone, city?): string` — pure. Includes city name when provided.
+
+**Dashboard data layer:** `lib/data/dashboard.ts`
+- Added `accuracySnapshots` to `DashboardData` interface. Fetches up to 52 weekly snapshots from `visibility_scores` table (accuracy_score, snapshot_date) ordered DESC. Cast pattern: `as 'snapshot_date, reality_score'` for Sprint F columns not in database.types.ts.
+
+**Dashboard wiring:** `app/dashboard/page.tsx`
+- `computeHealthStreak(accuracySnapshots)` — skipped in sampleMode (returns zeros).
+- `detectScoreMilestone(displayScores.realityScore, previousRealityScore)` — skipped in sampleMode.
+- Spotlight fix query: `ai_hallucinations` WHERE `correction_status IN ('fixed','corrected')` AND `fixed_at > 7 days ago` AND `revenue_recovered_monthly >= 100`, ORDER DESC, LIMIT 1. Cast pattern for S14 columns.
+- Header row: `flex items-start justify-between` to accommodate `HealthStreakBadge`.
+
+**Components:**
+- `app/dashboard/_components/HealthStreakBadge.tsx` — Client. Flame icon + streak count. Hidden when `streak < 2`. `motion-safe:animate-pulse`. `data-testid="health-streak-badge"`.
+- `app/dashboard/_components/MilestoneCelebration.tsx` — Client. Full-screen overlay with CSS-only confetti (no canvas-confetti dependency). 3s auto-dismiss via `setTimeout`. sessionStorage dedup: `lv_milestone_celebrated_{threshold}`. `prefers-reduced-motion` → static card (no animation). `data-testid="milestone-celebration"`.
+- `app/dashboard/_components/FixSpotlightCard.tsx` — Client. Green trophy card for recent high-value fixes. Dismissible via localStorage `lv_fix_spotlight_{id}`. `data-testid="fix-spotlight-card"`. `SpotlightFix` interface exported.
+
+**CSS:** `app/globals.css` — `@keyframes confetti` (translateY/X/rotate with CSS custom properties `--confetti-x`, `--confetti-r`), `@keyframes scaleIn`. Both before the `prefers-reduced-motion` media query block.
+
+**Cron wire-up:** `app/api/cron/correction-follow-up/route.ts` — fire-and-forget `createHallucinationWin()` when `newStatus === 'fixed'`. Pattern: `void createHallucinationWin(...).catch(Sentry)`.
+
+---
+
+## §223 — S21 (Wave 3): Day-of-Week Urgency + External Fix Links
+
+**Pure urgency function:** `lib/hallucinations/urgency.ts`
+- `computeUrgency(severity, detectedAt, avgTicket, monthlyCover): UrgencyResult | null` — pure. Returns result only when severity is `critical` or `high` AND day of week is Tue(2)/Wed(3)/Thu(4). Formula: `revenueAtStake = Math.round(avgTicket * monthlyCover / 4 * 0.4)`. Deadline: `"Friday"`. Returns null for all other days/severities.
+- `UrgencyResult` interface: `{ badge: 'fix-before-weekend'; revenueAtStake: number; deadline: string }`.
+
+**Platform fix links SSOT:** `lib/entity-health/platform-fix-links.ts`
+- `PLATFORM_FIX_LINKS: Record<string, PlatformFixLink>` — 7 platforms (google_business_profile, yelp, tripadvisor, apple_maps, bing_places, wikidata, google_knowledge_panel). Each has `label` and `url` (all https://).
+- `getPlatformFixLink(platform: string): PlatformFixLink | null` — returns null for unknown/empty.
+
+**AlertCard urgency badge:** `app/dashboard/hallucinations/_components/AlertCard.tsx`
+- Extended props: `avgTicket` (default 55), `monthlyCover` (default 1800).
+- Computes urgency for open alerts via `computeUrgency()`.
+- Renders red urgency badge: "Fix before Friday — $X at stake this weekend". `data-testid="urgency-badge"`.
+
+**Entity health fix links:** `app/dashboard/entity-health/page.tsx`
+- Replaced static `info.claimUrl` with `getPlatformFixLink(info.key)` for dynamic SSOT URLs.
+- `data-testid={`platform-fix-link-${info.key}`}`. `target="_blank" rel="noopener noreferrer"`.
+
+**Platform descriptions extension:** `lib/entity-health/platform-descriptions.ts`
+- Added `fix_url?: string` to `PlatformDescription` interface. Populated for all 7 platforms.
+
+### Wave 3 test counts
+- `health-streak.test.ts` — 13 tests (empty/null, single clean, consecutive, reset, boundary 85/84, mixed)
+- `score-milestone.test.ts` — 16 tests (5 crossings, null inputs, decreases, multi-crossing, formatMilestoneMessage)
+- `day-of-week-urgency.test.ts` — 15 tests (Tue/Wed/Thu + critical/high, Mon/Fri/Sat/Sun null, medium/low null, formula, custom inputs)
+- `platform-fix-links.test.ts` — 12 tests (7 platforms, unknown/empty null, URL validation, label validation, count)
+- `s20-gamification.spec.ts` — 4 E2E scenarios (streak badge, spotlight, dismiss, page loads)
+- `s21-urgency-links.spec.ts` — 4 E2E scenarios (fix links, href validation, entity-health page, hallucinations page)
+- **Total Wave 3: 56 new unit tests + 8 E2E scenarios**
+- **Grand total: 6524 tests, 419 files — all pass**

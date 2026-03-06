@@ -21,6 +21,7 @@ import { createServiceRoleClient } from '@/lib/supabase/server';
 import { logCronStart, logCronComplete, logCronFailed } from '@/lib/services/cron-logger';
 import { checkCorrectionStatus, type FollowUpAlert } from '@/lib/services/correction-verifier.service';
 import { sendCorrectionFollowUpAlert } from '@/lib/email';
+import { createHallucinationWin } from '@/lib/services/wins.service';
 import type { Database } from '@/lib/supabase/database.types';
 import * as Sentry from '@sentry/nextjs';
 
@@ -92,13 +93,19 @@ export async function POST(request: NextRequest) {
         const result = await checkCorrectionStatus(followUpAlert);
         const newStatus = result.stillHallucinating ? 'recurring' : 'fixed';
 
+        const nowIso = new Date().toISOString();
         const updatePayload: Database['public']['Tables']['ai_hallucinations']['Update'] = {
           correction_status: newStatus,
           follow_up_result: newStatus,
-          follow_up_checked_at: new Date().toISOString(),
+          follow_up_checked_at: nowIso,
         };
         if (newStatus === 'fixed') {
-          updatePayload.resolved_at = new Date().toISOString();
+          updatePayload.resolved_at = nowIso;
+          // S14: record when the fix was confirmed by AI re-check
+          (updatePayload as Record<string, unknown>).verified_at = nowIso;
+        } else {
+          // S14: recurring means the error came back — clear fixed_at
+          (updatePayload as Record<string, unknown>).fixed_at = null;
         }
 
         await supabase
@@ -107,8 +114,18 @@ export async function POST(request: NextRequest) {
           .eq('id', alert.id);
 
         checkedCount++;
-        if (newStatus === 'fixed') fixedCount++;
-        else recurringCount++;
+        if (newStatus === 'fixed') {
+          fixedCount++;
+          // S20: Record a win when AI error is confirmed fixed (fire-and-forget)
+          void createHallucinationWin(supabase, alert.org_id, alert.claim_text).catch((err) => {
+            Sentry.captureException(err, {
+              tags: { cron: 'correction-follow-up', action: 'win-record', sprint: 'S20' },
+              extra: { alertId: alert.id },
+            });
+          });
+        } else {
+          recurringCount++;
+        }
 
         // Sprint N: Send email notification to org owner
         await sendFollowUpEmail(supabase, alert, newStatus).then(() => { emailsSent++; }).catch((err) => {
