@@ -1,3 +1,4 @@
+import * as Sentry from '@sentry/nextjs';
 import { redirect } from 'next/navigation';
 import { getSafeAuthContext } from '@/lib/auth';
 import { createClient } from '@/lib/supabase/server';
@@ -16,6 +17,7 @@ import FirstMoverCard from './_components/FirstMoverCard';
 import GapAlertCard from './_components/GapAlertCard';
 import CategoryBreakdownChart from './_components/CategoryBreakdownChart';
 import AIVisibilityHero, { type EngineStats } from './_components/AIVisibilityHero';
+import IntentDiscoverySection from './_components/IntentDiscoverySection';
 
 export const metadata = { title: 'AI Mentions | LocalVector.ai' };
 
@@ -264,6 +266,24 @@ export default async function ShareOfVoicePage() {
     })),
   );
 
+  // ── S16: Top intent discoveries (Starter+) ────────────────────────────────
+  let intentDiscoveries: Array<{ id: string; prompt: string; opportunity_score: number; theme: string | null }> = [];
+  try {
+    const intentSupabase = await createClient();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: intentRows } = await (intentSupabase.from('intent_discoveries' as any) as any)
+      .select('id, prompt, opportunity_score, theme')
+      .eq('org_id', ctx.orgId)
+      .order('opportunity_score', { ascending: false })
+      .limit(3) as { data: typeof intentDiscoveries | null };
+    if (intentRows) {
+      intentDiscoveries = intentRows;
+    }
+  } catch (err) {
+    Sentry.captureException(err, { tags: { sprint: 'S16', component: 'sov-intent-discoveries' } });
+    // Non-critical — page renders without intent discoveries
+  }
+
   return (
     <div className="space-y-8">
 
@@ -375,6 +395,9 @@ export default async function ShareOfVoicePage() {
           </div>
         </section>
       )}
+
+      {/* ── S16: Intent Discovery Section (Starter+) ────────────────────── */}
+      <IntentDiscoverySection items={intentDiscoveries} />
 
       {/* ── Query Library (existing per-location SovCards) ─────────────── */}
       <section id="queries">

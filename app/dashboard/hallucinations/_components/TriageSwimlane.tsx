@@ -1,9 +1,11 @@
 // ---------------------------------------------------------------------------
 // TriageSwimlane — Sprint H: One column of the hallucination triage board.
+// S15: isResolved prop renders BeforeAfterCard instead of AlertCard.
 // ---------------------------------------------------------------------------
 
 import type { HallucinationRow } from '@/lib/data/dashboard';
 import AlertCard from './AlertCard';
+import BeforeAfterCard from './BeforeAfterCard';
 
 interface TriageSwimlaneProps {
   title: string;
@@ -11,6 +13,8 @@ interface TriageSwimlaneProps {
   alerts: HallucinationRow[];
   emptyMessage: string;
   'data-testid': string;
+  /** When true, renders BeforeAfterCard layout for resolved alerts */
+  isResolved?: boolean;
 }
 
 export default function TriageSwimlane({
@@ -19,6 +23,7 @@ export default function TriageSwimlane({
   alerts,
   emptyMessage,
   'data-testid': testId,
+  isResolved = false,
 }: TriageSwimlaneProps) {
   return (
     <div className="flex flex-col gap-3" data-testid={testId}>
@@ -38,9 +43,13 @@ export default function TriageSwimlane({
         </div>
       ) : (
         <div className="space-y-3">
-          {alerts.map((alert) => (
-            <AlertCard key={alert.id} alert={alert} />
-          ))}
+          {alerts.map((alert) =>
+            isResolved ? (
+              <BeforeAfterCard key={alert.id} alert={alert} />
+            ) : (
+              <AlertCard key={alert.id} alert={alert} />
+            ),
+          )}
         </div>
       )}
     </div>

@@ -4859,7 +4859,84 @@ Grades (`All Clear` / `Some Issues` / `Needs Attention`), delta text, streak bad
 | File | Tests | Covers |
 |------|-------|--------|
 | `src/__tests__/unit/coaching-heroes-pages.test.tsx` | 92 | AIAccuracyHero, LostSalesHero, AIVisibilityHero, CompeteCoachHero, ListingsCoachHero, MenuCoachHero, ReviewsCoachHero, CustomerLoveHero, PostsCoachHero, PlatformsCoachHero, WebsiteCheckupCoachHero, QuestionsCoachHero |
-| `src/__tests__/unit/coaching-heroes-dashboard.test.tsx` | 25 | AIQuoteTicker, WeeklyKPIChips, CoachBriefCard |
+| `src/__tests__/unit/coaching-heroes-dashboard.test.tsx` | 25 | AIQuoteTicker, WeeklyKPIChips (4 chips), CoachBriefCard |
 | `src/__tests__/unit/pulse-score-orb.test.tsx` | 13 | PulseScoreOrb (client) |
+
+---
+
+## §215 — S15: Before/After Panel + Revenue Recovered Counter (2026-03-06)
+
+**Status:** Complete
+
+### BeforeAfterCard
+- Renders in "Resolved" `TriageSwimlane` column (`isResolved` prop).
+- Always shows "What AI was saying" (claim_text in crimson block).
+- Shows "Correct information" only when `expected_truth` is non-null.
+- Revenue recovered badge: `data-testid="revenue-recovered-badge"` — shown only when `revenue_recovered_monthly > 0` (null and 0 both hidden).
+- Timestamp uses: `fixed_at ?? verified_at ?? first_detected_at`.
+- `data-testid="before-after-card-{id}"`.
+
+### RevenueRecoveredCard
+- Returns null when `recoveredMonthly <= 0`.
+- `data-testid="revenue-recovered-card"`, `data-testid="revenue-recovered-amount"`.
+
+### WeeklyKPIChips 4th chip
+- Prop: `revenueRecoveredMonthly?: number` (defaults to 0).
+- Shows "$N/mo" when >0, "None yet" when 0.
+- Links to `/dashboard/revenue-impact`.
+- Grid: `sm:grid-cols-2 lg:grid-cols-4` (not 3 columns).
+
+### Non-critical fetch pattern
+All new data fetches (revenue recovery sum, score snapshots, intent discoveries) use non-critical try/catch:
+```typescript
+try {
+  // fetch
+} catch (err) {
+  Sentry.captureException(err, { tags: { ... } });
+  // field stays at default value
+}
+```
+Dashboard renders without these values on failure.
+
+---
+
+## §216 — S16: Score Attribution + Intent Discovery Surface (2026-03-06)
+
+**Status:** Complete
+
+### ScoreAttributionPopover
+- `'use client'` component with `useState` for open state.
+- Trigger: Info icon + colored delta badge (green=positive, red=negative).
+- Panel: 3 rows — AI Accuracy, AI Visibility, Data Health — with per-component previous→current + delta.
+- Backdrop button (invisible overlay) to close.
+- `data-testid="score-attribution-popover"`, `data-testid="score-attribution-trigger"`, `data-testid="score-attribution-panel"`.
+- Rendered on dashboard below `PulseScoreOrb` only when both `currentScoreSnapshot` and `prevScoreSnapshot` exist AND not in sample mode.
+
+### ScoreSnapshot interface
+```typescript
+interface ScoreSnapshot {
+  accuracy_score: number | null;
+  visibility_score: number | null;
+  data_health_score: number | null;
+  reality_score: number | null;
+  snapshot_date: string;
+}
+```
+Fetched from `visibility_scores` table — latest 2 rows ordered by `snapshot_date DESC`. `scoreRows[0]` = current, `scoreRows[1]` = previous.
+
+### IntentDiscoverySection
+- Returns null when `items` array is empty.
+- Shows at most 3 items (sorted by `opportunity_score` DESC before slicing).
+- Each item: `data-testid="intent-discovery-item-{id}"`, prompt text, theme tag, opportunity bar (percentage width 0–100%).
+- "See all" link: `data-testid="intent-discovery-see-all"`, href `/dashboard/intent-discovery`.
+- `data-testid="intent-discovery-section"`, `data-testid="intent-discovery-list"`.
+- Rendered on share-of-voice page before Query Library section.
+
+### Wave 1 final test counts
+- `src/__tests__/unit/wave1-s14-fix-guidance.test.ts` — 26 tests (pure functions)
+- `src/__tests__/unit/wave1-components.test.tsx` — 38 tests (jsdom: FixGuidancePanel 9, BeforeAfterCard 10, WeeklyKPIChips 6, ScoreAttributionPopover 5, IntentDiscoverySection 7)
+- `src/__tests__/unit/alert-card.test.tsx` — +4 S14 tests
+- `src/__tests__/unit/triage-swimlane.test.tsx` — +2 S15 tests
+- **Total: 6394 tests, 410 files — all pass**
 
 ---

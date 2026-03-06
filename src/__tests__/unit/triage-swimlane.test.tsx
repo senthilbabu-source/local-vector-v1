@@ -20,19 +20,25 @@ vi.mock('@/app/dashboard/actions', () => ({
   updateHallucinationStatus: vi.fn(),
 }));
 
-function makeAlert(id: string): HallucinationRow {
+function makeAlert(id: string, overrides: Partial<HallucinationRow> = {}): HallucinationRow {
   return {
     id,
     severity: 'high',
     category: 'hours',
     model_provider: 'openai-gpt4o',
     claim_text: `Alert ${id}`,
-    expected_truth: 'expected',
+    expected_truth: 'The correct info',
     correction_status: 'open',
     first_detected_at: new Date().toISOString(),
     last_seen_at: new Date().toISOString(),
     occurrence_count: 1,
     follow_up_result: null,
+    // S14: Fix tracking
+    fixed_at: null,
+    verified_at: null,
+    revenue_recovered_monthly: null,
+    fix_guidance_category: null,
+    ...overrides,
   };
 }
 
@@ -103,5 +109,41 @@ describe('TriageSwimlane', () => {
     );
     expect(screen.getByTestId('swimlane-resolved')).toBeDefined();
     expect(screen.getByTestId('swimlane-resolved-empty')).toBeDefined();
+  });
+
+  // S15: isResolved renders BeforeAfterCard instead of AlertCard
+  it('isResolved=true renders BeforeAfterCard (not AlertCard) for each item', () => {
+    const alert = makeAlert('resolved-1', {
+      correction_status: 'fixed',
+      claim_text: 'Wrong hours',
+      expected_truth: 'Open until midnight',
+    });
+    render(
+      <TriageSwimlane
+        title="Resolved"
+        count={1}
+        alerts={[alert]}
+        emptyMessage="empty"
+        data-testid="swimlane-resolved"
+        isResolved
+      />,
+    );
+    expect(screen.getByTestId('before-after-card-resolved-1')).toBeDefined();
+    expect(screen.queryByTestId('alert-card-resolved-1')).toBeNull();
+  });
+
+  it('isResolved=false (default) renders AlertCard — not BeforeAfterCard', () => {
+    const alert = makeAlert('open-1');
+    render(
+      <TriageSwimlane
+        title="Fix Now"
+        count={1}
+        alerts={[alert]}
+        emptyMessage="empty"
+        data-testid="swimlane-fix-now"
+      />,
+    );
+    expect(screen.getByTestId('alert-card-open-1')).toBeDefined();
+    expect(screen.queryByTestId('before-after-card-open-1')).toBeNull();
   });
 });

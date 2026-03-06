@@ -29,6 +29,7 @@ import AIQuoteTicker from './_components/AIQuoteTicker';
 import PulseScoreOrb from './_components/PulseScoreOrb';
 import CoachBriefCard from './_components/CoachBriefCard';
 import WeeklyKPIChips from './_components/WeeklyKPIChips';
+import ScoreAttributionPopover from './_components/ScoreAttributionPopover';
 import { deriveRealityScore } from '@/lib/services/reality-score.service';
 
 export const metadata = { title: 'Dashboard | LocalVector.ai' };
@@ -62,6 +63,9 @@ export default async function DashboardPage({
     simulationScore, dataHealthScore,
     realityScoreTrend, previousRealityScore,
     benchmark, locationContext,
+    revenueRecoveredMonthly,
+    currentScoreSnapshot,
+    prevScoreSnapshot,
   } = await fetchDashboardData(ctx.orgId ?? '', activeLocationId);
 
   const scores    = deriveRealityScore(openAlerts.length, visibilityScore, dataHealthScore, simulationScore);
@@ -174,6 +178,14 @@ export default async function DashboardPage({
             orgCity={locationContext.city}
             benchmark={benchmark}
           />
+          {!sampleMode && currentScoreSnapshot && prevScoreSnapshot && (
+            <div className="mt-2 flex justify-end px-1">
+              <ScoreAttributionPopover
+                current={currentScoreSnapshot}
+                previous={prevScoreSnapshot}
+              />
+            </div>
+          )}
           {sampleMode && <SampleDataBadge />}
         </div>
         <CoachBriefCard
@@ -192,6 +204,7 @@ export default async function DashboardPage({
           openAlertCount={displayOpenAlertCount}
           visibilityScore={sampleMode ? SAMPLE_VISIBILITY_SCORE : visibilityScore}
           crawlerSummary={sampleMode ? null : crawlerSummary}
+          revenueRecoveredMonthly={sampleMode ? 0 : revenueRecoveredMonthly}
         />
         {sampleMode && <SampleDataBadge />}
       </div>

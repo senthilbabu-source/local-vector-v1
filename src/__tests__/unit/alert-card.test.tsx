@@ -33,6 +33,11 @@ function makeAlert(overrides: Partial<HallucinationRow> = {}): HallucinationRow 
     last_seen_at: new Date().toISOString(),
     occurrence_count: 2,
     follow_up_result: null,
+    // S14: Fix tracking
+    fixed_at: null,
+    verified_at: null,
+    revenue_recovered_monthly: null,
+    fix_guidance_category: null,
     ...overrides,
   };
 }
@@ -114,6 +119,27 @@ describe('AlertCard', () => {
   it('status=recurring shows Try again link', () => {
     render(<AlertCard alert={makeAlert({ correction_status: 'recurring' })} />);
     expect(screen.getByText('Try again →')).toBeDefined();
+  });
+
+  // S14: FixGuidancePanel integration
+  it('shows fix-guidance-panel for open status with known category', () => {
+    render(<AlertCard alert={makeAlert({ fix_guidance_category: 'hours' })} />);
+    expect(screen.getByTestId('fix-guidance-panel')).toBeDefined();
+  });
+
+  it('shows fix-guidance-panel for verifying status with known category', () => {
+    render(<AlertCard alert={makeAlert({ correction_status: 'verifying', fix_guidance_category: 'menu', follow_up_result: null })} />);
+    expect(screen.getByTestId('fix-guidance-panel')).toBeDefined();
+  });
+
+  it('does not show fix-guidance-panel when status is fixed', () => {
+    render(<AlertCard alert={makeAlert({ correction_status: 'fixed', fix_guidance_category: 'hours' })} />);
+    expect(screen.queryByTestId('fix-guidance-panel')).toBeNull();
+  });
+
+  it('does not show fix-guidance-panel when fix_guidance_category is null', () => {
+    render(<AlertCard alert={makeAlert({ fix_guidance_category: null })} />);
+    expect(screen.queryByTestId('fix-guidance-panel')).toBeNull();
   });
 
   // Meta

@@ -76,9 +76,9 @@ describe('Mobile responsiveness — Modals (P6-FIX-28)', () => {
 describe('Mobile responsiveness — Grids (P6-FIX-28)', () => {
   it('Dashboard stat panel grid is responsive', () => {
     const content = readComponent('app/dashboard/page.tsx');
-    // Should use responsive grid: grid-cols-1 then sm:grid-cols-2 then xl:grid-cols-4
+    // Hero section uses grid-cols-1 for mobile, lg:grid-cols-2 for wide screens
     expect(content).toContain('grid-cols-1');
-    expect(content).toMatch(/sm:grid-cols-2|md:grid-cols-2/);
+    expect(content).toMatch(/lg:grid-cols-2|sm:grid-cols-2|md:grid-cols-2/);
   });
 
   it('AddLocationModal city/state/zip grid is responsive', () => {

@@ -51,6 +51,11 @@ type Hallucination = {
   last_seen_at: string | null;
   occurrence_count: number | null;
   follow_up_result: string | null;
+  // S14: Fix tracking columns
+  fixed_at: string | null;
+  verified_at: string | null;
+  revenue_recovered_monthly: number | null;
+  fix_guidance_category: string | null;
 };
 
 // ---------------------------------------------------------------------------
@@ -79,7 +84,8 @@ async function fetchPageData(): Promise<{
 
     supabase
       .from('ai_hallucinations')
-      .select('id, claim_text, severity, category, model_provider, correction_status, expected_truth, detected_at, first_detected_at, last_seen_at, occurrence_count, follow_up_result')
+      // S14: Cast includes new fix-tracking columns not yet in database.types.ts
+      .select('id, claim_text, severity, category, model_provider, correction_status, expected_truth, detected_at, first_detected_at, last_seen_at, occurrence_count, follow_up_result, fixed_at, verified_at, revenue_recovered_monthly, fix_guidance_category' as 'id, claim_text, severity, category, model_provider, correction_status, expected_truth, detected_at, first_detected_at, last_seen_at, occurrence_count, follow_up_result')
       .order('detected_at', { ascending: false }),
   ]);
 
@@ -172,6 +178,11 @@ export default async function HallucinationsPage() {
     last_seen_at: h.last_seen_at ?? h.detected_at,
     occurrence_count: h.occurrence_count ?? 1,
     follow_up_result: h.follow_up_result ?? null,
+    // S14: Fix tracking
+    fixed_at: h.fixed_at ?? null,
+    verified_at: h.verified_at ?? null,
+    revenue_recovered_monthly: h.revenue_recovered_monthly ?? null,
+    fix_guidance_category: h.fix_guidance_category ?? null,
   }));
 
   const fixNowAlerts = triageAlerts
@@ -344,6 +355,7 @@ export default async function HallucinationsPage() {
             alerts={resolvedAlerts}
             emptyMessage="Fixed issues will appear here"
             data-testid="swimlane-resolved"
+            isResolved
           />
         </div>
       </section>

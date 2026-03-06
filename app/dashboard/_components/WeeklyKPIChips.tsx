@@ -1,13 +1,14 @@
 // ---------------------------------------------------------------------------
-// WeeklyKPIChips — 3 horizontal at-a-glance status pills
+// WeeklyKPIChips — 4 horizontal at-a-glance status pills
 //
-// Lets a restaurant owner scan their three key numbers in under 2 seconds
+// Lets a restaurant owner scan their four key numbers in under 2 seconds
 // without clicking into any sub-page.
 //
 // Chips (left → right):
-//   1. AI Accuracy  — derived from open hallucination count
-//   2. AI Visibility — derived from visibilityScore (SOV %)
-//   3. AI Crawlers  — derived from crawler blind-spot count
+//   1. AI Accuracy        — derived from open hallucination count
+//   2. AI Visibility      — derived from visibilityScore (SOV %)
+//   3. AI Crawlers        — derived from crawler blind-spot count
+//   4. Revenue Recovered  — S15: sum of revenue_recovered_monthly for fixed alerts
 //
 // Each chip is a full-click Link so everything is actionable.
 // Staggered slide-up entry via lv-chip-enter (globals.css).
@@ -23,6 +24,8 @@ interface WeeklyKPIChipsProps {
   openAlertCount: number;
   visibilityScore: number | null;
   crawlerSummary: CrawlerSummary | null;
+  /** S15: monthly revenue recovered from fixed hallucinations */
+  revenueRecoveredMonthly?: number;
 }
 
 type ChipStatus = 'good' | 'warn' | 'bad' | 'neutral';
@@ -51,6 +54,7 @@ function buildChips(
   openAlertCount: number,
   visibilityScore: number | null,
   crawlerSummary: CrawlerSummary | null,
+  revenueRecoveredMonthly: number,
 ): Chip[] {
   // ── Chip 1: AI Accuracy ─────────────────────────────────────────────────
   const accuracy: Chip =
@@ -81,7 +85,13 @@ function buildChips(
         ? { icon: '🤖', label: 'AI Crawlers',  value: `${activeCount} visiting`, hint: 'All bots have access',  status: 'good',    href: '/dashboard/crawler-analytics' }
         : { icon: '🚫', label: 'AI Crawlers',  value: `${blindSpots} blocked`,   hint: 'Fix bot access',        status: 'warn',    href: '/dashboard/crawler-analytics' };
 
-  return [accuracy, visibility, crawlers];
+  // ── Chip 4: Revenue Recovered (S15) ─────────────────────────────────────
+  const recovered: Chip =
+    revenueRecoveredMonthly <= 0
+      ? { icon: '$', label: 'Revenue Recovered', value: 'None yet',       hint: 'Fix AI mistakes to recover', status: 'neutral', href: '/dashboard/revenue-impact' }
+      : { icon: '↑', label: 'Revenue Recovered', value: `$${Math.round(revenueRecoveredMonthly)}/mo`, hint: 'From AI corrections', status: 'good', href: '/dashboard/revenue-impact' };
+
+  return [accuracy, visibility, crawlers, recovered];
 }
 
 // ─── Component ──────────────────────────────────────────────────────────────
@@ -90,12 +100,13 @@ export default function WeeklyKPIChips({
   openAlertCount,
   visibilityScore,
   crawlerSummary,
+  revenueRecoveredMonthly = 0,
 }: WeeklyKPIChipsProps) {
-  const chips = buildChips(openAlertCount, visibilityScore, crawlerSummary);
+  const chips = buildChips(openAlertCount, visibilityScore, crawlerSummary, revenueRecoveredMonthly);
 
   return (
     <div
-      className="grid grid-cols-1 gap-3 sm:grid-cols-3"
+      className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4"
       role="list"
       aria-label="Weekly status overview"
     >

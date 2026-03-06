@@ -1,3 +1,4 @@
+import * as Sentry from '@sentry/nextjs';
 import { redirect } from 'next/navigation';
 import { getSafeAuthContext } from '@/lib/auth';
 import { createClient } from '@/lib/supabase/server';
@@ -7,6 +8,7 @@ import { TrendingDown, AlertTriangle, Swords } from 'lucide-react';
 import Link from 'next/link';
 import RevenueConfigForm from './_components/RevenueConfigForm';
 import LostSalesHero from './_components/LostSalesHero';
+import RevenueRecoveredCard from './_components/RevenueRecoveredCard';
 import { getIndustryRevenueDefaults } from '@/lib/revenue-impact/industry-revenue-defaults';
 import { getIndustryConfig } from '@/lib/industries/industry-config';
 
@@ -88,6 +90,23 @@ export default async function RevenueImpactPage() {
 
   const result = await fetchRevenueImpact(supabase, ctx.orgId, location.id, industryDefaults);
 
+  // S15: Sum revenue_recovered_monthly for corrected/fixed hallucinations
+  let revenueRecoveredMonthly = 0;
+  try {
+    const { data: recoveryRows } = await supabase
+      .from('ai_hallucinations')
+      .select('revenue_recovered_monthly' as 'id')
+      .in('correction_status', ['corrected', 'fixed', 'verifying'])
+      .not('revenue_recovered_monthly' as 'id', 'is', null);
+    if (recoveryRows) {
+      revenueRecoveredMonthly = (recoveryRows as unknown as { revenue_recovered_monthly: number | null }[])
+        .reduce((sum, r) => sum + (r.revenue_recovered_monthly ?? 0), 0);
+    }
+  } catch (err) {
+    Sentry.captureException(err, { tags: { sprint: 'S15', component: 'revenue-impact-page' } });
+    // Non-critical — page renders without it
+  }
+
   // Empty state: no data at all
   const hasNoData = result.totalMonthlyRevenue === 0 && result.lineItems.length === 0;
 
@@ -115,6 +134,9 @@ export default async function RevenueImpactPage() {
         avgCustomerValue={result.config.avgCustomerValue}
         monthlyCovers={result.config.monthlyCovers}
       />
+
+      {/* ── S15: Revenue recovered counter ───────────────────────── */}
+      <RevenueRecoveredCard recoveredMonthly={revenueRecoveredMonthly} />
 
       {/* ── S4: Coach playbook — numbered missions ───────────────── */}
       {result.lineItems.length > 0 && result.totalMonthlyRevenue > 0 && (

@@ -16,6 +16,7 @@ import Link from 'next/link';
 import { cn } from '@/lib/utils';
 import DismissAlertButton from './DismissAlertButton';
 import CorrectButton from './CorrectButton';
+import FixGuidancePanel from './FixGuidancePanel';
 
 const SEVERITY_STYLES = {
   critical: {
@@ -37,9 +38,12 @@ const SEVERITY_STYLES = {
 
 interface AlertCardProps {
   alert: HallucinationRow;
+  /** When true, renders BeforeAfterCard-style layout (used in Resolved column) */
+  isResolved?: boolean;
 }
 
-export default function AlertCard({ alert }: AlertCardProps) {
+export default function AlertCard({ alert, isResolved = false }: AlertCardProps) {
+  void isResolved; // consumed by TriageSwimlane to conditionally render BeforeAfterCard instead
   // Sprint G: all copy comes from here — no hardcoded strings
   const description = describeAlert(alert);
 
@@ -107,6 +111,11 @@ export default function AlertCard({ alert }: AlertCardProps) {
             </span>
           )}
         </div>
+      )}
+
+      {/* S14: Category-specific fix guidance — only for actionable statuses */}
+      {(status === 'open' || status === 'verifying') && (
+        <FixGuidancePanel category={alert.fix_guidance_category} />
       )}
 
       {/* Actions — one per status */}

@@ -98,10 +98,10 @@ describe('AIQuoteTicker', () => {
 // ═══════════════════════════════════════════════════════════════════════════
 
 describe('WeeklyKPIChips', () => {
-  it('renders a list with 3 chip items', () => {
+  it('renders a list with 4 chip items (S15: added Revenue Recovered chip)', () => {
     render(<WeeklyKPIChips openAlertCount={0} visibilityScore={null} crawlerSummary={null} />);
     const chips = screen.getAllByRole('listitem');
-    expect(chips).toHaveLength(3);
+    expect(chips).toHaveLength(4);
   });
 
   // ── AI Accuracy chip ──────────────────────────────────────────────────────

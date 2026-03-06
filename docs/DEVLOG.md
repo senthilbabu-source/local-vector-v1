@@ -6227,3 +6227,79 @@ Committed: `d70bf19` — 70 files, 12,552 insertions.
 - Bing remains `manual_url` in `platform-config.ts` — users manage at bingplaces.com
 
 ---
+
+## §214 — S14: Fix Timestamps + Category-Specific Fix Guidance (2026-03-06)
+
+**AI_RULES:** §214 (Wave 1 implementation)
+
+**Migration:** `20260306000003_hallucination_fix_tracking.sql`
+- `fixed_at timestamptz` — when the issue was resolved
+- `verified_at timestamptz` — when AI re-confirmed the fix
+- `revenue_recovered_monthly numeric(10,2)` — estimated monthly revenue recovery
+- `fix_guidance_category text` — maps to FIX_GUIDANCE lookup key (hours/closed/address/phone/menu/cuisine)
+- All columns: `ALTER TABLE ai_hallucinations ADD COLUMN IF NOT EXISTS ...`
+
+**New components:**
+- `app/dashboard/hallucinations/_components/FixGuidancePanel.tsx` (NEW) — collapsible panel on AlertCard. Returns null for null/unknown categories. 6 supported categories, each with `steps[]`, `platforms[]`, `estimatedDays`, optional `urgencyNote`. Toggle button with `aria-expanded`. Platform links with `target="_blank" rel="noopener noreferrer"`. `data-testid="fix-guidance-panel/toggle/steps/platform-link"`.
+- `FIX_GUIDANCE` record exported from the same file — 6 keys, pure lookup, no I/O.
+- `SEVERITY_REVENUE_IMPACT` record — critical=$180, high=$100, medium=$50, low=$20.
+- `getRevenueImpactBySeverity()` pure helper.
+
+**Modified files:**
+- `lib/data/dashboard.ts` — `HallucinationRow` extended with 4 new optional fields; `openQuery` select cast updated.
+- `app/dashboard/hallucinations/page.tsx` — local `Hallucination` type updated; triageAlerts mapping includes S14 fields; `isResolved` prop added to "Resolved" `TriageSwimlane`.
+- `app/dashboard/hallucinations/_components/AlertCard.tsx` — renders `<FixGuidancePanel category={alert.fix_guidance_category} />` below existing content.
+
+**Tests:**
+- `src/__tests__/unit/wave1-s14-fix-guidance.test.ts` (NEW) — 26 pure function tests: all 6 categories return correctly, case-insensitive inputs, null/undefined/unknown return null, platform URL validation (https://), step non-emptiness, severity ordering.
+- `src/__tests__/unit/alert-card.test.tsx` — 4 new S14 integration tests: panel absent when category=null, panel present for known category, toggle expands steps, collapsed by default.
+
+---
+
+## §215 — S15: Before/After Panel + Revenue Recovered Counter (2026-03-06)
+
+**AI_RULES:** §215 (Wave 1 implementation)
+
+**New components:**
+- `app/dashboard/hallucinations/_components/BeforeAfterCard.tsx` (NEW) — replaces AlertCard in "Resolved" swimlane. Shows "What AI was saying" (claim_text, crimson block) vs "Correct information" (expected_truth, green block, hidden when null). Revenue recovered badge (`data-testid="revenue-recovered-badge"`) when `revenue_recovered_monthly > 0`. Shows "~$N/mo recovered". Timestamp chain: `fixed_at ?? verified_at ?? first_detected_at`. Status label "Fixed". `data-testid="before-after-card-{id}"`.
+- `app/dashboard/revenue-impact/_components/RevenueRecoveredCard.tsx` (NEW) — TrendingUp icon + formatted amount. Returns null when `recoveredMonthly <= 0`. `data-testid="revenue-recovered-card"`, `data-testid="revenue-recovered-amount"`.
+
+**Modified files:**
+- `app/dashboard/hallucinations/_components/TriageSwimlane.tsx` — added `isResolved?: boolean` prop; conditionally renders `BeforeAfterCard` vs `AlertCard`.
+- `app/dashboard/_components/WeeklyKPIChips.tsx` — added `revenueRecoveredMonthly?: number` prop (default 0); 4th chip "Revenue Recovered" linking to `/dashboard/revenue-impact`; "$N/mo" when >0, "None yet" when 0; grid changed to `sm:grid-cols-2 lg:grid-cols-4`.
+- `app/dashboard/revenue-impact/page.tsx` — non-critical revenue recovery fetch (sum of `revenue_recovered_monthly` for corrected/fixed/verifying); `<RevenueRecoveredCard>` below `LostSalesHero`; Sentry import added; bare catch fixed.
+- `lib/data/dashboard.ts` — `DashboardData` extended with `revenueRecoveredMonthly: number`; non-critical fetch block added.
+- `app/dashboard/page.tsx` — `revenueRecoveredMonthly` wired into `WeeklyKPIChips`.
+
+**Tests:**
+- `src/__tests__/unit/wave1-components.test.tsx` — `BeforeAfterCard` describe (10 tests): testid, claim_text, expected_truth shown/hidden, revenue badge shown/hidden (>0/null/0), "Fixed" label, timestamp fallback chain.
+- `src/__tests__/unit/wave1-components.test.tsx` — `WeeklyKPIChips — Revenue Recovered chip` describe (6 tests): 4 chips total, label, "$200/mo", "None yet", default prop, link href.
+- `src/__tests__/unit/triage-swimlane.test.tsx` — 2 new `isResolved` tests.
+- `src/__tests__/unit/coaching-heroes-dashboard.test.tsx` — updated chip count assertion 3→4.
+
+---
+
+## §216 — S16: Score Attribution + Intent Discovery Surface (2026-03-06)
+
+**AI_RULES:** §216 (Wave 1 implementation)
+
+**New components:**
+- `app/dashboard/_components/ScoreAttributionPopover.tsx` (NEW) — `'use client'`. Info icon trigger with colored delta badge (+N/−N). Clicking opens inline panel (backdrop button to close). 3 rows: AI Accuracy, AI Visibility, Data Health — each shows previous → current + delta badge. `data-testid="score-attribution-popover/trigger/panel"`. Handles both positive and negative deltas.
+- `app/dashboard/share-of-voice/_components/IntentDiscoverySection.tsx` (NEW) — top 3 items sorted by `opportunity_score` desc. Returns null when empty. Each item has `data-testid="intent-discovery-item-{id}"` with prompt text, theme, and opportunity bar (0–100%). "See all →" link to `/dashboard/intent-discovery`. `data-testid="intent-discovery-section/list/see-all"`.
+
+**Modified files:**
+- `lib/data/dashboard.ts` — `ScoreSnapshot` interface added: `{ accuracy_score, visibility_score, data_health_score, reality_score, snapshot_date }`. `DashboardData` extended with `currentScoreSnapshot: ScoreSnapshot | null`, `prevScoreSnapshot: ScoreSnapshot | null`. Non-critical fetch from `visibility_scores` (latest 2 rows, component scores).
+- `app/dashboard/page.tsx` — `ScoreAttributionPopover` rendered below `PulseScoreOrb` when not in sample mode and both snapshots present.
+- `app/dashboard/share-of-voice/page.tsx` — non-critical `intent_discoveries` fetch (top 3 by opportunity_score); `<IntentDiscoverySection>` rendered before Query Library; Sentry import added; bare catch fixed.
+
+**Tests:**
+- `src/__tests__/unit/wave1-components.test.tsx` — `ScoreAttributionPopover` describe (5 tests): testid, +9 delta render, panel opens on click, component labels visible, negative delta.
+- `src/__tests__/unit/wave1-components.test.tsx` — `IntentDiscoverySection` describe (7 tests): null when empty, testid, max 3 items, prompt text, "See all" link href, heading, per-item testids including 4th not rendered.
+
+**Wave 1 totals:**
+- New files: 6 components + 2 test files
+- Modified files: ~12 (dashboard.ts, hallucinations/page.tsx, revenue-impact/page.tsx, share-of-voice/page.tsx, dashboard/page.tsx, TriageSwimlane, WeeklyKPIChips, alert-card test, triage-swimlane test, coaching-heroes-dashboard test, mobile-responsive test)
+- **Tests: 6394 total (410 files) — 0 failures**
+- **Build: `npx next build` passes — 41/41 static pages**
+
+---

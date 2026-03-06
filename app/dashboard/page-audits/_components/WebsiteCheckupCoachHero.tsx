@@ -115,7 +115,7 @@ function shortenUrl(url: string): string {
     const u = new URL(url);
     const path = u.pathname === '/' ? '' : u.pathname;
     return (u.hostname + path).replace(/^www\./, '');
-  } catch {
+  } catch (_err) {
     return url.length > 40 ? url.slice(0, 40) + '…' : url;
   }
 }

@@ -52,6 +52,11 @@ export type HallucinationRow = {
   last_seen_at: string;
   occurrence_count: number;
   follow_up_result: string | null; // Sprint F (N3): 'fixed' | 'recurring' | null
+  // S14: Fix tracking — set when user submits correction / cron verifies
+  fixed_at: string | null;
+  verified_at: string | null;
+  revenue_recovered_monthly: number | null;
+  fix_guidance_category: string | null;
 };
 
 export interface DashboardData {
@@ -88,12 +93,26 @@ export interface DashboardData {
   // P8-FIX-33: Reality Score trend (last 12 snapshots) + previous score for delta
   realityScoreTrend: RealityScoreTrendPoint[];
   previousRealityScore: number | null;
+  // S15: Sum of revenue_recovered_monthly for all fixed hallucinations
+  revenueRecoveredMonthly: number;
+  // S16: Current + previous visibility_scores snapshots for score attribution popover
+  currentScoreSnapshot: ScoreSnapshot | null;
+  prevScoreSnapshot: ScoreSnapshot | null;
 }
 
 // P8-FIX-33: Data shape for RealityScoreTrendChart
 export interface RealityScoreTrendPoint {
   date: string;
   score: number;
+}
+
+// S16: Component-level snapshot for score attribution
+export interface ScoreSnapshot {
+  accuracy_score: number | null;
+  visibility_score: number | null;
+  data_health_score: number | null;
+  reality_score: number | null;
+  snapshot_date: string;
 }
 
 // ---------------------------------------------------------------------------
@@ -122,9 +141,10 @@ export async function fetchDashboardData(orgId: string, locationId?: string | nu
   // Build location-scoped queries (Sprint 100: data isolation)
   let openQuery = supabase
     .from('ai_hallucinations')
-    // Cast: follow_up_result is a Sprint F (N3) column not yet in database.types.ts
+    // Cast: follow_up_result, fixed_at, verified_at, revenue_recovered_monthly,
+    // fix_guidance_category are Sprint F/S14 columns not yet in database.types.ts
     .select(
-      'id, severity, category, model_provider, claim_text, expected_truth, correction_status, first_detected_at, last_seen_at, occurrence_count, follow_up_result' as 'id, severity, category, model_provider, claim_text, expected_truth, correction_status, first_detected_at, last_seen_at, occurrence_count'
+      'id, severity, category, model_provider, claim_text, expected_truth, correction_status, first_detected_at, last_seen_at, occurrence_count, follow_up_result, fixed_at, verified_at, revenue_recovered_monthly, fix_guidance_category' as 'id, severity, category, model_provider, claim_text, expected_truth, correction_status, first_detected_at, last_seen_at, occurrence_count'
     )
     .eq('correction_status', 'open')
     .order('last_seen_at', { ascending: false })
@@ -423,6 +443,64 @@ export async function fetchDashboardData(orgId: string, locationId?: string | nu
     // Trend data is non-critical — dashboard renders without it.
   }
 
+  // ── S15: Revenue Recovered — sum of snapshotted revenue for corrected/fixed alerts ──
+  let revenueRecoveredMonthly = 0;
+  try {
+    let recoveryQuery = supabase
+      .from('ai_hallucinations')
+      .select('revenue_recovered_monthly' as 'id')
+      .in('correction_status', ['corrected', 'fixed', 'verifying'])
+      .not('revenue_recovered_monthly' as 'id', 'is', null);
+    if (locationId) recoveryQuery = recoveryQuery.eq('location_id', locationId);
+
+    const { data: recoveryRows } = await recoveryQuery;
+    if (recoveryRows) {
+      revenueRecoveredMonthly = (recoveryRows as unknown as { revenue_recovered_monthly: number | null }[])
+        .reduce((sum, r) => sum + (r.revenue_recovered_monthly ?? 0), 0);
+    }
+  } catch (err) {
+    Sentry.captureException(err, { tags: { file: 'dashboard.ts', sprint: 'S15' } });
+    // Revenue recovery is non-critical — dashboard renders without it.
+  }
+
+  // ── S16: Current + previous visibility_scores snapshots for score attribution ──
+  let currentScoreSnapshot: ScoreSnapshot | null = null;
+  let prevScoreSnapshot: ScoreSnapshot | null = null;
+  try {
+    let scoreQuery = supabase
+      .from('visibility_scores')
+      .select('accuracy_score, visibility_score, data_health_score, reality_score, snapshot_date' as 'snapshot_date, reality_score')
+      .eq('org_id', orgId)
+      .order('snapshot_date', { ascending: false })
+      .limit(2);
+    if (locationId) scoreQuery = scoreQuery.eq('location_id', locationId);
+
+    const { data: scoreRows } = await scoreQuery;
+    if (scoreRows && scoreRows.length >= 1) {
+      const curr = scoreRows[0] as unknown as ScoreSnapshot;
+      currentScoreSnapshot = {
+        accuracy_score: curr.accuracy_score,
+        visibility_score: curr.visibility_score,
+        data_health_score: curr.data_health_score,
+        reality_score: curr.reality_score,
+        snapshot_date: curr.snapshot_date,
+      };
+    }
+    if (scoreRows && scoreRows.length >= 2) {
+      const prev = scoreRows[1] as unknown as ScoreSnapshot;
+      prevScoreSnapshot = {
+        accuracy_score: prev.accuracy_score,
+        visibility_score: prev.visibility_score,
+        data_health_score: prev.data_health_score,
+        reality_score: prev.reality_score,
+        snapshot_date: prev.snapshot_date,
+      };
+    }
+  } catch (err) {
+    Sentry.captureException(err, { tags: { file: 'dashboard.ts', sprint: 'S16' } });
+    // Score snapshot is non-critical — dashboard renders without it.
+  }
+
   return {
     openAlerts,
     fixedCount: fixedResult.count ?? 0,
@@ -458,5 +536,10 @@ export async function fetchDashboardData(orgId: string, locationId?: string | nu
     dataHealthScore,
     realityScoreTrend,
     previousRealityScore,
+    // S15: Revenue recovered counter
+    revenueRecoveredMonthly,
+    // S16: Score snapshots for attribution popover
+    currentScoreSnapshot,
+    prevScoreSnapshot,
   };
 }
