@@ -305,7 +305,7 @@ export default function SandboxPanel({ isGrowthPlan }: SandboxPanelProps) {
                   </p>
                   {(latestRun.gap_analysis as { highest_risk_queries?: string[] }).highest_risk_queries?.[0] && (
                     <p className="text-xs text-red-400 mt-1">
-                      Highest risk: &quot;{(latestRun.gap_analysis as { highest_risk_queries: string[] }).highest_risk_queries[0]}&quot;
+                      Highest risk: &quot;{(latestRun.gap_analysis as { highest_risk_queries?: string[] }).highest_risk_queries?.[0]}&quot;
                     </p>
                   )}
                 </div>

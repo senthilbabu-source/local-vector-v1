@@ -197,7 +197,7 @@ function buildClosedCorrection(input: CorrectionInput): CorrectionPackage {
   const gbpParts = [`We're OPEN! Visit ${location.business_name} at ${location.address_line1}, ${location.city}.`];
   if (todayStr && todayStr !== 'closed today') gbpParts.push(todayStr + '.');
   else if (hoursStr) gbpParts.push(`Hours: ${hoursStr}.`);
-  if (location.categories?.length) gbpParts.push(`Come enjoy our ${location.categories[0].toLowerCase()} experience!`);
+  if (location.categories?.[0]) gbpParts.push(`Come enjoy our ${location.categories[0].toLowerCase()} experience!`);
 
   const websiteParts = [`${location.business_name} is OPEN and actively serving customers at ${addr}.`];
   if (hoursStr) websiteParts.push(`Hours: ${hoursStr}.`);

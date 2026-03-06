@@ -60,8 +60,8 @@ BUSINESS FACTS (use these, do not invent others):
 - Name: ${input.businessName}
 - Location: ${input.city}, ${input.state}
 - Cuisine/Type: ${input.businessContext.cuisineType ?? 'not specified'}
-- Categories: ${input.businessContext.categories.join(', ') || 'not specified'}
-- Amenities: ${input.businessContext.amenities.join(', ') || 'not specified'}
+- Categories: ${input.businessContext.categories?.join(', ') || 'not specified'}
+- Amenities: ${input.businessContext.amenities?.join(', ') || 'not specified'}
 - Hours: ${input.businessContext.hoursDescription ?? 'not specified'}
 - Phone: ${input.businessContext.phone ?? 'not specified'}
 - Website: ${input.businessContext.websiteUrl ?? 'not specified'}
