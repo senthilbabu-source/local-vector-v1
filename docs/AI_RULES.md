@@ -5238,3 +5238,34 @@ Fetched from `visibility_scores` table — latest 2 rows ordered by `snapshot_da
 - `s22-s28-wave4.spec.ts` — 5 E2E scenarios (dashboard, compete, consistency, sidebar groups, first reveal)
 - **Total Wave 4: 88 new unit tests + 5 E2E scenarios**
 - **Grand total: 6617 tests, 426 files — all pass**
+
+---
+
+## §231 — "What AI Is Talking About" — Menu Demand Signals on Main Page
+
+### Problem
+The S24 demand signals feature (`DemandInsightPanel`) was built but hidden inside the menu detail page (`/dashboard/magic-menus/[id]`). It was also conditionally rendered — only visible when SOV raw_responses mentioned menu items. Users never saw it.
+
+### Solution
+1. **New component:** `AITalkingAboutSection.tsx` — shows top 5 AI-mentioned menu items on the **main** Magic Menu page. Tiered labels: Trending (10+), Popular (5+), Mentioned (<5). Color-coded cards with category names.
+2. **New analyzer:** `analyzeMenuDemandWithCategories()` in `demand-analyzer.ts` — like `analyzeMenuDemand()` but includes `category_name` from `menu_categories` table.
+3. **Wired into page:** `app/dashboard/magic-menus/page.tsx` — fetches demand data server-side, renders between MenuCoachHero and Workspace.
+4. **Seed data:** 4 new SOV evaluations (section 9f in seed.sql) with raw_responses that mention real CNC menu items: Chicken 65 (wet), Lamb Chops, Wings, Butter Chicken Masala, Truffle Cloud Fries, Paneer Chilli, Schezwan Chicken, Pistachio Gelato Bomb.
+5. **Detail page preserved:** Existing `DemandInsightPanel` on `[id]` page remains — contextual per-menu view.
+
+### Key files
+- `app/dashboard/magic-menus/_components/AITalkingAboutSection.tsx` — NEW client component
+- `lib/menu-intelligence/demand-analyzer.ts` — MODIFIED (added `MenuDemandResultWithCategory`, `analyzeMenuDemandWithCategories`)
+- `app/dashboard/magic-menus/page.tsx` — MODIFIED (fetches + renders demand section)
+- `supabase/seed.sql` — MODIFIED (section 9f: 4 new SOV evaluations)
+
+### Tests
+- `ai-talking-about.test.tsx` — 11 component tests (jsdom): top 5 sort, heading, categories, tier labels, empty states, null category
+- `wave4-s24-menu-demand.test.ts` — 2 new type tests for `MenuDemandResultWithCategory`
+- **Total: 6630 tests, 427 files — all pass**
+
+### Rules
+- The `AITalkingAboutSection` self-hides when no items have mentions (`mention_count > 0` filter)
+- Items shorter than 3 characters are excluded by `countItemMentions()` (unchanged from S24)
+- 90-day window for SOV raw_response scanning (unchanged from S24)
+- Top 5 items maximum shown on main page

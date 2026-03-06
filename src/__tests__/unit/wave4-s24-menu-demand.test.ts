@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { countItemMentions } from '@/lib/menu-intelligence/demand-analyzer';
+import type { MenuDemandResultWithCategory } from '@/lib/menu-intelligence/demand-analyzer';
 
 describe('S24: Menu Intelligence Demand Signals', () => {
   describe('countItemMentions', () => {
@@ -33,6 +34,29 @@ describe('S24: Menu Intelligence Demand Signals', () => {
 
     it('handles exactly 3 chars item name', () => {
       expect(countItemMentions('Pie', ['Apple Pie is great'])).toBe(1);
+    });
+  });
+
+  describe('MenuDemandResultWithCategory type', () => {
+    it('extends MenuDemandResult with category_name', () => {
+      const result: MenuDemandResultWithCategory = {
+        item_id: '1',
+        item_name: 'Chicken 65',
+        mention_count: 5,
+        category_name: 'Appetizers',
+      };
+      expect(result.category_name).toBe('Appetizers');
+      expect(result.mention_count).toBe(5);
+    });
+
+    it('allows null category_name', () => {
+      const result: MenuDemandResultWithCategory = {
+        item_id: '2',
+        item_name: 'Mystery Item',
+        mention_count: 3,
+        category_name: null,
+      };
+      expect(result.category_name).toBeNull();
     });
   });
 });

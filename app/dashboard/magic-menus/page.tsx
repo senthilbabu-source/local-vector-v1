@@ -8,7 +8,10 @@ import { createClient } from '@/lib/supabase/server';
 import type { MenuWorkspaceData } from '@/lib/types/menu';
 import MenuWorkspace from './_components/MenuWorkspace';
 import MenuCoachHero from './_components/MenuCoachHero';
+import AITalkingAboutSection from './_components/AITalkingAboutSection';
+import type { AITalkingItem } from './_components/AITalkingAboutSection';
 import { getIndustryConfig } from '@/lib/industries/industry-config';
+import { analyzeMenuDemandWithCategories } from '@/lib/menu-intelligence/demand-analyzer';
 
 export const metadata = { title: 'Menu | LocalVector.ai' };
 
@@ -31,6 +34,7 @@ async function fetchWorkspaceData(orgId: string): Promise<{
   location: PrimaryLocation | null;
   menu: MenuWorkspaceData | null;
   industry: string | null;
+  demandItems: AITalkingItem[];
 }> {
   const supabase = await createClient();
 
@@ -55,7 +59,7 @@ async function fetchWorkspaceData(orgId: string): Promise<{
     .maybeSingle();
   const industry = (orgRow as { industry?: string | null } | null)?.industry ?? null;
 
-  if (!location) return { location: null, menu: null, industry };
+  if (!location) return { location: null, menu: null, industry, demandItems: [] };
 
   // Fetch the most recent magic_menu for this location (one workspace per location).
   const { data: menu } = (await supabase
@@ -68,7 +72,16 @@ async function fetchWorkspaceData(orgId: string): Promise<{
     .limit(1)
     .maybeSingle()) as { data: MenuWorkspaceData | null };
 
-  return { location, menu, industry };
+  // Fetch AI demand signals for "What AI Is Talking About" section
+  const demandResults = await analyzeMenuDemandWithCategories(supabase, location.id, orgId);
+  const demandItems: AITalkingItem[] = demandResults.map((r) => ({
+    item_id: r.item_id,
+    item_name: r.item_name,
+    mention_count: r.mention_count,
+    category_name: r.category_name,
+  }));
+
+  return { location, menu, industry, demandItems };
 }
 
 // ---------------------------------------------------------------------------
@@ -81,9 +94,9 @@ export default async function MagicMenusPage() {
 
   // orgId is null only in the brief window after signup before the DB trigger
   // creates the org. In that case, skip the location query and show empty state.
-  const { location, menu, industry } = ctx.orgId
+  const { location, menu, industry, demandItems } = ctx.orgId
     ? await fetchWorkspaceData(ctx.orgId)
-    : { location: null, menu: null, industry: null };
+    : { location: null, menu: null, industry: null, demandItems: [] as AITalkingItem[] };
 
   const industryConfig = getIndustryConfig(industry);
 
@@ -107,6 +120,9 @@ export default async function MagicMenusPage() {
         locationName={location?.business_name ?? 'your business'}
         industryNoun={industryConfig.servicesNoun.toLowerCase()}
       />
+
+      {/* ── AI Demand Signals ─────────────────────────────────────── */}
+      <AITalkingAboutSection items={demandItems} />
 
       {/* ── Workspace ─────────────────────────────────────────────── */}
       <div id="workspace">

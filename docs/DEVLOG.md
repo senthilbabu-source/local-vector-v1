@@ -4,6 +4,24 @@
 
 ---
 
+## 2026-03-06 — "What AI Is Talking About" on Magic Menu page (§231)
+
+**Goal:** Surface menu item AI demand signals on the main Magic Menu page instead of hiding them inside the detail page.
+
+**New files:**
+- `app/dashboard/magic-menus/_components/AITalkingAboutSection.tsx` — top 5 AI-mentioned items with Trending/Popular/Mentioned tiers
+- `src/__tests__/unit/ai-talking-about.test.tsx` — 11 component tests (jsdom)
+
+**Modified files:**
+- `lib/menu-intelligence/demand-analyzer.ts` — added `MenuDemandResultWithCategory` type + `analyzeMenuDemandWithCategories()` function
+- `app/dashboard/magic-menus/page.tsx` — fetches demand data server-side, renders `AITalkingAboutSection` between hero and workspace
+- `src/__tests__/unit/wave4-s24-menu-demand.test.ts` — 2 new type tests
+- `supabase/seed.sql` — section 9f: 4 SOV evaluations mentioning real CNC menu items (Chicken 65, Lamb Chops, Wings, etc.)
+
+**Test result:** 6630 tests, 427 files — ALL PASS. Zero regressions.
+
+---
+
 ## 2026-03-06 — Wave 4: Advanced Intelligence (§224–§230)
 
 **Goal:** 7 sprints of advanced intelligence features: degradation detection, correction benchmarks, menu demand signals, AI shopper simulation, competitor vulnerability detection, monthly reporting, and cross-platform consistency scoring.

@@ -782,6 +782,99 @@ SET source_mentions = '{
 WHERE engine = 'openai'
   AND org_id = 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11';
 
+-- ── 9f. AI DEMAND SIGNALS — SOV responses mentioning menu items ──────────────
+-- These responses reference real CNC menu items so the demand-analyzer picks
+-- them up for the "What AI Is Talking About" section on the Magic Menu page.
+
+-- ChatGPT response mentioning Chicken 65, Lamb Chops, Butter Chicken Masala
+INSERT INTO public.sov_evaluations (
+  id, org_id, location_id, query_id,
+  engine, rank_position, mentioned_competitors, raw_response,
+  created_at
+)
+SELECT
+  'c8eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+  'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+  l.id,
+  'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+  'openai',
+  1,
+  '["Dreamland BBQ"]'::jsonb,
+  'Charcoal N Chill in Alpharetta is known for their Chicken 65 (wet) — a crispy, spicy appetizer that regulars swear by. Their Lamb Chops are charcoal-grilled to perfection and highly recommended. For a rich curry experience, try the Butter Chicken Masala. The Paneer Chilli is a popular vegetarian pick. Chicken 65 (wet) alone is worth the visit.',
+  NOW() - INTERVAL '2 days'
+FROM public.locations l
+WHERE l.org_id = 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11'
+  AND l.slug   = 'alpharetta'
+LIMIT 1
+ON CONFLICT (id) DO NOTHING;
+
+-- Perplexity response mentioning Chicken 65, Wings, Truffle Cloud Fries
+INSERT INTO public.sov_evaluations (
+  id, org_id, location_id, query_id,
+  engine, rank_position, mentioned_competitors, raw_response,
+  created_at
+)
+SELECT
+  'c8eebc99-9c0b-4ef8-bb6d-6bb9bd380a12',
+  'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+  l.id,
+  'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+  'perplexity',
+  1,
+  '[]'::jsonb,
+  'Based on local reviews, Charcoal N Chill offers standout dishes including Chicken 65 (wet) — their most-ordered appetizer. The Wings come in five flavors (Buffalo, Lemon Pepper, BBQ, Honey Chilli, Honey Mustard) and are a crowd favorite. Their Truffle Cloud Fries are an indulgent side. Chicken 65 (wet) and Wings are the dishes that keep people coming back. Sources: Yelp, Google Reviews.',
+  NOW() - INTERVAL '1 day'
+FROM public.locations l
+WHERE l.org_id = 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11'
+  AND l.slug   = 'alpharetta'
+LIMIT 1
+ON CONFLICT (id) DO NOTHING;
+
+-- Google response mentioning Lamb Chops, Paneer Butter Masala, Chicken 65
+INSERT INTO public.sov_evaluations (
+  id, org_id, location_id, query_id,
+  engine, rank_position, mentioned_competitors, raw_response, cited_sources,
+  created_at
+)
+SELECT
+  'c8eebc99-9c0b-4ef8-bb6d-6bb9bd380a13',
+  'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+  l.id,
+  'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+  'google',
+  1,
+  '[]'::jsonb,
+  'Charcoal N Chill is a top-rated Indo-American restaurant in Alpharetta. Must-try dishes include their Lamb Chops (charcoal-grilled, $24.95), Paneer Butter Masala for vegetarians, and the famous Chicken 65 (wet). The Pepper Chicken and Chili Chicken are also highly rated appetizers. Their Lamb Chops have been featured in multiple local food reviews.',
+  '[{"url": "https://www.yelp.com/biz/charcoal-n-chill-alpharetta", "title": "Yelp"}, {"url": "https://g.co/charcoal-n-chill", "title": "Google Business Profile"}]'::jsonb,
+  NOW() - INTERVAL '12 hours'
+FROM public.locations l
+WHERE l.org_id = 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11'
+  AND l.slug   = 'alpharetta'
+LIMIT 1
+ON CONFLICT (id) DO NOTHING;
+
+-- Copilot response mentioning Chicken 65, Schezwan Chicken, Pistachio Gelato Bomb
+INSERT INTO public.sov_evaluations (
+  id, org_id, location_id, query_id,
+  engine, rank_position, mentioned_competitors, raw_response,
+  created_at
+)
+SELECT
+  'c8eebc99-9c0b-4ef8-bb6d-6bb9bd380a14',
+  'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+  l.id,
+  'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+  'copilot',
+  1,
+  '[]'::jsonb,
+  'According to Bing reviews, Charcoal N Chill in Alpharetta serves some of the best Indo-American food in the area. The Chicken 65 (wet) is their signature appetizer. For spice lovers, the Schezwan Chicken is a must-try. End your meal with the Pistachio Gelato Bomb — a unique dessert. The Wings and Chicken 65 (wet) are consistently mentioned as top picks.',
+  NOW() - INTERVAL '6 hours'
+FROM public.locations l
+WHERE l.org_id = 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11'
+  AND l.slug   = 'alpharetta'
+LIMIT 1
+ON CONFLICT (id) DO NOTHING;
+
 -- ── 10. REALITY SCORE DASHBOARD SEED DATA (Phase 13) ─────────────────────────
 --
 -- Column mapping (verified against migrations/20260218000000_initial_schema.sql):
