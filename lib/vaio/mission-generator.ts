@@ -159,7 +159,9 @@ function buildContentQualityMission(
   ptsGain: number,
   input: MissionGeneratorInput,
 ): Mission {
-  const topIssues = input.top_content_issues.slice(0, 3);
+  const topIssues = input.top_content_issues
+    .filter((issue) => issue.description)
+    .slice(0, 3);
 
   const issueSteps: MissionStep[] = topIssues.map((issue) => ({
     label: issue.description,

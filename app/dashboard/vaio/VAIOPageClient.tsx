@@ -594,7 +594,7 @@ export default function VAIOPageClient() {
                             {gap.category} — {gap.weeks_at_zero} weeks at zero citations
                           </p>
                           <p className="text-xs text-slate-400 mb-2">
-                            {gap.queries.length} queries getting zero AI citations
+                            {gap.queries?.length ?? 0} queries getting zero AI citations
                           </p>
                           <p className="text-xs text-slate-400 italic">
                             Suggested answer: &ldquo;{gap.suggested_query_answer}&rdquo;
@@ -628,13 +628,13 @@ export default function VAIOPageClient() {
                 )}
 
                 {/* Content Issues */}
-                {profile.top_content_issues.length > 0 && (
+                {profile.top_content_issues.filter((i) => i.description).length > 0 && (
                   <div data-testid="vaio-issues">
                     <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-slate-400">
                       Voice Content Issues
                     </h3>
                     <div className="space-y-2">
-                      {profile.top_content_issues.map((issue, i) => (
+                      {profile.top_content_issues.filter((i) => i.description).map((issue, i) => (
                         <div key={i} className="flex items-start gap-2 text-sm">
                           <span className={`mt-0.5 inline-block h-1.5 w-1.5 rounded-full flex-shrink-0 ${
                             issue.severity === 'critical' ? 'bg-red-400' :

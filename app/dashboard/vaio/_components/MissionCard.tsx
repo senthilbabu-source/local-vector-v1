@@ -211,10 +211,11 @@ function VoiceCitationDetail({
 }
 
 function ContentQualityDetail({ topContentIssues }: { topContentIssues: ContentIssue[] }) {
-  if (topContentIssues.length === 0) return null;
+  const issues = topContentIssues.filter((i) => i.description);
+  if (issues.length === 0) return null;
   return (
     <div className="mt-3 space-y-2" data-testid="mission-detail-content-quality">
-      {topContentIssues.map((issue, i) => (
+      {issues.map((issue, i) => (
         <div key={i} className="flex items-start gap-2 text-sm">
           <span
             className={`mt-1 inline-block h-1.5 w-1.5 rounded-full flex-shrink-0 ${
@@ -269,7 +270,7 @@ export function MissionCard({
         : mission.component === 'voice_citation'
           ? profile.voice_gaps.length > 0 || queries.length > 0
           : mission.component === 'content_quality'
-            ? profile.top_content_issues.length > 0
+            ? profile.top_content_issues.some((i) => i.description)
             : false;
 
   return (
