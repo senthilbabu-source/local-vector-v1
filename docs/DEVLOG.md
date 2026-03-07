@@ -4,6 +4,20 @@
 
 ---
 
+## 2026-03-07 — §242–§246 Wave 7: Dashboard Surface Promotions (S36-S40)
+
+**AI_RULES §242–§246. 6,779 tests, 433 files — ALL PASS.**
+
+- S36: Menu Demand Signals — `demand-summary.ts` (filterTopDemandItems, formatDemandInsight, getTopDemandItems), `DemandSignalsTeaser` on dashboard, AITalkingAboutSection moved above hero on magic-menus page
+- S37: Competitor Teaser — `competitor-teaser.ts` (getTopCompetitorMentions, formatCompetitorInsight), `CompetitorTeaser` on dashboard (Growth+ insight, Trial/Starter upgrade CTA)
+- S38: Agent Readiness Summary — `agent-readiness-summary.ts` (4 boolean indicators), `AgentReadinessTeaser` on dashboard
+- S39: Quick Win Widget — `quick-win.ts` (pickQuickWin: 4-tier priority), `QuickWinCard` on dashboard (before header)
+- S40: Final Verification Suite — 48 new tests (wave7-dashboard-promotions.test.ts)
+- No new migrations, no new crons, no sidebar changes
+- Zero regressions — 6779 total tests, 433 files — ALL PASS
+
+---
+
 ## 2026-03-06 — §238–§241 Wave 6: Page Merges (S32-S35)
 
 **AI_RULES §238–§241. 6,731 tests, 432 files — ALL PASS.**

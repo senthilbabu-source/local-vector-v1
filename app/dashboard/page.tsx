@@ -44,6 +44,15 @@ import ConsistencyScoreCard from './_components/ConsistencyScoreCard';
 import { fetchConsistencyScore } from '@/lib/services/consistency-score.service';
 import AIResponseTeaser from './_components/AIResponseTeaser';
 import { getLatestAIResponse, type AIResponseSnippet } from '@/lib/services/ai-response-summary';
+import DemandSignalsTeaser from './_components/DemandSignalsTeaser';
+import { getTopDemandItems } from '@/lib/menu-intelligence/demand-summary';
+import type { MenuDemandResult } from '@/lib/menu-intelligence/demand-analyzer';
+import CompetitorTeaser from './_components/CompetitorTeaser';
+import { getTopCompetitorMentions, type CompetitorMentionData } from '@/lib/services/competitor-teaser';
+import AgentReadinessTeaser from './_components/AgentReadinessTeaser';
+import { getAgentReadinessSummary, EMPTY_SUMMARY, type AgentReadinessSummary } from '@/lib/services/agent-readiness-summary';
+import QuickWinCard from './_components/QuickWinCard';
+import { pickQuickWin, type QuickWinAlert } from '@/lib/services/quick-win';
 
 export const metadata = { title: 'Dashboard | LocalVector.ai' };
 
@@ -170,6 +179,57 @@ export default async function DashboardPage({
     }
   }
 
+  // S36: Menu demand signals for dashboard teaser
+  let demandItems: MenuDemandResult[] = [];
+  if (ctx.orgId && activeLocationId && !sampleMode) {
+    try {
+      const supabaseForDemand = await createClient();
+      demandItems = await getTopDemandItems(supabaseForDemand, activeLocationId, ctx.orgId, 3);
+    } catch (err) {
+      Sentry.captureException(err, { tags: { component: 'demand-signals-teaser', sprint: 'S36' } });
+    }
+  }
+
+  // S37: Competitor teaser for dashboard
+  let competitorData: CompetitorMentionData | null = null;
+  if (ctx.orgId && !sampleMode) {
+    try {
+      const supabaseForCompetitor = await createClient();
+      competitorData = await getTopCompetitorMentions(supabaseForCompetitor, ctx.orgId, 7);
+    } catch (err) {
+      Sentry.captureException(err, { tags: { component: 'competitor-teaser', sprint: 'S37' } });
+    }
+  }
+
+  // S38: Agent readiness summary for dashboard teaser
+  let agentReadiness: AgentReadinessSummary = EMPTY_SUMMARY;
+  if (ctx.orgId && activeLocationId && !sampleMode) {
+    try {
+      const supabaseForReadiness = await createClient();
+      agentReadiness = await getAgentReadinessSummary(supabaseForReadiness, ctx.orgId, activeLocationId);
+    } catch (err) {
+      Sentry.captureException(err, { tags: { component: 'agent-readiness-teaser', sprint: 'S38' } });
+    }
+  }
+
+  // S39: Quick Win — pick the single highest-impact action
+  const quickWinAlerts: QuickWinAlert[] = sampleMode
+    ? []
+    : openAlerts.map((a) => ({
+        severity: a.severity,
+        category: a.category,
+        model_provider: a.model_provider,
+        claim_text: a.claim_text,
+        revenue_recovered_monthly: a.revenue_recovered_monthly,
+      }));
+  const quickWin = sampleMode
+    ? null
+    : pickQuickWin(quickWinAlerts, {
+        menuPublished: agentReadiness.canSeeMenu,
+        napScore: napScore,
+        sovPercent: visibilityScore,
+      });
+
   // Onboarding + data resolver
   let onboardingState = null;
   let dataResolverResult: DataResolverResult | null = null;
@@ -224,6 +284,9 @@ export default async function DashboardPage({
       {milestone && (
         <MilestoneCelebration milestone={milestone.threshold} message={milestoneMessage} />
       )}
+
+      {/* ── S39: Quick Win — highest-impact action ────────────────────────── */}
+      <QuickWinCard quickWin={quickWin} />
 
       {/* ── Header ───────────────────────────────────────────────────────── */}
       <div className="flex items-start justify-between">
@@ -321,6 +384,12 @@ export default async function DashboardPage({
         {sampleMode && <SampleDataBadge />}
       </div>
 
+      {/* ── S36: Menu Demand Signals teaser ─────────────────────────────── */}
+      <DemandSignalsTeaser items={demandItems} sampleMode={sampleMode} />
+
+      {/* ── S37: Competitor Teaser ────────────────────────────────────────── */}
+      <CompetitorTeaser data={competitorData} sampleMode={sampleMode} planTier={planTier} />
+
       {/* ── S28: Consistency Score Card ─────────────────────────────────── */}
       {consistencyData && !sampleMode && (
         <ConsistencyScoreCard
@@ -342,6 +411,9 @@ export default async function DashboardPage({
         crawlerSummary={crawlerSummary}
         sampleMode={sampleMode}
       />
+
+      {/* ── S38: Agent Readiness Yes/No teaser ───────────────────────────── */}
+      <AgentReadinessTeaser summary={agentReadiness} sampleMode={sampleMode} />
 
       {/* ════════════════════════════════════════════════════════════════════
           5. SPOTLIGHT + WINS — celebrate every fix

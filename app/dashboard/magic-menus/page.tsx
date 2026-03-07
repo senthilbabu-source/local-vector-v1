@@ -114,15 +114,15 @@ export default async function MagicMenusPage() {
         </p>
       </div>
 
+      {/* ── S36: AI Demand Signals (promoted above hero) ──────────── */}
+      <AITalkingAboutSection items={demandItems} />
+
       {/* ── S7: Menu coaching hero ────────────────────────────────── */}
       <MenuCoachHero
         menu={menu}
         locationName={location?.business_name ?? 'your business'}
         industryNoun={industryConfig.servicesNoun.toLowerCase()}
       />
-
-      {/* ── AI Demand Signals ─────────────────────────────────────── */}
-      <AITalkingAboutSection items={demandItems} />
 
       {/* ── Workspace ─────────────────────────────────────────────── */}
       <div id="workspace">

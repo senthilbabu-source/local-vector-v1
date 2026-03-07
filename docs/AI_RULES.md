@@ -5500,3 +5500,80 @@ System Health page moved from user-facing dashboard to admin-only section.
 - Non-admin users hitting `/dashboard/system-health` redirect to `/dashboard`, not 403.
 - `force-dynamic` export required — cron health data must never be statically cached.
 - Never show "$0/mo" — `formatRevenueAtRisk` returns null for amounts < $10.
+
+## §242 — S36: Menu Demand Signals Dashboard Teaser (Wave 7)
+
+Surface top AI-mentioned menu items onto the main dashboard + promote AITalkingAboutSection on magic-menus page.
+
+### Changes
+- `lib/menu-intelligence/demand-summary.ts` (NEW): `filterTopDemandItems()`, `formatDemandInsight()`, `getTopDemandItems()` (I/O)
+- `app/dashboard/_components/DemandSignalsTeaser.tsx` (NEW): top 3 items, link to /dashboard/magic-menus
+- `app/dashboard/page.tsx`: wired DemandSignalsTeaser after WeeklyKPIChips (section 3.5)
+- `app/dashboard/magic-menus/page.tsx`: AITalkingAboutSection moved above MenuCoachHero
+
+### Rules
+- `DemandSignalsTeaser` hidden in sample mode and when items array is empty.
+- `getTopDemandItems()` reuses existing `analyzeMenuDemand()` — never duplicates Supabase queries.
+- `formatDemandInsight()` is pure — test without I/O.
+
+## §243 — S37: Competitor Teaser on Dashboard (Wave 7)
+
+Top competitor mention surfaced on dashboard with plan-gated upgrade CTA.
+
+### Changes
+- `lib/services/competitor-teaser.ts` (NEW): `getTopCompetitorMentions()`, `formatCompetitorInsight()`, `isCompetitorDataAvailable()`
+- `app/dashboard/_components/CompetitorTeaser.tsx` (NEW): Growth+ insight, Trial/Starter upgrade CTA
+- `app/dashboard/page.tsx`: wired after DemandSignalsTeaser (section 3.7)
+
+### Rules
+- Trial/Starter see upgrade CTA (not blank space) — drives conversion.
+- Growth+ with no competitor data → component returns null (not empty card).
+- `mentioned_competitors` is JSONB array of strings in `sov_evaluations`.
+- `ratio` is null when `yourMentions === 0` (avoid division by zero).
+
+## §244 — S38: Agent Readiness Yes/No on Dashboard (Wave 7)
+
+4 simple yes/no indicators for AI agent capabilities.
+
+### Changes
+- `lib/services/agent-readiness-summary.ts` (NEW): `getAgentReadinessSummary()`, `countReadyCapabilities()`, `EMPTY_SUMMARY`
+- `app/dashboard/_components/AgentReadinessTeaser.tsx` (NEW): 4 indicators (canBook/canOrder/canFindHours/canSeeMenu)
+- `app/dashboard/page.tsx`: wired after TopIssuesPanel (section 4.5)
+
+### Rules
+- Derives from existing data (locations, magic_menus) — no new tables or API calls.
+- Hidden in sample mode and when all 4 are false.
+- Green check / red X with sr-only labels for accessibility.
+
+## §245 — S39: Quick Win Widget (Wave 7)
+
+Single highest-impact action card at the top of the dashboard.
+
+### Changes
+- `lib/services/quick-win.ts` (NEW): `pickQuickWin()` pure function with 4-tier priority
+- `app/dashboard/_components/QuickWinCard.tsx` (NEW): accent card with action, time estimate, CTA
+- `app/dashboard/page.tsx`: wired before header (section 0.5)
+
+### Rules
+- Priority: critical hallucination > NAP mismatch > no menu > low SOV.
+- `pickQuickWin()` is pure — takes alerts + config, returns QuickWin | null.
+- Returns null when no actionable items (don't show empty card).
+- Severity colors: critical=red, high=amber, medium=violet, low=slate.
+
+## §246 — S40: Sidebar Final Verification Suite (Wave 7)
+
+Comprehensive regression tests validating sidebar structure after all Wave 5-7 changes.
+
+### Tests
+- `wave7-dashboard-promotions.test.ts`: 48 tests covering S36-S40
+  - filterTopDemandItems, formatDemandInsight (6 tests)
+  - formatCompetitorInsight, isCompetitorDataAvailable (7 tests)
+  - countReadyCapabilities (3 tests)
+  - pickQuickWin (10 tests)
+  - Sidebar structural integrity (15 tests)
+  - Redirect pages exist (5 tests)
+
+### Rules
+- NAV_ITEMS = 28 total, NAV_GROUPS = 5 (Today 4, This Week 5, This Month 5, Advanced 8, Account 6)
+- Removed pages (5): content-calendar, source-intelligence, citations, crawler-analytics, system-health
+- All removed pages have working redirects (not 404s)
