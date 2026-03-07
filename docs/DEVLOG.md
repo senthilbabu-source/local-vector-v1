@@ -6762,3 +6762,28 @@ Committed: `d70bf19` — 70 files, 12,552 insertions.
 - `app/dashboard/hallucinations/page.tsx` — BeforeAfterTimeline + resolved stories fetch
 - `app/dashboard/magic-menus/page.tsx` — MenuOptimizerCard + menu suggestions computation
 - `app/dashboard/reviews/_components/ReviewCard.tsx` — SuggestResponseButton integration
+
+## §253–§258 — Wave 9: Polish & Export Features (2026-03-07)
+
+6 sprints: S47–S52. 36 new tests. **6866 tests, 435 files — ALL PASS.**
+
+- **S47 (§253)**: Weekly report card email template (`emails/weekly-report-card.tsx`). Dark theme React Email. `sendWeeklyReportCard()` in email.ts.
+- **S48 (§254)**: In-app notification center. `notification-feed.ts` (parallel fetch from 3 tables, 7-day window). `NotificationBell.tsx` (bell + badge + dropdown). Wired into dashboard header.
+- **S49 (§255)**: Export report as text/CSV. `report-exporter.ts` (buildExportableReport, exportReportAsText, exportReportAsCSV). `ExportReportButton.tsx` (Blob download). Wired into dashboard header.
+- **S50 (§256)**: AI-powered menu suggestions. `ai-menu-suggestions.ts` (dynamic AI SDK import, generateObject with Zod, validateSuggestions filter). Reuses faq-generation model key.
+- **S51 (§257)**: Dashboard section skeletons. `DashboardSectionSkeleton.tsx` (4 variants: stat/card/chart/list, CSS-only animate-pulse).
+- **S52 (§258)**: 36 unit tests (`wave9-polish-features.test.ts`).
+
+### Files changed (new):
+- `emails/weekly-report-card.tsx`
+- `lib/services/notification-feed.ts`
+- `lib/services/report-exporter.ts`
+- `lib/menu-intelligence/ai-menu-suggestions.ts`
+- `app/dashboard/_components/NotificationBell.tsx`
+- `app/dashboard/_components/ExportReportButton.tsx`
+- `app/dashboard/_components/DashboardSectionSkeleton.tsx`
+- `src/__tests__/unit/wave9-polish-features.test.ts`
+
+### Files changed (modified):
+- `lib/email.ts` — `sendWeeklyReportCard()` added
+- `app/dashboard/page.tsx` — NotificationBell + ExportReportButton + notification/report data fetch

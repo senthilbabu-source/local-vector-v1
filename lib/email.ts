@@ -740,3 +740,51 @@ export async function sendMonthlyReport(
 
   console.log(`[email] Monthly report sent to ${to} for ${report.month}`);
 }
+
+// ---------------------------------------------------------------------------
+// Weekly Report Card — S47 (Wave 9)
+// ---------------------------------------------------------------------------
+
+import WeeklyReportCardEmail from '@/emails/weekly-report-card';
+import type { WeeklyReportCard } from '@/lib/services/weekly-report-card';
+
+export interface SendReportCardOptions {
+  to: string;
+  card: WeeklyReportCard;
+  businessName: string;
+  recipientName: string;
+}
+
+export async function sendWeeklyReportCard(opts: SendReportCardOptions): Promise<void> {
+  if (!process.env.RESEND_API_KEY) {
+    console.log(`[email] RESEND_API_KEY absent — skipping report card to ${opts.to}`);
+    return;
+  }
+
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://app.localvector.ai';
+  const deltaText = opts.card.scoreDelta !== null
+    ? opts.card.scoreDelta >= 0 ? `+${opts.card.scoreDelta}` : `${opts.card.scoreDelta}`
+    : '';
+  const subject = opts.card.score !== null
+    ? `AI Report: ${opts.card.score} (${deltaText}) — ${opts.businessName}`
+    : `Weekly AI Report — ${opts.businessName}`;
+
+  try {
+    await getResend().emails.send({
+      from: 'LocalVector Reports <reports@localvector.ai>',
+      to: opts.to,
+      subject,
+      react: WeeklyReportCardEmail({
+        card: opts.card,
+        businessName: opts.businessName,
+        recipientName: opts.recipientName,
+        dashboardUrl: `${appUrl}/dashboard`,
+        unsubscribeUrl: `${appUrl}/dashboard/settings`,
+      }),
+    });
+    console.log(`[email] Weekly report card sent to ${opts.to}`);
+  } catch (err) {
+    console.error('[email] Failed to send weekly report card:', err);
+    throw err;
+  }
+}

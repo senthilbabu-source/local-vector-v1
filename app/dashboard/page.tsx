@@ -57,6 +57,10 @@ import ShareSnapshotModal from './_components/ShareSnapshotModal';
 import { buildSnapshotData, type SnapshotData } from '@/lib/services/snapshot-builder';
 import CompetitorAlertCard from './_components/CompetitorAlertCard';
 import { getCompetitorChanges, type CompetitorChange } from '@/lib/services/competitor-watch';
+import NotificationBell from './_components/NotificationBell';
+import ExportReportButton from './_components/ExportReportButton';
+import { getNotificationFeed, type Notification as AppNotification } from '@/lib/services/notification-feed';
+import { buildExportableReport, type ExportableReport } from '@/lib/services/report-exporter';
 
 export const metadata = { title: 'Dashboard | LocalVector.ai' };
 
@@ -256,6 +260,38 @@ export default async function DashboardPage({
     }
   }
 
+  // S48: Notification feed
+  let notifications: AppNotification[] = [];
+  if (ctx.orgId && !sampleMode) {
+    try {
+      const supabaseForNotifications = await createClient();
+      notifications = await getNotificationFeed(supabaseForNotifications, ctx.orgId, 15);
+    } catch (err) {
+      Sentry.captureException(err, { tags: { component: 'notification-bell', sprint: 'S48' } });
+    }
+  }
+
+  // S49: Exportable report (built from current dashboard data)
+  const exportReport: ExportableReport | null = sampleMode
+    ? null
+    : buildExportableReport(
+        {
+          score: displayScores.realityScore,
+          scoreDelta: previousRealityScore !== null && displayScores.realityScore !== null
+            ? displayScores.realityScore - previousRealityScore
+            : null,
+          topWin: null,
+          topIssue: openAlerts[0]?.claim_text ?? null,
+          competitorHighlight: null,
+          nextAction: null,
+          errorsFixed: 0,
+          newErrors: openAlerts.length,
+          sovPercent: visibilityScore,
+        },
+        locationContext.city ?? 'Your Restaurant',
+        { napScore: napScore, consistencyScore: consistencyData?.consistencyScore ?? null },
+      );
+
   const isGrowthPlus = planTier === 'growth' || planTier === 'agency';
 
   // Onboarding + data resolver
@@ -329,6 +365,8 @@ export default async function DashboardPage({
           </p>
         </div>
         <div className="flex items-center gap-2">
+          <ExportReportButton report={exportReport} />
+          <NotificationBell notifications={notifications} />
           <ShareSnapshotModal snapshot={snapshotData} sampleMode={sampleMode} />
           <HealthStreakBadge streak={healthStreak.currentStreak} />
         </div>

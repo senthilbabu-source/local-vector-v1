@@ -5669,3 +5669,87 @@ Dashboard alert card for significant competitor SOV changes.
 - Dismissible via localStorage with weekly key rotation (`lv_competitor_alert_dismissed_${weekNum}`).
 - Shows top change with direction (jumped/dropped), mentions count, link to /dashboard/compete.
 - Returns null when not Growth+, no changes, or dismissed.
+
+## §253 — S47: Weekly Report Card Email (Wave 9)
+
+React Email template for structured weekly AI report card.
+
+### Changes
+- `emails/weekly-report-card.tsx` (NEW): React Email template with dark theme, score hero, metrics row, win/issue/competitor cards, action CTA
+- `lib/email.ts`: `sendWeeklyReportCard()` function using Resend + React Email
+
+### Rules
+- Uses `getScoreColor()` and `formatScoreDelta()` from `weekly-report-card.ts`.
+- Score badge color mapped from grade (green/amber/red/gray).
+- Dark theme consistent with existing `weekly-digest.tsx`.
+- Never throws — Resend failure logged via Sentry.
+
+## §254 — S48: In-App Notification Center (Wave 9)
+
+Bell icon with unread count badge and dropdown feed.
+
+### Changes
+- `lib/services/notification-feed.ts` (NEW): `Notification` type, `formatTimeAgo()`, `getNotificationIcon()`, `getNotificationColor()`, `countUnread()`, `getNotificationFeed()`
+- `app/dashboard/_components/NotificationBell.tsx` (NEW): client component with bell, badge, dropdown
+- `app/dashboard/page.tsx`: wired in header next to ShareSnapshotModal
+
+### Rules
+- `getNotificationFeed()` parallel-fetches from `ai_hallucinations`, `wins`, `visibility_scores` (7-day window).
+- Never throws — returns empty array on error with Sentry.
+- Hidden when no notifications (`notifications.length === 0`).
+- All notifications marked `read: false` by default (no DB read tracking yet).
+- `formatTimeAgo()` produces: just now / Nm / Nh / Nd / Nw ago.
+
+## §255 — S49: Export AI Health Report (Wave 9)
+
+Download dashboard data as text or CSV.
+
+### Changes
+- `lib/services/report-exporter.ts` (NEW): `ExportableReport` type, `buildExportableReport()`, `exportReportAsText()`, `exportReportAsCSV()`
+- `app/dashboard/_components/ExportReportButton.tsx` (NEW): client component with download menu
+- `app/dashboard/page.tsx`: wired in header, builds report from dashboard data
+
+### Rules
+- `buildExportableReport()` accepts `WeeklyReportCard` shape + optional additional metrics.
+- CSV uses RFC 4180 comma escaping.
+- Blob download pattern: `URL.createObjectURL()` → click → cleanup.
+- Hidden when `report` is null (sample mode).
+
+## §256 — S50: AI-Powered Menu Suggestions (Wave 9)
+
+AI-generated menu improvement suggestions using generateObject.
+
+### Changes
+- `lib/menu-intelligence/ai-menu-suggestions.ts` (NEW): `AIMenuSuggestion`, `MenuContext`, `buildMenuSuggestionPrompt()`, `validateSuggestions()`, `generateAIMenuSuggestions()`
+
+### Rules
+- Dynamic imports for `ai` and `@/lib/ai/providers` to avoid bundling when API key absent.
+- Reuses `faq-generation` model key (gpt-4o-mini).
+- `validateSuggestions()` filters malformed entries, truncates title (120) and description (300), limits to 5.
+- 5 categories: description, price, dietary, photography, naming.
+- Never throws — returns empty array on error with Sentry.
+
+## §257 — S51: Dashboard Section Skeletons (Wave 9)
+
+Reusable CSS-only loading skeletons for dashboard sections.
+
+### Changes
+- `app/dashboard/_components/DashboardSectionSkeleton.tsx` (NEW): 4 variants (stat/card/chart/list)
+
+### Rules
+- CSS-only `animate-pulse` — no JS timers.
+- `stat` variant: grid layout matching WeeklyKPIChips.
+- `list` variant: accepts `count` prop.
+- `data-testid` attributes: `skeleton-stat`, `skeleton-card`.
+
+## §258 — S52: Wave 9 Tests (Wave 9)
+
+36 unit tests covering S47–S51 pure functions.
+
+### Changes
+- `src/__tests__/unit/wave9-polish-features.test.ts` (NEW): 36 tests
+
+### Rules
+- Tests cover: `formatTimeAgo`, `getNotificationIcon/Color`, `countUnread`, `buildExportableReport`, `exportReportAsText/CSV`, `buildMenuSuggestionPrompt`, `validateSuggestions`.
+- No I/O tests — pure function coverage only.
+- Total test count: 6866 tests, 435 files.
