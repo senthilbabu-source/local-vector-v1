@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import * as Sentry from '@sentry/nextjs';
-import { createServiceRoleClient } from '@/lib/supabase/service-role';
+import { createServiceRoleClient } from '@/lib/supabase/server';
 import { generateMonthlyReport } from '@/lib/services/monthly-report.service';
 import { sendMonthlyReport } from '@/lib/email';
 import { canRunAIShopper } from '@/lib/plan-enforcer';

@@ -5365,3 +5365,72 @@ Full findings documented in `docs/RUNTIME-SAFETY-AUDIT.md` with per-file line nu
 
 ### Test Verification
 - **6630 tests pass, 427 test files, zero regressions** after all 5 waves.
+
+## §235 — S29: Sidebar Reorder + Rename (Wave 5)
+
+Sidebar restructured from 5 outcome-based groups to refined label scheme. 6 labels renamed, page metadata titles updated to match.
+
+### NAV_ITEMS Label Renames
+- "AI Recognition" → "Where AI Knows You" (testId: entity-health)
+- "AI Actions" → "Can Customers Act?" (testId: agent-readiness)
+- "Your Reputation" → "How AI Feels About You" (testId: sentiment)
+- "Posts" → "AI-Ready Posts" (testId: content-drafts)
+- "Voice Search" → "How AI Answers" (testId: vaio)
+- "AI Says" → "What AI Says" (testId: ai-responses)
+
+### Page Metadata Title Updates
+- entity-health → "Where AI Knows You | LocalVector.ai"
+- agent-readiness → "Can Customers Act? | LocalVector.ai"
+- sentiment → "How AI Feels About You | LocalVector.ai"
+- content-drafts → "AI-Ready Posts | LocalVector.ai"
+- vaio → "How AI Answers | LocalVector.ai"
+- ai-responses → "What AI Says About You | LocalVector.ai"
+
+### Rules
+- `testId` fields are NEVER renamed — E2E tests depend on them.
+- Label renames happen ONLY in `NAV_ITEMS[].label` and page `metadata.title`.
+- Tests that search by label must be updated; tests that search by `testId` are stable.
+- E2E sidebar nav test uses `NAV_TO_GROUP` map + `expandSidebarGroup()` helper for collapsible groups.
+
+## §236 — S30: "What AI Says" Promotion — AI Response Teaser on Dashboard (Wave 5)
+
+Adds a 1-line AI response teaser to the main dashboard, promoting the `/dashboard/ai-responses` page.
+
+### New Files
+- `lib/services/ai-response-summary.ts` — 3 pure/I/O functions:
+  - `getLatestAIResponse(supabase, orgId)` — fetches newest `sov_evaluations.raw_response`
+  - `isResponseStale(timestamp, thresholdDays=7)` — pure boolean
+  - `formatResponseSnippet(rawResponse, maxLength=150)` — truncates at sentence boundary, then word boundary
+- `app/dashboard/_components/AIResponseTeaser.tsx` — Client component with engine badge, time-ago, stale warning
+
+### Rules
+- Teaser hidden when `response === null` or `sampleMode === true`.
+- Snippet truncation: prefer sentence boundary (`. `), fall back to word boundary, append `…`.
+- Stale threshold: 7 days. Shows amber "Data may be outdated" warning.
+- `data-testid="ai-response-teaser"` and `data-testid="stale-warning"`.
+- Dashboard fetch wrapped in try-catch with `Sentry.captureException` — never blocks page render.
+
+## §237 — S31: Per-Issue Revenue-at-Risk Estimation (Wave 5)
+
+Pure revenue estimation functions compute per-hallucination dollar impact for AlertCard and TopIssuesPanel badges.
+
+### New File
+- `lib/services/per-issue-revenue.ts` — 3 pure functions:
+  - `estimateRevenueAtRisk(severity, category, avgTicket=55, monthlyCovers=1800)` — severity multiplier × category multiplier × base
+  - `formatRevenueAtRisk(amount)` — `"$X/mo"` format, returns `null` if < $10
+  - `sumRevenueAtRisk(hallucinations, config)` — aggregate across all open issues
+
+### Revenue Formula
+- **Base:** `avgTicket × monthlyCovers`
+- **Severity multipliers:** critical=2%, high=1%, medium=0.5%, low=0.2%
+- **Category multipliers:** hours=1.5×, address=2.0×, phone=1.3×, menu=1.0×, default=1.0×
+
+### UI Integration
+- `AlertCard.tsx` — amber revenue badge after severity badge: `data-testid={`alert-revenue-${alert.id}`}`, `aria-label`
+- `TopIssuesPanel.tsx` — revenue badge per issue row: `data-testid={`issue-revenue-${index}`}`
+- Revenue label only shown when `formatRevenueAtRisk()` returns non-null (≥ $10/mo)
+
+### Rules
+- Pure functions only — no I/O, no Supabase, no side effects.
+- Default config values match restaurant industry defaults (§83): avgTicket=55, monthlyCovers=1800.
+- Never show "$0/mo" — `formatRevenueAtRisk` returns null for amounts < $10.

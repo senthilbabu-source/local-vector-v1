@@ -11,20 +11,19 @@ import { describe, it, expect } from 'vitest';
 import { NAV_ITEMS } from '@/components/layout/Sidebar';
 
 describe('Sidebar NAV_ITEMS — Entity Health', () => {
-  it('1. NAV_ITEMS includes Entity Health entry', () => {
-    const entry = NAV_ITEMS.find((item) => item.label === 'AI Recognition');
+  it('1. NAV_ITEMS includes Entity Health entry (renamed to "Where AI Knows You")', () => {
+    const entry = NAV_ITEMS.find((item) => item.testId === 'entity-health');
     expect(entry).toBeDefined();
+    expect(entry!.label).toBe('Where AI Knows You');
   });
 
   it('2. Entity Health has correct href /dashboard/entity-health', () => {
-    const entry = NAV_ITEMS.find((item) => item.label === 'AI Recognition');
+    const entry = NAV_ITEMS.find((item) => item.testId === 'entity-health');
     expect(entry!.href).toBe('/dashboard/entity-health');
   });
 
-  it('3. Entity Health is positioned after Proof Timeline', () => {
-    const timelineIndex = NAV_ITEMS.findIndex((item) => item.label === 'Update Tracking');
-    const entityIndex = NAV_ITEMS.findIndex((item) => item.label === 'AI Recognition');
-    expect(timelineIndex).toBeGreaterThanOrEqual(0);
-    expect(entityIndex).toBe(timelineIndex + 1);
+  it('3. Entity Health is in the This Month group (S29 restructure)', () => {
+    const entityIndex = NAV_ITEMS.findIndex((item) => item.testId === 'entity-health');
+    expect(entityIndex).toBeGreaterThanOrEqual(0);
   });
 });

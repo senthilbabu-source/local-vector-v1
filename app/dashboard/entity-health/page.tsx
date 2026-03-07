@@ -14,7 +14,7 @@ import { EntityHealthVerdictPanel } from './_components/EntityHealthVerdictPanel
 import { PLATFORM_DESCRIPTIONS, getPlatformConsequence } from '@/lib/entity-health/platform-descriptions';
 import { getPlatformFixLink } from '@/lib/entity-health/platform-fix-links';
 
-export const metadata = { title: 'AI Recognition | LocalVector.ai' };
+export const metadata = { title: 'Where AI Knows You | LocalVector.ai' };
 
 // ── Status display helpers (literal Tailwind — AI_RULES §12) ────────────
 

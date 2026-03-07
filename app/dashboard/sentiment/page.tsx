@@ -8,7 +8,7 @@ import type { SentimentExtraction } from '@/lib/ai/schemas';
 import { SentimentInterpretationPanel } from './_components/SentimentInterpretationPanel';
 import CustomerLoveHero from './_components/CustomerLoveHero';
 
-export const metadata = { title: 'Your Reputation | LocalVector.ai' };
+export const metadata = { title: 'How AI Feels About You | LocalVector.ai' };
 
 // ---------------------------------------------------------------------------
 // Engine label mapping (matches AI Says page)

@@ -23,7 +23,7 @@ import OccasionTimeline, { type OccasionWithCountdown } from './_components/Occa
 import ExportDraftsButton from './_components/ExportDraftsButton';
 import PostsCoachHero from './_components/PostsCoachHero';
 
-export const metadata = { title: 'Posts | LocalVector.ai' };
+export const metadata = { title: 'AI-Ready Posts | LocalVector.ai' };
 
 // ---------------------------------------------------------------------------
 // Data fetching

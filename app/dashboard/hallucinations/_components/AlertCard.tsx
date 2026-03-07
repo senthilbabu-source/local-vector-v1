@@ -17,6 +17,7 @@ import DismissAlertButton from './DismissAlertButton';
 import CorrectButton from './CorrectButton';
 import FixGuidancePanel from './FixGuidancePanel';
 import { computeUrgency } from '@/lib/hallucinations/urgency';
+import { estimateRevenueAtRisk, formatRevenueAtRisk } from '@/lib/services/per-issue-revenue';
 
 const SEVERITY_STYLES = {
   critical: {
@@ -55,6 +56,10 @@ export default function AlertCard({ alert, isResolved = false, avgTicket = 55, m
     ? computeUrgency(alert.severity, alert.first_detected_at, avgTicket, monthlyCover)
     : null;
 
+  // S31: Per-issue revenue at risk
+  const revenueAmount = estimateRevenueAtRisk(alert.severity, alert.category, avgTicket, monthlyCover);
+  const revenueLabel = formatRevenueAtRisk(revenueAmount);
+
   // Map DB severity (critical/high/medium/low) → UI severity (critical/warning/info)
   const uiSeverity = mapSeverity(alert.severity);
   const styles = SEVERITY_STYLES[uiSeverity];
@@ -84,6 +89,15 @@ export default function AlertCard({ alert, isResolved = false, avgTicket = 55, m
           <span className="text-xs text-muted-foreground">
             {getModelName(alert.model_provider)}
           </span>
+          {revenueLabel && (
+            <span
+              className="rounded-full bg-alert-amber/10 px-2 py-0.5 text-[10px] font-semibold text-alert-amber ring-1 ring-alert-amber/20"
+              data-testid={`alert-revenue-${alert.id}`}
+              aria-label={`${revenueLabel} at risk`}
+            >
+              {revenueLabel} at risk
+            </span>
+          )}
         </div>
         {alert.first_detected_at && (
           <span className="text-[10px] text-muted-foreground/60 whitespace-nowrap">

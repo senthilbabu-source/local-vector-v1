@@ -7,7 +7,7 @@ import { canRunSovEvaluation, type PlanTier } from '@/lib/plan-enforcer';
 import ResponseLibrary from './_components/ResponseLibrary';
 import AIAnswerPreviewWidget from './_components/AIAnswerPreviewWidget';
 
-export const metadata = { title: 'AI Says | LocalVector.ai' };
+export const metadata = { title: 'What AI Says About You | LocalVector.ai' };
 
 export default async function AIResponsesPage() {
   const ctx = await getSafeAuthContext();
@@ -28,7 +28,7 @@ export default async function AIResponsesPage() {
     return (
       <div className="space-y-4">
         <div>
-          <h1 className="text-xl font-semibold text-white">AI Says</h1>
+          <h1 className="text-xl font-semibold text-white">What AI Says About You</h1>
           <p className="mt-0.5 text-sm text-[#94A3B8]">
             See the exact words AI engines use when describing your business.
           </p>
@@ -55,9 +55,9 @@ export default async function AIResponsesPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-xl font-semibold text-white">AI Says</h1>
+        <h1 className="text-xl font-semibold text-white">What AI Says About You</h1>
         <p className="mt-0.5 text-sm text-[#94A3B8]">
-          The exact words AI engines use when asked about your business. Screenshot these, share them with your team.
+          See exactly what ChatGPT, Perplexity, and Google say when customers ask about your restaurant.
         </p>
       </div>
 

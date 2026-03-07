@@ -18,6 +18,7 @@ import {
   type IssueSeverity,
   type TechnicalFindingInput,
 } from '@/lib/issue-descriptions';
+import { estimateRevenueAtRisk, formatRevenueAtRisk } from '@/lib/services/per-issue-revenue';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -30,6 +31,7 @@ interface TopIssuesPanelProps {
 interface DisplayIssue {
   description: IssueDescription;
   affectedCount?: number;
+  revenueLabel?: string | null;
 }
 
 // ─── Helper: derive technical findings from crawler data ────────────────
@@ -105,9 +107,11 @@ const SEVERITY_ORDER: Record<IssueSeverity, number> = {
 function IssueRow({
   description,
   index,
+  revenueLabel,
 }: {
   description: IssueDescription;
   index: number;
+  revenueLabel?: string | null;
 }) {
   const severityConfig = {
     critical: {
@@ -150,6 +154,14 @@ function IssueRow({
             >
               {description.category}
             </span>
+            {revenueLabel && (
+              <span
+                className="inline-flex items-center rounded-full bg-alert-amber/10 px-2 py-0.5 text-[10px] font-medium text-alert-amber ring-1 ring-alert-amber/20"
+                data-testid={`issue-revenue-${index}`}
+              >
+                {revenueLabel} at risk
+              </span>
+            )}
           </div>
         </div>
       </div>
@@ -217,10 +229,14 @@ export default function TopIssuesPanel({
     );
   }
 
-  // 1. Convert alerts to IssueDescription
-  const alertIssues: DisplayIssue[] = alerts.map((alert) => ({
-    description: describeAlert(alert),
-  }));
+  // 1. Convert alerts to IssueDescription + revenue estimate
+  const alertIssues: DisplayIssue[] = alerts.map((alert) => {
+    const revenue = estimateRevenueAtRisk(alert.severity, alert.category);
+    return {
+      description: describeAlert(alert),
+      revenueLabel: formatRevenueAtRisk(revenue),
+    };
+  });
 
   // 2. Convert technical findings to IssueDescription
   const technicalFindings = deriveTechnicalFindings(crawlerSummary);
@@ -268,8 +284,8 @@ export default function TopIssuesPanel({
         </div>
       ) : (
         <div>
-          {allIssues.map(({ description }, index) => (
-            <IssueRow key={index} description={description} index={index} />
+          {allIssues.map(({ description, revenueLabel }, index) => (
+            <IssueRow key={index} description={description} index={index} revenueLabel={revenueLabel} />
           ))}
         </div>
       )}

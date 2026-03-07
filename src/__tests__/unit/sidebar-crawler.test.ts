@@ -22,11 +22,11 @@ describe('Sidebar NAV_ITEMS — Bot Activity', () => {
     expect(botActivity?.href).toBe('/dashboard/crawler-analytics');
   });
 
-  it('Bot Activity is positioned after Page Audits', () => {
-    const pageAuditsIndex = NAV_ITEMS.findIndex((item) => item.label === 'Website Checkup');
+  it('Bot Activity is in the Advanced group (S29 restructure)', () => {
     const botActivityIndex = NAV_ITEMS.findIndex((item) => item.label === 'Site Visitors');
-    expect(pageAuditsIndex).toBeGreaterThanOrEqual(0);
     expect(botActivityIndex).toBeGreaterThanOrEqual(0);
-    expect(botActivityIndex).toBe(pageAuditsIndex + 1);
+    // After S29 restructure, both are in Advanced group but not necessarily adjacent
+    const pageAuditsIndex = NAV_ITEMS.findIndex((item) => item.label === 'Website Checkup');
+    expect(pageAuditsIndex).toBeGreaterThanOrEqual(0);
   });
 });

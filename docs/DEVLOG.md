@@ -4,6 +4,40 @@
 
 ---
 
+## 2026-03-06 — Wave 5: Sidebar Restructure + AI Response Teaser + Per-Issue Revenue (S29/S30/S31)
+
+**AI_RULES §235–§237. 6,698 tests, 431 files — ALL PASS.**
+
+### S29 (§235): Sidebar Reorder + Rename
+- 6 sidebar labels renamed to plain-English questions/outcomes:
+  - "AI Recognition" → "Where AI Knows You", "AI Actions" → "Can Customers Act?", "Your Reputation" → "How AI Feels About You", "Posts" → "AI-Ready Posts", "Voice Search" → "How AI Answers", "AI Says" → "What AI Says"
+- 6 page metadata titles updated to match new labels.
+- `testId` fields unchanged — E2E tests stable.
+- E2E sidebar nav test updated: `NAV_TO_GROUP` map migrated to new group names (Today/This Week/This Month/Advanced/Account).
+- 8 existing test files updated for label/position regressions.
+- **29 new tests** (`wave5-s29-sidebar-restructure.test.ts`).
+
+### S30 (§236): AI Response Teaser on Dashboard
+- `lib/services/ai-response-summary.ts` — `getLatestAIResponse()`, `isResponseStale()` (7-day threshold), `formatResponseSnippet()` (sentence-boundary truncation, max 150 chars).
+- `app/dashboard/_components/AIResponseTeaser.tsx` — 1-line teaser with engine badge, time-ago, stale warning. Hidden in sample mode.
+- Dashboard `page.tsx` wired with try-catch + Sentry.
+- `app/dashboard/ai-responses/page.tsx` — title/subtitle updated: "What AI Says About You".
+- **13 new tests** (`wave5-s30-ai-response-summary.test.ts`) + **8 new tests** (`wave5-s30-ai-response-teaser.test.tsx`).
+
+### S31 (§237): Per-Issue Revenue-at-Risk
+- `lib/services/per-issue-revenue.ts` — `estimateRevenueAtRisk()` (severity × category × base), `formatRevenueAtRisk()` ($X/mo, null if <$10), `sumRevenueAtRisk()`.
+- `AlertCard.tsx` — amber revenue badge with `data-testid` + `aria-label`.
+- `TopIssuesPanel.tsx` — revenue badge per issue row.
+- **18 new tests** (`wave5-s31-per-issue-revenue.test.ts`).
+
+### Regressions Fixed
+- 6 existing test files updated for label lookups (sidebar-entity, sidebar-crawler, sidebar-timeline, sidebar-nav-items, agent-readiness-page, sentiment-page).
+- 2 pre-existing cron import bugs fixed (`competitor-vulnerability/route.ts`, `monthly-report/route.ts` — `@/lib/supabase/service-role` → `@/lib/supabase/server`).
+
+**68 new tests** across 4 new test files. **0 new migrations.** **0 new crons.**
+
+---
+
 ## 2026-03-06 — ManualScanTrigger: progress UI for scan feedback
 
 **Problem:** When users clicked "Run Scan", the only feedback was a spinning icon and static "Scanning…" text. During the 2–5 minute scan, users got a "quiet treatment" with no sense of progress.

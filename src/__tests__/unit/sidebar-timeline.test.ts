@@ -21,10 +21,11 @@ describe('Sidebar NAV_ITEMS — Proof Timeline', () => {
     expect(entry!.href).toBe('/dashboard/proof-timeline');
   });
 
-  it('3. Proof Timeline is positioned after Bot Activity', () => {
-    const botIndex = NAV_ITEMS.findIndex((item) => item.label === 'Site Visitors');
+  it('3. Proof Timeline is in the Advanced group (S29 restructure)', () => {
     const timelineIndex = NAV_ITEMS.findIndex((item) => item.label === 'Update Tracking');
+    expect(timelineIndex).toBeGreaterThanOrEqual(0);
+    // After S29, both are in Advanced group but not necessarily adjacent
+    const botIndex = NAV_ITEMS.findIndex((item) => item.label === 'Site Visitors');
     expect(botIndex).toBeGreaterThanOrEqual(0);
-    expect(timelineIndex).toBe(botIndex + 1);
   });
 });

@@ -42,6 +42,8 @@ import DegradationAlertBanner from './_components/DegradationAlertBanner';
 import FirstScanRevealCard from './_components/FirstScanRevealCard';
 import ConsistencyScoreCard from './_components/ConsistencyScoreCard';
 import { fetchConsistencyScore } from '@/lib/services/consistency-score.service';
+import AIResponseTeaser from './_components/AIResponseTeaser';
+import { getLatestAIResponse, type AIResponseSnippet } from '@/lib/services/ai-response-summary';
 
 export const metadata = { title: 'Dashboard | LocalVector.ai' };
 
@@ -157,6 +159,17 @@ export default async function DashboardPage({
     }
   }
 
+  // S30: Latest AI response snippet for teaser
+  let latestAIResponse: AIResponseSnippet | null = null;
+  if (ctx.orgId && !sampleMode) {
+    try {
+      const supabaseForTeaser = await createClient();
+      latestAIResponse = await getLatestAIResponse(supabaseForTeaser, ctx.orgId);
+    } catch (err) {
+      Sentry.captureException(err, { tags: { component: 'ai-response-teaser', sprint: 'S30' } });
+    }
+  }
+
   // Onboarding + data resolver
   let onboardingState = null;
   let dataResolverResult: DataResolverResult | null = null;
@@ -256,6 +269,11 @@ export default async function DashboardPage({
         <AIQuoteTicker alerts={sampleMode ? [] : openAlerts} orgName={firstName} />
         {sampleMode && <SampleDataBadge />}
       </div>
+
+      {/* ════════════════════════════════════════════════════════════════════
+          1.5 AI RESPONSE TEASER — latest AI quote, links to full page
+          ════════════════════════════════════════════════════════════════════ */}
+      <AIResponseTeaser response={latestAIResponse} sampleMode={sampleMode} />
 
       {/* ════════════════════════════════════════════════════════════════════
           2. HERO — Your score + your coach side by side

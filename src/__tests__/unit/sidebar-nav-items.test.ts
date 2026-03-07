@@ -69,11 +69,12 @@ describe('Sidebar NAV_ITEMS — Locations entry (Sprint 102)', () => {
     expect(locationsIndex).toBeGreaterThan(listingsIndex);
   });
 
-  it('Locations is positioned before System Status', () => {
+  it('Locations is in the Account group (S29 restructure)', () => {
     const locationsIndex = NAV_ITEMS.findIndex((item) => item.label === 'Locations');
-    const systemHealthIndex = NAV_ITEMS.findIndex((item) => item.label === 'System Status');
     expect(locationsIndex).toBeGreaterThan(-1);
-    expect(systemHealthIndex).toBeGreaterThan(-1);
-    expect(locationsIndex).toBeLessThan(systemHealthIndex);
+    // After S29 restructure, Locations moved to Account group (after System Status in flat order).
+    // Verify it exists and is near the end of the list (Account group items).
+    const settingsIndex = NAV_ITEMS.findIndex((item) => item.label === 'Settings');
+    expect(locationsIndex).toBeGreaterThan(settingsIndex);
   });
 });

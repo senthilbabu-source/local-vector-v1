@@ -11,7 +11,7 @@ import { canRunVAIO } from '@/lib/plan-enforcer';
 import type { PlanTier } from '@/lib/plan-enforcer';
 import VAIOPageClient from './VAIOPageClient';
 
-export const metadata = { title: 'Voice Search | LocalVector.ai' };
+export const metadata = { title: 'How AI Answers | LocalVector.ai' };
 
 export default async function VAIOPage() {
   const ctx = await getSafeAuthContext();

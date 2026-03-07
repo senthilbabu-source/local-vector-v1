@@ -20,7 +20,7 @@ import { SCENARIO_DESCRIPTIONS, type CapabilityId } from '@/lib/agent-readiness/
 import type { ActionAuditResult } from '@/lib/agent-seo/agent-seo-types';
 
 export const dynamic = 'force-dynamic';
-export const metadata = { title: 'AI Actions | LocalVector.ai' };
+export const metadata = { title: 'Can Customers Act? | LocalVector.ai' };
 
 // ── Page Component ────────────────────────────────────────────────────────
 
