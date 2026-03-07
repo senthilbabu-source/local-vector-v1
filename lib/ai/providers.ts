@@ -23,6 +23,7 @@
 import { createOpenAI } from '@ai-sdk/openai';
 import { createAnthropic } from '@ai-sdk/anthropic';
 import { createGoogleGenerativeAI } from '@ai-sdk/google';
+import { z } from 'zod';
 
 // ── Provider instances ──────────────────────────────────────────────────────
 
@@ -63,45 +64,80 @@ export const google = createGoogleGenerativeAI({
   apiKey: process.env.GOOGLE_GENERATIVE_AI_API_KEY,
 });
 
+// ── Web Search Tool for OpenAI Responses API ────────────────────────────────
+
+/**
+ * Creates a web_search_preview provider-defined tool for OpenAI Responses API models.
+ * Pass this in the `tools` parameter of generateText/generateObject calls
+ * when using openai.responses() models to enable live web search grounding.
+ *
+ * @param city  Business city (e.g. "Alpharetta") — localizes search results
+ * @param state Business state (e.g. "Georgia")
+ */
+export function webSearchTool(city?: string | null, state?: string | null) {
+  return {
+    type: 'provider-defined' as const,
+    id: 'openai.web_search_preview' as const,
+    args: {
+      ...(city && state ? {
+        userLocation: {
+          type: 'approximate' as const,
+          city,
+          country: 'US',
+          region: state,
+        },
+      } : {}),
+    },
+    parameters: z.object({}),
+  };
+}
+
 // ── Model registry ──────────────────────────────────────────────────────────
 
 /**
  * Canonical model IDs used across the platform.
  * Centralised here so model upgrades require exactly one change.
+ *
+ * ENGINE-GROUNDING-FIX: All external query-facing models now use web-grounded
+ * search (OpenAI Responses API, Gemini useSearchGrounding, Perplexity sonar-pro).
+ * Internal processing models (sentiment, content-brief, etc.) remain ungrounded.
  */
 export const MODELS = {
-  /** Fear Engine — hallucination detection (high reasoning) */
-  'fear-audit': openai('gpt-4o'),
+  /** Fear Engine — hallucination detection with live web search (Responses API).
+   *  Callers must pass webSearchTool() in tools for grounding. */
+  'fear-audit': openai.responses('gpt-4o'),
 
-  /** Greed Engine Stage 2 — intercept analysis (cost-efficient) */
+  /** Greed Engine Stage 2 — intercept analysis (cost-efficient, internal reasoning) */
   'greed-intercept': openai('gpt-4o-mini'),
 
-  /** Greed Engine Stage 1 — head-to-head comparison (live web) */
-  'greed-headtohead': perplexity('sonar'),
+  /** Greed Engine Stage 1 — head-to-head comparison (live web, upgraded to sonar-pro) */
+  'greed-headtohead': perplexity('sonar-pro'),
 
-  /** SOV Engine — share-of-voice queries (live web results) */
-  'sov-query': perplexity('sonar'),
+  /** SOV Engine — share-of-voice queries (live web results, upgraded to sonar-pro) */
+  'sov-query': perplexity('sonar-pro'),
 
-  /** SOV Engine — OpenAI alternative for multi-model SOV */
-  'sov-query-openai': openai('gpt-4o'),
+  /** SOV Engine — OpenAI path with live web search (Responses API).
+   *  Callers must pass webSearchTool() in tools for grounding. */
+  'sov-query-openai': openai.responses('gpt-4o'),
 
   /** SOV Engine — Google AI Overview simulation (search-grounded) */
   'sov-query-google': google('gemini-2.0-flash', { useSearchGrounding: true }),
 
-  /** SOV Engine — Microsoft Copilot simulation (Bing-grounded via GPT-4o) */
-  'sov-query-copilot': openai('gpt-4o'),
+  /** SOV Engine — Copilot simulation via Bing-grounded Perplexity (closest available proxy).
+   *  TODO: Replace with official Microsoft Copilot API when available. */
+  'sov-query-copilot': perplexity('sonar-pro'),
 
   /** Truth Audit — Anthropic engine (multi-engine comparison) */
   'truth-audit-anthropic': anthropic('claude-sonnet-4-20250514'),
 
-  /** Truth Audit — Google engine (multi-engine comparison) */
-  'truth-audit-gemini': google('gemini-2.0-flash'),
+  /** Truth Audit — Google engine with search grounding for accurate live comparison */
+  'truth-audit-gemini': google('gemini-2.0-flash', { useSearchGrounding: true }),
 
   /** Truth Audit — OpenAI engine (multi-engine comparison) */
   'truth-audit-openai': openai('gpt-4o-mini'),
 
-  /** Truth Audit — Perplexity engine (multi-engine comparison, live web) */
-  'truth-audit-perplexity': perplexity('sonar'),
+  /** Truth Audit — Perplexity engine (multi-engine comparison, upgraded to sonar-pro) */
+  'truth-audit-perplexity': perplexity('sonar-pro'),
 
   /** AI Chat Assistant — streaming conversational agent with tool calls */
   'chat-assistant': openai('gpt-4o'),
@@ -121,7 +157,7 @@ export const MODELS = {
   /** Sprint F (N2): AI Answer Preview — ChatGPT response */
   'preview-chatgpt': openai('gpt-4o-mini'),
 
-  /** Sprint F (N2): AI Answer Preview — Perplexity response */
+  /** Sprint F (N2): AI Answer Preview — Perplexity response (basic tier for preview) */
   'preview-perplexity': perplexity('sonar'),
 
   /** Sprint F (N2): AI Answer Preview — Gemini response */
@@ -130,7 +166,7 @@ export const MODELS = {
   /** Sprint 104: AI FAQ auto-generator (Doc 17 §4) — cost-efficient */
   'faq-generation': openai('gpt-4o-mini'),
 
-  /** Sprint 108: Authority citation detection (live web search via Perplexity) */
+  /** Sprint 108: Authority citation detection (basic tier for batch operations) */
   'authority-citation': perplexity('sonar'),
 
   /** Sprint 110: Sandbox AI simulation (Claude Sonnet for content analysis) */
@@ -142,11 +178,12 @@ export const MODELS = {
   /** Sprint 120: Streaming SOV query simulation (Haiku for speed + cost) */
   'streaming-sov-simulate': anthropic('claude-3-5-haiku-20241022'),
 
-  /** Sprint 123: Multi-Model SOV — GPT-4o-mini (cost-efficient citation detection) */
-  'sov-query-gpt': openai('gpt-4o-mini'),
+  /** Sprint 123: Multi-Model SOV — GPT-4o-mini with live web search (Responses API).
+   *  Callers must pass webSearchTool() in tools for grounding. */
+  'sov-query-gpt': openai.responses('gpt-4o-mini'),
 
-  /** Sprint 123: Multi-Model SOV — Gemini Flash (no search grounding, pure citation) */
-  'sov-query-gemini': google('gemini-2.0-flash'),
+  /** Sprint 123: Multi-Model SOV — Gemini Flash with search grounding */
+  'sov-query-gemini': google('gemini-2.0-flash', { useSearchGrounding: true }),
 
   /** Sprint 133: RAG chatbot — Haiku for speed + cost on public widget */
   'rag-chatbot': anthropic('claude-3-5-haiku-20241022'),

@@ -4,11 +4,14 @@
 // Surgery 1: Replaced raw fetch() with Vercel AI SDK generateText().
 // Surgery 2: Replaced generateText() + JSON.parse() with generateObject()
 //            for Zod-validated structured output (Sprint 54).
+// Surgery 3: Reverted to generateText() to enable web search grounding via
+//            OpenAI Responses API (ENGINE-GROUNDING-FIX). generateObject()
+//            does not support provider-defined tools like web_search_preview.
 // ---------------------------------------------------------------------------
 
-import { generateObject } from 'ai';
-import { getModel, hasApiKey } from '@/lib/ai/providers';
-import { AuditResultSchema, zodSchema } from '@/lib/ai/schemas';
+import { generateText } from 'ai';
+import { getModel, hasApiKey, webSearchTool } from '@/lib/ai/providers';
+import * as Sentry from '@sentry/nextjs';
 
 // ── Types (mirror prod_schema.sql enums exactly) ───────────────────────────
 
@@ -62,11 +65,30 @@ const DEMO_HALLUCINATION: DetectedHallucination = {
 // ── Prompt construction ────────────────────────────────────────────────────
 
 const SYSTEM_PROMPT = `You are an AI hallucination auditor specialising in local restaurants.
-Given ground-truth data about a restaurant, identify any facts that the
-OpenAI GPT-4o model commonly gets wrong about this business based on its
-training data.
+Given ground-truth data about a restaurant, search the web for what AI engines
+currently claim about this business. Compare web results against the ground
+truth to identify factual errors.
 
-If no discrepancies exist, return an empty hallucinations array.
+Return ONLY valid JSON in this exact format:
+{
+  "hallucinations": [
+    {
+      "model_provider": "openai-gpt4o",
+      "severity": "high",
+      "category": "status",
+      "claim_text": "The incorrect claim found online",
+      "expected_truth": "The correct information from ground truth"
+    }
+  ]
+}
+
+If no discrepancies exist, return { "hallucinations": [] }.
+
+Valid model_provider values: openai-gpt4o, perplexity-sonar, google-gemini,
+  anthropic-claude, microsoft-copilot
+Valid severity values (all lowercase): critical, high, medium, low
+Valid category values (all lowercase): status, hours, amenity, menu, address, phone
+
 Only report genuine discrepancies backed by the ground truth provided.`;
 
 function buildAuditPrompt(location: LocationAuditInput): string {
@@ -106,12 +128,18 @@ export async function auditLocation(
     return [DEMO_HALLUCINATION];
   }
 
-  const { object } = await generateObject({
+  const { text } = await generateText({
     model: getModel('fear-audit'),
-    schema: zodSchema(AuditResultSchema),
+    tools: { web_search: webSearchTool(location.city, location.state) },
     system: SYSTEM_PROMPT,
     prompt: buildAuditPrompt(location),
   });
 
-  return (object as { hallucinations: DetectedHallucination[] }).hallucinations;
+  try {
+    const parsed = JSON.parse(text);
+    return Array.isArray(parsed.hallucinations) ? parsed.hallucinations : [];
+  } catch (err) {
+    Sentry.captureException(err, { tags: { file: 'ai-audit.service.ts', sprint: 'engine-grounding' } });
+    return [];
+  }
 }

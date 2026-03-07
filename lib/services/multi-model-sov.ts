@@ -14,7 +14,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Database } from '@/lib/supabase/database.types';
 import { generateText } from 'ai';
-import { getModel, hasApiKey } from '@/lib/ai/providers';
+import { getModel, hasApiKey, webSearchTool } from '@/lib/ai/providers';
 import {
   getEnabledModels,
   SOV_MODEL_CONFIGS,
@@ -107,8 +107,12 @@ export async function runMultiModelQuery(
           confidence: 'low',
         };
       } else {
+        // OpenAI Responses API models need the web search tool for live grounding
+        const needsWebSearch = config.provider_key === 'sov-query-gpt';
+
         const { text } = await generateText({
           model: getModel(config.provider_key),
+          ...(needsWebSearch ? { tools: { web_search: webSearchTool() } } : {}),
           system: 'You are a local business search assistant. Always respond with valid JSON only.',
           prompt: buildSOVPrompt(queryText),
           temperature: 0.3,

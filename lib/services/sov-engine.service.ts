@@ -19,7 +19,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Database, Json } from '@/lib/supabase/database.types';
 import { generateText } from 'ai';
-import { getModel, hasApiKey, type ModelKey } from '@/lib/ai/providers';
+import { getModel, hasApiKey, webSearchTool, type ModelKey } from '@/lib/ai/providers';
 import * as Sentry from '@sentry/nextjs';
 import { SovCronResultSchema, type SovCronResultOutput, type SentimentExtraction, type SourceMentionExtraction } from '@/lib/ai/schemas';
 import { createDraft } from '@/lib/autopilot/create-draft';
@@ -133,8 +133,12 @@ export async function runSOVQuery(
     return mockSOVResult(query, engine);
   }
 
+  // OpenAI Responses API models need the web search tool for live grounding
+  const needsWebSearch = modelKey === 'sov-query-openai';
+
   const { text } = await generateText({
     model: getModel(modelKey),
+    ...(needsWebSearch ? { tools: { web_search: webSearchTool() } } : {}),
     system: 'You are a local business search assistant. Always respond with valid JSON only.',
     prompt: buildSOVCronPrompt(query.query_text),
     temperature: 0.3,

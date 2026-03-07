@@ -12,7 +12,7 @@ import {
   type SovEngine,
 } from '@/lib/schemas/sov';
 import { generateText, Output } from 'ai';
-import { getModel, hasApiKey } from '@/lib/ai/providers';
+import { getModel, hasApiKey, webSearchTool } from '@/lib/ai/providers';
 import { SovQueryResultSchema } from '@/lib/ai/schemas';
 
 // ---------------------------------------------------------------------------
@@ -90,6 +90,7 @@ function mockSovResult(engine: SovEngine): SovResult {
 async function callOpenAI(prompt: string): Promise<SovResult> {
   const { text } = await generateText({
     model: getModel('sov-query-openai'),
+    tools: { web_search: webSearchTool() },
     prompt,
     temperature: 0.3,
   });

@@ -17,6 +17,7 @@ vi.mock('ai', () => ({
 
 vi.mock('@/lib/ai/providers', () => ({
   getModel: vi.fn(() => 'mock-model'),
+  webSearchTool: vi.fn(() => 'mock-web-search-tool'),
   hasApiKey: vi.fn(() => true),
 }));
 

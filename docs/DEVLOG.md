@@ -4,6 +4,32 @@
 
 ---
 
+## 2026-03-07 — ENGINE-GROUNDING-FIX: AI Engine Grounding Overhaul
+
+**Problem:** Full audit of `lib/ai/providers.ts` revealed 5 of 8 query-facing models were using base LLMs with no web search grounding — hallucination detection, SOV scoring, and competitor intelligence were running against stale training data instead of live web results.
+
+**Changes:**
+- `lib/ai/providers.ts` — **MODIFIED.** 6 model changes: `fear-audit`/`sov-query-openai`/`sov-query-gpt` → `openai.responses()` (Responses API); `sov-query-copilot` → `perplexity('sonar-pro')` (was `openai('gpt-4o')`); `truth-audit-gemini`/`sov-query-gemini` → `useSearchGrounding: true`; `sov-query`/`greed-headtohead`/`truth-audit-perplexity` → `sonar-pro` (was `sonar`). New `webSearchTool()` factory for OpenAI provider-defined web search tool with optional geo-location.
+- `lib/services/ai-audit.service.ts` — **MODIFIED.** Surgery 3: reverted `generateObject()` → `generateText()` to enable web search grounding (generateObject doesn't support provider-defined tools). Added `tools: { web_search: webSearchTool(city, state) }`. Manual JSON.parse with Sentry error capture.
+- `lib/services/sov-engine.service.ts` — **MODIFIED.** Copilot API key gate changed from `hasApiKey('openai')` → `hasApiKey('perplexity')`. Conditional web search tool for `sov-query-openai`.
+- `lib/services/multi-model-sov.ts` — **MODIFIED.** Conditional web search tool for `sov-query-gpt`.
+- `lib/ai/actions.ts` — **MODIFIED.** Added `webSearchTool()` to OpenAI SOV action.
+- `lib/bing-search/bing-grounded-sov.ts` — **MODIFIED.** Copilot API key gate changed from `openai` → `perplexity`.
+- `lib/ai/ai-audit.service.ts` — **MODIFIED.** Added web search tool (legacy file, unused).
+
+**Tests updated (5 files):**
+- `hallucination-classifier.test.ts` — Rewritten: generateObject → generateText mocks, added webSearchTool + Sentry mocks.
+- `sov-copilot.test.ts` — Added webSearchTool mock, changed Copilot gate assertions from openai → perplexity.
+- `sov-google-grounded.test.ts` — Added webSearchTool mock.
+- `multi-model-sov.test.ts` — Added webSearchTool mock.
+- `sov-engine-service.test.ts` — Added webSearchTool mock.
+
+**Key discovery:** `openai.responses()` accepts only model ID (no config object). `openaiTools`/`webSearchPreviewTool` exist in `@ai-sdk/openai` source but are NOT exported. Manually constructed provider-defined tool: `{ type: 'provider-defined', id: 'openai.web_search_preview', args: {...}, parameters: z.object({}) }`.
+
+**Tests:** 7099 pass, 442 files. `npx next build` passes.
+
+---
+
 ## 2026-03-07 — Bing Grounding: Real Copilot SOV via Bing Web Search API v7
 
 Replaced the simulated Copilot SOV engine (GPT-4o with Bing-themed system prompt) with a two-step Bing-grounded pipeline:

@@ -5,7 +5,7 @@
 // ---------------------------------------------------------------------------
 
 import { generateText } from 'ai';
-import { getModel, hasApiKey } from '@/lib/ai/providers';
+import { getModel, hasApiKey, webSearchTool } from '@/lib/ai/providers';
 import * as Sentry from '@sentry/nextjs';
 
 // ── Types (mirror prod_schema.sql enums exactly) ───────────────────────────
@@ -127,6 +127,7 @@ export async function auditLocation(
 
   const { text } = await generateText({
     model: getModel('fear-audit'),
+    tools: { web_search: webSearchTool(location.city, location.state) },
     system: SYSTEM_PROMPT,
     prompt: buildAuditPrompt(location),
   });
