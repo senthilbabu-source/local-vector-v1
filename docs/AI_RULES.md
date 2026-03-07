@@ -5433,4 +5433,70 @@ Pure revenue estimation functions compute per-hallucination dollar impact for Al
 ### Rules
 - Pure functions only — no I/O, no Supabase, no side effects.
 - Default config values match restaurant industry defaults (§83): avgTicket=55, monthlyCovers=1800.
+
+## §238 — S32: Calendar merged into Posts (Wave 6)
+
+Content Calendar page merged into Content Drafts page via `?view=calendar` URL parameter toggle.
+
+### Changes
+- `/dashboard/content-calendar` → redirect to `/dashboard/content-drafts?view=calendar`
+- `ViewToggle.tsx` client component (List/Calendar toggle via URL param)
+- `CalendarView.tsx` renders `ContentCalendarResult` (time-bucketed recommendations, signal summary)
+- content-drafts page accepts `?view=calendar` searchParam, conditionally fetches calendar data
+- Sidebar: `content-calendar` entry removed from NAV_ITEMS + NAV_GROUPS Advanced
+
+### Rules
+- ViewToggle updates URL searchParams without full navigation (shallow).
+- CalendarView reuses existing `ContentCalendarResult` types — no new types.
+- Redirect uses Next.js `redirect()` in server component — not client-side.
+
+## §239 — S33: Sources & Citations merged into Entity Health (Wave 6)
+
+Source Intelligence and Citations pages merged into Entity Health page via `?tab=` URL parameter with 3 tabs.
+
+### Changes
+- `/dashboard/source-intelligence` → redirect to `/dashboard/entity-health?tab=sources`
+- `/dashboard/citations` → redirect to `/dashboard/entity-health?tab=citations`
+- `EntityHealthTabs.tsx` client component (Platforms/Sources/Citations tabs via URL param)
+- Entity health page accepts `?tab=` searchParam with 3 async tab content components
+- Sources tab: PlanGate agency, uses `fetchSourceIntelligence()` + `SourceHealthSummaryPanel`
+- Citations tab: PlanGate growth, uses `calculateCitationGapScore()` + `CitationGapScore` + `PlatformCitationBar`
+- Sidebar: `source-intelligence` and `citations` entries removed
+
+### Rules
+- Default tab (no `?tab=` param) renders the existing Platforms tab content.
+- Each tab component fetches its own data — no waterfall.
+- Plan gates applied per-tab, not at page level.
+
+## §240 — S34: Crawler Analytics merged into Website Checkup (Wave 6)
+
+Crawler Analytics page merged into Page Audits (Website Checkup) page as a `#bots` anchor section.
+
+### Changes
+- `/dashboard/crawler-analytics` → redirect to `/dashboard/page-audits#bots`
+- `CrawlerSummaryCard.tsx` added to page-audits (id="bots" anchor, data-testid="crawler-summary-card")
+- Shows: total visits, active bots, blind spots summary strip + top 5 bots + blind spot warnings
+- `fetchCrawlerAnalytics()` called in parallel with existing page-audits data
+- `fixHref` for `bot_blind_spot` updated: `/dashboard/crawler-analytics` → `/dashboard/page-audits#bots`
+- Sidebar: `crawler-analytics` entry removed
+
+### Rules
+- CrawlerSummaryCard uses `id="bots"` for hash-based anchor scrolling.
+- `fetchCrawlerAnalytics()` runs in parallel with page audit data — no sequential waterfall.
+- `fixHref` update in issue-descriptions.ts ensures fix links point to merged location.
+
+## §241 — S35: System Status moved to Admin (Wave 6)
+
+System Health page moved from user-facing dashboard to admin-only section.
+
+### Changes
+- `/dashboard/system-health` → redirect to `/dashboard` (non-admins)
+- New admin page: `app/admin/system-health/page.tsx` (reuses `fetchCronHealth()`, force-dynamic)
+- `AdminNav.tsx` updated with 7th link: System Health
+- Sidebar: `system-health` entry removed
+
+### Rules
+- Admin page reuses existing `fetchCronHealth()` — no new data layer.
+- Non-admin users hitting `/dashboard/system-health` redirect to `/dashboard`, not 403.
+- `force-dynamic` export required — cron health data must never be statically cached.
 - Never show "$0/mo" — `formatRevenueAtRisk` returns null for amounts < $10.

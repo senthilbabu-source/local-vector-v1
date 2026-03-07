@@ -4,6 +4,21 @@
 
 ---
 
+## 2026-03-06 — §238–§241 Wave 6: Page Merges (S32-S35)
+
+**AI_RULES §238–§241. 6,731 tests, 432 files — ALL PASS.**
+
+- S32: Calendar → Posts (ViewToggle + CalendarView, redirect)
+- S33: Sources + Citations → Entity Health (3-tab navigation, 2 redirects)
+- S34: Crawler Analytics → Website Checkup (CrawlerSummaryCard #bots, redirect)
+- S35: System Status → Admin (admin system-health page, redirect)
+- Sidebar: 5 items removed (content-calendar, source-intelligence, citations, crawler-analytics, system-health)
+- Advanced group: 13 → 8 items
+- Regressions fixed: 8 test files updated (sidebar-crawler, sidebar-system-health, sidebar-timeline, sidebar-plan-gating, wave5-s29, issue-descriptions, source-intelligence-page, content-calendar-page, sprint-e-smoke E2E)
+- 46 new tests (wave6-page-merges.test.ts), 6731 total tests, 432 files — ALL PASS
+
+---
+
 ## 2026-03-06 — Wave 5: Sidebar Restructure + AI Response Teaser + Per-Issue Revenue (S29/S30/S31)
 
 **AI_RULES §235–§237. 6,698 tests, 431 files — ALL PASS.**

@@ -148,15 +148,20 @@ describe('Content Calendar page', () => {
 // Sidebar
 // ---------------------------------------------------------------------------
 
-describe('Sidebar', () => {
-  it('10. shows Content Calendar link with test-id nav-content-calendar', () => {
+// S32: Calendar merged into Posts — sidebar entry removed
+describe('Sidebar (S32: Calendar merged into Posts)', () => {
+  it('10. Content Calendar entry no longer exists in NAV_ITEMS', () => {
     const calendarItem = NAV_ITEMS.find(
       (item) => item.href === '/dashboard/content-calendar',
     );
-    expect(calendarItem).toBeDefined();
-    expect(calendarItem!.label).toBe('Calendar');
-    expect(calendarItem!.active).toBe(true);
-    // data-testid uses stable testId field (decoupled from label)
-    expect(calendarItem!.testId).toBe('content-calendar');
+    expect(calendarItem).toBeUndefined();
+  });
+
+  it('11. Posts entry still exists and points to content-drafts', () => {
+    const postsItem = NAV_ITEMS.find(
+      (item) => item.testId === 'content',
+    );
+    expect(postsItem).toBeDefined();
+    expect(postsItem!.href).toBe('/dashboard/content-drafts');
   });
 });

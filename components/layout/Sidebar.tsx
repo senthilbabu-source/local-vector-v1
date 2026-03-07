@@ -9,12 +9,9 @@ import {
   Utensils,
   TrendingUp,
   FileText,
-  CalendarDays,
   Swords,
   MapPin,
-  Globe,
   FileSearch,
-  Bot,
   BotMessageSquare,
   GitCompareArrows,
   HeartPulse,
@@ -22,8 +19,6 @@ import {
   MessageSquare,
   Quote,
   SmilePlus,
-  BookOpen,
-  Activity,
   Settings,
   CreditCard,
   ScatterChart,
@@ -166,14 +161,7 @@ export const NAV_ITEMS = [
     active: true,
     minPlan: 'agency' as const,
   },
-  {
-    href: '/dashboard/content-calendar',
-    label: 'Calendar',
-    testId: 'content-calendar',
-    icon: CalendarDays,
-    exact: false,
-    active: true,
-  },
+  // S32: Calendar merged into Posts — /dashboard/content-calendar redirects to /dashboard/content-drafts?view=calendar
   {
     href: '/dashboard/page-audits',
     label: 'Website Checkup',
@@ -214,30 +202,9 @@ export const NAV_ITEMS = [
     exact: false,
     active: true,
   },
-  {
-    href: '/dashboard/crawler-analytics',
-    label: 'Site Visitors',
-    testId: 'bot-activity',
-    icon: Bot,
-    exact: false,
-    active: true,
-  },
-  {
-    href: '/dashboard/source-intelligence',
-    label: 'Your Sources',
-    testId: 'ai-sources',
-    icon: BookOpen,
-    exact: false,
-    active: true,
-  },
-  {
-    href: '/dashboard/citations',
-    label: 'Platforms',
-    testId: 'citations',
-    icon: Globe,
-    exact: false,
-    active: true,
-  },
+  // S34: Crawler Analytics merged into Website Checkup — /dashboard/crawler-analytics redirects to /dashboard/page-audits#bots
+  // S33: Source Intelligence merged into Entity Health — /dashboard/source-intelligence redirects to /dashboard/entity-health?tab=sources
+  // S33: Citations merged into Entity Health — /dashboard/citations redirects to /dashboard/entity-health?tab=citations
   {
     href: '/dashboard/vaio',
     label: 'How AI Answers',
@@ -256,15 +223,7 @@ export const NAV_ITEMS = [
     active: true,
     minPlan: 'agency' as const,
   },
-  {
-    href: '/dashboard/system-health',
-    label: 'System Status',
-    testId: 'system-health',
-    icon: Activity,
-    exact: false,
-    active: true,
-    minPlan: 'agency' as const,
-  },
+  // S35: System Status moved to Admin — /dashboard/system-health redirects for non-admins
   {
     href: '/dashboard/settings',
     label: 'Settings',
@@ -373,6 +332,10 @@ export const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
   },
   {
     // Power-user / technical pages — collapsed by default
+    // S32: Calendar removed (merged into Posts)
+    // S33: Source Intelligence + Citations removed (merged into Entity Health)
+    // S34: Crawler Analytics removed (merged into Website Checkup)
+    // S35: System Status removed (moved to Admin)
     label: 'Advanced',
     items: NAV_ITEMS.filter((i) =>
       [
@@ -381,13 +344,8 @@ export const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
         '/dashboard/cluster-map',
         '/dashboard/proof-timeline',
         '/dashboard/wins',
-        '/dashboard/content-calendar',
-        '/dashboard/crawler-analytics',
-        '/dashboard/source-intelligence',
-        '/dashboard/citations',
         '/dashboard/vaio',
         '/dashboard/intent-discovery',
-        '/dashboard/system-health',
         '/dashboard/reviews',
       ].includes(i.href),
     ),

@@ -185,7 +185,7 @@ export function describeTechnicalFinding(
           ? `${finding.affectedCount.toLocaleString()} expected visits in the last 30 days, but none recorded.`
           : undefined,
         severity: 'warning',
-        fixHref: '/dashboard/crawler-analytics',
+        fixHref: '/dashboard/page-audits#bots',
         fixLabel: 'How to fix →',
         costsCredit: false,
         category: 'Site health',

@@ -17,7 +17,8 @@ describe('NAV_ITEMS minPlan assignments', () => {
   const itemMap = Object.fromEntries(NAV_ITEMS.map((i) => [i.testId, i]));
 
   // Agency-only items
-  const agencyOnly = ['team', 'domain', 'playbooks', 'intent-discovery', 'system-health'];
+  // S35: system-health moved to admin, removed from sidebar
+  const agencyOnly = ['team', 'domain', 'playbooks', 'intent-discovery'];
   for (const testId of agencyOnly) {
     it(`"${testId}" requires agency plan`, () => {
       const item = itemMap[testId];
@@ -124,8 +125,8 @@ describe('NAV_ITEMS structural integrity', () => {
     }
   });
 
-  it('has at least 30 total items', () => {
-    expect(NAV_ITEMS.length).toBeGreaterThanOrEqual(30);
+  it('has at least 25 total items (5 removed in Wave 6: S32-S35)', () => {
+    expect(NAV_ITEMS.length).toBeGreaterThanOrEqual(25);
   });
 
   it('all items are active', () => {

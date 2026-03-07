@@ -17,11 +17,14 @@ import { getDaysUntilPeak } from '@/lib/services/occasion-engine.service';
 import type { LocalOccasionRow } from '@/lib/types/occasions';
 import { PlanGate } from '@/components/plan-gate/PlanGate';
 import { markSectionSeen } from '@/lib/badges/badge-counts';
+import { fetchContentCalendar } from '@/lib/data/content-calendar';
 import ContentDraftCard, { type ContentDraftRow } from './_components/ContentDraftCard';
 import DraftFilterTabs from './_components/DraftFilterTabs';
 import OccasionTimeline, { type OccasionWithCountdown } from './_components/OccasionTimeline';
 import ExportDraftsButton from './_components/ExportDraftsButton';
 import PostsCoachHero from './_components/PostsCoachHero';
+import ViewToggle from './_components/ViewToggle';
+import CalendarView from './_components/CalendarView';
 
 export const metadata = { title: 'AI-Ready Posts | LocalVector.ai' };
 
@@ -130,7 +133,7 @@ async function fetchPlan(orgId: string): Promise<string> {
 export default async function ContentDraftsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ status?: string; from?: string; occasion?: string }>;
+  searchParams: Promise<{ status?: string; from?: string; occasion?: string; view?: string }>;
 }) {
   const ctx = await getSafeAuthContext();
   if (!ctx?.orgId) {
@@ -143,6 +146,7 @@ export default async function ContentDraftsPage({
 
   const resolvedParams = await searchParams;
   const statusFilter = resolvedParams.status;
+  const isCalendarView = resolvedParams.view === 'calendar';
   // Sprint O (L3): Breadcrumb support from content calendar
   const fromCalendar = resolvedParams.from === 'calendar';
   const breadcrumbOccasion = resolvedParams.occasion
@@ -161,6 +165,21 @@ export default async function ContentDraftsPage({
     .filter((d) => d.trigger_type === 'occasion' && d.trigger_id)
     .map((d) => d.trigger_id!);
   const occasionNames = await fetchOccasionNames(occasionTriggerIds);
+
+  // S32: Fetch calendar data when in calendar view
+  let calendarData = null;
+  if (isCalendarView) {
+    const supabase = await createClient();
+    const { data: loc } = await supabase
+      .from('locations')
+      .select('id')
+      .eq('org_id', ctx.orgId)
+      .eq('is_primary', true)
+      .maybeSingle();
+    if (loc) {
+      calendarData = await fetchContentCalendar(supabase, ctx.orgId, loc.id);
+    }
+  }
 
   // Summary counts (across all drafts, not just filtered)
   const allDrafts = statusFilter ? await fetchPageData(ctx.orgId) : drafts;
@@ -200,11 +219,19 @@ export default async function ContentDraftsPage({
             them to your website or Google Business Profile.
           </p>
         </div>
-        <ExportDraftsButton plan={plan} statusFilter={statusFilter} />
+        <div className="flex items-center gap-3">
+          <ViewToggle />
+          <ExportDraftsButton plan={plan} statusFilter={statusFilter} />
+        </div>
       </div>
 
       {/* ── Plan-gated content (blur teaser for Starter/Trial) ───── */}
       <PlanGate requiredPlan="growth" currentPlan={plan} feature="Content Drafts">
+        {/* ── S32: Calendar view (merged from content-calendar) ───── */}
+        {isCalendarView && calendarData ? (
+          <CalendarView calendar={calendarData} />
+        ) : (
+        <>
         {/* ── S10: Posts coaching hero ─────────────────────────────── */}
         <PostsCoachHero
           total={allDrafts.length}
@@ -279,6 +306,8 @@ export default async function ContentDraftsPage({
             </div>
           )}
         </div>
+        </>
+        )}
       </PlanGate>
     </div>
   );

@@ -1,8 +1,8 @@
 /**
  * Unit Tests — Sidebar NAV_ITEMS: Bot Activity entry (Sprint 73)
  *
- * Verifies the new Bot Activity nav item is present, has the correct href,
- * and is positioned after Page Audits.
+ * S34: Bot Activity (Site Visitors) merged into Website Checkup (page-audits#bots).
+ * The sidebar entry was removed. This test verifies the removal.
  *
  * Run:
  *   npx vitest run src/__tests__/unit/sidebar-crawler.test.ts
@@ -11,22 +11,20 @@
 import { describe, it, expect } from 'vitest';
 import { NAV_ITEMS } from '@/components/layout/Sidebar';
 
-describe('Sidebar NAV_ITEMS — Bot Activity', () => {
-  it('NAV_ITEMS includes Bot Activity entry', () => {
+describe('Sidebar NAV_ITEMS — Bot Activity (S34: merged into Website Checkup)', () => {
+  it('Site Visitors entry no longer exists in NAV_ITEMS', () => {
     const botActivity = NAV_ITEMS.find((item) => item.label === 'Site Visitors');
-    expect(botActivity).toBeDefined();
+    expect(botActivity).toBeUndefined();
   });
 
-  it('Bot Activity has correct href /dashboard/crawler-analytics', () => {
-    const botActivity = NAV_ITEMS.find((item) => item.label === 'Site Visitors');
-    expect(botActivity?.href).toBe('/dashboard/crawler-analytics');
+  it('crawler-analytics href no longer in NAV_ITEMS', () => {
+    const entry = NAV_ITEMS.find((item) => item.href === '/dashboard/crawler-analytics');
+    expect(entry).toBeUndefined();
   });
 
-  it('Bot Activity is in the Advanced group (S29 restructure)', () => {
-    const botActivityIndex = NAV_ITEMS.findIndex((item) => item.label === 'Site Visitors');
-    expect(botActivityIndex).toBeGreaterThanOrEqual(0);
-    // After S29 restructure, both are in Advanced group but not necessarily adjacent
-    const pageAuditsIndex = NAV_ITEMS.findIndex((item) => item.label === 'Website Checkup');
-    expect(pageAuditsIndex).toBeGreaterThanOrEqual(0);
+  it('Website Checkup still exists and points to page-audits', () => {
+    const pageAudits = NAV_ITEMS.find((item) => item.label === 'Website Checkup');
+    expect(pageAudits).toBeDefined();
+    expect(pageAudits?.href).toBe('/dashboard/page-audits');
   });
 });

@@ -14,7 +14,9 @@ import AuditScoreOverview from './_components/AuditScoreOverview';
 import PageAuditCardWrapper from './_components/PageAuditCardWrapper';
 import AddPageAuditForm from './_components/AddPageAuditForm';
 import WebsiteCheckupCoachHero from './_components/WebsiteCheckupCoachHero';
+import CrawlerSummaryCard from './_components/CrawlerSummaryCard';
 import type { PageAuditRecommendation } from '@/lib/page-audit/auditor';
+import { fetchCrawlerAnalytics } from '@/lib/data/crawler-analytics';
 
 export const metadata = { title: 'Website Checkup | LocalVector.ai' };
 
@@ -44,7 +46,7 @@ interface PageAuditRow {
 async function fetchPageAuditData(orgId: string) {
   const supabase = await createClient();
 
-  const [auditResult, orgResult] = await Promise.all([
+  const [auditResult, orgResult, crawlerSummary] = await Promise.all([
     supabase
       .from('page_audits')
       .select(
@@ -55,11 +57,14 @@ async function fetchPageAuditData(orgId: string) {
       .limit(50),
 
     supabase.from('organizations').select('plan').eq('id', orgId).single(),
+
+    fetchCrawlerAnalytics(supabase, orgId),
   ]);
 
   return {
     audits: (auditResult.data as PageAuditRow[]) ?? [],
     plan: (orgResult.data?.plan as string) ?? 'trial',
+    crawlerSummary,
   };
 }
 
@@ -71,7 +76,7 @@ export default async function PageAuditsPage() {
   const ctx = await getSafeAuthContext();
   if (!ctx?.orgId) redirect('/login');
 
-  const { audits, plan } = await fetchPageAuditData(ctx.orgId);
+  const { audits, plan, crawlerSummary } = await fetchPageAuditData(ctx.orgId);
 
   // ── Empty state — no audits yet ───────────────────────────────────────────
   if (audits.length === 0) {
@@ -191,6 +196,8 @@ export default async function PageAuditsPage() {
             ))}
           </div>
         </section>
+        {/* ── S34: Bot Activity (merged from Crawler Analytics) ──── */}
+        <CrawlerSummaryCard summary={crawlerSummary} />
       </PlanGate>
     </div>
   );

@@ -15,10 +15,11 @@ test.describe('Sprint E — Sidebar nav data-testid attributes', () => {
     await expect(el).toBeVisible();
   });
 
-  test('nav-citations data-testid exists on Citations nav item', async ({ page }) => {
+  // S33: Citations merged into Entity Health — nav-citations removed from sidebar
+  test('nav-entity-health data-testid exists (citations merged here)', async ({ page }) => {
     await page.goto('/dashboard');
     await page.waitForSelector('[data-testid="sidebar-group-label"]');
-    const el = page.locator('[data-testid="nav-citations"]');
+    const el = page.locator('[data-testid="nav-entity-health"]');
     await expect(el).toBeVisible();
   });
 
@@ -98,10 +99,11 @@ test.describe('Sprint E — FirstVisitTooltip on other pages', () => {
     await expect(tooltip).toBeVisible({ timeout: 5000 });
   });
 
-  test('bot-activity tooltip visible on first visit', async ({ page }) => {
-    await page.goto('/dashboard/crawler-analytics');
-    const tooltip = page.locator('[data-testid="first-visit-tooltip-bot-activity"]');
-    await expect(tooltip).toBeVisible({ timeout: 5000 });
+  // S34: Crawler Analytics merged into Website Checkup — /dashboard/crawler-analytics redirects
+  test('bot-activity section visible on page-audits', async ({ page }) => {
+    await page.goto('/dashboard/page-audits');
+    const section = page.locator('[data-testid="crawler-summary-card"]');
+    await expect(section).toBeVisible({ timeout: 5000 });
   });
 });
 

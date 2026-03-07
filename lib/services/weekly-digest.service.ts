@@ -236,7 +236,7 @@ export function buildDigestPayload(input: DigestDataInput): DigestPayload {
     opportunities.push({
       emoji: '🔍',
       text: `${input.newBlindSpots} AI engine${input.newBlindSpots > 1 ? 's' : ''} can't see your content`,
-      cta: { label: 'View Blind Spots →', href: `${baseUrl}/dashboard/crawler-analytics` },
+      cta: { label: 'View Blind Spots →', href: `${baseUrl}/dashboard/page-audits#bots` },
     });
   }
 

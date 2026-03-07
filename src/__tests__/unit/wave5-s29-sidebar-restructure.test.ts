@@ -125,8 +125,8 @@ describe('S29 — Advanced group', () => {
     expect(group).toBeDefined();
   });
 
-  it('contains at least 10 items', () => {
-    expect(group!.items.length).toBeGreaterThanOrEqual(10);
+  it('contains exactly 8 items (5 removed in Wave 6: S32-S35)', () => {
+    expect(group!.items).toHaveLength(8);
   });
 
   it('contains page-audits, ai-assistant, cluster-map, wins, voice-readiness', () => {

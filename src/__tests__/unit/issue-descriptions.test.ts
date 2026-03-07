@@ -245,7 +245,7 @@ describe('describeTechnicalFinding()', () => {
   it('bot_blind_spot returns severity=warning', () => {
     const result = describeTechnicalFinding({ type: 'bot_blind_spot' });
     expect(result.severity).toBe('warning');
-    expect(result.fixHref).toBe('/dashboard/crawler-analytics');
+    expect(result.fixHref).toBe('/dashboard/page-audits#bots');
   });
 
   it('bot_blind_spot includes botName in headline', () => {

@@ -2,6 +2,7 @@
 // sidebar-timeline.test.ts — Unit tests for Proof Timeline sidebar entry
 //
 // Sprint 77: 3 tests — verifies NAV_ITEMS includes Proof Timeline.
+// S34: Updated — Bot Activity (Site Visitors) removed, reference changed.
 //
 // Run:
 //   npx vitest run src/__tests__/unit/sidebar-timeline.test.ts
@@ -24,8 +25,5 @@ describe('Sidebar NAV_ITEMS — Proof Timeline', () => {
   it('3. Proof Timeline is in the Advanced group (S29 restructure)', () => {
     const timelineIndex = NAV_ITEMS.findIndex((item) => item.label === 'Update Tracking');
     expect(timelineIndex).toBeGreaterThanOrEqual(0);
-    // After S29, both are in Advanced group but not necessarily adjacent
-    const botIndex = NAV_ITEMS.findIndex((item) => item.label === 'Site Visitors');
-    expect(botIndex).toBeGreaterThanOrEqual(0);
   });
 });

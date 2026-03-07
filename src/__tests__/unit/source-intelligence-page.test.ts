@@ -76,13 +76,16 @@ describe('Source Intelligence page', () => {
 // Sidebar
 // ---------------------------------------------------------------------------
 
-describe('Sidebar', () => {
-  it('6. shows AI Sources link with test-id nav-ai-sources', () => {
+// S33: Source Intelligence merged into Entity Health — sidebar entry removed
+describe('Sidebar (S33: Sources merged into Entity Health)', () => {
+  it('6. source-intelligence entry no longer in NAV_ITEMS', () => {
     const sourceItem = NAV_ITEMS.find(item => item.href === '/dashboard/source-intelligence');
-    expect(sourceItem).toBeDefined();
-    expect(sourceItem!.label).toBe('Your Sources');
-    expect(sourceItem!.active).toBe(true);
-    // data-testid uses stable testId field (decoupled from label)
-    expect(sourceItem!.testId).toBe('ai-sources');
+    expect(sourceItem).toBeUndefined();
+  });
+
+  it('7. Entity Health still exists in NAV_ITEMS', () => {
+    const entityItem = NAV_ITEMS.find(item => item.testId === 'entity-health');
+    expect(entityItem).toBeDefined();
+    expect(entityItem!.href).toBe('/dashboard/entity-health');
   });
 });

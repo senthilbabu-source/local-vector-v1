@@ -10,6 +10,7 @@ const NAV_LINKS = [
   { href: '/admin/revenue', label: 'Revenue' },
   { href: '/admin/distribution-health', label: 'Distribution' },
   { href: '/admin/correction-benchmarks', label: 'Benchmarks' },
+  { href: '/admin/system-health', label: 'System Health' },
 ];
 
 /**
