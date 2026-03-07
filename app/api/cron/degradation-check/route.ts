@@ -52,7 +52,7 @@ export async function GET(request: Request) {
             affected_org_count: event.affected_org_count,
             avg_alert_spike: event.avg_alert_spike,
             sigma_above_mean: event.sigma_above_mean,
-          } as unknown as Json);
+          } as never);
 
         if (!error) insertedCount++;
       } catch (err) {

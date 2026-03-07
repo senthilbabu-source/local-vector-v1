@@ -6053,3 +6053,45 @@ Confirmed `AITalkingAboutSection.tsx` properly wired to magic-menus page. `deman
 ### Rules
 - Tests cover: S74 digest preferences (8), S75 export enrichment (5), S76 demand analyzer (4), S77 integration verifications (3).
 - Total test count: 7014 tests, 440 files.
+
+## §282 — S78: Build TypeScript Fixes (Wave 15)
+
+Fix 6 TypeScript build errors discovered during `npx next build` regression check.
+
+### Changes
+- `app/api/cron/competitor-vulnerability/route.ts` (MODIFIED): `as unknown as Record<string, unknown>` → `as never` for untyped table insert.
+- `app/api/cron/degradation-check/route.ts` (MODIFIED): `as unknown as Json` → `as never` for untyped table insert.
+- `app/dashboard/compete/page.tsx` (MODIFIED): `as InterceptRow[]` → `as unknown as InterceptRow[]` for `pre_action_gap` column.
+- `app/dashboard/content-drafts/[id]/page.tsx` (MODIFIED): `as DraftDetail` → `as unknown as DraftDetail` for rank columns.
+- `app/dashboard/magic-menus/page.tsx` (MODIFIED): Return type extended with `menuSuggestions` + `menuContext`.
+- `app/dashboard/settings/page.tsx` (MODIFIED): `as Record<string, unknown>` → `as unknown as Record<string, unknown>` for OrgSettings.
+- `lib/ai-shopper/shopper-runner.ts` (MODIFIED): `'success'` → `'complete'` to match `ModelResult.status`.
+- `lib/ai-shopper/shopper-evaluator.ts` (MODIFIED): Added explicit `string[]` type on regex match results.
+- `lib/menu-intelligence/ai-menu-suggestions.ts` (MODIFIED): Cast `result.object` to typed shape.
+
+### Rules
+- Columns from migrations not in `database.types.ts` require `as unknown as T` double-cast pattern.
+- `as never` for INSERT on tables not in generated types (same pattern as `org_settings`).
+- Always verify `ModelResult.status` values: `'complete'` | `'error'` (never `'success'`).
+
+## §283 — S79: Final Regression Suite (Wave 15)
+
+37 unit tests verifying the complete dashboard restructure.
+
+### Changes
+- `src/__tests__/unit/wave15-final-regression.test.ts` (NEW): 37 tests across 5 describe blocks.
+
+### Rules
+- Tests cover: S78 build fixes (6), sidebar structure (14), page merge redirects (5), Wave 7-14 service importability (12).
+- Sidebar: 28 items, 5 groups (Today=4, This Week=5, This Month=5, Advanced=8, Account=6).
+- 5 merged pages have redirect files: content-calendar, source-intelligence, citations, crawler-analytics, system-health.
+- Total test count: 7051 tests, 441 files.
+
+## §284 — S80: Wave 15 Documentation (Wave 15)
+
+Final documentation sync. Build passes. All tests pass. Dashboard restructure complete.
+
+### Rules
+- `npx next build` must pass with 0 TypeScript errors (40/40 static pages).
+- `npx vitest run` must pass with 7051 tests, 441 files, 0 failures.
+- All 15 implementation waves (S14–S80) documented in AI_RULES and DEVLOG.

@@ -132,7 +132,7 @@ async function fetchDraft(draftId: string, orgId: string): Promise<DraftDetail |
     .single();
 
   if (error || !data) return null;
-  return data as DraftDetail;
+  return data as unknown as DraftDetail;
 }
 
 async function fetchLocation(locationId: string): Promise<LocationInfo | null> {

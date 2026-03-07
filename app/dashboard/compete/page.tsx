@@ -122,7 +122,7 @@ async function fetchPageData(orgId: string, isAgency: boolean): Promise<{
 
   return {
     competitors:  (compResult.data as CompetitorRow[]) ?? [],
-    intercepts:   (interceptResult.data as InterceptRow[]) ?? [],
+    intercepts:   (interceptResult.data as unknown as InterceptRow[]) ?? [],
     businessName: (locResult.data?.business_name as string | undefined) ?? 'Your Business',
     vulnerabilities,
   };

@@ -112,9 +112,9 @@ export default async function SettingsPage() {
           <div className="border-t border-white/5 pt-5">
             <DigestPreferencesForm
               initialPreferences={
-                (orgSettings as Record<string, unknown>)?.digest_preferences as DigestPreferences ?? DEFAULT_DIGEST_PREFERENCES
+                (orgSettings as unknown as Record<string, unknown>)?.digest_preferences as DigestPreferences ?? DEFAULT_DIGEST_PREFERENCES
               }
-              onSave={saveDigestPreferences}
+              onSave={async (prefs) => { await saveDigestPreferences(prefs); }}
             />
           </div>
 
@@ -122,7 +122,7 @@ export default async function SettingsPage() {
           <div className="border-t border-white/5 pt-5">
             <GoalSettingsForm
               initialGoal={
-                (orgSettings as Record<string, unknown>)?.score_goal as ScoreGoal | null ?? null
+                (orgSettings as unknown as Record<string, unknown>)?.score_goal as ScoreGoal | null ?? null
               }
             />
           </div>

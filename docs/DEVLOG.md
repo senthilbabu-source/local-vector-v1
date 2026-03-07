@@ -4,6 +4,33 @@
 
 ---
 
+## 2026-03-07 — §282–§284 Wave 15: Final Regression & Build Verification (S78-S80)
+
+Capstone wave — fixed all TypeScript build errors from Waves 5–14 and created a comprehensive regression suite.
+
+- **S78 (§282):** 6 TypeScript build fixes across 9 files. Patterns: `as never` for untyped table inserts (2 crons), `as unknown as T` double-cast for columns not in generated types (compete, content-drafts, settings pages), explicit `string[]` for regex match (shopper-evaluator), `'complete'` not `'success'` for ModelResult status (shopper-runner), typed assertion on generateObject result (ai-menu-suggestions), async wrapper for server action prop (settings page). Build passes: 40/40 static pages.
+- **S79 (§283):** 37 regression tests in `wave15-final-regression.test.ts`. 5 describe blocks: build TypeScript fixes (6), sidebar final structure (14), page merge redirects (5), Wave 7–14 service importability (12).
+- **S80 (§284):** Documentation — AI_RULES §282–§284, DEVLOG, CLAUDE.md.
+
+**7051 tests, 441 files — ALL PASS. `npx next build` passes.**
+
+### Files changed (new):
+- `src/__tests__/unit/wave15-final-regression.test.ts`
+
+### Files changed (modified):
+- `app/api/cron/competitor-vulnerability/route.ts` — `as never` cast
+- `app/api/cron/degradation-check/route.ts` — `as never` cast
+- `app/dashboard/compete/page.tsx` — `as unknown as InterceptRow[]`
+- `app/dashboard/content-drafts/[id]/page.tsx` — `as unknown as DraftDetail`
+- `app/dashboard/magic-menus/page.tsx` — Extended return type with menuSuggestions/menuContext
+- `app/dashboard/settings/page.tsx` — Double-cast + async wrapper for onSave
+- `lib/ai-shopper/shopper-evaluator.ts` — Explicit `string[]` type on regex match
+- `lib/ai-shopper/shopper-runner.ts` — `'complete'` status check
+- `lib/menu-intelligence/ai-menu-suggestions.ts` — Typed assertion on result.object
+- `docs/AI_RULES.md` — §282–§284
+
+---
+
 ## 2026-03-07 — §274–§277 Wave 13: End-to-End Completion (S70-S73)
 
 Wired 3 orphaned services into their production paths + regression suite.

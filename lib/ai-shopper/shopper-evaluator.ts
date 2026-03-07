@@ -65,8 +65,8 @@ export function evaluateTurnAccuracy(
   // Check for wrong address
   if (groundTruth.address) {
     // Look for street numbers that don't match
-    const gtNumbers = groundTruth.address.match(/\b\d{2,5}\b/g) ?? [];
-    const responseNumbers = response.match(/\b\d{2,5}\b/g) ?? [];
+    const gtNumbers: string[] = groundTruth.address.match(/\b\d{2,5}\b/g) ?? [];
+    const responseNumbers: string[] = response.match(/\b\d{2,5}\b/g) ?? [];
     for (const num of responseNumbers) {
       // If a street number appears in response but not in ground truth address
       if (

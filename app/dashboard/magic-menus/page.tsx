@@ -39,6 +39,8 @@ async function fetchWorkspaceData(orgId: string): Promise<{
   menu: MenuWorkspaceData | null;
   industry: string | null;
   demandItems: AITalkingItem[];
+  menuSuggestions: MenuSuggestion[];
+  menuContext: MenuContext | null;
 }> {
   const supabase = await createClient();
 
@@ -63,7 +65,7 @@ async function fetchWorkspaceData(orgId: string): Promise<{
     .maybeSingle();
   const industry = (orgRow as { industry?: string | null } | null)?.industry ?? null;
 
-  if (!location) return { location: null, menu: null, industry, demandItems: [] };
+  if (!location) return { location: null, menu: null, industry, demandItems: [], menuSuggestions: [], menuContext: null };
 
   // Fetch the most recent magic_menu for this location (one workspace per location).
   const { data: menu } = (await supabase

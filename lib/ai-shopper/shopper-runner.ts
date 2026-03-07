@@ -60,7 +60,7 @@ export async function runAIShopperScenario(
       let response: string;
       try {
         const result = await queryOpenAI(contextPrompt, '');
-        response = result.status === 'success' ? result.content : '';
+        response = result.status === 'complete' ? result.content : '';
       } catch (err) {
         Sentry.captureException(err);
         response = '';

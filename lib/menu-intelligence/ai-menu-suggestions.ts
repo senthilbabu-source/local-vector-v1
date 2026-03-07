@@ -117,7 +117,7 @@ export async function generateAIMenuSuggestions(
       }),
     });
 
-    return validateSuggestions(result.object.suggestions);
+    return validateSuggestions((result.object as { suggestions: Array<{ title: string; description: string; impact: string; category: string }> }).suggestions);
   } catch (err) {
     Sentry.captureException(err, { tags: { service: 'ai-menu-suggestions', sprint: 'S50' } });
     return [];
