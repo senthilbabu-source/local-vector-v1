@@ -6,8 +6,10 @@ import NotificationSettings from './_components/NotificationSettings';
 import ScanFrequencySettings from './_components/ScanFrequencySettings';
 import ApiKeySettings from './_components/ApiKeySettings';
 import DangerZoneSettings from './_components/DangerZoneSettings';
+import DigestPreferencesForm from './_components/DigestPreferencesForm';
 import { getOrCreateOrgSettings } from '@/lib/settings';
 import type { OrgSettings } from '@/lib/settings/types';
+import { DEFAULT_DIGEST_PREFERENCES, type DigestPreferences } from '@/lib/services/digest-preferences';
 import { canManageApiKeys, type PlanTier } from '@/lib/plan-enforcer';
 
 export const dynamic = 'force-dynamic';
@@ -101,6 +103,15 @@ export default async function SettingsPage() {
         <>
           <div className="border-t border-white/5 pt-5">
             <NotificationSettings settings={orgSettings} />
+          </div>
+
+          {/* ── S65: Digest Email Preferences ──────────────────────────── */}
+          <div className="border-t border-white/5 pt-5">
+            <DigestPreferencesForm
+              initialPreferences={
+                (orgSettings as Record<string, unknown>)?.digest_preferences as DigestPreferences ?? DEFAULT_DIGEST_PREFERENCES
+              }
+            />
           </div>
 
           <div className="border-t border-white/5 pt-5">

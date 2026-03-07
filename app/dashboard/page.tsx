@@ -42,6 +42,7 @@ import DegradationAlertBanner from './_components/DegradationAlertBanner';
 import FirstScanRevealCard from './_components/FirstScanRevealCard';
 import ConsistencyScoreCard from './_components/ConsistencyScoreCard';
 import GoalTrackerCard from './_components/GoalTrackerCard';
+import { buildSparklineData } from '@/lib/services/kpi-sparkline';
 import { fetchConsistencyScore } from '@/lib/services/consistency-score.service';
 import AIResponseTeaser from './_components/AIResponseTeaser';
 import { getLatestAIResponse, type AIResponseSnippet } from '@/lib/services/ai-response-summary';
@@ -123,6 +124,13 @@ export default async function DashboardPage({
   const healthStreak = sampleMode
     ? { currentStreak: 0, longestStreak: 0, isOnStreak: false }
     : computeHealthStreak(accuracySnapshots);
+
+  // S67: Build sparkline data for KPI chips
+  const sparklineData = sampleMode ? null : buildSparklineData(accuracySnapshots);
+  const kpiSparklines = sparklineData ? {
+    'AI Accuracy': sparklineData.accuracy,
+    'AI Visibility': sparklineData.visibility,
+  } : undefined;
 
   // S20: Score Milestone — detect threshold crossings (50/60/70/80/90)
   const milestone = sampleMode
@@ -450,6 +458,7 @@ export default async function DashboardPage({
           crawlerSummary={sampleMode ? null : crawlerSummary}
           revenueRecoveredMonthly={sampleMode ? 0 : revenueRecoveredMonthly}
           napScore={sampleMode ? null : napScore}
+          sparklines={kpiSparklines}
         />
         {sampleMode && <SampleDataBadge />}
       </div>

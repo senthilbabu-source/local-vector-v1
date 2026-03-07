@@ -4,6 +4,18 @@
 
 ---
 
+## 2026-03-07 — §270–§273 Wave 12: Final Wiring (S65-S69)
+
+Wired the last 3 orphaned services into their pages + regression suite.
+
+- **S65 (§270):** DigestPreferencesForm wired into settings page. Frequency selector (weekly/biweekly/monthly) + 5 section toggles. Score section always required.
+- **S66 (§271):** AISuggestionsButton wired into magic-menus page. Builds MenuContext from extracted_data, dynamic-imports generateAIMenuSuggestions. Shows results inline with impact badges.
+- **S67 (§272):** KPI sparklines wired into WeeklyKPIChips. Extended `accuracySnapshots` to include `visibility_score`. MiniSparkline SVG (32×16, no recharts). Color matches chip status.
+- **S68:** Regression suite — Sentry bare catch fix in AISuggestionsButton. 6971 tests, 438 files — ALL PASS.
+- **S69 (§273):** 22 unit tests (digest-preferences 6, ai-menu-suggestions 6, kpi-sparklines 7, integration 3).
+
+Files created: 3 (DigestPreferencesForm, AISuggestionsButton, wave12-final-wiring.test.ts). Files modified: 5 (settings/page, magic-menus/page, dashboard.ts, WeeklyKPIChips, dashboard/page). No migrations. No new crons.
+
 ## 2026-03-07 — §265–§269 Wave 11: Page Wiring (S59-S64)
 
 Wired Wave 9-10 components into their actual dashboard pages.

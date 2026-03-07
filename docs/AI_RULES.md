@@ -5894,3 +5894,57 @@ Replaced inline loading skeletons with DashboardSectionSkeleton component.
 - Tests cover: S59 error category aggregation (5), S60 platform coverage + engine mapping (7), S62 goal tracker progress (6), S63 skeleton importability (1).
 - Pure function tests only — no server component rendering.
 - Total test count: 6949 tests, 437 files.
+
+## §270 — S65: Digest Preferences Wiring (Wave 12)
+
+Wired digest-preferences pure functions into settings page.
+
+### Changes
+- `app/dashboard/settings/_components/DigestPreferencesForm.tsx` (NEW): frequency selector + section toggles
+- `app/dashboard/settings/page.tsx` (MODIFIED): imports DigestPreferencesForm, renders after NotificationSettings
+
+### Rules
+- `DigestPreferences` type: `{ frequency: DigestFrequency, sections: DigestSection[] }`.
+- 'score' section always required — checkbox disabled.
+- Reads from `orgSettings.digest_preferences` with `DEFAULT_DIGEST_PREFERENCES` fallback.
+
+## §271 — S66: AI Menu Suggestions Wiring (Wave 12)
+
+Wired ai-menu-suggestions into magic-menus page with AI trigger button.
+
+### Changes
+- `app/dashboard/magic-menus/_components/AISuggestionsButton.tsx` (NEW): client button + results display
+- `app/dashboard/magic-menus/page.tsx` (MODIFIED): builds `MenuContext` from menu data, renders AISuggestionsButton after MenuOptimizerCard
+
+### Rules
+- `MenuContext` built from `extracted_data.items` + demand results.
+- Button hidden when `itemCount === 0`.
+- Dynamic import of `generateAIMenuSuggestions` to avoid bundling AI SDK.
+- Results shown inline with impact badges.
+
+## §272 — S67: KPI Sparkline Wiring (Wave 12)
+
+Wired kpi-sparkline into WeeklyKPIChips with mini SVG sparklines.
+
+### Changes
+- `lib/data/dashboard.ts` (MODIFIED): `accuracySnapshots` now includes `visibility_score`
+- `app/dashboard/_components/WeeklyKPIChips.tsx` (MODIFIED): added `sparklines` prop, `MiniSparkline` SVG component
+- `app/dashboard/page.tsx` (MODIFIED): calls `buildSparklineData()`, passes to WeeklyKPIChips
+
+### Rules
+- `MiniSparkline` is a pure server component — 32×16 SVG path, no recharts dependency.
+- Sparkline color matches chip status (good=emerald, warn=amber, bad=red, neutral=slate).
+- Hidden when `< 2` data points.
+- `sparklines` prop keyed by chip label string (e.g., `'AI Accuracy'`).
+
+## §273 — S69: Wave 12 Tests (Wave 12)
+
+22 unit tests covering S65–S68 wiring.
+
+### Changes
+- `src/__tests__/unit/wave12-final-wiring.test.ts` (NEW): 22 tests
+
+### Rules
+- Tests cover: S65 digest preferences (6), S66 AI menu suggestions (6), S67 KPI sparklines (7), S68 integration verifications (3).
+- Pure function tests + component importability checks.
+- Total test count: 6971 tests, 438 files.

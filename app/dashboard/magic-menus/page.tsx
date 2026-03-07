@@ -14,6 +14,8 @@ import { getIndustryConfig } from '@/lib/industries/industry-config';
 import { analyzeMenuDemandWithCategories } from '@/lib/menu-intelligence/demand-analyzer';
 import { analyzeMenuCompleteness, generateMenuSuggestions, type MenuSuggestion } from '@/lib/menu-intelligence/menu-optimizer';
 import MenuOptimizerCard from './_components/MenuOptimizerCard';
+import AISuggestionsButton from './_components/AISuggestionsButton';
+import type { MenuContext } from '@/lib/menu-intelligence/ai-menu-suggestions';
 
 export const metadata = { title: 'Menu | LocalVector.ai' };
 
@@ -96,7 +98,21 @@ async function fetchWorkspaceData(orgId: string): Promise<{
     }
   }
 
-  return { location, menu, industry, demandItems, menuSuggestions };
+  // S66: Build MenuContext for AI suggestions
+  const menuContext: MenuContext | null = menu?.extracted_data ? (() => {
+    const items = (menu.extracted_data as unknown as { items?: Array<{ name: string; description?: string; price?: number; dietary_tags?: string[] }> })?.items ?? [];
+    return {
+      businessName: location.business_name,
+      industry: industry ?? 'restaurant',
+      itemCount: items.length,
+      itemsWithDescription: items.filter(i => i.description && i.description.length > 0).length,
+      itemsWithPrice: items.filter(i => i.price != null).length,
+      itemsWithDietary: items.filter(i => i.dietary_tags && i.dietary_tags.length > 0).length,
+      topMentionedItems: demandResults.slice(0, 5).map(r => r.item_name),
+    };
+  })() : null;
+
+  return { location, menu, industry, demandItems, menuSuggestions, menuContext };
 }
 
 // ---------------------------------------------------------------------------
@@ -109,9 +125,9 @@ export default async function MagicMenusPage() {
 
   // orgId is null only in the brief window after signup before the DB trigger
   // creates the org. In that case, skip the location query and show empty state.
-  const { location, menu, industry, demandItems, menuSuggestions } = ctx.orgId
+  const { location, menu, industry, demandItems, menuSuggestions, menuContext } = ctx.orgId
     ? await fetchWorkspaceData(ctx.orgId)
-    : { location: null, menu: null, industry: null, demandItems: [] as AITalkingItem[], menuSuggestions: [] as MenuSuggestion[] };
+    : { location: null, menu: null, industry: null, demandItems: [] as AITalkingItem[], menuSuggestions: [] as MenuSuggestion[], menuContext: null as MenuContext | null };
 
   const industryConfig = getIndustryConfig(industry);
 
@@ -134,6 +150,11 @@ export default async function MagicMenusPage() {
 
       {/* ── S43: Menu Optimizer Suggestions ──────────────────────── */}
       <MenuOptimizerCard suggestions={menuSuggestions} />
+
+      {/* ── S66: AI-Powered Suggestions ───────────────────────────── */}
+      {menuContext && menuContext.itemCount > 0 && (
+        <AISuggestionsButton context={menuContext} />
+      )}
 
       {/* ── S7: Menu coaching hero ────────────────────────────────── */}
       <MenuCoachHero

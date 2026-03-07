@@ -100,8 +100,8 @@ export interface DashboardData {
   prevScoreSnapshot: ScoreSnapshot | null;
   // S18: NAP health score for Business Info Accuracy KPI chip
   napScore: number | null;
-  // S20: Accuracy snapshots for health streak computation
-  accuracySnapshots: { accuracy_score: number | null; snapshot_date: string }[];
+  // S20: Accuracy snapshots for health streak + S67: sparkline computation
+  accuracySnapshots: { accuracy_score: number | null; visibility_score: number | null; snapshot_date: string }[];
   // S22: Recent degradation event for banner
   degradationEvent: { model_provider: string; detected_at: string; affected_org_count: number } | null;
 }
@@ -473,11 +473,11 @@ export async function fetchDashboardData(orgId: string, locationId?: string | nu
   }
 
   // ── S20: Health Streak — accuracy_score snapshots for clean-week computation ──
-  let accuracySnapshots: { accuracy_score: number | null; snapshot_date: string }[] = [];
+  let accuracySnapshots: { accuracy_score: number | null; visibility_score: number | null; snapshot_date: string }[] = [];
   try {
     let accuracyQuery = supabase
       .from('visibility_scores')
-      .select('accuracy_score, snapshot_date' as 'snapshot_date, reality_score')
+      .select('accuracy_score, visibility_score, snapshot_date' as 'snapshot_date, reality_score')
       .eq('org_id', orgId)
       .order('snapshot_date', { ascending: true })
       .limit(52);
@@ -485,7 +485,7 @@ export async function fetchDashboardData(orgId: string, locationId?: string | nu
 
     const { data: accRows } = await accuracyQuery;
     if (accRows) {
-      accuracySnapshots = accRows as unknown as { accuracy_score: number | null; snapshot_date: string }[];
+      accuracySnapshots = accRows as unknown as { accuracy_score: number | null; visibility_score: number | null; snapshot_date: string }[];
     }
   } catch (err) {
     Sentry.captureException(err, { tags: { file: 'dashboard.ts', sprint: 'S20' } });

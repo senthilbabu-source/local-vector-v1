@@ -18,6 +18,7 @@
 
 import Link from 'next/link';
 import type { CrawlerSummary } from '@/lib/data/crawler-analytics';
+import { normalizeSparkline, type SparklinePoint } from '@/lib/services/kpi-sparkline';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -29,6 +30,8 @@ interface WeeklyKPIChipsProps {
   revenueRecoveredMonthly?: number;
   /** S18: NAP health score (0–100) from locations table; null = not yet run */
   napScore?: number | null;
+  /** S67: Optional sparkline data per chip (indexed by label) */
+  sparklines?: Record<string, SparklinePoint[]>;
 }
 
 type ChipStatus = 'good' | 'warn' | 'bad' | 'neutral';
@@ -110,12 +113,31 @@ function buildChips(
 
 // ─── Component ──────────────────────────────────────────────────────────────
 
+// S67: Mini SVG sparkline (32×16 px) — pure server component, no recharts
+function MiniSparkline({ points, status }: { points: SparklinePoint[]; status: ChipStatus }) {
+  if (points.length < 2) return null;
+  const normalized = normalizeSparkline(points);
+  const w = 32;
+  const h = 16;
+  const step = w / (normalized.length - 1);
+  const d = normalized
+    .map((v, i) => `${i === 0 ? 'M' : 'L'}${(i * step).toFixed(1)},${(h - v * h).toFixed(1)}`)
+    .join(' ');
+  const color = status === 'good' ? '#10b981' : status === 'warn' ? '#f59e0b' : status === 'bad' ? '#ef4444' : '#64748b';
+  return (
+    <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`} className="shrink-0" aria-hidden="true">
+      <path d={d} fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
 export default function WeeklyKPIChips({
   openAlertCount,
   visibilityScore,
   crawlerSummary,
   revenueRecoveredMonthly = 0,
   napScore = null,
+  sparklines,
 }: WeeklyKPIChipsProps) {
   const chips = buildChips(openAlertCount, visibilityScore, crawlerSummary, revenueRecoveredMonthly, napScore);
 
@@ -159,6 +181,11 @@ export default function WeeklyKPIChips({
               </p>
               <p className="truncate text-[10px] text-slate-500">{chip.hint}</p>
             </div>
+
+            {/* S67: Mini sparkline */}
+            {sparklines?.[chip.label] && sparklines[chip.label].length >= 2 && (
+              <MiniSparkline points={sparklines[chip.label]} status={chip.status} />
+            )}
 
             {/* Hover arrow */}
             <span
