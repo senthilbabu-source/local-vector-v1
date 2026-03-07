@@ -6787,3 +6787,28 @@ Committed: `d70bf19` — 70 files, 12,552 insertions.
 ### Files changed (modified):
 - `lib/email.ts` — `sendWeeklyReportCard()` added
 - `app/dashboard/page.tsx` — NotificationBell + ExportReportButton + notification/report data fetch
+
+## §259–§264 — Wave 10: Dashboard Intelligence & Engagement (2026-03-07)
+
+6 sprints: S53–S58. 64 new tests. **6930 tests, 436 files — ALL PASS.**
+
+- **S53 (§259)**: KPI Trend Sparklines. `kpi-sparkline.ts` (buildSparklineData, computeSparklineTrend, normalizeSparkline). Pure functions from visibility_scores snapshots.
+- **S54 (§260)**: Smart Digest Preferences. `digest-preferences.ts` (validateFrequency, validateSections, shouldSendDigest, getFrequencyLabel, getSectionLabel). 3 frequencies, 5 sections.
+- **S55 (§261)**: Dashboard Goal Tracker. `goal-tracker.ts` (computeGoalProgress, validateTargetScore, validateDeadline, formatGoalSummary). `GoalTrackerCard.tsx` with progress bar.
+- **S56 (§262)**: AI Error Category Breakdown. `error-category-breakdown.ts` (buildCategoryBreakdown, getCategoryLabel, getCategoryColor, getTopCategories). `ErrorCategoryChart.tsx` horizontal bar chart.
+- **S57 (§263)**: Platform Coverage Heatmap. `platform-coverage.ts` (buildCoverageMatrix, getCoverageCell, getPlatformCoverage, getCoverageColor). `PlatformCoverageGrid.tsx` visual grid.
+- **S58 (§264)**: 64 unit tests (`wave10-dashboard-intelligence.test.ts`).
+
+### Files changed (new):
+- `lib/services/kpi-sparkline.ts`
+- `lib/services/digest-preferences.ts`
+- `lib/services/goal-tracker.ts`
+- `lib/services/error-category-breakdown.ts`
+- `lib/services/platform-coverage.ts`
+- `app/dashboard/_components/GoalTrackerCard.tsx`
+- `app/dashboard/hallucinations/_components/ErrorCategoryChart.tsx`
+- `app/dashboard/share-of-voice/_components/PlatformCoverageGrid.tsx`
+- `src/__tests__/unit/wave10-dashboard-intelligence.test.ts`
+
+### Files changed (modified):
+- None — all new files, no dashboard wiring yet (components ready for page integration)

@@ -5753,3 +5753,86 @@ Reusable CSS-only loading skeletons for dashboard sections.
 - Tests cover: `formatTimeAgo`, `getNotificationIcon/Color`, `countUnread`, `buildExportableReport`, `exportReportAsText/CSV`, `buildMenuSuggestionPrompt`, `validateSuggestions`.
 - No I/O tests — pure function coverage only.
 - Total test count: 6866 tests, 435 files.
+
+## §259 — S53: KPI Trend Sparklines (Wave 10)
+
+Pure functions for mini sparkline data on KPI chips.
+
+### Changes
+- `lib/services/kpi-sparkline.ts` (NEW): `SparklinePoint`, `KPISparklineData`, `buildSparklineData()`, `computeSparklineTrend()`, `normalizeSparkline()`
+
+### Rules
+- `buildSparklineData()` sorts ascending, slices last N days, filters nulls.
+- `normalizeSparkline()` maps to 0–1 range; returns 0.5 for all-equal values.
+- `computeSparklineTrend()` compares first vs last point only.
+- No I/O — callers pass pre-fetched `visibility_scores` snapshots.
+
+## §260 — S54: Smart Digest Preferences (Wave 10)
+
+Digest frequency and section preferences with validation.
+
+### Changes
+- `lib/services/digest-preferences.ts` (NEW): `DigestFrequency`, `DigestSection`, `validateFrequency()`, `validateSections()`, `shouldSendDigest()`, `getFrequencyLabel()`, `getSectionLabel()`
+
+### Rules
+- 3 frequencies: weekly (7d), biweekly (14d), monthly (28d). Default: weekly.
+- 5 sections: score, errors, competitors, wins, recommendations.
+- `validateSections()` always ensures at least `['score']`.
+- `shouldSendDigest()` compares day diff against frequency threshold.
+- No migration — pure validation layer ready for UI + DB wiring.
+
+## §261 — S55: Dashboard Goal Tracker (Wave 10)
+
+Score goal progress computation with validation.
+
+### Changes
+- `lib/services/goal-tracker.ts` (NEW): `ScoreGoal`, `GoalProgress`, `computeGoalProgress()`, `validateTargetScore()`, `validateDeadline()`, `formatGoalSummary()`
+- `app/dashboard/_components/GoalTrackerCard.tsx` (NEW): client component with progress bar
+
+### Rules
+- `computeGoalProgress()` computes percentage from startScore to target.
+- `validateTargetScore()` accepts 1–100 integers only.
+- `validateDeadline()` rejects past dates.
+- `paceLabel` shows "N days left", "N weeks left", "Goal achieved!", or "Goal overdue".
+- GoalTrackerCard dismissible via local state.
+
+## §262 — S56: AI Error Category Breakdown (Wave 10)
+
+Category distribution analysis for hallucinations.
+
+### Changes
+- `lib/services/error-category-breakdown.ts` (NEW): `CategoryBreakdown`, `buildCategoryBreakdown()`, `getCategoryLabel()`, `getCategoryColor()`, `getTopCategories()`
+- `app/dashboard/hallucinations/_components/ErrorCategoryChart.tsx` (NEW): horizontal bar chart
+
+### Rules
+- `buildCategoryBreakdown()` groups by category, null → 'uncategorized', sorts desc.
+- `getTopCategories()` collapses excess into "other" bucket.
+- 9 named categories with colors. Unknown → slate fallback.
+- `getCategoryLabel()` maps internal keys to human labels.
+
+## §263 — S57: Platform Coverage Heatmap (Wave 10)
+
+Query × platform coverage matrix from SOV evaluations.
+
+### Changes
+- `lib/services/platform-coverage.ts` (NEW): `CoverageMatrix`, `buildCoverageMatrix()`, `getCoverageCell()`, `getPlatformCoverage()`, `getCoverageColor()`, `PLATFORM_LABELS`
+- `app/dashboard/share-of-voice/_components/PlatformCoverageGrid.tsx` (NEW): visual grid
+
+### Rules
+- `buildCoverageMatrix()` produces queries × platforms grid with 3 states: cited/not_cited/no_data.
+- `PLATFORM_ORDER` enforces consistent column ordering.
+- `coveragePercent` = cited / (cited + not_cited), excludes no_data.
+- Grid capped at 10 queries to avoid overwhelming the UI.
+- `PLATFORM_LABELS` maps model_provider IDs to display names.
+
+## §264 — S58: Wave 10 Tests (Wave 10)
+
+64 unit tests covering S53–S57 pure functions.
+
+### Changes
+- `src/__tests__/unit/wave10-dashboard-intelligence.test.ts` (NEW): 64 tests
+
+### Rules
+- Tests cover: sparkline building/trending/normalizing, digest frequency/section validation, goal progress/validation/formatting, category breakdown/labeling/coloring, coverage matrix/cell lookup/platform stats.
+- No I/O tests — pure function coverage only.
+- Total test count: 6930 tests, 436 files.
