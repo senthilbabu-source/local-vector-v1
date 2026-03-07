@@ -80,6 +80,7 @@ lib/admin/format-relative-date.ts — Intl.RelativeTimeFormat utility for admin 
 lib/admin/admin-guard.ts      — Admin auth guard: assertAdmin() + logAdminAction() (§204)
 lib/admin/admin-actions.ts     — 6 admin server actions: plan override, cancel, cron, impersonate, credits (§204)
 lib/admin/known-crons.ts       — SSOT list of 25 cron names + isKnownCron() type guard (§204)
+lib/bing-search/           — Bing Web Search API v7 client + Bing-grounded Copilot SOV runner (Bing Grounding upgrade)
 lib/nap-sync/          — NAP Sync Engine: adapters (GBP/Yelp/Apple Maps/Bing), discrepancy detector, health score, push corrections, orchestrator (Sprint 105, §124-§126)
 lib/invitations/       — Token-based invitation flow: types, service, email builder (Sprint 112, §146)
 lib/mcp/               — MCP server tool registrations
@@ -263,6 +264,7 @@ APPLE_MAPS_PRIVATE_KEY, APPLE_MAPS_KEY_ID, APPLE_MAPS_TEAM_ID
 | Fear Engine | `docs/04-INTELLIGENCE-ENGINE.md` | Hallucination detection across AI search |
 | Greed Engine | `docs/04-INTELLIGENCE-ENGINE.md §3` | Competitor intercept analysis |
 | SOV Engine | `docs/04c-SOV-ENGINE.md` | Share-of-voice tracking across AI models |
+| Bing Grounding | `lib/bing-search/` | Real Bing Web Search API v7 grounding for Copilot SOV. Two-step: fetch Bing results → ground GPT-4o answer in real index data. Replaces simulated Copilot (was GPT-4o with Bing-themed prompt). Fail-open: falls back to simulation if Bing API unavailable. |
 | Autopilot Engine | `docs/19-AUTOPILOT-ENGINE.md` | Content draft generation → HITL approval → publish pipeline |
 | Occasion Engine | `docs/16-OCCASION-ENGINE.md` | Seasonal content opportunities |
 | Prompt Intelligence | `docs/15-LOCAL-PROMPT-INTELLIGENCE.md` | Query gap detection (untracked, competitor-discovered, zero-citation) |

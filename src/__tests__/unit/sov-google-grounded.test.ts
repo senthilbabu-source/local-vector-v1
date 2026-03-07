@@ -277,13 +277,17 @@ describe('runMultiModelSOVQuery — with Google', () => {
     expect(engines).toEqual(['copilot', 'openai', 'perplexity']);
   });
 
-  it('handles all engines failing (returns empty array)', async () => {
+  it('handles all engines failing (Copilot returns mock due to fail-open)', async () => {
     vi.mocked(hasApiKey).mockReturnValue(true);
     vi.mocked(generateText).mockRejectedValue(new Error('All APIs down'));
 
     const results = await runMultiModelSOVQuery(MOCK_QUERY);
 
-    expect(results).toEqual([]);
+    // Copilot catches errors internally (fail-open) so it always returns a result
+    // Other 3 engines (perplexity, openai, google) fail and are filtered out
+    expect(results.length).toBe(1);
+    expect(results[0].engine).toBe('copilot');
+    expect(results[0].ourBusinessCited).toBe(false);
   });
 });
 

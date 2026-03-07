@@ -1,8 +1,8 @@
 // ---------------------------------------------------------------------------
 // sov-copilot.test.ts — Unit tests for Microsoft Copilot SOV Engine
 //
-// Sprint 79: Tests runCopilotSOVQuery, buildCopilotSystemPrompt,
-// and runMultiModelSOVQuery with Copilot integration.
+// Bing Grounding upgrade: Tests runCopilotSOVQuery (now Bing-grounded),
+// buildFallbackSystemPrompt, and runMultiModelSOVQuery with Copilot.
 //
 // Run:
 //   npx vitest run src/__tests__/unit/sov-copilot.test.ts
@@ -27,12 +27,34 @@ vi.mock('@/lib/autopilot/create-draft', () => ({
   createDraft: vi.fn().mockResolvedValue(null),
 }));
 
+// ── Mock Bing Web Search client ─────────────────────────────────────────
+vi.mock('@/lib/bing-search/bing-web-search-client', () => ({
+  searchBingWeb: vi.fn().mockResolvedValue({
+    pages: [
+      {
+        name: 'Charcoal N Chill - Best Hookah Bar in Alpharetta',
+        url: 'https://yelp.com/biz/charcoal-n-chill',
+        snippet: 'Charcoal N Chill is a top-rated hookah bar in Alpharetta, GA.',
+      },
+      {
+        name: 'Top 10 Hookah Bars in Alpharetta - TripAdvisor',
+        url: 'https://tripadvisor.com/hookah-bars-alpharetta',
+        snippet: 'Best hookah bars including Cloud 9 Lounge and Charcoal N Chill.',
+      },
+    ],
+    totalEstimatedMatches: 1500,
+    fromLiveApi: true,
+  }),
+  buildSearchQuery: vi.fn((input: { queryText: string }) => input.queryText),
+  sanitizePages: vi.fn((pages: unknown[]) => pages),
+}));
+
 import {
   runCopilotSOVQuery,
-  buildCopilotSystemPrompt,
   runMultiModelSOVQuery,
   type SOVQueryInput,
 } from '@/lib/services/sov-engine.service';
+import { buildFallbackSystemPrompt } from '@/lib/bing-search/bing-grounded-sov';
 import { generateText } from 'ai';
 import { getModel, hasApiKey } from '@/lib/ai/providers';
 
@@ -61,7 +83,7 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-// ── runCopilotSOVQuery tests ─────────────────────────────────────────────
+// ── runCopilotSOVQuery tests (now Bing-grounded) ─────────────────────────
 
 describe('runCopilotSOVQuery', () => {
   it('returns engine="copilot" in result', async () => {
@@ -126,7 +148,7 @@ describe('runCopilotSOVQuery', () => {
     expect(getModel).toHaveBeenCalledWith('sov-query-copilot');
   });
 
-  it('returns mock result when OPENAI_API_KEY is absent', async () => {
+  it('returns mock result when PERPLEXITY_API_KEY is absent', async () => {
     vi.mocked(hasApiKey).mockReturnValue(false);
 
     const result = await runCopilotSOVQuery(MOCK_QUERY);
@@ -138,26 +160,26 @@ describe('runCopilotSOVQuery', () => {
   });
 });
 
-// ── buildCopilotSystemPrompt tests ───────────────────────────────────────
+// ── buildFallbackSystemPrompt tests ──────────────────────────────────────
 
-describe('buildCopilotSystemPrompt', () => {
+describe('buildFallbackSystemPrompt', () => {
   it('includes "Bing" in system prompt', () => {
-    const prompt = buildCopilotSystemPrompt();
+    const prompt = buildFallbackSystemPrompt();
     expect(prompt).toContain('Bing');
   });
 
   it('includes "Yelp" in system prompt', () => {
-    const prompt = buildCopilotSystemPrompt();
+    const prompt = buildFallbackSystemPrompt();
     expect(prompt).toContain('Yelp');
   });
 
   it('includes "TripAdvisor" in system prompt', () => {
-    const prompt = buildCopilotSystemPrompt();
+    const prompt = buildFallbackSystemPrompt();
     expect(prompt).toContain('TripAdvisor');
   });
 
   it('includes "Bing Places" in system prompt', () => {
-    const prompt = buildCopilotSystemPrompt();
+    const prompt = buildFallbackSystemPrompt();
     expect(prompt).toContain('Bing Places');
   });
 });
@@ -181,10 +203,10 @@ describe('runMultiModelSOVQuery — with Copilot', () => {
     expect(engines).toContain('copilot');
   });
 
-  it('excludes Copilot when hasApiKey("openai") is false', async () => {
-    // hasApiKey returns true for perplexity/google, false for openai
+  it('excludes Copilot when hasApiKey("perplexity") is false', async () => {
+    // hasApiKey returns true for openai/google, false for perplexity
     vi.mocked(hasApiKey).mockImplementation((provider) => {
-      if (provider === 'openai') return false;
+      if (provider === 'perplexity') return false;
       return true;
     });
     vi.mocked(generateText).mockResolvedValue({
@@ -218,13 +240,13 @@ describe('runMultiModelSOVQuery — with Copilot', () => {
     expect(engines).toEqual(['copilot', 'google', 'openai', 'perplexity']);
   });
 
-  it('handles Copilot failure gracefully (other engines still return)', async () => {
+  it('handles Copilot LLM failure gracefully (returns mock result, fail-open)', async () => {
     vi.mocked(hasApiKey).mockReturnValue(true);
 
     let callCount = 0;
     vi.mocked(generateText).mockImplementation(async () => {
       callCount++;
-      // Fourth call is Copilot — make it fail
+      // Fourth call is Copilot LLM — make it fail
       if (callCount === 4) {
         throw new Error('Copilot API error');
       }
@@ -239,9 +261,13 @@ describe('runMultiModelSOVQuery — with Copilot', () => {
 
     const results = await runMultiModelSOVQuery(MOCK_QUERY);
 
-    // Should have 3 results (perplexity + openai + google), Copilot failed
-    expect(results.length).toBe(3);
+    // All 4 engines return (Copilot catches errors internally, fail-open)
+    expect(results.length).toBe(4);
     const engines = results.map((r) => r.engine).sort();
-    expect(engines).toEqual(['google', 'openai', 'perplexity']);
+    expect(engines).toEqual(['copilot', 'google', 'openai', 'perplexity']);
+
+    // Copilot result should be a mock (ourBusinessCited=false) due to internal error handling
+    const copilotResult = results.find((r) => r.engine === 'copilot');
+    expect(copilotResult?.ourBusinessCited).toBe(false);
   });
 });

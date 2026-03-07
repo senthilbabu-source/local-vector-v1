@@ -4,6 +4,27 @@
 
 ---
 
+## 2026-03-07 — Bing Grounding: Real Copilot SOV via Bing Web Search API v7
+
+Replaced the simulated Copilot SOV engine (GPT-4o with Bing-themed system prompt) with a two-step Bing-grounded pipeline:
+1. Fetch real Bing Web Search API v7 results for the query (geo-scoped by city/state)
+2. Ground GPT-4o answer in those results — the LLM can ONLY use information from the Bing index
+
+Fail-open design: if `BING_SEARCH_API_KEY` is missing or the API fails, falls back to the original simulation prompt. Never blocks the multi-model SOV pipeline.
+
+- `lib/bing-search/types.ts` — **NEW.** Bing Web Search API v7 response types (BingWebPage, BingSearchResponse, BingSearchInput, BingSearchResult).
+- `lib/bing-search/bing-web-search-client.ts` — **NEW.** HTTP client: `searchBingWeb()` (fail-open, 8s timeout, Sentry on errors), `buildSearchQuery()` (geo-scoping with city dedup), `sanitizePages()` (input validation).
+- `lib/bing-search/bing-grounded-sov.ts` — **NEW.** Grounded SOV runner: `runBingGroundedSOVQuery()` (two-step pipeline), `formatBingResultsAsContext()` (4000 char limit), `buildBingGroundedSystemPrompt()` / `buildFallbackSystemPrompt()`, `extractRelevantBingSources()` (cited URL extraction), `detectBusinessMention()` (name normalization: &/N/'n'/and/The/punctuation).
+- `lib/bing-search/index.ts` — **NEW.** Barrel export.
+- `lib/services/sov-engine.service.ts` — **MODIFIED.** Replaced `buildCopilotSystemPrompt()`, `buildCopilotPrompt()`, and `runCopilotSOVQuery()` with re-export of `runBingGroundedSOVQuery`. `runMultiModelSOVQuery()` now calls the Bing-grounded version.
+- `src/__tests__/unit/bing-web-search.test.ts` — **NEW.** 47 tests: buildSearchQuery (7), sanitizePages (7), formatBingResultsAsContext (4), buildBingGroundedSystemPrompt (3), buildFallbackSystemPrompt (3), extractRelevantBingSources (5), detectBusinessMention (9), runBingGroundedSOVQuery (9).
+- `src/__tests__/unit/sov-copilot.test.ts` — **MODIFIED.** Updated for Bing-grounded behavior: removed `buildCopilotSystemPrompt` tests (replaced with `buildFallbackSystemPrompt`), updated Copilot failure test for fail-open (now returns mock result instead of propagating error). 15 tests.
+- `src/__tests__/unit/sov-google-grounded.test.ts` — **MODIFIED.** Fixed "all engines failing" test for Copilot fail-open behavior (Copilot always returns a result).
+
+**7098 tests, 442 files — ALL PASS. `npx next build` passes.**
+
+---
+
 ## 2026-03-07 — §282–§284 Wave 15: Final Regression & Build Verification (S78-S80)
 
 Capstone wave — fixed all TypeScript build errors from Waves 5–14 and created a comprehensive regression suite.

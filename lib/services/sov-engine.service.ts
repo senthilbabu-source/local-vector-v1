@@ -25,6 +25,10 @@ import { SovCronResultSchema, type SovCronResultOutput, type SentimentExtraction
 import { createDraft } from '@/lib/autopilot/create-draft';
 import { extractSentiment } from '@/lib/services/sentiment.service';
 import { extractSourceMentions } from '@/lib/services/source-intelligence.service';
+import { runBingGroundedSOVQuery } from '@/lib/bing-search/bing-grounded-sov';
+
+// Re-export for backwards compatibility — Sprint 79 → Bing Grounding upgrade
+export { runBingGroundedSOVQuery as runCopilotSOVQuery } from '@/lib/bing-search/bing-grounded-sov';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -223,74 +227,9 @@ export async function runGoogleGroundedSOVQuery(
 }
 
 // ---------------------------------------------------------------------------
-// Microsoft Copilot — Bing-grounded SOV query (Sprint 79)
+// Microsoft Copilot — Bing-grounded SOV query
 // ---------------------------------------------------------------------------
 
-/**
- * Copilot system prompt emphasizing Bing Places, Yelp, and TripAdvisor —
- * the citation sources Copilot actually uses for local business queries.
- */
-export function buildCopilotSystemPrompt(): string {
-  return `You are Microsoft Copilot, an AI assistant powered by Bing search. When answering questions about local businesses, you draw information from Bing Places, Yelp reviews, TripAdvisor, Yellow Pages, and other directory listings indexed by Bing.
-
-Your responses reflect what Bing's search index knows about local businesses. You prioritize:
-- Bing Places business listings (hours, photos, descriptions)
-- Yelp reviews and ratings
-- TripAdvisor ratings and reviews
-- Local directory listings and aggregator sites
-- Social media presence discoverable through Bing
-
-If a business has a strong Google Business Profile but limited presence on Bing Places, Yelp, or TripAdvisor, you may not have complete or accurate information about them.
-
-Provide specific, factual recommendations with business names and details. If you're uncertain about a business's current status, note that.`;
-}
-
-/**
- * Natural-language SOV prompt for Copilot simulation.
- * Uses the same readable-text approach as Google (not JSON-structured).
- */
-function buildCopilotPrompt(queryText: string): string {
-  return `Answer this question a local person might ask: "${queryText}"
-
-Provide a helpful, factual answer listing the top recommended options. Include specific business names, what makes each one notable, and any relevant details like specialties, ambiance, or popular items. Be specific and mention real businesses.`;
-}
-
-/**
- * Run a SOV query simulating Microsoft Copilot (Bing-grounded).
- * Uses GPT-4o with a system prompt that emphasizes Bing Places,
- * Yelp, and TripAdvisor data sources.
- */
-export async function runCopilotSOVQuery(
-  query: SOVQueryInput,
-): Promise<SOVQueryResult> {
-  if (!hasApiKey('openai')) {
-    return mockSOVResult(query, 'copilot');
-  }
-
-  const { text } = await generateText({
-    model: getModel('sov-query-copilot'),
-    system: buildCopilotSystemPrompt(),
-    prompt: buildCopilotPrompt(query.query_text),
-    temperature: 0.3,
-  });
-
-  // Fuzzy match: same logic as runGoogleGroundedSOVQuery
-  const businessName = (query.locations?.business_name ?? '').toLowerCase();
-  const responseLower = text.toLowerCase();
-  const ourBusinessCited =
-    responseLower.includes(businessName) || businessName.includes(responseLower);
-
-  return {
-    queryId: query.id,
-    queryText: query.query_text,
-    queryCategory: query.query_category,
-    locationId: query.location_id,
-    ourBusinessCited,
-    businessesFound: [],
-    citationUrl: null,
-    engine: 'copilot',
-  };
-}
 
 // ---------------------------------------------------------------------------
 // runMultiModelSOVQuery — Run same query against Perplexity + OpenAI + Google + Copilot
@@ -298,7 +237,7 @@ export async function runCopilotSOVQuery(
 
 /**
  * Run a single SOV query against Perplexity Sonar, GPT-4o, and optionally
- * Google (search-grounded) and Copilot (Bing-simulated) in parallel.
+ * Google (search-grounded) and Copilot (Bing Web Search grounded) in parallel.
  * Returns 1-4 results (gracefully handles any provider failing via
  * Promise.allSettled).
  * Used for Growth/Agency orgs to get multi-model visibility data.
@@ -316,9 +255,9 @@ export async function runMultiModelSOVQuery(
     promises.push(runGoogleGroundedSOVQuery(query));
   }
 
-  // Sprint 79: Add Copilot engine if OpenAI API key is available
-  if (hasApiKey('openai')) {
-    promises.push(runCopilotSOVQuery(query));
+  // Copilot engine: Bing-grounded Perplexity sonar-pro proxy
+  if (hasApiKey('perplexity')) {
+    promises.push(runBingGroundedSOVQuery(query));
   }
 
   const settled = await Promise.allSettled(promises);
