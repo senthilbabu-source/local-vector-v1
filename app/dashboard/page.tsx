@@ -53,6 +53,10 @@ import AgentReadinessTeaser from './_components/AgentReadinessTeaser';
 import { getAgentReadinessSummary, EMPTY_SUMMARY, type AgentReadinessSummary } from '@/lib/services/agent-readiness-summary';
 import QuickWinCard from './_components/QuickWinCard';
 import { pickQuickWin, type QuickWinAlert } from '@/lib/services/quick-win';
+import ShareSnapshotModal from './_components/ShareSnapshotModal';
+import { buildSnapshotData, type SnapshotData } from '@/lib/services/snapshot-builder';
+import CompetitorAlertCard from './_components/CompetitorAlertCard';
+import { getCompetitorChanges, type CompetitorChange } from '@/lib/services/competitor-watch';
 
 export const metadata = { title: 'Dashboard | LocalVector.ai' };
 
@@ -230,6 +234,30 @@ export default async function DashboardPage({
         sovPercent: visibilityScore,
       });
 
+  // S44: Shareable snapshot data
+  let snapshotData: SnapshotData | null = null;
+  if (ctx.orgId && !sampleMode) {
+    try {
+      const supabaseForSnapshot = await createClient();
+      snapshotData = await buildSnapshotData(supabaseForSnapshot, ctx.orgId);
+    } catch (err) {
+      Sentry.captureException(err, { tags: { component: 'share-snapshot', sprint: 'S44' } });
+    }
+  }
+
+  // S46: Competitor watch alerts (significant week-over-week changes)
+  let competitorChanges: CompetitorChange[] = [];
+  if (ctx.orgId && !sampleMode) {
+    try {
+      const supabaseForWatch = await createClient();
+      competitorChanges = await getCompetitorChanges(supabaseForWatch, ctx.orgId);
+    } catch (err) {
+      Sentry.captureException(err, { tags: { component: 'competitor-watch', sprint: 'S46' } });
+    }
+  }
+
+  const isGrowthPlus = planTier === 'growth' || planTier === 'agency';
+
   // Onboarding + data resolver
   let onboardingState = null;
   let dataResolverResult: DataResolverResult | null = null;
@@ -300,7 +328,10 @@ export default async function DashboardPage({
               : 'AI is representing your restaurant accurately right now.'}
           </p>
         </div>
-        <HealthStreakBadge streak={healthStreak.currentStreak} />
+        <div className="flex items-center gap-2">
+          <ShareSnapshotModal snapshot={snapshotData} sampleMode={sampleMode} />
+          <HealthStreakBadge streak={healthStreak.currentStreak} />
+        </div>
       </div>
 
       {/* ── S22: AI model degradation alert (cross-org spike detection) ── */}
@@ -389,6 +420,9 @@ export default async function DashboardPage({
 
       {/* ── S37: Competitor Teaser ────────────────────────────────────────── */}
       <CompetitorTeaser data={competitorData} sampleMode={sampleMode} planTier={planTier} />
+
+      {/* ── S46: Competitor Watch Alerts (significant week-over-week) ───── */}
+      <CompetitorAlertCard changes={competitorChanges} isGrowthPlus={isGrowthPlus} />
 
       {/* ── S28: Consistency Score Card ─────────────────────────────────── */}
       {consistencyData && !sampleMode && (

@@ -15,6 +15,10 @@ import type { HallucinationRow } from '@/lib/data/dashboard';
 import TriageSwimlane from './_components/TriageSwimlane';
 import HallucinationsPageHeader from './_components/HallucinationsPageHeader';
 import HijackingAlertsSection from './_components/HijackingAlertsSection';
+import BeforeAfterTimeline from './_components/BeforeAfterTimeline';
+import { getResolvedWithStories, type BeforeAfterStory } from '@/lib/services/before-after';
+import { createClient as createClientForBA } from '@/lib/supabase/server';
+import * as Sentry from '@sentry/nextjs';
 
 export const metadata = { title: 'AI Mistakes | LocalVector.ai' };
 
@@ -202,6 +206,17 @@ export default async function HallucinationsPage() {
     )
     .slice(0, 10);
 
+  // S42: Before & After stories for resolved hallucinations
+  let beforeAfterStories: BeforeAfterStory[] = [];
+  if (ctx.orgId) {
+    try {
+      const supabaseForBA = await createClientForBA();
+      beforeAfterStories = await getResolvedWithStories(supabaseForBA, ctx.orgId, 5);
+    } catch (err) {
+      Sentry.captureException(err, { tags: { component: 'before-after-timeline', sprint: 'S42' } });
+    }
+  }
+
   const topIssue = fixNowAlerts[0]
     ? {
         claim_text: fixNowAlerts[0].claim_text,
@@ -359,6 +374,9 @@ export default async function HallucinationsPage() {
           />
         </div>
       </section>
+
+      {/* ── S42: Before & After Timeline (resolved hallucinations) ────────── */}
+      <BeforeAfterTimeline stories={beforeAfterStories} />
 
       {/* ── P8-FIX-37: Hijacking Alerts (Agency only) ─────────────────────── */}
       {planSatisfies(userPlan, 'agency') && (

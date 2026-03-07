@@ -6703,3 +6703,62 @@ Committed: `d70bf19` — 70 files, 12,552 insertions.
 - `app/dashboard/sentiment/page.tsx` — `SentimentTrendChart` integration
 - `app/dashboard/page.tsx` — `RecentWinsSection` + wins fetch
 - `components/layout/Sidebar.tsx` — Wins nav item + Star import
+
+---
+
+## §247–§252 — Wave 8: New Intelligence Features (2026-03-07)
+
+**6 sprints: S41–S46 | 51 new tests | 6830 total | 434 files | 0 regressions**
+
+### S41 — Weekly AI Report Card
+- `lib/services/weekly-report-card.ts` — `getScoreColor()`, `formatScoreDelta()`, `buildReportCardText()`, `generateWeeklyReportCard()` (parallel DB queries, never throws)
+- 13 unit tests (getScoreColor 4, formatScoreDelta 4, buildReportCardText 5)
+
+### S42 — Before/After Story Timeline
+- `lib/services/before-after.ts` — `buildBeforeAfterStory()` (3-step: detection→action→resolution), `formatDaysToFix()`, `getResolvedWithStories()`
+- `BeforeAfterTimeline.tsx` — client component on AI Mistakes page
+- 10 unit tests (buildBeforeAfterStory 7, formatDaysToFix 3)
+
+### S43 — Menu Optimizer Card
+- `lib/menu-intelligence/menu-optimizer.ts` — `analyzeMenuCompleteness()`, `generateMenuSuggestions()` (max 5, priority-sorted)
+- `MenuOptimizerCard.tsx` — client component on Magic Menus page
+- 8 unit tests (analyzeMenuCompleteness 3, generateMenuSuggestions 5)
+
+### S44 — Share Snapshot Modal
+- `lib/services/snapshot-builder.ts` — `buildSnapshotText()`, `isSnapshotMeaningful()`, `buildSnapshotData()`
+- `ShareSnapshotModal.tsx` — modal with clipboard copy + textarea fallback
+- Dashboard header: wired next to HealthStreakBadge
+- 9 unit tests (buildSnapshotText 6, isSnapshotMeaningful 3)
+
+### S45 — AI Review Response Suggestion
+- `SuggestResponseButton.tsx` — useTransition fetch, credit-gated (1 credit), copy-to-clipboard
+- Wired into ReviewCard for negative reviews (≤3 stars) without response_draft
+- Reuses existing `/api/review-engine/${id}/generate-draft` endpoint
+- 0 new unit tests (component-only, no pure functions)
+
+### S46 — Competitor SOV Change Alert
+- `lib/services/competitor-watch.ts` — `detectCompetitorChanges()`, `isSignificantChange()`, `formatCompetitorAlert()`, `getCompetitorChanges()`
+- `CompetitorAlertCard.tsx` — Growth+ only, localStorage dismiss with weekly rotation
+- 11 unit tests (detectCompetitorChanges 6, isSignificantChange 3, formatCompetitorAlert 2)
+
+### Regression fix
+- 6 bare `} catch {` blocks → `} catch (_e) {` (sentry-sweep compliance)
+
+### Files changed (new):
+- `lib/services/weekly-report-card.ts`
+- `lib/services/before-after.ts`
+- `lib/menu-intelligence/menu-optimizer.ts`
+- `lib/services/snapshot-builder.ts`
+- `lib/services/competitor-watch.ts`
+- `app/dashboard/hallucinations/_components/BeforeAfterTimeline.tsx`
+- `app/dashboard/magic-menus/_components/MenuOptimizerCard.tsx`
+- `app/dashboard/_components/ShareSnapshotModal.tsx`
+- `app/dashboard/reviews/_components/SuggestResponseButton.tsx`
+- `app/dashboard/_components/CompetitorAlertCard.tsx`
+- `src/__tests__/unit/wave8-intelligence-features.test.ts`
+
+### Files changed (modified):
+- `app/dashboard/page.tsx` — ShareSnapshotModal + CompetitorAlertCard + snapshot/competitor data fetch
+- `app/dashboard/hallucinations/page.tsx` — BeforeAfterTimeline + resolved stories fetch
+- `app/dashboard/magic-menus/page.tsx` — MenuOptimizerCard + menu suggestions computation
+- `app/dashboard/reviews/_components/ReviewCard.tsx` — SuggestResponseButton integration

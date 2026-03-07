@@ -8,6 +8,7 @@ import {
   regenerateResponse,
   skipResponse,
 } from '../actions';
+import SuggestResponseButton from './SuggestResponseButton';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -141,6 +142,16 @@ export default function ReviewCard({ review, showEntityBadge }: ReviewCardProps)
       {/* Error message */}
       {error && (
         <p className="mt-2 text-xs text-alert-crimson">{error}</p>
+      )}
+
+      {/* S45: Suggest Response for negative reviews without a draft */}
+      {!review.response_draft && (
+        <SuggestResponseButton
+          reviewId={review.id}
+          rating={review.rating}
+          reviewText={review.text}
+          businessName=""
+        />
       )}
 
       {/* Action buttons */}

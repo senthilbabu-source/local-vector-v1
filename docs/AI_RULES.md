@@ -5577,3 +5577,95 @@ Comprehensive regression tests validating sidebar structure after all Wave 5-7 c
 - NAV_ITEMS = 28 total, NAV_GROUPS = 5 (Today 4, This Week 5, This Month 5, Advanced 8, Account 6)
 - Removed pages (5): content-calendar, source-intelligence, citations, crawler-analytics, system-health
 - All removed pages have working redirects (not 404s)
+
+## §247 — S41: Weekly AI Report Card (Wave 8)
+
+Shareable weekly summary with score, delta, wins, issues, competitor highlight.
+
+### Changes
+- `lib/services/weekly-report-card.ts` (NEW): `WeeklyReportCard` interface, `getScoreColor()`, `formatScoreDelta()`, `buildReportCardText()`, `generateWeeklyReportCard()`
+- Pure helpers (getScoreColor, formatScoreDelta, buildReportCardText) + I/O entry point (generateWeeklyReportCard with parallel DB queries)
+
+### Rules
+- `getScoreColor()`: ≥80 emerald, ≥60 amber, <60 red.
+- `formatScoreDelta()`: positive → "+N", zero → "±0", negative → "N" (already has minus).
+- `buildReportCardText()`: max ~12 lines plain text, "Powered by LocalVector.ai" footer.
+- `generateWeeklyReportCard()` does parallel queries — never throws (returns null on error).
+
+## §248 — S42: Before/After Story Timeline (Wave 8)
+
+Chronological story builder for fixed hallucinations on the AI Mistakes page.
+
+### Changes
+- `lib/services/before-after.ts` (NEW): `TimelineStep`, `BeforeAfterStory`, `ResolvedHallucination` interfaces, `buildBeforeAfterStory()`, `formatDaysToFix()`, `getResolvedWithStories()`
+- `app/dashboard/hallucinations/_components/BeforeAfterTimeline.tsx` (NEW): client component rendering story cards
+
+### Rules
+- `buildBeforeAfterStory()` creates 3 steps: detection (red) → action (amber) → resolution (green).
+- Model display names: `gpt-4o-mini` → "ChatGPT", `perplexity-sonar` → "Perplexity", etc.
+- `formatDaysToFix()`: 0 → "same day", 1 → "1 day", N → "N days".
+- `getResolvedWithStories()` queries `correction_status` in ['fixed', 'corrected'] with `fixed_at` not null.
+
+## §249 — S43: Menu Optimizer Card (Wave 8)
+
+Actionable menu improvement suggestions on the Magic Menus page.
+
+### Changes
+- `lib/menu-intelligence/menu-optimizer.ts` (NEW): `MenuItemData`, `MenuCompleteness`, `MenuSuggestion` interfaces, `analyzeMenuCompleteness()`, `generateMenuSuggestions()`
+- `app/dashboard/magic-menus/_components/MenuOptimizerCard.tsx` (NEW): client component with suggestion cards
+- `app/dashboard/magic-menus/page.tsx`: wired after AITalkingAboutSection
+
+### Rules
+- `analyzeMenuCompleteness()`: scores description (has length), price (not null), dietary tags (array length > 0).
+- `generateMenuSuggestions()` priority: high-demand missing data → generic completeness → dietary tags. Max 5 suggestions.
+- Impact levels: high (emerald badge), medium (amber badge).
+- Hidden when no suggestions available.
+- Uses existing `menu.extracted_data` JSONB — no new DB queries.
+
+## §250 — S44: Share Snapshot Modal (Wave 8)
+
+Copy-to-clipboard shareable AI health snapshot on dashboard.
+
+### Changes
+- `lib/services/snapshot-builder.ts` (NEW): `SnapshotData` interface, `buildSnapshotText()`, `isSnapshotMeaningful()`, `buildSnapshotData()`
+- `app/dashboard/_components/ShareSnapshotModal.tsx` (NEW): client component with modal + clipboard copy
+- `app/dashboard/page.tsx`: wired next to HealthStreakBadge in header
+
+### Rules
+- `buildSnapshotText()`: max ~10 lines, includes score/SOV/errors/revenue, "Powered by LocalVector.ai" footer.
+- `isSnapshotMeaningful()`: requires score not null OR sovPercent not null — prevents sharing empty snapshots.
+- Clipboard API primary with textarea fallback for older browsers.
+- Hidden in sample mode or when snapshot not meaningful.
+- `buildSnapshotData()` does parallel queries — never throws (returns null on error).
+
+## §251 — S45: AI Review Response Suggestion (Wave 8)
+
+One-click AI response suggestion for negative reviews.
+
+### Changes
+- `app/dashboard/reviews/_components/SuggestResponseButton.tsx` (NEW): client component with generate + copy flow
+- `app/dashboard/reviews/_components/ReviewCard.tsx`: wired for reviews without response_draft
+
+### Rules
+- Only shows for negative reviews (rating ≤ 3).
+- Calls existing `/api/review-engine/${reviewId}/generate-draft` endpoint — no new API routes.
+- Uses `useTransition` for non-blocking fetch.
+- Credit-gated: shows "(1 credit)" label.
+- Generated response shown with copy-to-clipboard button.
+
+## §252 — S46: Competitor SOV Change Alert (Wave 8)
+
+Dashboard alert card for significant competitor SOV changes.
+
+### Changes
+- `lib/services/competitor-watch.ts` (NEW): `CompetitorChange` interface, `detectCompetitorChanges()`, `isSignificantChange()`, `formatCompetitorAlert()`, `getCompetitorChanges()`
+- `app/dashboard/_components/CompetitorAlertCard.tsx` (NEW): client component with dismiss
+- `app/dashboard/page.tsx`: wired after CompetitorTeaser
+
+### Rules
+- `detectCompetitorChanges()` compares current vs previous mention Maps from `sov_evaluations.mentioned_competitors`.
+- `isSignificantChange()`: ≥20% delta AND ≥2 absolute change.
+- Growth+ only (`isGrowthPlus` prop).
+- Dismissible via localStorage with weekly key rotation (`lv_competitor_alert_dismissed_${weekNum}`).
+- Shows top change with direction (jumped/dropped), mentions count, link to /dashboard/compete.
+- Returns null when not Growth+, no changes, or dismissed.

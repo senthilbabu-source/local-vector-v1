@@ -12,6 +12,8 @@ import AITalkingAboutSection from './_components/AITalkingAboutSection';
 import type { AITalkingItem } from './_components/AITalkingAboutSection';
 import { getIndustryConfig } from '@/lib/industries/industry-config';
 import { analyzeMenuDemandWithCategories } from '@/lib/menu-intelligence/demand-analyzer';
+import { analyzeMenuCompleteness, generateMenuSuggestions, type MenuSuggestion } from '@/lib/menu-intelligence/menu-optimizer';
+import MenuOptimizerCard from './_components/MenuOptimizerCard';
 
 export const metadata = { title: 'Menu | LocalVector.ai' };
 
@@ -81,7 +83,20 @@ async function fetchWorkspaceData(orgId: string): Promise<{
     category_name: r.category_name,
   }));
 
-  return { location, menu, industry, demandItems };
+  // S43: Fetch menu items for optimizer suggestions
+  let menuSuggestions: MenuSuggestion[] = [];
+  if (menu?.extracted_data) {
+    try {
+      const items = (menu.extracted_data as unknown as { items?: Array<{ name: string; description?: string; price?: number; dietary_tags?: string[]; category?: string }> })?.items ?? [];
+      const completeness = analyzeMenuCompleteness(items);
+      const demandForOptimizer = demandResults.map(r => ({ item_name: r.item_name, mention_count: r.mention_count }));
+      menuSuggestions = generateMenuSuggestions(completeness, demandForOptimizer, items);
+    } catch (_e) {
+      // Non-critical — skip optimizer suggestions
+    }
+  }
+
+  return { location, menu, industry, demandItems, menuSuggestions };
 }
 
 // ---------------------------------------------------------------------------
@@ -94,9 +109,9 @@ export default async function MagicMenusPage() {
 
   // orgId is null only in the brief window after signup before the DB trigger
   // creates the org. In that case, skip the location query and show empty state.
-  const { location, menu, industry, demandItems } = ctx.orgId
+  const { location, menu, industry, demandItems, menuSuggestions } = ctx.orgId
     ? await fetchWorkspaceData(ctx.orgId)
-    : { location: null, menu: null, industry: null, demandItems: [] as AITalkingItem[] };
+    : { location: null, menu: null, industry: null, demandItems: [] as AITalkingItem[], menuSuggestions: [] as MenuSuggestion[] };
 
   const industryConfig = getIndustryConfig(industry);
 
@@ -116,6 +131,9 @@ export default async function MagicMenusPage() {
 
       {/* ── S36: AI Demand Signals (promoted above hero) ──────────── */}
       <AITalkingAboutSection items={demandItems} />
+
+      {/* ── S43: Menu Optimizer Suggestions ──────────────────────── */}
+      <MenuOptimizerCard suggestions={menuSuggestions} />
 
       {/* ── S7: Menu coaching hero ────────────────────────────────── */}
       <MenuCoachHero
