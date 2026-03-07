@@ -968,6 +968,12 @@ WHERE l.org_id = 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11'
 LIMIT 1
 ON CONFLICT (id) DO NOTHING;
 
+-- Backfill fix_guidance_category from category so FixGuidancePanel renders
+UPDATE public.ai_hallucinations
+SET fix_guidance_category = category
+WHERE fix_guidance_category IS NULL
+  AND category IS NOT NULL;
+
 -- ── 11. PLAYWRIGHT TEST USER (Phase 19) ───────────────────────────────────────
 -- Credentials: incomplete@localvector.ai / Password123!
 --

@@ -4,6 +4,22 @@
 
 ---
 
+## 2026-03-06 — Fix Guidance Panel: wire fix_guidance_category into hallucination inserts
+
+**Problem:** `FixGuidancePanel` (S14, §214) existed but never rendered — `fix_guidance_category` was never set when hallucinations were inserted by the audit cron. The column stayed `null`, so `getFixGuidance(null)` returned `null` and the panel was hidden.
+
+**Root cause:** Both hallucination insert paths (cron route + Inngest function) mapped `category` from the scanner but omitted `fix_guidance_category`.
+
+**Fixes (4 files):**
+- `app/api/cron/audit/route.ts` — Added `fix_guidance_category: h.category` to insert payload
+- `lib/inngest/functions/audit-cron.ts` — Same fix for Inngest handler insert
+- `supabase/seed.sql` — Backfill UPDATE for existing seed rows
+- `supabase/migrations/20260503000006_backfill_fix_guidance_category.sql` — Production backfill migration
+
+**Result:** AlertCards in the "Fix Now" column now show collapsible step-by-step fix instructions with platform links, estimated fix time, and urgency notes for 8 categories (hours, closed, address, phone, menu, cuisine, status, amenity).
+
+---
+
 ## 2026-03-06 — Comprehensive Runtime Safety Audit: 45 fixes across 35 files (§234)
 
 **Goal:** Exhaustive sweep of all runtime crash risks — JSONB nullability, unsafe casts, JSON.parse, new URL(), division by zero, fetch safety, arithmetic on nullable, string methods on nullable.

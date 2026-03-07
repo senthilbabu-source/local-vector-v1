@@ -98,6 +98,7 @@ export async function processOrgAudit(org: { id: string; name: string }): Promis
       claim_text: h.claim_text,
       expected_truth: h.expected_truth,
       correction_status: 'open' as Database['public']['Enums']['correction_status'],
+      fix_guidance_category: h.category,
     }));
     const { error: insertError } = await supabase
       .from('ai_hallucinations')

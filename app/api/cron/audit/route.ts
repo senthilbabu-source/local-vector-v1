@@ -183,6 +183,7 @@ async function _runInlineAuditImpl(handle: { logId: string | null; startedAt: nu
             claim_text: h.claim_text,
             expected_truth: h.expected_truth,
             correction_status: 'open' as Database['public']['Enums']['correction_status'],
+            fix_guidance_category: h.category,
           }));
           const { data: insertedRows, error: insertError } = await supabase
             .from('ai_hallucinations')
