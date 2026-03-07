@@ -16,6 +16,7 @@ import TriageSwimlane from './_components/TriageSwimlane';
 import HallucinationsPageHeader from './_components/HallucinationsPageHeader';
 import HijackingAlertsSection from './_components/HijackingAlertsSection';
 import BeforeAfterTimeline from './_components/BeforeAfterTimeline';
+import ErrorCategoryChart from './_components/ErrorCategoryChart';
 import { getResolvedWithStories, type BeforeAfterStory } from '@/lib/services/before-after';
 import { createClient as createClientForBA } from '@/lib/supabase/server';
 import * as Sentry from '@sentry/nextjs';
@@ -374,6 +375,9 @@ export default async function HallucinationsPage() {
           />
         </div>
       </section>
+
+      {/* ── S56: Error Category Breakdown ──────────────────────────────────── */}
+      <ErrorCategoryChart errors={hallucinations.map(h => ({ category: h.category }))} />
 
       {/* ── S42: Before & After Timeline (resolved hallucinations) ────────── */}
       <BeforeAfterTimeline stories={beforeAfterStories} />

@@ -18,6 +18,7 @@ import GapAlertCard from './_components/GapAlertCard';
 import CategoryBreakdownChart from './_components/CategoryBreakdownChart';
 import AIVisibilityHero, { type EngineStats } from './_components/AIVisibilityHero';
 import IntentDiscoverySection from './_components/IntentDiscoverySection';
+import PlatformCoverageGrid from './_components/PlatformCoverageGrid';
 
 export const metadata = { title: 'AI Mentions | LocalVector.ai' };
 
@@ -284,6 +285,23 @@ export default async function ShareOfVoicePage() {
     // Non-critical — page renders without intent discoveries
   }
 
+  // ── S57: Build coverage data for PlatformCoverageGrid ──────────────────
+  const ENGINE_TO_MODEL: Record<string, string> = {
+    openai: 'openai-gpt4o',
+    perplexity: 'perplexity-sonar',
+    gemini: 'google-gemini',
+    anthropic: 'anthropic-claude',
+    copilot: 'microsoft-copilot',
+  };
+  const queryTextById = new Map(queries.map((q) => [q.id, q.query_text]));
+  const coverageEvaluations = Array.from(latestPerQueryEngine.values())
+    .filter((e) => queryTextById.has(e.query_id))
+    .map((e) => ({
+      query_text: queryTextById.get(e.query_id)!,
+      model_provider: ENGINE_TO_MODEL[e.engine] ?? e.engine,
+      is_cited: e.rank_position !== null,
+    }));
+
   return (
     <div className="space-y-8">
 
@@ -337,6 +355,9 @@ export default async function ShareOfVoicePage() {
 
       {/* ── SOV Trend Chart ──────────────────────────────────────────────── */}
       <SOVTrendChart data={trendData} title="AI Mention Trend (Last 12 Weeks)" />
+
+      {/* ── S57: Platform Coverage Grid ────────────────────────────────────── */}
+      <PlatformCoverageGrid evaluations={coverageEvaluations} />
 
       {/* ── First Mover Opportunities ────────────────────────────────────── */}
       {firstMoverOpps.length > 0 && (

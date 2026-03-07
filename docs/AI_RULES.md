@@ -5836,3 +5836,61 @@ Query × platform coverage matrix from SOV evaluations.
 - Tests cover: sparkline building/trending/normalizing, digest frequency/section validation, goal progress/validation/formatting, category breakdown/labeling/coloring, coverage matrix/cell lookup/platform stats.
 - No I/O tests — pure function coverage only.
 - Total test count: 6930 tests, 436 files.
+
+## §265 — S59: ErrorCategoryChart Wiring (Wave 11)
+
+Wired ErrorCategoryChart into hallucinations page with data transform.
+
+### Changes
+- `app/dashboard/hallucinations/page.tsx` (MODIFIED): imports ErrorCategoryChart, transforms `hallucinations` array into `{category, count}[]` via reduce, renders after triage swimlanes.
+
+### Rules
+- Data transform groups by `fix_guidance_category`, maps null → 'uncategorized'.
+- Component receives pre-aggregated data — no raw hallucination rows passed to client.
+
+## §266 — S60: PlatformCoverageGrid Wiring (Wave 11)
+
+Wired PlatformCoverageGrid into SOV page with engine-to-model mapping.
+
+### Changes
+- `app/dashboard/share-of-voice/page.tsx` (MODIFIED): imports PlatformCoverageGrid, builds `coverageEvaluations` from `latestPerQueryEngine` map, renders after SOVTrendChart.
+
+### Rules
+- ENGINE_TO_MODEL mapping: openai→openai-gpt4o, perplexity→perplexity-sonar, gemini→google-gemini, anthropic→anthropic-claude, copilot→microsoft-copilot.
+- Citation detection: `rank_position !== null` means cited.
+- Unknown engines pass through as-is via `?? e.engine`.
+
+## §267 — S62: GoalTrackerCard Wiring (Wave 11)
+
+Wired GoalTrackerCard into main dashboard with null goal placeholder.
+
+### Changes
+- `app/dashboard/page.tsx` (MODIFIED): imports GoalTrackerCard, renders after KPI chips with `goal={null}`.
+
+### Rules
+- `goal={null}` makes component return null — safe no-op until goal storage is added.
+- Uses `displayScores.realityScore` as `currentScore`.
+- Hidden in sample mode via `sampleMode` prop.
+
+## §268 — S63: DashboardSectionSkeleton Wiring (Wave 11)
+
+Replaced inline loading skeletons with DashboardSectionSkeleton component.
+
+### Changes
+- `app/dashboard/loading.tsx` (REWRITTEN): uses DashboardSectionSkeleton with stat (count=5), chart, and list (count=3) variants.
+
+### Rules
+- Header skeleton remains inline (custom widths).
+- 3 skeleton sections match real dashboard layout: KPI chips → chart → issues list.
+
+## §269 — S64: Wave 11 Tests (Wave 11)
+
+19 unit tests covering S59–S63 page wiring data transforms.
+
+### Changes
+- `src/__tests__/unit/wave11-page-wiring.test.ts` (NEW): 19 tests
+
+### Rules
+- Tests cover: S59 error category aggregation (5), S60 platform coverage + engine mapping (7), S62 goal tracker progress (6), S63 skeleton importability (1).
+- Pure function tests only — no server component rendering.
+- Total test count: 6949 tests, 437 files.

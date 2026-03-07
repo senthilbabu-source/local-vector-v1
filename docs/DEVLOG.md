@@ -4,6 +4,19 @@
 
 ---
 
+## 2026-03-07 — §265–§269 Wave 11: Page Wiring (S59-S64)
+
+Wired Wave 9-10 components into their actual dashboard pages.
+
+- **S59 (§265):** ErrorCategoryChart wired into hallucinations page. Data transform: reduce hallucinations by `fix_guidance_category`, null → 'uncategorized'.
+- **S60 (§266):** PlatformCoverageGrid wired into SOV page. ENGINE_TO_MODEL mapping (5 engines). Citation = `rank_position !== null`.
+- **S61:** Sparkline wiring deferred — `fetchDashboardData` lacks `visibility_score` in `accuracySnapshots`. Pure functions exist and are tested.
+- **S62 (§267):** GoalTrackerCard wired into dashboard with `goal={null}` (returns null until goal storage is added).
+- **S63 (§268):** `loading.tsx` rewritten with DashboardSectionSkeleton (stat/chart/list variants).
+- **S64 (§269):** 19 unit tests covering all wiring transforms. 6949 tests, 437 files — ALL PASS.
+
+Files modified: 4 (hallucinations/page, share-of-voice/page, dashboard/page, dashboard/loading). Files created: 1 (wave11-page-wiring.test.ts). No migrations. No new crons.
+
 ## 2026-03-07 — §242–§246 Wave 7: Dashboard Surface Promotions (S36-S40)
 
 **AI_RULES §242–§246. 6,779 tests, 433 files — ALL PASS.**

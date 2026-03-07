@@ -41,6 +41,7 @@ import FixSpotlightCard, { type SpotlightFix } from './_components/FixSpotlightC
 import DegradationAlertBanner from './_components/DegradationAlertBanner';
 import FirstScanRevealCard from './_components/FirstScanRevealCard';
 import ConsistencyScoreCard from './_components/ConsistencyScoreCard';
+import GoalTrackerCard from './_components/GoalTrackerCard';
 import { fetchConsistencyScore } from '@/lib/services/consistency-score.service';
 import AIResponseTeaser from './_components/AIResponseTeaser';
 import { getLatestAIResponse, type AIResponseSnippet } from '@/lib/services/ai-response-summary';
@@ -452,6 +453,13 @@ export default async function DashboardPage({
         />
         {sampleMode && <SampleDataBadge />}
       </div>
+
+      {/* ── S55: Goal Tracker (shown when user sets a score goal) ────────── */}
+      <GoalTrackerCard
+        currentScore={displayScores.realityScore}
+        goal={null}
+        sampleMode={sampleMode}
+      />
 
       {/* ── S36: Menu Demand Signals teaser ─────────────────────────────── */}
       <DemandSignalsTeaser items={demandItems} sampleMode={sampleMode} />
