@@ -110,7 +110,7 @@ app/api/cron/apple-bc-sync/        — Nightly Apple BC sync, 3:30 AM UTC, Agenc
 app/actions/apple-bc.ts            — Connect/disconnect/manual-sync Apple BC (Sprint 130, §162)
 app/dashboard/settings/connections/ — Per-location connection management UI (Sprint 130, §162)
 components/ui/UpgradeModal.tsx — Plan-locked feature modal: Lock icon + plan name + billing CTA (P1-FIX-06, §175)
-app/dashboard/_components/ManualScanTrigger.tsx — On-demand SOV scan button: poll status, Growth+ gate (P1-FIX-05, §177)
+app/dashboard/_components/ManualScanTrigger.tsx — On-demand SOV scan button: poll status, Growth+ gate, progress UI with elapsed timer + 3-step indicators + animated bar + completion/failure banners (P1-FIX-05, §177)
 app/dashboard/_components/UpgradeRedirectBanner.tsx — Dismissible upgrade banner for /dashboard?upgrade=X (P1-FIX-07, §176)
 app/api/sov/trigger-manual/         — POST trigger + GET poll manual SOV scan (P1-FIX-05, §177)
 lib/inngest/functions/manual-sov-trigger.ts — Inngest async SOV scan: 4 steps, reuses processOrgSOV (P1-FIX-05, §177)

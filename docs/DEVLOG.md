@@ -4,6 +4,25 @@
 
 ---
 
+## 2026-03-06 — ManualScanTrigger: progress UI for scan feedback
+
+**Problem:** When users clicked "Run Scan", the only feedback was a spinning icon and static "Scanning…" text. During the 2–5 minute scan, users got a "quiet treatment" with no sense of progress.
+
+**Fix (1 file):**
+- `app/dashboard/_components/ManualScanTrigger.tsx` — Enhanced with:
+  - **Elapsed timer** — "Scanning in progress — 1m 23s elapsed" updates every second
+  - **Animated progress bar** — green bar fills gradually over ~3 minutes with pulse animation
+  - **3-step indicators** — Preparing queries → Asking AI models → Analyzing responses (spinner on active, checkmark on done, dimmed on upcoming)
+  - **Reassurance text** — "This usually takes 2–5 minutes. You can leave this page — the scan continues in the background."
+  - **Completion banner** — green card: "Your AI visibility scores have been updated."
+  - **Failure banner** — amber card with helpful retry message
+  - **Retry button** — "Retry Scan" label with XCircle icon after failure
+  - Steps are time-based (simulated from elapsed time, not real Inngest step events)
+
+**Result:** Users see continuous visual feedback throughout the scan lifecycle. All 31 existing ManualScanTrigger tests pass.
+
+---
+
 ## 2026-03-06 — Fix Guidance Panel: wire fix_guidance_category into hallucination inserts
 
 **Problem:** `FixGuidancePanel` (S14, §214) existed but never rendered — `fix_guidance_category` was never set when hallucinations were inserted by the audit cron. The column stayed `null`, so `getFixGuidance(null)` returned `null` and the panel was hidden.
