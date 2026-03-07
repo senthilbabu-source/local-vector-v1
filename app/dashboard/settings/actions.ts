@@ -263,6 +263,45 @@ export async function updateAdvancedPrefs(formData: FormData): Promise<ActionRes
 }
 
 // ---------------------------------------------------------------------------
+// S71: saveScoreGoal — Server Action (Wave 13)
+// ---------------------------------------------------------------------------
+
+const ScoreGoalSchema = z.object({
+  targetScore: z.number().int().min(1).max(100),
+  deadline: z.string().refine((v) => {
+    const d = new Date(v);
+    return !isNaN(d.getTime()) && d.getTime() > Date.now();
+  }, 'Deadline must be a future date'),
+});
+
+export async function saveScoreGoal(
+  goal: { targetScore: number; deadline: string } | null,
+): Promise<ActionResult> {
+  const ctx = await getSafeAuthContext();
+  if (!ctx?.orgId) return { success: false, error: 'Unauthorized' };
+
+  // null = clear goal
+  const scoreGoal = goal === null ? null : ScoreGoalSchema.safeParse(goal);
+  if (goal !== null && scoreGoal && !scoreGoal.success) {
+    return { success: false, error: scoreGoal.error.issues[0]?.message ?? 'Invalid goal' };
+  }
+
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from('org_settings' as never)
+    .update({
+      score_goal: goal === null ? null : (scoreGoal as { success: true; data: { targetScore: number; deadline: string } }).data,
+      updated_at: new Date().toISOString(),
+    } as never)
+    .eq('org_id' as never, ctx.orgId as never);
+
+  if (error) return { success: false, error: error.message };
+
+  revalidatePath('/dashboard');
+  return { success: true };
+}
+
+// ---------------------------------------------------------------------------
 // softDeleteOrganization — Server Action (Sprint 62)
 // ---------------------------------------------------------------------------
 

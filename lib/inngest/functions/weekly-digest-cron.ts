@@ -12,10 +12,14 @@
 // is called inside each step (cannot serialize across step boundaries).
 // ---------------------------------------------------------------------------
 
+import * as Sentry from '@sentry/nextjs';
 import { inngest } from '../client';
 import { createServiceRoleClient } from '@/lib/supabase/server';
 import { fetchDigestForOrg } from '@/lib/data/weekly-digest';
 import { sendDigestEmail } from '@/lib/email/send-digest';
+import { generateWeeklyReportCard } from '@/lib/services/weekly-report-card';
+import { sendWeeklyReportCard } from '@/lib/email';
+import { planSatisfies, type PlanTier } from '@/lib/plan-enforcer';
 
 export const weeklyDigestCron = inngest.createFunction(
   {
@@ -25,26 +29,58 @@ export const weeklyDigestCron = inngest.createFunction(
   },
   { event: 'cron/digest.weekly' },
   async ({ step }) => {
-    // Step 1: Fetch all active orgs with digest enabled
+    // Step 1: Fetch all active orgs with digest enabled (include plan for report card routing)
     const orgs = await step.run('fetch-orgs', async () => {
       const supabase = createServiceRoleClient();
       const { data } = await supabase
         .from('organizations')
-        .select('id')
+        .select('id, plan, owner_user_id, name')
         .eq('notify_weekly_digest', true)
         .in('plan_status', ['active', 'trialing']);
-      return data ?? [];
+      return (data ?? []) as Array<{ id: string; plan: string | null; owner_user_id: string | null; name: string | null }>;
     });
 
     // Step 2: Fan-out — one step per org
     let sent = 0;
     let skipped = 0;
     let failed = 0;
+    let reportCards = 0;
 
     for (const org of orgs) {
       await step.run(`digest-${org.id}`, async () => {
         const supabase = createServiceRoleClient(); // Per-step client (§30.3)
 
+        // S70: Growth+ orgs get enhanced weekly report card instead of basic digest
+        const orgPlan = (org.plan ?? 'trial') as PlanTier;
+        if (planSatisfies(orgPlan, 'growth') && org.owner_user_id) {
+          try {
+            const card = await generateWeeklyReportCard(supabase, org.id);
+            if (card) {
+              const { data: owner } = await supabase
+                .from('users')
+                .select('email, full_name')
+                .eq('id', org.owner_user_id)
+                .single();
+
+              if (owner?.email) {
+                await sendWeeklyReportCard({
+                  to: owner.email,
+                  card,
+                  businessName: org.name ?? 'Your Business',
+                  recipientName: owner.full_name ?? owner.email.split('@')[0],
+                });
+                reportCards++;
+                sent++;
+                return;
+              }
+            }
+          } catch (err) {
+            Sentry.captureException(err, { tags: { file: 'weekly-digest-cron.ts', sprint: 'S70' } });
+            // Fall through to basic digest on report card failure
+          }
+        }
+
+        // Basic digest for Trial/Starter or report card fallback
         const payload = await fetchDigestForOrg(supabase, org.id);
         if (!payload) {
           skipped++;
@@ -60,6 +96,6 @@ export const weeklyDigestCron = inngest.createFunction(
       });
     }
 
-    return { sent, skipped, failed, total: orgs.length };
+    return { sent, skipped, failed, reportCards, total: orgs.length };
   },
 );

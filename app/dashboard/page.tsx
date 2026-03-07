@@ -42,6 +42,7 @@ import DegradationAlertBanner from './_components/DegradationAlertBanner';
 import FirstScanRevealCard from './_components/FirstScanRevealCard';
 import ConsistencyScoreCard from './_components/ConsistencyScoreCard';
 import GoalTrackerCard from './_components/GoalTrackerCard';
+import type { ScoreGoal } from '@/lib/services/goal-tracker';
 import { buildSparklineData } from '@/lib/services/kpi-sparkline';
 import { fetchConsistencyScore } from '@/lib/services/consistency-score.service';
 import AIResponseTeaser from './_components/AIResponseTeaser';
@@ -182,6 +183,25 @@ export default async function DashboardPage({
       consistencyData = await fetchConsistencyScore(supabaseForConsistency, ctx.orgId, activeLocationId);
     } catch (err) {
       Sentry.captureException(err, { tags: { component: 'consistency-score', sprint: 'S28' } });
+    }
+  }
+
+  // S71: Score goal from org_settings
+  let scoreGoal: ScoreGoal | null = null;
+  if (ctx.orgId && !sampleMode) {
+    try {
+      const supabaseForGoal = await createClient();
+      const { data: goalRow } = await supabaseForGoal
+        .from('org_settings' as never)
+        .select('score_goal' as never)
+        .eq('org_id' as never, ctx.orgId as never)
+        .maybeSingle();
+      const goalData = (goalRow as { score_goal?: unknown } | null)?.score_goal;
+      if (goalData && typeof goalData === 'object' && 'targetScore' in goalData && 'deadline' in goalData) {
+        scoreGoal = goalData as ScoreGoal;
+      }
+    } catch (err) {
+      Sentry.captureException(err, { tags: { component: 'goal-tracker', sprint: 'S71' } });
     }
   }
 
@@ -466,7 +486,7 @@ export default async function DashboardPage({
       {/* ── S55: Goal Tracker (shown when user sets a score goal) ────────── */}
       <GoalTrackerCard
         currentScore={displayScores.realityScore}
-        goal={null}
+        goal={scoreGoal}
         sampleMode={sampleMode}
       />
 

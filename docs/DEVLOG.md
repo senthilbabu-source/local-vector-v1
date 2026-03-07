@@ -4,6 +4,31 @@
 
 ---
 
+## 2026-03-07 — §274–§277 Wave 13: End-to-End Completion (S70-S73)
+
+Wired 3 orphaned services into their production paths + regression suite.
+
+- **S70 (§274):** Weekly report card email wired into digest cron. Growth+ orgs get enhanced report card via `generateWeeklyReportCard()` + `sendWeeklyReportCard()`. Try/catch fallthrough to basic digest. Both Inngest + inline paths updated.
+- **S71 (§275):** Goal tracker full stack. Migration `score_goal jsonb` on `org_settings`. `saveScoreGoal()` server action with Zod validation. GoalSettingsForm on settings page. Dashboard fetches goal and passes to GoalTrackerCard.
+- **S72 (§276):** Medical copy guard wired into both content generation paths (autopilot `create-draft.ts` + user-initiated `brief-actions.ts`). `isMedicalCategory()` detection → `checkMedicalCopy()` → NEEDS REVIEW prefix + disclaimer injection.
+- **S73 (§277):** 23 unit tests (`wave13-end-to-end.test.ts`). 6994 tests, 439 files — ALL PASS.
+
+### Files changed (new):
+- `supabase/migrations/20260503000007_score_goal.sql`
+- `app/dashboard/settings/_components/GoalSettingsForm.tsx`
+- `src/__tests__/unit/wave13-end-to-end.test.ts`
+
+### Files changed (modified):
+- `lib/inngest/functions/weekly-digest-cron.ts` — Growth+ report card routing
+- `app/api/cron/weekly-digest/route.ts` — Same routing for inline fallback
+- `app/dashboard/settings/actions.ts` — `saveScoreGoal()` server action
+- `app/dashboard/settings/page.tsx` — GoalSettingsForm rendering
+- `app/dashboard/page.tsx` — Score goal fetch + GoalTrackerCard wiring
+- `lib/autopilot/create-draft.ts` — Medical copy guard integration
+- `app/dashboard/share-of-voice/brief-actions.ts` — Medical copy guard integration
+
+---
+
 ## 2026-03-07 — §270–§273 Wave 12: Final Wiring (S65-S69)
 
 Wired the last 3 orphaned services into their pages + regression suite.

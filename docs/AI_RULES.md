@@ -5948,3 +5948,61 @@ Wired kpi-sparkline into WeeklyKPIChips with mini SVG sparklines.
 - Tests cover: S65 digest preferences (6), S66 AI menu suggestions (6), S67 KPI sparklines (7), S68 integration verifications (3).
 - Pure function tests + component importability checks.
 - Total test count: 6971 tests, 438 files.
+
+## §274 — S70: Weekly Report Card Cron Wiring (Wave 13)
+
+Growth+ orgs receive enhanced weekly report card instead of basic digest. Falls through to basic digest on failure.
+
+### Changes
+- `lib/inngest/functions/weekly-digest-cron.ts` (MODIFIED): Added `planSatisfies(orgPlan, 'growth')` routing. Fetches owner email, calls `generateWeeklyReportCard()` + `sendWeeklyReportCard()`. Try/catch fallthrough to basic digest. `reportCards` counter added to return value.
+- `app/api/cron/weekly-digest/route.ts` (MODIFIED): Same Growth+ routing pattern for inline fallback path.
+
+### Rules
+- Report card generation is try/catch wrapped — failure never skips an org's email entirely.
+- `planSatisfies()` from `lib/plan-enforcer.ts` — never inline tier checks.
+- Owner email fetched from `users` table via `org.owner_user_id`.
+- Sentry tags: `{ file: 'weekly-digest-cron.ts', sprint: 'S70' }`.
+
+## §275 — S71: Goal Tracker Full Stack (Wave 13)
+
+Score goal persistence + settings form + dashboard wiring.
+
+### Changes
+- `supabase/migrations/20260503000007_score_goal.sql` (NEW): `score_goal jsonb DEFAULT NULL` on `org_settings`.
+- `app/dashboard/settings/actions.ts` (MODIFIED): `saveScoreGoal()` server action with Zod validation (target 1-100, future deadline). Null = clear goal.
+- `app/dashboard/settings/_components/GoalSettingsForm.tsx` (NEW): Client component with target score + deadline + Save/Clear.
+- `app/dashboard/settings/page.tsx` (MODIFIED): Renders GoalSettingsForm between digest and scan frequency.
+- `app/dashboard/page.tsx` (MODIFIED): Fetches `score_goal` from `org_settings`, passes to GoalTrackerCard.
+
+### Rules
+- Uses `org_settings` JSONB column — no new table.
+- `supabase.from('org_settings' as never)` cast for untyped table.
+- Goal fetch is try/catch with Sentry — never breaks dashboard render.
+- `validateTargetScore()` and `validateDeadline()` from `lib/services/goal-tracker.ts`.
+
+## §276 — S72: Medical Copy Guard Integration (Wave 13)
+
+Medical copy guard wired into both content generation paths for medical/dental orgs.
+
+### Changes
+- `lib/autopilot/create-draft.ts` (MODIFIED): Added `checkMedicalCopy()` + `isMedicalCategory()` after brief generation. Prefixes `[NEEDS REVIEW]` on violations, appends disclaimer when required.
+- `app/dashboard/share-of-voice/brief-actions.ts` (MODIFIED): Same guard after `assembleDraftContent()` and before quality gate.
+
+### Rules
+- Guard runs in BOTH paths: autopilot (`create-draft.ts`) and user-initiated (`brief-actions.ts`).
+- `isMedicalCategory()` from `lib/services/sov-seed.ts` — case-insensitive category detection.
+- `checkMedicalCopy()` from `lib/services/medical-copy-guard.ts` — FORBIDDEN_PATTERNS and DISCLAIMER_REQUIRED_PATTERNS.
+- Violations prefix: `[NEEDS REVIEW — Medical compliance: N issue(s) flagged]`.
+- Disclaimer format: `\n\n---\nDisclaimer: {suggestionToAdd}`.
+
+## §277 — S73: Wave 13 Tests (Wave 13)
+
+23 unit tests covering S70–S72 wiring + integration verifications.
+
+### Changes
+- `src/__tests__/unit/wave13-end-to-end.test.ts` (NEW): 23 tests across 4 describe blocks.
+
+### Rules
+- Tests cover: S70 report card routing (6), S71 goal tracker (7), S72 medical copy guard (7), S73 integration verifications (3).
+- Pure function tests + component importability checks.
+- Total test count: 6994 tests, 439 files.

@@ -20,6 +20,9 @@ import { logCronStart, logCronComplete, logCronFailed } from '@/lib/services/cro
 import { createServiceRoleClient } from '@/lib/supabase/server';
 import { fetchDigestForOrg } from '@/lib/data/weekly-digest';
 import { sendDigestEmail } from '@/lib/email/send-digest';
+import { generateWeeklyReportCard } from '@/lib/services/weekly-report-card';
+import { sendWeeklyReportCard } from '@/lib/email';
+import { planSatisfies, type PlanTier } from '@/lib/plan-enforcer';
 import * as Sentry from '@sentry/nextjs';
 
 export const dynamic = 'force-dynamic';
@@ -65,16 +68,47 @@ async function runInlineDigest() {
 
   const { data: orgs } = await supabase
     .from('organizations')
-    .select('id')
+    .select('id, plan, owner_user_id, name')
     .eq('notify_weekly_digest', true)
     .in('plan_status', ['active', 'trialing']);
 
   let sent = 0;
   let skipped = 0;
   let failed = 0;
+  let reportCards = 0;
 
-  for (const org of orgs ?? []) {
+  for (const org of (orgs ?? []) as Array<{ id: string; plan: string | null; owner_user_id: string | null; name: string | null }>) {
     try {
+      // S70: Growth+ orgs get enhanced weekly report card
+      const orgPlan = (org.plan ?? 'trial') as PlanTier;
+      if (planSatisfies(orgPlan, 'growth') && org.owner_user_id) {
+        try {
+          const card = await generateWeeklyReportCard(supabase, org.id);
+          if (card) {
+            const { data: owner } = await supabase
+              .from('users')
+              .select('email, full_name')
+              .eq('id', org.owner_user_id)
+              .single();
+
+            if (owner?.email) {
+              await sendWeeklyReportCard({
+                to: owner.email,
+                card,
+                businessName: org.name ?? 'Your Business',
+                recipientName: owner.full_name ?? owner.email.split('@')[0],
+              });
+              reportCards++;
+              sent++;
+              continue;
+            }
+          }
+        } catch (rcErr) {
+          Sentry.captureException(rcErr, { tags: { file: 'weekly-digest/route.ts', sprint: 'S70' } });
+          // Fall through to basic digest
+        }
+      }
+
       const payload = await fetchDigestForOrg(supabase, org.id);
       if (!payload) {
         skipped++;
@@ -95,9 +129,9 @@ async function runInlineDigest() {
     Sentry.captureMessage(`Weekly digest skipped ${skipped} orgs (no data or disabled)`, {
       level: 'info',
       tags: { cron: 'weekly-digest', sprint: 'C' },
-      extra: { sent, skipped, failed },
+      extra: { sent, skipped, failed, reportCards },
     });
   }
 
-  return { sent, skipped, failed, total: (orgs ?? []).length };
+  return { sent, skipped, failed, reportCards, total: (orgs ?? []).length };
 }

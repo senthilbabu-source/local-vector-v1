@@ -9,6 +9,8 @@ import { assessBriefQuality } from '@/lib/content-brief';
 import type { BriefStructure } from '@/lib/services/content-brief-builder.service';
 import type { ContentBrief } from '@/lib/ai/schemas';
 import { revalidatePath } from 'next/cache';
+import { checkMedicalCopy } from '@/lib/services/medical-copy-guard';
+import { isMedicalCategory } from '@/lib/services/sov-seed';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -146,7 +148,18 @@ export async function generateContentBrief(
   });
 
   // Assemble draft content
-  const draftContent = await assembleDraftContent(structure, briefContent);
+  let draftContent = await assembleDraftContent(structure, briefContent);
+
+  // S72: Medical copy guard for medical/dental orgs
+  if (isMedicalCategory(categories)) {
+    const guard = checkMedicalCopy(draftContent);
+    if (!guard.approved) {
+      draftContent = `[NEEDS REVIEW — Medical compliance: ${guard.violations.length} issue(s) flagged]\n\n${draftContent}`;
+    }
+    if (guard.requiresDisclaimer && guard.suggestionToAdd) {
+      draftContent = `${draftContent}\n\n---\nDisclaimer: ${guard.suggestionToAdd}`;
+    }
+  }
 
   // P8-FIX-34: Quality gate scoring
   const qualityVerdict = assessBriefQuality(draftContent, structure.titleTag, {

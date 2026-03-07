@@ -27,6 +27,8 @@ import type {
 } from '@/lib/types/autopilot';
 import { generateDraftBrief } from './generate-brief';
 import { scoreContentHeuristic } from './score-content';
+import { checkMedicalCopy } from '@/lib/services/medical-copy-guard';
+import { isMedicalCategory } from '@/lib/services/sov-seed';
 
 /** Maximum pending (status='draft') drafts per org. Doc 19 §8.1. */
 export const PENDING_DRAFT_CAP = 5;
@@ -133,6 +135,19 @@ export async function createDraft(
   if (!brief.content || brief.content.trim().length === 0) {
     console.warn('[autopilot/create-draft] AI returned empty content. Skipping insert.');
     return null;
+  }
+
+  // ── 5b. S72: Medical copy guard for medical/dental orgs ────────────────
+  const categories = location.categories ?? [];
+  if (isMedicalCategory(categories)) {
+    const guard = checkMedicalCopy(brief.content);
+    if (!guard.approved) {
+      // Strip violating content — prefix draft with NEEDS_REVIEW tag
+      brief.content = `[NEEDS REVIEW — Medical compliance: ${guard.violations.length} issue(s) flagged]\n\n${brief.content}`;
+    }
+    if (guard.requiresDisclaimer && guard.suggestionToAdd) {
+      brief.content = `${brief.content}\n\n---\nDisclaimer: ${guard.suggestionToAdd}`;
+    }
   }
 
   // ── 6. Score content ─────────────────────────────────────────────────────

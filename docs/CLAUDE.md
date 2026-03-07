@@ -12,7 +12,7 @@ LocalVector is an AEO/GEO SaaS platform that helps local businesses monitor and 
 - **Billing:** Stripe webhooks → `organizations.plan_tier` enum (`trial | starter | growth | agency`)
 - **Email:** Resend + React Email (`emails/`)
 - **Cache:** Upstash Redis (`lib/redis.ts`) — optional, all callers must degrade gracefully
-- **Testing:** Vitest (unit/integration in `src/__tests__/`), Playwright (E2E in `tests/e2e/`, 42 specs). Current: ~6082 tests, 399 files.
+- **Testing:** Vitest (unit/integration in `src/__tests__/`), Playwright (E2E in `tests/e2e/`, 42 specs). Current: ~6994 tests, 439 files.
 - **Monitoring:** Sentry (client, server, edge configs) — all catch blocks instrumented (Sprint A, AI_RULES §70)
 
 ## Architecture Rules
@@ -123,7 +123,7 @@ app/api/settings/data-export/  — GDPR data export API, owner-only, rate-limite
 app/api/cron/data-cleanup/     — GDPR 7-day grace period deletion cron (P6-FIX-26, §186)
 components/ui/CookieConsentBanner.tsx — Cookie consent banner, localStorage-backed (P6-FIX-26, §186)
 lib/supabase/database.types.ts — Full Database type (59 tables, 9 enums, Relationships)
-supabase/migrations/   — Applied SQL migrations (55, timestamp-ordered)
+supabase/migrations/   — Applied SQL migrations (93, timestamp-ordered)
 supabase/prod_schema.sql — Full production schema dump
 docs/                  — 50 spec documents (authoritative for planned features)
 src/__tests__/         — Unit + integration tests
@@ -767,4 +767,4 @@ APPLE_MAPS_PRIVATE_KEY, APPLE_MAPS_KEY_ID, APPLE_MAPS_TEAM_ID
 
 ## Build History
 
-See `DEVLOG.md` (project root) and `docs/DEVLOG.md` for the complete sprint-by-sprint build log. Current sprint: DIST-4 (+ 135 sprints + FIX-1 through FIX-8 + Sprint A through Sprint O + P0-FIX-01 through P8-FIX-37 + Relevance Filter + DIST-1/DIST-2/DIST-3/DIST-4). AI_RULES: §1–§199 (199 sections). Production readiness: all audit issues resolved. **V1 complete.**
+See `DEVLOG.md` (project root) and `docs/DEVLOG.md` for the complete sprint-by-sprint build log. Current sprint: DIST-4 (+ 135 sprints + FIX-1 through FIX-8 + Sprint A through Sprint O + P0-FIX-01 through P8-FIX-37 + Relevance Filter + DIST-1/DIST-2/DIST-3/DIST-4). AI_RULES: §1–§277 (277 sections). Production readiness: all audit issues resolved. **V1 complete.**
