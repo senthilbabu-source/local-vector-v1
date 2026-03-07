@@ -301,6 +301,19 @@ export default async function DashboardPage({
   }
 
   // S49: Exportable report (built from current dashboard data)
+  // S75: Derive topWin, competitorHighlight, nextAction from existing fetched data
+  const reportTopWin = recentWins.length > 0
+    ? (recentWins[0].title as string)
+    : spotlightFix
+      ? `Fixed ${(spotlightFix as unknown as { category: string }).category} error`
+      : null;
+  const reportCompetitorHighlight = competitorChanges.length > 0
+    ? `${competitorChanges[0].name} mentions ${competitorChanges[0].direction} ${Math.abs(competitorChanges[0].deltaPct)}%`
+    : null;
+  const reportNextAction = quickWin?.action ?? (openAlerts.length > 0
+    ? 'Fix open AI errors on the dashboard'
+    : null);
+
   const exportReport: ExportableReport | null = sampleMode
     ? null
     : buildExportableReport(
@@ -309,10 +322,10 @@ export default async function DashboardPage({
           scoreDelta: previousRealityScore !== null && displayScores.realityScore !== null
             ? displayScores.realityScore - previousRealityScore
             : null,
-          topWin: null,
+          topWin: reportTopWin,
           topIssue: openAlerts[0]?.claim_text ?? null,
-          competitorHighlight: null,
-          nextAction: null,
+          competitorHighlight: reportCompetitorHighlight,
+          nextAction: reportNextAction,
           errorsFixed: 0,
           newErrors: openAlerts.length,
           sovPercent: visibilityScore,

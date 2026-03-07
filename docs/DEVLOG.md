@@ -6862,3 +6862,29 @@ Committed: `d70bf19` — 70 files, 12,552 insertions.
 
 ### Files changed (modified):
 - None — all new files, no dashboard wiring yet (components ready for page integration)
+
+---
+
+## Wave 14 — Persistence & Polish (S74–S77) — 2026-03-07
+
+**AI_RULES §278–§281. 7014 tests, 440 files — ALL PASS.**
+
+### Summary
+- **S74 (§278)**: Digest preferences persistence. Migration `20260503000008_digest_preferences.sql` adds `digest_preferences jsonb` to `org_settings`. `saveDigestPreferences()` server action with `validateFrequency`/`validateSections`. `onSave` prop wired to `DigestPreferencesForm`. Weekly digest cron checks frequency preference via `shouldSendDigest()` (fail-open). Both Inngest and inline fallback paths updated.
+- **S75 (§279)**: Export report enrichment. 3 null fields in `buildExportableReport()` now derived from already-fetched dashboard data: `reportTopWin` (wins → spotlight fix → null), `reportCompetitorHighlight` (competitor changes → null), `reportNextAction` (quick win → open alerts → null). No new DB queries.
+- **S76 (§280)**: Menu demand analyzer integration verified. `AITalkingAboutSection.tsx` properly wired to magic-menus page. `countItemMentions()` uses case-insensitive substring, skips items < 3 chars.
+- **S77 (§281)**: 20 unit tests across 4 describe blocks. Database types completeness test #27 updated for `as never` casts in org_settings region.
+
+### Files changed (new):
+- `supabase/migrations/20260503000008_digest_preferences.sql`
+- `src/__tests__/unit/wave14-persistence-polish.test.ts`
+
+### Files changed (modified):
+- `app/dashboard/settings/actions.ts` — added `saveDigestPreferences()` server action
+- `app/dashboard/settings/page.tsx` — wired `onSave={saveDigestPreferences}` to DigestPreferencesForm
+- `lib/inngest/functions/weekly-digest-cron.ts` — frequency check before sending
+- `app/api/cron/weekly-digest/route.ts` — frequency check in inline fallback
+- `app/dashboard/page.tsx` — derived topWin/competitorHighlight/nextAction for export report
+- `src/__tests__/unit/database-types-completeness.test.ts` — test #27 regression fix for org_settings casts
+- `lib/menu-intelligence/demand-analyzer.ts` — previously modified (Wave 13)
+- `app/dashboard/magic-menus/_components/AITalkingAboutSection.tsx` — previously untracked (Wave 13)

@@ -23,6 +23,7 @@ import { sendDigestEmail } from '@/lib/email/send-digest';
 import { generateWeeklyReportCard } from '@/lib/services/weekly-report-card';
 import { sendWeeklyReportCard } from '@/lib/email';
 import { planSatisfies, type PlanTier } from '@/lib/plan-enforcer';
+import { shouldSendDigest, validateFrequency, type DigestFrequency } from '@/lib/services/digest-preferences';
 import * as Sentry from '@sentry/nextjs';
 
 export const dynamic = 'force-dynamic';
@@ -79,6 +80,25 @@ async function runInlineDigest() {
 
   for (const org of (orgs ?? []) as Array<{ id: string; plan: string | null; owner_user_id: string | null; name: string | null }>) {
     try {
+      // S74: Check digest frequency preference before sending
+      try {
+        const { data: settingsRow } = await supabase
+          .from('org_settings' as never)
+          .select('digest_preferences, updated_at' as never)
+          .eq('org_id' as never, org.id as never)
+          .maybeSingle();
+        const prefs = (settingsRow as { digest_preferences?: { frequency?: string } } | null)?.digest_preferences;
+        const frequency = validateFrequency(prefs?.frequency) as DigestFrequency;
+        const lastSent = (settingsRow as { updated_at?: string } | null)?.updated_at ?? null;
+        if (frequency !== 'weekly' && !shouldSendDigest(frequency, lastSent)) {
+          skipped++;
+          continue;
+        }
+      } catch (err) {
+        Sentry.captureException(err, { tags: { file: 'weekly-digest/route.ts', sprint: 'S74' } });
+        // Fail-open
+      }
+
       // S70: Growth+ orgs get enhanced weekly report card
       const orgPlan = (org.plan ?? 'trial') as PlanTier;
       if (planSatisfies(orgPlan, 'growth') && org.owner_user_id) {

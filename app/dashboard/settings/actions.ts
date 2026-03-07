@@ -302,6 +302,40 @@ export async function saveScoreGoal(
 }
 
 // ---------------------------------------------------------------------------
+// S74: saveDigestPreferences — Server Action (Wave 14)
+// ---------------------------------------------------------------------------
+
+import {
+  validateFrequency,
+  validateSections,
+  type DigestPreferences,
+} from '@/lib/services/digest-preferences';
+
+export async function saveDigestPreferences(
+  prefs: DigestPreferences,
+): Promise<ActionResult> {
+  const ctx = await getSafeAuthContext();
+  if (!ctx?.orgId) return { success: false, error: 'Unauthorized' };
+
+  const frequency = validateFrequency(prefs.frequency);
+  const sections = validateSections(prefs.sections);
+
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from('org_settings' as never)
+    .update({
+      digest_preferences: { frequency, sections },
+      updated_at: new Date().toISOString(),
+    } as never)
+    .eq('org_id' as never, ctx.orgId as never);
+
+  if (error) return { success: false, error: error.message };
+
+  revalidatePath('/dashboard/settings');
+  return { success: true };
+}
+
+// ---------------------------------------------------------------------------
 // softDeleteOrganization — Server Action (Sprint 62)
 // ---------------------------------------------------------------------------
 

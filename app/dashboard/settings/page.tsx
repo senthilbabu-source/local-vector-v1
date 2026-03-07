@@ -13,6 +13,7 @@ import type { OrgSettings } from '@/lib/settings/types';
 import { DEFAULT_DIGEST_PREFERENCES, type DigestPreferences } from '@/lib/services/digest-preferences';
 import type { ScoreGoal } from '@/lib/services/goal-tracker';
 import { canManageApiKeys, type PlanTier } from '@/lib/plan-enforcer';
+import { saveDigestPreferences } from './actions';
 
 export const dynamic = 'force-dynamic';
 export const metadata = { title: 'Settings | LocalVector.ai' };
@@ -113,6 +114,7 @@ export default async function SettingsPage() {
               initialPreferences={
                 (orgSettings as Record<string, unknown>)?.digest_preferences as DigestPreferences ?? DEFAULT_DIGEST_PREFERENCES
               }
+              onSave={saveDigestPreferences}
             />
           </div>
 

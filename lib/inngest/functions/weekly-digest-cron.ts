@@ -20,6 +20,7 @@ import { sendDigestEmail } from '@/lib/email/send-digest';
 import { generateWeeklyReportCard } from '@/lib/services/weekly-report-card';
 import { sendWeeklyReportCard } from '@/lib/email';
 import { planSatisfies, type PlanTier } from '@/lib/plan-enforcer';
+import { shouldSendDigest, validateFrequency, type DigestFrequency } from '@/lib/services/digest-preferences';
 
 export const weeklyDigestCron = inngest.createFunction(
   {
@@ -49,6 +50,26 @@ export const weeklyDigestCron = inngest.createFunction(
     for (const org of orgs) {
       await step.run(`digest-${org.id}`, async () => {
         const supabase = createServiceRoleClient(); // Per-step client (§30.3)
+
+        // S74: Check digest frequency preference before sending
+        try {
+          const { data: settingsRow } = await supabase
+            .from('org_settings' as never)
+            .select('digest_preferences, updated_at' as never)
+            .eq('org_id' as never, org.id as never)
+            .maybeSingle();
+          const prefs = (settingsRow as { digest_preferences?: { frequency?: string } } | null)?.digest_preferences;
+          const frequency = validateFrequency(prefs?.frequency) as DigestFrequency;
+          // Use updated_at as proxy for last digest sent (conservative — slightly over-sends is OK)
+          const lastSent = (settingsRow as { updated_at?: string } | null)?.updated_at ?? null;
+          if (frequency !== 'weekly' && !shouldSendDigest(frequency, lastSent)) {
+            skipped++;
+            return;
+          }
+        } catch (err) {
+          Sentry.captureException(err, { tags: { file: 'weekly-digest-cron.ts', sprint: 'S74' } });
+          // Fail-open: send if we can't read preferences
+        }
 
         // S70: Growth+ orgs get enhanced weekly report card instead of basic digest
         const orgPlan = (org.plan ?? 'trial') as PlanTier;
