@@ -209,8 +209,8 @@ describe('S42: formatDaysToFix', () => {
 describe('S43: analyzeMenuCompleteness', () => {
   it('counts items correctly', () => {
     const items: MenuItemData[] = [
-      { name: 'Brisket', description: 'Slow smoked', price: 18, dietary_tags: ['gluten-free'] },
-      { name: 'Ribs', description: null, price: 22, dietary_tags: [] },
+      { name: 'Brisket', description: 'Slow smoked', price: '$18', dietary_tags: ['gluten-free'] },
+      { name: 'Ribs', description: null, price: '$22', dietary_tags: [] },
       { name: 'Coleslaw', description: '', price: null },
     ];
     const result = analyzeMenuCompleteness(items);
@@ -228,7 +228,7 @@ describe('S43: analyzeMenuCompleteness', () => {
 
   it('computes percentages correctly', () => {
     const items: MenuItemData[] = [
-      { name: 'A', description: 'Yes', price: 10 },
+      { name: 'A', description: 'Yes', price: '$10' },
       { name: 'B', description: 'Yes', price: null },
     ];
     const result = analyzeMenuCompleteness(items);
@@ -247,7 +247,7 @@ describe('S43: generateMenuSuggestions', () => {
 
   it('suggests descriptions for high-demand items missing them', () => {
     const items: MenuItemData[] = [
-      { name: 'Brisket', description: null, price: 18 },
+      { name: 'Brisket', description: null, price: '$18' },
     ];
     const completeness = analyzeMenuCompleteness(items);
     const demand = [{ item_name: 'Brisket', mention_count: 47 }];
@@ -268,7 +268,7 @@ describe('S43: generateMenuSuggestions', () => {
 
   it('suggests dietary tags when none exist', () => {
     const items: MenuItemData[] = [
-      { name: 'A', description: 'Y', price: 10, dietary_tags: [] },
+      { name: 'A', description: 'Y', price: '$10', dietary_tags: [] },
     ];
     const completeness = analyzeMenuCompleteness(items);
     const suggestions = generateMenuSuggestions(completeness);
@@ -277,8 +277,8 @@ describe('S43: generateMenuSuggestions', () => {
 
   it('returns empty suggestions when all items are complete', () => {
     const items: MenuItemData[] = [
-      { name: 'A', description: 'Full', price: 10, dietary_tags: ['vegan'] },
-      { name: 'B', description: 'Full', price: 12, dietary_tags: ['gf'] },
+      { name: 'A', description: 'Full', price: '$10', dietary_tags: ['vegan'] },
+      { name: 'B', description: 'Full', price: '$12', dietary_tags: ['gf'] },
     ];
     const completeness = analyzeMenuCompleteness(items);
     const suggestions = generateMenuSuggestions(completeness);

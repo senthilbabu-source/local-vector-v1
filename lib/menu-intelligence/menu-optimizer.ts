@@ -12,7 +12,8 @@
 export interface MenuItemData {
   name: string;
   description?: string | null;
-  price?: number | null;
+  /** Price as string (e.g. "$12.50") matching MenuExtractedItem.price */
+  price?: string | null;
   dietary_tags?: string[] | null;
   category?: string | null;
 }
@@ -54,7 +55,7 @@ export function analyzeMenuCompleteness(items: MenuItemData[]): MenuCompleteness
   }
 
   const itemsWithDescription = items.filter(i => i.description && i.description.trim().length > 0).length;
-  const itemsWithPrice = items.filter(i => i.price !== null && i.price !== undefined && i.price > 0).length;
+  const itemsWithPrice = items.filter(i => i.price !== null && i.price !== undefined && i.price.trim().length > 0).length;
   const itemsWithDietary = items.filter(i => i.dietary_tags && i.dietary_tags.length > 0).length;
 
   return {

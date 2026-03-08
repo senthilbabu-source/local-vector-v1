@@ -31,6 +31,8 @@ export interface MenuExtractedItem {
   image_url?: string;
   /** Optional pricing note for tiered/refill pricing (e.g. "Double: $15", "Refill: $20"). */
   price_note?: string;
+  /** Dietary tags (e.g. ["vegan", "gluten-free"]). Mapped to Schema.org RestrictedDiet URIs in JSON-LD. */
+  dietary_tags?: string[];
 
   // ── AI Enhancement suggestions (pre-publish) ─────────────────────────────
   /** AI-generated description suggestion. Present only after "Enhance with AI" step. */

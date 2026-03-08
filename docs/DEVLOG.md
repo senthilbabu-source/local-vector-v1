@@ -4,6 +4,26 @@
 
 ---
 
+## Magic Menus UX Overhaul — Inline Editor + AI Dietary Tagger + Bug Fixes (2026-03-08)
+
+**Bug Fixes:**
+- **lib/menu-intelligence/menu-optimizer.ts** — Fixed `MenuItemData.price` type from `number | null` to `string | null` to match actual `MenuExtractedItem.price` (string like `"$12.50"`). The old `i.price > 0` check always evaluated to `NaN > 0 → false` for string prices, causing "Add prices to 126 items" suggestion when all items already had prices. Now checks `i.price.trim().length > 0`.
+- **app/dashboard/magic-menus/page.tsx** — Fixed 2 inline type casts from `price?: number` to `price?: string` to match corrected `MenuItemData`.
+- **app/dashboard/magic-menus/_components/MenuWorkspace.tsx** — Fixed stepper badge: step 3 "Published" now shows green checkmark (was indigo "3") when menu is published. Logic: `done = idx < currentIdx || (idx === currentIdx && current === 'published')`.
+- **app/dashboard/magic-menus/_components/MenuCoachHero.tsx** — Fixed `getTier()`: now checks `menu.last_distributed_at` as fallback for `'live-distributed'` tier. Previously only checked propagation events, but distribution sets `last_distributed_at` even when individual engines return pending.
+
+**New Features:**
+- **app/dashboard/magic-menus/_components/MenuWorkspace.tsx** — Replaced cryptic propagation status pills (✓/○ Published/Link injected/Crawled/Live in AI) with actionable `PropagationChecklist` — 4 numbered steps with clear instructions for restaurant owners. Next incomplete step highlighted with indigo ring.
+- **app/dashboard/magic-menus/actions.ts** — 2 new server actions: `updateMenuItems()` (inline edit price/description/dietary_tags per item, revalidates dashboard + public page) and `autoTagDietaryInfo()` (AI-powered dietary detection via `generateObject` + gpt-4o-mini, credit-gated, returns suggestions without persisting).
+- **lib/constants/dietary-tags.ts** — **NEW.** `DIETARY_TAG_OPTIONS` canonical constant (8 tags: vegan, vegetarian, gluten-free, halal, kosher, dairy-free, nut-free, spicy).
+- **app/dashboard/magic-menus/_components/MenuItemEditor.tsx** — **NEW.** Full inline menu editor for published menus. Search + category filter bar. Click-to-edit items with price input, description input, and dietary tag checkboxes (8 toggle pills). "AI: Detect dietary tags (1 credit)" button runs AI analysis, shows suggestion banner with Accept All / Dismiss. Per-item AI suggestions highlighted with indigo badge.
+- **lib/types/menu.ts** — Added `dietary_tags?: string[]` to `MenuExtractedItem` interface.
+
+**Tests:** 21 new (`menu-inline-editor.test.ts`): price detection fix 7, updateMenuItems 8, autoTagDietaryInfo 3, DIETARY_TAG_OPTIONS 3. Existing wave8 tests updated (numeric prices → string prices). **0 regressions.**
+**Files changed:** 4 new, 7 modified. **0 new migrations, 0 new crons.**
+
+---
+
 ## AI Menu Suggestions Fix (2026-03-08)
 - **lib/menu-intelligence/ai-menu-suggestions.ts** — 2 fixes: (1) Added `zodSchema()` wrapper around raw Zod schema in `generateObject()` call — OpenAI requires JSON Schema format, not raw Zod. Was the only `generateObject` call in the codebase missing the wrapper. (2) Changed catch from silent `return []` to `throw` so callers can show error feedback.
 - **app/dashboard/magic-menus/actions.ts** — Added `generateMenuSuggestionsAction()` server action. The button was previously calling the AI service client-side via dynamic import, but `OPENAI_API_KEY` is server-only (not `NEXT_PUBLIC_`), so it was always `undefined` in the browser.

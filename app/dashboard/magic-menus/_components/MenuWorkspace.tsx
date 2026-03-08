@@ -5,6 +5,7 @@ import type { MenuWorkspaceData } from '@/lib/types/menu';
 import UploadState from './UploadState';
 import ReviewState from './ReviewState';
 import DistributionPanel from './DistributionPanel';
+import MenuItemEditor from './MenuItemEditor';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -45,8 +46,8 @@ function StepIndicator({ current }: { current: WorkspaceView }) {
   return (
     <nav aria-label="Menu workflow steps" className="flex items-center gap-0 mb-6">
       {STEPS.map((step, idx) => {
-        const done    = idx < currentIdx;
-        const active  = idx === currentIdx;
+        const done    = idx < currentIdx || (idx === currentIdx && current === 'published');
+        const active  = idx === currentIdx && !done;
         return (
           <div key={step.id} className="flex items-center">
             {/* Node */}
@@ -147,50 +148,91 @@ function PublishedBanner({
       </div>
 
       {/* Propagation status */}
-      <div className="flex flex-wrap gap-3">
-        <PropagationPill
-          label="Published"
-          done={events.some((e) => e.event === 'published')}
-        />
-        <PropagationPill
-          label="Link injected"
-          done={injectionCount > 0}
-          count={injectionCount}
-        />
-        <PropagationPill
-          label="Crawled"
-          done={events.some((e) => e.event === 'crawled')}
-        />
-        <PropagationPill
-          label="Live in AI"
-          done={events.some((e) => e.event === 'live_in_ai')}
-        />
-      </div>
+      <PropagationChecklist
+        events={events}
+        injectionCount={injectionCount}
+        publicSlug={menu.public_slug ?? ''}
+      />
     </section>
   );
 }
 
-function PropagationPill({
-  label,
-  done,
-  count,
+function PropagationChecklist({
+  events,
+  injectionCount,
+  publicSlug,
 }: {
-  label: string;
-  done: boolean;
-  count?: number;
+  events: { event: string; date: string }[];
+  injectionCount: number;
+  publicSlug: string;
 }) {
+  const isPublished = events.some((e) => e.event === 'published');
+  const isInjected = injectionCount > 0;
+  const isCrawled = events.some((e) => e.event === 'crawled');
+  const isLive = events.some((e) => e.event === 'live_in_ai');
+
+  const steps: { done: boolean; label: string; hint: string }[] = [
+    {
+      done: isPublished,
+      label: 'Published',
+      hint: 'Your AI-readable menu page is live.',
+    },
+    {
+      done: isInjected,
+      label: 'Link added to your website',
+      hint: isInjected
+        ? `Link added ${injectionCount} time${injectionCount > 1 ? 's' : ''}.`
+        : `Add a link to /m/${publicSlug} on your website or Google Business Profile so AI engines can find it.`,
+    },
+    {
+      done: isCrawled,
+      label: 'AI bots visited',
+      hint: isCrawled
+        ? 'AI search bots have crawled your menu page.'
+        : 'Waiting for AI bots (GPTBot, GoogleBot, etc.) to visit your menu page. This usually takes a few days.',
+    },
+    {
+      done: isLive,
+      label: 'Confirmed in AI answers',
+      hint: isLive
+        ? 'AI engines are referencing your menu in search results.'
+        : 'We\'ll check if AI engines like ChatGPT and Google AI cite your menu when people search. This can take 1–2 weeks.',
+    },
+  ];
+
+  // Find the first incomplete step to highlight
+  const nextIdx = steps.findIndex((s) => !s.done);
+
   return (
-    <span
-      className={[
-        'inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium',
-        done ? 'bg-truth-emerald/15 text-truth-emerald' : 'bg-white/5 text-slate-400',
-      ].join(' ')}
-    >
-      {done ? '✓' : '○'} {label}
-      {done && count !== undefined && count > 0 && (
-        <span className="tabular-nums">{count}×</span>
-      )}
-    </span>
+    <div className="space-y-2.5">
+      {steps.map((step, idx) => (
+        <div key={step.label} className="flex items-start gap-3">
+          <div
+            className={[
+              'flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-xs mt-0.5',
+              step.done
+                ? 'bg-truth-emerald/15 text-truth-emerald'
+                : idx === nextIdx
+                  ? 'bg-electric-indigo/20 text-electric-indigo ring-1 ring-electric-indigo/40'
+                  : 'bg-white/5 text-slate-500',
+            ].join(' ')}
+          >
+            {step.done ? '✓' : idx + 1}
+          </div>
+          <div className="min-w-0">
+            <p
+              className={[
+                'text-xs font-medium',
+                step.done ? 'text-truth-emerald' : idx === nextIdx ? 'text-white' : 'text-slate-400',
+              ].join(' ')}
+            >
+              {step.label}
+            </p>
+            <p className="text-xs text-slate-500 mt-0.5">{step.hint}</p>
+          </div>
+        </div>
+      ))}
+    </div>
   );
 }
 
@@ -240,6 +282,7 @@ export default function MenuWorkspace({
       {view === 'published' && menu && (
         <>
           <PublishedBanner menu={menu} locationName={locationName} onReplace={() => setView('upload')} />
+          <MenuItemEditor menu={menu} onMenuUpdated={setMenu} />
           <DistributionPanel
             menuId={menu.id}
             publicSlug={menu.public_slug}

@@ -1111,6 +1111,161 @@ export async function dismissMenuEnhancements(
 }
 
 // ---------------------------------------------------------------------------
+// updateMenuItems — Inline editing of published menu items
+// ---------------------------------------------------------------------------
+
+/**
+ * Server Action: updates individual menu items in extracted_data.
+ * Supports editing price, description, and dietary_tags.
+ * After saving, revalidates both the dashboard and the public menu page.
+ *
+ * SECURITY: auth check + RLS org_isolation on magic_menus.
+ */
+export async function updateMenuItems(
+  menuId: string,
+  updates: Array<{ id: string; price?: string; description?: string; dietary_tags?: string[] }>,
+): Promise<{ success: true; menu: MenuWorkspaceData } | { success: false; error: string }> {
+  const ctx = await getSafeAuthContext();
+  if (!ctx?.orgId) return { success: false, error: 'Unauthorized' };
+  if (updates.length === 0) return { success: false, error: 'No updates provided' };
+
+  const supabase = await createClient();
+
+  const { data: menu, error: fetchError } = (await supabase
+    .from('magic_menus')
+    .select(
+      'id, location_id, processing_status, extracted_data, extraction_confidence, is_published, public_slug, human_verified, propagation_events, content_hash, last_distributed_at',
+    )
+    .eq('id', menuId)
+    .single()) as { data: MenuWorkspaceData | null; error: unknown };
+
+  if (fetchError || !menu) return { success: false, error: 'Menu not found' };
+
+  const items = menu.extracted_data?.items ?? [];
+  if (items.length === 0) return { success: false, error: 'No menu items found' };
+
+  // Build a lookup of updates by item ID
+  const updateMap = new Map(updates.map((u) => [u.id, u]));
+
+  const updatedItems = items.map((item) => {
+    const upd = updateMap.get(item.id);
+    if (!upd) return item;
+    return {
+      ...item,
+      ...(upd.price !== undefined ? { price: upd.price } : {}),
+      ...(upd.description !== undefined ? { description: upd.description } : {}),
+      ...(upd.dietary_tags !== undefined ? { dietary_tags: upd.dietary_tags } : {}),
+    };
+  });
+
+  const updatedData: MenuExtractedData = { ...menu.extracted_data!, items: updatedItems };
+
+  const { data: updated, error: updateError } = (await supabase
+    .from('magic_menus')
+    .update({ extracted_data: updatedData as unknown as Json })
+    .eq('id', menuId)
+    .select(
+      'id, location_id, processing_status, extracted_data, extraction_confidence, is_published, public_slug, human_verified, propagation_events, content_hash, last_distributed_at',
+    )
+    .single()) as { data: MenuWorkspaceData | null; error: { message: string } | null };
+
+  if (updateError || !updated) {
+    return { success: false, error: updateError?.message ?? 'Failed to save changes' };
+  }
+
+  revalidatePath('/dashboard/magic-menus');
+  if (menu.public_slug) {
+    revalidatePath(`/m/${menu.public_slug}`, 'page');
+  }
+  return { success: true, menu: updated };
+}
+
+// ---------------------------------------------------------------------------
+// autoTagDietaryInfo — AI-powered dietary tag suggestions
+// ---------------------------------------------------------------------------
+
+// DIETARY_TAG_OPTIONS moved to @/lib/constants/dietary-tags to avoid
+// "use server" non-function export error. Re-exported for backwards compat
+// is NOT allowed — import from @/lib/constants/dietary-tags instead.
+
+/**
+ * Server Action: uses AI to auto-detect dietary tags for all menu items.
+ * Returns suggested tags per item — does NOT persist until user confirms.
+ *
+ * SECURITY: auth check + RLS. Credit-gated (1 credit).
+ */
+export async function autoTagDietaryInfo(
+  menuId: string,
+): Promise<{
+  success: true;
+  suggestions: Array<{ id: string; name: string; dietary_tags: string[] }>;
+} | {
+  success: false;
+  error: string;
+  creditsUsed?: number;
+  creditsLimit?: number;
+}> {
+  const ctx = await getSafeAuthContext();
+  if (!ctx?.orgId) return { success: false, error: 'Unauthorized' };
+
+  const creditCheck = await checkCredit(ctx.orgId);
+  if (!creditCheck.ok && creditCheck.reason === 'insufficient_credits') {
+    return { success: false, error: 'credit_limit_reached', creditsUsed: creditCheck.creditsUsed, creditsLimit: creditCheck.creditsLimit };
+  }
+
+  const supabase = await createClient();
+
+  const { data: menu, error: fetchError } = (await supabase
+    .from('magic_menus')
+    .select('extracted_data')
+    .eq('id', menuId)
+    .single()) as { data: { extracted_data: MenuExtractedData | null } | null; error: unknown };
+
+  if (fetchError || !menu?.extracted_data) return { success: false, error: 'Menu not found' };
+
+  const items = menu.extracted_data.items;
+  if (items.length === 0) return { success: false, error: 'No menu items found' };
+
+  try {
+    const model = getModel('faq-generation');
+
+    const itemSummary = items.map((i) =>
+      `- ${i.name}${i.description ? `: ${i.description}` : ''}${i.category ? ` [${i.category}]` : ''}`,
+    ).join('\n');
+
+    const result = await generateObject({
+      model,
+      system: 'You are a dietary information expert for restaurant menus. Analyze each menu item and detect applicable dietary tags based on the item name, description, and category. Only tag items where you are confident. Use these tags: vegan, vegetarian, gluten-free, halal, kosher, dairy-free, nut-free, spicy.',
+      prompt: `Analyze these menu items and suggest dietary tags for each:\n\n${itemSummary}\n\nReturn dietary tags ONLY for items where you are confident. Items with no clear dietary tags should have an empty array.`,
+      schema: zodSchema(z.object({
+        items: z.array(z.object({
+          name: z.string(),
+          dietary_tags: z.array(z.string()),
+        })),
+      })),
+    });
+
+    const aiItems = (result.object as { items: Array<{ name: string; dietary_tags: string[] }> }).items;
+
+    // Match AI suggestions back to real items by name (case-insensitive)
+    const aiMap = new Map(aiItems.map((a) => [a.name.toLowerCase(), a.dietary_tags]));
+    const suggestions = items
+      .map((item) => {
+        const tags = aiMap.get(item.name.toLowerCase()) ?? [];
+        return { id: item.id, name: item.name, dietary_tags: tags };
+      })
+      .filter((s) => s.dietary_tags.length > 0);
+
+    if (creditCheck.ok) await consumeCredit(ctx.orgId);
+
+    return { success: true, suggestions };
+  } catch (err) {
+    Sentry.captureException(err, { tags: { action: 'autoTagDietaryInfo' } });
+    return { success: false, error: 'AI dietary tagging failed. Try again later.' };
+  }
+}
+
+// ---------------------------------------------------------------------------
 // S66: Generate AI Menu Suggestions (server action)
 // ---------------------------------------------------------------------------
 

@@ -91,7 +91,7 @@ async function fetchWorkspaceData(orgId: string): Promise<{
   let menuSuggestions: MenuSuggestion[] = [];
   if (menu?.extracted_data) {
     try {
-      const items = (menu.extracted_data as unknown as { items?: Array<{ name: string; description?: string; price?: number; dietary_tags?: string[]; category?: string }> })?.items ?? [];
+      const items = (menu.extracted_data as unknown as { items?: Array<{ name: string; description?: string; price?: string; dietary_tags?: string[]; category?: string }> })?.items ?? [];
       const completeness = analyzeMenuCompleteness(items);
       const demandForOptimizer = demandResults.map(r => ({ item_name: r.item_name, mention_count: r.mention_count }));
       menuSuggestions = generateMenuSuggestions(completeness, demandForOptimizer, items);
@@ -102,7 +102,7 @@ async function fetchWorkspaceData(orgId: string): Promise<{
 
   // S66: Build MenuContext for AI suggestions
   const menuContext: MenuContext | null = menu?.extracted_data ? (() => {
-    const items = (menu.extracted_data as unknown as { items?: Array<{ name: string; description?: string; price?: number; dietary_tags?: string[] }> })?.items ?? [];
+    const items = (menu.extracted_data as unknown as { items?: Array<{ name: string; description?: string; price?: string; dietary_tags?: string[] }> })?.items ?? [];
     return {
       businessName: location.business_name,
       industry: industry ?? 'restaurant',
