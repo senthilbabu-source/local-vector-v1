@@ -11,11 +11,12 @@ import type { ModelKey } from '@/lib/ai/providers';
 export type SOVModelId =
   | 'perplexity_sonar'
   | 'openai_gpt4o_mini'
-  | 'gemini_flash';
+  | 'gemini_flash'
+  | 'copilot_bing';
 
 export interface SOVModelConfig {
   id: SOVModelId;
-  /** Shown in UI: "Perplexity", "ChatGPT (GPT-4o mini)", "Gemini" */
+  /** Shown in UI: "Perplexity", "ChatGPT (GPT-4o mini)", "Gemini", "Copilot" */
   display_name: string;
   /** Key in MODELS registry from providers.ts */
   provider_key: ModelKey;
@@ -24,6 +25,8 @@ export interface SOVModelConfig {
   call_delay_ms: number;
   /** Which provider's API key must be present */
   api_key_provider: 'openai' | 'perplexity' | 'google';
+  /** If true, this model is a proxy approximation — UI should show asterisk + tooltip */
+  is_proxy?: boolean;
 }
 
 export const SOV_MODEL_CONFIGS: Record<SOVModelId, SOVModelConfig> = {
@@ -51,19 +54,28 @@ export const SOV_MODEL_CONFIGS: Record<SOVModelId, SOVModelConfig> = {
     call_delay_ms: 200,
     api_key_provider: 'google',
   },
+  copilot_bing: {
+    id: 'copilot_bing',
+    display_name: 'Copilot',
+    provider_key: 'sov-query-copilot',
+    max_tokens: 512,
+    call_delay_ms: 500,
+    api_key_provider: 'perplexity',
+    is_proxy: true,
+  },
 };
 
 /**
  * Models enabled per plan tier.
  * Starter: Perplexity only (existing behavior unchanged).
  * Growth: Perplexity + ChatGPT.
- * Agency: all three.
+ * Agency: all four (includes Copilot via Bing-grounded proxy).
  */
 export const PLAN_SOV_MODELS: Record<string, SOVModelId[]> = {
   trial:   ['perplexity_sonar'],
   starter: ['perplexity_sonar'],
   growth:  ['perplexity_sonar', 'openai_gpt4o_mini'],
-  agency:  ['perplexity_sonar', 'openai_gpt4o_mini', 'gemini_flash'],
+  agency:  ['perplexity_sonar', 'openai_gpt4o_mini', 'gemini_flash', 'copilot_bing'],
 };
 
 /**

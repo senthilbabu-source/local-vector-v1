@@ -7,6 +7,14 @@
 // ---------------------------------------------------------------------------
 
 import type { SOVModelId } from '@/lib/config/sov-models';
+import { SOV_MODEL_CONFIGS } from '@/lib/config/sov-models';
+import { InfoTooltip } from '@/components/ui/InfoTooltip';
+
+/** Proxy tooltip text keyed by model ID */
+const PROXY_TOOLTIPS: Partial<Record<SOVModelId, string>> = {
+  copilot_bing:
+    'Microsoft Copilot data is estimated via a Bing-grounded model. Direct Copilot API is not publicly available.',
+};
 
 interface Props {
   model_provider: SOVModelId;
@@ -51,8 +59,17 @@ export default function ModelCitationBadge({
       <span className={`h-2 w-2 shrink-0 rounded-full ${dotClass}`} />
 
       {/* Model name */}
-      <span className="min-w-[80px] text-xs font-semibold text-white">
+      <span className="inline-flex min-w-[80px] items-center gap-1 text-xs font-semibold text-white">
         {display_name}
+        {SOV_MODEL_CONFIGS[model_provider]?.is_proxy && (
+          <>
+            <span aria-hidden="true">*</span>
+            <InfoTooltip
+              content={PROXY_TOOLTIPS[model_provider] ?? 'This model uses a proxy approximation.'}
+              label={`${display_name} proxy information`}
+            />
+          </>
+        )}
       </span>
 
       {/* Citation status */}

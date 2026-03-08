@@ -6095,3 +6095,13 @@ Final documentation sync. Build passes. All tests pass. Dashboard restructure co
 - `npx next build` must pass with 0 TypeScript errors (40/40 static pages).
 - `npx vitest run` must pass with 7051 tests, 441 files, 0 failures.
 - All 15 implementation waves (S14–S80) documented in AI_RULES and DEVLOG.
+
+## §285 — Copilot SOV Wire-Up + Meta AI Proxy Label
+
+Wires `copilot_bing` into SOV_MODEL_CONFIGS via existing `sov-query-copilot` provider key (Perplexity sonar-pro). Agency tier only. UI shows asterisk + InfoTooltip explaining proxy nature.
+
+### Rules
+- `copilot_bing` in SOV_MODEL_CONFIGS proxies via `sov-query-copilot` (Perplexity sonar-pro). Agency tier only. UI must show asterisk + tooltip.
+- Meta AI has no official API. Never add a `meta_ai` model to SOV_MODEL_CONFIGS. Display a proximity note near Perplexity results instead.
+- `SOVModelConfig.is_proxy` boolean flag controls asterisk rendering at UI layer — never modify `display_name` in config for proxy labels.
+- `ModelBreakdownPanel.showMetaNote` prop (default true) gates the Meta AI proximity chip. Toggle off when official API ships.

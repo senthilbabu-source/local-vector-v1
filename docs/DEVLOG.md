@@ -4,6 +4,21 @@
 
 ---
 
+## 2026-03-07 — Copilot SOV Wire-Up + Meta AI Proxy Label (§285)
+
+**Problem:** `sov-query-copilot` existed in `lib/ai/providers.ts` but was absent from `SOV_MODEL_CONFIGS` — Copilot was never called in any live SOV scan. Meta AI also has no official API but users expect coverage.
+
+**Changes:**
+- `lib/config/sov-models.ts` — **MODIFIED.** Added `copilot_bing` to `SOVModelId` union. Added `SOV_MODEL_CONFIGS.copilot_bing` (provider_key: `sov-query-copilot`, api_key_provider: `perplexity`, is_proxy: true). Added to `PLAN_SOV_MODELS.agency` only. New `is_proxy?: boolean` field on `SOVModelConfig`.
+- `app/dashboard/share-of-voice/_components/ModelCitationBadge.tsx` — **MODIFIED.** Imports `SOV_MODEL_CONFIGS` + `InfoTooltip`. Proxy models render asterisk (*) + InfoTooltip with proxy explanation. `PROXY_TOOLTIPS` map for per-model tooltip text.
+- `app/dashboard/share-of-voice/_components/ModelBreakdownPanel.tsx` — **MODIFIED.** Added `showMetaNote` prop (default true). Renders Meta AI proximity note chip when Perplexity result is present.
+- `src/__tests__/unit/multi-model-sov.test.ts` — **MODIFIED.** Updated agency plan expectations from 3 → 4 models.
+
+**No new migrations, no new crons, no new provider instances.**
+AI_RULES: §285. All SOV tests pass (46/46).
+
+---
+
 ## 2026-03-07 — ENGINE-GROUNDING-FIX: AI Engine Grounding Overhaul
 
 **Problem:** Full audit of `lib/ai/providers.ts` revealed 5 of 8 query-facing models were using base LLMs with no web search grounding — hallucination detection, SOV scoring, and competitor intelligence were running against stale training data instead of live web results.

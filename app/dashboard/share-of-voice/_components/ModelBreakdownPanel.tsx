@@ -38,9 +38,11 @@ interface Props {
   queryText: string;
   orgName: string;
   weekOf?: string;
+  /** Show Meta AI proximity note near Perplexity result. Default: true. */
+  showMetaNote?: boolean;
 }
 
-export default function ModelBreakdownPanel({ queryId, queryText, orgName, weekOf }: Props) {
+export default function ModelBreakdownPanel({ queryId, queryText, orgName, weekOf, showMetaNote = true }: Props) {
   const [isOpen, setIsOpen] = useState(false);
   const [data, setData] = useState<BreakdownResponse | null>(null);
   const [loading, setLoading] = useState(false);
@@ -167,6 +169,18 @@ export default function ModelBreakdownPanel({ queryId, queryText, orgName, weekO
                   </div>
                 ))}
               </div>
+
+              {/* Meta AI proximity note */}
+              {showMetaNote && data.models.some((m) => m.model_provider === 'perplexity_sonar') && (
+                <p
+                  className="mt-2 rounded bg-white/[0.03] px-2.5 py-1.5 text-[10px] leading-relaxed text-slate-500"
+                  data-testid="meta-ai-note"
+                >
+                  Perplexity results closely approximate Meta AI behavior (both use
+                  Bing-grounded retrieval). Native Meta AI API is not yet publicly
+                  available.
+                </p>
+              )}
 
               {/* Summary */}
               <p
