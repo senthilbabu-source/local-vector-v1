@@ -4,6 +4,18 @@
 
 ---
 
+## 2026-03-07 — Sprint 1: Source Intel Domain Map + Plan Gate + How-It-Works Step Badges (§286)
+
+**Changes:**
+- `lib/services/source-intelligence.service.ts` — **MODIFIED.** Expanded `domainMap` from 11 → 24 entries (Reddit, Quora, Nextdoor, BBB, OpenTable, Zomato, Foursquare, Trustpilot, Glassdoor, Yellow Pages, MapQuest, Patch, TikTok, LinkedIn). Added `'community'` to `SourceCategory` for Reddit/Quora/Nextdoor. Fixed `categorizeUrl()` — trustpilot/glassdoor added to `reviewSites`, bbb.org/opentable/zomato/mapquest added to `directories`, new `community` array before social check. Added `case 'community'` to `mapMentionTypeToCategory()`.
+- `app/dashboard/entity-health/page.tsx` — **MODIFIED.** Source Intelligence plan gate lowered from `'agency'` to `'growth'`. One line change.
+- `app/(marketing)/how-it-works/page.tsx` — **MODIFIED.** Added `loopStep` field to `Engine` interface + all 10 entries. Added `LoopStepBadge` component (inline styles, dashed border for FIX step). Rendered in each engine section header below `SectionLabel`.
+
+**Files changed:** 3. **No new migrations, no new crons, no new dependencies.**
+AI_RULES: §286. All source-intelligence tests pass (35/35).
+
+---
+
 ## 2026-03-07 — Copilot SOV Wire-Up + Meta AI Proxy Label (§285)
 
 **Problem:** `sov-query-copilot` existed in `lib/ai/providers.ts` but was absent from `SOV_MODEL_CONFIGS` — Copilot was never called in any live SOV scan. Meta AI also has no official API but users expect coverage.

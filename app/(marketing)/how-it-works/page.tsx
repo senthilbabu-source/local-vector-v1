@@ -32,6 +32,7 @@ interface Engine {
   name: string;
   description: string;
   details: string[];
+  loopStep: typeof LOOP_STEPS[number];
   mock?: React.ReactNode;
 }
 
@@ -39,6 +40,7 @@ const ENGINES: Engine[] = [
   {
     num: 1,
     name: 'Ground Truth',
+    loopStep: 'DETECT',
     description: 'Establishing verified business data as the single source of truth.',
     details: [
       'Hours of operation verified against your Google Business Profile',
@@ -51,6 +53,7 @@ const ENGINES: Engine[] = [
   {
     num: 2,
     name: 'The Fear Engine (Hallucination Detection)',
+    loopStep: 'DETECT',
     description:
       'Weekly and daily queries to ChatGPT, Perplexity, and Gemini — every response compared against your Ground Truth.',
     details: [
@@ -64,6 +67,7 @@ const ENGINES: Engine[] = [
   {
     num: 3,
     name: 'The Greed Engine (Competitor Intelligence)',
+    loopStep: 'EXPLAIN',
     description:
       '"What\'s the best [category] in [city]?" — we ask the question your customers ask, and show you who AI recommends instead of you.',
     details: [
@@ -76,6 +80,7 @@ const ENGINES: Engine[] = [
   {
     num: 4,
     name: 'The Magic Engine (Structured Data Generator)',
+    loopStep: 'FIX',
     description:
       'Upload a PDF menu or service list. Get back JSON-LD, llms.txt, and ai-config.json — the canonical source AI models actually read.',
     details: [
@@ -89,6 +94,7 @@ const ENGINES: Engine[] = [
   {
     num: 5,
     name: 'NAP Sync (Listing Foundation)',
+    loopStep: 'FIX',
     description:
       'Monitoring the Big 6 platforms where AI models source local business data. One mismatch = one hallucination.',
     details: [
@@ -102,6 +108,7 @@ const ENGINES: Engine[] = [
   {
     num: 6,
     name: 'Share of Voice Tracking',
+    loopStep: 'MEASURE',
     description:
       '20 weekly queries that mirror what your customers ask AI. We track the percentage of times you\'re mentioned — and your trajectory over time.',
     details: [
@@ -115,6 +122,7 @@ const ENGINES: Engine[] = [
   {
     num: 7,
     name: 'AI Crawler Analytics',
+    loopStep: 'DETECT',
     description:
       'Which AI bots are visiting your website — and which ones aren\'t. If a bot can\'t crawl you, it can\'t recommend you.',
     details: [
@@ -127,6 +135,7 @@ const ENGINES: Engine[] = [
   {
     num: 8,
     name: 'First Mover Alerts',
+    loopStep: 'GUIDE',
     description:
       'Uncontested queries where no business is cited by AI. These are opportunities to be the first answer.',
     details: [
@@ -139,6 +148,7 @@ const ENGINES: Engine[] = [
   {
     num: 9,
     name: 'Occasion Engine',
+    loopStep: 'GUIDE',
     description:
       '30 cultural and seasonal occasions tracked. Alerts arrive weeks before peak so you can prepare content that AI will surface.',
     details: [
@@ -152,6 +162,7 @@ const ENGINES: Engine[] = [
   {
     num: 10,
     name: 'Agent Readiness Score',
+    loopStep: 'VERIFY',
     description:
       'Can an AI agent actually book an appointment, place an order, or find your hours? This score measures your machine-readability.',
     details: [
@@ -276,6 +287,7 @@ export default function HowItWorksPage() {
                   <EngineBadge num={engine.num} />
                   <div>
                     <SectionLabel>{`Engine ${engine.num}`}</SectionLabel>
+                    <LoopStepBadge step={engine.loopStep} />
                     <h2
                       className="m-display"
                       style={{
@@ -577,6 +589,33 @@ function EngineBadge({ num }: { num: number }) {
     >
       {num}
     </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Loop step badge — shown in each engine section header
+// ---------------------------------------------------------------------------
+
+function LoopStepBadge({ step }: { step: typeof LOOP_STEPS[number] }) {
+  const isFix = step === 'FIX';
+  return (
+    <span
+      style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        padding: '3px 10px',
+        borderRadius: 6,
+        fontSize: 11,
+        fontWeight: 700,
+        letterSpacing: '0.06em',
+        fontFamily: 'var(--font-jetbrains-mono), monospace',
+        background: isFix ? 'transparent' : 'rgba(0, 168, 107, 0.12)',
+        color: 'var(--m-green)',
+        border: isFix ? '1px dashed var(--m-green)' : '1px solid rgba(0,168,107,0.3)',
+      }}
+    >
+      {step}
+    </span>
   );
 }
 

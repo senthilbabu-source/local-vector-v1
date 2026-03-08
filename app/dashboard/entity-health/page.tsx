@@ -179,7 +179,7 @@ async function SourcesTabContent({ orgId, locationId, plan }: { orgId: string; l
   const sourceResult = await fetchSourceIntelligence(supabase, orgId, locationId);
 
   return (
-    <PlanGate requiredPlan="agency" currentPlan={plan} feature="Source Intelligence">
+    <PlanGate requiredPlan="growth" currentPlan={plan} feature="Source Intelligence">
       <SourceHealthSummaryPanel result={sourceResult} />
 
       {sourceResult.sources.length === 0 && (

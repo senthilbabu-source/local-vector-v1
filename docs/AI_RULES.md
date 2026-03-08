@@ -6105,3 +6105,15 @@ Wires `copilot_bing` into SOV_MODEL_CONFIGS via existing `sov-query-copilot` pro
 - Meta AI has no official API. Never add a `meta_ai` model to SOV_MODEL_CONFIGS. Display a proximity note near Perplexity results instead.
 - `SOVModelConfig.is_proxy` boolean flag controls asterisk rendering at UI layer — never modify `display_name` in config for proxy labels.
 - `ModelBreakdownPanel.showMetaNote` prop (default true) gates the Meta AI proximity chip. Toggle off when official API ships.
+
+## §286 — Source Intelligence Domain Map + Plan Gate + How-It-Works Step Badges
+
+Sprint 1: Expanded source-intelligence.service.ts domain coverage, added 'community' SourceCategory, lowered Source Intelligence plan gate, connected engine sections to loop steps.
+
+### Rules
+- `SourceCategory` includes `'community'` for Reddit, Quora, Nextdoor. Never categorize these as `'social'` — community forums are a distinct citation signal from social media.
+- Source Intelligence is gated at `growth` plan, not `agency`.
+- `domainMap` in `extractDomainName()` has 24 entries. Add new domains here — never inline display names.
+- `categorizeUrl()` check order: first_party → review_site → directory → community → social → news → fallback 'other'. Community must come before social to prevent Reddit/Quora/Nextdoor from being classified as social.
+- `mapMentionTypeToCategory()` handles `'community'` mention type → `'community'` category.
+- Each engine in how-it-works `ENGINES` array has a `loopStep` field mapping to one of the 6 LOOP_STEPS. `LoopStepBadge` renders inline in each engine section header.

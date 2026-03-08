@@ -19,7 +19,7 @@ import { SourceMentionExtractionSchema, zodSchema, type SourceMentionExtraction 
 
 // ── Types ─────────────────────────────────────────────
 
-export type SourceCategory = 'first_party' | 'review_site' | 'directory' | 'competitor' | 'news' | 'social' | 'blog' | 'other';
+export type SourceCategory = 'first_party' | 'review_site' | 'directory' | 'competitor' | 'news' | 'social' | 'community' | 'blog' | 'other';
 
 export interface NormalizedSource {
   /** Display name (e.g., "Yelp", "Google Business Profile", "charcoalnchill.com") */
@@ -246,6 +246,21 @@ export function extractDomainName(url: string): string {
       'twitter.com': 'Twitter/X',
       'x.com': 'Twitter/X',
       'bingplaces.com': 'Bing Places',
+      'reddit.com': 'Reddit',
+      'quora.com': 'Quora',
+      'nextdoor.com': 'Nextdoor',
+      'trustpilot.com': 'Trustpilot',
+      'glassdoor.com': 'Glassdoor',
+      'bbb.org': 'Better Business Bureau',
+      'yellowpages.com': 'Yellow Pages',
+      'opentable.com': 'OpenTable',
+      'zomato.com': 'Zomato',
+      'foursquare.com': 'Foursquare',
+      'mapquest.com': 'MapQuest',
+      'patch.com': 'Patch',
+      'yelp.com/biz': 'Yelp',
+      'tiktok.com': 'TikTok',
+      'linkedin.com': 'LinkedIn',
     };
     for (const [domain, name] of Object.entries(domainMap)) {
       if (hostname.includes(domain)) return name;
@@ -281,11 +296,15 @@ export function categorizeUrl(
   if (reviewSites.some(s => hostname.includes(s))) return 'review_site';
 
   // Directories
-  const directories = ['google.com/maps', 'maps.google.com', 'bingplaces.com', 'mapsconnect.apple.com', 'yellowpages.com', 'foursquare.com'];
+  const directories = ['google.com/maps', 'maps.google.com', 'bingplaces.com', 'mapsconnect.apple.com', 'yellowpages.com', 'foursquare.com', 'bbb.org', 'opentable.com', 'zomato.com', 'mapquest.com'];
   if (directories.some(s => url.toLowerCase().includes(s))) return 'directory';
 
+  // Community forums — distinct from social media
+  const community = ['reddit.com', 'quora.com', 'nextdoor.com'];
+  if (community.some(s => hostname.includes(s))) return 'community';
+
   // Social
-  const social = ['facebook.com', 'instagram.com', 'twitter.com', 'x.com', 'tiktok.com'];
+  const social = ['facebook.com', 'instagram.com', 'twitter.com', 'x.com', 'tiktok.com', 'linkedin.com'];
   if (social.some(s => hostname.includes(s))) return 'social';
 
   // News/blogs (heuristic)
@@ -306,6 +325,7 @@ export function mapMentionTypeToCategory(
     case 'directory': return 'directory';
     case 'news': return 'news';
     case 'blog': return 'blog';
+    case 'community': return 'community';
     case 'social_media': return 'social';
     case 'official_website': return 'first_party';
     default: return 'other';
