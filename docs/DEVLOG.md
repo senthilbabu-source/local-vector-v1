@@ -4,6 +4,29 @@
 
 ---
 
+## 2026-03-07 — Sprint 6: Community Monitor + Perplexity Pages Detection (§295–§297)
+
+**Changes:**
+- `lib/services/community-monitor.service.ts` — **NEW.** Perplexity sonar-pro web search for Nextdoor + Quora brand mentions. Structured MENTION:/AUTHOR:/DATE:/URL: response parsing, SHA-256 mention dedup, keyword sentiment classification (reuses Sprint 4 word lists). 7-day recency gate per platform per org.
+- `lib/services/perplexity-pages-detector.service.ts` — **NEW.** Post-processing pass on `sov_evaluations.cited_sources` to detect Perplexity Page URLs (`perplexity.ai/page/*`). Batch query_text lookup, upsert with `last_seen_at` update on re-detection.
+- `app/api/cron/community-monitor/route.ts` — **NEW.** Wednesday 9 AM UTC cron. Iterates Growth+ orgs → locations → runs both `monitorCommunityPlatforms()` + `detectPerplexityPages()`. Kill switch: `STOP_COMMUNITY_MONITOR_CRON`.
+- `supabase/migrations/20260504000001_community_mentions.sql` — **NEW.** `community_mentions` table with platform CHECK ('nextdoor','quora'), UNIQUE(org_id, mention_key), RLS SELECT policy.
+- `supabase/migrations/20260504000002_perplexity_pages_detections.sql` — **NEW.** `perplexity_pages_detections` table with evaluation_id FK, UNIQUE(org_id, page_url), RLS SELECT policy.
+- `lib/ai/providers.ts` — **MODIFIED.** Added `'community-monitor': perplexity('sonar-pro')` model key.
+- `lib/supabase/database.types.ts` — **MODIFIED.** Added `community_mentions` + `perplexity_pages_detections` table types.
+- `supabase/prod_schema.sql` — **MODIFIED.** Added both table DDL.
+- `vercel.json` — **MODIFIED.** 33rd cron entry.
+- `.env.local.example` — **MODIFIED.** Added `STOP_COMMUNITY_MONITOR_CRON`.
+- `lib/inngest/events.ts` — **MODIFIED.** Added `'cron/community.monitor'` event.
+- `lib/services/cron-health.service.ts` — **MODIFIED.** 16th CRON_REGISTRY entry.
+- `lib/admin/known-crons.ts` — **MODIFIED.** Added `'community-monitor'`.
+
+**Tests:** 21 new (community-monitor 12, perplexity-pages-detector 9). 3 regression files updated (sprint-f-registration cron count 32→33 + registry 15→16, sprint-n-registration 32→33, wave4-s28 32→33).
+**Files changed:** ~18. **2 new migrations, 1 new cron (33 total).**
+AI_RULES: §295 (community monitor), §296 (Perplexity Pages detection), §297 (Sprint 6 registration). All tests pass — zero regressions.
+
+---
+
 ## 2026-03-07 — Sprint 5: Root-Cause Linking + Siri Readiness Score (§293–§294)
 
 **Changes:**

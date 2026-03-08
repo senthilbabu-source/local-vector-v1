@@ -66,6 +66,7 @@ export const CRON_REGISTRY: CronRegistryEntry[] = [
   { cronName: 'competitor-vulnerability', label: 'Competitor Vulnerability', schedule: 'Weekly Tue 8 AM UTC' },
   { cronName: 'monthly-report', label: 'Monthly Report', schedule: '1st of Month 9 AM UTC' },
   { cronName: 'reddit-monitor', label: 'Reddit Brand Monitoring', schedule: 'Weekly Tue 8 AM UTC' },
+  { cronName: 'community-monitor', label: 'Community Platform Monitoring', schedule: 'Weekly Wed 9 AM UTC' },
 ];
 
 // ---------------------------------------------------------------------------

@@ -63,4 +63,9 @@ export type Events = {
   'cron/reddit.monitor': {
     data: Record<string, never>;
   };
+
+  /** Sprint 6: Triggered by Vercel Cron → community-monitor. Nextdoor + Quora + PP detection. */
+  'cron/community.monitor': {
+    data: Record<string, never>;
+  };
 };

@@ -3693,6 +3693,76 @@ COMMENT ON TABLE public.reddit_brand_mentions IS
   'Populated by the reddit-monitor cron. One row per org/post.';
 
 
+-- Sprint 6: Community platform brand mention monitoring (Nextdoor + Quora)
+
+CREATE TABLE IF NOT EXISTS public.community_mentions (
+  id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  org_id          uuid NOT NULL REFERENCES public.organizations(id) ON DELETE CASCADE,
+  location_id     uuid NOT NULL REFERENCES public.locations(id) ON DELETE CASCADE,
+  platform        text NOT NULL CHECK (platform IN ('nextdoor', 'quora')),
+  mention_key     text NOT NULL,
+  content         text NOT NULL,
+  author          text,
+  url             text,
+  sentiment       text CHECK (sentiment IN ('positive', 'neutral', 'negative')),
+  detected_at     timestamptz NOT NULL DEFAULT now(),
+  approximate_date text,
+  UNIQUE (org_id, mention_key)
+);
+
+ALTER TABLE public.community_mentions ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "org_members_read_community_mentions"
+  ON public.community_mentions FOR SELECT
+  USING (
+    org_id IN (
+      SELECT org_id FROM public.memberships WHERE user_id = auth.uid()
+    )
+  );
+
+CREATE INDEX idx_community_mentions_org_platform
+  ON public.community_mentions (org_id, platform, detected_at DESC);
+
+COMMENT ON TABLE public.community_mentions IS
+  'Sprint 6: Nextdoor and Quora brand mentions detected via Perplexity search. '
+  'Distinct from reddit_brand_mentions (official API) — this uses LLM web search.';
+
+
+-- Sprint 6: Perplexity Pages detection
+
+CREATE TABLE IF NOT EXISTS public.perplexity_pages_detections (
+  id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  org_id          uuid NOT NULL REFERENCES public.organizations(id) ON DELETE CASCADE,
+  location_id     uuid NOT NULL REFERENCES public.locations(id) ON DELETE CASCADE,
+  evaluation_id   uuid REFERENCES public.sov_evaluations(id) ON DELETE SET NULL,
+  page_url        text NOT NULL,
+  page_title      text,
+  engine          text NOT NULL,
+  query_text      text,
+  first_detected_at timestamptz NOT NULL DEFAULT now(),
+  last_seen_at    timestamptz NOT NULL DEFAULT now(),
+  UNIQUE (org_id, page_url)
+);
+
+ALTER TABLE public.perplexity_pages_detections ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "org_members_read_pp_detections"
+  ON public.perplexity_pages_detections FOR SELECT
+  USING (
+    org_id IN (
+      SELECT org_id FROM public.memberships WHERE user_id = auth.uid()
+    )
+  );
+
+CREATE INDEX idx_pp_detections_org
+  ON public.perplexity_pages_detections (org_id, last_seen_at DESC);
+
+COMMENT ON TABLE public.perplexity_pages_detections IS
+  'Sprint 6: Perplexity Pages (perplexity.ai/page/*) detected in SOV cited sources. '
+  'These are user-created AI content pages that may reference the business. '
+  'Populated by the community-monitor cron post-processing pass.';
+
+
 
 
 

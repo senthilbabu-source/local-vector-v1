@@ -127,6 +127,10 @@
     {
       "path": "/api/cron/reddit-monitor",
       "schedule": "0 8 * * 2"
+    },
+    {
+      "path": "/api/cron/community-monitor",
+      "schedule": "0 9 * * 3"
     }
   ]
 }

@@ -14,8 +14,8 @@ describe('Sprint N — Registration & Schema', () => {
       readFileSync(join(ROOT, 'vercel.json'), 'utf-8'),
     );
 
-    it('still has all 32 crons registered', () => {
-      expect(vercelJson.crons.length).toBe(32);
+    it('still has all 33 crons registered', () => {
+      expect(vercelJson.crons.length).toBe(33);
     });
 
     it('correction-follow-up is still registered', () => {

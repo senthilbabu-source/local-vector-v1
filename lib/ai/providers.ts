@@ -221,6 +221,9 @@ export const MODELS = {
   /** Sprint 2: You.com SOV queries — native web search, agency plan */
   'sov-query-youcom': youcom('you-research'),
 
+  /** Sprint 6: Community platform monitoring via Perplexity web search */
+  'community-monitor': perplexity('sonar-pro'),
+
 } as const;
 
 /** Sprint 119: Embedding model — kept separate from MODELS to preserve LanguageModelV1 union */

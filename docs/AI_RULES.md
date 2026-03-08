@@ -6215,3 +6215,48 @@ Sprint 5: `locations.siri_readiness_score` (0–100) is computed from Ground Tru
 - Fire-and-forget after Apple BC sync: `void computeAndSaveSiriReadiness(supabase, conn.location_id).catch(...)`.
 - Entity Health page renders `SiriReadinessWidget` — score/grade display, progress bar, 7-field breakdown.
 - Status check always passes (10pts) because `toABCStatus(null)` returns `'OPEN'` by default.
+
+---
+
+## §295 — Community Monitor: Nextdoor + Quora Monitoring (Sprint 6)
+
+### Context
+Community platforms (Nextdoor, Quora) lack official APIs. We use Perplexity sonar-pro web search to detect brand mentions on these platforms, similar to the Reddit monitor (Sprint 4) but without OAuth.
+
+### Rules
+- `community-monitor` model key in `lib/ai/providers.ts` maps to `perplexity('sonar-pro')`. This is NOT a SOV engine — it is a web-search grounding call for community monitoring only.
+- `lib/services/community-monitor.service.ts` exports: `buildNextdoorPrompt`, `buildQuoraPrompt`, `parseMentionsFromResponse`, `classifyMentionSentiment`, `generateMentionKey`, `monitorCommunityPlatforms`.
+- Recency gate: one Perplexity call per platform per org per week (7-day check on `community_mentions.detected_at`).
+- `generateMentionKey()` uses `crypto.subtle.digest('SHA-256', ...)` on `platform + content[:200]` for dedup.
+- Sentiment classifier reuses same word lists as Reddit monitor (Sprint 4).
+- `community_mentions` table: `UNIQUE(org_id, mention_key)`, upsert with `ignoreDuplicates: true` (ON CONFLICT DO NOTHING).
+- Tables not yet in generated types — use `(supabase.from as unknown as ...)('community_mentions')` cast pattern.
+- Cron: `app/api/cron/community-monitor/route.ts`, Wednesday 9 AM UTC, kill switch `STOP_COMMUNITY_MONITOR_CRON`. Iterates Growth+ orgs → locations.
+
+---
+
+## §296 — Perplexity Pages Detection (Sprint 6)
+
+### Context
+Perplexity Pages are curated content pages on `perplexity.ai/page/*` that appear as cited sources in SOV evaluations. Detecting these pages provides intelligence about how Perplexity organizes information about local businesses.
+
+### Rules
+- `lib/services/perplexity-pages-detector.service.ts` exports: `isPerplexityPage`, `detectPerplexityPages`.
+- `isPerplexityPage()` is a pure regex check: `/^https?:\/\/(www\.)?perplexity\.ai\/page\//`.
+- `detectPerplexityPages()` scans `sov_evaluations.cited_sources` (last 30 days, limit 100) for Perplexity Page URLs.
+- `perplexity_pages_detections` table: `UNIQUE(org_id, page_url)`, upsert with `onConflict: 'org_id,page_url'` (updates `last_seen_at` on re-detection).
+- Runs in the same cron as community monitor (`community-monitor` route) — no separate cron needed.
+- Never throws — returns `{ new_detections: number; errors: string[] }`.
+
+---
+
+## §297 — Sprint 6 Registration (Community Monitor + Perplexity Pages)
+
+### Rules
+- `vercel.json`: 33 crons total (was 32). New: `{ "path": "/api/cron/community-monitor", "schedule": "0 9 * * 3" }`.
+- `CRON_REGISTRY` in `lib/services/cron-health.service.ts`: 16 entries total (was 15). New: `{ cronName: 'community-monitor', label: 'Community Platform Monitoring', schedule: 'Weekly Wed 9 AM UTC' }`.
+- `lib/admin/known-crons.ts`: 27 known cron names (was 26). Added `'community-monitor'`.
+- `.env.local.example`: documents `STOP_COMMUNITY_MONITOR_CRON=false`.
+- `lib/inngest/events.ts`: added `'cron/community.monitor'` event type.
+- Migrations: `20260504000001_community_mentions.sql`, `20260504000002_perplexity_pages_detections.sql`.
+- 21 new tests: 12 community-monitor (parseMentionsFromResponse 4, classifyMentionSentiment 3, monitorCommunityPlatforms 5), 9 perplexity-pages-detector (isPerplexityPage 4, detectPerplexityPages 5).

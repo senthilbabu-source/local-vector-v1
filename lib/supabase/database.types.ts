@@ -901,6 +901,63 @@ export type Database = {
           },
         ]
       }
+      community_mentions: {
+        Row: {
+          id: string
+          org_id: string
+          location_id: string
+          platform: string
+          mention_key: string
+          content: string
+          author: string | null
+          url: string | null
+          sentiment: string | null
+          detected_at: string
+          approximate_date: string | null
+        }
+        Insert: {
+          id?: string
+          org_id: string
+          location_id: string
+          platform: string
+          mention_key: string
+          content: string
+          author?: string | null
+          url?: string | null
+          sentiment?: string | null
+          detected_at?: string
+          approximate_date?: string | null
+        }
+        Update: {
+          id?: string
+          org_id?: string
+          location_id?: string
+          platform?: string
+          mention_key?: string
+          content?: string
+          author?: string | null
+          url?: string | null
+          sentiment?: string | null
+          detected_at?: string
+          approximate_date?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "community_mentions_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "community_mentions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       content_drafts: {
         Row: {
           aeo_score: number | null
@@ -3382,6 +3439,67 @@ export type Database = {
             columns: ["org_id"]
             isOneToOne: false
             referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      perplexity_pages_detections: {
+        Row: {
+          id: string
+          org_id: string
+          location_id: string
+          evaluation_id: string | null
+          page_url: string
+          page_title: string | null
+          engine: string
+          query_text: string | null
+          first_detected_at: string
+          last_seen_at: string
+        }
+        Insert: {
+          id?: string
+          org_id: string
+          location_id: string
+          evaluation_id?: string | null
+          page_url: string
+          page_title?: string | null
+          engine: string
+          query_text?: string | null
+          first_detected_at?: string
+          last_seen_at?: string
+        }
+        Update: {
+          id?: string
+          org_id?: string
+          location_id?: string
+          evaluation_id?: string | null
+          page_url?: string
+          page_title?: string | null
+          engine?: string
+          query_text?: string | null
+          first_detected_at?: string
+          last_seen_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "perplexity_pages_detections_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "perplexity_pages_detections_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "perplexity_pages_detections_evaluation_id_fkey"
+            columns: ["evaluation_id"]
+            isOneToOne: false
+            referencedRelation: "sov_evaluations"
             referencedColumns: ["id"]
           },
         ]
