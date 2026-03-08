@@ -1,0 +1,76 @@
+---
+title: "llms.txt: The File That Tells AI the Truth About Your Business"
+description: "llms.txt is a plain-text file that gives AI models your verified business data. Here's what it is, why it matters, and how LocalVector generates it automatically."
+date: "2026-02-25"
+author: "LocalVector Team"
+tags: ["llms.txt", "Structured Data", "AI Visibility"]
+---
+
+## What is llms.txt?
+
+Just as `robots.txt` tells search crawlers which pages to index, **llms.txt** tells AI language models what's true about your business. It's a plain-text file placed at your website's root (e.g., `yourbusiness.com/llms.txt`) that contains your verified, authoritative business information.
+
+The concept is simple: instead of making AI models guess by synthesizing data from dozens of potentially outdated sources, you give them a single, canonical source of truth.
+
+## Why AI models need llms.txt
+
+AI models build their understanding of your business from whatever data they can find: your website, Google Business Profile, Yelp, TripAdvisor, old news articles, cached web pages, and more. When these sources disagree — and they always do — the model has to choose.
+
+**llms.txt solves this by providing a machine-readable, authoritative source that AI crawlers can prioritize.** It's the difference between a model guessing your hours from a 2023 blog post and reading your verified, current hours directly.
+
+## What goes in an llms.txt file
+
+A well-structured llms.txt file includes:
+
+- **Business name and category** — exactly as you want AI to reference it
+- **Address and phone** — verified, current contact information
+- **Hours of operation** — including seasonal variations
+- **Services or menu items** — what you actually offer, with current pricing
+- **Key attributes** — walk-ins accepted, wheelchair accessible, outdoor seating, etc.
+- **Correct claims** — explicitly stating facts that AI commonly gets wrong
+
+Here's what a simplified example looks like:
+
+> Business: Charcoal & Chili BBQ
+> Category: Barbecue Restaurant
+> Address: 123 Main Street, Austin, TX 78701
+> Phone: (512) 555-0199
+> Hours: Mon-Thu 11am-9pm, Fri-Sat 11am-10pm, Sun 12pm-8pm
+> Note: We are OPEN and have never been permanently closed.
+
+## How AI crawlers use it
+
+Major AI crawlers — GPTBot (OpenAI), PerplexityBot, ClaudeBot, Google-Extended, and Applebot — regularly crawl websites for updated information. When they find an llms.txt file, they can use it as a high-confidence data source.
+
+The key advantage: **llms.txt is explicit and unambiguous.** There's no interpretation needed. The model doesn't have to extract your hours from a paragraph of text or infer your services from a menu PDF — it reads structured, verified data directly.
+
+## The relationship between llms.txt and JSON-LD
+
+JSON-LD schema and llms.txt serve complementary purposes:
+
+- **JSON-LD** is embedded in your HTML and follows the Schema.org vocabulary. It's designed for structured data processors and search engines.
+- **llms.txt** is a standalone plain-text file designed specifically for AI language models. It's simpler to create and update, and its plain-text format is inherently compatible with how LLMs process information.
+
+The best approach is to use both: JSON-LD for search engines and structured data consumers, and llms.txt for AI language models.
+
+## How LocalVector generates llms.txt
+
+LocalVector automatically generates and maintains your llms.txt file from your verified Ground Truth data:
+
+1. You enter your business information once in LocalVector
+2. LocalVector generates a formatted llms.txt file
+3. You add it to your website root (or LocalVector hosts it for you)
+4. AI crawlers pick it up on their next crawl cycle
+5. LocalVector monitors whether AI models update their answers accordingly
+
+The entire process takes about 60 seconds — and it's one of the highest-impact things you can do for AI accuracy.
+
+## Does it actually work?
+
+We've seen businesses go from persistent AI hallucinations to accurate AI descriptions within 2-4 weeks of deploying llms.txt, particularly when combined with JSON-LD schema and consistent directory data.
+
+The effect is strongest for factual errors: wrong hours, incorrect services, outdated pricing. Framing issues (how AI describes your positioning) take longer to correct because they depend on review sentiment and broader web content.
+
+---
+
+*Want LocalVector to generate your llms.txt file? [Start with a free AI audit](/scan) to see what AI currently says about your business.*

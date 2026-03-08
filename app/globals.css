@@ -701,3 +701,70 @@ body:has(.lv-marketing) {
   }
   .lv-marketing .m-underline-draw::after { width: 100%; }
 }
+
+/* ── Blog prose styling ──────────────────────────────────── */
+.lv-blog-prose h2 {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--m-text-primary);
+  margin-top: 40px;
+  margin-bottom: 16px;
+  line-height: 1.3;
+}
+.lv-blog-prose h3 {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--m-text-primary);
+  margin-top: 32px;
+  margin-bottom: 12px;
+  line-height: 1.3;
+}
+.lv-blog-prose p {
+  font-size: 16px;
+  line-height: 1.75;
+  color: var(--m-text-secondary);
+  margin-bottom: 20px;
+}
+.lv-blog-prose ul, .lv-blog-prose ol {
+  padding-left: 24px;
+  margin-bottom: 20px;
+}
+.lv-blog-prose li {
+  font-size: 16px;
+  line-height: 1.75;
+  color: var(--m-text-secondary);
+  margin-bottom: 8px;
+}
+.lv-blog-prose a {
+  color: var(--m-green);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.lv-blog-prose strong {
+  color: var(--m-text-primary);
+  font-weight: 700;
+}
+.lv-blog-prose blockquote {
+  border-left: 3px solid var(--m-green);
+  padding: 12px 20px;
+  margin: 24px 0;
+  background: var(--m-green-light, #F0FDF4);
+  border-radius: 0 8px 8px 0;
+}
+.lv-blog-prose blockquote p {
+  margin-bottom: 0;
+  font-style: italic;
+}
+.lv-blog-prose code {
+  font-family: var(--font-jetbrains-mono), monospace;
+  font-size: 14px;
+  background: rgba(0,0,0,0.04);
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+.lv-blog-prose hr {
+  border: none;
+  height: 1px;
+  background: var(--m-border-base);
+  margin: 40px 0;
+}

@@ -14,7 +14,7 @@ export const metadata: Metadata = {
   title:
     'AI Visibility Glossary — AEO, GEO, Hallucination, Share of Voice & More | LocalVector.ai',
   description:
-    'Definitions for 15 key terms in AI visibility, AEO, and local business optimization. Plain-English explanations for local business owners and operators.',
+    'Definitions for 20 key terms in AI visibility, AEO, and local business optimization. Plain-English explanations for local business owners and operators.',
 };
 
 // ---------------------------------------------------------------------------
@@ -126,6 +126,38 @@ const GLOSSARY_TERMS: GlossaryTerm[] = [
     definition:
       'The difference between your current AI Share of Voice and the benchmark for your category (typically 25% for a top-4 position).',
   },
+  {
+    id: 'google-ai-overview',
+    term: 'Google AI Overview',
+    definition:
+      'An AI-generated summary (powered by Gemini) that appears above traditional Google search results. Synthesizes information from multiple sources to answer queries directly, making accuracy in AI-visible data critical for local businesses.',
+    link: { href: '/what-is/ai-overview', label: 'Read more \u2192' },
+  },
+  {
+    id: 'perplexity-pages',
+    term: 'Perplexity Pages',
+    definition:
+      'Curated, AI-generated content pages published by Perplexity AI that aggregate and summarize information about topics, businesses, and categories. When Perplexity creates a Page about your industry, the accuracy of your business data determines how you appear.',
+  },
+  {
+    id: 'siri-readiness-score',
+    term: 'Siri Readiness Score',
+    definition:
+      'A composite score measuring how prepared your business is for Apple Intelligence and Siri-powered search. Evaluates Apple Business Connect enrollment, Applebot crawlability, structured data quality, and cross-platform data consistency.',
+    link: { href: '/what-is/siri-readiness', label: 'Read more \u2192' },
+  },
+  {
+    id: 'agent-readiness-score',
+    term: 'Agent Readiness Score',
+    definition:
+      'A score measuring whether AI agents can take action on behalf of customers for your business — booking appointments, placing orders, checking hours, and browsing menus. Higher scores mean AI can do more for your customers without human intervention.',
+  },
+  {
+    id: 'content-hash-distribution',
+    term: 'Content Hash Distribution',
+    definition:
+      'LocalVector\u2019s mechanism for tracking whether updated menu or service data has propagated to AI engines. A SHA-256 hash of your structured data is compared before and after distribution to verify that AI crawlers have ingested the latest version.',
+  },
 ];
 
 // ---------------------------------------------------------------------------
@@ -157,7 +189,7 @@ export default function GlossaryPage() {
       <PageHero
         label="GLOSSARY"
         title="AI Visibility Glossary"
-        subtitle="Plain-English definitions for 15 key terms in AI visibility, AEO, and local business optimization."
+        subtitle="Plain-English definitions for 20 key terms in AI visibility, AEO, and local business optimization."
       />
 
       {/* JSON-LD */}

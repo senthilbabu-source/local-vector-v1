@@ -120,6 +120,7 @@ export default function CtaFooter() {
           {/* ---- Column 3: Resources ---- */}
           <div>
             <FooterHeading>Resources</FooterHeading>
+            <FooterLink href="/blog">Blog</FooterLink>
             <FooterLink href="/what-is/aeo">What is AEO?</FooterLink>
             <FooterLink href="/what-is/geo">What is GEO?</FooterLink>
             <FooterLink href="/what-is/ai-hallucination">
@@ -127,6 +128,8 @@ export default function CtaFooter() {
             </FooterLink>
             <FooterLink href="/what-is/agent-seo">What is Agent SEO?</FooterLink>
             <FooterLink href="/what-is/share-of-voice-ai">AI Share of Voice</FooterLink>
+            <FooterLink href="/what-is/ai-overview">Google AI Overview</FooterLink>
+            <FooterLink href="/what-is/siri-readiness">Siri Readiness</FooterLink>
             <FooterLink href="/glossary">Glossary</FooterLink>
             <FooterLink href="/case-studies">Case Studies</FooterLink>
           </div>

@@ -107,8 +107,12 @@ export default function MarketingNav() {
                 <a href="/what-is/ai-hallucination" className="m-nav-dropdown-item">AI Hallucinations</a>
                 <a href="/what-is/share-of-voice-ai" className="m-nav-dropdown-item">AI Share of Voice</a>
                 <a href="/what-is/agent-seo" className="m-nav-dropdown-item">Agent SEO</a>
+                <a href="/what-is/ai-overview" className="m-nav-dropdown-item">Google AI Overview</a>
+                <a href="/what-is/siri-readiness" className="m-nav-dropdown-item">Siri Readiness</a>
+                <a href="/what-is/apple-business-connect" className="m-nav-dropdown-item">Apple Business Connect</a>
                 <div style={{ height: 1, background: 'var(--m-border-base)', margin: '8px 0' }} />
                 <p className="m-nav-dropdown-label">Company</p>
+                <a href="/blog" className="m-nav-dropdown-item">Blog</a>
                 <a href="/case-studies" className="m-nav-dropdown-item">Case Studies</a>
                 <a href="/glossary" className="m-nav-dropdown-item">Glossary</a>
                 <a href="/about" className="m-nav-dropdown-item">About</a>

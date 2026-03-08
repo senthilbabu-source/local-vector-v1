@@ -4,6 +4,28 @@
 
 ---
 
+## 2026-03-07 — Sprint B (Marketing): SEO Growth Engine — Blog + What-Is + Glossary (§300–§301)
+
+**Changes:**
+- `lib/blog/mdx.ts` — **NEW.** Blog MDX utilities: `getAllPosts()` (fs-based, gray-matter frontmatter, sorted by date desc), `getPostBySlug()`, `getAllSlugs()`, `estimateReadingTime()` (250 WPM). `BlogPostMeta` + `BlogPost` interfaces.
+- `app/(marketing)/blog/page.tsx` — **NEW.** Blog index page with post cards (tag badges, reading time, author, date). Full SEO metadata with openGraph/twitter. Empty state fallback.
+- `app/(marketing)/blog/[slug]/page.tsx` — **NEW.** Individual blog post page using `next-mdx-remote/rsc` (server-side MDX, zero client JS). `generateStaticParams()` + `generateMetadata()` (Next.js 16 async params). Article JSON-LD schema. Tag badges + reading time header.
+- `content/blog/*.mdx` — **NEW.** 5 launch blog posts: AEO guide (2026-03-05), AI hallucinations revenue impact (2026-03-03), Google AI Overview guide (2026-03-01), Apple Intelligence + Siri (2026-02-27), llms.txt guide (2026-02-25).
+- `app/globals.css` — **MODIFIED.** Added `.lv-blog-prose` styles (h2, h3, p, ul/ol, li, a, strong, blockquote, code, hr) scoped to blog MDX content.
+- `app/(marketing)/what-is/ai-overview/page.tsx` — **NEW.** Google AI Overview explainer. FAQ JSON-LD. Sections: definition, data sources, local business risk, monitoring, related terms.
+- `app/(marketing)/what-is/siri-readiness/page.tsx` — **NEW.** Siri Readiness Score explainer. FAQ JSON-LD. Sections: 4 signals (ABC/Applebot/structured data/consistency), Apple Intelligence opportunity.
+- `app/(marketing)/what-is/apple-business-connect/page.tsx` — **NEW.** Apple Business Connect explainer. FAQ JSON-LD. Sections: place cards/action links/showcases, AI connection, 5 getting-started steps.
+- `app/(marketing)/glossary/page.tsx` — **MODIFIED.** Added 5 new terms (google-ai-overview, perplexity-pages, siri-readiness-score, agent-readiness-score, content-hash-distribution). Count updated 15→20.
+- `app/(marketing)/_components/MarketingNav.tsx` — **MODIFIED.** Added 3 Learn links (AI Overview, Siri Readiness, Apple Business Connect) + Blog link in Company section.
+- `app/(marketing)/_sections/CtaFooter.tsx` — **MODIFIED.** Added Blog + AI Overview + Siri Readiness links in Resources column.
+- `app/sitemap.ts` — **REWRITTEN.** Expanded from 3 entries to 20+ static pages + dynamic blog posts via `getAllSlugs()`.
+
+**Tests:** 19 new (`sprint-b-seo-growth.test.ts`): blog MDX utilities 8, what-is metadata 4, glossary metadata 1, blog index metadata 1, sitemap expansion 2, blog frontmatter validation 3. 0 regressions.
+**Files changed:** 9 new, 5 modified. **0 new migrations, 0 new crons.**
+AI_RULES: §300 (Blog Infrastructure), §301 (What-Is Pages + Glossary Expansion). All tests pass — zero regressions.
+
+---
+
 ## 2026-03-07 — Sprint A (Marketing): Public Reports + Scan Polish (§298–§299)
 
 **Changes:**

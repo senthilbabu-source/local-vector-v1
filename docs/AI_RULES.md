@@ -6293,3 +6293,32 @@ The `/scan` page is the top-of-funnel entry point. It was previously set to `rob
 - `captureLeadEmail()` return type extended: `{ ok: boolean }` → `{ ok: boolean; reportId?: string }`. Insert now uses `.select('id').single()` to return the `scan_leads.id` UUID for shareable report linking.
 - `EmailCaptureForm` success state now shows "Share this report" link pointing to `/report/scan/{reportId}` — enables viral sharing of scan results via stable URLs instead of giant query strings.
 - 18 new tests in `sprint-a-public-reports.test.ts`: UUID validation (5), data shaping (3), scan-params regression (2), metadata verification (2), helper functions (3), UUID regex (3).
+
+## §300 — Blog Infrastructure (Sprint B Marketing)
+
+### Context
+LocalVector.ai had no blog. Blog content is critical for SEO authority, long-tail keyword capture, and establishing thought leadership in the AI visibility space.
+
+### Rules
+- Blog posts are MDX files in `content/blog/`. Frontmatter: `title`, `description`, `date`, `author`, `tags` (array).
+- `lib/blog/mdx.ts` reads MDX files via `fs` + `gray-matter`. Three exports: `getAllPosts()` (sorted desc by date), `getPostBySlug(slug)`, `getAllSlugs()`.
+- Blog index at `app/(marketing)/blog/page.tsx`. Blog post pages at `app/(marketing)/blog/[slug]/page.tsx` using `next-mdx-remote/rsc` for server-side MDX rendering.
+- `generateStaticParams()` used for static generation of blog post pages.
+- Blog post pages have: Article JSON-LD schema, dynamic metadata (title, description, openGraph with article type, twitter card), tag badges, reading time estimate, back link, inline CTA card.
+- Blog prose styled via `.lv-blog-prose` class in `globals.css` — headings, paragraphs, lists, links, blockquotes, code, hr rules.
+- Reading time: `Math.ceil(words / 250)`, minimum 1 minute.
+- `app/sitemap.ts` expanded from 3 entries to 20+ static pages + dynamic blog post pages via `getAllSlugs()`.
+
+## §301 — What-Is Pages + Glossary Expansion (Sprint B Marketing)
+
+### Context
+Three new what-is content pages target high-value search queries related to Google AI Overview, Siri/Apple Intelligence, and Apple Business Connect. Six new glossary terms cover emerging AI visibility concepts.
+
+### Rules
+- Three new what-is pages follow the exact pattern from `what-is/aeo/page.tsx`: `MarketingNav` + `PageHero` + alternating `m-bg-primary`/`m-bg-secondary` sections + FAQ JSON-LD + related pill links + CTA + `MarketingFooter`.
+- New pages: `/what-is/ai-overview` (Google AI Overview), `/what-is/siri-readiness` (Siri Readiness Score), `/what-is/apple-business-connect` (Apple Business Connect).
+- Each page exports `metadata` (title, description) and a `FAQ_JSON_LD` object with at least 2 FAQ entries.
+- `MarketingNav` Resources dropdown updated: 3 new Learn links (Google AI Overview, Siri Readiness, Apple Business Connect) + Blog link in Company section.
+- `CtaFooter` Resources column updated: Blog link added at top, Google AI Overview and Siri Readiness links added.
+- Glossary expanded from 15 to 20 terms. New terms: Google AI Overview (linked to what-is page), Perplexity Pages, Siri Readiness Score (linked), Agent Readiness Score, Content Hash Distribution. Metadata description and subtitle updated to reflect 20 terms.
+- 19 new tests in `sprint-b-seo-growth.test.ts`: blog MDX utilities (8), what-is metadata (4), glossary metadata (1), blog index metadata (1), sitemap expansion (2), blog frontmatter validation (3).
