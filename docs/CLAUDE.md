@@ -89,7 +89,7 @@ lib/streaming/             — SSE streaming: types (SSEChunk, StreamingState), 
 lib/corrections/           — Correction follow-up: brief prompt, correction-service (mark corrected, rescan, effectiveness score), types (Sprint 121, §155)
 lib/settings/              — Org settings: settings-service (get/update/shouldScanOrg), api-key-service (SHA-256 hash, generate/list/revoke), types (Sprint 121, §155)
 lib/services/benchmark-service.ts — Benchmark percentile computation: normalizeBucketKey, computePercentileRank (strict <), computePercentiles (linear interpolation), runBenchmarkComputation, getOrgBenchmark/History (cache readers), getMostRecentSunday (Sprint 122, §156)
-lib/config/sov-models.ts           — Multi-model SOV config: SOV_MODEL_CONFIGS (3 models), PLAN_SOV_MODELS tier mapping, getEnabledModels() (Sprint 123, §157)
+lib/config/sov-models.ts           — Multi-model SOV config: SOV_MODEL_CONFIGS (6 models), PLAN_SOV_MODELS tier mapping, getEnabledModels() (Sprint 123+2, §157/§287-§288)
 lib/services/sov-model-normalizer.ts — Citation detection: detectCitation() pure function, normalize() &/N→and, 3 confidence levels (Sprint 123, §157)
 lib/services/multi-model-sov.ts    — Multi-model SOV orchestrator: runMultiModelQuery() sequential calls, per-model error isolation, upsert (Sprint 123, §157)
 app/api/sov/model-breakdown/[queryId]/ — GET per-query model citation results + summary (Sprint 123, §157)
@@ -658,7 +658,7 @@ APPLE_MAPS_PRIVATE_KEY, APPLE_MAPS_KEY_ID, APPLE_MAPS_TEAM_ID
 
 ### Sprint 123 — Multi-Model SOV Expansion (2026-03-02)
 - **Migration:** `20260322000002_sov_model_results.sql` — new table with CHECK constraints on model_provider/confidence, UNIQUE on (org_id, query_id, model_provider, week_of), 3 indexes, 2 RLS policies.
-- **Model config:** `lib/config/sov-models.ts` — SOV_MODEL_CONFIGS (perplexity-sonar, gpt-4o-mini, gemini-flash), PLAN_SOV_MODELS (trial=0, starter=1, growth=2, agency=3), `getEnabledModels()`.
+- **Model config:** `lib/config/sov-models.ts` — SOV_MODEL_CONFIGS (perplexity-sonar, gpt-4o-mini, gemini-flash, copilot-bing, grok-xai, youcom-search), PLAN_SOV_MODELS (trial=1, starter=1, growth=2, agency=6), `getEnabledModels()`.
 - **Citation normalizer:** `lib/services/sov-model-normalizer.ts` — pure `detectCitation()`, normalize() handles &/N→and + punctuation, 3 confidence levels (high/medium/low), excerpt truncation.
 - **Orchestrator:** `lib/services/multi-model-sov.ts` — `runMultiModelQuery()` sequential with configurable delay, per-model error isolation, upsert, never throws.
 - **API routes:** GET `/api/sov/model-breakdown/[queryId]` (per-query results + summary), GET `/api/sov/model-scores` (per-model aggregate SOV%).

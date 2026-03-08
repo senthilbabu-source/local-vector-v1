@@ -64,6 +64,30 @@ export const google = createGoogleGenerativeAI({
   apiKey: process.env.GOOGLE_GENERATIVE_AI_API_KEY,
 });
 
+/**
+ * xAI provider (Grok) — OpenAI-compatible API.
+ * Used for SOV Engine queries. Has native web search grounding.
+ * API key sourced from XAI_API_KEY env var.
+ */
+export const xai = createOpenAI({
+  apiKey: process.env.XAI_API_KEY,
+  baseURL: 'https://api.x.ai/v1',
+  compatibility: 'compatible',
+  name: 'xai',
+});
+
+/**
+ * You.com provider — OpenAI-compatible chat API with native web search.
+ * Used for SOV Engine queries.
+ * API key sourced from YOUCOM_API_KEY env var.
+ */
+export const youcom = createOpenAI({
+  apiKey: process.env.YOUCOM_API_KEY,
+  baseURL: 'https://api.you.com/v1',
+  compatibility: 'compatible',
+  name: 'youcom',
+});
+
 // ── Web Search Tool for OpenAI Responses API ────────────────────────────────
 
 /**
@@ -191,6 +215,12 @@ export const MODELS = {
   /** Sprint 135: Intent Discovery prompt expansion (Haiku for cost) */
   'intent-expand': anthropic('claude-3-5-haiku-20241022'),
 
+  /** Sprint 2: Grok (xAI) SOV queries — native web search, agency plan */
+  'sov-query-grok': xai('grok-3-mini'),
+
+  /** Sprint 2: You.com SOV queries — native web search, agency plan */
+  'sov-query-youcom': youcom('you-research'),
+
 } as const;
 
 /** Sprint 119: Embedding model — kept separate from MODELS to preserve LanguageModelV1 union */
@@ -218,10 +248,12 @@ export function getModel(key: ModelKey) {
  * Check if the required API key for a provider is configured.
  * Used by services to determine whether to run in demo/mock mode.
  */
-export function hasApiKey(provider: 'openai' | 'perplexity' | 'anthropic' | 'google'): boolean {
+export function hasApiKey(provider: 'openai' | 'perplexity' | 'anthropic' | 'google' | 'xai' | 'youcom'): boolean {
   if (provider === 'openai') return !!process.env.OPENAI_API_KEY;
   if (provider === 'perplexity') return !!process.env.PERPLEXITY_API_KEY;
   if (provider === 'anthropic') return !!process.env.ANTHROPIC_API_KEY;
   if (provider === 'google') return !!process.env.GOOGLE_GENERATIVE_AI_API_KEY;
+  if (provider === 'xai') return !!process.env.XAI_API_KEY;
+  if (provider === 'youcom') return !!process.env.YOUCOM_API_KEY;
   return false;
 }

@@ -12,7 +12,9 @@ export type SOVModelId =
   | 'perplexity_sonar'
   | 'openai_gpt4o_mini'
   | 'gemini_flash'
-  | 'copilot_bing';
+  | 'copilot_bing'
+  | 'grok_xai'
+  | 'youcom_search';
 
 export interface SOVModelConfig {
   id: SOVModelId;
@@ -24,7 +26,7 @@ export interface SOVModelConfig {
   /** ms delay between calls to this provider (rate limit discipline) */
   call_delay_ms: number;
   /** Which provider's API key must be present */
-  api_key_provider: 'openai' | 'perplexity' | 'google';
+  api_key_provider: 'openai' | 'perplexity' | 'google' | 'xai' | 'youcom';
   /** If true, this model is a proxy approximation — UI should show asterisk + tooltip */
   is_proxy?: boolean;
 }
@@ -63,19 +65,37 @@ export const SOV_MODEL_CONFIGS: Record<SOVModelId, SOVModelConfig> = {
     api_key_provider: 'perplexity',
     is_proxy: true,
   },
+  grok_xai: {
+    id: 'grok_xai',
+    display_name: 'Grok',
+    provider_key: 'sov-query-grok',
+    max_tokens: 512,
+    call_delay_ms: 500,
+    api_key_provider: 'xai',
+    is_proxy: false,
+  },
+  youcom_search: {
+    id: 'youcom_search',
+    display_name: 'You.com',
+    provider_key: 'sov-query-youcom',
+    max_tokens: 512,
+    call_delay_ms: 500,
+    api_key_provider: 'youcom',
+    is_proxy: false,
+  },
 };
 
 /**
  * Models enabled per plan tier.
  * Starter: Perplexity only (existing behavior unchanged).
  * Growth: Perplexity + ChatGPT.
- * Agency: all four (includes Copilot via Bing-grounded proxy).
+ * Agency: all six (includes Copilot, Grok, You.com).
  */
 export const PLAN_SOV_MODELS: Record<string, SOVModelId[]> = {
   trial:   ['perplexity_sonar'],
   starter: ['perplexity_sonar'],
   growth:  ['perplexity_sonar', 'openai_gpt4o_mini'],
-  agency:  ['perplexity_sonar', 'openai_gpt4o_mini', 'gemini_flash', 'copilot_bing'],
+  agency:  ['perplexity_sonar', 'openai_gpt4o_mini', 'gemini_flash', 'copilot_bing', 'grok_xai', 'youcom_search'],
 };
 
 /**

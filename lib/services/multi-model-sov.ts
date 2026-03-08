@@ -107,7 +107,8 @@ export async function runMultiModelQuery(
           confidence: 'low',
         };
       } else {
-        // OpenAI Responses API models need the web search tool for live grounding
+        // Only OpenAI Responses API models need the webSearchTool for live grounding.
+        // Grok, You.com, Perplexity, and Gemini have native web search — no tool needed.
         const needsWebSearch = config.provider_key === 'sov-query-gpt';
 
         const { text } = await generateText({

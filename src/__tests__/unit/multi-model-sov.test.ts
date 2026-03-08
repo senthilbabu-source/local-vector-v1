@@ -72,12 +72,14 @@ describe('getEnabledModels — pure', () => {
     ]);
   });
 
-  it('agency plan → all 4 models (includes copilot_bing)', () => {
+  it('agency plan → all 6 models (includes copilot_bing, grok_xai, youcom_search)', () => {
     expect(getEnabledModels('agency')).toEqual([
       'perplexity_sonar',
       'openai_gpt4o_mini',
       'gemini_flash',
       'copilot_bing',
+      'grok_xai',
+      'youcom_search',
     ]);
   });
 
@@ -120,19 +122,19 @@ describe('runMultiModelQuery — AI + Supabase mocked', () => {
     const { client } = createMockSupabase();
     await runMultiModelQuery(baseParams({ supabase: client, planTier: 'agency' }));
 
-    // All 4 models should have been called (agency tier)
-    expect(callOrder.length).toBe(4);
+    // All 6 models should have been called (agency tier)
+    expect(callOrder.length).toBe(6);
   });
 
   it('inserts sov_model_results row for each model', async () => {
     const { client, mockFrom } = createMockSupabase();
     await runMultiModelQuery(baseParams({ supabase: client, planTier: 'agency' }));
 
-    // 4 models = 4 upsert calls (agency plan)
+    // 6 models = 6 upsert calls (agency plan)
     const upsertCalls = mockFrom.mock.calls.filter(
       (call) => call[0] === 'sov_model_results',
     );
-    expect(upsertCalls.length).toBe(4);
+    expect(upsertCalls.length).toBe(6);
   });
 
   it('uses ON CONFLICT DO UPDATE (upsert)', async () => {
@@ -163,8 +165,8 @@ describe('runMultiModelQuery — AI + Supabase mocked', () => {
       baseParams({ supabase: client, planTier: 'agency' }),
     );
 
-    // All 4 models should be in results (3 success + 1 error fallback)
-    expect(result.models_run.length).toBe(4);
+    // All 6 models should be in results (5 success + 1 error fallback)
+    expect(result.models_run.length).toBe(6);
     // The errored model should have cited=false
     expect(result.results.openai_gpt4o_mini?.cited).toBe(false);
     expect(result.results.openai_gpt4o_mini?.confidence).toBe('low');

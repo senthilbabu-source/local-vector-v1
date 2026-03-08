@@ -6117,3 +6117,23 @@ Sprint 1: Expanded source-intelligence.service.ts domain coverage, added 'commun
 - `categorizeUrl()` check order: first_party → review_site → directory → community → social → news → fallback 'other'. Community must come before social to prevent Reddit/Quora/Nextdoor from being classified as social.
 - `mapMentionTypeToCategory()` handles `'community'` mention type → `'community'` category.
 - Each engine in how-it-works `ENGINES` array has a `loopStep` field mapping to one of the 6 LOOP_STEPS. `LoopStepBadge` renders inline in each engine section header.
+
+## §287 — Grok (xAI) + You.com Native Web Search
+
+Sprint 2: Grok and You.com both have native web search built in. Never pass `webSearchTool()` to `sov-query-grok` or `sov-query-youcom`. Only `sov-query-gpt` (OpenAI Responses API) requires the webSearchTool injection.
+
+### Rules
+- `sov-query-grok` uses `xai('grok-3-mini')` — OpenAI-compatible API at `https://api.x.ai/v1`.
+- `sov-query-youcom` uses `youcom('you-research')` — OpenAI-compatible API at `https://api.you.com/v1`.
+- Both have native web search grounding — do NOT pass `webSearchTool()`.
+- `needsWebSearch` in `multi-model-sov.ts` is only true for `sov-query-gpt`. This is correct and must not change.
+
+## §288 — Grok + You.com Agency-Only Plan Gate
+
+Sprint 2: `grok_xai` and `youcom_search` are agency-plan-only SOV models. Never add them to growth or starter `PLAN_SOV_MODELS` without a pricing review.
+
+### Rules
+- `PLAN_SOV_MODELS.agency` includes both `grok_xai` and `youcom_search`.
+- `PLAN_SOV_MODELS.growth`, `PLAN_SOV_MODELS.starter`, and `PLAN_SOV_MODELS.trial` must NOT include either model.
+- `SOV_MODEL_CONFIGS['grok_xai'].is_proxy` is `false` — real first-party API.
+- `SOV_MODEL_CONFIGS['youcom_search'].is_proxy` is `false` — real first-party API.

@@ -6989,3 +6989,34 @@ Committed: `d70bf19` — 70 files, 12,552 insertions.
 - `src/__tests__/unit/database-types-completeness.test.ts` — test #27 regression fix for org_settings casts
 - `lib/menu-intelligence/demand-analyzer.ts` — previously modified (Wave 13)
 - `app/dashboard/magic-menus/_components/AITalkingAboutSection.tsx` — previously untracked (Wave 13)
+
+---
+
+## Sprint 2 — Grok (xAI) + You.com SOV Engines (2026-03-07)
+
+### Changes
+- `providers.ts`: Added `xai` and `youcom` OpenAI-compatible provider instances. Added `sov-query-grok` (grok-3-mini) and `sov-query-youcom` (you-research) to MODELS. Expanded `hasApiKey()` to handle `'xai'` and `'youcom'`.
+- `sov-models.ts`: Added `grok_xai` and `youcom_search` to `SOVModelId` union, `SOV_MODEL_CONFIGS`, and `PLAN_SOV_MODELS.agency`. `api_key_provider` type expanded.
+- `multi-model-sov.ts`: Comment clarification only (no logic change).
+- `ModelCitationBadge.tsx`: Added `PROXY_TOOLTIPS` entries for both new models.
+- `.env.local.example`: Added `XAI_API_KEY` and `YOUCOM_API_KEY`.
+- `multi-model-sov.test.ts`: Updated agency model count assertions from 4 → 6.
+
+### Plan gate
+Both models: agency only. Growth/starter unchanged.
+
+### New file
+- `src/__tests__/unit/sov-grok-youcom.test.ts` (14 assertions)
+
+### Files changed (5 modified + 1 new)
+- `lib/ai/providers.ts`
+- `lib/config/sov-models.ts`
+- `lib/services/multi-model-sov.ts`
+- `app/dashboard/share-of-voice/_components/ModelCitationBadge.tsx`
+- `.env.local.example`
+- `src/__tests__/unit/sov-grok-youcom.test.ts` (new)
+- `src/__tests__/unit/multi-model-sov.test.ts` (regression fix)
+
+### AI_RULES
+- §287: Grok + You.com native web search — never pass webSearchTool().
+- §288: Agency-only plan gate for both models.

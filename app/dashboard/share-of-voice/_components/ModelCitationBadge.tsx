@@ -14,6 +14,10 @@ import { InfoTooltip } from '@/components/ui/InfoTooltip';
 const PROXY_TOOLTIPS: Partial<Record<SOVModelId, string>> = {
   copilot_bing:
     'Microsoft Copilot data is estimated via a Bing-grounded model. Direct Copilot API is not publicly available.',
+  grok_xai:
+    'Grok results are sourced via the xAI API with native web search grounding.',
+  youcom_search:
+    'You.com results are sourced via the You.com Research API with native web search.',
 };
 
 interface Props {
