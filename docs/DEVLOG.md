@@ -4,6 +4,14 @@
 
 ---
 
+## AI Menu Suggestions Fix (2026-03-08)
+- **lib/menu-intelligence/ai-menu-suggestions.ts** — 2 fixes: (1) Added `zodSchema()` wrapper around raw Zod schema in `generateObject()` call — OpenAI requires JSON Schema format, not raw Zod. Was the only `generateObject` call in the codebase missing the wrapper. (2) Changed catch from silent `return []` to `throw` so callers can show error feedback.
+- **app/dashboard/magic-menus/actions.ts** — Added `generateMenuSuggestionsAction()` server action. The button was previously calling the AI service client-side via dynamic import, but `OPENAI_API_KEY` is server-only (not `NEXT_PUBLIC_`), so it was always `undefined` in the browser.
+- **app/dashboard/magic-menus/_components/AISuggestionsButton.tsx** — Rewired to call the server action instead of client-side dynamic import. Added empty-result feedback state (`null` vs `[]` distinction). Removed Sentry import (error handling moved to server action).
+- **0 new tests, 0 regressions.**
+
+---
+
 ## Free Scan Empty Results Fix (2026-03-08)
 - **app/actions/marketing.ts** — 4 fixes: (1) `_ensureIssuesForFail()` synthesizes an accuracy_issue from claim_text/expected_truth when AI returns fail with empty issues, (2) `_extractIssuesFromText()` extracts issues from raw LLM prose via 6 regex patterns instead of returning empty arrays on text-detection fallback, (3) new text-detection branch catches `incorrect`/`inaccurate`/`wrong`/`outdated` keywords, (4) `_scoreScanResult()` weights `accuracy_issues.length * 10` so best-of-2 prefers richer results. `_inferCategoryFromText()` pure keyword→category mapper shared by both paths.
 - **app/scan/_components/ScanDashboard.tsx** — `not_found` FallbackIssueCard upgraded from gray to amber warning style with warning triangle icon and actionable copy.

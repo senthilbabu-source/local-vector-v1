@@ -2,8 +2,8 @@
 
 import { useState, useTransition } from 'react';
 import { Sparkles } from 'lucide-react';
-import * as Sentry from '@sentry/nextjs';
 import type { AIMenuSuggestion, MenuContext } from '@/lib/menu-intelligence/ai-menu-suggestions';
+import { generateMenuSuggestionsAction } from '../actions';
 
 // ---------------------------------------------------------------------------
 // S66: AISuggestionsButton — Triggers AI-powered menu suggestions
@@ -18,28 +18,32 @@ export default function AISuggestionsButton({
   context,
   onSuggestions,
 }: AISuggestionsButtonProps) {
-  const [suggestions, setSuggestions] = useState<AIMenuSuggestion[]>([]);
+  const [suggestions, setSuggestions] = useState<AIMenuSuggestion[] | null>(null);
   const [isPending, startTransition] = useTransition();
-  const [error, setError] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   function handleClick() {
-    setError(false);
+    setError(null);
     startTransition(async () => {
-      try {
-        const { generateAIMenuSuggestions } = await import(
-          '@/lib/menu-intelligence/ai-menu-suggestions'
-        );
-        const result = await generateAIMenuSuggestions(context);
-        setSuggestions(result);
-        onSuggestions?.(result);
-      } catch (err) {
-        Sentry.captureException(err, { tags: { component: 'AISuggestionsButton', sprint: 'S66' } });
-        setError(true);
+      const result = await generateMenuSuggestionsAction(context);
+      if (result.error) {
+        setError(result.error);
+      } else {
+        setSuggestions(result.suggestions);
+        onSuggestions?.(result.suggestions);
       }
     });
   }
 
-  if (suggestions.length > 0) {
+  if (suggestions !== null && suggestions.length === 0) {
+    return (
+      <p className="text-xs text-slate-400">
+        No suggestions available for your current menu. Try adding more items.
+      </p>
+    );
+  }
+
+  if (suggestions && suggestions.length > 0) {
     return (
       <div
         className="rounded-xl border border-white/10 bg-slate-900/50 p-4"
@@ -88,7 +92,7 @@ export default function AISuggestionsButton({
       </button>
       {error && (
         <p className="mt-1.5 text-xs text-red-400">
-          Could not generate suggestions. Try again later.
+          {error}
         </p>
       )}
     </div>

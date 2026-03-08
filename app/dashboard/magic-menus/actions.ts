@@ -1109,3 +1109,22 @@ export async function dismissMenuEnhancements(
   revalidatePath('/dashboard/magic-menus');
   return { success: true, menu: updated };
 }
+
+// ---------------------------------------------------------------------------
+// S66: Generate AI Menu Suggestions (server action)
+// ---------------------------------------------------------------------------
+
+export async function generateMenuSuggestionsAction(
+  context: import('@/lib/menu-intelligence/ai-menu-suggestions').MenuContext,
+): Promise<{ suggestions: import('@/lib/menu-intelligence/ai-menu-suggestions').AIMenuSuggestion[]; error?: string }> {
+  try {
+    const { generateAIMenuSuggestions } = await import(
+      '@/lib/menu-intelligence/ai-menu-suggestions'
+    );
+    const suggestions = await generateAIMenuSuggestions(context);
+    return { suggestions };
+  } catch (err) {
+    Sentry.captureException(err, { tags: { action: 'generateMenuSuggestionsAction', sprint: 'S66' } });
+    return { suggestions: [], error: 'Could not generate suggestions. Try again later.' };
+  }
+}

@@ -97,6 +97,7 @@ export async function generateAIMenuSuggestions(
   try {
     // Dynamic import to avoid bundling when API key absent
     const { getModel } = await import('@/lib/ai/providers');
+    const { zodSchema } = await import('@/lib/ai/schemas');
     const { generateObject } = await import('ai');
     const { z } = await import('zod');
 
@@ -107,19 +108,19 @@ export async function generateAIMenuSuggestions(
     const result = await generateObject({
       model,
       prompt,
-      schema: z.object({
+      schema: zodSchema(z.object({
         suggestions: z.array(z.object({
           title: z.string(),
           description: z.string(),
           impact: z.enum(['high', 'medium']),
           category: z.enum(['description', 'price', 'dietary', 'photography', 'naming']),
         })),
-      }),
+      })),
     });
 
     return validateSuggestions((result.object as { suggestions: Array<{ title: string; description: string; impact: string; category: string }> }).suggestions);
   } catch (err) {
     Sentry.captureException(err, { tags: { service: 'ai-menu-suggestions', sprint: 'S50' } });
-    return [];
+    throw new Error(`AI menu suggestions failed: ${err instanceof Error ? err.message : 'Unknown error'}`);
   }
 }
