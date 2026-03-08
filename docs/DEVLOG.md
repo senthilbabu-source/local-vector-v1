@@ -4,6 +4,13 @@
 
 ---
 
+## Sprint D Marketing: Scan Dashboard Conversion Upgrade (2026-03-08)
+- **ScanDashboard.tsx** — Complete redesign for conversion. Added: animated SVG score ring (rAF easeOutCubic, 1.5s), AI Visibility Score (0-100, derived from mentions+sentiment+issues), urgency strip, enhanced model coverage (20% progress ring, per-model hints), interactive expandable issue cards with fix preview, "What Your Dashboard Looks Like" feature grid, price-anchored CTA ($49/mo). Nav: score badge + "Fix This Now" button. No free trial language.
+- **sprint-d-depth-retention.test.ts** — 14 new tests (8 computeVisibilityScore + 6 scoreGrade). Total: 27 tests.
+- AI_RULES §306-§307.
+
+---
+
 ## 2026-03-08 — Sprint D (Marketing): Depth & Retention — Changelog + Partners + Pricing + SelfAudit (§304–§305)
 
 **Changes:**

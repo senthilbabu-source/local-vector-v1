@@ -6383,3 +6383,9 @@ Pricing page feature comparison updated to reflect new engines from Sprints 2-6.
 - Protected CTA explains Charcoal N Chill monitoring and links to `/scan`. Unmonitored CTA warns about unknown AI errors and links to `/scan`.
 - "TAP A CARD — WHICH ONE IS YOUR BUSINESS?" mono prompt above the cards.
 - 13 tests in `sprint-d-depth-retention.test.ts`: changelog (3), partners (3), pricing (2), SelfAudit (2), sitemap (2), partner API (1).
+
+### §306 — Free Scan Live Dashboard: Visibility Score Ring
+ScanDashboard.tsx now computes an AI Visibility Score (0-100) from real scan data: mentions (0-70 pts) + sentiment modifier (-15 to +15) + issues penalty (-5/issue) + pass bonus (+10). `computeVisibilityScore()` and `scoreGrade()` are exported for testing. Score animates with requestAnimationFrame easeOutCubic over 1.5s in an SVG ring. Grade thresholds: ≥70 Good, ≥50 Needs Attention, ≥25 At Risk, <25 Critical. AI_RULES §24 compliant — derived from real data, labeled "Based on your scan data."
+
+### §307 — Free Scan Live Dashboard: Conversion Upgrade
+ScanDashboard redesigned for conversion: (1) Animated score ring hero with grade badge, (2) urgency strip ("AI models refresh every 48-72 hours"), (3) enhanced model coverage with 20% progress ring and per-model context hints, (4) interactive expandable issue cards with "How LocalVector fixes this" fix preview, (5) "What Your Dashboard Looks Like" section with 4 feature teasers, (6) price-anchored final CTA ("$49/mo — less than one lost customer"). Nav shows score badge + "Fix This Now" CTA. No free trial language. 14 new tests (8 computeVisibilityScore, 6 scoreGrade).
