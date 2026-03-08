@@ -6322,3 +6322,35 @@ Three new what-is content pages target high-value search queries related to Goog
 - `CtaFooter` Resources column updated: Blog link added at top, Google AI Overview and Siri Readiness links added.
 - Glossary expanded from 15 to 20 terms. New terms: Google AI Overview (linked to what-is page), Perplexity Pages, Siri Readiness Score (linked), Agent Readiness Score, Content Hash Distribution. Metadata description and subtitle updated to reflect 20 terms.
 - 19 new tests in `sprint-b-seo-growth.test.ts`: blog MDX utilities (8), what-is metadata (4), glossary metadata (1), blog index metadata (1), sitemap expansion (2), blog frontmatter validation (3).
+
+## §302 — Agency Page + Comparison Pages (Sprint C Marketing)
+
+### Context
+High-LTV segments need dedicated landing pages. Agencies are the highest-value customer segment and need ROI proof. Competitor comparison pages target bottom-of-funnel search queries like "localvector vs yext".
+
+### Rules
+- `/for/agencies` is a dedicated agency landing page with ROI calculator, capabilities checklist, platform features grid, client pitch playbook, and CTA linking to `/signup?plan=agency`.
+- `ROI_TABLE` (3/5/10/20 clients), `PLATFORM_FEATURES` (6 cards), `CLIENT_PITCH_STEPS` (4 steps), `WHAT_YOU_MONITOR` (8 items) are top-level const arrays/records.
+- `/compare/[slug]` uses `generateStaticParams()` returning 4 slugs: `localvector-vs-yext`, `localvector-vs-brightlocal`, `localvector-vs-synup`, `localvector-vs-whitespark`.
+- `COMPETITORS` is a `Record<string, Competitor>` with `name`, `tagline`, `description`, `whatTheyDo`, `whatTheyMiss[]`, `features[]` (FeatureRow with `localvector`/`competitor` columns), `pricingNote`, `useCases[]`.
+- Comparison pages use Next.js 16 async params pattern: `type PageProps = { params: Promise<{ slug: string }> }`.
+- Invalid slugs in comparison pages return `notFound()`.
+- Each comparison page has a feature comparison table, "when to choose which" cards, links to other comparisons, and bottom CTA.
+- `MarketingNav` Resources dropdown has a "Compare" section with `vs Yext`, `vs BrightLocal`, and `For Agencies` links.
+- `CtaFooter` has `For Agencies` in Product column and `vs Yext`/`vs BrightLocal` in Resources column.
+- `app/sitemap.ts` has `COMPARE_SLUGS` array (4 items) generating comparison page entries at priority 0.7.
+
+## §303 — Programmatic City Pages (Sprint C Marketing)
+
+### Context
+Top 10 US metros by restaurant density are targeted with programmatic SEO pages. Each city page shows local stats, cuisine landscape, common AI errors, and how LocalVector helps.
+
+### Rules
+- `/for/[city]` uses `generateStaticParams()` from `TRACKED_METROS` array (10 cities).
+- `TRACKED_METROS` is exported (for testing) with fields: `slug`, `city`, `state`, `stateCode`, `population`, `restaurants`, `aiSearchVolume`, `topCuisines[]`, `localInsight`.
+- Cities: Atlanta, Dallas, Houston, Chicago, New York, Los Angeles, Miami, Phoenix, Denver, Seattle.
+- `revalidate = 86400` (ISR, 1-day revalidation).
+- Invalid city slugs return `notFound()`.
+- Each city page has: city stats grid (4 cards), top cuisines section, common AI errors (6 problem cards), how-it-works (4 steps), other cities links, and CTA linking to `/scan?city={city}`.
+- `app/sitemap.ts` has `CITY_SLUGS` array (10 items) generating city page entries at priority 0.6.
+- 19 tests in `sprint-c-high-ltv-segments.test.ts`: agency metadata (3), comparison pages (4), city pages (8), sitemap expansion (4).

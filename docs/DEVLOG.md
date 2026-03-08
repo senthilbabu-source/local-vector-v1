@@ -4,6 +4,22 @@
 
 ---
 
+## 2026-03-07 — Sprint C (Marketing): High-LTV Segments — Agency + Comparison + City Pages (§302–§303)
+
+**Changes:**
+- `app/(marketing)/for/agencies/page.tsx` — **NEW.** Dedicated agency landing page. ROI calculator table (3/5/10/20 clients), 8-item capabilities checklist, 6 platform feature cards, 4-step client pitch playbook, testimonial quote, dual CTA (/signup?plan=agency + /scan). Full SEO metadata with openGraph.
+- `app/(marketing)/compare/[slug]/page.tsx` — **NEW.** 4 competitor comparison pages via `generateStaticParams()`. Slugs: localvector-vs-yext, localvector-vs-brightlocal, localvector-vs-synup, localvector-vs-whitespark. Feature comparison table (dark header), "when to choose which" cards, cross-links, CTA. Next.js 16 async params pattern.
+- `app/(marketing)/for/[city]/page.tsx` — **NEW.** 10 programmatic city pages via `generateStaticParams()` from exported `TRACKED_METROS`. Cities: Atlanta, Dallas, Houston, Chicago, New York, Los Angeles, Miami, Phoenix, Denver, Seattle. City stats grid, top cuisines, 6 common AI error cards, 4-step how-it-works, cross-links, CTA. ISR `revalidate = 86400`.
+- `app/(marketing)/_components/MarketingNav.tsx` — **MODIFIED.** Added "Compare" section in Resources dropdown: vs Yext, vs BrightLocal, For Agencies links.
+- `app/(marketing)/_sections/CtaFooter.tsx` — **MODIFIED.** Added For Agencies link in Product column, vs Yext and vs BrightLocal links in Resources column.
+- `app/sitemap.ts` — **MODIFIED.** Added `COMPARE_SLUGS` (4 items, priority 0.7) and `CITY_SLUGS` (10 items, priority 0.6). Added `/for/agencies` to static pages (priority 0.8).
+
+**Tests:** 19 new (`sprint-c-high-ltv-segments.test.ts`): agency metadata 3, comparison pages 4, city pages 8, sitemap expansion 4. 0 regressions.
+**Files changed:** 3 new, 3 modified. **0 new migrations, 0 new crons.**
+AI_RULES: §302 (Agency + Comparison Pages), §303 (City Pages). All tests pass — zero regressions.
+
+---
+
 ## 2026-03-07 — Sprint B (Marketing): SEO Growth Engine — Blog + What-Is + Glossary (§300–§301)
 
 **Changes:**

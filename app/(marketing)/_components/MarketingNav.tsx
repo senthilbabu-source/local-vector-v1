@@ -116,6 +116,11 @@ export default function MarketingNav() {
                 <a href="/case-studies" className="m-nav-dropdown-item">Case Studies</a>
                 <a href="/glossary" className="m-nav-dropdown-item">Glossary</a>
                 <a href="/about" className="m-nav-dropdown-item">About</a>
+                <div style={{ height: 1, background: 'var(--m-border-base)', margin: '8px 0' }} />
+                <p className="m-nav-dropdown-label">Compare</p>
+                <a href="/compare/localvector-vs-yext" className="m-nav-dropdown-item">vs Yext</a>
+                <a href="/compare/localvector-vs-brightlocal" className="m-nav-dropdown-item">vs BrightLocal</a>
+                <a href="/for/agencies" className="m-nav-dropdown-item">For Agencies</a>
               </div>
             </div>
 
