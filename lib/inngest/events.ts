@@ -58,4 +58,9 @@ export type Events = {
   'cron/ai-overviews.weekly': {
     data: Record<string, never>;
   };
+
+  /** Sprint 4: Triggered by Vercel Cron → reddit-monitor. Reddit brand mentions. */
+  'cron/reddit.monitor': {
+    data: Record<string, never>;
+  };
 };

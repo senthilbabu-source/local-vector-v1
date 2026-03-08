@@ -77,6 +77,7 @@ export async function GET(request: NextRequest) {
       platform_breakdown: {
         google: { count: 0, avg_rating: 0 },
         yelp: { count: 0, avg_rating: 0 },
+        tripadvisor: { count: 0, avg_rating: 0 },
       },
       sentiment_breakdown: { positive: 0, neutral: 0, negative: 0 },
       response_rate: 0,

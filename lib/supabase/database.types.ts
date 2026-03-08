@@ -3540,6 +3540,72 @@ export type Database = {
           },
         ]
       }
+      reddit_brand_mentions: {
+        Row: {
+          id: string
+          org_id: string
+          location_id: string
+          reddit_post_id: string
+          post_type: string
+          subreddit: string
+          title: string | null
+          body: string
+          author: string
+          url: string
+          score: number
+          sentiment: string | null
+          detected_at: string
+          post_created_at: string | null
+        }
+        Insert: {
+          id?: string
+          org_id: string
+          location_id: string
+          reddit_post_id: string
+          post_type: string
+          subreddit: string
+          title?: string | null
+          body: string
+          author: string
+          url: string
+          score?: number
+          sentiment?: string | null
+          detected_at?: string
+          post_created_at?: string | null
+        }
+        Update: {
+          id?: string
+          org_id?: string
+          location_id?: string
+          reddit_post_id?: string
+          post_type?: string
+          subreddit?: string
+          title?: string | null
+          body?: string
+          author?: string
+          url?: string
+          score?: number
+          sentiment?: string | null
+          detected_at?: string
+          post_created_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reddit_brand_mentions_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reddit_brand_mentions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       reviews: {
         Row: {
           fetched_at: string

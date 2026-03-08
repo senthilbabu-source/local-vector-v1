@@ -4,6 +4,31 @@
 
 ---
 
+## 2026-03-07 — Sprint 4: TripAdvisor Review Fetcher + Reddit Brand Monitoring (§291–§292)
+
+**Changes:**
+- `lib/review-engine/types.ts` — **MODIFIED.** Extended `Review.platform`, `ReviewRecord.platform`, and `platform_breakdown` unions to include `'tripadvisor'`. `ReviewResponseDraft.platform` unchanged (TA reply not supported).
+- `lib/review-engine/fetchers/tripadvisor-review-fetcher.ts` — **NEW.** TripAdvisor Content API v1 fetcher. API key as `?key=` query param. Follows yelp-review-fetcher pattern exactly. Sentry-instrumented.
+- `lib/review-engine/review-sync-service.ts` — **MODIFIED.** Promise.all expanded from 2 to 3 fetchers (GBP + Yelp + TripAdvisor).
+- `lib/review-engine/response-generator.ts` — **MODIFIED.** Two `as 'google' | 'yelp'` casts for ReviewResponseDraft compatibility.
+- `app/api/review-engine/status/route.ts` — **MODIFIED.** Added `tripadvisor` to `platform_breakdown` initialization.
+- `lib/services/reddit-monitor.service.ts` — **NEW.** Reddit OAuth2 client credentials flow, dual search (posts + comments), keyword sentiment classification, upsert with dedup. Never throws.
+- `app/api/cron/reddit-monitor/route.ts` — **NEW.** 32nd cron, weekly Tue 8 AM UTC, Growth+ orgs, kill switch `STOP_REDDIT_MONITOR_CRON`.
+- `supabase/migrations/20260308000002_reddit_brand_mentions.sql` — **NEW.** `reddit_brand_mentions` table with RLS, unique on `(org_id, reddit_post_id)`.
+- `lib/supabase/database.types.ts` — **MODIFIED.** Added `reddit_brand_mentions` table types.
+- `supabase/prod_schema.sql` — **MODIFIED.** Added `reddit_brand_mentions` CREATE TABLE.
+- `vercel.json` — **MODIFIED.** 32nd cron entry.
+- `lib/admin/known-crons.ts` — **MODIFIED.** Added `'reddit-monitor'`.
+- `lib/services/cron-health.service.ts` — **MODIFIED.** 15th CRON_REGISTRY entry.
+- `lib/inngest/events.ts` — **MODIFIED.** Added `'cron/reddit.monitor'` event.
+- `.env.local.example` — **MODIFIED.** Added `TRIPADVISOR_API_KEY`, `STOP_REDDIT_MONITOR_CRON`, `REDDIT_CLIENT_ID`, `REDDIT_CLIENT_SECRET`.
+
+**Tests:** 19 new (tripadvisor-review-fetcher 9, reddit-monitor 10). 5 regression files updated (cron counts 31→32, CRON_REGISTRY 14→15).
+**Files changed:** 18. **1 new migration, 1 new cron (32 total, 15 in CRON_REGISTRY).**
+AI_RULES: §291 (TripAdvisor reviews), §292 (Reddit brand monitoring). 7135 tests, 442 files — ALL PASS.
+
+---
+
 ## 2026-03-07 — Sprint 1: Source Intel Domain Map + Plan Gate + How-It-Works Step Badges (§286)
 
 **Changes:**

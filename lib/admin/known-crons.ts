@@ -36,6 +36,7 @@ export const KNOWN_CRONS = [
   'ai-shopper',
   'competitor-vulnerability',
   'monthly-report',
+  'reddit-monitor',
 ] as const;
 
 export type KnownCron = (typeof KNOWN_CRONS)[number];

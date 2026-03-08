@@ -12,6 +12,7 @@ import type { Review, ReviewSyncResult } from './types';
 import type { GroundTruth } from '@/lib/nap-sync/types';
 import { fetchGBPReviews } from './fetchers/gbp-review-fetcher';
 import { fetchYelpReviews } from './fetchers/yelp-review-fetcher';
+import { fetchTripAdvisorReviews } from './fetchers/tripadvisor-review-fetcher';
 import { analyzeSentiment } from './sentiment-analyzer';
 import { deriveOrUpdateBrandVoice } from './brand-voice-profiler';
 import { generateResponseDraft, RESPONSE_GENERATION_LIMITS } from './response-generator';
@@ -141,13 +142,18 @@ export async function runReviewSync(
     // 2. Fetch/refresh brand voice profile
     const brandVoice = await deriveOrUpdateBrandVoice(supabase, locationId, orgId);
 
-    // 3. Fetch reviews from GBP + Yelp in parallel
-    const [gbpReviews, yelpResult] = await Promise.all([
+    // 3. Fetch reviews from GBP + Yelp + TripAdvisor in parallel
+    const [gbpReviews, yelpResult, taResult] = await Promise.all([
       fetchGBPReviews(supabase, locationId, orgId),
       fetchYelpReviews(supabase, locationId, orgId),
+      fetchTripAdvisorReviews(supabase, locationId, orgId),
     ]);
 
-    const allFetchedReviews: Review[] = [...gbpReviews, ...yelpResult.reviews];
+    const allFetchedReviews: Review[] = [
+      ...gbpReviews,
+      ...yelpResult.reviews,
+      ...taResult.reviews,
+    ];
 
     // 4. Process each review
     const newReviews: Array<{ review: Review; isNew: boolean }> = [];
@@ -239,7 +245,7 @@ export async function runReviewSync(
 
         const reviewForDraft: Review = {
           id: row.platform_review_id,
-          platform: row.platform as 'google' | 'yelp',
+          platform: row.platform as 'google' | 'yelp' | 'tripadvisor',
           location_id: row.location_id,
           org_id: row.org_id,
           reviewer_name: row.reviewer_name,

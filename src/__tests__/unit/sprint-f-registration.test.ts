@@ -23,8 +23,8 @@ describe('Sprint F — Cron Registration', () => {
       expect(cronPaths).toContain('/api/cron/benchmarks');
     });
 
-    it('has 31 total crons registered', () => {
-      expect(vercelJson.crons.length).toBe(31);
+    it('has 32 total crons registered', () => {
+      expect(vercelJson.crons.length).toBe(32);
     });
   });
 
@@ -49,7 +49,7 @@ describe('Sprint F — Cron Registration', () => {
       const { CRON_REGISTRY } = await import(
         '@/lib/services/cron-health.service'
       );
-      expect(CRON_REGISTRY.length).toBe(14);
+      expect(CRON_REGISTRY.length).toBe(15);
     });
   });
 

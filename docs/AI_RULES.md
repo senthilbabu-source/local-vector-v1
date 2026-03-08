@@ -6158,3 +6158,33 @@ Sprint 3: `gsc_ai_overview_data` and `sov_evaluations` are SEPARATE tables with 
 - Dashboard pages are separate: `/dashboard/ai-overviews` (GSC data) vs `/dashboard/share-of-voice` (SOV data).
 - Crons are separate: `ai-overviews` (weekly Mon 6 AM UTC) vs `sov` (weekly Sun 7 AM UTC).
 - Never join these tables or compute combined metrics across them.
+
+## §291 — TripAdvisor Review Fetcher
+
+Sprint 4: TripAdvisor reviews flow through the same `reviews` table and sentiment pipeline as GBP and Yelp. `platform = 'tripadvisor'` is now a valid value in `Review.platform` and `ReviewRecord.platform` unions (`lib/review-engine/types.ts`). `ReviewResponseDraft.platform` remains `'google' | 'yelp'` — TripAdvisor reply push is NOT implemented.
+
+### Rules
+- TripAdvisor Content API v1 uses API key as query param (`?key=`), NOT in Authorization header. No extra headers needed.
+- Platform ID lookup from `listing_platform_ids` where `platform = 'tripadvisor'`. Returns empty if no row exists.
+- `fetchTripAdvisorReviews()` follows the exact same pattern as `fetchYelpReviews()`: never throws, returns `{ reviews: [], total_count: 0 }` on any error.
+- `review-sync-service.ts` Promise.all includes all 3 fetchers: GBP, Yelp, TripAdvisor.
+- `response-generator.ts` casts `review.platform as 'google' | 'yelp'` when building `ReviewResponseDraft` because TA reply is not supported.
+- `platform_breakdown` in review-engine status route includes `tripadvisor: { count: 0, avg_rating: 0 }` initialization.
+- Sentry tags: `{ component: 'tripadvisor-review-fetcher', sprint: '4' }`.
+- Env var: `TRIPADVISOR_API_KEY` — returns empty gracefully when not set.
+
+## §292 — Reddit Brand Monitoring
+
+Sprint 4: Reddit brand mentions are stored in `reddit_brand_mentions`, NOT in the `reviews` table. Reddit is a community monitoring source, not a review platform.
+
+### Rules
+- `reddit_brand_mentions` table has RLS with org-scoped SELECT via memberships join. UNIQUE on `(org_id, reddit_post_id)`.
+- Reddit OAuth2 uses client credentials flow: POST to `https://www.reddit.com/api/v1/access_token` with Basic auth (`client_id:client_secret`), body `grant_type=client_credentials`.
+- User-Agent: `'LocalVector-Monitor/1.0 (by /u/localvector_bot)'` — required by Reddit API.
+- Search makes 2 calls: `type=link` for posts, `type=comment` for comments. Both `sort=new&limit=25&t=week`.
+- `monitorRedditMentions()` never throws — returns `{ new_mentions: number; errors: string[] }`.
+- Upsert uses cast pattern: `(supabase.from as unknown as ...)('reddit_brand_mentions')` since table is not in generated types.
+- `classifySentiment()` is pure keyword matching (12 negative words, 9 positive words), not AI-powered.
+- Cron: `app/api/cron/reddit-monitor/route.ts` — weekly Tue 8 AM UTC, Growth+ orgs only, kill switch `STOP_REDDIT_MONITOR_CRON`.
+- Env vars: `REDDIT_CLIENT_ID`, `REDDIT_CLIENT_SECRET` — cron skips silently when not set.
+- 32nd cron in `vercel.json`, 15th in `CRON_REGISTRY`.

@@ -174,7 +174,7 @@ export async function generateResponseDraft(
 
     return {
       review_id: review.id,
-      platform: review.platform,
+      platform: review.platform as 'google' | 'yelp',
       draft_text: draftText.trim(),
       character_count: draftText.trim().length,
       seo_keywords_used: seoKeywordsUsed,
@@ -236,7 +236,7 @@ function generateTemplateResponse(
 
   return {
     review_id: review.id,
-    platform: review.platform,
+    platform: review.platform as 'google' | 'yelp',
     draft_text: draft,
     character_count: draft.length,
     seo_keywords_used: [],

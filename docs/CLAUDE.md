@@ -12,7 +12,7 @@ LocalVector is an AEO/GEO SaaS platform that helps local businesses monitor and 
 - **Billing:** Stripe webhooks → `organizations.plan_tier` enum (`trial | starter | growth | agency`)
 - **Email:** Resend + React Email (`emails/`)
 - **Cache:** Upstash Redis (`lib/redis.ts`) — optional, all callers must degrade gracefully
-- **Testing:** Vitest (unit/integration in `src/__tests__/`), Playwright (E2E in `tests/e2e/`, 42 specs). Current: ~7051 tests, 441 files.
+- **Testing:** Vitest (unit/integration in `src/__tests__/`), Playwright (E2E in `tests/e2e/`, 42 specs). Current: ~7135 tests, 442 files.
 - **Monitoring:** Sentry (client, server, edge configs) — all catch blocks instrumented (Sprint A, AI_RULES §70)
 
 ## Architecture Rules
@@ -23,7 +23,7 @@ LocalVector is an AEO/GEO SaaS platform that helps local businesses monitor and 
 - **Plan display names live in `lib/plan-display-names.ts`.** Never inline plan tier display logic (e.g., `capitalize(plan)`) — always use `getPlanDisplayName()`. Maps: trial→The Audit, starter→Starter, growth→AI Shield, agency→Brand Fortress, null→Free. (AI_RULES §71)
 - **AI providers are centralized.** Never call AI APIs directly — use `getModel(key)` from `lib/ai/providers.ts`. Mock fallbacks activate when API keys are absent.
 - **RLS pattern:** Every tenant-scoped table has `org_isolation_select/insert/update/delete` policies using `org_id = public.current_user_org_id()`.
-- **Cron routes** live in `app/api/cron/` and require `Authorization: Bearer <CRON_SECRET>` header. Each has a kill switch env var. 25 crons registered in `vercel.json`, 9 in `CRON_REGISTRY`. (Note: bing-sync retired §213)
+- **Cron routes** live in `app/api/cron/` and require `Authorization: Bearer <CRON_SECRET>` header. Each has a kill switch env var. 32 crons registered in `vercel.json`, 15 in `CRON_REGISTRY`. (Note: bing-sync retired §213)
 - **Sidebar plan gating:** NAV_ITEMS in `components/layout/Sidebar.tsx` have optional `minPlan` field. Locked items render as buttons with Lock icon → `UpgradeModal`. (P1-FIX-06, AI_RULES §175)
 - **Accessibility (WCAG 2.1 AA):** Skip link in DashboardShell, semantic landmarks, `aria-current="page"` on active nav, `aria-hidden="true"` on decorative icons, focus trap in UpgradeModal, `aria-live="polite"` on credits counter, semantic `<table>` elements, `role="img"` + sr-only data tables on charts. Contrast: use `text-slate-400` (not `text-slate-500`) on dark backgrounds. (P6-FIX-27, AI_RULES §191)
 - **Manual scan trigger:** Growth/Agency users can trigger on-demand SOV scans via `POST /api/sov/trigger-manual`. Rate-limited 1/hr/org. Inngest async. (P1-FIX-05, AI_RULES §177)
@@ -34,7 +34,7 @@ LocalVector is an AEO/GEO SaaS platform that helps local businesses monitor and 
 ## Key Directories
 
 ```
-app/api/cron/          — Automated pipelines (sov, audit, content-audit, weekly-digest, correction-follow-up, correction-rescan, benchmarks, nap-sync, schema-drift, review-sync, autopilot, apple-bc-sync)
+app/api/cron/          — Automated pipelines (sov, audit, content-audit, weekly-digest, correction-follow-up, correction-rescan, benchmarks, nap-sync, schema-drift, review-sync, autopilot, apple-bc-sync, reddit-monitor)
 app/(auth)/            — Auth pages (login, register, forgot-password, reset-password)
 app/dashboard/         — Authenticated dashboard pages (each has error.tsx boundary)
 app/dashboard/citations/     — Citation Gap Dashboard (Sprint 58A)
@@ -123,6 +123,8 @@ lib/logger.ts                  — Structured JSON logger with redaction, reques
 app/api/settings/data-export/  — GDPR data export API, owner-only, rate-limited (P6-FIX-26, §186)
 app/api/cron/data-cleanup/     — GDPR 7-day grace period deletion cron (P6-FIX-26, §186)
 components/ui/CookieConsentBanner.tsx — Cookie consent banner, localStorage-backed (P6-FIX-26, §186)
+lib/services/reddit-monitor.service.ts — Reddit brand monitoring: OAuth2, search, sentiment classification, upsert (Sprint 4, §292)
+lib/review-engine/fetchers/tripadvisor-review-fetcher.ts — TripAdvisor Content API v1 review fetcher (Sprint 4, §291)
 lib/supabase/database.types.ts — Full Database type (59 tables, 9 enums, Relationships)
 supabase/migrations/   — Applied SQL migrations (94, timestamp-ordered)
 supabase/prod_schema.sql — Full production schema dump
@@ -162,6 +164,7 @@ app/dashboard/_components/BenchmarkComparisonCard.tsx — City benchmark compari
 | `listing_snapshots` | Raw NAP data captured from each platform per sync run. Historical record. Org RLS via memberships join. (Sprint 105) |
 | `nap_discrepancies` | Structured discrepancy records with severity, auto_correctable flag, fix instructions, discrepant_fields JSONB. Org RLS via memberships join. (Sprint 105) |
 | `post_publish_audits` | Autopilot post-publish audit trail: draft_id, target_query, baseline/post_publish scores, improvement_delta. Org RLS. (Sprint 86) |
+| `reddit_brand_mentions` | Reddit brand monitoring — posts + comments with sentiment classification. RLS: org-scoped SELECT. UNIQUE(org_id, reddit_post_id). (Sprint 4, §292) |
 | `activity_log` | Append-only audit trail — 7 event types (member_invited/accepted/removed, invite_revoked, seat_sync, role_changed, settings_updated). INSERT-only RLS for service_role, SELECT for org members. (Sprint 113) |
 | `org_domains` | Per-org custom domain + subdomain config. UNIQUE(org_id, domain_type). Verified domain index for O(1) hot-path lookup. RLS: members read, owner write. (Sprint 114) |
 | `org_themes` | Per-org visual branding — primary/accent colors (hex CHECK), font_family (10-font allowlist), logo_url, show_powered_by. text_on_primary auto-computed via WCAG luminance. RLS: members read, owner write. (Sprint 115) |
@@ -231,6 +234,7 @@ app/dashboard/_components/BenchmarkComparisonCard.tsx — City benchmark compari
 61. `20260303100001_credit_usage_log.sql` — `credit_usage_log` append-only audit trail (P3-FIX-14)
 62. `20260304100001_rls_gap_fill.sql` — RLS on 10 tenant-scoped tables (entity_authority_*, intent_discoveries, listing_*, nap_discrepancies, page_schemas, post_publish_audits, vaio_profiles) (P6-FIX-25)
 63. `20260304100002_gdpr_deletion.sql` — `deletion_requested_at`, `deletion_reason` columns on organizations (P6-FIX-26)
+64. `20260308000002_reddit_brand_mentions.sql` — `reddit_brand_mentions` table with RLS + org isolation (Sprint 4, §292)
 
 ## Testing Commands
 
@@ -253,6 +257,8 @@ UPSTASH_REDIS_REST_URL, UPSTASH_REDIS_REST_TOKEN
 ADMIN_EMAILS
 YELP_FUSION_API_KEY, BING_SEARCH_API_KEY
 APPLE_MAPS_PRIVATE_KEY, APPLE_MAPS_KEY_ID, APPLE_MAPS_TEAM_ID
+TRIPADVISOR_API_KEY
+REDDIT_CLIENT_ID, REDDIT_CLIENT_SECRET
 ```
 
 ---
@@ -769,4 +775,4 @@ APPLE_MAPS_PRIVATE_KEY, APPLE_MAPS_KEY_ID, APPLE_MAPS_TEAM_ID
 
 ## Build History
 
-See `DEVLOG.md` (project root) and `docs/DEVLOG.md` for the complete sprint-by-sprint build log. Current sprint: DIST-4 (+ 135 sprints + FIX-1 through FIX-8 + Sprint A through Sprint O + P0-FIX-01 through P8-FIX-37 + Relevance Filter + DIST-1/DIST-2/DIST-3/DIST-4). AI_RULES: §1–§281 (281 sections). Production readiness: all audit issues resolved. **V1 complete.**
+See `DEVLOG.md` (project root) and `docs/DEVLOG.md` for the complete sprint-by-sprint build log. Current sprint: Sprint 4 (+ 135 sprints + FIX-1 through FIX-8 + Sprint A through Sprint O + P0-FIX-01 through P8-FIX-37 + Relevance Filter + DIST-1/DIST-2/DIST-3/DIST-4 + Sprint 1-4). AI_RULES: §1–§292 (292 sections). Production readiness: all audit issues resolved. **V1 complete.**

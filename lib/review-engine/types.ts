@@ -10,7 +10,7 @@
  */
 export interface Review {
   id: string;
-  platform: 'google' | 'yelp';
+  platform: 'google' | 'yelp' | 'tripadvisor';
   location_id: string;
   org_id: string;
   reviewer_name: string;
@@ -82,7 +82,7 @@ export interface ReviewResponseDraft {
 export interface ReviewRecord {
   id: string;
   platform_review_id: string;
-  platform: 'google' | 'yelp';
+  platform: 'google' | 'yelp' | 'tripadvisor';
   location_id: string;
   org_id: string;
   reviewer_name: string;
@@ -116,7 +116,7 @@ export interface ReviewRecord {
 export interface ReviewStats {
   total_reviews: number;
   avg_rating: number;
-  platform_breakdown: Record<'google' | 'yelp', { count: number; avg_rating: number }>;
+  platform_breakdown: Record<'google' | 'yelp' | 'tripadvisor', { count: number; avg_rating: number }>;
   sentiment_breakdown: Record<SentimentLabel, number>;
   response_rate: number;
   top_positive_keywords: string[];

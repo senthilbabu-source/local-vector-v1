@@ -124,13 +124,13 @@ describe('S28: Cross-Platform Consistency Score', () => {
       expect(paths).toContain('/api/cron/monthly-report');
     });
 
-    it('total cron count is 30', async () => {
+    it('total cron count is 32', async () => {
       const fs = await import('fs');
       const path = await import('path');
       const vercelJson = JSON.parse(
         fs.readFileSync(path.resolve('vercel.json'), 'utf8'),
       );
-      expect(vercelJson.crons).toHaveLength(31);
+      expect(vercelJson.crons).toHaveLength(32);
     });
   });
 
