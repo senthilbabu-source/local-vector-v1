@@ -61,8 +61,8 @@ export type PerplexityHeadToHeadOutput = z.infer<typeof PerplexityHeadToHeadSche
 // ── Greed Engine — GPT Intercept Analysis ───────────────────────────────────
 
 export const InterceptAnalysisSchema = z.object({
-  winner: z.string(),
-  winning_factor: z.string(),
+  winner: z.string().max(255),
+  winning_factor: z.string().max(255),
   gap_magnitude: z.enum(['high', 'medium', 'low']),
   gap_details: z.object({
     competitor_mentions: z.number(),
