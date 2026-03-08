@@ -4,6 +4,26 @@
 
 ---
 
+## 2026-03-08 — Sprint D (Marketing): Depth & Retention — Changelog + Partners + Pricing + SelfAudit (§304–§305)
+
+**Changes:**
+- `app/(marketing)/changelog/page.tsx` — **NEW.** Public changelog page with timeline UI. 11 version entries (v1.0–v2.6) with date, version tag, title, and 4 highlights each. Tag styles: feature (green), improvement (blue), fix (amber). Timeline dots, left border, subscribe CTA.
+- `app/(marketing)/partners/page.tsx` — **NEW.** Agency/affiliate partner program waitlist. 3 partner types (Agency, Referral, Technology) with benefits cards, 4-step how-it-works, email capture form.
+- `app/(marketing)/partners/_components/PartnerWaitlistForm.tsx` — **NEW.** Client component email capture with company name + email fields. 3-state (idle/success/error). Stores to `scan_leads` via `/api/partner-waitlist`.
+- `app/api/partner-waitlist/route.ts` — **NEW.** POST endpoint storing partner leads to `scan_leads` table (service role, fail-open).
+- `app/(marketing)/pricing/page.tsx` — **MODIFIED.** Updated tier features: Starter +1 (Google AI Overview), Growth +2 (TripAdvisor, Reddit), Agency +2 (Grok/You.com, Community monitoring), removed "Custom AI query templates". Feature comparison table: agency models 4→6, +4 new rows (AI Overview, TripAdvisor+Reddit, Grok+You.com, Community Monitoring).
+- `app/(marketing)/_sections/SelfAudit.tsx` — **MODIFIED.** Extracted static cards to `SelfAuditCards` client component.
+- `app/(marketing)/_components/SelfAuditCards.tsx` — **NEW.** Interactive comparison toggle. Click card → highlight with ring shadow, dim other at 0.5 opacity, reveal contextual CTA with fadeIn animation. Protected CTA → Charcoal N Chill story. Unmonitored CTA → urgency message.
+- `app/(marketing)/_components/MarketingNav.tsx` — **MODIFIED.** Added Changelog and Partners links in Company section.
+- `app/(marketing)/_sections/CtaFooter.tsx` — **MODIFIED.** Added Changelog in Product column, Partners in Resources column.
+- `app/sitemap.ts` — **MODIFIED.** Added `/changelog` (weekly, priority 0.5) and `/partners` (monthly, priority 0.6).
+
+**Tests:** 13 new (`sprint-d-depth-retention.test.ts`): changelog 3, partners 3, pricing 2, SelfAudit 2, sitemap 2, partner API 1. 0 regressions.
+**Files changed:** 5 new, 5 modified. **0 new migrations, 0 new crons.**
+AI_RULES: §304 (Changelog + Partners), §305 (Pricing Update + SelfAudit Interactivity). All tests pass — zero regressions.
+
+---
+
 ## 2026-03-07 — Sprint C (Marketing): High-LTV Segments — Agency + Comparison + City Pages (§302–§303)
 
 **Changes:**

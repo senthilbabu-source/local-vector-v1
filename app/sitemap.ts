@@ -34,6 +34,8 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { url: `${baseUrl}/blog`, changeFrequency: 'weekly', priority: 0.8 },
     { url: `${baseUrl}/glossary`, changeFrequency: 'monthly', priority: 0.6 },
     { url: `${baseUrl}/case-studies`, changeFrequency: 'monthly', priority: 0.6 },
+    { url: `${baseUrl}/changelog`, changeFrequency: 'weekly', priority: 0.5 },
+    { url: `${baseUrl}/partners`, changeFrequency: 'monthly', priority: 0.6 },
     // What-is pages
     { url: `${baseUrl}/what-is/aeo`, changeFrequency: 'monthly', priority: 0.7 },
     { url: `${baseUrl}/what-is/geo`, changeFrequency: 'monthly', priority: 0.7 },

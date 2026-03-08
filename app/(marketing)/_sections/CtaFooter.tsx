@@ -115,6 +115,7 @@ export default function CtaFooter() {
             <FooterLink href="/how-it-works">How It Works</FooterLink>
             <FooterLink href="/for/agencies">For Agencies</FooterLink>
             <FooterLink href="/about">About</FooterLink>
+            <FooterLink href="/changelog">Changelog</FooterLink>
             <FooterLink href="/scan">Free AI Audit</FooterLink>
           </div>
 
@@ -135,6 +136,7 @@ export default function CtaFooter() {
             <FooterLink href="/case-studies">Case Studies</FooterLink>
             <FooterLink href="/compare/localvector-vs-yext">vs Yext</FooterLink>
             <FooterLink href="/compare/localvector-vs-brightlocal">vs BrightLocal</FooterLink>
+            <FooterLink href="/partners">Partners</FooterLink>
           </div>
 
           {/* ---- Column 4: Legal ---- */}

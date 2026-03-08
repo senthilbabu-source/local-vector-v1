@@ -1,8 +1,12 @@
 // ---------------------------------------------------------------------------
-// Section 3: "Practice What We Preach" — Light theme Server Component
+// Section 3: "Practice What We Preach" — Interactive Self-Audit
+//
+// Two comparison cards with interactive toggle. Clicking a card highlights
+// it and shows a contextual CTA. Sprint D: interactivity upgrade.
 // ---------------------------------------------------------------------------
 
-import { SectionLabel, ScoreRow, Badge } from '../_components/MarketingShared';
+import { SectionLabel } from '../_components/MarketingShared';
+import SelfAuditCards from '../_components/SelfAuditCards';
 
 export default function SelfAudit() {
   return (
@@ -33,47 +37,7 @@ export default function SelfAudit() {
         </p>
       </div>
 
-      <div className="m-grid2 m-reveal-stagger">
-        {/* ---- Protected card ---- */}
-        <div
-          className="m-card m-reveal-left"
-          style={{
-            borderRadius: 12,
-            border: '1px solid var(--m-border-green)',
-            boxShadow: '0 0 24px rgba(22,163,74,0.08)',
-          }}
-        >
-          <div style={{ marginBottom: 24 }}>
-            <Badge variant="green">PROTECTED</Badge>
-          </div>
-
-          <ScoreRow label="AI Visibility Score" value="97 / 100" color="var(--m-green)" />
-          <ScoreRow label="Citation Accuracy" value="100%" color="var(--m-green)" />
-          <ScoreRow label="Hallucinations" value="0 active" color="var(--m-green)" />
-          <ScoreRow label="Models Monitored" value="5" color="var(--m-green)" />
-          <ScoreRow label="Last Audit" value="Today" color="var(--m-green)" />
-        </div>
-
-        {/* ---- Unmonitored card ---- */}
-        <div
-          className="m-card m-reveal-right"
-          style={{
-            borderRadius: 12,
-            border: '1px solid var(--m-amber)',
-            boxShadow: '0 0 24px rgba(217,119,6,0.08)',
-          }}
-        >
-          <div style={{ marginBottom: 24 }}>
-            <Badge variant="amber">UNMONITORED</Badge>
-          </div>
-
-          <ScoreRow label="AI Visibility Score" value="-- / 100" color="var(--m-text-muted)" />
-          <ScoreRow label="Citation Accuracy" value="Unknown" color="var(--m-text-muted)" />
-          <ScoreRow label="Hallucinations" value="Unknown" color="var(--m-text-muted)" />
-          <ScoreRow label="Models Monitored" value="0" color="var(--m-text-muted)" />
-          <ScoreRow label="Last Audit" value="Never" color="var(--m-text-muted)" />
-        </div>
-      </div>
+      <SelfAuditCards />
 
       <p
         style={{

@@ -6354,3 +6354,32 @@ Top 10 US metros by restaurant density are targeted with programmatic SEO pages.
 - Each city page has: city stats grid (4 cards), top cuisines section, common AI errors (6 problem cards), how-it-works (4 steps), other cities links, and CTA linking to `/scan?city={city}`.
 - `app/sitemap.ts` has `CITY_SLUGS` array (10 items) generating city page entries at priority 0.6.
 - 19 tests in `sprint-c-high-ltv-segments.test.ts`: agency metadata (3), comparison pages (4), city pages (8), sitemap expansion (4).
+
+## §304 — Changelog + Partners Pages (Sprint D Marketing)
+
+### Context
+Trust-building pages that demonstrate product velocity (changelog) and attract high-value partnerships (partner waitlist). Pricing page updated with new engine features from Sprints 2-6.
+
+### Rules
+- `/changelog` is a public timeline of product updates. `CHANGELOG` is a top-level const array of `ChangelogEntry` objects (`date`, `version`, `title`, `highlights[]`, `tag`).
+- Timeline rendered with left border line, colored dots (green for newest), version+tag badges.
+- Tag styles: `feature` (green), `improvement` (blue), `fix` (amber).
+- `/partners` has 3 partner types (Agency Partner, Referral Affiliate, Technology Partner), 4-step how-it-works, and email capture form.
+- `PartnerWaitlistForm` is a client component (`'use client'`). Stores to `scan_leads` via `POST /api/partner-waitlist` (service role, fail-open). Uses `business_name` for company and `scan_status='pass'` as partner sentinel.
+- `MarketingNav` Resources dropdown Company section has Changelog and Partners links after About.
+- `CtaFooter` Product column has Changelog after About. Resources column has Partners after vs BrightLocal.
+- `app/sitemap.ts` includes `/changelog` (weekly, priority 0.5) and `/partners` (monthly, priority 0.6).
+
+## §305 — Pricing Page Update + SelfAudit Interactivity (Sprint D Marketing)
+
+### Context
+Pricing page feature comparison updated to reflect new engines from Sprints 2-6. SelfAudit section on homepage upgraded from static comparison to interactive toggle.
+
+### Rules
+- Pricing page tier features updated: Starter gets "Google AI Overview monitoring". Growth gets "TripAdvisor review monitoring" and "Reddit brand mention alerts". Agency gets "Grok (xAI) + You.com SOV engines" and "Community monitoring (Nextdoor + Quora)".
+- Feature comparison table updated: AI Models Monitored agency column 4→6. 4 new rows added: Google AI Overview Monitoring, TripAdvisor + Reddit Monitoring, Grok + You.com SOV, Community Monitoring.
+- `SelfAudit` section is now a Server Component wrapper + `SelfAuditCards` Client Component.
+- `SelfAuditCards` (`'use client'`) has `selected` state (null | 'protected' | 'unmonitored'). Clicking a card highlights it (3px ring shadow), dims the other (opacity 0.5), and reveals a contextual CTA card with `fadeIn` animation.
+- Protected CTA explains Charcoal N Chill monitoring and links to `/scan`. Unmonitored CTA warns about unknown AI errors and links to `/scan`.
+- "TAP A CARD — WHICH ONE IS YOUR BUSINESS?" mono prompt above the cards.
+- 13 tests in `sprint-d-depth-retention.test.ts`: changelog (3), partners (3), pricing (2), SelfAudit (2), sitemap (2), partner API (1).
