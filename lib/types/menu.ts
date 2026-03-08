@@ -31,6 +31,14 @@ export interface MenuExtractedItem {
   image_url?: string;
   /** Optional pricing note for tiered/refill pricing (e.g. "Double: $15", "Refill: $20"). */
   price_note?: string;
+
+  // ── AI Enhancement suggestions (pre-publish) ─────────────────────────────
+  /** AI-generated description suggestion. Present only after "Enhance with AI" step. */
+  ai_description?: string;
+  /** AI-corrected item name (typo fix). Present only when AI detects a spelling issue. */
+  ai_name_correction?: string;
+  /** Whether AI enhancements have been applied (accepted) for this item. */
+  ai_enhanced?: boolean;
 }
 
 /**

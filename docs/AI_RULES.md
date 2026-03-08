@@ -6389,3 +6389,22 @@ ScanDashboard.tsx now computes an AI Visibility Score (0-100) from real scan dat
 
 ### §307 — Free Scan Live Dashboard: Conversion Upgrade
 ScanDashboard redesigned for conversion: (1) Animated score ring hero with grade badge, (2) urgency strip ("AI models refresh every 48-72 hours"), (3) enhanced model coverage with 20% progress ring and per-model context hints, (4) interactive expandable issue cards with "How LocalVector fixes this" fix preview, (5) "What Your Dashboard Looks Like" section with 4 feature teasers, (6) price-anchored final CTA ("$49/mo — less than one lost customer"). Nav shows score badge + "Fix This Now" CTA. No free trial language. 14 new tests (8 computeVisibilityScore, 6 scoreGrade).
+
+### §308 — AI Menu Enhancement Engine (Pre-Publish AI Enrichment)
+
+#### Context
+Magic Menu extracted items often lack descriptions, have typos in names, or have short/poor descriptions. AI Enhancement runs GPT-4o-mini to generate best descriptions, fix typos, and suggest improvements — all reviewable before distribution to AI engines.
+
+#### Rules
+- `MenuExtractedItem` has 3 new optional fields: `ai_description` (AI-generated description suggestion), `ai_name_correction` (typo-fixed name), `ai_enhanced` (boolean, true after user accepts).
+- Enhancement is a **suggestion layer** — never auto-applied. Items show inline AI Suggestion cards with Accept/Dismiss per item + bulk Accept All/Dismiss All.
+- `lib/menu-intelligence/menu-enhancer.ts` is the core module. 6 pure functions: `buildEnhanceSystemPrompt`, `buildEnhanceUserPrompt`, `validateEnhancements`, `applyEnhancementsToItems`, `acceptEnhancements`, `dismissEnhancements`. 1 I/O function: `enhanceMenuItems` (GPT-4o-mini via Vercel AI SDK `generateObject`).
+- Model key `menu-enhance` in `lib/ai/providers.ts` — uses `gpt-4o-mini` for cost efficiency.
+- 3 new server actions in `app/dashboard/magic-menus/actions.ts`: `enhanceMenuWithAI` (credit-gated, runs enhancement LLM call), `acceptMenuEnhancements` (applies suggestions to selected items), `dismissMenuEnhancements` (removes suggestions from selected items).
+- `ReviewState.tsx` has an "AI Enhancement" card in the right sidebar with "Enhance with AI" button. After enhancement, items show indigo suggestion cards inline. Accepted items display an "AI Enhanced" badge.
+- Enhancement is credit-gated (1 AI credit per run). Fail-open: if LLM unavailable, shows error message.
+- AI descriptions are capped at 200 characters. Name corrections validated against known item IDs.
+- `acceptEnhancements` replaces `name` and `description` with AI suggestions and sets `ai_enhanced = true`.
+- `dismissEnhancements` removes `ai_description` and `ai_name_correction` fields from items.
+- All pure functions are immutable — never mutate original arrays.
+- 24 unit tests in `src/__tests__/unit/menu-enhancer.test.ts`.

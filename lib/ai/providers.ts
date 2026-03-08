@@ -224,6 +224,9 @@ export const MODELS = {
   /** Sprint 6: Community platform monitoring via Perplexity web search */
   'community-monitor': perplexity('sonar-pro'),
 
+  /** Menu Enhance: AI descriptions + typo corrections for extracted menu items */
+  'menu-enhance': openai('gpt-4o-mini'),
+
 } as const;
 
 /** Sprint 119: Embedding model — kept separate from MODELS to preserve LanguageModelV1 union */

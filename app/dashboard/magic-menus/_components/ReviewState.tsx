@@ -1,8 +1,13 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useTransition } from 'react';
 import type { MenuExtractedItem, MenuWorkspaceData } from '@/lib/types/menu';
-import { approveAndPublish } from '../actions';
+import {
+  approveAndPublish,
+  enhanceMenuWithAI,
+  acceptMenuEnhancements,
+  dismissMenuEnhancements,
+} from '../actions';
 
 // ---------------------------------------------------------------------------
 // Props
@@ -36,6 +41,10 @@ function getTier(item: MenuExtractedItem): Tier {
   return 'blocked';
 }
 
+function hasAnySuggestion(item: MenuExtractedItem): boolean {
+  return !!(item.ai_description || item.ai_name_correction);
+}
+
 // ---------------------------------------------------------------------------
 // ConfidenceBadge
 // ---------------------------------------------------------------------------
@@ -65,15 +74,102 @@ function ConfidenceBadge({ item }: { item: MenuExtractedItem }) {
 }
 
 // ---------------------------------------------------------------------------
+// EnhancedBadge — shows when AI enhanced the item
+// ---------------------------------------------------------------------------
+
+function EnhancedBadge() {
+  return (
+    <span className="inline-flex items-center gap-1 rounded-full bg-electric-indigo/15 px-2 py-0.5 text-xs font-semibold text-electric-indigo">
+      AI Enhanced
+    </span>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// AISuggestionCard — inline suggestion for a single item
+// ---------------------------------------------------------------------------
+
+function AISuggestionCard({
+  item,
+  onAccept,
+  onDismiss,
+  isPending,
+}: {
+  item: MenuExtractedItem;
+  onAccept: (itemId: string) => void;
+  onDismiss: (itemId: string) => void;
+  isPending: boolean;
+}) {
+  if (!hasAnySuggestion(item) || item.ai_enhanced) return null;
+
+  return (
+    <div className="mt-2 rounded-lg bg-electric-indigo/5 border border-electric-indigo/20 px-3 py-2.5 space-y-2">
+      <p className="text-[10px] font-semibold uppercase tracking-wider text-electric-indigo">
+        AI Suggestion
+      </p>
+
+      {/* Name correction */}
+      {item.ai_name_correction && (
+        <div className="space-y-0.5">
+          <p className="text-[10px] font-medium text-slate-500 uppercase tracking-wide">Typo Fix</p>
+          <p className="text-xs text-slate-300">
+            <span className="line-through text-slate-500">{item.name}</span>
+            {' → '}
+            <span className="text-white font-medium">{item.ai_name_correction}</span>
+          </p>
+        </div>
+      )}
+
+      {/* Description suggestion */}
+      {item.ai_description && (
+        <div className="space-y-0.5">
+          <p className="text-[10px] font-medium text-slate-500 uppercase tracking-wide">
+            {item.description ? 'Better Description' : 'Description'}
+          </p>
+          {item.description && (
+            <p className="text-xs text-slate-500 line-through">{item.description}</p>
+          )}
+          <p className="text-xs text-slate-300">{item.ai_description}</p>
+        </div>
+      )}
+
+      {/* Accept / Dismiss */}
+      <div className="flex items-center gap-2 pt-0.5">
+        <button
+          onClick={() => onAccept(item.id)}
+          disabled={isPending}
+          className="rounded-md bg-electric-indigo px-2.5 py-1 text-[11px] font-semibold text-white hover:bg-electric-indigo/90 transition disabled:opacity-50"
+        >
+          Accept
+        </button>
+        <button
+          onClick={() => onDismiss(item.id)}
+          disabled={isPending}
+          className="rounded-md bg-white/5 px-2.5 py-1 text-[11px] font-medium text-slate-400 hover:bg-white/10 transition disabled:opacity-50"
+        >
+          Dismiss
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // ItemRow — single menu item in the triage list
 // ---------------------------------------------------------------------------
 
 function ItemRow({
   item,
   expanded,
+  onAcceptSuggestion,
+  onDismissSuggestion,
+  isPending,
 }: {
   item: MenuExtractedItem;
   expanded: boolean;
+  onAcceptSuggestion: (itemId: string) => void;
+  onDismissSuggestion: (itemId: string) => void;
+  isPending: boolean;
 }) {
   const tier = getTier(item);
   const borderClass =
@@ -89,13 +185,14 @@ function ItemRow({
       ].join(' ')}
     >
       <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
+        <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2 flex-wrap">
             <span className="text-sm font-medium text-white">{item.name}</span>
             {item.price && (
               <span className="text-xs text-slate-400 tabular-nums">{item.price}</span>
             )}
             <span className="text-xs text-slate-500">· {item.category}</span>
+            {item.ai_enhanced && <EnhancedBadge />}
           </div>
           {expanded && item.description && (
             <p className="mt-1 text-xs text-slate-400 leading-snug">{item.description}</p>
@@ -105,10 +202,20 @@ function ItemRow({
               Low confidence — verify or edit this item before publishing.
             </p>
           )}
-          {expanded && tier === 'review' && (
+          {expanded && tier === 'review' && !hasAnySuggestion(item) && (
             <p className="mt-1.5 text-xs text-amber-400">
               Please verify this item is accurate.
             </p>
+          )}
+
+          {/* AI suggestion inline */}
+          {expanded && (
+            <AISuggestionCard
+              item={item}
+              onAccept={onAcceptSuggestion}
+              onDismiss={onDismissSuggestion}
+              isPending={isPending}
+            />
           )}
         </div>
         <ConfidenceBadge item={item} />
@@ -147,15 +254,22 @@ function TierSection({
 // ReviewState
 // ---------------------------------------------------------------------------
 
-export default function ReviewState({ menu, onPublished }: ReviewStateProps) {
+export default function ReviewState({ menu: initialMenu, onPublished }: ReviewStateProps) {
+  const [menu, setMenu] = useState(initialMenu);
   const items = menu.extracted_data?.items ?? [];
   const [certified, setCertified] = useState(false);
   const [isPublishing, setIsPublishing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isEnhancing, startEnhanceTransition] = useTransition();
+  const [isPendingSuggestion, startSuggestionTransition] = useTransition();
 
   const autoItems    = items.filter((i) => getTier(i) === 'auto');
   const reviewItems  = items.filter((i) => getTier(i) === 'review');
   const blockedItems = items.filter((i) => getTier(i) === 'blocked');
+
+  const hasEnhancements = items.some(hasAnySuggestion);
+  const pendingSuggestions = items.filter((i) => hasAnySuggestion(i) && !i.ai_enhanced);
+  const enhancedCount = items.filter((i) => i.ai_enhanced).length;
 
   const canPublish = blockedItems.length === 0 && certified;
 
@@ -172,6 +286,50 @@ export default function ReviewState({ menu, onPublished }: ReviewStateProps) {
     } finally {
       setIsPublishing(false);
     }
+  }
+
+  function handleEnhance() {
+    setError(null);
+    startEnhanceTransition(async () => {
+      const result = await enhanceMenuWithAI(menu.id);
+      if (result.success) {
+        setMenu(result.menu);
+      } else {
+        setError(result.error);
+      }
+    });
+  }
+
+  function handleAcceptSuggestion(itemId: string) {
+    startSuggestionTransition(async () => {
+      const result = await acceptMenuEnhancements(menu.id, [itemId]);
+      if (result.success) setMenu(result.menu);
+    });
+  }
+
+  function handleDismissSuggestion(itemId: string) {
+    startSuggestionTransition(async () => {
+      const result = await dismissMenuEnhancements(menu.id, [itemId]);
+      if (result.success) setMenu(result.menu);
+    });
+  }
+
+  function handleAcceptAll() {
+    const ids = pendingSuggestions.map((i) => i.id);
+    if (ids.length === 0) return;
+    startSuggestionTransition(async () => {
+      const result = await acceptMenuEnhancements(menu.id, ids);
+      if (result.success) setMenu(result.menu);
+    });
+  }
+
+  function handleDismissAll() {
+    const ids = pendingSuggestions.map((i) => i.id);
+    if (ids.length === 0) return;
+    startSuggestionTransition(async () => {
+      const result = await dismissMenuEnhancements(menu.id, ids);
+      if (result.success) setMenu(result.menu);
+    });
   }
 
   return (
@@ -206,6 +364,39 @@ export default function ReviewState({ menu, onPublished }: ReviewStateProps) {
           )}
         </div>
 
+        {/* AI Enhancement banner — bulk actions when suggestions exist */}
+        {pendingSuggestions.length > 0 && (
+          <div className="rounded-2xl bg-electric-indigo/5 border border-electric-indigo/20 px-5 py-4">
+            <div className="flex items-center justify-between flex-wrap gap-3">
+              <div>
+                <p className="text-sm font-semibold text-electric-indigo">
+                  AI Suggestions Ready
+                </p>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  {pendingSuggestions.length} {pendingSuggestions.length === 1 ? 'item has' : 'items have'} AI-generated improvements.
+                  Review each below or use bulk actions.
+                </p>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={handleAcceptAll}
+                  disabled={isPendingSuggestion}
+                  className="rounded-lg bg-electric-indigo px-3 py-1.5 text-xs font-semibold text-white hover:bg-electric-indigo/90 transition disabled:opacity-50"
+                >
+                  Accept All
+                </button>
+                <button
+                  onClick={handleDismissAll}
+                  disabled={isPendingSuggestion}
+                  className="rounded-lg bg-white/5 px-3 py-1.5 text-xs font-medium text-slate-400 hover:bg-white/10 transition disabled:opacity-50"
+                >
+                  Dismiss All
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Blocked tier */}
         <TierSection
           title="Must Edit"
@@ -213,7 +404,14 @@ export default function ReviewState({ menu, onPublished }: ReviewStateProps) {
           colorClass="text-alert-crimson"
         >
           {blockedItems.map((item) => (
-            <ItemRow key={item.id} item={item} expanded />
+            <ItemRow
+              key={item.id}
+              item={item}
+              expanded
+              onAcceptSuggestion={handleAcceptSuggestion}
+              onDismissSuggestion={handleDismissSuggestion}
+              isPending={isPendingSuggestion}
+            />
           ))}
         </TierSection>
 
@@ -224,7 +422,14 @@ export default function ReviewState({ menu, onPublished }: ReviewStateProps) {
           colorClass="text-amber-400"
         >
           {reviewItems.map((item) => (
-            <ItemRow key={item.id} item={item} expanded />
+            <ItemRow
+              key={item.id}
+              item={item}
+              expanded
+              onAcceptSuggestion={handleAcceptSuggestion}
+              onDismissSuggestion={handleDismissSuggestion}
+              isPending={isPendingSuggestion}
+            />
           ))}
         </TierSection>
 
@@ -235,7 +440,14 @@ export default function ReviewState({ menu, onPublished }: ReviewStateProps) {
           colorClass="text-truth-emerald"
         >
           {autoItems.map((item) => (
-            <ItemRow key={item.id} item={item} expanded={false} />
+            <ItemRow
+              key={item.id}
+              item={item}
+              expanded={false}
+              onAcceptSuggestion={handleAcceptSuggestion}
+              onDismissSuggestion={handleDismissSuggestion}
+              isPending={isPendingSuggestion}
+            />
           ))}
         </TierSection>
 
@@ -246,10 +458,47 @@ export default function ReviewState({ menu, onPublished }: ReviewStateProps) {
         )}
       </div>
 
-      {/* ── Right pane: publish actions ─────────────────────────────── */}
+      {/* ── Right pane: enhance + publish actions ──────────────────── */}
       <div className="space-y-4">
 
-        {/* Score summary card */}
+        {/* AI Enhance card */}
+        <div className="rounded-2xl bg-surface-dark border border-white/5 p-4 space-y-3">
+          <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide">
+            AI Enhancement
+          </p>
+          <p className="text-xs text-slate-400 leading-relaxed">
+            AI will generate descriptions for items missing them, fix typos in names,
+            and suggest improved descriptions — all reviewable before publishing.
+          </p>
+          {enhancedCount > 0 && (
+            <p className="text-xs text-electric-indigo">
+              {enhancedCount} {enhancedCount === 1 ? 'item' : 'items'} enhanced
+            </p>
+          )}
+          <button
+            onClick={handleEnhance}
+            disabled={isEnhancing || items.length === 0}
+            className={[
+              'w-full rounded-xl px-4 py-2.5 text-sm font-semibold transition',
+              !isEnhancing && items.length > 0
+                ? 'bg-electric-indigo/10 text-electric-indigo border border-electric-indigo/20 hover:bg-electric-indigo/20'
+                : 'bg-white/5 text-slate-500 cursor-not-allowed',
+            ].join(' ')}
+          >
+            {isEnhancing ? (
+              <span className="flex items-center justify-center gap-2">
+                <SpinnerIcon />
+                Enhancing with AI&hellip;
+              </span>
+            ) : hasEnhancements ? (
+              'Re-enhance with AI'
+            ) : (
+              'Enhance with AI'
+            )}
+          </button>
+        </div>
+
+        {/* Triage summary card */}
         <div className="rounded-2xl bg-surface-dark border border-white/5 p-4 space-y-3">
           <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide">
             Triage Summary

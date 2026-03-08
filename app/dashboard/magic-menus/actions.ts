@@ -25,6 +25,12 @@ import * as Sentry from '@sentry/nextjs';
 import { distributeMenu, computeMenuHash } from '@/lib/distribution';
 import type { DistributionResult } from '@/lib/distribution';
 import { fetchCrawlerAnalytics, type BotActivity } from '@/lib/data/crawler-analytics';
+import {
+  enhanceMenuItems,
+  applyEnhancementsToItems,
+  acceptEnhancements,
+  dismissEnhancements,
+} from '@/lib/menu-intelligence/menu-enhancer';
 
 // ---------------------------------------------------------------------------
 // Phase 18 — OpenAI menu extraction helper
@@ -917,4 +923,186 @@ export async function trackLinkInjection(menuId: string): Promise<ActionResult> 
 
   revalidatePath('/dashboard/magic-menus');
   return { success: true };
+}
+
+// ---------------------------------------------------------------------------
+// enhanceMenuWithAI — Pre-publish AI enhancement (descriptions + typo fixes)
+// ---------------------------------------------------------------------------
+
+/**
+ * Server Action: runs AI enhancement on extracted menu items.
+ * Generates descriptions for items missing them, fixes typos in names,
+ * and improves short descriptions. Stores suggestions on the items as
+ * ai_description / ai_name_correction fields for user review.
+ *
+ * SECURITY: auth check + RLS org_isolation on magic_menus.
+ * Credit-gated: consumes 1 AI credit per enhancement run.
+ */
+export async function enhanceMenuWithAI(
+  menuId: string,
+): Promise<{ success: true; menu: MenuWorkspaceData } | { success: false; error: string; creditsUsed?: number; creditsLimit?: number }> {
+  const ctx = await getSafeAuthContext();
+  if (!ctx?.orgId) return { success: false, error: 'Unauthorized' };
+
+  // Credit check before LLM call
+  const creditCheck = await checkCredit(ctx.orgId);
+  if (!creditCheck.ok && creditCheck.reason === 'insufficient_credits') {
+    return { success: false, error: 'credit_limit_reached', creditsUsed: creditCheck.creditsUsed, creditsLimit: creditCheck.creditsLimit };
+  }
+
+  const supabase = await createClient();
+
+  // Fetch current menu data
+  const { data: menu, error: fetchError } = (await supabase
+    .from('magic_menus')
+    .select(
+      'id, location_id, processing_status, extracted_data, extraction_confidence, is_published, public_slug, human_verified, propagation_events, content_hash, last_distributed_at',
+    )
+    .eq('id', menuId)
+    .single()) as { data: MenuWorkspaceData | null; error: unknown };
+
+  if (fetchError || !menu) {
+    return { success: false, error: 'Menu not found' };
+  }
+
+  const items = menu.extracted_data?.items ?? [];
+  if (items.length === 0) {
+    return { success: false, error: 'No menu items to enhance' };
+  }
+
+  // Run AI enhancement
+  const result = await enhanceMenuItems(items);
+  if (!result || result.enhancements.length === 0) {
+    return { success: false, error: 'AI enhancement unavailable. Please try again later.' };
+  }
+
+  // Apply enhancements as suggestions (not yet accepted)
+  const enhancedItems = applyEnhancementsToItems(items, result.enhancements);
+  const enhancedData: MenuExtractedData = {
+    ...menu.extracted_data!,
+    items: enhancedItems,
+  };
+
+  // Persist to DB
+  const { data: updated, error: updateError } = (await supabase
+    .from('magic_menus')
+    .update({ extracted_data: enhancedData as unknown as Json })
+    .eq('id', menuId)
+    .select(
+      'id, location_id, processing_status, extracted_data, extraction_confidence, is_published, public_slug, human_verified, propagation_events, content_hash, last_distributed_at',
+    )
+    .single()) as { data: MenuWorkspaceData | null; error: { message: string } | null };
+
+  if (updateError || !updated) {
+    return { success: false, error: updateError?.message ?? 'Failed to save enhancements' };
+  }
+
+  // Consume credit after successful LLM operation
+  if (creditCheck.ok) await consumeCredit(ctx.orgId);
+
+  revalidatePath('/dashboard/magic-menus');
+  return { success: true, menu: updated };
+}
+
+// ---------------------------------------------------------------------------
+// acceptMenuEnhancements — Accept AI suggestions for specific items
+// ---------------------------------------------------------------------------
+
+/**
+ * Server Action: accepts AI-generated suggestions for selected menu items.
+ * Replaces item name/description with AI suggestions and marks as enhanced.
+ *
+ * SECURITY: auth check + RLS org_isolation on magic_menus.
+ */
+export async function acceptMenuEnhancements(
+  menuId: string,
+  itemIds: string[],
+): Promise<{ success: true; menu: MenuWorkspaceData } | { success: false; error: string }> {
+  const ctx = await getSafeAuthContext();
+  if (!ctx?.orgId) return { success: false, error: 'Unauthorized' };
+
+  if (itemIds.length === 0) return { success: false, error: 'No items selected' };
+
+  const supabase = await createClient();
+
+  const { data: menu, error: fetchError } = (await supabase
+    .from('magic_menus')
+    .select(
+      'id, location_id, processing_status, extracted_data, extraction_confidence, is_published, public_slug, human_verified, propagation_events, content_hash, last_distributed_at',
+    )
+    .eq('id', menuId)
+    .single()) as { data: MenuWorkspaceData | null; error: unknown };
+
+  if (fetchError || !menu) return { success: false, error: 'Menu not found' };
+
+  const items = menu.extracted_data?.items ?? [];
+  const acceptedItems = acceptEnhancements(items, new Set(itemIds));
+  const updatedData: MenuExtractedData = { ...menu.extracted_data!, items: acceptedItems };
+
+  const { data: updated, error: updateError } = (await supabase
+    .from('magic_menus')
+    .update({ extracted_data: updatedData as unknown as Json })
+    .eq('id', menuId)
+    .select(
+      'id, location_id, processing_status, extracted_data, extraction_confidence, is_published, public_slug, human_verified, propagation_events, content_hash, last_distributed_at',
+    )
+    .single()) as { data: MenuWorkspaceData | null; error: { message: string } | null };
+
+  if (updateError || !updated) {
+    return { success: false, error: updateError?.message ?? 'Failed to accept enhancements' };
+  }
+
+  revalidatePath('/dashboard/magic-menus');
+  return { success: true, menu: updated };
+}
+
+// ---------------------------------------------------------------------------
+// dismissMenuEnhancements — Dismiss AI suggestions for specific items
+// ---------------------------------------------------------------------------
+
+/**
+ * Server Action: removes AI suggestions from selected menu items.
+ *
+ * SECURITY: auth check + RLS org_isolation on magic_menus.
+ */
+export async function dismissMenuEnhancements(
+  menuId: string,
+  itemIds: string[],
+): Promise<{ success: true; menu: MenuWorkspaceData } | { success: false; error: string }> {
+  const ctx = await getSafeAuthContext();
+  if (!ctx?.orgId) return { success: false, error: 'Unauthorized' };
+
+  if (itemIds.length === 0) return { success: false, error: 'No items selected' };
+
+  const supabase = await createClient();
+
+  const { data: menu, error: fetchError } = (await supabase
+    .from('magic_menus')
+    .select(
+      'id, location_id, processing_status, extracted_data, extraction_confidence, is_published, public_slug, human_verified, propagation_events, content_hash, last_distributed_at',
+    )
+    .eq('id', menuId)
+    .single()) as { data: MenuWorkspaceData | null; error: unknown };
+
+  if (fetchError || !menu) return { success: false, error: 'Menu not found' };
+
+  const items = menu.extracted_data?.items ?? [];
+  const cleanedItems = dismissEnhancements(items, new Set(itemIds));
+  const updatedData: MenuExtractedData = { ...menu.extracted_data!, items: cleanedItems };
+
+  const { data: updated, error: updateError } = (await supabase
+    .from('magic_menus')
+    .update({ extracted_data: updatedData as unknown as Json })
+    .eq('id', menuId)
+    .select(
+      'id, location_id, processing_status, extracted_data, extraction_confidence, is_published, public_slug, human_verified, propagation_events, content_hash, last_distributed_at',
+    )
+    .single()) as { data: MenuWorkspaceData | null; error: { message: string } | null };
+
+  if (updateError || !updated) {
+    return { success: false, error: updateError?.message ?? 'Failed to dismiss enhancements' };
+  }
+
+  revalidatePath('/dashboard/magic-menus');
+  return { success: true, menu: updated };
 }

@@ -7221,3 +7221,28 @@ Added real Google Search Console AI Overview monitoring for Growth+ tenants. Pul
 ### AI_RULES
 - §289: GSC AI Overview token scope check — always verify `scopes LIKE '%webmasters%'` before calling GSC API.
 - §290: `gsc_ai_overview_data` and `sov_evaluations` are separate tables — GSC = real measured impressions, SOV = simulated AI responses.
+
+---
+
+## AI Menu Enhancement Engine — Pre-Publish AI Enrichment (2026-03-08)
+
+### What
+AI Enhancement for Magic Menu extracted items — generates descriptions, fixes typos, suggests improvements before distribution to AI engines. All suggestions are reviewable (Accept/Dismiss per item + bulk actions).
+
+### Architecture
+- **Core module:** `lib/menu-intelligence/menu-enhancer.ts` — 6 pure functions + 1 I/O function (GPT-4o-mini via `generateObject`).
+- **Model:** `menu-enhance` key in `lib/ai/providers.ts` → `gpt-4o-mini` (cost-efficient).
+- **Type changes:** `MenuExtractedItem` in `lib/types/menu.ts` — 3 new optional fields: `ai_description`, `ai_name_correction`, `ai_enhanced`.
+- **Server actions:** 3 new in `app/dashboard/magic-menus/actions.ts` — `enhanceMenuWithAI` (credit-gated), `acceptMenuEnhancements`, `dismissMenuEnhancements`.
+- **UI:** `ReviewState.tsx` — "AI Enhancement" card in right sidebar, inline AI Suggestion cards per item with Accept/Dismiss, bulk Accept All/Dismiss All, "AI Enhanced" badge on accepted items.
+
+### Files changed (5 modified + 2 new)
+- `lib/types/menu.ts` (added ai_description, ai_name_correction, ai_enhanced fields)
+- `lib/ai/providers.ts` (added menu-enhance model key)
+- `app/dashboard/magic-menus/actions.ts` (3 new server actions)
+- `app/dashboard/magic-menus/_components/ReviewState.tsx` (enhanced UI)
+- `lib/menu-intelligence/menu-enhancer.ts` (new — core engine)
+- `src/__tests__/unit/menu-enhancer.test.ts` (new — 24 tests)
+
+### AI_RULES
+- §308: AI Menu Enhancement Engine — suggestion layer, never auto-applied, 6 pure functions, credit-gated, 200-char description cap, immutable operations.
