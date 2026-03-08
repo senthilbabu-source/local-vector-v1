@@ -153,7 +153,7 @@ export default function HeroSection() {
                   }}
                 />
               </span>{' '}
-              about local restaurants.
+              about local businesses.
               <br />
               Yours included.
             </h1>

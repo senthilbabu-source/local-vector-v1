@@ -113,7 +113,7 @@ export default function LoginPage() {
               The Fear
             </p>
             <p style={{ fontSize: 14, lineHeight: 1.7, color: '#94A3B8' }}>
-              72% of diners trust AI answers over your own website.
+              72% of customers trust AI answers over your own website.
               When ChatGPT says you&rsquo;re closed, they don&rsquo;t call to check.
             </p>
           </div>
@@ -124,7 +124,7 @@ export default function LoginPage() {
               The Greed
             </p>
             <p style={{ fontSize: 14, lineHeight: 1.7, color: '#94A3B8' }}>
-              Restaurants on LocalVector see 3&times; more AI-driven reservations.
+              Businesses on LocalVector see 3&times; more AI-driven leads.
               Be the answer &mdash; not the footnote.
             </p>
           </div>
@@ -132,7 +132,7 @@ export default function LoginPage() {
 
         {/* Footer stat */}
         <p style={{ fontSize: 11, color: '#94A3B8', fontFamily: 'var(--font-jetbrains-mono), monospace' }}>
-          Protecting 1,200+ restaurant brands from AI hallucinations.
+          Protecting 1,200+ local businesses from AI hallucinations.
         </p>
       </section>
 

@@ -66,7 +66,7 @@ AFTER LocalVector:
   AI Status:                 "Open, Serving Dinner" [checkmark]
   Monthly AI Recommendations: 47
   Revenue Impact:            +$4,000/mo recovered
-  Time to Detection:         24 hours (automated)
+  Time to Detection:         < 24 hours
   The fix took 24 hours.
 ```
 

@@ -243,7 +243,7 @@ export default function LocalVectorLanding() {
                   borderRadius: 2, opacity: 0.5,
                 }} />
               </span>{" "}
-              about local restaurants.<br />Yours included.
+              about local businesses.<br />Yours included.
             </h1>
           </Reveal>
 
@@ -653,7 +653,7 @@ export default function LocalVectorLanding() {
                     ["AI Status", '"Open, Serving Dinner" ✅'],
                     ["Monthly AI Recommendations", "47"],
                     ["Revenue Recovered", "+$4,000/mo"],
-                    ["Time to Detection", "24 hours (automated)"],
+                    ["Time to Detection", "< 24 hours"],
                   ].map(([k, v], i) => (
                     <div key={i} style={{ display: "flex", justifyContent: "space-between", padding: "6px 0", borderBottom: i < 3 ? `1px solid rgba(255,255,255,0.04)` : "none" }}>
                       <span style={{ fontSize: 13, color: T.gray500 }}>{k}</span>

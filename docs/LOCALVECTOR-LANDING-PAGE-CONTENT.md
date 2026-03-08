@@ -26,7 +26,7 @@
 `⚠️ RIGHT NOW: AI is answering questions about your business. Is it telling the truth?`
 
 ### Headline (large, white, max 2 lines)
-# Every hour, ChatGPT answers 11,000 questions about local restaurants. Yours included.
+# Every hour, ChatGPT answers 11,000 questions about local businesses. Yours included.
 
 ### Subheadline (gray-300, 2 lines max)
 Most of those answers are wrong. Wrong hours. Wrong prices. "Permanently closed" when you're wide open. Every wrong answer sends a customer to your competitor — and you never know it happened.
@@ -235,7 +235,7 @@ By the time they found out — by accident, when a friend mentioned it — they'
 - AI Status: "Open, Serving Dinner" ✅
 - Monthly AI recommendations: 47
 - Revenue recovered: $4,000/month
-- Time to detection: 24 hours (automated)
+- Time to detection: < 24 hours
 
 ### Pull quote (full width, large italic)
 > "We spent $2,400 on a new menu redesign trying to fix a problem that had nothing to do with our food. The problem was that AI thought we were dead."

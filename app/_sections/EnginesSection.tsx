@@ -209,7 +209,7 @@ export default function EnginesSection() {
                     ['AI Status', '"Open, Serving Dinner" \u2705'],
                     ['Monthly AI Recommendations', '47'],
                     ['Revenue Recovered', '+$4,000/mo'],
-                    ['Time to Detection', '24 hours (automated)'],
+                    ['Time to Detection', '< 24 hours'],
                   ] as const).map(([k, v], i) => (
                     <div
                       key={i}
