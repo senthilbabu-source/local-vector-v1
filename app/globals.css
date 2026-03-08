@@ -325,3 +325,379 @@ body {
   .lv-grid3 { grid-template-columns: 1fr; }
   .lv-section { padding: 64px 16px; }
 }
+
+/* ============================================================
+   MARKETING LIGHT THEME — Website Content Strategy v2.0
+   Scoped to .lv-marketing wrapper (marketing route group).
+   "Bloomberg Terminal Meets Modern SaaS" — premium, approachable.
+   ============================================================ */
+
+/* When marketing layout is active, override the dark body background */
+body:has(.lv-marketing) {
+  background-color: #FFFFFF;
+}
+
+.lv-marketing {
+  /* Backgrounds — slightly warmer/darker secondary for contrast */
+  --m-bg-primary:     #FFFFFF;
+  --m-bg-secondary:   #F1F5F9;
+  --m-bg-warm:        #F8FAF2;
+  --m-bg-card:        #FFFFFF;
+  --m-bg-card-hover:  #F8FAFC;
+  --m-bg-alt:         #F6F8FB;
+
+  /* Borders */
+  --m-border-base:    #E2E8F0;
+  --m-border-strong:  #CBD5E1;
+  --m-border-green:   rgba(0,168,107,0.25);
+
+  /* Text — improved contrast for readability & WCAG AA */
+  --m-text-primary:   #0B1629;
+  --m-text-secondary: #334155;
+  --m-text-muted:     #64748B;
+  --m-text-inverse:   #FFFFFF;
+
+  /* Brand */
+  --m-green:          #00A86B;
+  --m-green-dark:     #007A4D;
+  --m-green-light:    #ECFDF5;
+  --m-green-glow:     rgba(0,168,107,0.15);
+
+  /* Alerts */
+  --m-amber:          #D97706;
+  --m-amber-light:    #FFFBEB;
+  --m-red:            #DC2626;
+  --m-red-light:      #FEF2F2;
+
+  /* Navy accent */
+  --m-navy:           #1E3A5F;
+  --m-navy-light:     #EFF6FF;
+}
+
+/* ── Marketing card (light theme) ────────────────────────────── */
+.lv-marketing .m-card {
+  background: var(--m-bg-card);
+  border: 1px solid var(--m-border-base);
+  border-radius: 12px;
+  padding: 28px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05), 0 4px 16px rgba(0,0,0,0.04);
+  transition: border-color 0.3s, transform 0.3s, box-shadow 0.3s;
+}
+.lv-marketing .m-card:hover {
+  border-color: var(--m-border-green);
+  transform: translateY(-3px);
+  box-shadow: 0 8px 30px rgba(0,0,0,0.08), 0 2px 8px rgba(0,168,107,0.06);
+}
+
+/* ── Marketing CTA buttons ───────────────────────────────────── */
+.lv-marketing .m-btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: var(--m-green);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 14px 28px;
+  font-weight: 600;
+  font-size: 15px;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.2s;
+  text-decoration: none;
+}
+.lv-marketing .m-btn-primary:hover {
+  background: var(--m-green-dark);
+  transform: translateY(-1px);
+}
+
+.lv-marketing .m-btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: transparent;
+  color: var(--m-text-primary);
+  border: 1px solid var(--m-border-strong);
+  border-radius: 8px;
+  padding: 14px 28px;
+  font-weight: 600;
+  font-size: 15px;
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s, transform 0.2s;
+  text-decoration: none;
+}
+.lv-marketing .m-btn-secondary:hover {
+  background: var(--m-bg-secondary);
+  border-color: var(--m-green);
+  transform: translateY(-1px);
+}
+
+/* ── Marketing section helpers ───────────────────────────────── */
+.lv-marketing .m-section {
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 96px 24px;
+}
+.lv-marketing .m-grid2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+}
+.lv-marketing .m-grid3 {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 24px;
+}
+.lv-marketing .m-grid4 {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 24px;
+}
+
+@media (max-width: 1024px) {
+  .lv-marketing .m-grid4 { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 840px) {
+  .lv-marketing .m-grid2,
+  .lv-marketing .m-grid3,
+  .lv-marketing .m-grid4 { grid-template-columns: 1fr; }
+  .lv-marketing .m-section { padding: 64px 16px; }
+}
+
+/* ── Marketing typography helpers ────────────────────────────── */
+.lv-marketing .m-display {
+  font-family: var(--font-bricolage), var(--font-plus-jakarta), system-ui, sans-serif;
+  font-weight: 800;
+  color: var(--m-text-primary);
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+}
+.lv-marketing .m-label {
+  font-family: var(--font-jetbrains-mono), monospace;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.lv-marketing .m-mono {
+  font-family: var(--font-jetbrains-mono), monospace;
+}
+
+/* ── Live indicator badge ────────────────────────────────────── */
+.lv-marketing .m-live-dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--m-green);
+  animation: lv-ping 1.8s cubic-bezier(0,0,0.2,1) infinite;
+}
+
+/* ── FAQ accordion chevron ──────────────────────────────────── */
+.lv-marketing .m-faq-summary::-webkit-details-marker { display: none; }
+.lv-marketing details[open] .m-faq-chevron {
+  transform: translateY(-50%) rotate(45deg) !important;
+}
+
+/* ── Focus ring override for marketing pages ────────────────── */
+.lv-marketing *:focus-visible {
+  outline-color: var(--m-green);
+}
+
+/* ── Smooth scroll for anchor links ─────────────────────────── */
+.lv-marketing {
+  scroll-behavior: smooth;
+}
+
+/* ── Nav link hover ─────────────────────────────────────────── */
+.lv-marketing a[href^="#"]:hover,
+.lv-marketing a[href="/login"]:hover {
+  color: var(--m-green);
+}
+
+/* ── Scroll-reveal animations ──────────────────────────────── */
+@keyframes m-fade-up {
+  from { opacity: 0; transform: translateY(28px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes m-fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@keyframes m-slide-in-left {
+  from { opacity: 0; transform: translateX(-24px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+@keyframes m-slide-in-right {
+  from { opacity: 0; transform: translateX(24px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+/* Hidden until observed by IntersectionObserver */
+.lv-marketing .m-reveal {
+  opacity: 0;
+  transform: translateY(28px);
+  transition: opacity 0.7s cubic-bezier(0.16, 1, 0.3, 1),
+              transform 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.lv-marketing .m-reveal.m-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Stagger children */
+.lv-marketing .m-reveal-stagger > .m-reveal:nth-child(1) { transition-delay: 0ms; }
+.lv-marketing .m-reveal-stagger > .m-reveal:nth-child(2) { transition-delay: 100ms; }
+.lv-marketing .m-reveal-stagger > .m-reveal:nth-child(3) { transition-delay: 200ms; }
+.lv-marketing .m-reveal-stagger > .m-reveal:nth-child(4) { transition-delay: 300ms; }
+
+/* Respect reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .lv-marketing .m-reveal {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+}
+
+/* ── Section divider line ──────────────────────────────────── */
+.lv-marketing .m-section-divider {
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--m-border-base) 20%, var(--m-border-base) 80%, transparent);
+  border: none;
+  margin: 0;
+}
+
+/* ── Gradient text utility ─────────────────────────────────── */
+.lv-marketing .m-text-gradient {
+  background: linear-gradient(135deg, #00A86B 0%, #007A4D 50%, #1E3A5F 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ── Button glow on hover ──────────────────────────────────── */
+.lv-marketing .m-btn-primary:hover {
+  box-shadow: 0 4px 20px rgba(0,168,107,0.3);
+}
+
+/* ── Animated text gradient shimmer ────────────────────────── */
+.lv-marketing .m-text-shimmer {
+  background: linear-gradient(
+    90deg,
+    #00A86B 0%,
+    #007A4D 25%,
+    #1E3A5F 50%,
+    #007A4D 75%,
+    #00A86B 100%
+  );
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: m-shimmer 4s linear infinite;
+}
+@keyframes m-shimmer {
+  0%   { background-position: 0% center; }
+  100% { background-position: 200% center; }
+}
+
+/* ── Floating accent shapes ────────────────────────────────── */
+@keyframes m-float {
+  0%, 100% { transform: translate(0, 0); }
+  50%      { transform: translate(12px, -16px); }
+}
+@keyframes m-float-reverse {
+  0%, 100% { transform: translate(0, 0); }
+  50%      { transform: translate(-10px, 14px); }
+}
+.lv-marketing .m-float-slow {
+  animation: m-float 8s ease-in-out infinite;
+}
+.lv-marketing .m-float-slow-reverse {
+  animation: m-float-reverse 10s ease-in-out infinite;
+}
+
+/* ── Staggered grid card entrance ──────────────────────────── */
+.lv-marketing .m-stagger-grid > .m-card:nth-child(1),
+.lv-marketing .m-stagger-grid > [class*="m-reveal"]:nth-child(1) { transition-delay: 0ms; }
+.lv-marketing .m-stagger-grid > .m-card:nth-child(2),
+.lv-marketing .m-stagger-grid > [class*="m-reveal"]:nth-child(2) { transition-delay: 120ms; }
+.lv-marketing .m-stagger-grid > .m-card:nth-child(3),
+.lv-marketing .m-stagger-grid > [class*="m-reveal"]:nth-child(3) { transition-delay: 240ms; }
+.lv-marketing .m-stagger-grid > .m-card:nth-child(4),
+.lv-marketing .m-stagger-grid > [class*="m-reveal"]:nth-child(4) { transition-delay: 360ms; }
+.lv-marketing .m-stagger-grid > .m-card:nth-child(5),
+.lv-marketing .m-stagger-grid > [class*="m-reveal"]:nth-child(5) { transition-delay: 480ms; }
+.lv-marketing .m-stagger-grid > .m-card:nth-child(6),
+.lv-marketing .m-stagger-grid > [class*="m-reveal"]:nth-child(6) { transition-delay: 600ms; }
+
+/* ── Slide-in from sides ───────────────────────────────────── */
+.lv-marketing .m-reveal-left {
+  opacity: 0;
+  transform: translateX(-32px);
+  transition: opacity 0.7s cubic-bezier(0.16, 1, 0.3, 1),
+              transform 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.lv-marketing .m-reveal-left.m-visible {
+  opacity: 1;
+  transform: translateX(0);
+}
+.lv-marketing .m-reveal-right {
+  opacity: 0;
+  transform: translateX(32px);
+  transition: opacity 0.7s cubic-bezier(0.16, 1, 0.3, 1),
+              transform 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.lv-marketing .m-reveal-right.m-visible {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+/* ── Scale-up reveal ───────────────────────────────────────── */
+.lv-marketing .m-reveal-scale {
+  opacity: 0;
+  transform: scale(0.92);
+  transition: opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1),
+              transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.lv-marketing .m-reveal-scale.m-visible {
+  opacity: 1;
+  transform: scale(1);
+}
+
+/* ── Underline draw animation for links/headings ───────────── */
+.lv-marketing .m-underline-draw {
+  position: relative;
+  display: inline;
+}
+.lv-marketing .m-underline-draw::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  width: 0;
+  height: 2px;
+  background: var(--m-green);
+  transition: width 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.lv-marketing .m-underline-draw.m-visible::after {
+  width: 100%;
+}
+
+/* Respect reduced motion for all new animations */
+@media (prefers-reduced-motion: reduce) {
+  .lv-marketing .m-text-shimmer { animation: none; }
+  .lv-marketing .m-float-slow,
+  .lv-marketing .m-float-slow-reverse { animation: none; }
+  .lv-marketing .m-reveal-left,
+  .lv-marketing .m-reveal-right,
+  .lv-marketing .m-reveal-scale,
+  .lv-marketing .m-underline-draw::after {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+  .lv-marketing .m-underline-draw::after { width: 100%; }
+}
