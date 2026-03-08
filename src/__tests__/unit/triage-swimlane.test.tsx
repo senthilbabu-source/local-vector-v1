@@ -38,6 +38,7 @@ function makeAlert(id: string, overrides: Partial<HallucinationRow> = {}): Hallu
     verified_at: null,
     revenue_recovered_monthly: null,
     fix_guidance_category: null,
+    root_cause_sources: null,
     ...overrides,
   };
 }

@@ -12,6 +12,7 @@ import { createServiceRoleClient } from '@/lib/supabase/server';
 import { planSatisfies } from '@/lib/plan-enforcer';
 import { syncOneLocation } from '@/lib/apple-bc/apple-bc-client';
 import { buildABCLocation } from '@/lib/apple-bc/apple-bc-mapper';
+import { computeAndSaveSiriReadiness } from '@/lib/services/siri-readiness-audit.service';
 
 export const runtime = 'nodejs';
 export const maxDuration = 300;
@@ -73,6 +74,12 @@ export async function GET(request: Request) {
         status: result.status,
         error_message: result.errorMessage ?? null,
       });
+
+      // Sprint 5: Siri readiness audit — fire-and-forget after sync
+      void computeAndSaveSiriReadiness(supabase, conn.location_id)
+        .catch(err => Sentry.captureException(err, {
+          tags: { phase: 'siri-readiness', sprint: '5' },
+        }));
 
       result.status === 'error' ? failed++ : synced++;
     } catch (err) {

@@ -25,6 +25,11 @@ function makeAlert(overrides: Partial<HallucinationRow> = {}): HallucinationRow 
     last_seen_at: '2026-02-25T00:00:00Z',
     occurrence_count: 1,
     follow_up_result: null,
+    fixed_at: null,
+    verified_at: null,
+    revenue_recovered_monthly: null,
+    fix_guidance_category: null,
+    root_cause_sources: null,
     ...overrides,
   };
 }

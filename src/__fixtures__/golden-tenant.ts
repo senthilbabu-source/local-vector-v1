@@ -1226,6 +1226,7 @@ export const MOCK_HALLUCINATION_ROWS: HallucinationAuditRow[] = [
     follow_up_checked_at: null,
     follow_up_result: null,
     embedding: null,
+    root_cause_sources: null,
   },
   {
     id: 'h1eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
@@ -1252,6 +1253,7 @@ export const MOCK_HALLUCINATION_ROWS: HallucinationAuditRow[] = [
     follow_up_checked_at: null,
     follow_up_result: null,
     embedding: null,
+    root_cause_sources: null,
   },
   {
     id: 'h2eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
@@ -1278,6 +1280,7 @@ export const MOCK_HALLUCINATION_ROWS: HallucinationAuditRow[] = [
     follow_up_checked_at: null,
     follow_up_result: null,
     embedding: null,
+    root_cause_sources: null,
   },
   {
     id: 'h3eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
@@ -1304,6 +1307,7 @@ export const MOCK_HALLUCINATION_ROWS: HallucinationAuditRow[] = [
     follow_up_checked_at: null,
     follow_up_result: null,
     embedding: null,
+    root_cause_sources: null,
   },
   {
     id: 'h4eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
@@ -1330,6 +1334,7 @@ export const MOCK_HALLUCINATION_ROWS: HallucinationAuditRow[] = [
     follow_up_checked_at: null,
     follow_up_result: null,
     embedding: null,
+    root_cause_sources: null,
   },
   {
     id: 'h5eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
@@ -1356,6 +1361,7 @@ export const MOCK_HALLUCINATION_ROWS: HallucinationAuditRow[] = [
     follow_up_checked_at: null,
     follow_up_result: null,
     embedding: null,
+    root_cause_sources: null,
   },
 ];
 

@@ -39,6 +39,7 @@ function makeAlert(overrides: Partial<HallucinationRow> = {}): HallucinationRow 
     verified_at: null,
     revenue_recovered_monthly: null,
     fix_guidance_category: null,
+    root_cause_sources: null,
     ...overrides,
   };
 }

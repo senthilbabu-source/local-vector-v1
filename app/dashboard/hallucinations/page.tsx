@@ -61,6 +61,7 @@ type Hallucination = {
   verified_at: string | null;
   revenue_recovered_monthly: number | null;
   fix_guidance_category: string | null;
+  root_cause_sources: unknown;
 };
 
 // ---------------------------------------------------------------------------
@@ -90,7 +91,7 @@ async function fetchPageData(): Promise<{
     supabase
       .from('ai_hallucinations')
       // S14: Cast includes new fix-tracking columns not yet in database.types.ts
-      .select('id, claim_text, severity, category, model_provider, correction_status, expected_truth, detected_at, first_detected_at, last_seen_at, occurrence_count, follow_up_result, fixed_at, verified_at, revenue_recovered_monthly, fix_guidance_category' as 'id, claim_text, severity, category, model_provider, correction_status, expected_truth, detected_at, first_detected_at, last_seen_at, occurrence_count, follow_up_result')
+      .select('id, claim_text, severity, category, model_provider, correction_status, expected_truth, detected_at, first_detected_at, last_seen_at, occurrence_count, follow_up_result, fixed_at, verified_at, revenue_recovered_monthly, fix_guidance_category, root_cause_sources' as 'id, claim_text, severity, category, model_provider, correction_status, expected_truth, detected_at, first_detected_at, last_seen_at, occurrence_count, follow_up_result, root_cause_sources')
       .order('detected_at', { ascending: false }),
   ]);
 
@@ -188,6 +189,7 @@ export default async function HallucinationsPage() {
     verified_at: h.verified_at ?? null,
     revenue_recovered_monthly: h.revenue_recovered_monthly ?? null,
     fix_guidance_category: h.fix_guidance_category ?? null,
+    root_cause_sources: (h.root_cause_sources as unknown[] | null) ?? null,
   }));
 
   const fixNowAlerts = triageAlerts

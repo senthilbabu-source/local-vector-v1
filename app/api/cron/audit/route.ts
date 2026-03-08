@@ -29,6 +29,8 @@ import { logCronStart, logCronComplete, logCronFailed } from '@/lib/services/cro
 import { notifyOrg, buildCronNotification } from '@/lib/realtime/notify-org';
 import { isDuplicateHallucination } from '@/lib/services/hallucination-dedup';
 import { generateAndSaveEmbedding } from '@/lib/services/embedding-service';
+import { enrichHallucinationWithRootCause } from '@/lib/services/root-cause-linker.service';
+import * as Sentry from '@sentry/nextjs';
 
 // Force dynamic so Vercel never caches this route between cron invocations.
 export const dynamic = 'force-dynamic';
@@ -197,6 +199,14 @@ async function _runInlineAuditImpl(handle: { logId: string | null; startedAt: nu
           // Sprint 119: Generate embeddings for newly inserted hallucinations (fire-and-forget)
           for (const row of insertedRows ?? []) {
             void generateAndSaveEmbedding(supabase, 'ai_hallucinations', row);
+          }
+
+          // Sprint 5: Root-cause enrichment — fire-and-forget, non-blocking
+          for (const row of insertedRows ?? []) {
+            void enrichHallucinationWithRootCause(supabase, row.id, location.org_id)
+              .catch((err: unknown) => Sentry.captureException(err, {
+                tags: { phase: 'root-cause-enrich', sprint: '5' },
+              }));
           }
         }
 

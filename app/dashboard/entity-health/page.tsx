@@ -12,12 +12,13 @@ import {
   type EntityStatus,
   type PlatformInfo,
 } from '@/lib/services/entity-health.service';
-import { Globe, ExternalLink, CheckCircle2, XCircle, AlertTriangle, CircleDashed } from 'lucide-react';
+import { Globe, ExternalLink, CheckCircle2, XCircle, AlertTriangle, CircleDashed, Apple } from 'lucide-react';
 import EntityStatusDropdown from './_components/EntityStatusDropdown';
 import { EntityHealthVerdictPanel } from './_components/EntityHealthVerdictPanel';
 import EntityHealthTabs from './_components/EntityHealthTabs';
 import { PLATFORM_DESCRIPTIONS, getPlatformConsequence } from '@/lib/entity-health/platform-descriptions';
 import { getPlatformFixLink } from '@/lib/entity-health/platform-fix-links';
+import { auditSiriReadiness, type SiriReadinessResult } from '@/lib/services/siri-readiness-audit.service';
 import { SourceHealthSummaryPanel } from '@/app/dashboard/source-intelligence/_components/SourceHealthSummaryPanel';
 import CitationGapScore from '@/app/dashboard/citations/_components/CitationGapScore';
 import PlatformCitationBar from '@/app/dashboard/citations/_components/PlatformCitationBar';
@@ -59,7 +60,7 @@ export default async function EntityHealthPage({
   const [locResult, orgResult] = await Promise.all([
     supabase
       .from('locations')
-      .select('id, business_name, city, state, categories')
+      .select('id, business_name, city, state, categories, phone, website_url, hours_data, address_line1, zip, siri_readiness_score')
       .eq('org_id', ctx.orgId)
       .eq('is_primary', true)
       .maybeSingle(),
@@ -114,7 +115,10 @@ export default async function EntityHealthPage({
       ) : activeTab === 'citations' ? (
         <CitationsTabContent orgId={ctx.orgId} locationId={location.id} plan={plan} location={location} />
       ) : (
-        <PlatformsTabContent orgId={ctx.orgId} locationId={location.id} />
+        <>
+          <PlatformsTabContent orgId={ctx.orgId} locationId={location.id} />
+          <SiriReadinessWidget location={location} />
+        </>
       )}
     </div>
   );
@@ -290,6 +294,101 @@ async function CitationsTabContent({
         <PlatformCitationBar platforms={platforms} coveredPlatforms={coveredPlatforms} />
       )}
     </PlanGate>
+  );
+}
+
+// ── Siri Readiness Widget (Sprint 5) ──────────────────────────────────────
+
+function SiriReadinessWidget({ location }: {
+  location: {
+    business_name?: string | null;
+    address_line1?: string | null;
+    city?: string | null;
+    state?: string | null;
+    zip?: string | null;
+    phone?: string | null;
+    website_url?: string | null;
+    hours_data?: unknown;
+    categories?: unknown;
+    siri_readiness_score?: number | null;
+  };
+}) {
+  const result: SiriReadinessResult = auditSiriReadiness({
+    business_name: location.business_name ?? null,
+    address_line1: location.address_line1 ?? null,
+    city: location.city ?? null,
+    state: location.state ?? null,
+    zip: location.zip ?? null,
+    phone: location.phone ?? null,
+    website_url: location.website_url ?? null,
+    hours_data: location.hours_data ?? null,
+    categories: location.categories ?? null,
+  });
+
+  const barColor = result.score >= 75 ? '#22c55e' : result.score >= 50 ? '#f59e0b' : '#ef4444';
+  const needsAttentionCount = result.checks.filter(c => !c.passed).length;
+
+  return (
+    <div className="rounded-xl border border-white/5 bg-surface-dark px-5 py-4" data-testid="siri-readiness-widget">
+      <div className="flex items-center gap-2 mb-3">
+        <Apple className="h-5 w-5 text-slate-400" aria-hidden="true" />
+        <h3 className="text-sm font-semibold text-white">Siri Readiness Score</h3>
+      </div>
+
+      {/* Score + Grade */}
+      <div className="flex items-baseline gap-2 mb-2">
+        <span className="text-2xl font-bold text-white">{result.score}</span>
+        <span className="text-sm text-slate-400">/ 100</span>
+        <span className={`ml-2 rounded-md px-2 py-0.5 text-xs font-semibold ${
+          result.grade === 'A' ? 'bg-green-400/15 text-green-400' :
+          result.grade === 'B' ? 'bg-green-400/15 text-green-400' :
+          result.grade === 'C' ? 'bg-amber-400/15 text-amber-400' :
+          result.grade === 'D' ? 'bg-amber-400/15 text-amber-400' :
+          'bg-red-400/15 text-red-400'
+        }`}>
+          Grade: {result.grade}
+        </span>
+      </div>
+
+      {/* Progress bar */}
+      <div className="h-2 rounded-full bg-white/5 mb-4">
+        <div
+          className="h-2 rounded-full transition-all"
+          style={{ width: `${result.score}%`, backgroundColor: barColor }}
+        />
+      </div>
+
+      {/* Per-field breakdown */}
+      <ul className="space-y-1.5">
+        {result.checks.map((check) => (
+          <li key={check.field} className="flex items-center justify-between text-xs">
+            <div className="flex items-center gap-2">
+              {check.passed ? (
+                <CheckCircle2 className="h-3.5 w-3.5 text-green-400" />
+              ) : check.earned > 0 ? (
+                <AlertTriangle className="h-3.5 w-3.5 text-amber-400" />
+              ) : (
+                <XCircle className="h-3.5 w-3.5 text-red-400" />
+              )}
+              <span className="text-slate-300">{check.label}</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-slate-400">{check.earned}/{check.points}</span>
+              {check.detail && (
+                <span className="text-slate-500 text-[10px]">{check.detail}</span>
+              )}
+            </div>
+          </li>
+        ))}
+      </ul>
+
+      {/* Summary */}
+      {needsAttentionCount > 0 && (
+        <p className="mt-3 text-xs text-amber-400">
+          {needsAttentionCount} item{needsAttentionCount === 1 ? '' : 's'} need{needsAttentionCount === 1 ? 's' : ''} attention
+        </p>
+      )}
+    </div>
   );
 }
 

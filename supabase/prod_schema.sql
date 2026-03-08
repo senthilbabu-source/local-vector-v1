@@ -360,6 +360,7 @@ CREATE TABLE IF NOT EXISTS "public"."ai_hallucinations" (
     "last_seen_at" timestamp with time zone DEFAULT "now"(),
     "occurrence_count" integer DEFAULT 1,
     "propagation_events" "jsonb" DEFAULT '[]'::"jsonb",
+    "root_cause_sources" "jsonb",
     "detected_at" timestamp with time zone DEFAULT "now"(),
     "created_at" timestamp with time zone DEFAULT "now"()
 );
@@ -3321,6 +3322,10 @@ CREATE TABLE IF NOT EXISTS "public"."vaio_profiles" (
 -- Voice readiness columns on locations
 -- ALTER TABLE "public"."locations" ADD COLUMN IF NOT EXISTS "voice_readiness_score" integer CHECK ("voice_readiness_score" BETWEEN 0 AND 100);
 -- ALTER TABLE "public"."locations" ADD COLUMN IF NOT EXISTS "vaio_last_run_at" timestamp with time zone;
+
+-- Sprint 5: Siri Readiness Score columns on locations
+-- ALTER TABLE "public"."locations" ADD COLUMN IF NOT EXISTS "siri_readiness_score" integer;
+-- ALTER TABLE "public"."locations" ADD COLUMN IF NOT EXISTS "siri_readiness_last_scored_at" timestamp with time zone;
 
 -- ══════════════════════════════════════════════════════════════
 -- Sprint 110: AI Answer Simulation Sandbox (Capstone)

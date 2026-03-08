@@ -57,6 +57,7 @@ export type HallucinationRow = {
   verified_at: string | null;
   revenue_recovered_monthly: number | null;
   fix_guidance_category: string | null;
+  root_cause_sources: unknown[] | null; // Sprint 5: RootCauseSource[]
 };
 
 export interface DashboardData {
@@ -149,8 +150,9 @@ export async function fetchDashboardData(orgId: string, locationId?: string | nu
     .from('ai_hallucinations')
     // Cast: follow_up_result, fixed_at, verified_at, revenue_recovered_monthly,
     // fix_guidance_category are Sprint F/S14 columns not yet in database.types.ts
+    // root_cause_sources is Sprint 5 column
     .select(
-      'id, severity, category, model_provider, claim_text, expected_truth, correction_status, first_detected_at, last_seen_at, occurrence_count, follow_up_result, fixed_at, verified_at, revenue_recovered_monthly, fix_guidance_category' as 'id, severity, category, model_provider, claim_text, expected_truth, correction_status, first_detected_at, last_seen_at, occurrence_count'
+      'id, severity, category, model_provider, claim_text, expected_truth, correction_status, first_detected_at, last_seen_at, occurrence_count, follow_up_result, fixed_at, verified_at, revenue_recovered_monthly, fix_guidance_category, root_cause_sources' as 'id, severity, category, model_provider, claim_text, expected_truth, correction_status, first_detected_at, last_seen_at, occurrence_count, root_cause_sources'
     )
     .eq('correction_status', 'open')
     .order('last_seen_at', { ascending: false })

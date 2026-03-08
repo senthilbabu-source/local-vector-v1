@@ -27,6 +27,8 @@ import {
 import { runInterceptForCompetitor } from '@/lib/services/competitor-intercept.service';
 import { sendHallucinationAlert } from '@/lib/email';
 import { snapshotRevenueLeak } from '@/lib/services/revenue-leak.service';
+import { enrichHallucinationWithRootCause } from '@/lib/services/root-cause-linker.service';
+import * as Sentry from '@sentry/nextjs';
 
 // ---------------------------------------------------------------------------
 // Per-org audit processor — exported for testability
@@ -100,11 +102,20 @@ export async function processOrgAudit(org: { id: string; name: string }): Promis
       correction_status: 'open' as Database['public']['Enums']['correction_status'],
       fix_guidance_category: h.category,
     }));
-    const { error: insertError } = await supabase
+    const { data: insertedRows, error: insertError } = await supabase
       .from('ai_hallucinations')
-      .insert(hallRows);
+      .insert(hallRows)
+      .select('id');
 
     if (insertError) throw new Error(`Insert failed: ${insertError.message}`);
+
+    // Sprint 5: Root-cause enrichment — fire-and-forget, non-blocking
+    for (const row of insertedRows ?? []) {
+      void enrichHallucinationWithRootCause(supabase, row.id, location.org_id)
+        .catch(err => Sentry.captureException(err, {
+          tags: { phase: 'root-cause-enrich', sprint: '5' },
+        }));
+    }
 
     // Send email alert (fire-and-forget)
     const { data: membershipRow } = await supabase

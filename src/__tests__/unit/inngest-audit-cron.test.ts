@@ -57,7 +57,9 @@ function mockSupabaseForAudit(opts: {
   const competitors = opts.competitors ?? [];
   const ownerEmail = opts.ownerEmail !== undefined ? opts.ownerEmail : 'owner@test.com';
 
-  const mockInsert = vi.fn().mockResolvedValue({ data: null, error: null });
+  const mockInsert = vi.fn().mockReturnValue({
+    select: vi.fn().mockResolvedValue({ data: [], error: null }),
+  });
   const mockLocationMaybeSingle = vi.fn().mockResolvedValue({
     data: location,
     error: null,

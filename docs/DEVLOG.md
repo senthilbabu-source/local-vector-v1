@@ -4,6 +4,30 @@
 
 ---
 
+## 2026-03-07 — Sprint 5: Root-Cause Linking + Siri Readiness Score (§293–§294)
+
+**Changes:**
+- `lib/services/root-cause-linker.service.ts` — **NEW.** Pure `identifyRootCauseSources()` + async `enrichHallucinationWithRootCause()`. Maps hallucination categories to authoritative source platforms (Yelp, Google, Apple Maps, etc.) with confidence levels. Dedup by URL, limit 5, sorted high→medium.
+- `lib/services/siri-readiness-audit.service.ts` — **NEW.** Pure `auditSiriReadiness()` scoring 7 Apple BC fields (100pts total). Async `computeAndSaveSiriReadiness()` persists score + timestamp to locations table.
+- `supabase/migrations/20260308000003_hallucination_root_cause.sql` — **NEW.** `root_cause_sources jsonb` on `ai_hallucinations`.
+- `supabase/migrations/20260308000004_siri_readiness_score.sql` — **NEW.** `siri_readiness_score integer` + `siri_readiness_last_scored_at timestamptz` on `locations`.
+- `lib/supabase/database.types.ts` — **MODIFIED.** Added `root_cause_sources` to ai_hallucinations types, `siri_readiness_score` + `siri_readiness_last_scored_at` to locations types.
+- `supabase/prod_schema.sql` — **MODIFIED.** Added `root_cause_sources` to ai_hallucinations CREATE TABLE. Added siri readiness columns to locations.
+- `app/api/cron/audit/route.ts` — **MODIFIED.** Fire-and-forget root-cause enrichment after hallucination insert (inline fallback path).
+- `lib/inngest/functions/audit-cron.ts` — **MODIFIED.** Fire-and-forget root-cause enrichment after hallucination insert (Inngest path). `.insert()` now chains `.select('id')`.
+- `app/api/cron/apple-bc-sync/route.ts` — **MODIFIED.** Fire-and-forget Siri readiness audit after each `syncOneLocation()`.
+- `app/dashboard/hallucinations/_components/AlertCard.tsx` — **MODIFIED.** Root-cause "Likely source of this error" section with platform/category/confidence badges.
+- `app/dashboard/hallucinations/page.tsx` — **MODIFIED.** Added `root_cause_sources` to query + local type.
+- `app/dashboard/entity-health/page.tsx` — **MODIFIED.** Added `SiriReadinessWidget` (score/grade/progress bar/7-field breakdown).
+- `lib/data/dashboard.ts` — **MODIFIED.** Added `root_cause_sources` to `HallucinationRow` type + select query.
+- `src/__fixtures__/golden-tenant.ts` — **MODIFIED.** Added `root_cause_sources: null` to all 6 mock hallucination rows.
+
+**Tests:** 21 new (root-cause-linker 10, siri-readiness-audit 11). 5 regression files updated (golden-tenant, alert-card, issue-descriptions, top-issues-panel, triage-swimlane, wave1-components, inngest-audit-cron).
+**Files changed:** ~17. **2 new migrations, 0 new crons.**
+AI_RULES: §293 (root-cause linking), §294 (Siri readiness score). All tests pass — zero regressions.
+
+---
+
 ## 2026-03-07 — Sprint 4: TripAdvisor Review Fetcher + Reddit Brand Monitoring (§291–§292)
 
 **Changes:**

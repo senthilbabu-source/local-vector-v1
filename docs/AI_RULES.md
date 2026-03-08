@@ -6188,3 +6188,30 @@ Sprint 4: Reddit brand mentions are stored in `reddit_brand_mentions`, NOT in th
 - Cron: `app/api/cron/reddit-monitor/route.ts` — weekly Tue 8 AM UTC, Growth+ orgs only, kill switch `STOP_REDDIT_MONITOR_CRON`.
 - Env vars: `REDDIT_CLIENT_ID`, `REDDIT_CLIENT_SECRET` — cron skips silently when not set.
 - 32nd cron in `vercel.json`, 15th in `CRON_REGISTRY`.
+
+## §293 — Hallucination Root-Cause Linking
+
+Sprint 5: `ai_hallucinations.root_cause_sources` stores `RootCauseSource[]` JSONB. Populated non-blocking after hallucination insert. Never await this enrichment in the detection pipeline — it is advisory data, not critical path.
+
+### Rules
+- `RootCauseSource` interface: `{ url: string | null; title: string | null; category: string; platform: string; confidence: 'high' | 'medium' }`.
+- `identifyRootCauseSources()` is a pure function in `lib/services/root-cause-linker.service.ts`. No I/O.
+- `enrichHallucinationWithRootCause()` is the async DB writer — fetches hallucination + recent `sov_evaluations` (30 days, limit 10), flattens `cited_sources` + `source_mentions`, runs pure analysis, writes back.
+- `CATEGORY_SOURCE_MAP` maps hallucination categories (hours, phone, address, menu, closed, name, website, services) to authoritative source platforms with confidence levels.
+- Deduplicates by URL, sorts by confidence (high first), limits to 5 results.
+- Fire-and-forget pattern: `void enrichHallucinationWithRootCause(...).catch(err => Sentry.captureException(err))`.
+- Wired into: audit cron inline fallback (`app/api/cron/audit/route.ts`) and Inngest audit function (`lib/inngest/functions/audit-cron.ts`).
+- AlertCard renders root-cause sources in a "Likely source of this error" section when `rootCauseSources.length > 0`.
+
+## §294 — Siri Readiness Score
+
+Sprint 5: `locations.siri_readiness_score` (0–100) is computed from Ground Truth fields via `auditSiriReadiness()`. It does NOT require an Apple BC API call. Score is updated after each `syncOneLocation()` call.
+
+### Rules
+- `auditSiriReadiness()` is a pure function in `lib/services/siri-readiness-audit.service.ts`. Scores 7 fields: displayName (15pts), address (20pts), telephone (15pts), websiteUrl (10pts), regularHours (20pts, partial=10 for 3-4 days), categories (10pts), status (10pts).
+- `SiriReadinessResult`: `{ score: number; checks: SiriReadinessCheck[]; grade: 'A'|'B'|'C'|'D'|'F'; missing_critical: string[] }`.
+- Grade thresholds: A=90+, B=75+, C=55+, D=35+, F<35.
+- `computeAndSaveSiriReadiness()` is the async DB writer — fetches location, runs audit, persists `siri_readiness_score` + `siri_readiness_last_scored_at`.
+- Fire-and-forget after Apple BC sync: `void computeAndSaveSiriReadiness(supabase, conn.location_id).catch(...)`.
+- Entity Health page renders `SiriReadinessWidget` — score/grade display, progress bar, 7-field breakdown.
+- Status check always passes (10pts) because `toABCStatus(null)` returns `'OPEN'` by default.

@@ -215,6 +215,7 @@ export type Database = {
           propagation_events: Json | null
           resolution_notes: string | null
           resolved_at: string | null
+          root_cause_sources: Json | null
           severity: Database["public"]["Enums"]["hallucination_severity"] | null
           verifying_since: string | null
         }
@@ -243,6 +244,7 @@ export type Database = {
           propagation_events?: Json | null
           resolution_notes?: string | null
           resolved_at?: string | null
+          root_cause_sources?: Json | null
           severity?:
             | Database["public"]["Enums"]["hallucination_severity"]
             | null
@@ -273,6 +275,7 @@ export type Database = {
           propagation_events?: Json | null
           resolution_notes?: string | null
           resolved_at?: string | null
+          root_cause_sources?: Json | null
           severity?:
             | Database["public"]["Enums"]["hallucination_severity"]
             | null
@@ -2201,6 +2204,8 @@ export type Database = {
           schema_health_score: number | null
           schema_last_run_at: string | null
           simulation_last_run_at: string | null
+          siri_readiness_last_scored_at: string | null
+          siri_readiness_score: number | null
           slug: string
           specialty_tags: string[] | null
           state: string | null
@@ -2268,6 +2273,8 @@ export type Database = {
           schema_health_score?: number | null
           schema_last_run_at?: string | null
           simulation_last_run_at?: string | null
+          siri_readiness_last_scored_at?: string | null
+          siri_readiness_score?: number | null
           slug: string
           specialty_tags?: string[] | null
           state?: string | null
@@ -2335,6 +2342,8 @@ export type Database = {
           schema_health_score?: number | null
           schema_last_run_at?: string | null
           simulation_last_run_at?: string | null
+          siri_readiness_last_scored_at?: string | null
+          siri_readiness_score?: number | null
           slug?: string
           specialty_tags?: string[] | null
           state?: string | null

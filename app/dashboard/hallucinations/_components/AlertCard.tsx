@@ -18,6 +18,7 @@ import CorrectButton from './CorrectButton';
 import FixGuidancePanel from './FixGuidancePanel';
 import { computeUrgency } from '@/lib/hallucinations/urgency';
 import { estimateRevenueAtRisk, formatRevenueAtRisk } from '@/lib/services/per-issue-revenue';
+import type { RootCauseSource } from '@/lib/services/root-cause-linker.service';
 
 const SEVERITY_STYLES = {
   critical: {
@@ -50,6 +51,9 @@ export default function AlertCard({ alert, isResolved = false, avgTicket = 55, m
   void isResolved; // consumed by TriageSwimlane to conditionally render BeforeAfterCard instead
   // Sprint G: all copy comes from here — no hardcoded strings
   const description = describeAlert(alert);
+
+  // Sprint 5: Root-cause sources from enrichment
+  const rootCauseSources = (alert.root_cause_sources ?? []) as RootCauseSource[];
 
   // S21: Day-of-week urgency for open critical/high alerts
   const urgency = alert.correction_status === 'open'
@@ -143,6 +147,29 @@ export default function AlertCard({ alert, isResolved = false, avgTicket = 55, m
               Verification in progress — will recheck in ~14 days
             </span>
           )}
+        </div>
+      )}
+
+      {/* Sprint 5: Root-cause source analysis — "Why this happened" */}
+      {rootCauseSources.length > 0 && (
+        <div className="mt-2 rounded-md border border-amber-400/20 bg-amber-400/5 px-3 py-2" data-testid="root-cause-section">
+          <p className="text-xs font-semibold text-amber-400 mb-1.5">
+            Likely source of this error
+          </p>
+          <ul className="space-y-1">
+            {rootCauseSources.map((source, i) => (
+              <li key={source.url ?? `rc-${i}`} className="flex items-center gap-2 text-xs">
+                <span className="font-medium text-white">{source.platform}</span>
+                <span className="text-slate-400">({source.category})</span>
+                <span className={cn(
+                  'rounded-full px-1.5 py-0.5 text-[10px] font-semibold uppercase',
+                  source.confidence === 'high' ? 'bg-alert-crimson/15 text-alert-crimson' : 'bg-amber-400/15 text-amber-400',
+                )}>
+                  {source.confidence}
+                </span>
+              </li>
+            ))}
+          </ul>
         </div>
       )}
 
