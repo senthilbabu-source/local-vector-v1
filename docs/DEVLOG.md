@@ -4,6 +4,14 @@
 
 ---
 
+## Free Scan Empty Results Fix (2026-03-08)
+- **app/actions/marketing.ts** — 4 fixes: (1) `_ensureIssuesForFail()` synthesizes an accuracy_issue from claim_text/expected_truth when AI returns fail with empty issues, (2) `_extractIssuesFromText()` extracts issues from raw LLM prose via 6 regex patterns instead of returning empty arrays on text-detection fallback, (3) new text-detection branch catches `incorrect`/`inaccurate`/`wrong`/`outdated` keywords, (4) `_scoreScanResult()` weights `accuracy_issues.length * 10` so best-of-2 prefers richer results. `_inferCategoryFromText()` pure keyword→category mapper shared by both paths.
+- **app/scan/_components/ScanDashboard.tsx** — `not_found` FallbackIssueCard upgraded from gray to amber warning style with warning triangle icon and actionable copy.
+- **0 new tests, 0 regressions.** Existing tests (free-scan-pass 31, scan-params 14, sprint-d 27) all pass.
+- AI_RULES §309.
+
+---
+
 ## Sprint D Marketing: Scan Dashboard Conversion Upgrade (2026-03-08)
 - **ScanDashboard.tsx** — Complete redesign for conversion. Added: animated SVG score ring (rAF easeOutCubic, 1.5s), AI Visibility Score (0-100, derived from mentions+sentiment+issues), urgency strip, enhanced model coverage (20% progress ring, per-model hints), interactive expandable issue cards with fix preview, "What Your Dashboard Looks Like" feature grid, price-anchored CTA ($49/mo). Nav: score badge + "Fix This Now" button. No free trial language.
 - **sprint-d-depth-retention.test.ts** — 14 new tests (8 computeVisibilityScore + 6 scoreGrade). Total: 27 tests.

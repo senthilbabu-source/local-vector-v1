@@ -6408,3 +6408,22 @@ Magic Menu extracted items often lack descriptions, have typos in names, or have
 - `dismissEnhancements` removes `ai_description` and `ai_name_correction` fields from items.
 - All pure functions are immutable — never mutate original arrays.
 - 24 unit tests in `src/__tests__/unit/menu-enhancer.test.ts`.
+
+### §309 — Free Scan Empty Results Fix (Scan Reliability)
+
+#### Problem
+Some business free scans returned 200 OK but showed no meaningful scan results in the UI. Root causes:
+1. Perplexity AI returns `is_closed=true` (fail) but leaves `accuracy_issues: []` empty.
+2. Text-detection fallback (when JSON parsing fails) always returned `accuracy_issues: []`.
+3. Best-of-2 strategy didn't prefer results with richer `accuracy_issues` data.
+4. `not_found` FallbackIssueCard was gray/neutral instead of amber/warning.
+
+#### Rules
+- **`_ensureIssuesForFail()`**: When a `fail` result has empty `accuracy_issues`, synthesize one from `claim_text`/`expected_truth`. The UI must ALWAYS have at least one issue to display for fail results.
+- **`_inferCategoryFromText()`**: Pure keyword-based category inference (hours/address/menu/phone/other) from free-text strings. Used by both `_ensureIssuesForFail()` and `_extractIssuesFromText()`.
+- **`_extractIssuesFromText()`**: When JSON parsing fails and text-detection triggers, 6 regex patterns extract meaningful issue strings from raw LLM prose instead of returning empty arrays.
+- **Text-detection expanded**: New branch catches `incorrect`/`inaccurate`/`wrong`/`outdated` keywords in raw responses — previously only `permanently closed` and `is open` were matched.
+- **Best-of-2 scoring**: `_scoreScanResult()` now weights `accuracy_issues.length * 10` into the score. Results with richer issue data always rank higher than empty-issue results of the same status.
+- **`not_found` FallbackIssueCard**: Upgraded from gray (#94A3B8) to amber (#FFB800) with warning triangle icon and actionable copy explaining the visibility gap.
+- All new functions are internal (prefixed with `_`) and pure (no I/O, no side effects).
+- Existing tests (free-scan-pass 31, scan-params 14, sprint-d 27) continue to pass — zero regressions.

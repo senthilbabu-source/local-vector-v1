@@ -1569,18 +1569,18 @@ function FallbackIssueCard({ result }: { result: ScanDisplayData }) {
 
   // not_found
   return (
-    <div className="lv-card" style={{ borderLeft: '3px solid #94A3B8' }}>
+    <div className="lv-card" style={{ borderLeft: '3px solid #FFB800' }}>
       <div className="flex items-start gap-3">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"
-          className="h-4 w-4 shrink-0 mt-0.5" style={{ color: '#94A3B8' }} aria-hidden>
-          <path d="M9 3.5a5.5 5.5 0 100 11 5.5 5.5 0 000-11zM2 9a7 7 0 1112.452 4.391l3.328 3.329a.75.75 0 11-1.06 1.06l-3.329-3.328A7 7 0 012 9z" />
+          className="h-4 w-4 shrink-0 mt-0.5" style={{ color: '#FFB800' }} aria-hidden>
+          <path fillRule="evenodd" d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.17 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495zM10 5a.75.75 0 01.75.75v3.5a.75.75 0 01-1.5 0v-3.5A.75.75 0 0110 5zm0 9a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" />
         </svg>
         <div>
-          <p className="text-sm font-semibold" style={{ color: '#CBD5E1' }}>
+          <p className="text-sm font-semibold" style={{ color: '#FFB800' }}>
             AI models have no data about your business
           </p>
           <p className="text-xs mt-1" style={{ color: '#94A3B8' }}>
-            You have zero AI visibility {'\u2014'} potential customers can&apos;t find you via AI search.
+            This is a critical visibility gap {'\u2014'} when customers ask AI for recommendations, your business won&apos;t appear. LocalVector fixes this by pushing your data to AI platforms.
           </p>
         </div>
       </div>

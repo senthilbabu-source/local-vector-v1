@@ -288,6 +288,86 @@ export async function _demoFallbackForTesting(businessName: string): Promise<Sca
 }
 
 // ---------------------------------------------------------------------------
+// Internal — issue synthesis from claim_text (empty accuracy_issues fix)
+// ---------------------------------------------------------------------------
+
+/**
+ * When the AI returns a `fail` result (is_closed=true) but leaves
+ * `accuracy_issues` empty, synthesize an issue + category from the
+ * claim_text / expected_truth so the UI always has something to show.
+ */
+function _inferCategoryFromText(text: string): 'hours' | 'address' | 'menu' | 'phone' | 'other' {
+  const lower = text.toLowerCase();
+  if (/\b(hour|hours|open|close|closed|am|pm|mon|tue|wed|thu|fri|sat|sun)\b/.test(lower)) return 'hours';
+  if (/\b(address|street|st|ave|road|rd|unit|suite|ste|location|located)\b/.test(lower)) return 'address';
+  if (/\b(menu|dish|food|cuisine|price|item|pizza|burger|sushi|vegan)\b/.test(lower)) return 'menu';
+  if (/\b(phone|call|number|tel|contact)\b/.test(lower)) return 'phone';
+  return 'other';
+}
+
+/**
+ * Ensure a fail result always has at least one accuracy_issue.
+ * If the AI returned empty accuracy_issues, synthesize from claim_text.
+ */
+function _ensureIssuesForFail(
+  claimText: string,
+  expectedTruth: string,
+  issues: string[],
+  categories: Array<'hours' | 'address' | 'menu' | 'phone' | 'other'>,
+): { issues: string[]; categories: Array<'hours' | 'address' | 'menu' | 'phone' | 'other'> } {
+  if (issues.length > 0) return { issues, categories };
+
+  // Synthesize from claim_text — this is the primary inaccuracy the AI found
+  const synthesized = claimText
+    ? `AI states: "${claimText.slice(0, 80)}"${expectedTruth ? ` — should be: "${expectedTruth.slice(0, 40)}"` : ''}`
+    : 'AI contains inaccurate information about this business';
+  const category = _inferCategoryFromText(claimText + ' ' + expectedTruth);
+
+  return {
+    issues: [synthesized.slice(0, 120)],
+    categories: [category],
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Internal — extract issues from raw text fallback (text-detection path)
+// ---------------------------------------------------------------------------
+
+/**
+ * When JSON parsing fails and we fall through to text-detection,
+ * attempt to extract meaningful issue strings from the raw LLM prose.
+ */
+function _extractIssuesFromText(raw: string): { issues: string[]; categories: Array<'hours' | 'address' | 'menu' | 'phone' | 'other'> } {
+  const issues: string[] = [];
+
+  // Look for common patterns in Perplexity prose responses
+  const patterns = [
+    /(?:hours?|schedule)\s+(?:listed?|shown?|stated?|appear)\s+as\s+[^.]{5,80}/gi,
+    /(?:address|location)\s+(?:listed?|shown?|stated?|appear)\s+as\s+[^.]{5,80}/gi,
+    /(?:phone|number|contact)\s+(?:listed?|shown?|stated?|appear)\s+as\s+[^.]{5,80}/gi,
+    /(?:wrong|incorrect|inaccurate|outdated)\s+[^.]{5,80}/gi,
+    /(?:permanently\s+closed|has\s+closed|shut\s+down|no\s+longer\s+open)[^.]{0,60}/gi,
+    /(?:not\s+(?:found|listed|appearing|visible))\s+(?:in|on|at)\s+[^.]{5,60}/gi,
+  ];
+
+  for (const pattern of patterns) {
+    const matches = raw.match(pattern);
+    if (matches) {
+      for (const match of matches.slice(0, 3 - issues.length)) {
+        const cleaned = match.trim().slice(0, 120);
+        if (cleaned.length >= 10 && !issues.includes(cleaned)) {
+          issues.push(cleaned);
+        }
+      }
+    }
+    if (issues.length >= 3) break;
+  }
+
+  const cats = issues.map(issue => _inferCategoryFromText(issue));
+  return { issues, categories: cats };
+}
+
+// ---------------------------------------------------------------------------
 // Internal — single Perplexity API call + response parsing (Sprint 36d)
 // ---------------------------------------------------------------------------
 
@@ -431,6 +511,16 @@ async function _singlePerplexityCall(params: SingleCallParams): Promise<ScanResu
           accuracy_issue_categories: parsed.data.accuracy_issue_categories,
         };
       }
+
+      // Ensure fail results always have at least one accuracy_issue for the UI.
+      // The AI sometimes sets is_closed=true but leaves accuracy_issues empty.
+      const ensured = _ensureIssuesForFail(
+        parsed.data.claim_text,
+        parsed.data.expected_truth,
+        parsed.data.accuracy_issues,
+        parsed.data.accuracy_issue_categories,
+      );
+
       return {
         status:                    'fail',
         engine:                    'Perplexity Sonar',
@@ -439,13 +529,13 @@ async function _singlePerplexityCall(params: SingleCallParams): Promise<ScanResu
         // When accuracy_issues drove the fail (is_closed=false), use the first issue as the headline.
         claim_text:                parsed.data.is_closed
                                      ? parsed.data.claim_text
-                                     : parsed.data.accuracy_issues[0],
+                                     : ensured.issues[0],
         expected_truth:            parsed.data.expected_truth,
         business_name:             businessName,
         mentions_volume:           parsed.data.mentions_volume,
         sentiment:                 parsed.data.sentiment,
-        accuracy_issues:           parsed.data.accuracy_issues,
-        accuracy_issue_categories: parsed.data.accuracy_issue_categories,
+        accuracy_issues:           ensured.issues,
+        accuracy_issue_categories: ensured.categories,
       };
     }
   } catch (err) {
@@ -464,7 +554,14 @@ async function _singlePerplexityCall(params: SingleCallParams): Promise<ScanResu
     lower.includes('no longer open')     ||
     lower.includes('shut down')
   ) {
-    // Hard-code new fields on text-detection path — no structured data available
+    // Extract any additional issues from the prose, with a guaranteed fallback
+    const extracted = _extractIssuesFromText(raw);
+    const fallbackIssues = extracted.issues.length > 0
+      ? extracted.issues
+      : ['AI states this business is permanently closed'];
+    const fallbackCats = extracted.issues.length > 0
+      ? extracted.categories
+      : ['other' as const];
     return {
       status:                    'fail',
       engine:                    'Perplexity Sonar',
@@ -474,8 +571,37 @@ async function _singlePerplexityCall(params: SingleCallParams): Promise<ScanResu
       business_name:             businessName,
       mentions_volume:           'low',
       sentiment:                 'negative',
-      accuracy_issues:           [],
-      accuracy_issue_categories: [],
+      accuracy_issues:           fallbackIssues,
+      accuracy_issue_categories: fallbackCats,
+    };
+  }
+
+  // ── Text-detection for businesses with inaccuracies (not closed, but issues found) ──
+  // Catch prose that mentions wrong/incorrect/inaccurate information
+  if (
+    lower.includes('incorrect')  ||
+    lower.includes('inaccurate') ||
+    lower.includes('wrong ')     ||
+    lower.includes('outdated')
+  ) {
+    const extracted = _extractIssuesFromText(raw);
+    const fallbackIssues = extracted.issues.length > 0
+      ? extracted.issues
+      : ['AI contains inaccurate information about this business'];
+    const fallbackCats = extracted.issues.length > 0
+      ? extracted.categories
+      : ['other' as const];
+    return {
+      status:                    'fail',
+      engine:                    'Perplexity Sonar',
+      severity:                  'medium',
+      claim_text:                fallbackIssues[0],
+      expected_truth:            'Verify current information on website',
+      business_name:             businessName,
+      mentions_volume:           'low',
+      sentiment:                 'neutral',
+      accuracy_issues:           fallbackIssues,
+      accuracy_issue_categories: fallbackCats,
     };
   }
 
@@ -515,14 +641,16 @@ const MENTIONS_RANK: Record<string, number> = { none: 0, low: 1, medium: 2, high
 /**
  * Score a ScanResult for comparison. Higher = richer / more useful.
  * pass/fail with data beat not_found which beats unavailable/rate_limited.
- * Among equal statuses, higher mentions_volume wins.
+ * Among equal statuses, results with more accuracy_issues win, then
+ * higher mentions_volume breaks ties.
  */
 function _scoreScanResult(r: ScanResult): number {
   switch (r.status) {
     case 'pass':
     case 'fail':
-      // Base 100 + mentions richness (0–3) for tiebreaking
-      return 100 + (MENTIONS_RANK[r.mentions_volume] ?? 0);
+      // Base 100 + accuracy_issues count (0–30) + mentions richness (0–3)
+      // This ensures results with actual issue data always rank higher
+      return 100 + (r.accuracy_issues.length * 10) + (MENTIONS_RANK[r.mentions_volume] ?? 0);
     case 'not_found':
       return 10;
     case 'unavailable':
