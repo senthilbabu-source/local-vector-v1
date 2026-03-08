@@ -367,6 +367,39 @@ export default function ScanDashboard({ result }: Props) {
         </section>
       )}
 
+      {/* ── 1a-trust. Trust signals strip (Sprint A) ────────────────────── */}
+      <section className="px-4" style={{ backgroundColor: '#050A15' }}>
+        <div className="lv-section" style={{ paddingTop: 0, paddingBottom: 24 }}>
+          <Reveal>
+            <div
+              className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2"
+              style={{ fontSize: 12, color: '#475569', fontFamily: 'var(--font-jetbrains-mono), monospace' }}
+            >
+              <span className="flex items-center gap-1.5">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" className="h-3.5 w-3.5" aria-hidden>
+                  <path fillRule="evenodd" d="M8 1a3.5 3.5 0 0 0-3.5 3.5V7A1.5 1.5 0 0 0 3 8.5v5A1.5 1.5 0 0 0 4.5 15h7a1.5 1.5 0 0 0 1.5-1.5v-5A1.5 1.5 0 0 0 11 7V4.5A3.5 3.5 0 0 0 8 1Zm2 6V4.5a2 2 0 1 0-4 0V7h4Z" clipRule="evenodd" />
+                </svg>
+                No data stored
+              </span>
+              <span style={{ color: 'rgba(255,255,255,0.08)' }}>|</span>
+              <span className="flex items-center gap-1.5">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" className="h-3.5 w-3.5" aria-hidden>
+                  <path d="M8 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6ZM12.735 14c.618 0 1.093-.561.872-1.139a6.002 6.002 0 0 0-11.215 0c-.22.578.254 1.139.872 1.139h9.47Z" />
+                </svg>
+                Real AI data, not simulated
+              </span>
+              <span style={{ color: 'rgba(255,255,255,0.08)' }}>|</span>
+              <span className="flex items-center gap-1.5">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" className="h-3.5 w-3.5" aria-hidden>
+                  <path fillRule="evenodd" d="M1 8a7 7 0 1 1 14 0A7 7 0 0 1 1 8Zm7.75-4.25a.75.75 0 0 0-1.5 0V8c0 .414.336.75.75.75h3.25a.75.75 0 0 0 0-1.5h-2.5v-3.5Z" clipRule="evenodd" />
+                </svg>
+                8-second scan
+              </span>
+            </div>
+          </Reveal>
+        </div>
+      </section>
+
       {/* ── 1b. Multi-model pending strip ───────────────────────────────── */}
       {/* result.status is never 'invalid' here — early return above handles that case */}
       <section className="px-4" style={{ backgroundColor: '#050A15' }}>
@@ -695,8 +728,37 @@ export default function ScanDashboard({ result }: Props) {
             </div>
           </Reveal>
 
+          {/* Trust quote (Sprint A) */}
+          <Reveal delay={280}>
+            <div
+              className="mx-auto text-center"
+              style={{
+                maxWidth: 480,
+                marginBottom: 32,
+                padding: '20px 24px',
+                borderRadius: 12,
+                background: 'rgba(255,255,255,0.02)',
+                border: '1px solid rgba(255,255,255,0.06)',
+              }}
+            >
+              <p
+                className="text-sm italic"
+                style={{ color: '#94A3B8', lineHeight: 1.65, marginBottom: 8 }}
+              >
+                &ldquo;ChatGPT was telling people we were permanently closed. We had no idea
+                until LocalVector flagged it.&rdquo;
+              </p>
+              <p
+                className="text-xs"
+                style={{ color: '#475569', fontFamily: 'var(--font-jetbrains-mono), monospace' }}
+              >
+                — Restaurant owner, Atlanta
+              </p>
+            </div>
+          </Reveal>
+
           {/* Secondary: skip email, go straight to signup */}
-          <Reveal delay={320}>
+          <Reveal delay={360}>
             <div className="text-center">
               <p className="text-xs mb-3" style={{ color: '#475569', fontFamily: 'var(--font-jetbrains-mono), monospace' }}>
                 Ready to fix it now?

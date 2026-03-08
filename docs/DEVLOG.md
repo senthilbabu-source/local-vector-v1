@@ -4,6 +4,26 @@
 
 ---
 
+## 2026-03-07 — Sprint A (Marketing): Public Reports + Scan Polish (§298–§299)
+
+**Changes:**
+- `lib/report/public-report.ts` — **NEW.** Server-side fetchers: `getPublicLocationReport(token)` queries locations by `public_share_token` UUID + latest visibility_scores + hallucination count + SOV engine count. `getPublicScanReport(id)` queries `scan_leads` by UUID. Both validate UUID format before DB call, return sanitized public-safe data (no org_id leak).
+- `app/report/_components/PublicReportCard.tsx` — **NEW.** Two client components: `LocationReportCard` (3 score cards with Bar animations, delta badge, monitoring stats, CTA) and `ScanReportCard` (status banner with pulsing dot for fail, CTA). Dark theme matching ScanDashboard. Uses Reveal/Bar scroll-reveal.
+- `app/report/[token]/page.tsx` — **NEW.** Public location report page. Dynamic metadata (business name + score in OG). Token = `locations.public_share_token` UUID — no auth required.
+- `app/report/scan/[id]/page.tsx` — **NEW.** Public scan lead report. Stable shareable URL replacing giant query-string URLs. Dynamic metadata with status text.
+- `app/report/[token]/opengraph-image.tsx` — **NEW.** Dynamic 1200x630 OG image: score circle + business name + location. Edge runtime.
+- `app/report/scan/[id]/opengraph-image.tsx` — **NEW.** Dynamic 1200x630 OG image: status icon + business name. Edge runtime.
+- `app/scan/page.tsx` — **MODIFIED.** Removed `robots: { index: false, follow: false }`. Added OG/Twitter metadata. Updated title/description for SEO.
+- `app/scan/_components/ScanDashboard.tsx` — **MODIFIED.** Added trust signals strip (3 icons: no data stored, real AI data, 8-second scan). Added testimonial quote card in CTA section.
+- `app/scan/_components/EmailCaptureForm.tsx` — **MODIFIED.** Now tracks `reportId` from server action response. Shows "Share this report" link on success state pointing to `/report/scan/[id]`.
+- `app/actions/marketing.ts` — **MODIFIED.** `captureLeadEmail()` return type changed from `{ ok: boolean }` to `{ ok: boolean; reportId?: string }`. Insert now uses `.select('id').single()` to return the scan_lead UUID.
+
+**Tests:** 18 new (UUID validation 5, data shaping 3, scan-params regression 2, metadata 2, helper functions 3, UUID regex 3). 0 regression files updated.
+**Files changed:** 7 new, 4 modified. **0 new migrations, 0 new crons.**
+AI_RULES: §298 (public report infrastructure), §299 (scan SEO + trust signals). All tests pass — zero regressions.
+
+---
+
 ## 2026-03-07 — Sprint 6: Community Monitor + Perplexity Pages Detection (§295–§297)
 
 **Changes:**

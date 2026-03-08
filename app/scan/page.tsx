@@ -7,7 +7,9 @@
 // Public route — not in PROTECTED_PREFIXES ('/dashboard' only).
 // proxy.ts runs but passes through since /scan is not protected.
 //
-// robots: noindex — individual result pages should not be indexed.
+// Sprint A: removed noindex — /scan is the top-of-funnel entry point and
+// should be indexed. Individual result URLs are transient (query-string params)
+// so search engines won't over-index variants.
 //
 // Sprint 39: loads Outfit + JetBrains Mono (design system fonts) so the
 // restyled ScanDashboard can use var(--font-outfit) / var(--font-jetbrains-mono).
@@ -18,9 +20,22 @@ import ScanDashboard from './_components/ScanDashboard';
 import { parseScanParams } from './_utils/scan-params';
 
 export const metadata: Metadata = {
-  title: 'AI Audit Result — LocalVector.ai',
-  description: 'Your free AI hallucination scan result from LocalVector.ai.',
-  robots: { index: false, follow: false },
+  title: 'Free AI Audit — Is AI Telling the Truth About Your Business? | LocalVector.ai',
+  description:
+    'Get a free AI visibility audit for your restaurant. See what ChatGPT, Perplexity, and Google say about your business — and whether they\'re getting it right.',
+  openGraph: {
+    title: 'Free AI Audit — LocalVector.ai',
+    description:
+      'Find out what AI models say about your business. Free, instant, real results.',
+    siteName: 'LocalVector.ai',
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Free AI Audit — LocalVector.ai',
+    description:
+      'Find out what AI models say about your business. Free, instant, real results.',
+  },
 };
 
 export default async function ScanPage({

@@ -6260,3 +6260,36 @@ Perplexity Pages are curated content pages on `perplexity.ai/page/*` that appear
 - `lib/inngest/events.ts`: added `'cron/community.monitor'` event type.
 - Migrations: `20260504000001_community_mentions.sql`, `20260504000002_perplexity_pages_detections.sql`.
 - 21 new tests: 12 community-monitor (parseMentionsFromResponse 4, classifyMentionSentiment 3, monitorCommunityPlatforms 5), 9 perplexity-pages-detector (isPerplexityPage 4, detectPerplexityPages 5).
+
+---
+
+## §298 — Public Report Infrastructure (Sprint A Marketing)
+
+### Context
+Public shareable report pages for the viral loop: customer shares their AI visibility report URL → prospect sees real scores → CTA → free scan → signup. Two report types: authenticated location reports (via `public_share_token` UUID) and unauthenticated scan reports (via `scan_leads.id` UUID).
+
+### Rules
+- `lib/report/public-report.ts` exports: `getPublicLocationReport(token)`, `getPublicScanReport(id)`. Both validate UUID format (`/^[0-9a-f]{8}-...$/i`) before any DB call — rejects non-UUIDs without hitting Supabase.
+- Uses `createServiceRoleClient()` to bypass RLS — these are public routes, the UUID IS the auth (unguessable).
+- `getPublicLocationReport()` queries: `locations` by `public_share_token` → `visibility_scores` (latest by snapshot_date) → `ai_hallucinations` (unfixed count) → `sov_evaluations` (engine count + latest scan date). Returns `PublicLocationReport` type — never exposes `org_id` or internal IDs.
+- `getPublicScanReport()` uses the `(supabase.from as unknown as ...)('scan_leads')` cast pattern (table not in generated types).
+- `/report/[token]` and `/report/scan/[id]` are NOT in `PROTECTED_PREFIXES` in `proxy.ts` — they pass through without auth.
+- Dynamic OG images at `opengraph-image.tsx` use edge runtime + `ImageResponse` (Satori). Score circle for location reports, status icon for scan reports.
+- Dark theme on report pages (matches ScanDashboard, not marketing light theme).
+- `PublicReportCard.tsx` components: `LocationReportCard` (3 score cards, delta badge, monitoring stats) and `ScanReportCard` (status banner, CTA). Both use `Reveal` + `Bar` scroll-reveal components.
+- `formatDate()` helper checks `isNaN(d.getTime())` — `new Date('invalid')` produces 'Invalid Date' string, not an exception.
+
+---
+
+## §299 — Scan SEO + Trust Signals (Sprint A Marketing)
+
+### Context
+The `/scan` page is the top-of-funnel entry point. It was previously set to `robots: noindex` which prevented search engine indexing. Trust signals and social proof elements increase conversion from scan → email capture → signup.
+
+### Rules
+- `/scan` page metadata: `robots: noindex` REMOVED. Page now has full SEO metadata: title, description, openGraph, twitter card.
+- Trust signals strip added between alert banner and multi-model section: 3 inline items (no data stored, real AI data, 8-second scan) with SVG icons. JetBrains Mono, `#475569` color, pipe separators.
+- Testimonial quote card added in CTA section before secondary buttons. Styled as a subtle bordered card with italic quote + attribution.
+- `captureLeadEmail()` return type extended: `{ ok: boolean }` → `{ ok: boolean; reportId?: string }`. Insert now uses `.select('id').single()` to return the `scan_leads.id` UUID for shareable report linking.
+- `EmailCaptureForm` success state now shows "Share this report" link pointing to `/report/scan/{reportId}` — enables viral sharing of scan results via stable URLs instead of giant query strings.
+- 18 new tests in `sprint-a-public-reports.test.ts`: UUID validation (5), data shaping (3), scan-params regression (2), metadata verification (2), helper functions (3), UUID regex (3).

@@ -113,7 +113,7 @@ const VALID_SCAN_STATUSES = ['fail', 'pass', 'not_found'] as const;
 
 export async function captureLeadEmail(
   formData: FormData
-): Promise<{ ok: boolean }> {
+): Promise<{ ok: boolean; reportId?: string }> {
   const email        = (formData.get('email')        as string | null)?.trim().toLowerCase() ?? '';
   const businessName = (formData.get('businessName') as string | null)?.trim() ?? '';
   const scanStatus   = (formData.get('scanStatus')   as string | null)?.trim() ?? '';
@@ -125,19 +125,21 @@ export async function captureLeadEmail(
 
   try {
     const supabase = createServiceRoleClient();
-    const { error } = await (
+    // Sprint A: select id so we can return a shareable report URL
+    const { data, error } = await (
       supabase.from as unknown as (t: string) => ReturnType<typeof supabase.from>
     )('scan_leads').insert({
       email,
       business_name: businessName,
       scan_status:   scanStatus,
-    });
+    }).select('id').single();
 
     if (error) {
       Sentry.captureException(error, { tags: { file: 'marketing.ts', action: 'captureLeadEmail' } });
       return { ok: false };
     }
-    return { ok: true };
+    const row = data as { id: string } | null;
+    return { ok: true, reportId: row?.id };
   } catch (err) {
     Sentry.captureException(err, { tags: { file: 'marketing.ts', action: 'captureLeadEmail' } });
     return { ok: false };

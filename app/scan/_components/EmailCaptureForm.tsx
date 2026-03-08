@@ -35,13 +35,19 @@ export default function EmailCaptureForm({ businessName, scanStatus }: Props) {
   const [isPending, startTransition] = useTransition();
   const [state, setState] = useState<'idle' | 'success' | 'error'>('idle');
   const [email, setEmail] = useState('');
+  const [reportId, setReportId] = useState<string | null>(null);
 
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const fd = new FormData(e.currentTarget);
     startTransition(async () => {
       const result = await captureLeadEmail(fd);
-      setState(result.ok ? 'success' : 'error');
+      if (result.ok) {
+        setReportId(result.reportId ?? null);
+        setState('success');
+      } else {
+        setState('error');
+      }
     });
   }
 
@@ -87,6 +93,17 @@ export default function EmailCaptureForm({ businessName, scanStatus }: Props) {
         >
           No credit card required &middot; Cancel anytime
         </p>
+        {/* Sprint A: shareable report link */}
+        {reportId && (
+          <p className="mt-4" style={{ fontSize: 12, color: '#475569' }}>
+            <a
+              href={`/report/scan/${reportId}`}
+              style={{ color: '#94A3B8', textDecoration: 'underline', textUnderlineOffset: 2 }}
+            >
+              Share this report
+            </a>
+          </p>
+        )}
       </div>
     );
   }
