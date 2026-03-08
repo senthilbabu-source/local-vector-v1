@@ -32,6 +32,7 @@ const GOOGLE_AUTH_URL = 'https://accounts.google.com/o/oauth2/v2/auth';
 const SCOPES = [
   'https://www.googleapis.com/auth/business.manage',
   'https://www.googleapis.com/auth/userinfo.email',
+  'https://www.googleapis.com/auth/webmasters.readonly', // Sprint 3: GSC AI Overviews
 ].join(' ');
 
 export async function GET(request: NextRequest) {

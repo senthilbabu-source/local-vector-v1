@@ -53,4 +53,9 @@ export type Events = {
       triggeredByUserId: string;
     };
   };
+
+  /** Sprint 3: Triggered by Vercel Cron → ai-overviews. GSC AI Overview sync. */
+  'cron/ai-overviews.weekly': {
+    data: Record<string, never>;
+  };
 };

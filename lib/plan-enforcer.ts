@@ -372,3 +372,11 @@ export function canRunAIShopper(plan: PlanTier): boolean {
 export function canRunCompetitorVulnerability(plan: PlanTier): boolean {
   return planSatisfies(plan, 'growth');
 }
+
+/**
+ * Sprint 3: Can this plan access Google AI Overviews monitoring?
+ * Requires Growth plan or higher (tenant has connected GSC).
+ */
+export function canRunGSCOverviews(plan: PlanTier): boolean {
+  return plan === 'growth' || plan === 'agency';
+}

@@ -1620,6 +1620,69 @@ export type Database = {
           },
         ]
       }
+      gsc_ai_overview_data: {
+        Row: {
+          id: string
+          org_id: string
+          location_id: string
+          site_url: string
+          query: string
+          date: string
+          clicks: number
+          impressions: number
+          ctr: number
+          position: number
+          has_ai_overview: boolean
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          org_id: string
+          location_id: string
+          site_url: string
+          query: string
+          date: string
+          clicks?: number
+          impressions?: number
+          ctr?: number
+          position?: number
+          has_ai_overview?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          org_id?: string
+          location_id?: string
+          site_url?: string
+          query?: string
+          date?: string
+          clicks?: number
+          impressions?: number
+          ctr?: number
+          position?: number
+          has_ai_overview?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gsc_ai_overview_data_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gsc_ai_overview_data_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       hijacking_alerts: {
         Row: {
           competitor_name: string

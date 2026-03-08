@@ -130,7 +130,7 @@ describe('S28: Cross-Platform Consistency Score', () => {
       const vercelJson = JSON.parse(
         fs.readFileSync(path.resolve('vercel.json'), 'utf8'),
       );
-      expect(vercelJson.crons).toHaveLength(30);
+      expect(vercelJson.crons).toHaveLength(31);
     });
   });
 

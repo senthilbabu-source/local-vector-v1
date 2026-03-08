@@ -32,6 +32,7 @@ import {
   MessageCircle,
   Zap,
   Compass,
+  Eye,
   Lock,
   ChevronRight,
 } from 'lucide-react';
@@ -223,6 +224,15 @@ export const NAV_ITEMS = [
     active: true,
     minPlan: 'agency' as const,
   },
+  {
+    href: '/dashboard/ai-overviews',
+    label: 'AI Overviews',
+    testId: 'ai-overviews',
+    icon: Eye,
+    exact: false,
+    active: true,
+    minPlan: 'growth' as const,
+  },
   // S35: System Status moved to Admin — /dashboard/system-health redirects for non-admins
   {
     href: '/dashboard/settings',
@@ -346,6 +356,7 @@ export const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
         '/dashboard/wins',
         '/dashboard/vaio',
         '/dashboard/intent-discovery',
+        '/dashboard/ai-overviews',
         '/dashboard/reviews',
       ].includes(i.href),
     ),

@@ -7020,3 +7020,47 @@ Both models: agency only. Growth/starter unchanged.
 ### AI_RULES
 - §287: Grok + You.com native web search — never pass webSearchTool().
 - §288: Agency-only plan gate for both models.
+
+---
+
+## Sprint 3 — Google AI Overviews Monitoring (GSC API Integration)
+
+**Date:** 2026-03-07
+**AI_RULES:** §289–§290
+
+### Summary
+Added real Google Search Console AI Overview monitoring for Growth+ tenants. Pulls actual GSC Search Analytics data (impressions, clicks, CTR, position) filtered by `searchAppearance=AI_OVERVIEW`. Separate from the existing SOV engine — GSC measures real Google Search results, SOV simulates AI model responses.
+
+### Changes
+1. **GSC Client** (`lib/services/gsc-client.ts`) — NEW. Calls GSC Search Analytics API v3 with `AI_OVERVIEW` filter. Exports `fetchGSCSearchAnalytics()`, `GSCTokenExpiredError`, `GSCScopeNotGrantedError`. Two queries: AI Overview filtered (1000 rows) + baseline (500 rows).
+2. **Migration** (`supabase/migrations/20260308000001_gsc_ai_overviews.sql`) — NEW. `gsc_ai_overview_data` table with RLS (org_members_read via memberships), 2 indexes, UNIQUE on (org_id, site_url, query, date).
+3. **Cron route** (`app/api/cron/ai-overviews/route.ts`) — NEW. Weekly Mon 6 AM UTC. Auth guard → kill switch (`STOP_AI_OVERVIEWS_CRON`) → Inngest dispatch → inline fallback. Queries tokens with webmasters scope, checks plan gate, refreshes expired tokens, upserts rows.
+4. **Dashboard page** (`app/dashboard/ai-overviews/page.tsx`) — NEW. 4 states: plan gate → GSC connect CTA → syncing → data table with 3 summary stat cards.
+5. **OAuth scope** (`app/api/auth/google/route.ts`) — MODIFIED. Added `webmasters.readonly` to SCOPES array.
+6. **Plan gate** (`lib/plan-enforcer.ts`) — MODIFIED. Added `canRunGSCOverviews()` (Growth+).
+7. **Inngest event** (`lib/inngest/events.ts`) — MODIFIED. Added `cron/ai-overviews.weekly`.
+8. **Sidebar** (`components/layout/Sidebar.tsx`) — MODIFIED. Added "AI Overviews" nav item (Eye icon, Growth+ gate, Advanced group).
+9. **Database types** (`lib/supabase/database.types.ts`) — MODIFIED. Added `gsc_ai_overview_data` Row/Insert/Update types.
+10. **Prod schema** (`supabase/prod_schema.sql`) — MODIFIED. Appended CREATE TABLE + RLS + indexes.
+
+### Files changed (11 modified + 5 new)
+- `app/api/auth/google/route.ts`
+- `lib/plan-enforcer.ts`
+- `lib/inngest/events.ts`
+- `lib/supabase/database.types.ts`
+- `supabase/prod_schema.sql`
+- `components/layout/Sidebar.tsx`
+- `vercel.json`
+- `.env.local.example`
+- `src/__tests__/unit/sprint-f-registration.test.ts` (cron count 30→31)
+- `src/__tests__/unit/sprint-n-registration.test.ts` (cron count 30→31)
+- `src/__tests__/unit/wave4-s28-consistency-score.test.ts` (cron count 30→31)
+- `lib/services/gsc-client.ts` (new)
+- `supabase/migrations/20260308000001_gsc_ai_overviews.sql` (new)
+- `app/api/cron/ai-overviews/route.ts` (new)
+- `app/dashboard/ai-overviews/page.tsx` (new)
+- `src/__tests__/unit/gsc-client.test.ts` (new — 10 tests)
+
+### AI_RULES
+- §289: GSC AI Overview token scope check — always verify `scopes LIKE '%webmasters%'` before calling GSC API.
+- §290: `gsc_ai_overview_data` and `sov_evaluations` are separate tables — GSC = real measured impressions, SOV = simulated AI responses.

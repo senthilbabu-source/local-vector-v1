@@ -6137,3 +6137,24 @@ Sprint 2: `grok_xai` and `youcom_search` are agency-plan-only SOV models. Never 
 - `PLAN_SOV_MODELS.growth`, `PLAN_SOV_MODELS.starter`, and `PLAN_SOV_MODELS.trial` must NOT include either model.
 - `SOV_MODEL_CONFIGS['grok_xai'].is_proxy` is `false` — real first-party API.
 - `SOV_MODEL_CONFIGS['youcom_search'].is_proxy` is `false` — real first-party API.
+
+## §289 — GSC AI Overview Token Scope Check
+
+Sprint 3: GSC AI Overview monitoring uses the existing `google_oauth_tokens` table. The `scopes` column determines if a tenant has granted the `webmasters.readonly` scope. Never call the GSC API without verifying `scopes LIKE '%webmasters%'` first.
+
+### Rules
+- The Google OAuth flow in `app/api/auth/google/route.ts` requests `webmasters.readonly` additively alongside `business.manage`.
+- `hasGSCScope(orgId)` checks `scopes` for `'webmasters'` substring — this is the ONLY gate for GSC API access.
+- The cron route (`app/api/cron/ai-overviews/route.ts`) filters tokens with `.like('scopes', '%webmasters%')` at the DB level.
+- Never assume all orgs have GSC scope — it is opt-in via the OAuth consent screen.
+
+## §290 — GSC vs SOV Table Separation
+
+Sprint 3: `gsc_ai_overview_data` and `sov_evaluations` are SEPARATE tables with different purposes. GSC = real measured impressions from Google Search Console. SOV = simulated AI responses from multi-model queries. Never conflate or merge them.
+
+### Rules
+- `gsc_ai_overview_data` stores real Google Search Console metrics: impressions, clicks, CTR, position, `has_ai_overview` flag.
+- `sov_evaluations` stores simulated AI query results: cited/not-cited, rank, raw_response, sentiment_data.
+- Dashboard pages are separate: `/dashboard/ai-overviews` (GSC data) vs `/dashboard/share-of-voice` (SOV data).
+- Crons are separate: `ai-overviews` (weekly Mon 6 AM UTC) vs `sov` (weekly Sun 7 AM UTC).
+- Never join these tables or compute combined metrics across them.
