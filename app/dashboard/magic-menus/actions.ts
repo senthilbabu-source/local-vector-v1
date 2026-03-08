@@ -972,8 +972,11 @@ export async function enhanceMenuWithAI(
 
   // Run AI enhancement
   const result = await enhanceMenuItems(items);
-  if (!result || result.enhancements.length === 0) {
-    return { success: false, error: 'AI enhancement unavailable. Please try again later.' };
+  if (!result) {
+    return { success: false, error: 'AI enhancement failed. Check that OPENAI_API_KEY is valid and try again.' };
+  }
+  if (result.enhancements.length === 0) {
+    return { success: false, error: 'AI returned no enhancements. Please try again.' };
   }
 
   // Apply enhancements as suggestions (not yet accepted)

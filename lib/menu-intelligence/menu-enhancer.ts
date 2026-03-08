@@ -188,10 +188,14 @@ export async function enhanceMenuItems(
 
   try {
     const { getModel, hasApiKey } = await import('@/lib/ai/providers');
-    if (!hasApiKey('openai')) return null;
+    if (!hasApiKey('openai')) {
+      console.warn('[menu-enhancer] OPENAI_API_KEY not configured');
+      return null;
+    }
 
     const { generateObject } = await import('ai');
     const { z } = await import('zod');
+    const { zodSchema } = await import('@/lib/ai/schemas');
 
     const model = getModel('menu-enhance');
 
@@ -199,13 +203,13 @@ export async function enhanceMenuItems(
       model,
       system: buildEnhanceSystemPrompt(),
       prompt: buildEnhanceUserPrompt(items),
-      schema: z.object({
+      schema: zodSchema(z.object({
         enhancements: z.array(z.object({
           item_id: z.string(),
           ai_description: z.string(),
           ai_name_correction: z.string().nullable(),
         })),
-      }),
+      })),
     });
 
     const validIds = new Set(items.map((i) => i.id));
@@ -220,6 +224,8 @@ export async function enhanceMenuItems(
       typo_count: enhancements.filter((e) => e.ai_name_correction !== null).length,
     };
   } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error('[menu-enhancer] Enhancement failed:', msg);
     Sentry.captureException(err, { tags: { service: 'menu-enhancer', sprint: 'menu-enhance' } });
     return null;
   }

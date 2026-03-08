@@ -259,7 +259,8 @@ export default function ReviewState({ menu: initialMenu, onPublished }: ReviewSt
   const items = menu.extracted_data?.items ?? [];
   const [certified, setCertified] = useState(false);
   const [isPublishing, setIsPublishing] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [publishError, setPublishError] = useState<string | null>(null);
+  const [enhanceError, setEnhanceError] = useState<string | null>(null);
   const [isEnhancing, startEnhanceTransition] = useTransition();
   const [isPendingSuggestion, startSuggestionTransition] = useTransition();
 
@@ -274,14 +275,14 @@ export default function ReviewState({ menu: initialMenu, onPublished }: ReviewSt
   const canPublish = blockedItems.length === 0 && certified;
 
   async function handlePublish() {
-    setError(null);
+    setPublishError(null);
     setIsPublishing(true);
     try {
       const result = await approveAndPublish(menu.id);
       if (result.success) {
         onPublished(result.publicSlug);
       } else {
-        setError(result.error);
+        setPublishError(result.error);
       }
     } finally {
       setIsPublishing(false);
@@ -289,13 +290,14 @@ export default function ReviewState({ menu: initialMenu, onPublished }: ReviewSt
   }
 
   function handleEnhance() {
-    setError(null);
+    setEnhanceError(null);
     startEnhanceTransition(async () => {
       const result = await enhanceMenuWithAI(menu.id);
       if (result.success) {
         setMenu(result.menu);
+        setEnhanceError(null);
       } else {
-        setError(result.error);
+        setEnhanceError(result.error);
       }
     });
   }
@@ -352,7 +354,7 @@ export default function ReviewState({ menu: initialMenu, onPublished }: ReviewSt
             </span>
           </div>
           {menu.extracted_data?.extracted_at && (
-            <p className="mt-0.5 text-xs text-slate-500">
+            <p className="mt-0.5 text-xs text-slate-500" suppressHydrationWarning>
               Extracted{' '}
               {new Date(menu.extracted_data.extracted_at).toLocaleString('en-US', {
                 month: 'short',
@@ -496,6 +498,9 @@ export default function ReviewState({ menu: initialMenu, onPublished }: ReviewSt
               'Enhance with AI'
             )}
           </button>
+          {enhanceError && (
+            <p className="text-xs text-alert-crimson text-center">{enhanceError}</p>
+          )}
         </div>
 
         {/* Triage summary card */}
@@ -591,8 +596,8 @@ export default function ReviewState({ menu: initialMenu, onPublished }: ReviewSt
             )}
           </button>
 
-          {error && (
-            <p className="text-xs text-alert-crimson text-center">{error}</p>
+          {publishError && (
+            <p className="text-xs text-alert-crimson text-center">{publishError}</p>
           )}
         </div>
       </div>

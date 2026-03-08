@@ -7244,5 +7244,10 @@ AI Enhancement for Magic Menu extracted items — generates descriptions, fixes 
 - `lib/menu-intelligence/menu-enhancer.ts` (new — core engine)
 - `src/__tests__/unit/menu-enhancer.test.ts` (new — 24 tests)
 
+### Bug Fixes
+- **Zod v4 schema fix:** `enhanceMenuItems()` was passing raw Zod schema to `generateObject()`, causing `"Invalid schema for function 'json': schema must be a JSON Schema of 'type: "object"', got 'type: "None"'"`. Fixed by wrapping with `zodSchema()` from `lib/ai/schemas.ts` (required for Zod v4 compatibility with Vercel AI SDK).
+- **Error state separation:** Split shared `error` state into `publishError` and `enhanceError` in `ReviewState.tsx` — enhance errors now display under the enhance button, not the publish button.
+- **Hydration mismatch:** Added `suppressHydrationWarning` to date element in `ReviewState.tsx` — `toLocaleString()` produces different output on server vs client.
+
 ### AI_RULES
 - §308: AI Menu Enhancement Engine — suggestion layer, never auto-applied, 6 pure functions, credit-gated, 200-char description cap, immutable operations.
