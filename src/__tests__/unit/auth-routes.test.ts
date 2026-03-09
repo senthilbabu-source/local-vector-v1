@@ -59,9 +59,9 @@ vi.mock('@/lib/auth/account-lockout', () => ({
 // ---------------------------------------------------------------------------
 
 function makeRequest(body: unknown): Request {
-  return new Request('http://localhost/api/auth/register', {
+  return new Request('http://localhost:3000/api/auth/register', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', 'origin': 'http://localhost:3000' },
     body: JSON.stringify(body),
   });
 }
@@ -122,9 +122,9 @@ describe('POST /api/auth/register', () => {
   });
 
   it('returns 400 for invalid JSON body', async () => {
-    const req = new Request('http://localhost/api/auth/register', {
+    const req = new Request('http://localhost:3000/api/auth/register', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'origin': 'http://localhost:3000' },
       body: 'not-valid-json',
     });
     const res = await register(req);
@@ -366,7 +366,7 @@ describe('POST /api/auth/logout', () => {
   it('returns 200 with success message when session exists', async () => {
     mockSignOut.mockResolvedValue({ error: null });
 
-    const res = await logout();
+    const res = await logout(makeRequest({}));
     expect(res.status).toBe(200);
     const body = await res.json();
     expect(body.message).toBe('Logged out successfully');
@@ -375,7 +375,7 @@ describe('POST /api/auth/logout', () => {
   it('returns 200 even when no session exists (idempotent)', async () => {
     mockSignOut.mockResolvedValue({ error: { message: 'No session' } });
 
-    const res = await logout();
+    const res = await logout(makeRequest({}));
     expect(res.status).toBe(200);
   });
 });

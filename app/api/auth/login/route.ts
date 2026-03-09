@@ -5,6 +5,7 @@ import * as Sentry from '@sentry/nextjs';
 import { checkRateLimit, getRateLimitHeaders } from '@/lib/rate-limit/rate-limiter';
 import { ROUTE_RATE_LIMITS } from '@/lib/rate-limit/types';
 import { checkAccountLockout, recordFailedLogin, clearFailedLogins } from '@/lib/auth/account-lockout';
+import { validateOrigin } from '@/lib/auth/csrf';
 
 /**
  * POST /api/auth/login
@@ -14,15 +15,22 @@ import { checkAccountLockout, recordFailedLogin, clearFailedLogins } from '@/lib
  * automatically — the caller does not need to handle tokens directly.
  *
  * §314: Account lockout after 5 failed attempts within 15 min.
+ * §321: CSRF Origin validation.
  *
  * Response (200):
  * {
  *   user_id: string
  *   email: string
- *   session: { access_token, refresh_token, expires_at }
+ *   email_verified: boolean
  * }
  */
 export async function POST(request: Request): Promise<NextResponse> {
+  // §321: CSRF Origin validation
+  const csrfError = validateOrigin(request);
+  if (csrfError) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
+
   // P5-FIX-22: Rate limit by IP (brute force protection)
   const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown';
   const rl = await checkRateLimit(ROUTE_RATE_LIMITS.auth_login, ip);

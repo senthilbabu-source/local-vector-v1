@@ -68,6 +68,7 @@ function extractExampleVars(content: string): Set<string> {
 // Standard Next.js/Node env vars that are NOT user-configured:
 const STANDARD_ENV_VARS = new Set([
   'NODE_ENV',
+  'VERCEL_URL',     // Auto-set by Vercel — never user-configured
 ]);
 
 // Variables where the documented name covers an alternative key:

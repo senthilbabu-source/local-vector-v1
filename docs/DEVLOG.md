@@ -4,6 +4,27 @@
 
 ---
 
+## §321 — P1 Auth Security Audit Fixes (2026-03-09)
+
+**M1 — CSRF Origin Validation:**
+- Created `lib/auth/csrf.ts` — `validateOrigin()` checks `Origin` (fallback to `Referer`) header against allowed origins (production domains, `localhost:3000`, `VERCEL_URL`, `NEXT_PUBLIC_SITE_URL`). Returns `null` on success or error string on mismatch.
+- Wired CSRF check into 3 auth routes: `register/route.ts`, `login/route.ts`, `logout/route.ts`. All return 403 on origin mismatch.
+- `logout/route.ts` signature changed from `POST()` to `POST(request: Request)` to receive the Request object.
+
+**M2 — Session Invalidation on Password Change:**
+- Created `app/api/auth/reset-password/route.ts` — server-side password reset with CSRF validation, rate limiting, full password policy enforcement, and `signOut({ scope: 'global' })` after successful update.
+- `app/(auth)/reset-password/page.tsx` — replaced direct `supabase.auth.updateUser()` with `fetch('/api/auth/reset-password')`. Client-side password policy validation retained for UX (defense-in-depth).
+- `signOut({ scope: 'global' })` is non-fatal — password is already updated, so signOut failure is logged to Sentry but doesn't return an error to the user.
+
+**M3 — Rate Limiting on Password Reset:**
+- `lib/rate-limit/types.ts` — Added `auth_reset_password` config: 3 requests / 5 minutes per IP (`rl:auth:reset-pw` prefix).
+- `.env.local.example` — Added `NEXT_PUBLIC_SITE_URL` with placeholder value.
+
+**Tests:** 17 new (7 CSRF in `auth-p0-audit-fixes.test.tsx`, 10 in `auth-reset-password-route.test.ts`), 4 test files updated for CSRF origin headers (`auth-routes.test.ts`, `auth-captcha-s317-route.test.ts`, `auth-rollback-s315.test.ts`, `email-verification.test.ts`). **7519 tests, 466 files — ALL PASS.**
+**Files changed:** 7 source files (3 modified routes, 1 new route, 1 new util, 1 rate-limit config, 1 env example), 1 new test file, 5 existing test files updated.
+
+---
+
 ## §320 — P0 Auth Security Audit Fixes (2026-03-09)
 
 **C1 — Reset Password Policy Enforcement:**

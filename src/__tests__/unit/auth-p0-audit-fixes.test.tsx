@@ -1,9 +1,9 @@
 /**
- * Unit Tests — P0 Auth Security Audit Fixes
+ * Unit Tests — P0/P1 Auth Security Audit Fixes
  *
  * C1: Reset password enforces full password policy (blocklist, strength, bcrypt max)
- * C3: Login unifies error responses to prevent email enumeration
- * H5: Login does not expose session tokens in response body
+ * M1: CSRF Origin validation blocks cross-origin requests
+ * M2+M3: Server-side reset-password route with rate limiting + session invalidation
  *
  * Run:
  *   npx vitest run src/__tests__/unit/auth-p0-audit-fixes.test.tsx
@@ -11,22 +11,12 @@
 
 // @vitest-environment jsdom
 
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent, cleanup } from '@testing-library/react';
 
 // ---------------------------------------------------------------------------
-// C1: Reset password — full password policy enforcement
+// C1: Reset password — client-side password policy enforcement
 // ---------------------------------------------------------------------------
-
-// Mock supabase client
-const mockUpdateUser = vi.fn();
-vi.mock('@/lib/supabase/client', () => ({
-  createClient: () => ({
-    auth: {
-      updateUser: mockUpdateUser,
-    },
-  }),
-}));
 
 // Mock next/navigation
 const mockPush = vi.fn();
@@ -43,9 +33,20 @@ vi.mock('@sentry/nextjs', () => ({
 import ResetPasswordPage from '@/app/(auth)/reset-password/page';
 
 describe('C1: Reset password — full password policy', () => {
+  const originalFetch = globalThis.fetch;
+
   beforeEach(() => {
     cleanup();
     vi.clearAllMocks();
+    // Mock fetch for tests that pass client-side validation
+    globalThis.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({ message: 'Password updated' }),
+    });
+  });
+
+  afterEach(() => {
+    globalThis.fetch = originalFetch;
   });
 
   it('rejects passwords shorter than 8 characters', async () => {
@@ -57,39 +58,36 @@ describe('C1: Reset password — full password policy', () => {
 
     const alert = await screen.findByRole('alert');
     expect(alert.textContent).toContain('at least 8 characters');
-    expect(mockUpdateUser).not.toHaveBeenCalled();
+    expect(globalThis.fetch).not.toHaveBeenCalled();
   });
 
   it('rejects common/blocklisted passwords', async () => {
     render(<ResetPasswordPage />);
 
-    // 'password123' is in the blocklist
     fireEvent.change(screen.getByLabelText(/new password/i), { target: { value: 'password123' } });
     fireEvent.change(screen.getByLabelText(/confirm password/i), { target: { value: 'password123' } });
     fireEvent.submit(screen.getByRole('button', { name: /reset password/i }));
 
     const alert = await screen.findByRole('alert');
     expect(alert.textContent).toContain('too common');
-    expect(mockUpdateUser).not.toHaveBeenCalled();
+    expect(globalThis.fetch).not.toHaveBeenCalled();
   });
 
   it('rejects weak passwords (strength < 2)', async () => {
     render(<ResetPasswordPage />);
 
-    // 'abcdefgh' — only lowercase, no digits/special — strength 1
     fireEvent.change(screen.getByLabelText(/new password/i), { target: { value: 'abcdefgh' } });
     fireEvent.change(screen.getByLabelText(/confirm password/i), { target: { value: 'abcdefgh' } });
     fireEvent.submit(screen.getByRole('button', { name: /reset password/i }));
 
     const alert = await screen.findByRole('alert');
     expect(alert.textContent).toContain('too weak');
-    expect(mockUpdateUser).not.toHaveBeenCalled();
+    expect(globalThis.fetch).not.toHaveBeenCalled();
   });
 
   it('rejects passwords exceeding 72 bytes (bcrypt limit)', async () => {
     render(<ResetPasswordPage />);
 
-    // 73 ASCII chars = 73 bytes > 72 limit
     const longPassword = 'Aa1!' + 'x'.repeat(69);
     fireEvent.change(screen.getByLabelText(/new password/i), { target: { value: longPassword } });
     fireEvent.change(screen.getByLabelText(/confirm password/i), { target: { value: longPassword } });
@@ -97,7 +95,7 @@ describe('C1: Reset password — full password policy', () => {
 
     const alert = await screen.findByRole('alert');
     expect(alert.textContent).toContain('72 bytes');
-    expect(mockUpdateUser).not.toHaveBeenCalled();
+    expect(globalThis.fetch).not.toHaveBeenCalled();
   });
 
   it('rejects mismatched passwords', async () => {
@@ -109,11 +107,33 @@ describe('C1: Reset password — full password policy', () => {
 
     const alert = await screen.findByRole('alert');
     expect(alert.textContent).toContain('do not match');
-    expect(mockUpdateUser).not.toHaveBeenCalled();
+    expect(globalThis.fetch).not.toHaveBeenCalled();
   });
 
-  it('accepts a valid strong password and calls updateUser', async () => {
-    mockUpdateUser.mockResolvedValue({ error: null });
+  it('calls server route on valid password and redirects to login', async () => {
+    render(<ResetPasswordPage />);
+
+    fireEvent.change(screen.getByLabelText(/new password/i), { target: { value: 'SecureP@ss9' } });
+    fireEvent.change(screen.getByLabelText(/confirm password/i), { target: { value: 'SecureP@ss9' } });
+    fireEvent.submit(screen.getByRole('button', { name: /reset password/i }));
+
+    await vi.waitFor(() => {
+      expect(globalThis.fetch).toHaveBeenCalledWith('/api/auth/reset-password', expect.objectContaining({
+        method: 'POST',
+        body: JSON.stringify({ password: 'SecureP@ss9' }),
+      }));
+    });
+
+    await vi.waitFor(() => {
+      expect(mockPush).toHaveBeenCalledWith('/login');
+    });
+  });
+
+  it('shows server error when reset-password route returns error', async () => {
+    globalThis.fetch = vi.fn().mockResolvedValue({
+      ok: false,
+      json: () => Promise.resolve({ error: 'Too many password reset attempts.' }),
+    });
 
     render(<ResetPasswordPage />);
 
@@ -121,9 +141,70 @@ describe('C1: Reset password — full password policy', () => {
     fireEvent.change(screen.getByLabelText(/confirm password/i), { target: { value: 'SecureP@ss9' } });
     fireEvent.submit(screen.getByRole('button', { name: /reset password/i }));
 
-    // Should call supabase updateUser
-    await vi.waitFor(() => {
-      expect(mockUpdateUser).toHaveBeenCalledWith({ password: 'SecureP@ss9' });
+    const alert = await screen.findByRole('alert');
+    expect(alert.textContent).toContain('Too many password reset attempts');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// M1: CSRF Origin validation (pure function tests)
+// ---------------------------------------------------------------------------
+
+import { validateOrigin } from '@/lib/auth/csrf';
+
+describe('M1: CSRF Origin validation', () => {
+  it('allows requests from http://localhost:3000', () => {
+    const req = new Request('http://localhost:3000/api/auth/login', {
+      method: 'POST',
+      headers: { origin: 'http://localhost:3000' },
     });
+    expect(validateOrigin(req)).toBeNull();
+  });
+
+  it('allows requests from https://localvector.ai', () => {
+    const req = new Request('https://localvector.ai/api/auth/login', {
+      method: 'POST',
+      headers: { origin: 'https://localvector.ai' },
+    });
+    expect(validateOrigin(req)).toBeNull();
+  });
+
+  it('allows requests from https://app.localvector.ai', () => {
+    const req = new Request('https://app.localvector.ai/api/auth/login', {
+      method: 'POST',
+      headers: { origin: 'https://app.localvector.ai' },
+    });
+    expect(validateOrigin(req)).toBeNull();
+  });
+
+  it('rejects requests from unknown origins', () => {
+    const req = new Request('http://localhost:3000/api/auth/login', {
+      method: 'POST',
+      headers: { origin: 'https://evil.com' },
+    });
+    expect(validateOrigin(req)).toContain('not allowed');
+  });
+
+  it('rejects requests with no Origin or Referer header', () => {
+    const req = new Request('http://localhost:3000/api/auth/login', {
+      method: 'POST',
+    });
+    expect(validateOrigin(req)).toContain('Missing Origin');
+  });
+
+  it('falls back to Referer header when Origin is absent', () => {
+    const req = new Request('http://localhost:3000/api/auth/login', {
+      method: 'POST',
+      headers: { referer: 'http://localhost:3000/login' },
+    });
+    expect(validateOrigin(req)).toBeNull();
+  });
+
+  it('rejects malicious Referer from unknown domain', () => {
+    const req = new Request('http://localhost:3000/api/auth/login', {
+      method: 'POST',
+      headers: { referer: 'https://phishing.com/login' },
+    });
+    expect(validateOrigin(req)).toContain('not allowed');
   });
 });

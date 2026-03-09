@@ -6522,3 +6522,12 @@ Production audit identified 3 tables with `ENABLE ROW LEVEL SECURITY` but zero p
 - **No email enumeration (C3):** Login route MUST return HTTP 401 for both invalid credentials AND unverified email. Never use differentiated status codes (e.g., 403 vs 401) that reveal whether an email is registered. The `email_verification_required` boolean flag may be included in the 401 body for client-side UX but MUST NOT change the status code.
 - **Turnstile fail-open logging (H4):** When `verifyTurnstileToken()` catches a network error and returns fail-open success, it MUST log to `Sentry.captureException()` with tags `{ component: 'turnstile', behavior: 'fail-open' }`. Silent fail-open is a security blind spot.
 - **No tokens in response body (H5):** Login route MUST NOT include `access_token`, `refresh_token`, or `expires_at` in the JSON response body. The Supabase SSR client sets these as httpOnly cookies automatically. Response should only contain `user_id`, `email`, `email_verified`.
+
+### §321 — P1 Auth Security Audit Fixes
+
+#### Rules
+- **CSRF Origin validation (M1):** All auth API routes (`register`, `login`, `logout`, `reset-password`) MUST call `validateOrigin(request)` from `lib/auth/csrf.ts` as the first check. Returns 403 on origin mismatch. Allowed origins: production domains + `localhost:3000` + `VERCEL_URL` + `NEXT_PUBLIC_SITE_URL`. Both `Origin` and `Referer` headers are checked (fallback order).
+- **Server-side password reset (M2):** Password reset MUST go through `POST /api/auth/reset-password` route — never call `supabase.auth.updateUser()` directly from client code. The route enforces CSRF, rate limiting, and full password policy server-side. Client-side validation is for UX only (defense-in-depth).
+- **Global session invalidation (M2):** After successful password change, the reset-password route MUST call `supabase.auth.signOut({ scope: 'global' })` to invalidate all sessions. This is non-fatal — if signOut fails, the password is already updated, so log to Sentry but return success.
+- **Rate limiting on password reset (M3):** `auth_reset_password` rate limit config: 3 requests / 5 minutes per IP. Key prefix: `rl:auth:reset-pw`.
+- **Test origin headers:** All test files that call auth API routes MUST include `origin: 'http://localhost:3000'` header in request construction. Missing origin causes 403 from CSRF validation.

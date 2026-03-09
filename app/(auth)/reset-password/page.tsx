@@ -3,7 +3,6 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { createClient } from '@/lib/supabase/client';
 import * as Sentry from '@sentry/nextjs';
 import { isCommonPassword, computePasswordStrength, MAX_PASSWORD_LENGTH } from '@/lib/auth/password-policy';
 
@@ -51,19 +50,25 @@ export default function ResetPasswordPage() {
     setStatus('loading');
 
     try {
-      const supabase = createClient();
-      const { error } = await supabase.auth.updateUser({ password });
+      // §321: Server-side route handles password policy, rate limiting, and global session invalidation
+      const res = await fetch('/api/auth/reset-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password }),
+      });
 
-      if (error) {
-        setErrorMsg(error.message);
+      const data = await res.json();
+
+      if (!res.ok) {
+        setErrorMsg(data.error ?? 'Failed to update password.');
         setStatus('error');
         return;
       }
 
-      // Password updated — redirect to login
+      // Password updated + all sessions invalidated — redirect to login
       router.push('/login');
     } catch (err) {
-      Sentry.captureException(err, { tags: { file: 'reset-password/page.tsx', sprint: 'A' } });
+      Sentry.captureException(err, { tags: { file: 'reset-password/page.tsx', sprint: '321' } });
       setErrorMsg('A network error occurred. Please try again.');
       setStatus('error');
     }

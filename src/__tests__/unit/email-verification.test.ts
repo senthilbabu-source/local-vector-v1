@@ -198,9 +198,9 @@ describe('Registration response (§313)', () => {
         eq: vi.fn().mockResolvedValue({ data: null, error: null }),
       });
 
-    const req = new Request('http://localhost/api/auth/register', {
+    const req = new Request('http://localhost:3000/api/auth/register', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'origin': 'http://localhost:3000' },
       body: JSON.stringify({
         email: 'new@test.com',
         password: 'SecureP@ss9',
@@ -252,9 +252,9 @@ describe('Registration response (§313)', () => {
         eq: vi.fn().mockResolvedValue({ data: null, error: null }),
       });
 
-    const req = new Request('http://localhost/api/auth/register', {
+    const req = new Request('http://localhost:3000/api/auth/register', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'origin': 'http://localhost:3000' },
       body: JSON.stringify({
         email: 'new@test.com',
         password: 'SecureP@ss9',
@@ -294,9 +294,9 @@ describe('Login response email_verified (§313)', () => {
       auth: { signInWithPassword: mockSignIn },
     } as never);
 
-    const req = new Request('http://localhost/api/auth/login', {
+    const req = new Request('http://localhost:3000/api/auth/login', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'origin': 'http://localhost:3000' },
       body: JSON.stringify({ email: 'a@b.com', password: 'Password1' }),
     });
 
@@ -321,9 +321,9 @@ describe('Login response email_verified (§313)', () => {
       auth: { signInWithPassword: mockSignIn },
     } as never);
 
-    const req = new Request('http://localhost/api/auth/login', {
+    const req = new Request('http://localhost:3000/api/auth/login', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'origin': 'http://localhost:3000' },
       body: JSON.stringify({ email: 'a@b.com', password: 'Password1' }),
     });
 

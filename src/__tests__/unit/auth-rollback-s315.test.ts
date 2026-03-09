@@ -53,9 +53,9 @@ vi.mock('@sentry/nextjs', () => ({
 // ---------------------------------------------------------------------------
 
 function makeRegisterRequest(overrides?: Partial<Record<string, string>>): Request {
-  return new Request('http://localhost/api/auth/register', {
+  return new Request('http://localhost:3000/api/auth/register', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', 'origin': 'http://localhost:3000' },
     body: JSON.stringify({
       email: 'test@example.com',
       password: 'SecureP@ss9',

@@ -5,6 +5,7 @@ import * as Sentry from '@sentry/nextjs';
 import { checkRateLimit, getRateLimitHeaders } from '@/lib/rate-limit/rate-limiter';
 import { ROUTE_RATE_LIMITS } from '@/lib/rate-limit/types';
 import { verifyTurnstileToken, isTurnstileEnabled } from '@/lib/auth/turnstile';
+import { validateOrigin } from '@/lib/auth/csrf';
 
 /** §315: Maximum retries when polling for trigger-created rows. */
 const TRIGGER_POLL_MAX_RETRIES = 2;
@@ -31,6 +32,12 @@ const TRIGGER_POLL_DELAY_MS = 250;
  * Sentry with the orphaned auth user ID for manual cleanup.
  */
 export async function POST(request: Request): Promise<NextResponse> {
+  // §321: CSRF Origin validation
+  const csrfError = validateOrigin(request);
+  if (csrfError) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
+
   // P5-FIX-22: Rate limit by IP (signup spam protection)
   const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown';
   const rl = await checkRateLimit(ROUTE_RATE_LIMITS.auth_register, ip);
