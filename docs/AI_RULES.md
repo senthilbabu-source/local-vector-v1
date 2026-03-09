@@ -6555,3 +6555,13 @@ Production audit identified 3 tables with `ENABLE ROW LEVEL SECURITY` but zero p
 - **Sentry PII scrubbing:** Both `sentry.server.config.ts` and `sentry.client.config.ts` MUST have a `beforeSend` hook that redacts PII keys (`email`, `password`, `access_token`, `refresh_token`, `token`, `secret`) from event extras and contexts. The `scrubPII()` function recursively scrubs nested objects.
 - **No PII in Sentry message strings:** Never interpolate email addresses or passwords into `Sentry.captureMessage()` text. Put PII in `extra` only (where `beforeSend` can redact it).
 - **Security headers (verified complete):** `next.config.ts` already sets: HSTS (2yr + preload), X-Frame-Options SAMEORIGIN, X-Content-Type-Options nosniff, Referrer-Policy strict-origin-when-cross-origin, Permissions-Policy (camera/mic/geo/FLoC denied), CSP. No additional headers needed.
+
+### §325 — Google OAuth Security Tests
+
+#### Rules
+- **OAuth requires authenticated session:** `GET /api/auth/google` calls `getAuthContext()` — unauthenticated users get 401/redirect before OAuth initiation. Tests must mock auth context.
+- **CSRF state parameter:** 32-byte random `google_oauth_state` httpOnly cookie with 10-min maxAge. Callback MUST compare state query param vs cookie. Missing, mismatched, or expired state → redirect to error page. Tests cover all 3 failure modes.
+- **Token storage uses service-role client:** `createServiceRoleClient()` for `google_oauth_tokens` upsert — NOT the user-scoped `createClient()`. This bypasses RLS for the write. Tests verify `createServiceRoleClient` is called.
+- **Cookie-pointer pattern for multi-location:** Multiple GBP locations → `pending_gbp_imports` table + UUID in `gbp_import_id` cookie (not raw JSON). Tests verify cookie is set with UUID format.
+- **Token exchange is server-side only:** Authorization code → token exchange happens server-side via `fetch()` to Google's token endpoint. Access tokens are NEVER exposed in browser redirects or response bodies.
+- **vi.clearAllMocks + vi.stubGlobal interaction:** When mocking `fetch` via `vi.stubGlobal('fetch', mockFetch)`, re-stub in every `beforeEach` AFTER `vi.clearAllMocks()` — clearAllMocks resets stubbed globals.

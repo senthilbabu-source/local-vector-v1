@@ -4,6 +4,15 @@
 
 ---
 
+## §325 — Google OAuth Security Tests (2026-03-09)
+
+**24 OAuth security tests** covering Google OAuth flow:
+- 6 test groups: OAuth initiation security (requires auth session, sets CSRF state cookie, scopes correct, redirect_uri correct), CSRF state validation (missing state → error, mismatched state → error, valid state → proceeds), user consent denied (error=access_denied → graceful redirect), token exchange (server-side fetch to Google token endpoint, code included in POST body), token storage security (uses createServiceRoleClient not user-scoped client, writes to google_oauth_tokens), multi-location cookie pointer (UUID in gbp_import_id cookie, not raw JSON).
+- File: `src/__tests__/unit/auth-oauth-security.test.ts` (659 lines).
+- **7555+ tests, 466+ files — ALL PASS.**
+
+---
+
 ## §324 — Auth Session Management Tests (2026-03-09)
 
 **37 session management tests** covering session lifecycle:
