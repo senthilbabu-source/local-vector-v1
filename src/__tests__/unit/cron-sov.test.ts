@@ -147,7 +147,6 @@ vi.mock('@/lib/digest/send-gate', () => ({
 }));
 
 vi.mock('@/lib/email', () => ({
-  sendSOVReport: vi.fn().mockResolvedValue(undefined),
   sendWeeklyDigest: vi.fn().mockResolvedValue(undefined),
   sendFreshnessAlert: vi.fn().mockResolvedValue(undefined),
   sendEnhancedDigest: vi.fn().mockResolvedValue({ sent: false }),
@@ -157,7 +156,7 @@ vi.mock('@/lib/email', () => ({
 import { GET } from '@/app/api/cron/sov/route';
 import { createServiceRoleClient } from '@/lib/supabase/server';
 import { runSOVQuery, writeSOVResults } from '@/lib/services/sov-engine.service';
-import { sendSOVReport, sendWeeklyDigest } from '@/lib/email';
+import { sendWeeklyDigest } from '@/lib/email';
 import { runOccasionScheduler } from '@/lib/services/occasion-engine.service';
 import { detectQueryGaps } from '@/lib/services/prompt-intelligence.service';
 import { canRunAutopilot } from '@/lib/plan-enforcer';

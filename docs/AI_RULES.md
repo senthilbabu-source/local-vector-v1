@@ -6448,3 +6448,12 @@ Production audit identified 3 tables with `ENABLE ROW LEVEL SECURITY` but zero p
 - **Occasion engine safety:** `local_occasions` query uses `.limit(500)` to prevent unbounded memory growth. If >500 active occasions exist, the engine processes the first 500.
 - **Performance indexes:** `sov_evaluations(org_id, created_at DESC)` for org-level timeseries. `ai_hallucinations(location_id)` for location-based joins. Both are common query patterns that were doing sequential scans.
 - **Migrations:** `20260505000002_monthly_report_idempotency.sql` + `20260505000003_p1_performance_indexes.sql`.
+
+### §312 — P2 Production Audit: Dead Code + Dedup + Type Safety + Validation + Version Pinning
+
+#### Rules
+- **Dead code removal:** Functions with 0 callers and `@deprecated` annotation SHOULD be deleted, not preserved. Test mocks referencing dead code must also be cleaned up.
+- **Tool code SSOT:** Shared logic between `visibility-tools.ts` (AI chat) and `mcp/tools.ts` (MCP) lives in `lib/tools/shared-query-helpers.ts`. Pure functions: `computeRealityScore()`, `aggregateCompetitors()`, `mapSnapshotToTrend()`, `mapHallucination()`. Both tool files import from the shared module.
+- **No `: any` in production lib/:** Use typed interfaces (`VisibilitySnapshot`, `HallucinationRecord`, `CompetitorIntercept`) for Supabase query results. Exception: third-party vendored code (e.g., Tremor chart utilities) with eslint-disable.
+- **Email validation:** Use Zod `z.string().email()` for email validation at API boundaries, not custom regex. More complete RFC 5322 coverage.
+- **AI SDK pinning:** AI SDK packages (`@ai-sdk/*`, `ai`) MUST use exact versions in `package.json` (no `^` or `~`). Minor AI SDK updates can introduce schema changes, token counting changes, or behavioral shifts. Pin and upgrade deliberately.

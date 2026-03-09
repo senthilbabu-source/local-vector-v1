@@ -56,7 +56,7 @@ export async function fetchSourceIntelligence(
   const input: SourceIntelligenceInput = {
     businessName: location?.business_name ?? 'Unknown',
     websiteUrl: location?.website_url ?? null,
-    evaluations: evaluations.map((e: any) => ({
+    evaluations: evaluations.map((e: { engine: string; cited_sources: unknown; source_mentions: unknown; target_queries?: { query_text?: string } | null }) => ({
       engine: e.engine,
       citedSources: e.cited_sources as Array<{ url: string; title: string }> | null,
       extractedMentions: e.source_mentions as SourceMentionExtraction | null,

@@ -25,11 +25,12 @@ import type { MemberRole } from '@/lib/membership/types';
 import type { PlanTier } from '@/lib/plan-enforcer';
 import { getOrgTheme } from '@/lib/whitelabel/theme-service';
 import * as Sentry from '@sentry/nextjs';
+import { z } from 'zod';
 
 export const dynamic = 'force-dynamic';
 
 const VALID_INVITE_ROLES = new Set(['admin', 'analyst', 'viewer']);
-const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const emailSchema = z.string().email();
 
 // ---------------------------------------------------------------------------
 // GET — list pending invitations
@@ -90,7 +91,7 @@ export async function POST(req: NextRequest) {
   const role = body.role ?? '';
 
   // Validate email
-  if (!email || !EMAIL_REGEX.test(email)) {
+  if (!email || !emailSchema.safeParse(email).success) {
     return NextResponse.json({ error: 'invalid_email' }, { status: 400 });
   }
 

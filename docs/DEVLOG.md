@@ -4,6 +4,28 @@
 
 ---
 
+## P2 Production Audit Fix — Dead Code + Dedup + Type Safety + Validation + Version Pinning (2026-03-08)
+
+**Dead Code Removal (#10):**
+- Removed `sendSOVReport()` (77 LOC, 0 callers, deprecated since Sprint 59C) from `lib/email.ts`. Also removed `SOVReportPayload` type. Cleaned up 3 test files: `email-service.test.ts` (removed 5 tests + fixture), `cron-sov.test.ts` (removed mock), `inngest-sov-cron.test.ts` (removed mock).
+
+**Tool Code Deduplication (#11):**
+- Created `lib/tools/shared-query-helpers.ts` — pure helper functions extracted from duplicated code in `visibility-tools.ts` and `mcp/tools.ts`. Functions: `computeRealityScore()`, `aggregateCompetitors()`, `mapSnapshotToTrend()`, `mapHallucination()`. Both files refactored to use shared module.
+
+**`:any` Type Fixes (#13):**
+- Replaced 7 `: any` annotations with proper types across 3 files: `visibility-tools.ts` (3), `mcp/tools.ts` (3), `data/source-intelligence.ts` (1). New interfaces: `VisibilitySnapshot`, `HallucinationRecord`, `CompetitorIntercept`, `CompetitorSummary` in shared-query-helpers.ts. 2 remaining `: any` in `chartUtils.ts` left as-is (third-party Tremor code with eslint-disable).
+
+**Zod Email Validation (#14):**
+- `app/api/team/invitations/route.ts` — Replaced custom regex `EMAIL_REGEX` with `z.string().email().safeParse()`. Stricter validation per RFC 5322.
+
+**AI SDK Version Pinning (#17):**
+- `package.json` — Pinned 4 AI SDK packages to exact versions (removed `^`): `@ai-sdk/anthropic` 1.2.12, `@ai-sdk/google` 1.2.22, `@ai-sdk/openai` 1.3.22, `ai` 4.3.16. Prevents accidental breaking changes on minor updates.
+
+**Tests:** -5 (removed dead sendSOVReport tests). **7348 tests, 458 files — ALL PASS.**
+**Files changed:** 10 files modified, 1 new file. **0 new migrations, 0 new crons.**
+
+---
+
 ## P1 Production Audit Fix — Cron Timeouts + Idempotency + Indexes + Action Tests (2026-03-08)
 
 **Cron Timeout Protection (#4):**

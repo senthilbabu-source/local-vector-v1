@@ -34,10 +34,8 @@ vi.mock('@/emails/WeeklyDigest', () => ({
 
 import {
   sendHallucinationAlert,
-  sendSOVReport,
   sendWeeklyDigest,
   type HallucinationAlertPayload,
-  type SOVReportPayload,
   type WeeklyDigestPayload,
 } from '@/lib/email';
 
@@ -51,16 +49,6 @@ const HALLUCINATION_PAYLOAD: HallucinationAlertPayload = {
   businessName: GOLDEN_TENANT.location.business_name,
   hallucinationCount: 3,
   dashboardUrl: 'https://app.localvector.ai/dashboard',
-};
-
-const SOV_PAYLOAD: SOVReportPayload = {
-  to: GOLDEN_TENANT.user.email,
-  businessName: GOLDEN_TENANT.location.business_name,
-  shareOfVoice: 33,
-  queriesRun: 12,
-  queriesCited: 4,
-  firstMoverCount: 2,
-  dashboardUrl: 'https://app.localvector.ai/dashboard/share-of-voice',
 };
 
 const DIGEST_PAYLOAD: WeeklyDigestPayload = {
@@ -145,53 +133,6 @@ describe('sendHallucinationAlert', () => {
     await expect(sendHallucinationAlert(HALLUCINATION_PAYLOAD)).rejects.toThrow(
       'Resend API error'
     );
-  });
-});
-
-// ---------------------------------------------------------------------------
-// sendSOVReport
-// ---------------------------------------------------------------------------
-
-describe('sendSOVReport', () => {
-  it('no-ops silently when RESEND_API_KEY is absent', async () => {
-    delete process.env.RESEND_API_KEY;
-    await sendSOVReport(SOV_PAYLOAD);
-    expect(mockSend).not.toHaveBeenCalled();
-  });
-
-  it('calls emails.send with correct fields when key is present', async () => {
-    process.env.RESEND_API_KEY = 're_test_key';
-    await sendSOVReport(SOV_PAYLOAD);
-
-    expect(mockSend).toHaveBeenCalledOnce();
-    const args = mockSend.mock.calls[0][0];
-    expect(args.to).toBe(GOLDEN_TENANT.user.email);
-    expect(args.subject).toContain(GOLDEN_TENANT.location.business_name);
-    expect(args.html).toBeDefined();
-  });
-
-  it('includes First Mover section when firstMoverCount > 0', async () => {
-    process.env.RESEND_API_KEY = 're_test_key';
-    await sendSOVReport({ ...SOV_PAYLOAD, firstMoverCount: 3 });
-
-    const args = mockSend.mock.calls[0][0];
-    expect(args.html).toContain('First Mover');
-  });
-
-  it('omits First Mover section when firstMoverCount === 0', async () => {
-    process.env.RESEND_API_KEY = 're_test_key';
-    await sendSOVReport({ ...SOV_PAYLOAD, firstMoverCount: 0 });
-
-    const args = mockSend.mock.calls[0][0];
-    expect(args.html).not.toContain('First Mover');
-  });
-
-  it('uses reports@localvector.ai as from address', async () => {
-    process.env.RESEND_API_KEY = 're_test_key';
-    await sendSOVReport(SOV_PAYLOAD);
-
-    const args = mockSend.mock.calls[0][0];
-    expect(args.from).toBe('LocalVector Reports <reports@localvector.ai>');
   });
 });
 

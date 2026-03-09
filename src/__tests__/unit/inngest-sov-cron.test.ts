@@ -48,7 +48,6 @@ vi.mock('@/lib/supabase/server', () => ({
 }));
 
 vi.mock('@/lib/email', () => ({
-  sendSOVReport: vi.fn().mockResolvedValue(undefined),
   sendWeeklyDigest: vi.fn().mockResolvedValue(undefined),
   sendScanCompleteEmail: vi.fn().mockResolvedValue(undefined),
 }));
@@ -80,7 +79,7 @@ vi.mock('@/lib/autopilot/post-publish', () => ({
 import { processOrgSOV, type OrgBatch } from '@/lib/inngest/functions/sov-cron';
 import { createServiceRoleClient } from '@/lib/supabase/server';
 import { runSOVQuery, writeSOVResults } from '@/lib/services/sov-engine.service';
-import { sendSOVReport, sendWeeklyDigest } from '@/lib/email';
+import { sendWeeklyDigest } from '@/lib/email';
 import { runOccasionScheduler } from '@/lib/services/occasion-engine.service';
 import { detectQueryGaps } from '@/lib/services/prompt-intelligence.service';
 

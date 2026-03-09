@@ -16,6 +16,15 @@ import { z } from 'zod';
 import { createServiceRoleClient } from '@/lib/supabase/server';
 import { zodSchema } from '@/lib/ai/schemas';
 import type { HoursData, Amenities } from '@/lib/types/ground-truth';
+import {
+    computeRealityScore,
+    aggregateCompetitors,
+    mapSnapshotToTrend,
+    mapHallucination,
+    type VisibilitySnapshot,
+    type HallucinationRecord,
+    type CompetitorIntercept,
+} from '@/lib/tools/shared-query-helpers';
 
 // ---------------------------------------------------------------------------
 // Tool: getVisibilityScore
@@ -49,9 +58,10 @@ export function makeVisibilityTools(orgId: string) {
                     .eq('org_id', orgId)
                     .eq('correction_status', 'fixed');
 
-                const sov = vis?.share_of_voice != null ? Math.round(vis.share_of_voice * 100) : null;
-                const accuracy = (openCount ?? 0) === 0 ? 100 : Math.max(40, 100 - (openCount ?? 0) * 15);
-                const realityScore = sov != null ? Math.round(sov * 0.4 + accuracy * 0.4 + 100 * 0.2) : null;
+                const { sov, accuracy, realityScore } = computeRealityScore(
+                    vis?.share_of_voice ?? null,
+                    openCount ?? 0,
+                );
 
                 return {
                     type: 'visibility_score' as const,
@@ -87,11 +97,7 @@ export function makeVisibilityTools(orgId: string) {
 
                 return {
                     type: 'sov_trend' as const,
-                    data: (snapshots ?? []).map((s: any) => ({
-                        date: s.snapshot_date,
-                        sov: Math.round((s.share_of_voice ?? 0) * 100),
-                        citationRate: Math.round((s.citation_rate ?? 0) * 100),
-                    })),
+                    data: (snapshots ?? []).map((s: VisibilitySnapshot) => mapSnapshotToTrend(s)),
                 };
             },
         }),
@@ -125,15 +131,7 @@ export function makeVisibilityTools(orgId: string) {
                     type: 'hallucinations' as const,
                     filter: status,
                     total: (data ?? []).length,
-                    items: (data ?? []).map((h: any) => ({
-                        model: h.model_provider,
-                        severity: h.severity,
-                        category: h.category,
-                        claim: h.claim_text,
-                        truth: h.expected_truth,
-                        status: h.correction_status,
-                        occurrences: h.occurrence_count,
-                    })),
+                    items: (data ?? []).map((h: HallucinationRecord) => mapHallucination(h)),
                 };
             },
         }),
@@ -155,21 +153,17 @@ export function makeVisibilityTools(orgId: string) {
                     .order('created_at', { ascending: false })
                     .limit(20);
 
-                const byCompetitor: Record<string, { count: number; gap: any; rec: string }> = {};
-                for (const i of intercepts ?? []) {
-                    if (!byCompetitor[i.competitor_name]) {
-                        byCompetitor[i.competitor_name] = { count: 0, gap: i.gap_analysis, rec: i.suggested_action ?? '' };
-                    }
-                    byCompetitor[i.competitor_name].count += 1;
-                }
+                const byCompetitor = aggregateCompetitors(
+                    (intercepts ?? []) as CompetitorIntercept[],
+                );
 
                 return {
                     type: 'competitor_comparison' as const,
                     competitors: Object.entries(byCompetitor).map(([name, d]) => ({
                         name,
                         analyses: d.count,
-                        gap: d.gap,
-                        recommendation: d.rec,
+                        gap: d.latestGap,
+                        recommendation: d.recommendation,
                     })),
                 };
             },

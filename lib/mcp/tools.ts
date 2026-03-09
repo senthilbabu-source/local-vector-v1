@@ -17,6 +17,15 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod/v3';
 import { createServiceRoleClient } from '@/lib/supabase/server';
+import {
+    computeRealityScore,
+    aggregateCompetitors,
+    mapSnapshotToTrend,
+    mapHallucination,
+    type VisibilitySnapshot,
+    type HallucinationRecord,
+    type CompetitorIntercept,
+} from '@/lib/tools/shared-query-helpers';
 
 // ---------------------------------------------------------------------------
 // Helper: resolve org by business name
@@ -71,9 +80,10 @@ export function registerLocalVectorTools(server: McpServer) {
                 .eq('org_id', orgId)
                 .eq('correction_status', 'open');
 
-            const sov = vis?.share_of_voice != null ? Math.round(vis.share_of_voice * 100) : null;
-            const accuracy = (openCount ?? 0) === 0 ? 100 : Math.max(40, 100 - (openCount ?? 0) * 15);
-            const realityScore = sov != null ? Math.round(sov * 0.4 + accuracy * 0.4 + 100 * 0.2) : null;
+            const { sov, accuracy, realityScore } = computeRealityScore(
+                vis?.share_of_voice ?? null,
+                openCount ?? 0,
+            );
 
             const result = {
                 business_name,
@@ -125,12 +135,11 @@ export function registerLocalVectorTools(server: McpServer) {
 
             const result = {
                 business_name,
-                trend: (snapshots ?? []).map((s: any) => ({
-                    date: s.snapshot_date,
-                    sov: `${Math.round((s.share_of_voice ?? 0) * 100)}%`,
-                    citation_rate: `${Math.round((s.citation_rate ?? 0) * 100)}%`,
-                })),
-                recent_evaluations: (evals ?? []).map((e: any) => ({
+                trend: (snapshots ?? []).map((s: VisibilitySnapshot) => {
+                    const t = mapSnapshotToTrend(s);
+                    return { date: t.date, sov: `${t.sov}%`, citation_rate: `${t.citationRate}%` };
+                }),
+                recent_evaluations: (evals ?? []).map((e: { target_queries?: { query_text?: string }; engine: string; rank_position: number | null; mentioned_competitors: string[] | null; created_at: string }) => ({
                     query: e.target_queries?.query_text ?? 'Unknown',
                     engine: e.engine,
                     rank: e.rank_position ?? 'Not cited',
@@ -186,17 +195,7 @@ export function registerLocalVectorTools(server: McpServer) {
                 filter: status,
                 total: (hallucinations ?? []).length,
                 by_model: byModel,
-                hallucinations: (hallucinations ?? []).map((h: any) => ({
-                    model: h.model_provider,
-                    severity: h.severity,
-                    category: h.category,
-                    claim: h.claim_text,
-                    truth: h.expected_truth,
-                    status: h.correction_status,
-                    occurrences: h.occurrence_count,
-                    first_seen: h.first_detected_at,
-                    last_seen: h.last_seen_at,
-                })),
+                hallucinations: (hallucinations ?? []).map((h: HallucinationRecord) => mapHallucination(h)),
             };
 
             return {
@@ -229,26 +228,18 @@ export function registerLocalVectorTools(server: McpServer) {
                 .order('created_at', { ascending: false })
                 .limit(20);
 
-            const byCompetitor: Record<string, { analyses: number; latestGap: any; recommendation: string }> = {};
-            for (const i of intercepts ?? []) {
-                if (!byCompetitor[i.competitor_name]) {
-                    byCompetitor[i.competitor_name] = {
-                        analyses: 0,
-                        latestGap: i.gap_analysis,
-                        recommendation: i.suggested_action ?? '',
-                    };
-                }
-                byCompetitor[i.competitor_name].analyses += 1;
-            }
+            const byCompetitor = aggregateCompetitors(
+                (intercepts ?? []) as CompetitorIntercept[],
+            );
 
             const result = {
                 business_name,
                 total_intercepts: (intercepts ?? []).length,
-                competitors: Object.entries(byCompetitor).map(([name, data]) => ({
+                competitors: Object.entries(byCompetitor).map(([name, d]) => ({
                     name,
-                    analyses_run: data.analyses,
-                    gap_analysis: data.latestGap,
-                    recommendation: data.recommendation,
+                    analyses_run: d.count,
+                    gap_analysis: d.latestGap,
+                    recommendation: d.recommendation,
                 })),
             };
 
