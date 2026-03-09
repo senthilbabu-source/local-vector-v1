@@ -4,6 +4,15 @@
 
 ---
 
+## §327 — Auth RBAC Tests (2026-03-09)
+
+**58 RBAC tests** covering role hierarchy, permissions matrix, and error structure:
+- 9 test groups: role hierarchy ordering (viewer/member/analyst=0, admin=1, owner=2), roleSatisfies boundary checks (exact match, above threshold, below threshold, null/undefined/unknown → level 0, never crashes), assertOrgRole (throws InsufficientRoleError on insufficient, resolves on sufficient, DB membership lookup), ROLE_PERMISSIONS matrix (10 actions: viewDashboard→viewer through deleteOrg→owner, all actions have valid minimum roles), InsufficientRoleError structure (code='INSUFFICIENT_ROLE', required/actual fields, extends Error, instanceof checks), admin guard separation (ADMIN_EMAILS env var, not membership role — separate auth systems), auth context role inclusion (role field present in getAuthContext/getSafeAuthContext return), org-scoped role isolation (role check requires both user_id and org_id, no cross-org role leakage).
+- File: `src/__tests__/unit/auth-rbac.test.ts` (504 lines).
+- **7600+ tests, 468+ files — ALL PASS.**
+
+---
+
 ## §326 — Auth Rate Limiting Tests (2026-03-09)
 
 **33 rate limiting tests** covering per-endpoint enforcement:

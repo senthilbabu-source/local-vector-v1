@@ -6576,3 +6576,13 @@ Production audit identified 3 tables with `ENABLE ROW LEVEL SECURITY` but zero p
 - **Auth routes are NOT in bypass list:** `RATE_LIMIT_BYPASS_PREFIXES` skips `/api/webhooks/`, `/api/cron/`, etc. but NOT `/api/auth/*`. Tests verify this explicitly.
 - **IP extraction is tested:** First IP from `x-forwarded-for` chain (with trim), falls back to `'unknown'` when header is missing.
 - **Rate limit vs lockout layering:** 429 (Too Many Requests) is distinct from 423 (Locked). Error messages are non-overlapping. Tests verify both status codes and message content.
+
+### §327 — Auth RBAC Tests
+
+#### Rules
+- **Role hierarchy is tested with exact numeric levels:** viewer/member/analyst=0, admin=1, owner=2. Any hierarchy change will break tests — this is intentional.
+- **`roleSatisfies()` is null-safe:** `null`, `undefined`, and unknown role strings all resolve to level 0 (never throws). Tests verify every edge case.
+- **`assertOrgRole()` throws `InsufficientRoleError`:** Error has `code='INSUFFICIENT_ROLE'`, `required`, and `actual` fields. Tests verify the error structure, not just that it throws.
+- **ROLE_PERMISSIONS is the SSOT for action→role mapping:** 10 actions from `viewDashboard` (viewer) to `deleteOrg` (owner). Tests verify every action has a valid minimum role. Adding a new action without a test will not be caught — update `auth-rbac.test.ts` when adding to `ROLE_PERMISSIONS`.
+- **Admin guard is NOT RBAC:** `assertAdmin()` uses `ADMIN_EMAILS` env var, not membership roles. A user can be an org owner but not an admin, and vice versa. Tests verify these are independent systems.
+- **Org-scoped role isolation is tested:** Role lookups require both `user_id` and `org_id`. A user's admin role in Org A does not grant admin in Org B.
