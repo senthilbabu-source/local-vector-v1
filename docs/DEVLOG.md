@@ -4,6 +4,27 @@
 
 ---
 
+## §322 — P2/P3 Auth Security Audit + Full Lifecycle Audit (2026-03-09)
+
+**Full Auth Lifecycle Audit (per user-auth-prompts.md):**
+- Google OAuth flow: **Grade A** — CSRF state param (32-byte random), httpOnly cookies, server-side token exchange, RLS-isolated `google_oauth_tokens`, no hardcoded secrets, proper redirect_uri handling.
+- Signup/login lifecycle: No SQL injection (parameterized Supabase client), no PII in client error responses, bcrypt-limited passwords, email enumeration prevention, session tokens httpOnly-only.
+- Security headers already complete in `next.config.ts`: HSTS, X-Frame-Options, X-Content-Type-Options, Referrer-Policy, Permissions-Policy, CSP.
+- SameSite cookies: Supabase SSR uses `lax` by default — correct for OAuth redirect flows.
+
+**HIGH Fix — Error Message Information Leak:**
+- `app/api/auth/reset-password/route.ts` — replaced `updateError.message` (leaked Supabase internals) with generic `'Password update failed. Please try again.'`. Sentry still captures full error server-side.
+
+**MEDIUM Fix — PII in Sentry Logs:**
+- `app/api/auth/register/route.ts` — removed email from `captureMessage` string (was `ORPHANED AUTH USER: ${authUserId} (${email})`). Email remains in `extra` for support triage but is now scrubbed by Sentry `beforeSend`.
+- `sentry.server.config.ts` — added `beforeSend` PII scrubber: redacts `email`, `password`, `access_token`, `refresh_token`, `token`, `secret` from event extras and contexts. Recursive for nested objects.
+- `sentry.client.config.ts` — added matching client-side PII scrubber (defense-in-depth).
+
+**Tests:** 9 new (`sentry-pii-scrubber.test.ts`), 1 updated (`auth-reset-password-route.test.ts` — generic error assertion). **7528 tests, 467 files — ALL PASS.**
+**Files changed:** 4 source files modified (2 Sentry configs, 1 route, 1 register route), 1 new test file, 1 existing test file updated.
+
+---
+
 ## §321 — P1 Auth Security Audit Fixes (2026-03-09)
 
 **M1 — CSRF Origin Validation:**

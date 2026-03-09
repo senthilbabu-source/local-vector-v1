@@ -117,13 +117,15 @@ describe('POST /api/auth/reset-password', () => {
     expect(mockSignOut).toHaveBeenCalledWith({ scope: 'global' });
   });
 
-  it('returns 400 when supabase updateUser fails', async () => {
+  it('returns 400 with generic message when supabase updateUser fails', async () => {
     mockUpdateUser.mockResolvedValue({ error: { message: 'Session expired' } });
 
     const res = await resetPassword(makeRequest({ password: 'SecureP@ss9' }));
     expect(res.status).toBe(400);
     const body = await res.json();
-    expect(body.error).toBe('Session expired');
+    // §322: Must NOT leak internal error message — generic response only
+    expect(body.error).toBe('Password update failed. Please try again.');
+    expect(body.error).not.toContain('Session expired');
     // signOut should NOT be called when updateUser fails
     expect(mockSignOut).not.toHaveBeenCalled();
   });

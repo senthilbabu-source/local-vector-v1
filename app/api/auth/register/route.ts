@@ -133,7 +133,7 @@ export async function POST(request: Request): Promise<NextResponse> {
         extra: { authUserId, email, reason },
       });
       Sentry.captureMessage(
-        `[§315] ORPHANED AUTH USER: ${authUserId} (${email}) — rollback deleteUser failed. Manual cleanup required.`,
+        `[§315] ORPHANED AUTH USER: ${authUserId} — rollback deleteUser failed. Manual cleanup required.`,
         { level: 'fatal', tags: { sprint: '315' } },
       );
       return NextResponse.json(

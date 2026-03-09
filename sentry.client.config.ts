@@ -16,9 +16,18 @@ Sentry.init({
   // Only enable in production — no noise in dev.
   enabled: process.env.NODE_ENV === 'production',
 
-  // Filter out localhost events that slip through.
+  // Filter out localhost events + §322: scrub PII from extras.
   beforeSend(event) {
     if (event.request?.url?.includes('localhost')) return null;
+    // §322: Strip PII from extras (defense-in-depth)
+    if (event.extra) {
+      const piiKeys = ['email', 'password', 'access_token', 'refresh_token', 'token', 'secret'];
+      for (const key of Object.keys(event.extra)) {
+        if (piiKeys.includes(key.toLowerCase())) {
+          event.extra[key] = '[REDACTED]';
+        }
+      }
+    }
     return event;
   },
 });

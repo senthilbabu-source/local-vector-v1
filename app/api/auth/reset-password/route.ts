@@ -73,7 +73,7 @@ export async function POST(request: Request): Promise<NextResponse> {
     Sentry.captureException(updateError, {
       tags: { file: 'auth/reset-password/route.ts', sprint: '321' },
     });
-    return NextResponse.json({ error: updateError.message }, { status: 400 });
+    return NextResponse.json({ error: 'Password update failed. Please try again.' }, { status: 400 });
   }
 
   // §321-M2: Invalidate ALL sessions globally — user must re-login with new password

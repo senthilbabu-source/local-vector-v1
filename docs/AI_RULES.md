@@ -6531,3 +6531,11 @@ Production audit identified 3 tables with `ENABLE ROW LEVEL SECURITY` but zero p
 - **Global session invalidation (M2):** After successful password change, the reset-password route MUST call `supabase.auth.signOut({ scope: 'global' })` to invalidate all sessions. This is non-fatal — if signOut fails, the password is already updated, so log to Sentry but return success.
 - **Rate limiting on password reset (M3):** `auth_reset_password` rate limit config: 3 requests / 5 minutes per IP. Key prefix: `rl:auth:reset-pw`.
 - **Test origin headers:** All test files that call auth API routes MUST include `origin: 'http://localhost:3000'` header in request construction. Missing origin causes 403 from CSRF validation.
+
+### §322 — P2/P3 Auth Security Audit + Lifecycle Audit
+
+#### Rules
+- **No internal error messages in responses:** Auth API routes MUST NOT return `error.message` from Supabase/internal errors to the client. Always use generic messages like `'Password update failed. Please try again.'`. Log the real error to Sentry server-side.
+- **Sentry PII scrubbing:** Both `sentry.server.config.ts` and `sentry.client.config.ts` MUST have a `beforeSend` hook that redacts PII keys (`email`, `password`, `access_token`, `refresh_token`, `token`, `secret`) from event extras and contexts. The `scrubPII()` function recursively scrubs nested objects.
+- **No PII in Sentry message strings:** Never interpolate email addresses or passwords into `Sentry.captureMessage()` text. Put PII in `extra` only (where `beforeSend` can redact it).
+- **Security headers (verified complete):** `next.config.ts` already sets: HSTS (2yr + preload), X-Frame-Options SAMEORIGIN, X-Content-Type-Options nosniff, Referrer-Policy strict-origin-when-cross-origin, Permissions-Policy (camera/mic/geo/FLoC denied), CSP. No additional headers needed.
