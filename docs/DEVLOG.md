@@ -4,6 +4,15 @@
 
 ---
 
+## §324 — Auth Session Management Tests (2026-03-09)
+
+**37 session management tests** covering session lifecycle:
+- 10 test groups: login session creation (token non-exposure, email_verified flag, lockout clearing), logout idempotency, global session invalidation on password reset, email verification gating (resend endpoint: 401/400/200/500), getAuthContext (throwing — Unauthorized/No org/full context), getSafeAuthContext (non-throwing — null/partial/full), login email verification signaling (email_verification_required flag, not recorded as failed attempt), account lockout blocking (423, no signIn called, no email in response), active org cookie validation (lv_active_org: valid/invalid/missing/no memberships), login error response safety (unified 401 for both invalid credentials and unverified email).
+- File: `src/__tests__/unit/auth-session-management.test.ts` (550 lines).
+- **7531+ tests, 465+ files — ALL PASS.**
+
+---
+
 ## §323 — Auth Integration Flow Tests (2026-03-09)
 
 **35 integration tests** covering full auth lifecycle:

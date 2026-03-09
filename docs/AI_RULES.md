@@ -6532,6 +6532,15 @@ Production audit identified 3 tables with `ENABLE ROW LEVEL SECURITY` but zero p
 - **Rate limiting on password reset (M3):** `auth_reset_password` rate limit config: 3 requests / 5 minutes per IP. Key prefix: `rl:auth:reset-pw`.
 - **Test origin headers:** All test files that call auth API routes MUST include `origin: 'http://localhost:3000'` header in request construction. Missing origin causes 403 from CSRF validation.
 
+### §324 — Auth Session Management Tests
+
+#### Rules
+- **getAuthContext vs getSafeAuthContext:** `getAuthContext()` throws on missing session or missing org — use in protected API routes. `getSafeAuthContext()` returns null on missing session and partial context with null org fields — use in onboarding guard polling. Tests verify both paths.
+- **Logout is idempotent:** `POST /api/auth/logout` always returns 200. Calling with no session is safe. Response never contains tokens or session data.
+- **Global signOut on password reset is non-fatal:** `signOut({ scope: 'global' })` failure must NOT prevent the 200 response — the password was already updated. Tests verify this isolation.
+- **Active org cookie validation:** `lv_active_org` cookie is validated against actual memberships. Invalid cookie → fallback to first membership (created_at ASC). No memberships → null. Never reads org from URL params.
+- **Email verification signaling:** Login returns `email_verification_required: true` for unverified emails (same 401 status as invalid credentials). Unverified email does NOT count as a failed login attempt.
+
 ### §323 — Auth Integration Flow Tests
 
 #### Rules
