@@ -7435,3 +7435,27 @@ Sprint 3 of the auth security hardening series. Hardens the registration rollbac
 
 ### AI_RULES
 - §315: Registration Rollback Hardening.
+
+---
+
+## §317 — Cloudflare Turnstile CAPTCHA (2026-03-08)
+
+### Architecture
+Cloudflare Turnstile invisible CAPTCHA on registration form to block automated bot signups. Fail-open design: verification skipped when env vars are not set (dev/CI). Server-side token validation before auth user creation. Network errors also fail-open.
+
+### Files
+- `lib/auth/turnstile.ts` — **NEW.** `isTurnstileEnabled()`, `verifyTurnstileToken()`. Server-side Cloudflare siteverify API validation with fail-open on missing key or network error.
+- `components/auth/TurnstileWidget.tsx` — **NEW.** Client-side invisible widget. Loads Turnstile script dynamically. Renders nothing when `NEXT_PUBLIC_TURNSTILE_SITE_KEY` is not set.
+- `app/(auth)/register/page.tsx` — **MODIFIED.** Added TurnstileWidget + token state. Token sent as `cf-turnstile-response` in register API payload.
+- `app/api/auth/register/route.ts` — **MODIFIED.** Added Turnstile verification after Zod validation, before auth user creation. Returns 403 `CAPTCHA_FAILED` on failure.
+- `.env.local.example` — **MODIFIED.** Added `NEXT_PUBLIC_TURNSTILE_SITE_KEY` and `TURNSTILE_SECRET_KEY`.
+
+### Tests
+- **11 new unit tests** in `auth-captcha-s317.test.ts`: isTurnstileEnabled (3), verifyTurnstileToken (8 — fail-open, empty token, valid token, invalid token, HTTP error, network error, IP forwarding).
+- **6 new unit tests** in `auth-captcha-s317-route.test.ts`: registration route CAPTCHA gate (skip when disabled, 403 on missing/invalid token, proceed on valid token, IP forwarding, CAPTCHA before user creation).
+- **2 new E2E tests** in `auth-captcha-s317.spec.ts`: CAPTCHA error display, successful registration with CAPTCHA.
+- **Regressions fixed:** env-completeness (TURNSTILE_SECRET_KEY), sentry-sweep (bare catch → `_e`).
+- **7485 tests, 463 files — ALL PASS.** `tsc --noEmit` = 0 errors.
+
+### AI_RULES
+- §317: Cloudflare Turnstile CAPTCHA.

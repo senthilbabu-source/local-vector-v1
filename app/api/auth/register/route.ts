@@ -4,6 +4,7 @@ import { RegisterSchema } from '@/lib/schemas/auth';
 import * as Sentry from '@sentry/nextjs';
 import { checkRateLimit, getRateLimitHeaders } from '@/lib/rate-limit/rate-limiter';
 import { ROUTE_RATE_LIMITS } from '@/lib/rate-limit/types';
+import { verifyTurnstileToken, isTurnstileEnabled } from '@/lib/auth/turnstile';
 
 /** §315: Maximum retries when polling for trigger-created rows. */
 const TRIGGER_POLL_MAX_RETRIES = 2;
@@ -58,6 +59,22 @@ export async function POST(request: Request): Promise<NextResponse> {
   }
 
   const { email, password, full_name, business_name } = parsed.data;
+
+  // §317: Cloudflare Turnstile verification (fail-open when not configured)
+  if (isTurnstileEnabled()) {
+    const turnstileToken = (body as Record<string, unknown>)?.['cf-turnstile-response'];
+    const turnstileResult = await verifyTurnstileToken(
+      typeof turnstileToken === 'string' ? turnstileToken : '',
+      ip,
+    );
+    if (!turnstileResult.success) {
+      return NextResponse.json(
+        { error: 'CAPTCHA verification failed. Please try again.', code: 'CAPTCHA_FAILED' },
+        { status: 403 },
+      );
+    }
+  }
+
   const service = createServiceRoleClient();
 
   // 2. Create the Auth user — triggers handle public.users + org + membership

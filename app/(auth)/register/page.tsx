@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useRouter } from 'next/navigation';
@@ -8,6 +8,7 @@ import Link from 'next/link';
 import { RegisterSchema, type RegisterInput } from '@/lib/schemas/auth';
 import { createClient } from '@/lib/supabase/client';
 import PasswordStrengthMeter from '@/components/auth/PasswordStrengthMeter';
+import TurnstileWidget from '@/components/auth/TurnstileWidget';
 import * as Sentry from '@sentry/nextjs';
 
 type FieldName = keyof RegisterInput;
@@ -53,6 +54,15 @@ export default function RegisterPage() {
   const router = useRouter();
   const [globalError, setGlobalError] = useState<string | null>(null);
   const [oauthLoading, setOauthLoading] = useState(false);
+  const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
+
+  const handleTurnstileVerify = useCallback((token: string) => {
+    setTurnstileToken(token);
+  }, []);
+
+  const handleTurnstileExpire = useCallback(() => {
+    setTurnstileToken(null);
+  }, []);
 
   async function handleGoogleSignUp() {
     setGlobalError(null);
@@ -95,7 +105,10 @@ export default function RegisterPage() {
       const res = await fetch('/api/auth/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
+        body: JSON.stringify({
+          ...data,
+          ...(turnstileToken ? { 'cf-turnstile-response': turnstileToken } : {}),
+        }),
       });
 
       if (res.ok) {
@@ -196,6 +209,12 @@ export default function RegisterPage() {
           <p style={{ fontSize: 12, color: '#94A3B8' }}>
             Must be 8+ characters with an uppercase letter, lowercase letter, and number.
           </p>
+
+          {/* §317: Cloudflare Turnstile (invisible mode) */}
+          <TurnstileWidget
+            onVerify={handleTurnstileVerify}
+            onExpire={handleTurnstileExpire}
+          />
 
           {/* Submit */}
           <button

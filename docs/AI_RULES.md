@@ -6490,3 +6490,14 @@ Production audit identified 3 tables with `ENABLE ROW LEVEL SECURITY` but zero p
 - **Trigger propagation retry:** After `admin.createUser()`, the route polls for `public.users` and `memberships` rows with up to `TRIGGER_POLL_MAX_RETRIES=2` retries and `TRIGGER_POLL_DELAY_MS=250` delay between attempts. This handles edge-case replication lag between Supabase Auth and the public schema.
 - **Sentry logging on trigger failure:** When `public.users` or `memberships` rows are not found after all retry attempts, a Sentry `captureMessage` at `error` level records the failure details before rollback.
 - **Sentry logging on org update failure:** When the org name update fails, `captureException` records the error with `authUserId` and `orgId` in extras before rollback.
+
+### §317 — Cloudflare Turnstile CAPTCHA
+
+#### Rules
+- **Invisible CAPTCHA:** Registration form uses Cloudflare Turnstile in invisible mode to block automated bot signups. No user interaction required for legitimate users.
+- **Server-side verification:** `lib/auth/turnstile.ts` — `verifyTurnstileToken()` validates the `cf-turnstile-response` token against the Cloudflare siteverify API. `isTurnstileEnabled()` checks for `TURNSTILE_SECRET_KEY` env var.
+- **Fail-open design:** When `TURNSTILE_SECRET_KEY` is not set (dev/CI), verification is skipped entirely. Network errors during Cloudflare API calls also fail-open to avoid blocking legitimate registrations.
+- **Error response:** Failed CAPTCHA returns 403 with `{ code: 'CAPTCHA_FAILED' }`. This is checked before user creation — no auth user is created if CAPTCHA fails.
+- **Client widget:** `components/auth/TurnstileWidget.tsx` — loads Turnstile script dynamically, renders invisible challenge, passes token to parent via `onVerify` callback. When `NEXT_PUBLIC_TURNSTILE_SITE_KEY` is not set, renders nothing.
+- **IP forwarding:** The register route passes the client IP (`x-forwarded-for`) to Turnstile verification for additional validation.
+- **Env vars:** `NEXT_PUBLIC_TURNSTILE_SITE_KEY` (client-side), `TURNSTILE_SECRET_KEY` (server-side). Both optional — leave blank in dev/CI.
