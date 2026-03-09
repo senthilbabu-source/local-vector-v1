@@ -4,6 +4,16 @@
 
 ---
 
+## §323 — Auth Integration Flow Tests (2026-03-09)
+
+**35 integration tests** covering full auth lifecycle:
+- 9 test groups: new user signup, duplicate email (3 variants), login + lockout, CSRF on all 4 endpoints, XSS/SQL injection sanitization, password policy enforcement (5 checks), password reset security, error response non-disclosure.
+- Key validation: HTML tags are **stripped** (not rejected) by `sanitizeName()` → `hasSuspiciousPatterns()` catches `javascript:` and SQL injection patterns. Error responses never contain `wrong password`, `not found`, stack traces, or table names.
+- File: `src/__tests__/unit/auth-integration-flows.test.ts` (547 lines).
+- **7494+ tests, 464+ files — ALL PASS.**
+
+---
+
 ## §322 — P2/P3 Auth Security Audit + Full Lifecycle Audit (2026-03-09)
 
 **Full Auth Lifecycle Audit (per user-auth-prompts.md):**

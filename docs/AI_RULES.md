@@ -6532,6 +6532,13 @@ Production audit identified 3 tables with `ENABLE ROW LEVEL SECURITY` but zero p
 - **Rate limiting on password reset (M3):** `auth_reset_password` rate limit config: 3 requests / 5 minutes per IP. Key prefix: `rl:auth:reset-pw`.
 - **Test origin headers:** All test files that call auth API routes MUST include `origin: 'http://localhost:3000'` header in request construction. Missing origin causes 403 from CSRF validation.
 
+### §323 — Auth Integration Flow Tests
+
+#### Rules
+- **Integration tests cover all auth endpoints:** `src/__tests__/unit/auth-integration-flows.test.ts` tests register, login, logout, and reset-password routes as a cohesive system. Any new auth endpoint MUST be added to the CSRF test group.
+- **Sanitization is strip-then-check:** `sanitizeName()` strips HTML tags first, then `hasSuspiciousPatterns()` rejects `javascript:` and SQL injection. Tests must reflect this two-step pipeline — HTML input is cleaned (not rejected), while `javascript:` and SQL patterns are rejected with 400.
+- **Error messages must not enumerate:** The unified "Invalid email or password" message is correct — do NOT add separate "wrong password" or "user not found" messages. Tests assert `not.toContain('wrong password')`, `not.toContain('not found')`, `not.toContain('not exist')`.
+
 ### §322 — P2/P3 Auth Security Audit + Lifecycle Audit
 
 #### Rules
