@@ -11,6 +11,7 @@ import { createServiceRoleClient } from '@/lib/supabase/server';
 import { backfillTable, type EmbeddableTable } from '@/lib/services/embedding-service';
 
 export const dynamic = 'force-dynamic';
+export const maxDuration = 55;
 
 const TABLES: EmbeddableTable[] = [
   'menu_items',

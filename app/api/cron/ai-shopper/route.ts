@@ -16,6 +16,7 @@ import * as Sentry from '@sentry/nextjs';
 import type { Json } from '@/lib/supabase/database.types';
 
 export const dynamic = 'force-dynamic';
+export const maxDuration = 55;
 
 const SCENARIO_TYPES = Object.keys(SHOPPER_SCENARIOS);
 

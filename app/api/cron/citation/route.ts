@@ -39,6 +39,7 @@ import type { Json } from '@/lib/supabase/database.types';
 
 // Force dynamic so Vercel never caches this route between cron invocations.
 export const dynamic = 'force-dynamic';
+export const maxDuration = 55;
 
 /** Extended summary for tenant-derived cron. */
 interface TenantCitationCronSummary {

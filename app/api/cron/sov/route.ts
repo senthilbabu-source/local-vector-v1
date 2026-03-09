@@ -50,6 +50,7 @@ import { verifyMenuPropagation } from '@/lib/distribution/verification-service';
 
 // Force dynamic so Vercel never caches this route between cron invocations.
 export const dynamic = 'force-dynamic';
+export const maxDuration = 55;
 
 // ---------------------------------------------------------------------------
 // Helpers (used by inline fallback)

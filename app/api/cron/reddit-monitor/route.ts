@@ -13,6 +13,7 @@ import { planSatisfies, type PlanTier } from '@/lib/plan-enforcer';
 import { monitorRedditMentions } from '@/lib/services/reddit-monitor.service';
 
 export const dynamic = 'force-dynamic';
+export const maxDuration = 55;
 
 export async function GET(request: NextRequest) {
   // 1. Auth guard

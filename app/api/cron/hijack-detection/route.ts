@@ -15,6 +15,7 @@ import { detectHijacking, type DetectionInput, type HijackingEvent } from '@/lib
 import { sendHijackingAlert } from '@/lib/email';
 
 export const dynamic = 'force-dynamic';
+export const maxDuration = 55;
 
 export async function GET(request: NextRequest) {
   // 1. Auth guard

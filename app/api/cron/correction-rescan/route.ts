@@ -12,6 +12,7 @@ import { runCorrectionRescan } from '@/lib/corrections';
 import type { CorrectionFollowUp } from '@/lib/corrections/types';
 
 export const dynamic = 'force-dynamic';
+export const maxDuration = 55;
 
 export async function POST(request: NextRequest) {
   const cronSecret = process.env.CRON_SECRET;

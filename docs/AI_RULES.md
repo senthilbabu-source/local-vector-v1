@@ -6439,3 +6439,12 @@ Production audit identified 3 tables with `ENABLE ROW LEVEL SECURITY` but zero p
 - **Org-scoped tables** get standard 4-policy pattern: `{table}_select_own`, `{table}_insert_own`, `{table}_update_own`, `{table}_delete_own` — all using `org_id = public.current_user_org_id()`.
 - **Cron batch-fetch pattern:** Never loop per-org with individual DB queries. Instead: (1) batch-fetch all needed data with `.in('org_id', orgIds)`, (2) index into `Map<string, T>` for O(1) lookup, (3) parallelize processing with `Promise.allSettled` in batches.
 - **Migration:** `20260505000001_p0_rls_policy_gaps.sql` — 9 policies across 3 tables (org_themes 4, stripe_webhook_events 2, pending_gbp_imports 3).
+
+### §311 — P1 Production Audit: Cron Timeouts + Idempotency + Performance Indexes
+
+#### Rules
+- **Cron `maxDuration`:** Every cron route handler MUST export `maxDuration`. Default is 55 (5s buffer before Vercel's 60s kill). Long-running crons (AI calls, multi-org loops) use 300. Without this export, Vercel silently kills at 60s with no error logging.
+- **Monthly report idempotency:** `organizations.last_monthly_report_sent_at` tracks last send. Cron checks `>= monthStart` before sending — prevents duplicate emails on retry. Stamp AFTER successful `sendMonthlyReport()`, not before.
+- **Occasion engine safety:** `local_occasions` query uses `.limit(500)` to prevent unbounded memory growth. If >500 active occasions exist, the engine processes the first 500.
+- **Performance indexes:** `sov_evaluations(org_id, created_at DESC)` for org-level timeseries. `ai_hallucinations(location_id)` for location-based joins. Both are common query patterns that were doing sequential scans.
+- **Migrations:** `20260505000002_monthly_report_idempotency.sql` + `20260505000003_p1_performance_indexes.sql`.

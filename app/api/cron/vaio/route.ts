@@ -16,6 +16,7 @@ import { createServiceRoleClient } from '@/lib/supabase/server';
 import { runVAIOForAllLocations } from '@/lib/vaio/vaio-service';
 
 export const dynamic = 'force-dynamic';
+export const maxDuration = 55;
 
 export async function GET(request: NextRequest) {
   const cronSecret = process.env.CRON_SECRET;

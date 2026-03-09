@@ -15,6 +15,8 @@ import { logCronStart, logCronComplete, logCronFailed } from '@/lib/services/cro
 import * as Sentry from '@sentry/nextjs';
 import { runAutopilotForAllOrgs } from '@/lib/autopilot/autopilot-service';
 
+export const maxDuration = 55;
+
 export async function POST(request: NextRequest) {
   // ── Auth ──────────────────────────────────────────────────────────────────
   const cronSecret = process.env.CRON_SECRET;

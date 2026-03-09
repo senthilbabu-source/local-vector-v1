@@ -118,7 +118,8 @@ function makeMockSupabase(occasions: LocalOccasionRow[] = [], existingDrafts: un
       if (table === 'local_occasions') {
         return {
           select: vi.fn().mockReturnThis(),
-          eq: vi.fn().mockResolvedValue({ data: occasions, error: null }),
+          eq: vi.fn().mockReturnThis(),
+          limit: vi.fn().mockResolvedValue({ data: occasions, error: null }),
         };
       }
       if (table === 'content_drafts') {

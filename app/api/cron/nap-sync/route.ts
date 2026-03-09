@@ -12,6 +12,7 @@ import { runNAPSyncForAllLocations } from '@/lib/nap-sync/nap-sync-service';
 import { computeConsistencyScore, writeConsistencySnapshot } from '@/lib/services/consistency-score.service';
 
 export const dynamic = 'force-dynamic';
+export const maxDuration = 55;
 
 export async function GET(request: NextRequest) {
   // 1. Auth guard

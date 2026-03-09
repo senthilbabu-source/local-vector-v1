@@ -20,6 +20,7 @@ import { logCronStart, logCronComplete, logCronFailed } from '@/lib/services/cro
 import { refreshExpiringTokens } from '@/lib/services/gbp-token-refresh';
 
 export const dynamic = 'force-dynamic';
+export const maxDuration = 55;
 
 export async function GET(request: Request) {
   // ── Auth guard ──

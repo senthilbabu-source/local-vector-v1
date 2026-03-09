@@ -19,6 +19,7 @@ import type { Json } from '@/lib/supabase/database.types';
 import * as Sentry from '@sentry/nextjs';
 
 export const dynamic = 'force-dynamic';
+export const maxDuration = 55;
 
 export async function POST(request: NextRequest) {
   // ── Auth ──────────────────────────────────────────────────────────────────

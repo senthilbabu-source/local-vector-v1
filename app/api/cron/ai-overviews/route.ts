@@ -22,6 +22,7 @@ import {
 import { inngest } from '@/lib/inngest/client';
 
 export const dynamic = 'force-dynamic';
+export const maxDuration = 55;
 
 // ---------------------------------------------------------------------------
 // Route handler

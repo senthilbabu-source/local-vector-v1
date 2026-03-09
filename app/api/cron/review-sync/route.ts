@@ -11,6 +11,7 @@ import { createServiceRoleClient } from '@/lib/supabase/server';
 import { runReviewSyncForAllLocations } from '@/lib/review-engine/review-sync-service';
 
 export const dynamic = 'force-dynamic';
+export const maxDuration = 55;
 
 export async function GET(request: NextRequest) {
   // 1. Auth guard

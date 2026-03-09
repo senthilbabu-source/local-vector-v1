@@ -6,6 +6,7 @@ import { sendMonthlyReport } from '@/lib/email';
 import { canRunAIShopper } from '@/lib/plan-enforcer';
 
 export const dynamic = 'force-dynamic';
+export const maxDuration = 55;
 
 export async function GET(req: NextRequest) {
   const authHeader = req.headers.get('authorization');
@@ -23,7 +24,7 @@ export async function GET(req: NextRequest) {
     // Growth+ orgs only
     const { data: orgs } = await supabase
       .from('organizations')
-      .select('id, plan, notify_monthly_report' as 'id, plan')
+      .select('id, plan, notify_monthly_report, last_monthly_report_sent_at' as 'id, plan')
       .in('plan', ['growth', 'agency']);
 
     if (!orgs || orgs.length === 0) {
@@ -31,10 +32,16 @@ export async function GET(req: NextRequest) {
     }
 
     // Filter eligible orgs upfront
-    const eligibleOrgs = (orgs as unknown as { id: string; plan: string; notify_monthly_report: boolean }[])
+    // Idempotency: skip orgs that already received this month's report
+    const currentMonth = new Date();
+    const monthStart = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), 1);
+
+    const eligibleOrgs = (orgs as unknown as { id: string; plan: string; notify_monthly_report: boolean; last_monthly_report_sent_at: string | null }[])
       .filter(row => {
         if (!canRunAIShopper(row.plan as 'trial' | 'starter' | 'growth' | 'agency')) return false;
         if (row.notify_monthly_report === false) return false;
+        // Idempotency: skip if already sent this month (prevents duplicate emails on retry)
+        if (row.last_monthly_report_sent_at && new Date(row.last_monthly_report_sent_at) >= monthStart) return false;
         return true;
       });
 
@@ -109,9 +116,16 @@ export async function GET(req: NextRequest) {
 
           const report = await generateMonthlyReport(supabase, org.id, locId, prevMonth);
 
-          void sendMonthlyReport(email, report).catch((err) =>
-            Sentry.captureException(err, { tags: { cron: 'monthly-report', orgId: org.id } }),
-          );
+          await sendMonthlyReport(email, report);
+
+          // Mark as sent for idempotency
+          void supabase
+            .from('organizations')
+            .update({ last_monthly_report_sent_at: new Date().toISOString() } as Record<string, unknown>)
+            .eq('id', org.id)
+            .then(({ error: updateErr }) => {
+              if (updateErr) Sentry.captureException(updateErr, { tags: { cron: 'monthly-report', orgId: org.id } });
+            });
 
           return true;
         }),

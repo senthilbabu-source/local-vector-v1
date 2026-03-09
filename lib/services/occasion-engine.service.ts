@@ -99,7 +99,8 @@ export async function checkOccasionAlerts(
   const { data: occasions, error } = await supabase
     .from('local_occasions')
     .select('*')
-    .eq('is_active', true);
+    .eq('is_active', true)
+    .limit(500);
 
   if (error || !occasions?.length) {
     return { alerts: [], skipped: 0 };

@@ -12,7 +12,7 @@ LocalVector is an AEO/GEO SaaS platform that helps local businesses monitor and 
 - **Billing:** Stripe webhooks → `organizations.plan_tier` enum (`trial | starter | growth | agency`)
 - **Email:** Resend + React Email (`emails/`)
 - **Cache:** Upstash Redis (`lib/redis.ts`) — optional, all callers must degrade gracefully
-- **Testing:** Vitest (unit/integration in `src/__tests__/`), Playwright (E2E in `tests/e2e/`, 42 specs). Current: ~7311 tests, 456 files.
+- **Testing:** Vitest (unit/integration in `src/__tests__/`), Playwright (E2E in `tests/e2e/`, 42 specs). Current: ~7353 tests, 458 files.
 - **Monitoring:** Sentry (client, server, edge configs) — all catch blocks instrumented (Sprint A, AI_RULES §70)
 
 ## Architecture Rules
@@ -242,6 +242,8 @@ app/dashboard/_components/BenchmarkComparisonCard.tsx — City benchmark compari
 65. `20260504000001_community_mentions.sql` — `community_mentions` table with platform CHECK, SHA-256 mention_key dedup, RLS SELECT (Sprint 6, §295)
 66. `20260504000002_perplexity_pages_detections.sql` — `perplexity_pages_detections` table with evaluation_id FK, page_url dedup, RLS SELECT (Sprint 6, §296)
 67. `20260505000001_p0_rls_policy_gaps.sql` — RLS policies for 3 tables: org_themes (4 org_isolation), stripe_webhook_events (2 service-role-only), pending_gbp_imports (3 service-role-only) (P0 Audit Fix)
+68. `20260505000002_monthly_report_idempotency.sql` — `last_monthly_report_sent_at` timestamptz on organizations for monthly report idempotency (P1 Audit Fix)
+69. `20260505000003_p1_performance_indexes.sql` — Composite index on `sov_evaluations(org_id, created_at DESC)` + index on `ai_hallucinations(location_id)` (P1 Audit Fix)
 
 ## Testing Commands
 

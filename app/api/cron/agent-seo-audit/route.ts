@@ -17,6 +17,7 @@ import { logCronStart, logCronComplete, logCronFailed } from '@/lib/services/cro
 import * as Sentry from '@sentry/nextjs';
 
 export const dynamic = 'force-dynamic';
+export const maxDuration = 55;
 
 const CRON_NAME = 'agent-seo-audit';
 

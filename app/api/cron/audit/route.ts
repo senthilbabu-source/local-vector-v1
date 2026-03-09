@@ -34,6 +34,7 @@ import * as Sentry from '@sentry/nextjs';
 
 // Force dynamic so Vercel never caches this route between cron invocations.
 export const dynamic = 'force-dynamic';
+export const maxDuration = 55;
 
 // ---------------------------------------------------------------------------
 // Route handler

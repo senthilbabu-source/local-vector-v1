@@ -20,6 +20,7 @@ import { refreshStalePlaceDetails } from '@/lib/services/places-refresh';
 import type { Json } from '@/lib/supabase/database.types';
 
 export const dynamic = 'force-dynamic';
+export const maxDuration = 55;
 
 export async function GET(request: Request) {
   // ── Auth guard ──

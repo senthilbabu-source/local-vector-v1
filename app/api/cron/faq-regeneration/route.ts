@@ -18,6 +18,7 @@ import * as Sentry from '@sentry/nextjs';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
+export const maxDuration = 55;
 
 export async function GET(request: Request) {
   // ── Auth guard ────────────────────────────────────────────────────────

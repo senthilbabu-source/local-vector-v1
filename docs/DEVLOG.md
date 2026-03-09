@@ -4,6 +4,33 @@
 
 ---
 
+## P1 Production Audit Fix — Cron Timeouts + Idempotency + Indexes + Action Tests (2026-03-08)
+
+**Cron Timeout Protection (#4):**
+- Added `export const maxDuration = 55` to 31 cron route handlers that had no timeout protection (Vercel default = 60s, 55s gives 5s buffer). 2 routes already had `maxDuration = 300` (apple-bc-sync, intent-discovery).
+
+**Occasion Engine Unbounded SELECT (#5):**
+- `lib/services/occasion-engine.service.ts` — Added `.limit(500)` to `local_occasions` query to prevent memory overflow with >1000 rows.
+
+**Monthly Report Idempotency (#7):**
+- Migration `20260505000002_monthly_report_idempotency.sql` — `last_monthly_report_sent_at timestamptz` on organizations.
+- `app/api/cron/monthly-report/route.ts` — Checks `last_monthly_report_sent_at >= monthStart` before sending. Stamps after successful send. Prevents duplicate emails on Inngest/cron retries.
+
+**Performance Indexes (#8-9):**
+- Migration `20260505000003_p1_performance_indexes.sql` — `idx_sov_evaluations_org_created(org_id, created_at DESC)` for timeseries queries + `idx_hallucinations_location(location_id)` for common joins.
+
+**Server Action Test Coverage (#6):**
+- `billing-actions.test.ts` — 22 tests covering all 7 billing server actions (createCheckoutSession, createPortalSession, getCurrentPlan, getSubscriptionDetails, getCreditsSummary, getInvoiceHistory, getPaymentMethod). Demo mode, Stripe integration, error handling.
+- `reviews-actions.test.ts` — 20 tests covering all 4 review server actions (approveReviewResponse, publishReviewResponse, regenerateResponse, skipResponse). Auth, GBP publish, entity-optimized regeneration, banned phrase retry.
+
+**Test Fix:**
+- `occasion-engine-service.test.ts` — Updated mock chain to include `.limit()` after `.eq()` for local_occasions query.
+
+**Tests:** 42 new (22 billing + 20 reviews), 1 mock fix. **7353 tests, 458 files — ALL PASS.**
+**Files changed:** 31 cron routes (maxDuration), 2 migrations, 1 service file, 1 cron route (idempotency), 2 new test files, 1 test fix. **0 new crons.**
+
+---
+
 ## P0 Production Audit Fix — RLS Policy Gaps + Monthly Report N+1 (2026-03-08)
 
 **RLS Policy Gaps (3 tables):**

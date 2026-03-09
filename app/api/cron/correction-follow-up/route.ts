@@ -25,6 +25,8 @@ import { createHallucinationWin } from '@/lib/services/wins.service';
 import type { Database } from '@/lib/supabase/database.types';
 import * as Sentry from '@sentry/nextjs';
 
+export const maxDuration = 55;
+
 interface VerifyingAlert {
   id: string;
   org_id: string;

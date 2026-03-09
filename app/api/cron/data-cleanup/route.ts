@@ -8,6 +8,8 @@ import * as Sentry from '@sentry/nextjs';
 import { NextRequest, NextResponse } from 'next/server';
 import { createServiceRoleClient } from '@/lib/supabase/server';
 
+export const maxDuration = 55;
+
 export async function GET(request: NextRequest) {
   // CRON_SECRET validation
   const authHeader = request.headers.get('authorization');
