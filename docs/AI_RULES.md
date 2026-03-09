@@ -6565,3 +6565,14 @@ Production audit identified 3 tables with `ENABLE ROW LEVEL SECURITY` but zero p
 - **Cookie-pointer pattern for multi-location:** Multiple GBP locations → `pending_gbp_imports` table + UUID in `gbp_import_id` cookie (not raw JSON). Tests verify cookie is set with UUID format.
 - **Token exchange is server-side only:** Authorization code → token exchange happens server-side via `fetch()` to Google's token endpoint. Access tokens are NEVER exposed in browser redirects or response bodies.
 - **vi.clearAllMocks + vi.stubGlobal interaction:** When mocking `fetch` via `vi.stubGlobal('fetch', mockFetch)`, re-stub in every `beforeEach` AFTER `vi.clearAllMocks()` — clearAllMocks resets stubbed globals.
+
+### §326 — Auth Rate Limiting Tests
+
+#### Rules
+- **Every rate-limited auth route has a dedicated test:** Login (5 req/60s), Register (3 req/60s), Resend Verification (1 req/60s), Reset Password (3 req/300s). Any new rate-limited auth endpoint MUST have corresponding 429 enforcement tests.
+- **Logout is intentionally NOT rate limited:** It is idempotent and low-risk. Tests verify `checkRateLimit` is never called from the logout handler.
+- **Guard ordering is tested:** CSRF validation (403) fires before rate limiting (429), and rate limiting fires before all auth logic (lockout, CAPTCHA, session validation, password policy). This prevents rate-limited requests from triggering expensive downstream operations.
+- **Rate limit configs are tested for correctness:** Limits, windows, key prefixes, uniqueness, and `rl:auth:` namespace convention are all verified. Changes to `ROUTE_RATE_LIMITS` auth configs will break tests — this is intentional.
+- **Auth routes are NOT in bypass list:** `RATE_LIMIT_BYPASS_PREFIXES` skips `/api/webhooks/`, `/api/cron/`, etc. but NOT `/api/auth/*`. Tests verify this explicitly.
+- **IP extraction is tested:** First IP from `x-forwarded-for` chain (with trim), falls back to `'unknown'` when header is missing.
+- **Rate limit vs lockout layering:** 429 (Too Many Requests) is distinct from 423 (Locked). Error messages are non-overlapping. Tests verify both status codes and message content.

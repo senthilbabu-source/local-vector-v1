@@ -4,6 +4,15 @@
 
 ---
 
+## §326 — Auth Rate Limiting Tests (2026-03-09)
+
+**33 rate limiting tests** covering per-endpoint enforcement:
+- 11 test groups: login rate limiting (5 req/60s — pass/block/headers/IP extraction), register rate limiting (3 req/60s — block + config verification), resend verification (1 req/60s — strictest auth limit), reset password (3 req/300s — longer window), logout has no rate limiting (intentionally exempt), rate limit config correctness (limits/windows/prefixes/uniqueness/namespace), rate limit blocks before auth logic (checked before lockout/CAPTCHA/session/password policy), CSRF fires before rate limiting (403 beats 429), auth routes not in bypass list, IP extraction edge cases (missing header → "unknown", whitespace trimming, proxy chain → first IP), rate limit vs lockout layering (429 vs 423 distinct statuses and messages).
+- File: `src/__tests__/unit/auth-rate-limiting.test.ts` (639 lines).
+- **7588+ tests, 467+ files — ALL PASS.**
+
+---
+
 ## §325 — Google OAuth Security Tests (2026-03-09)
 
 **24 OAuth security tests** covering Google OAuth flow:
