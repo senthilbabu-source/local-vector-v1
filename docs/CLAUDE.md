@@ -12,7 +12,7 @@ LocalVector is an AEO/GEO SaaS platform that helps local businesses monitor and 
 - **Billing:** Stripe webhooks → `organizations.plan_tier` enum (`trial | starter | growth | agency`)
 - **Email:** Resend + React Email (`emails/`)
 - **Cache:** Upstash Redis (`lib/redis.ts`) — optional, all callers must degrade gracefully
-- **Testing:** Vitest (unit/integration in `src/__tests__/`), Playwright (E2E in `tests/e2e/`, 42 specs). Current: ~7156 tests, 444 files.
+- **Testing:** Vitest (unit/integration in `src/__tests__/`), Playwright (E2E in `tests/e2e/`, 42 specs). Current: ~7311 tests, 456 files.
 - **Monitoring:** Sentry (client, server, edge configs) — all catch blocks instrumented (Sprint A, AI_RULES §70)
 
 ## Architecture Rules
@@ -171,7 +171,7 @@ app/dashboard/_components/BenchmarkComparisonCard.tsx — City benchmark compari
 | `perplexity_pages_detections` | Perplexity Page URLs detected in SOV cited_sources. evaluation_id FK to sov_evaluations. first_detected_at + last_seen_at tracking. RLS: org-scoped SELECT. UNIQUE(org_id, page_url). (Sprint 6, §296) |
 | `activity_log` | Append-only audit trail — 7 event types (member_invited/accepted/removed, invite_revoked, seat_sync, role_changed, settings_updated). INSERT-only RLS for service_role, SELECT for org members. (Sprint 113) |
 | `org_domains` | Per-org custom domain + subdomain config. UNIQUE(org_id, domain_type). Verified domain index for O(1) hot-path lookup. RLS: members read, owner write. (Sprint 114) |
-| `org_themes` | Per-org visual branding — primary/accent colors (hex CHECK), font_family (10-font allowlist), logo_url, show_powered_by. text_on_primary auto-computed via WCAG luminance. RLS: members read, owner write. (Sprint 115) |
+| `org_themes` | Per-org visual branding — primary/accent colors (hex CHECK), font_family (10-font allowlist), logo_url, show_powered_by. text_on_primary auto-computed via WCAG luminance. RLS: 4 org_isolation policies (SELECT/INSERT/UPDATE/DELETE via `current_user_org_id()`). (Sprint 115) |
 
 ## Current Migrations (Applied)
 
@@ -241,6 +241,7 @@ app/dashboard/_components/BenchmarkComparisonCard.tsx — City benchmark compari
 64. `20260308000002_reddit_brand_mentions.sql` — `reddit_brand_mentions` table with RLS + org isolation (Sprint 4, §292)
 65. `20260504000001_community_mentions.sql` — `community_mentions` table with platform CHECK, SHA-256 mention_key dedup, RLS SELECT (Sprint 6, §295)
 66. `20260504000002_perplexity_pages_detections.sql` — `perplexity_pages_detections` table with evaluation_id FK, page_url dedup, RLS SELECT (Sprint 6, §296)
+67. `20260505000001_p0_rls_policy_gaps.sql` — RLS policies for 3 tables: org_themes (4 org_isolation), stripe_webhook_events (2 service-role-only), pending_gbp_imports (3 service-role-only) (P0 Audit Fix)
 
 ## Testing Commands
 

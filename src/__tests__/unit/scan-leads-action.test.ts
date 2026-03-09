@@ -13,7 +13,9 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 // Mocks
 // ---------------------------------------------------------------------------
 
-const mockInsert = vi.fn();
+const mockSingle = vi.fn();
+const mockSelect = vi.fn().mockReturnValue({ single: mockSingle });
+const mockInsert = vi.fn().mockReturnValue({ select: mockSelect });
 const mockFrom   = vi.fn().mockReturnValue({ insert: mockInsert });
 
 vi.mock('@/lib/supabase/server', () => ({
@@ -53,7 +55,8 @@ const VALID = {
 describe('captureLeadEmail — validation', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockInsert.mockResolvedValue({ error: null });
+    mockInsert.mockReturnValue({ select: mockSelect });
+    mockSingle.mockResolvedValue({ data: { id: 'lead-001' }, error: null });
   });
 
   it('returns { ok: false } when email is empty', async () => {
@@ -90,14 +93,16 @@ describe('captureLeadEmail — validation', () => {
   it('accepts all three valid scan statuses', async () => {
     for (const scanStatus of ['fail', 'pass', 'not_found']) {
       vi.clearAllMocks();
-      mockInsert.mockResolvedValue({ error: null });
+      mockInsert.mockReturnValue({ select: mockSelect });
+      mockSingle.mockResolvedValue({ data: { id: 'lead-001' }, error: null });
       const result = await captureLeadEmail(fd({ ...VALID, scanStatus }));
-      expect(result).toEqual({ ok: true });
+      expect(result).toEqual({ ok: true, reportId: 'lead-001' });
     }
   });
 
   it('lowercases the email before insert', async () => {
-    mockInsert.mockResolvedValue({ error: null });
+    mockInsert.mockReturnValue({ select: mockSelect });
+    mockSingle.mockResolvedValue({ data: { id: 'lead-001' }, error: null });
     await captureLeadEmail(fd({ ...VALID, email: 'Owner@Grill.COM' }));
     expect(mockInsert).toHaveBeenCalledWith(
       expect.objectContaining({ email: 'owner@grill.com' })
@@ -112,12 +117,13 @@ describe('captureLeadEmail — validation', () => {
 describe('captureLeadEmail — DB insert', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockInsert.mockResolvedValue({ error: null });
+    mockInsert.mockReturnValue({ select: mockSelect });
+    mockSingle.mockResolvedValue({ data: { id: 'lead-001' }, error: null });
   });
 
-  it('returns { ok: true } on successful insert', async () => {
+  it('returns { ok: true, reportId } on successful insert', async () => {
     const result = await captureLeadEmail(fd(VALID));
-    expect(result).toEqual({ ok: true });
+    expect(result).toEqual({ ok: true, reportId: 'lead-001' });
   });
 
   it('inserts correct field values', async () => {
@@ -136,14 +142,14 @@ describe('captureLeadEmail — DB insert', () => {
   });
 
   it('returns { ok: false } when DB returns an error', async () => {
-    mockInsert.mockResolvedValue({ error: { message: 'DB error' } });
+    mockSingle.mockResolvedValue({ data: null, error: { message: 'DB error' } });
     const result = await captureLeadEmail(fd(VALID));
     expect(result).toEqual({ ok: false });
   });
 
   it('captures Sentry exception on DB error', async () => {
     const { captureException } = await import('@sentry/nextjs');
-    mockInsert.mockResolvedValue({ error: { message: 'DB error' } });
+    mockSingle.mockResolvedValue({ data: null, error: { message: 'DB error' } });
     await captureLeadEmail(fd(VALID));
     expect(captureException).toHaveBeenCalled();
   });

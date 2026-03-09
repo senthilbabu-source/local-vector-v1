@@ -33,7 +33,7 @@ export async function POST(req: NextRequest) {
     });
 
     return NextResponse.json({ ok: true });
-  } catch {
+  } catch (_err) {
     // Fail open
     return NextResponse.json({ ok: true });
   }

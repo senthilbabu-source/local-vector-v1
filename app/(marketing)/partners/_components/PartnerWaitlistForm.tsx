@@ -41,7 +41,7 @@ export default function PartnerWaitlistForm() {
           setErrorMsg('Something went wrong. Please try again.');
           setStatus('error');
         }
-      } catch {
+      } catch (_err) {
         setErrorMsg('Network error. Please try again.');
         setStatus('error');
       }

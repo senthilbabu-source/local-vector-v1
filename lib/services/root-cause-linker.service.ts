@@ -185,7 +185,7 @@ export async function enrichHallucinationWithRootCause(
 function extractHostname(url: string): string | null {
   try {
     return new URL(url).hostname.toLowerCase().replace(/^www\./, '');
-  } catch {
+  } catch (_err) {
     return null;
   }
 }

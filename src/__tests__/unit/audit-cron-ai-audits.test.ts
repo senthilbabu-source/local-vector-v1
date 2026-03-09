@@ -71,9 +71,13 @@ function createMockSupabase(options: {
   const hallucinationInsertError = options.hallucinationInsertError ?? null;
   const ownerEmail = options.ownerEmail !== undefined ? options.ownerEmail : 'owner@test.com';
 
-  const mockHallucinationInsert = vi.fn().mockResolvedValue({
-    data: null,
+  const mockHallucinationSelect = vi.fn().mockResolvedValue({
+    data: hallucinationInsertError ? null : [{ id: 'hall-001' }],
     error: hallucinationInsertError,
+  });
+
+  const mockHallucinationInsert = vi.fn().mockReturnValue({
+    select: mockHallucinationSelect,
   });
 
   const mockAuditInsertSingle = vi.fn().mockResolvedValue({

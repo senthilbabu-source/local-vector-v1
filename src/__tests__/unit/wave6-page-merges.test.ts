@@ -162,9 +162,9 @@ describe('Wave 6 — structural integrity', () => {
     expect(labels).toEqual(['Today', 'This Week', 'This Month', 'Advanced', 'Account']);
   });
 
-  it('Advanced group has exactly 8 items (13 - 5 removed)', () => {
+  it('Advanced group has exactly 9 items (13 - 5 removed + 1 added)', () => {
     const group = groupByLabel('Advanced');
-    expect(group!.items).toHaveLength(8);
+    expect(group!.items).toHaveLength(9);
   });
 
   it('Today group unchanged (4 items)', () => {

@@ -20,7 +20,7 @@ export async function GET(req: NextRequest) {
   const supabase = createServiceRoleClient();
 
   try {
-    // Growth+ orgs only, opted in to monthly reports
+    // Growth+ orgs only
     const { data: orgs } = await supabase
       .from('organizations')
       .select('id, plan, notify_monthly_report' as 'id, plan')
@@ -30,56 +30,96 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ processed: 0 });
     }
 
+    // Filter eligible orgs upfront
+    const eligibleOrgs = (orgs as unknown as { id: string; plan: string; notify_monthly_report: boolean }[])
+      .filter(row => {
+        if (!canRunAIShopper(row.plan as 'trial' | 'starter' | 'growth' | 'agency')) return false;
+        if (row.notify_monthly_report === false) return false;
+        return true;
+      });
+
+    const skipped = orgs.length - eligibleOrgs.length;
+
+    if (eligibleOrgs.length === 0) {
+      return NextResponse.json({ processed: orgs.length, sent: 0, skipped });
+    }
+
+    const orgIds = eligibleOrgs.map(o => o.id);
+
+    // ── Batch fetch all locations + memberships in 2 queries (not N+1) ──
+    const [locationsResult, membershipsResult] = await Promise.all([
+      supabase
+        .from('locations')
+        .select('id, org_id')
+        .in('org_id', orgIds)
+        .eq('is_primary', true),
+      supabase
+        .from('memberships')
+        .select('org_id, user_id')
+        .in('org_id', orgIds)
+        .eq('role', 'owner'),
+    ]);
+
+    const locationsByOrg = new Map<string, string>();
+    for (const loc of locationsResult.data ?? []) {
+      locationsByOrg.set(loc.org_id, loc.id);
+    }
+
+    const ownerUserIdsByOrg = new Map<string, string>();
+    for (const mem of membershipsResult.data ?? []) {
+      ownerUserIdsByOrg.set(mem.org_id, mem.user_id);
+    }
+
+    // Batch fetch all owner emails in 1 query
+    const ownerUserIds = [...new Set(ownerUserIdsByOrg.values())];
+    const emailsByUserId = new Map<string, string>();
+
+    if (ownerUserIds.length > 0) {
+      const { data: users } = await supabase
+        .from('users')
+        .select('id, email')
+        .in('id', ownerUserIds);
+
+      for (const u of users ?? []) {
+        if (u.email) emailsByUserId.set(u.id, u.email);
+      }
+    }
+
     // Previous month
     const now = new Date();
     const prevMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+
+    // Generate reports + send emails in parallel (batches of 10)
     let sent = 0;
-    let skipped = 0;
+    const BATCH_SIZE = 10;
 
-    for (const org of orgs) {
-      const row = org as unknown as { id: string; plan: string; notify_monthly_report: boolean };
+    for (let i = 0; i < eligibleOrgs.length; i += BATCH_SIZE) {
+      const batch = eligibleOrgs.slice(i, i + BATCH_SIZE);
 
-      if (!canRunAIShopper(row.plan as 'trial' | 'starter' | 'growth' | 'agency')) continue;
-      if (row.notify_monthly_report === false) {
-        skipped++;
-        continue;
-      }
+      const results = await Promise.allSettled(
+        batch.map(async (org) => {
+          const locId = locationsByOrg.get(org.id);
+          if (!locId) return false;
 
-      // Get primary location
-      const { data: loc } = await supabase
-        .from('locations')
-        .select('id')
-        .eq('org_id', row.id)
-        .eq('is_primary', true)
-        .maybeSingle();
+          const ownerUserId = ownerUserIdsByOrg.get(org.id);
+          if (!ownerUserId) return false;
 
-      if (!loc) continue;
+          const email = emailsByUserId.get(ownerUserId);
+          if (!email) return false;
 
-      // Get org owner email
-      const { data: membership } = await supabase
-        .from('memberships')
-        .select('user_id')
-        .eq('org_id', row.id)
-        .eq('role', 'owner')
-        .maybeSingle();
+          const report = await generateMonthlyReport(supabase, org.id, locId, prevMonth);
 
-      if (!membership) continue;
+          void sendMonthlyReport(email, report).catch((err) =>
+            Sentry.captureException(err, { tags: { cron: 'monthly-report', orgId: org.id } }),
+          );
 
-      const { data: user } = await supabase
-        .from('users')
-        .select('email')
-        .eq('id', membership.user_id)
-        .single();
-
-      if (!user?.email) continue;
-
-      const report = await generateMonthlyReport(supabase, row.id, loc.id, prevMonth);
-
-      void sendMonthlyReport(user.email, report).catch((err) =>
-        Sentry.captureException(err, { tags: { cron: 'monthly-report', orgId: row.id } }),
+          return true;
+        }),
       );
 
-      sent++;
+      for (const r of results) {
+        if (r.status === 'fulfilled' && r.value === true) sent++;
+      }
     }
 
     return NextResponse.json({ processed: orgs.length, sent, skipped });

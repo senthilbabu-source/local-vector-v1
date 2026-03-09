@@ -6427,3 +6427,15 @@ Some business free scans returned 200 OK but showed no meaningful scan results i
 - **`not_found` FallbackIssueCard**: Upgraded from gray (#94A3B8) to amber (#FFB800) with warning triangle icon and actionable copy explaining the visibility gap.
 - All new functions are internal (prefixed with `_`) and pure (no I/O, no side effects).
 - Existing tests (free-scan-pass 31, scan-params 14, sprint-d 27) continue to pass — zero regressions.
+
+### §310 — P0 Production Audit: RLS Completeness + Cron Batch Pattern
+
+#### Context
+Production audit identified 3 tables with `ENABLE ROW LEVEL SECURITY` but zero policies (PostgreSQL default = full access to all roles). Also identified N+1 query anti-pattern in monthly-report cron (O(3N) sequential queries for N orgs).
+
+#### Rules
+- **RLS completeness check:** Every table with `ENABLE ROW LEVEL SECURITY` MUST have at least one policy. RLS without policies = open access (PostgreSQL silently allows all operations). Run `security-rls-audit.test.ts` to verify.
+- **Service-role-only tables** (e.g., `stripe_webhook_events`, `pending_gbp_imports`) get policies with `TO service_role` — defense-in-depth even though app code only uses service-role client.
+- **Org-scoped tables** get standard 4-policy pattern: `{table}_select_own`, `{table}_insert_own`, `{table}_update_own`, `{table}_delete_own` — all using `org_id = public.current_user_org_id()`.
+- **Cron batch-fetch pattern:** Never loop per-org with individual DB queries. Instead: (1) batch-fetch all needed data with `.in('org_id', orgIds)`, (2) index into `Map<string, T>` for O(1) lookup, (3) parallelize processing with `Promise.allSettled` in batches.
+- **Migration:** `20260505000001_p0_rls_policy_gaps.sql` — 9 policies across 3 tables (org_themes 4, stripe_webhook_events 2, pending_gbp_imports 3).

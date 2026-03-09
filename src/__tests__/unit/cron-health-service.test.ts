@@ -16,10 +16,10 @@ import {
 import { MOCK_CRON_RUN_SUCCESS, MOCK_CRON_RUN_FAILED } from '@/__fixtures__/golden-tenant';
 
 describe('buildCronHealthSummary', () => {
-  it('returns 15 jobs even with empty input', () => {
+  it('returns 16 jobs even with empty input', () => {
     const result = buildCronHealthSummary([]);
-    expect(result.jobs).toHaveLength(15);
-    expect(result.jobs.map((j) => j.cronName)).toEqual(['audit', 'sov', 'citation', 'content-audit', 'weekly-digest', 'correction-follow-up', 'benchmarks', 'schema-drift', 'review-sync', 'degradation-check', 'correction-benchmarks', 'ai-shopper', 'competitor-vulnerability', 'monthly-report', 'reddit-monitor']);
+    expect(result.jobs).toHaveLength(16);
+    expect(result.jobs.map((j) => j.cronName)).toEqual(['audit', 'sov', 'citation', 'content-audit', 'weekly-digest', 'correction-follow-up', 'benchmarks', 'schema-drift', 'review-sync', 'degradation-check', 'correction-benchmarks', 'ai-shopper', 'competitor-vulnerability', 'monthly-report', 'reddit-monitor', 'community-monitor']);
   });
 
   it('returns healthy status with empty input', () => {
@@ -115,8 +115,8 @@ describe('buildCronHealthSummary', () => {
     expect(auditJob.schedule).toBe('Daily 3 AM EST');
   });
 
-  it('CRON_REGISTRY has exactly 15 entries', () => {
-    expect(CRON_REGISTRY).toHaveLength(15);
+  it('CRON_REGISTRY has exactly 16 entries', () => {
+    expect(CRON_REGISTRY).toHaveLength(16);
   });
 
   it('handles timeout status as a failure', () => {

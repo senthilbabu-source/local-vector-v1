@@ -76,8 +76,8 @@ describe('S78: Build TypeScript Fixes', () => {
 // ---------------------------------------------------------------------------
 
 describe('S79: Sidebar Final Structure', () => {
-  it('total NAV_ITEMS count is 28', () => {
-    expect(NAV_ITEMS.length).toBe(28);
+  it('total NAV_ITEMS count is 29', () => {
+    expect(NAV_ITEMS.length).toBe(29);
   });
 
   it('total NAV_GROUPS count is 5', () => {
@@ -102,10 +102,10 @@ describe('S79: Sidebar Final Structure', () => {
     expect(month!.items.length).toBe(5);
   });
 
-  it('Advanced group has exactly 8 items', () => {
+  it('Advanced group has exactly 9 items', () => {
     const advanced = NAV_GROUPS.find((g) => g.label === 'Advanced');
     expect(advanced).toBeDefined();
-    expect(advanced!.items.length).toBe(8);
+    expect(advanced!.items.length).toBe(9);
   });
 
   it('Account group has exactly 6 items', () => {

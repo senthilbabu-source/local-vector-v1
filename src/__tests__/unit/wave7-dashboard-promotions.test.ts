@@ -339,8 +339,8 @@ describe('S39 — pickQuickWin', () => {
 // ---------------------------------------------------------------------------
 
 describe('S40 — sidebar structural integrity', () => {
-  it('total NAV_ITEMS count is 28', () => {
-    expect(NAV_ITEMS).toHaveLength(28);
+  it('total NAV_ITEMS count is 29', () => {
+    expect(NAV_ITEMS).toHaveLength(29);
   });
 
   it('total grouped items equals NAV_ITEMS count', () => {
@@ -383,8 +383,8 @@ describe('S40 — sidebar structural integrity', () => {
     expect(groupByLabel('This Month')!.items).toHaveLength(5);
   });
 
-  it('Advanced group has 8 items', () => {
-    expect(groupByLabel('Advanced')!.items).toHaveLength(8);
+  it('Advanced group has 9 items', () => {
+    expect(groupByLabel('Advanced')!.items).toHaveLength(9);
   });
 
   it('Account group has 6 items', () => {

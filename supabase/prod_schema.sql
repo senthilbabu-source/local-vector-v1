@@ -2245,6 +2245,22 @@ ALTER TABLE "public"."page_audits" ENABLE ROW LEVEL SECURITY;
 
 ALTER TABLE "public"."pending_gbp_imports" ENABLE ROW LEVEL SECURITY;
 
+-- P0 Audit Fix: pending_gbp_imports — service-role-only access
+CREATE POLICY "pending_gbp_imports_service_role_select"
+  ON public.pending_gbp_imports FOR SELECT
+  TO service_role
+  USING (true);
+
+CREATE POLICY "pending_gbp_imports_service_role_insert"
+  ON public.pending_gbp_imports FOR INSERT
+  TO service_role
+  WITH CHECK (true);
+
+CREATE POLICY "pending_gbp_imports_service_role_delete"
+  ON public.pending_gbp_imports FOR DELETE
+  TO service_role
+  USING (true);
+
 
 CREATE POLICY "public_menu_items" ON "public"."menu_items" FOR SELECT USING ((EXISTS ( SELECT 1
    FROM "public"."magic_menus" "mm"
@@ -2295,6 +2311,17 @@ ALTER TABLE "public"."pending_invitations" ENABLE ROW LEVEL SECURITY;
 
 
 ALTER TABLE "public"."stripe_webhook_events" ENABLE ROW LEVEL SECURITY;
+
+-- P0 Audit Fix: stripe_webhook_events — service-role-only access
+CREATE POLICY "stripe_webhook_events_service_role_select"
+  ON public.stripe_webhook_events FOR SELECT
+  TO service_role
+  USING (true);
+
+CREATE POLICY "stripe_webhook_events_service_role_insert"
+  ON public.stripe_webhook_events FOR INSERT
+  TO service_role
+  WITH CHECK (true);
 
 
 ALTER TABLE "public"."location_permissions" ENABLE ROW LEVEL SECURITY;
@@ -3429,6 +3456,23 @@ CREATE TABLE IF NOT EXISTS public.org_themes (
 );
 
 ALTER TABLE public.org_themes ENABLE ROW LEVEL SECURITY;
+
+-- P0 Audit Fix: org_themes RLS policies (members read, owner write)
+CREATE POLICY "org_themes_org_isolation_select"
+  ON public.org_themes FOR SELECT
+  USING (org_id = public.current_user_org_id());
+
+CREATE POLICY "org_themes_org_isolation_insert"
+  ON public.org_themes FOR INSERT
+  WITH CHECK (org_id = public.current_user_org_id());
+
+CREATE POLICY "org_themes_org_isolation_update"
+  ON public.org_themes FOR UPDATE
+  USING (org_id = public.current_user_org_id());
+
+CREATE POLICY "org_themes_org_isolation_delete"
+  ON public.org_themes FOR DELETE
+  USING (org_id = public.current_user_org_id());
 
 -- ═══════════════════════════════════════════════════════════════════════════
 -- Sprint 119: pgvector Integration — semantic search + embedding pipeline

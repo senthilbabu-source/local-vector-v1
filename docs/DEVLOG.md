@@ -4,6 +4,30 @@
 
 ---
 
+## P0 Production Audit Fix — RLS Policy Gaps + Monthly Report N+1 (2026-03-08)
+
+**RLS Policy Gaps (3 tables):**
+- **`supabase/migrations/20260505000001_p0_rls_policy_gaps.sql`** — New migration adding 9 RLS policies across 3 tables that had `ENABLE ROW LEVEL SECURITY` but zero policies (open-by-default PostgreSQL behavior = full access):
+  - `org_themes`: 4 standard org_isolation policies (SELECT/INSERT/UPDATE/DELETE via `current_user_org_id()`)
+  - `stripe_webhook_events`: 2 service-role-only policies (SELECT/INSERT `TO service_role`)
+  - `pending_gbp_imports`: 3 service-role-only policies (SELECT/INSERT/DELETE `TO service_role`)
+- **`supabase/prod_schema.sql`** — Matching policies added inline after each table's `ENABLE ROW LEVEL SECURITY`.
+
+**Monthly Report N+1 Fix:**
+- **`app/api/cron/monthly-report/route.ts`** — Eliminated O(3N) sequential queries (3 DB calls per org). Now: 3 batch queries upfront with `.in('org_id', orgIds)`, results indexed into `Map<string, string>` for O(1) lookup, report generation parallelized with `Promise.allSettled` in batches of 10.
+
+**18 Pre-existing Test Failures Fixed:**
+- Sidebar count drift (6 tests/4 files): NAV_ITEMS grew to 29, Advanced group to 9 — updated hardcoded counts
+- Cron registry drift (3 tests/2 files): CRON_REGISTRY grew to 16 with `community-monitor` — updated counts and expected array
+- scan-leads mock mismatch (2 tests): Updated mock chain to `.insert().select().single()`
+- sentry-sweep bare catches (2 tests): Fixed 4 `} catch {` → `} catch (_err) {` in source files
+- audit-cron mock mismatch (5 tests): Updated hallucination insert mock to support `.select('id')` chain
+
+**Tests:** 0 new tests, 18 pre-existing failures fixed. **7311 tests, 456 files — ALL PASS.**
+**Files changed:** 1 new migration, 1 rewritten cron route, 4 sidebar test files, 2 cron test files, 2 unit test files, 4 source files (bare catches). **0 new crons.**
+
+---
+
 ## Magic Menus UX Overhaul — Inline Editor + AI Dietary Tagger + Bug Fixes (2026-03-08)
 
 **Bug Fixes:**

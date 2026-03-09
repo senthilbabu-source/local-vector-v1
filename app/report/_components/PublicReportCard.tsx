@@ -115,7 +115,7 @@ function formatDate(dateStr: string | null): string {
       day: 'numeric',
       year: 'numeric',
     });
-  } catch {
+  } catch (_err) {
     return 'N/A';
   }
 }
