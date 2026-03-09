@@ -70,9 +70,10 @@ export async function expandSidebarGroup(page: Page, testId: string) {
   for (let i = 0; i < count; i++) {
     const btn = groupButtons.nth(i);
     const text = await btn.textContent();
+    if (!text) continue;
     const t = text.trim();
     const matches = t === groupName;
-    if (text && matches) {
+    if (matches) {
       const expanded = await btn.getAttribute('aria-expanded');
       if (expanded !== 'true') {
         await btn.click();

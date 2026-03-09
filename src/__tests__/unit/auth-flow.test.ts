@@ -168,6 +168,37 @@ describe('getSafeAuthContext', () => {
   it('takes zero parameters (derives org from session, not request)', () => {
     expect(getSafeAuthContext.length).toBe(0);
   });
+
+  // §313: Email verification flag
+  it('returns emailVerified=true when email_confirmed_at is set', async () => {
+    mockGetUser.mockResolvedValue({
+      data: { user: { id: AUTH_UID, email: 'v@test.com', email_confirmed_at: '2026-01-01T00:00:00Z' } },
+      error: null,
+    });
+    mockSelectUsers.mockResolvedValue({ data: { id: PUBLIC_USER_ID, full_name: 'Test' } });
+    mockSelectMemberships.mockResolvedValue({
+      data: { org_id: ORG_ID, role: 'owner', organizations: { id: ORG_ID, name: 'Test', plan: 'trial', onboarding_completed: false } },
+      error: null,
+    });
+
+    const ctx = await getSafeAuthContext();
+    expect(ctx?.emailVerified).toBe(true);
+  });
+
+  it('returns emailVerified=false when email_confirmed_at is null', async () => {
+    mockGetUser.mockResolvedValue({
+      data: { user: { id: AUTH_UID, email: 'u@test.com', email_confirmed_at: null } },
+      error: null,
+    });
+    mockSelectUsers.mockResolvedValue({ data: { id: PUBLIC_USER_ID, full_name: 'Test' } });
+    mockSelectMemberships.mockResolvedValue({
+      data: { org_id: ORG_ID, role: 'owner', organizations: { id: ORG_ID, name: 'Test', plan: 'trial', onboarding_completed: false } },
+      error: null,
+    });
+
+    const ctx = await getSafeAuthContext();
+    expect(ctx?.emailVerified).toBe(false);
+  });
 });
 
 // ---------------------------------------------------------------------------

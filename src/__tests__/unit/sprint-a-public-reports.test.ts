@@ -31,6 +31,9 @@ const mockEq = vi.fn(() => ({
 const mockSelect = vi.fn(() => ({
   eq: mockEq,
   single: mockSingle,
+  is: mockIs,
+  order: mockOrder,
+  limit: mockLimit,
 }));
 const mockInsert = vi.fn(() => ({
   select: vi.fn(() => ({
@@ -70,7 +73,7 @@ describe('getPublicLocationReport', () => {
       order: mockOrder,
       limit: mockLimit,
     });
-    mockSelect.mockReset().mockReturnValue({ eq: mockEq, single: mockSingle });
+    mockSelect.mockReset().mockReturnValue({ eq: mockEq, single: mockSingle, is: mockIs, order: mockOrder, limit: mockLimit });
     mockFrom.mockReset().mockReturnValue({ select: mockSelect, insert: mockInsert });
   });
 
@@ -126,8 +129,8 @@ describe('getPublicScanReport', () => {
     const mod = await import('@/lib/report/public-report');
     getPublicScanReport = mod.getPublicScanReport;
     mockSingle.mockReset();
-    mockEq.mockReset().mockReturnValue({ single: mockSingle, eq: mockEq });
-    mockSelect.mockReset().mockReturnValue({ eq: mockEq, single: mockSingle });
+    mockEq.mockReset().mockReturnValue({ single: mockSingle, eq: mockEq, is: mockIs, order: mockOrder, limit: mockLimit });
+    mockSelect.mockReset().mockReturnValue({ eq: mockEq, single: mockSingle, is: mockIs, order: mockOrder, limit: mockLimit });
     mockFrom.mockReset().mockReturnValue({ select: mockSelect, insert: mockInsert });
   });
 

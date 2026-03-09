@@ -56,12 +56,35 @@ export default function LoginPage() {
       });
 
       if (res.ok) {
+        const loginBody = await res.json().catch(() => ({}));
+        // §313: Redirect unverified users to email verification page
+        if (loginBody.email_verified === false) {
+          router.push('/verify-email');
+          router.refresh();
+          return;
+        }
         router.push('/dashboard');
         router.refresh();
         return;
       }
 
       const body = await res.json().catch(() => ({}));
+
+      // §313: If email not confirmed, redirect to verification page
+      if (body.email_verification_required) {
+        router.push('/verify-email');
+        return;
+      }
+
+      // §314: Account lockout — show specific message with retry time
+      if (body.locked && body.retry_after_seconds) {
+        const minutes = Math.ceil(body.retry_after_seconds / 60);
+        setGlobalError(
+          `Account temporarily locked. Please try again in ${minutes} minute${minutes !== 1 ? 's' : ''}.`
+        );
+        return;
+      }
+
       setGlobalError(
         body.error ?? 'Unable to sign in. Please check your credentials and try again.'
       );

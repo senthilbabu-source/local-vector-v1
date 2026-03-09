@@ -56,6 +56,7 @@ export const ROUTE_RATE_LIMITS = {
   /** Auth — brute force protection (IP-based) */
   auth_login: { max_requests: 5, window_seconds: 60, key_prefix: 'rl:auth:login' },
   auth_register: { max_requests: 3, window_seconds: 60, key_prefix: 'rl:auth:register' },
+  auth_resend_verification: { max_requests: 1, window_seconds: 60, key_prefix: 'rl:auth:resend' },
   auth_oauth: { max_requests: 10, window_seconds: 60, key_prefix: 'rl:auth:oauth' },
 
   /** Destructive operations — very tight (org-based) */

@@ -7360,3 +7360,78 @@ AI Enhancement for Magic Menu extracted items — generates descriptions, fixes 
 
 ### AI_RULES
 - §308: AI Menu Enhancement Engine — suggestion layer, never auto-applied, 6 pure functions, credit-gated, 200-char description cap, immutable operations.
+
+---
+
+## §314 — Password Policy Hardening + Input Sanitization + Account Lockout (2026-03-08)
+
+### What
+Sprint 2 of the auth security hardening series. Hardens password validation (common password blocklist, bcrypt-safe max length, email-in-password detection, strength scoring), adds input sanitization for name fields (XSS/SQL injection prevention), and implements Redis-based account lockout after repeated failed logins.
+
+### Architecture
+- **Password policy:** `lib/auth/password-policy.ts` — 120+ common passwords Set, `MAX_PASSWORD_LENGTH=72` (bcrypt limit), `isCommonPassword()`, `passwordContainsEmail()`, `computePasswordStrength()` (0–4), `getStrengthLabel()`, `getStrengthColor()`.
+- **Input sanitizer:** `lib/auth/input-sanitizer.ts` — `stripHtmlTags()`, `stripControlChars()`, `normalizeWhitespace()`, `sanitizeName()` (full pipeline), `hasSuspiciousPatterns()` (XSS/SQL/null byte detection).
+- **Account lockout:** `lib/auth/account-lockout.ts` — Redis sorted set sliding window. `checkAccountLockout()`, `recordFailedLogin()`, `clearFailedLogins()`. All fail-open on Redis errors.
+- **Auth schemas:** `lib/schemas/auth.ts` — rewritten with `passwordSchema` (blocklist + max 72), `nameSchema()` factory (sanitize + suspicious pattern check via `.transform()` + `.pipe()`), `RegisterSchema` cross-field email-in-password `.refine()`.
+- **Login route:** `app/api/auth/login/route.ts` — lockout check → auth → record/clear. HTTP 423 for locked accounts.
+- **Strength meter:** `components/auth/PasswordStrengthMeter.tsx` — 4 bars, `aria-live="polite"`, hidden when empty.
+
+### Files changed (6 new + 8 modified)
+- `lib/auth/password-policy.ts` (new)
+- `lib/auth/input-sanitizer.ts` (new)
+- `lib/auth/account-lockout.ts` (new)
+- `lib/schemas/auth.ts` (rewritten)
+- `app/api/auth/login/route.ts` (lockout integration)
+- `components/auth/PasswordStrengthMeter.tsx` (new)
+- `app/(auth)/register/page.tsx` (strength meter wired)
+- `app/(auth)/login/page.tsx` (423 lockout handling)
+- `lib/tools/shared-query-helpers.ts` (HallucinationRecord nullable fields)
+- `lib/mcp/tools.ts` (TypeScript fixes)
+- `src/__tests__/unit/auth-routes.test.ts` (Password1→SecureP@ss9, lockout mock)
+- `src/__tests__/unit/email-verification.test.ts` (Password1→SecureP@ss9)
+- `src/__tests__/unit/auth-hardening-s314.test.tsx` (new — 81 tests)
+- `tests/e2e/auth-hardening-s314.spec.ts` (new — 7 E2E tests)
+
+### Test results
+- **81 new unit tests** in `auth-hardening-s314.test.tsx`: Password Policy (11), Password Strength (14), Input Sanitization (17), RegisterSchema Integration (10), Account Lockout (15), PasswordStrengthMeter Component (7), Login Lockout Contract (2).
+- **7 new E2E tests** in `auth-hardening-s314.spec.ts`: common password rejected, password too long, strength meter renders, HTML sanitized, email-in-password rejected, 423 lockout message, valid registration succeeds.
+- **7453 tests, 460 files — ALL PASS.** `tsc --noEmit` = 0 errors.
+
+### Regressions fixed
+- `Password1` in common password blocklist broke 15+ existing tests → replaced with `SecureP@ss9` across auth test files.
+- `sprint-a-public-reports.test.ts` mock chain missing `is`/`order`/`limit` at two locations.
+- `coaching-heroes-pages.test.tsx` `BASE_SENTIMENT` fixture missing required `SentimentSummary` fields.
+- `wave1-components.test.tsx` missing `beforeEach` import.
+- `14-sidebar-nav.spec.ts` null guard on `text.trim()`.
+- Account lockout `} catch {` bare blocks → `} catch (_e) {` for sentry-sweep compliance.
+
+### AI_RULES
+- §313: Email Verification Flow (Sprint 1).
+- §314: Password Policy Hardening + Input Sanitization + Account Lockout.
+
+---
+
+## §315 — Registration Rollback Hardening (2026-03-08)
+
+### What
+Sprint 3 of the auth security hardening series. Hardens the registration rollback mechanism to prevent orphaned auth users, adds Sentry alerting for rollback failures, implements trigger propagation retry, and adds double-rollback guard.
+
+### Architecture
+- **Hardened rollback:** `rollback()` wraps `admin.deleteUser()` in try/catch. On failure, logs orphaned auth user ID + email to Sentry at `fatal` level with `orphaned_auth_user` tag. Returns machine-readable `code` field: `ROLLED_BACK` or `ROLLBACK_FAILED`.
+- **Double-rollback guard:** `rollbackAttempted` boolean prevents `deleteUser` from being called twice per request.
+- **Trigger propagation retry:** `TRIGGER_POLL_MAX_RETRIES=2`, `TRIGGER_POLL_DELAY_MS=250`. Polls for `public.users` and `memberships` rows up to 3 attempts (initial + 2 retries) with 250ms delay between.
+- **Sentry instrumentation:** 4 Sentry call sites — trigger lookup failures (`captureMessage` error), org update failure (`captureException`), rollback failure (`captureException` + `captureMessage` fatal).
+
+### Files changed (1 modified + 1 new test file + 1 new E2E file + 1 updated test file)
+- `app/api/auth/register/route.ts` (hardened rollback, retry logic, Sentry logging)
+- `src/__tests__/unit/auth-routes.test.ts` (updated rollback tests for retry behavior)
+- `src/__tests__/unit/auth-rollback-s315.test.ts` (new — 15 tests)
+- `tests/e2e/auth-rollback-s315.spec.ts` (new — 3 E2E tests)
+
+### Test results
+- **15 new unit tests** in `auth-rollback-s315.test.ts`: Rollback failure logging (3), Double-rollback guard (1), Trigger propagation retry (5), Sentry logging on trigger failure (3), Happy path (1), Rollback on org update failure (2).
+- **3 new E2E tests** in `auth-rollback-s315.spec.ts`: ROLLED_BACK error message, ROLLBACK_FAILED contact support message, successful registration after improvements.
+- **7468 tests, 461 files — ALL PASS.** `tsc --noEmit` = 0 errors.
+
+### AI_RULES
+- §315: Registration Rollback Hardening.

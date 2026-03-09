@@ -19,14 +19,14 @@ export interface VisibilitySnapshot {
 
 export interface HallucinationRecord {
   model_provider: string;
-  severity: string;
-  category: string;
+  severity: string | null;
+  category: string | null;
   claim_text: string;
-  expected_truth: string;
-  correction_status: string;
-  occurrence_count: number;
-  first_detected_at?: string;
-  last_seen_at?: string;
+  expected_truth: string | null;
+  correction_status: string | null;
+  occurrence_count: number | null;
+  first_detected_at?: string | null;
+  last_seen_at?: string | null;
 }
 
 export interface CompetitorIntercept {

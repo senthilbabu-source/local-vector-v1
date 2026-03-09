@@ -42,6 +42,7 @@ export interface SafeAuthContext {
   userId: string;
   email: string;
   fullName: string | null;
+  emailVerified: boolean;
   orgId: string | null;
   orgName: string | null;
   role: MembershipRole | null;
@@ -181,6 +182,7 @@ export async function getSafeAuthContext(): Promise<SafeAuthContext | null> {
       userId: user.id,
       email: user.email ?? '',
       fullName: null,
+      emailVerified: !!user.email_confirmed_at,
       orgId: null,
       orgName: null,
       role: null,
@@ -216,6 +218,7 @@ export async function getSafeAuthContext(): Promise<SafeAuthContext | null> {
       userId: user.id,
       email: user.email ?? '',
       fullName: publicUser.full_name,
+      emailVerified: !!user.email_confirmed_at,
       orgId: null,
       orgName: null,
       role: null,
@@ -230,6 +233,7 @@ export async function getSafeAuthContext(): Promise<SafeAuthContext | null> {
     userId: user.id,
     email: user.email ?? '',
     fullName: publicUser.full_name,
+    emailVerified: !!user.email_confirmed_at,
     orgId: org ? membership.org_id : null,
     orgName: org ? org.name : null,
     role: org ? (membership.role as MembershipRole) : null,

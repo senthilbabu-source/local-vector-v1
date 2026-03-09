@@ -47,6 +47,13 @@ vi.mock('@/lib/supabase/server', () => ({
   createClient: vi.fn(async () => mockServerClient),
 }));
 
+// §314: Mock account lockout (defaults to unlocked)
+vi.mock('@/lib/auth/account-lockout', () => ({
+  checkAccountLockout: vi.fn(async () => ({ locked: false, attemptsRemaining: 5 })),
+  recordFailedLogin: vi.fn(async () => {}),
+  clearFailedLogins: vi.fn(async () => {}),
+}));
+
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
@@ -98,7 +105,7 @@ describe('POST /api/auth/register', () => {
 
   it('returns 400 for invalid email format', async () => {
     const res = await register(
-      makeRequest({ email: 'not-an-email', password: 'Password1', full_name: 'Test', business_name: 'Test Biz' })
+      makeRequest({ email: 'not-an-email', password: 'SecureP@ss9', full_name: 'Test', business_name: 'Test Biz' })
     );
     expect(res.status).toBe(400);
     const body = await res.json();
@@ -133,7 +140,7 @@ describe('POST /api/auth/register', () => {
     });
 
     const res = await register(
-      makeRequest({ email: 'existing@test.com', password: 'Password1', full_name: 'Test', business_name: 'Test Biz' })
+      makeRequest({ email: 'existing@test.com', password: 'SecureP@ss9', full_name: 'Test', business_name: 'Test Biz' })
     );
     expect(res.status).toBe(409);
     const body = await res.json();
@@ -147,7 +154,7 @@ describe('POST /api/auth/register', () => {
     });
 
     const res = await register(
-      makeRequest({ email: 'a@b.com', password: 'Password1', full_name: 'Test', business_name: 'Test Biz' })
+      makeRequest({ email: 'a@b.com', password: 'SecureP@ss9', full_name: 'Test', business_name: 'Test Biz' })
     );
     expect(res.status).toBe(500);
   });
@@ -161,22 +168,23 @@ describe('POST /api/auth/register', () => {
     });
     mockAdminDeleteUser.mockResolvedValue({ error: null });
 
-    // Step 3 (users lookup) returns null → triggers rollback
-    mockFrom.mockReturnValueOnce({
+    // §315: Step 3 (users lookup) returns null on ALL retry attempts → triggers rollback
+    const failBuilder = {
       select: vi.fn().mockReturnThis(),
       eq: vi.fn().mockReturnThis(),
       single: vi.fn().mockResolvedValue({ data: null, error: { message: 'Row not found' } }),
-    });
+    };
+    mockFrom.mockReturnValue(failBuilder);
 
     const res = await register(
-      makeRequest({ email: 'a@b.com', password: 'Password1', full_name: 'Test', business_name: 'Test Biz' })
+      makeRequest({ email: 'a@b.com', password: 'SecureP@ss9', full_name: 'Test', business_name: 'Test Biz' })
     );
 
     expect(res.status).toBe(500);
     expect(mockAdminDeleteUser).toHaveBeenCalledOnce();
     expect(mockAdminDeleteUser).toHaveBeenCalledWith('auth-user-uuid');
     const body = await res.json();
-    expect(body.error).toContain('rolled back');
+    expect(body.code).toBe('ROLLED_BACK');
   });
 
   it('deletes the auth user (rollback) if membership is not found after creation', async () => {
@@ -186,21 +194,22 @@ describe('POST /api/auth/register', () => {
     });
     mockAdminDeleteUser.mockResolvedValue({ error: null });
 
-    // Step 3 (users lookup) succeeds
+    // §315: Step 3 (users lookup) succeeds on first attempt
     mockFrom.mockReturnValueOnce({
       select: vi.fn().mockReturnThis(),
       eq: vi.fn().mockReturnThis(),
       single: vi.fn().mockResolvedValue({ data: { id: 'public-user-uuid' }, error: null }),
     });
-    // Step 4 (membership lookup) fails → triggers rollback
-    mockFrom.mockReturnValueOnce({
+    // §315: Step 4 (membership lookup) fails on ALL retry attempts → triggers rollback
+    const failBuilder = {
       select: vi.fn().mockReturnThis(),
       eq: vi.fn().mockReturnThis(),
       single: vi.fn().mockResolvedValue({ data: null, error: { message: 'No membership' } }),
-    });
+    };
+    mockFrom.mockReturnValue(failBuilder);
 
     const res = await register(
-      makeRequest({ email: 'a@b.com', password: 'Password1', full_name: 'Test', business_name: 'Test Biz' })
+      makeRequest({ email: 'a@b.com', password: 'SecureP@ss9', full_name: 'Test', business_name: 'Test Biz' })
     );
 
     expect(res.status).toBe(500);
@@ -237,7 +246,7 @@ describe('POST /api/auth/register', () => {
       });
 
     const res = await register(
-      makeRequest({ email: 'new@test.com', password: 'Password1', full_name: 'New User', business_name: 'My Restaurant' })
+      makeRequest({ email: 'new@test.com', password: 'SecureP@ss9', full_name: 'New User', business_name: 'My Restaurant' })
     );
 
     expect(res.status).toBe(201);
@@ -245,7 +254,8 @@ describe('POST /api/auth/register', () => {
     expect(body.user_id).toBe('auth-user-uuid');
     expect(body.org_id).toBe('org-uuid');
     expect(body.org_name).toBe('My Restaurant');
-    expect(body.message).toContain('sign in');
+    expect(body.message).toContain('verify');
+    expect(body.email_verification_required).toBe(true);
   });
 });
 
@@ -284,12 +294,26 @@ describe('POST /api/auth/login', () => {
     expect(body.error).toBe('Invalid email or password');
   });
 
+  // §313: Email not confirmed — returns 403 with verification redirect
+  it('returns 403 with email_verification_required when email is not confirmed', async () => {
+    mockSignInWithPassword.mockResolvedValue({
+      data: { session: null, user: null },
+      error: { message: 'Email not confirmed' },
+    });
+
+    const res = await login(makeRequest({ email: 'a@b.com', password: 'SecureP@ss9' }));
+    expect(res.status).toBe(403);
+    const body = await res.json();
+    expect(body.email_verification_required).toBe(true);
+    expect(body.error).toContain('verify');
+  });
+
   // ── Happy path ────────────────────────────────────────────────────────────
 
-  it('returns 200 with session tokens on valid credentials', async () => {
+  it('returns 200 with session tokens on valid credentials (verified user)', async () => {
     mockSignInWithPassword.mockResolvedValue({
       data: {
-        user: { id: 'user-uuid', email: 'a@b.com' },
+        user: { id: 'user-uuid', email: 'a@b.com', email_confirmed_at: '2026-01-01T00:00:00Z' },
         session: {
           access_token: 'access-tok',
           refresh_token: 'refresh-tok',
@@ -299,14 +323,32 @@ describe('POST /api/auth/login', () => {
       error: null,
     });
 
-    const res = await login(makeRequest({ email: 'a@b.com', password: 'Password1' }));
+    const res = await login(makeRequest({ email: 'a@b.com', password: 'SecureP@ss9' }));
     expect(res.status).toBe(200);
     const body = await res.json();
     expect(body.user_id).toBe('user-uuid');
     expect(body.email).toBe('a@b.com');
+    expect(body.email_verified).toBe(true);
     expect(body.session.access_token).toBe('access-tok');
-    expect(body.session.refresh_token).toBe('refresh-tok');
-    expect(body.session.expires_at).toBe(9999999999);
+  });
+
+  it('returns email_verified=false for unverified user login', async () => {
+    mockSignInWithPassword.mockResolvedValue({
+      data: {
+        user: { id: 'user-uuid', email: 'a@b.com', email_confirmed_at: null },
+        session: {
+          access_token: 'access-tok',
+          refresh_token: 'refresh-tok',
+          expires_at: 9999999999,
+        },
+      },
+      error: null,
+    });
+
+    const res = await login(makeRequest({ email: 'a@b.com', password: 'SecureP@ss9' }));
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.email_verified).toBe(false);
   });
 });
 

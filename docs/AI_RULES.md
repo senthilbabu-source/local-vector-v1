@@ -6457,3 +6457,36 @@ Production audit identified 3 tables with `ENABLE ROW LEVEL SECURITY` but zero p
 - **No `: any` in production lib/:** Use typed interfaces (`VisibilitySnapshot`, `HallucinationRecord`, `CompetitorIntercept`) for Supabase query results. Exception: third-party vendored code (e.g., Tremor chart utilities) with eslint-disable.
 - **Email validation:** Use Zod `z.string().email()` for email validation at API boundaries, not custom regex. More complete RFC 5322 coverage.
 - **AI SDK pinning:** AI SDK packages (`@ai-sdk/*`, `ai`) MUST use exact versions in `package.json` (no `^` or `~`). Minor AI SDK updates can introduce schema changes, token counting changes, or behavioral shifts. Pin and upgrade deliberately.
+
+### §313 — Email Verification Flow
+
+#### Rules
+- **Registration:** `admin.createUser()` passes `email_confirm: false`. Response includes `email_verification_required: true`.
+- **Login:** Returns `email_verified: boolean` derived from `user.email_confirmed_at`. Unverified users get `403` with `email_verification_required: true` when email is not confirmed by Supabase.
+- **Resend verification:** `POST /api/auth/resend-verification` — rate-limited 1 req/60s (`auth_resend_verification` in ROUTE_RATE_LIMITS). Returns 401/400/429/500.
+- **Proxy gate:** `proxy.ts` redirects unverified users from `/dashboard` and `/onboarding` to `/verify-email`. Redirects verified users from `/verify-email` to `/dashboard`. Redirects unauthenticated users from `/verify-email` to `/login`.
+- **Client-side:** Login page redirects to `/verify-email` when `email_verified === false` (success) or `email_verification_required === true` (403).
+- **Verify-email page:** Client component with resend button, success/error states, auto-redirect on verification.
+
+### §314 — Password Policy Hardening + Input Sanitization + Account Lockout
+
+#### Rules
+- **Password schema:** `lib/schemas/auth.ts` — min 8, max 72 (bcrypt limit), requires uppercase + lowercase + digit. Common password blocklist (120+ entries, case-insensitive Set lookup). Email-in-password cross-field `.refine()` checks local part ≥3 chars.
+- **Password strength meter:** `components/auth/PasswordStrengthMeter.tsx` — 4-bar visual indicator (Weak/Fair/Good/Strong), `aria-live="polite"`, hidden when empty. Score 0–4 via `computePasswordStrength()` in `lib/auth/password-policy.ts`.
+- **Input sanitization:** `lib/auth/input-sanitizer.ts` — `sanitizeName()` pipeline: strip HTML tags → strip control chars → normalize whitespace. `hasSuspiciousPatterns()` detects XSS/SQL injection/null bytes. Wired into RegisterSchema via Zod `.transform()` + `.pipe()`.
+- **Name schema:** `nameSchema(fieldLabel)` factory — min 2, max 100, `.transform(sanitizeName)` → `.pipe()` re-validates length + suspicious patterns. Used for `full_name` and `business_name`.
+- **Account lockout:** `lib/auth/account-lockout.ts` — Redis sorted set sliding window. 5 failed attempts in 15 minutes → 15 minute lockout. Keys by normalized email (lowercase + trim). All functions fail-open on Redis errors (AI_RULES §17).
+- **Login route:** Checks `checkAccountLockout()` before auth attempt → HTTP 423 (Locked) when locked. Records failed login on invalid credentials. Clears failed logins on success.
+- **Login page UI:** Handles 423 response with human-readable "Account temporarily locked" message showing retry time in minutes.
+- **Test password:** Use `SecureP@ss9` (not `Password1`) in all auth test files — `Password1` is in the common password blocklist.
+- **Sentry compliance:** All catch blocks in account-lockout.ts use `} catch (_e) {` pattern (never bare `} catch {`).
+
+### §315 — Registration Rollback Hardening
+
+#### Rules
+- **Rollback failure handling:** The `rollback()` function in `app/api/auth/register/route.ts` wraps `admin.deleteUser()` in try/catch. If deleteUser fails, the orphaned auth user ID + email are logged to Sentry at `fatal` level with tag `issue: 'orphaned_auth_user'` for manual cleanup.
+- **Error codes:** Rollback responses include a `code` field: `ROLLED_BACK` (deleteUser succeeded, safe to retry) or `ROLLBACK_FAILED` (deleteUser failed, orphaned user exists — contact support).
+- **Double-rollback guard:** A `rollbackAttempted` boolean prevents `admin.deleteUser()` from being called more than once per request, even if multiple error paths trigger rollback.
+- **Trigger propagation retry:** After `admin.createUser()`, the route polls for `public.users` and `memberships` rows with up to `TRIGGER_POLL_MAX_RETRIES=2` retries and `TRIGGER_POLL_DELAY_MS=250` delay between attempts. This handles edge-case replication lag between Supabase Auth and the public schema.
+- **Sentry logging on trigger failure:** When `public.users` or `memberships` rows are not found after all retry attempts, a Sentry `captureMessage` at `error` level records the failure details before rollback.
+- **Sentry logging on org update failure:** When the org name update fails, `captureException` records the error with `authUserId` and `orgId` in extras before rollback.

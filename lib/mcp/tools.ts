@@ -139,11 +139,11 @@ export function registerLocalVectorTools(server: McpServer) {
                     const t = mapSnapshotToTrend(s);
                     return { date: t.date, sov: `${t.sov}%`, citation_rate: `${t.citationRate}%` };
                 }),
-                recent_evaluations: (evals ?? []).map((e: { target_queries?: { query_text?: string }; engine: string; rank_position: number | null; mentioned_competitors: string[] | null; created_at: string }) => ({
-                    query: e.target_queries?.query_text ?? 'Unknown',
+                recent_evaluations: (evals ?? []).map((e) => ({
+                    query: (e.target_queries as { query_text?: string } | null)?.query_text ?? 'Unknown',
                     engine: e.engine,
                     rank: e.rank_position ?? 'Not cited',
-                    competitors: e.mentioned_competitors ?? [],
+                    competitors: (Array.isArray(e.mentioned_competitors) ? e.mentioned_competitors : []) as string[],
                     date: e.created_at,
                 })),
             };

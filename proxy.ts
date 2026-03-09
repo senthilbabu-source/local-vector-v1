@@ -8,6 +8,9 @@ import { isScannerUA } from '@/lib/security/scanner-guard';
 
 const PROTECTED_PREFIXES = ['/dashboard'];
 const AUTH_PREFIXES = ['/login', '/register', '/signup'];
+const VERIFICATION_PATH = '/verify-email';
+// §313: Routes that require email verification (superset of PROTECTED_PREFIXES)
+const VERIFICATION_GATED_PREFIXES = ['/dashboard', '/onboarding'];
 
 export function proxy(request: NextRequest) {
   return handleProxy(request);
@@ -145,6 +148,31 @@ async function handleProxy(request: NextRequest) {
   if (user && isAuthPage) {
     const url = request.nextUrl.clone();
     url.pathname = '/dashboard';
+    return NextResponse.redirect(url);
+  }
+
+  // §313: Email verification gate
+  const isVerifyPage = pathname === VERIFICATION_PATH;
+
+  // Verified user on /verify-email → send to dashboard
+  if (user && user.email_confirmed_at && isVerifyPage) {
+    const url = request.nextUrl.clone();
+    url.pathname = '/dashboard';
+    return NextResponse.redirect(url);
+  }
+
+  // Unauthenticated user on /verify-email → send to login
+  if (!user && isVerifyPage) {
+    const url = request.nextUrl.clone();
+    url.pathname = '/login';
+    return NextResponse.redirect(url);
+  }
+
+  // Unverified user accessing verification-gated routes → send to /verify-email
+  const isVerificationGated = VERIFICATION_GATED_PREFIXES.some((p) => pathname.startsWith(p));
+  if (user && !user.email_confirmed_at && isVerificationGated) {
+    const url = request.nextUrl.clone();
+    url.pathname = VERIFICATION_PATH;
     return NextResponse.redirect(url);
   }
 

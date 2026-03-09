@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { RegisterSchema, type RegisterInput } from '@/lib/schemas/auth';
 import { createClient } from '@/lib/supabase/client';
+import PasswordStrengthMeter from '@/components/auth/PasswordStrengthMeter';
 import * as Sentry from '@sentry/nextjs';
 
 type FieldName = keyof RegisterInput;
@@ -79,10 +80,13 @@ export default function RegisterPage() {
   const {
     register,
     handleSubmit,
+    watch,
     formState: { errors, isSubmitting },
   } = useForm<RegisterInput>({
     resolver: zodResolver(RegisterSchema),
   });
+
+  const watchedPassword = watch('password', '');
 
   async function onSubmit(data: RegisterInput) {
     setGlobalError(null);
@@ -95,7 +99,8 @@ export default function RegisterPage() {
       });
 
       if (res.ok) {
-        // Registration succeeded — log the user in immediately
+        // §313: Registration succeeded — log in to set session cookies, then
+        // redirect to verify-email (proxy.ts gates /dashboard for unverified users)
         const loginRes = await fetch('/api/auth/login', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -103,12 +108,12 @@ export default function RegisterPage() {
         });
 
         if (loginRes.ok) {
-          router.push('/onboarding/connect');
+          router.push('/verify-email');
           router.refresh();
           return;
         }
-        // Login after register failed — send to login page with the email pre-filled
-        router.push('/login');
+        // Login after register failed — still send to verify-email
+        router.push('/verify-email');
         return;
       }
 
@@ -186,7 +191,8 @@ export default function RegisterPage() {
             </div>
           ))}
 
-          {/* Password hint */}
+          {/* §314: Password strength meter + hint */}
+          <PasswordStrengthMeter password={watchedPassword} />
           <p style={{ fontSize: 12, color: '#94A3B8' }}>
             Must be 8+ characters with an uppercase letter, lowercase letter, and number.
           </p>

@@ -66,11 +66,15 @@ const BASE_MENU = {
 
 const BASE_SENTIMENT = {
   averageScore: 0.5,
+  dominantLabel: 'positive' as const,
+  dominantTone: 'positive' as const,
   topPositive: ['cozy', 'friendly', 'fresh'],
+  topNegative: [] as string[],
   byEngine: {
-    perplexity: { averageScore: 0.6 },
-    openai:     { averageScore: 0.4 },
+    perplexity: { averageScore: 0.6, label: 'positive' as const, tone: 'positive' as const, descriptors: { positive: ['cozy'], negative: [], neutral: [] } },
+    openai:     { averageScore: 0.4, label: 'positive' as const, tone: 'matter_of_fact' as const, descriptors: { positive: ['fresh'], negative: [], neutral: [] } },
   },
+  evaluationCount: 10,
 };
 
 // ═══════════════════════════════════════════════════════════════════════════

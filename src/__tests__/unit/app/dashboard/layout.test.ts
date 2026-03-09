@@ -98,6 +98,7 @@ const BASE_CTX: SafeAuthContext = {
   userId:               USER_ID,
   email:                'owner@charcoal.test',
   fullName:             'Jane Doe',
+  emailVerified:        true,
   orgId:                ORG_ID,
   orgName:              'Charcoal N Chill',
   role:                 'owner',

@@ -136,32 +136,16 @@ test.describe('Signup form server-side error handling (mocked API)', () => {
 // ---------------------------------------------------------------------------
 // Test group 3: Signup form → navigation on success (mocked, unauthenticated)
 //
-// Middleware (proxy.ts) blocks authenticated users from auth pages:
-//   if (user && isAuthPage) → redirect /dashboard
-// So this test runs WITHOUT storageState (unauthenticated).
-//
-// After mocked register (201) + mocked login (200), the client executes:
-//   router.push('/onboarding/connect') + router.refresh()
-// The server request to /onboarding/connect hits the proxy, which finds no
-// real auth cookie and redirects to /login. So the final URL is /login.
-//
-// This is expected and correct — the test verifies:
-//   1. Form passes Zod validation (no errors shown)
-//   2. POST /api/auth/register is called
-//   3. POST /api/auth/login is called
-//   4. router.push('/onboarding/connect') fires (URL leaves /signup)
-//
-// The full post-signup experience (/onboarding/connect → wizard) is covered
-// by 15-gbp-onboarding-connect.spec.ts (incomplete@ session) and
-// 02-onboarding-guard.spec.ts (e2e-tester@ session).
+// §313: After registration, the client now redirects to /verify-email instead
+// of /onboarding/connect. The proxy redirects unauthenticated /verify-email
+// to /login — both /verify-email and /login confirm navigation fired.
 // ---------------------------------------------------------------------------
 
-test.describe('Signup form success → navigation away from /signup (mocked APIs)', () => {
+test.describe('Signup form success → navigation to /verify-email (mocked APIs)', () => {
   test(
-    'successful registration → router.push fires → URL leaves /signup',
+    'successful registration → redirects to /verify-email',
     async ({ page }) => {
       // ── Mock: POST /api/auth/register → 201 ─────────────────────────────
-      // Browser-level intercept — proxy rate limiter never runs.
       await page.route('**/api/auth/register', async (route) => {
         await route.fulfill({
           status: 201,
@@ -170,52 +154,116 @@ test.describe('Signup form success → navigation away from /signup (mocked APIs
             user_id: 'mock-user-id',
             org_id: 'mock-org-id',
             org_name: 'E2E Test Restaurant',
-            message: 'Account created. Please sign in to start your session.',
+            email_verification_required: true,
+            message: 'Account created. Please check your email to verify your account.',
           }),
         });
       });
 
-      // ── Mock: POST /api/auth/login → 200 ────────────────────────────────
+      // ── Mock: POST /api/auth/login → 200 (unverified user) ──────────────
       await page.route('**/api/auth/login', async (route) => {
         await route.fulfill({
           status: 200,
           contentType: 'application/json',
-          body: JSON.stringify({ message: 'Logged in successfully.' }),
+          body: JSON.stringify({
+            user_id: 'mock-user-id',
+            email: 'fresh-mocked@localvector.ai',
+            email_verified: false,
+            session: { access_token: 'mock-at', refresh_token: 'mock-rt', expires_at: 9999999999 },
+          }),
         });
       });
 
-      // ── Step 1: Navigate to signup (unauthenticated — middleware allows) ─
       await page.goto('/signup');
 
       await expect(
         page.getByRole('button', { name: /create account/i })
       ).toBeVisible();
 
-      // ── Step 2: Fill the registration form ──────────────────────────────
       await page.fill('#full_name', 'E2E Test User');
       await page.fill('#business_name', 'E2E Test Restaurant');
       await page.fill('#email', 'fresh-mocked@localvector.ai');
       await page.fill('#password', 'Password123!');
 
-      // ── Step 3: Submit ───────────────────────────────────────────────────
-      // RegisterPage.onSubmit:
-      //   1. fetch('/api/auth/register') → mocked 201 → res.ok is true
-      //   2. fetch('/api/auth/login')    → mocked 200 → loginRes.ok is true
-      //   3. router.push('/onboarding/connect') + router.refresh()
+      // §313: register → login (sets cookies) → router.push('/verify-email')
       await page.getByRole('button', { name: /create account/i }).click();
 
-      // URL should leave /signup. The proxy redirects the unauthenticated
-      // /onboarding/connect request to /login — both /onboarding and /login
-      // confirm the client successfully triggered post-signup navigation.
-      await page.waitForURL(/\/(onboarding|login)/, { timeout: 15_000 });
+      // Proxy redirects unauthenticated /verify-email → /login
+      await page.waitForURL(/\/(verify-email|login)/, { timeout: 15_000 });
 
       const finalUrl = page.url();
-      // Confirm URL left the signup/register page.
       expect(finalUrl).not.toMatch(/(signup|register)/);
-      // No error banner should be visible — the submission succeeded.
       await expect(
         page.getByRole('alert').filter({ hasText: /failed|error/i })
       ).not.toBeVisible();
     }
   );
+});
+
+// ---------------------------------------------------------------------------
+// Test group 4: Login with unverified email → /verify-email (§313)
+// ---------------------------------------------------------------------------
+
+test.describe('Login with unverified email (§313)', () => {
+  test('login with email_verified=false redirects to /verify-email', async ({
+    page,
+  }) => {
+    await page.route('**/api/auth/login', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          user_id: 'mock-user-id',
+          email: 'unverified@test.com',
+          email_verified: false,
+          session: { access_token: 'mock-at', refresh_token: 'mock-rt', expires_at: 9999999999 },
+        }),
+      });
+    });
+
+    await page.goto('/login');
+    await page.fill('#email', 'unverified@test.com');
+    await page.fill('#password', 'Password123!');
+    await page.click('button[type="submit"]');
+
+    // Client reads email_verified=false → router.push('/verify-email')
+    // Proxy may redirect unauthenticated /verify-email → /login
+    await page.waitForURL(/\/(verify-email|login)/, { timeout: 15_000 });
+  });
+
+  test('login with 403 email-not-confirmed redirects to /verify-email', async ({
+    page,
+  }) => {
+    await page.route('**/api/auth/login', async (route) => {
+      await route.fulfill({
+        status: 403,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          error: 'Please verify your email before signing in.',
+          email_verification_required: true,
+        }),
+      });
+    });
+
+    await page.goto('/login');
+    await page.fill('#email', 'unverified@test.com');
+    await page.fill('#password', 'Password123!');
+    await page.click('button[type="submit"]');
+
+    await page.waitForURL(/\/(verify-email|login)/, { timeout: 15_000 });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Test group 5: /verify-email page renders (§313)
+// ---------------------------------------------------------------------------
+
+test.describe('Verify email page (§313)', () => {
+  test('/verify-email unauthenticated → redirects to /login', async ({
+    page,
+  }) => {
+    // Proxy redirects unauthenticated users from /verify-email to /login
+    await page.goto('/verify-email');
+    await page.waitForURL(/\/login/, { timeout: 10_000 });
+  });
 });

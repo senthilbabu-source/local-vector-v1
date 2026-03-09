@@ -5,6 +5,12 @@ import * as Sentry from '@sentry/nextjs';
 import { checkRateLimit, getRateLimitHeaders } from '@/lib/rate-limit/rate-limiter';
 import { ROUTE_RATE_LIMITS } from '@/lib/rate-limit/types';
 
+/** §315: Maximum retries when polling for trigger-created rows. */
+const TRIGGER_POLL_MAX_RETRIES = 2;
+
+/** §315: Delay between trigger poll retries (ms). */
+const TRIGGER_POLL_DELAY_MS = 250;
+
 /**
  * POST /api/auth/register
  *
@@ -15,12 +21,13 @@ import { ROUTE_RATE_LIMITS } from '@/lib/rate-limit/types';
  *     → triggers fire:
  *       - on_auth_user_created  → inserts public.users row
  *       - on_user_created       → inserts organizations + memberships rows
- *  3. Retrieve the org created by the trigger
+ *  3. Retrieve the org created by the trigger (with retry for trigger propagation)
  *  4. PATCH the org name to the supplied `business_name`
  *     (trigger uses email prefix as a placeholder — Doc 09 idempotent signup rule)
  *  5. Return 201 with user_id and org context
  *
- * The caller should immediately POST /api/auth/login to obtain a session cookie.
+ * §315: Rollback is hardened — deleteUser failures are caught and logged to
+ * Sentry with the orphaned auth user ID for manual cleanup.
  */
 export async function POST(request: Request): Promise<NextResponse> {
   // P5-FIX-22: Rate limit by IP (signup spam protection)
@@ -58,7 +65,7 @@ export async function POST(request: Request): Promise<NextResponse> {
     await service.auth.admin.createUser({
       email,
       password,
-      email_confirm: true,
+      email_confirm: false,
       user_metadata: { full_name },
     });
 
@@ -79,35 +86,108 @@ export async function POST(request: Request): Promise<NextResponse> {
   const db = service;
 
   /**
-   * Atomicity guard: if any step after Auth user creation fails, delete the
-   * auth user to prevent an orphaned account that can't be re-registered.
-   * The caller receives a 500 and can safely retry the full registration.
+   * §315: Hardened rollback — catches deleteUser failures and reports orphaned
+   * auth user IDs to Sentry for manual cleanup. Never throws.
    */
-  async function rollback(message: string): Promise<NextResponse> {
-    await service.auth.admin.deleteUser(authUserId);
-    return NextResponse.json({ error: message }, { status: 500 });
+  let rollbackAttempted = false;
+  async function rollback(reason: string): Promise<NextResponse> {
+    if (rollbackAttempted) {
+      // Prevent double-rollback if called from multiple error paths
+      return NextResponse.json(
+        { error: `${reason} (rollback already attempted)` },
+        { status: 500 },
+      );
+    }
+    rollbackAttempted = true;
+
+    try {
+      await service.auth.admin.deleteUser(authUserId);
+    } catch (rollbackErr) {
+      // §315: Orphaned auth user — log to Sentry for manual cleanup
+      Sentry.captureException(rollbackErr, {
+        tags: { file: 'auth/register/route.ts', sprint: '315', issue: 'orphaned_auth_user' },
+        extra: { authUserId, email, reason },
+      });
+      Sentry.captureMessage(
+        `[§315] ORPHANED AUTH USER: ${authUserId} (${email}) — rollback deleteUser failed. Manual cleanup required.`,
+        { level: 'fatal', tags: { sprint: '315' } },
+      );
+      return NextResponse.json(
+        { error: `${reason} Rollback failed — please contact support.`, code: 'ROLLBACK_FAILED' },
+        { status: 500 },
+      );
+    }
+
+    return NextResponse.json(
+      { error: `${reason} Account rolled back. Please try again.`, code: 'ROLLED_BACK' },
+      { status: 500 },
+    );
   }
 
-  // 3. Resolve the public.users row (created by on_auth_user_created trigger)
-  const { data: publicUser, error: publicUserError } = await db
-    .from('users')
-    .select('id')
-    .eq('auth_provider_id', authUserId)
-    .single() as { data: { id: string } | null; error: unknown };
+  // 3. §315: Resolve public.users row with retry for trigger propagation
+  //    PostgreSQL triggers are synchronous, but Supabase Auth → public schema
+  //    may have replication lag in some deployment configurations.
+  let publicUser: { id: string } | null = null;
+  let publicUserError: unknown = null;
 
-  if (!publicUser || publicUserError) {
-    return rollback('User profile not found after creation — account rolled back. Please try again.');
+  for (let attempt = 0; attempt <= TRIGGER_POLL_MAX_RETRIES; attempt++) {
+    const result = await db
+      .from('users')
+      .select('id')
+      .eq('auth_provider_id', authUserId)
+      .single() as { data: { id: string } | null; error: unknown };
+
+    if (result.data) {
+      publicUser = result.data;
+      publicUserError = null;
+      break;
+    }
+
+    publicUserError = result.error;
+
+    if (attempt < TRIGGER_POLL_MAX_RETRIES) {
+      await new Promise((resolve) => setTimeout(resolve, TRIGGER_POLL_DELAY_MS));
+    }
   }
 
-  // 4. Resolve the org created by on_user_created trigger
-  const { data: membership, error: membershipError } = await db
-    .from('memberships')
-    .select('org_id')
-    .eq('user_id', publicUser.id)
-    .single() as { data: { org_id: string } | null; error: unknown };
+  if (!publicUser) {
+    Sentry.captureMessage(
+      `[§315] public.users row not found after ${TRIGGER_POLL_MAX_RETRIES + 1} attempts for auth user ${authUserId}`,
+      { level: 'error', tags: { sprint: '315' }, extra: { publicUserError } },
+    );
+    return rollback('User profile not found after creation —');
+  }
 
-  if (!membership || membershipError) {
-    return rollback('Organisation not found after creation — account rolled back. Please try again.');
+  // 4. §315: Resolve membership with retry for trigger propagation
+  let membership: { org_id: string } | null = null;
+  let membershipError: unknown = null;
+
+  for (let attempt = 0; attempt <= TRIGGER_POLL_MAX_RETRIES; attempt++) {
+    const result = await db
+      .from('memberships')
+      .select('org_id')
+      .eq('user_id', publicUser.id)
+      .single() as { data: { org_id: string } | null; error: unknown };
+
+    if (result.data) {
+      membership = result.data;
+      membershipError = null;
+      break;
+    }
+
+    membershipError = result.error;
+
+    if (attempt < TRIGGER_POLL_MAX_RETRIES) {
+      await new Promise((resolve) => setTimeout(resolve, TRIGGER_POLL_DELAY_MS));
+    }
+  }
+
+  if (!membership) {
+    Sentry.captureMessage(
+      `[§315] memberships row not found after ${TRIGGER_POLL_MAX_RETRIES + 1} attempts for user ${publicUser.id}`,
+      { level: 'error', tags: { sprint: '315' }, extra: { membershipError } },
+    );
+    return rollback('Organisation not found after creation —');
   }
 
   // 5. Update the org name to the user-supplied business_name
@@ -118,7 +198,11 @@ export async function POST(request: Request): Promise<NextResponse> {
     .eq('id', membership.org_id) as { data: null; error: unknown };
 
   if (updateError) {
-    return rollback('Failed to set business name — account rolled back. Please try again.');
+    Sentry.captureException(updateError, {
+      tags: { file: 'auth/register/route.ts', sprint: '315' },
+      extra: { authUserId, orgId: membership.org_id },
+    });
+    return rollback('Failed to set business name —');
   }
 
   return NextResponse.json(
@@ -126,7 +210,8 @@ export async function POST(request: Request): Promise<NextResponse> {
       user_id: authUserId,
       org_id: membership.org_id,
       org_name: business_name,
-      message: 'Account created. Please sign in to start your session.',
+      email_verification_required: true,
+      message: 'Account created. Please check your email to verify your account.',
     },
     { status: 201 }
   );

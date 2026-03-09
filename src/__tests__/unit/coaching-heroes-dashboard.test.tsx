@@ -29,21 +29,26 @@ import CoachBriefCard from '@/app/dashboard/_components/CoachBriefCard';
 
 // ── Type helpers ─────────────────────────────────────────────────────────────
 
-type HallucinationRow = {
-  id: string;
-  claim_text: string;
-  severity: 'critical' | 'high' | 'medium' | 'low';
-  model_provider: string;
-  status: string;
-};
+import type { HallucinationRow } from '@/lib/data/dashboard';
 
 function makeAlert(overrides: Partial<HallucinationRow> = {}): HallucinationRow {
   return {
     id: 'alert-1',
     claim_text: 'We open at 6am on Mondays',
     severity: 'high',
+    category: 'hours',
     model_provider: 'openai-gpt4o',
-    status: 'open',
+    expected_truth: 'Opens at 8am',
+    correction_status: 'open',
+    first_detected_at: new Date().toISOString(),
+    last_seen_at: new Date().toISOString(),
+    occurrence_count: 1,
+    follow_up_result: null,
+    fixed_at: null,
+    verified_at: null,
+    revenue_recovered_monthly: null,
+    fix_guidance_category: null,
+    root_cause_sources: null,
     ...overrides,
   };
 }
