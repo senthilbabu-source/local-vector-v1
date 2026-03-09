@@ -7459,3 +7459,39 @@ Cloudflare Turnstile invisible CAPTCHA on registration form to block automated b
 
 ### AI_RULES
 - §317: Cloudflare Turnstile CAPTCHA.
+
+---
+
+## §318 — GBP Cleanup (2026-03-09)
+
+### Architecture
+Hardens the GBP disconnect flow to clean up all related data, not just OAuth tokens. Replaces all `console.log/error/warn` in the OAuth callback route with structured Sentry logging.
+
+### Files
+- `app/dashboard/integrations/actions.ts` — **MODIFIED.** `disconnectGBP()` now also deletes `location_integrations` (google) rows via authenticated client and `pending_gbp_imports` rows via service-role client. Non-fatal cleanup — Sentry-logged but don't block success.
+- `app/api/auth/google/callback/route.ts` — **MODIFIED.** Replaced 11 `console.log/error/warn` calls with `Sentry.captureException`/`captureMessage`. Sprint tag `'318'`, includes `orgId` and step in extras.
+
+### Tests
+- **5 new unit tests** in `gbp-cleanup-s318.test.tsx`: auth guard, full cleanup chain, token error, non-fatal integration error, non-fatal pending error.
+- **7495 tests, 464 files — ALL PASS.**
+
+### AI_RULES
+- §318: GBP Cleanup.
+
+---
+
+## §319 — OAuth Loading State (2026-03-09)
+
+### Architecture
+Adds click loading state to both GBP connect buttons to prevent double-clicks and provide visual feedback during the OAuth redirect to Google.
+
+### Files
+- `app/dashboard/integrations/_components/GBPConnectButton.tsx` — **MODIFIED.** Added `isRedirecting` state. On click, shows spinner SVG + "Redirecting to Google…" with `pointer-events-none opacity-50`.
+- `app/onboarding/connect/_components/ConnectGBPButton.tsx` — **MODIFIED.** Added `isRedirecting` state + `useState` import. Same spinner + "Redirecting to Google…" pattern.
+
+### Tests
+- **5 new unit tests** in `gbp-cleanup-s318.test.tsx`: render not-connected, click loading state, connected state (dashboard), render initial (onboarding), click loading state (onboarding).
+- **7495 tests, 464 files — ALL PASS.**
+
+### AI_RULES
+- §319: OAuth Loading State.

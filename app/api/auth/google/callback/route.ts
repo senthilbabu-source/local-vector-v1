@@ -191,14 +191,21 @@ export async function GET(request: NextRequest) {
     });
 
     if (!tokenRes.ok) {
-      const err = await tokenRes.text();
-      console.error('[google-oauth] Token exchange failed:', err);
+      const errBody = await tokenRes.text();
+      Sentry.captureMessage(`[§318] GBP token exchange HTTP ${tokenRes.status}`, {
+        level: 'error',
+        tags: { file: 'google/callback/route.ts', sprint: '318' },
+        extra: { orgId, status: tokenRes.status, body: errBody },
+      });
       return redirectOnError('gbp_failed');
     }
 
     tokenData = await tokenRes.json();
   } catch (err) {
-    console.error('[google-oauth] Token exchange error:', err);
+    Sentry.captureException(err, {
+      tags: { file: 'google/callback/route.ts', sprint: '318' },
+      extra: { orgId, step: 'token_exchange' },
+    });
     return redirectOnError('gbp_failed');
   }
 
@@ -222,15 +229,20 @@ export async function GET(request: NextRequest) {
 
     if (accountsRes.ok) {
       accountsData = await accountsRes.json();
-      console.log('[google-oauth] Accounts response:', JSON.stringify(accountsData, null, 2));
       gbpAccountName = accountsData.accounts?.[0]?.name ?? null;
     } else {
       const errText = await accountsRes.text();
-      console.error('[google-oauth] Accounts API failed:', accountsRes.status, errText);
+      Sentry.captureMessage(`[§318] GBP accounts API HTTP ${accountsRes.status}`, {
+        level: 'error',
+        tags: { file: 'google/callback/route.ts', sprint: '318' },
+        extra: { orgId, status: accountsRes.status, body: errText },
+      });
     }
   } catch (err) {
-    Sentry.captureException(err, { tags: { file: 'google/callback/route.ts', sprint: 'A' } });
-    console.warn('[google-oauth] Could not fetch GBP accounts');
+    Sentry.captureException(err, {
+      tags: { file: 'google/callback/route.ts', sprint: '318' },
+      extra: { orgId, step: 'fetch_accounts' },
+    });
   }
 
   // Fetch email from userinfo
@@ -244,7 +256,10 @@ export async function GET(request: NextRequest) {
       googleEmail = userInfo.email ?? null;
     }
   } catch (err) {
-    Sentry.captureException(err, { tags: { file: 'google/callback/route.ts', sprint: 'A' } });
+    Sentry.captureException(err, {
+      tags: { file: 'google/callback/route.ts', sprint: '318' },
+      extra: { orgId, step: 'fetch_userinfo' },
+    });
     // Non-fatal
   }
 
@@ -271,13 +286,20 @@ export async function GET(request: NextRequest) {
     );
 
   if (dbError) {
-    console.error('[google-oauth] DB upsert failed:', dbError.message);
+    Sentry.captureException(dbError, {
+      tags: { file: 'google/callback/route.ts', sprint: '318' },
+      extra: { orgId, step: 'upsert_tokens' },
+    });
     return redirectOnError('gbp_failed');
   }
 
   // ── No GBP accounts → fallback ────────────────────────────────────────
   if (!accountsData.accounts || accountsData.accounts.length === 0) {
-    console.warn('[google-oauth] No GBP accounts found for org=%s', orgId);
+    Sentry.captureMessage('[§318] No GBP accounts found after OAuth', {
+      level: 'warning',
+      tags: { file: 'google/callback/route.ts', sprint: '318' },
+      extra: { orgId },
+    });
     return redirectOnError('gbp_no_accounts');
   }
 
@@ -296,21 +318,29 @@ export async function GET(request: NextRequest) {
       locations = (locationsData.locations ?? []) as GBPLocation[];
       hasMore = !!locationsData.nextPageToken;
     } else {
-      console.error(
-        '[google-oauth] Locations fetch failed:',
-        locationsRes.status,
-        await locationsRes.text(),
-      );
+      const errText = await locationsRes.text();
+      Sentry.captureMessage(`[§318] GBP locations API HTTP ${locationsRes.status}`, {
+        level: 'error',
+        tags: { file: 'google/callback/route.ts', sprint: '318' },
+        extra: { orgId, gbpAccountName, status: locationsRes.status, body: errText },
+      });
       return redirectOnError('gbp_failed');
     }
   } catch (err) {
-    console.error('[google-oauth] Locations fetch error:', err);
+    Sentry.captureException(err, {
+      tags: { file: 'google/callback/route.ts', sprint: '318' },
+      extra: { orgId, step: 'fetch_locations' },
+    });
     return redirectOnError('gbp_failed');
   }
 
   // ── No locations → fallback ───────────────────────────────────────────
   if (locations.length === 0) {
-    console.warn('[google-oauth] No locations found for org=%s', orgId);
+    Sentry.captureMessage('[§318] No GBP locations found after OAuth', {
+      level: 'warning',
+      tags: { file: 'google/callback/route.ts', sprint: '318' },
+      extra: { orgId, gbpAccountName },
+    });
     return redirectOnError('gbp_no_locations');
   }
 
@@ -318,13 +348,12 @@ export async function GET(request: NextRequest) {
   if (locations.length === 1 && !hasMore) {
     try {
       await importSingleLocation(orgId, locations[0]);
-      console.log(
-        '[google-oauth] Auto-imported single location for org=%s',
-        orgId,
-      );
       return redirectOnSuccess();
     } catch (err) {
-      console.error('[google-oauth] Auto-import failed:', err);
+      Sentry.captureException(err, {
+        tags: { file: 'google/callback/route.ts', sprint: '318' },
+        extra: { orgId, step: 'auto_import_single' },
+      });
       return redirectOnError('gbp_failed');
     }
   }
@@ -344,10 +373,10 @@ export async function GET(request: NextRequest) {
       .single();
 
     if (pendingError || !pending) {
-      console.error(
-        '[google-oauth] pending_gbp_imports insert failed:',
-        pendingError?.message,
-      );
+      Sentry.captureException(pendingError, {
+        tags: { file: 'google/callback/route.ts', sprint: '318' },
+        extra: { orgId, step: 'insert_pending_imports' },
+      });
       return redirectOnError('gbp_failed');
     }
 
@@ -360,18 +389,14 @@ export async function GET(request: NextRequest) {
       path: '/',
     });
 
-    console.log(
-      '[google-oauth] %d locations → picker for org=%s import=%s',
-      locations.length,
-      orgId,
-      pending.id,
-    );
-
     return NextResponse.redirect(
       `${appUrl}/onboarding/connect/select`,
     );
   } catch (err) {
-    console.error('[google-oauth] Multi-location flow error:', err);
+    Sentry.captureException(err, {
+      tags: { file: 'google/callback/route.ts', sprint: '318' },
+      extra: { orgId, step: 'multi_location_flow' },
+    });
     return redirectOnError('gbp_failed');
   }
 }

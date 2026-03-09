@@ -216,15 +216,18 @@ export async function savePlatformUrl(
 }
 
 // ---------------------------------------------------------------------------
-// disconnectGBP — Sprint 57B
+// disconnectGBP — Sprint 57B, hardened §318
 // ---------------------------------------------------------------------------
 
 /**
  * Server Action: disconnect Google Business Profile by deleting the
  * google_oauth_tokens row for the authenticated org.
  *
- * Uses createServiceRoleClient() because google_oauth_tokens only grants
- * INSERT/UPDATE/DELETE to service_role (not authenticated).
+ * §318: Also cleans up related location_integrations (google) rows and
+ * stale pending_gbp_imports rows to prevent orphaned data.
+ *
+ * Uses createServiceRoleClient() because google_oauth_tokens and
+ * pending_gbp_imports only grant access to service_role.
  *
  * SECURITY: org_id derived server-side via getSafeAuthContext().
  */
@@ -235,15 +238,51 @@ export async function disconnectGBP(): Promise<ActionResult> {
   }
 
   const { createServiceRoleClient } = await import('@/lib/supabase/server');
+  const Sentry = await import('@sentry/nextjs');
   const supabase = createServiceRoleClient();
 
-  const { error } = await supabase
+  // 1. Delete OAuth tokens (primary disconnect)
+  const { error: tokenError } = await supabase
     .from('google_oauth_tokens')
     .delete()
     .eq('org_id', ctx.orgId);
 
-  if (error) {
-    return { success: false, error: error.message };
+  if (tokenError) {
+    Sentry.captureException(tokenError, {
+      tags: { file: 'integrations/actions.ts', sprint: '318' },
+      extra: { orgId: ctx.orgId, step: 'delete_tokens' },
+    });
+    return { success: false, error: tokenError.message };
+  }
+
+  // 2. §318: Clean up location_integrations (google) rows via authenticated client
+  //    RLS org_isolation_delete ensures only this org's rows are affected.
+  const authedSupabase = await createClient();
+  const { error: intError } = await authedSupabase
+    .from('location_integrations')
+    .delete()
+    .eq('platform', 'google');
+
+  if (intError) {
+    Sentry.captureException(intError, {
+      tags: { file: 'integrations/actions.ts', sprint: '318' },
+      extra: { orgId: ctx.orgId, step: 'delete_location_integrations' },
+    });
+    // Non-fatal: tokens already deleted, log but don't fail
+  }
+
+  // 3. §318: Clean up stale pending_gbp_imports (service-role only table)
+  const { error: pendingError } = await supabase
+    .from('pending_gbp_imports')
+    .delete()
+    .eq('org_id', ctx.orgId);
+
+  if (pendingError) {
+    Sentry.captureException(pendingError, {
+      tags: { file: 'integrations/actions.ts', sprint: '318' },
+      extra: { orgId: ctx.orgId, step: 'delete_pending_imports' },
+    });
+    // Non-fatal: tokens already deleted, log but don't fail
   }
 
   revalidatePath('/dashboard/integrations');

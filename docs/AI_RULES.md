@@ -6501,3 +6501,16 @@ Production audit identified 3 tables with `ENABLE ROW LEVEL SECURITY` but zero p
 - **Client widget:** `components/auth/TurnstileWidget.tsx` — loads Turnstile script dynamically, renders invisible challenge, passes token to parent via `onVerify` callback. When `NEXT_PUBLIC_TURNSTILE_SITE_KEY` is not set, renders nothing.
 - **IP forwarding:** The register route passes the client IP (`x-forwarded-for`) to Turnstile verification for additional validation.
 - **Env vars:** `NEXT_PUBLIC_TURNSTILE_SITE_KEY` (client-side), `TURNSTILE_SECRET_KEY` (server-side). Both optional — leave blank in dev/CI.
+
+### §318 — GBP Cleanup
+
+#### Rules
+- **Disconnect cleanup:** `disconnectGBP()` deletes not only `google_oauth_tokens` but also cleans up `location_integrations` (google) rows and stale `pending_gbp_imports` rows for the org. Token deletion is the primary operation; integration and import cleanup are non-fatal (Sentry-logged but don't block success).
+- **Sentry logging:** All error paths in the GBP OAuth callback route (`/api/auth/google/callback`) use `Sentry.captureException` or `Sentry.captureMessage` instead of `console.log/error/warn`. Sprint tag: `'318'`.
+- **Service role for token + pending tables:** `google_oauth_tokens` and `pending_gbp_imports` are service-role-only tables. Use `createServiceRoleClient()` for these. `location_integrations` uses the authenticated client (RLS enforced).
+
+### §319 — OAuth Loading State
+
+#### Rules
+- **Click loading state:** Both GBP connect buttons (dashboard `GBPConnectButton` and onboarding `ConnectGBPButton`) show a spinner + "Redirecting to Google…" text immediately on click, with `pointer-events-none` and reduced opacity. This prevents double-clicks and provides visual feedback during the OAuth redirect.
+- **State management:** Uses `useState(false)` for `isRedirecting`, set to `true` in the `onClick` handler. No cleanup needed — the page navigates away.
