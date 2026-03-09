@@ -73,17 +73,11 @@ export async function POST(request: Request): Promise<NextResponse> {
   });
 
   if (error || !data.session) {
-    // §313: If Supabase blocks login because email is unconfirmed, return 403
-    // with a redirect hint so the client sends user to /verify-email
+    // §P0-C3: Unified error response — never reveal whether email exists.
+    // Supabase returns different messages for "email not confirmed" vs
+    // "invalid credentials", but we return the same 401 to prevent enumeration.
     const isEmailNotConfirmed =
       error?.message?.toLowerCase().includes('email not confirmed');
-
-    if (isEmailNotConfirmed) {
-      return NextResponse.json(
-        { error: 'Please verify your email before signing in.', email_verification_required: true },
-        { status: 403 },
-      );
-    }
 
     const isInvalidCredentials =
       error?.message?.toLowerCase().includes('invalid login') ||
@@ -94,23 +88,32 @@ export async function POST(request: Request): Promise<NextResponse> {
       await recordFailedLogin(email);
     }
 
+    // Generic message for both invalid credentials and unverified email
+    if (isEmailNotConfirmed || isInvalidCredentials) {
+      return NextResponse.json(
+        {
+          error: 'Invalid email or password',
+          // Client checks this flag to optionally show verification hint
+          ...(isEmailNotConfirmed && { email_verification_required: true }),
+        },
+        { status: 401 },
+      );
+    }
+
     return NextResponse.json(
-      { error: isInvalidCredentials ? 'Invalid email or password' : (error?.message ?? 'Authentication failed') },
-      { status: isInvalidCredentials ? 401 : 500 }
+      { error: error?.message ?? 'Authentication failed' },
+      { status: 500 }
     );
   }
 
   // §314: Clear failed login attempts on successful authentication
   await clearFailedLogins(email);
 
+  // §P0-H5: Session tokens are set as httpOnly cookies by Supabase SSR client.
+  // Do NOT expose access_token/refresh_token in response body.
   return NextResponse.json({
     user_id: data.user.id,
     email: data.user.email,
     email_verified: !!data.user.email_confirmed_at,
-    session: {
-      access_token: data.session.access_token,
-      refresh_token: data.session.refresh_token,
-      expires_at: data.session.expires_at,
-    },
   });
 }

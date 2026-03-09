@@ -4,6 +4,25 @@
 
 ---
 
+## §320 — P0 Auth Security Audit Fixes (2026-03-09)
+
+**C1 — Reset Password Policy Enforcement:**
+- `app/(auth)/reset-password/page.tsx` — Now enforces full password policy from `lib/auth/password-policy.ts`: common password blocklist (`isCommonPassword`), strength scoring (`computePasswordStrength` >= 2), and 72-byte bcrypt max (`MAX_PASSWORD_LENGTH`). Previously only checked `password.length < 8`.
+
+**C3 — Login Email Enumeration Prevention:**
+- `app/api/auth/login/route.ts` — Unified error responses for invalid credentials and unverified email. Both now return HTTP 401 with generic "Invalid email or password" message. Previously returned 403 for unverified email, allowing attackers to enumerate registered emails. The `email_verification_required` flag is still included so the client can optionally show a verification hint.
+
+**H4 — Turnstile Sentry Logging on Fail-Open:**
+- `lib/auth/turnstile.ts` — Network error catch block now logs to `Sentry.captureException()` before returning fail-open success. Previously silently swallowed network errors with no observability.
+
+**H5 — Session Token Exposure Removal:**
+- `app/api/auth/login/route.ts` — Removed `session` object (`access_token`, `refresh_token`, `expires_at`) from login JSON response body. Supabase SSR client already sets these as httpOnly cookies automatically. Response now only contains `user_id`, `email`, `email_verified`.
+
+**Tests:** 6 new (`auth-p0-audit-fixes.test.tsx`), 3 updated (`auth-routes.test.ts` — 403→401, no session assertion; `auth-captcha-s317.test.ts` — Sentry assertion on fail-open). **7500 tests, 465 files — ALL PASS.**
+**Files changed:** 4 source files modified, 1 new test file, 2 existing test files updated.
+
+---
+
 ## P2 Production Audit Fix — Dead Code + Dedup + Type Safety + Validation + Version Pinning (2026-03-08)
 
 **Dead Code Removal (#10):**

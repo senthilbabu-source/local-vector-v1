@@ -13,6 +13,9 @@ import {
   verifyTurnstileToken,
 } from '@/lib/auth/turnstile';
 
+const mockCaptureException = vi.fn();
+vi.mock('@sentry/nextjs', () => ({ captureException: mockCaptureException }));
+
 describe('§317: Turnstile verification (lib/auth/turnstile.ts)', () => {
   let originalEnv: string | undefined;
   const originalFetch = globalThis.fetch;
@@ -128,14 +131,23 @@ describe('§317: Turnstile verification (lib/auth/turnstile.ts)', () => {
       expect(result.error_codes).toContain('http-error-503');
     });
 
-    it('fails open on network error (returns success)', async () => {
+    it('fails open on network error and logs to Sentry (§P0-H4)', async () => {
       process.env.TURNSTILE_SECRET_KEY = 'test-secret';
-      globalThis.fetch = vi.fn().mockRejectedValue(new Error('Network timeout'));
+      const networkError = new Error('Network timeout');
+      globalThis.fetch = vi.fn().mockRejectedValue(networkError);
+      mockCaptureException.mockClear();
 
       const result = await verifyTurnstileToken('some-token');
 
       expect(result.success).toBe(true);
       expect(result.error_codes).toContain('network-error-failopen');
+      // §P0-H4: Sentry must be called on fail-open so ops is aware
+      expect(mockCaptureException).toHaveBeenCalledWith(
+        networkError,
+        expect.objectContaining({
+          tags: expect.objectContaining({ component: 'turnstile', behavior: 'fail-open' }),
+        }),
+      );
     });
 
     it('omits remoteip when ip is not provided', async () => {

@@ -84,8 +84,14 @@ export async function verifyTurnstileToken(
       hostname: data.hostname,
       error_codes: data['error-codes'] ?? [],
     };
-  } catch (_e) {
-    // Network failure → fail-open to avoid blocking registration
+  } catch (e) {
+    // §P0-H4: Network failure → fail-open to avoid blocking registration,
+    // but log to Sentry so ops is aware of Turnstile connectivity issues.
+    const Sentry = await import('@sentry/nextjs');
+    Sentry.captureException(e, {
+      tags: { component: 'turnstile', behavior: 'fail-open' },
+      extra: { ip },
+    });
     return { success: true, error_codes: ['network-error-failopen'] };
   }
 }

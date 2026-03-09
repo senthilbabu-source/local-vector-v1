@@ -6514,3 +6514,11 @@ Production audit identified 3 tables with `ENABLE ROW LEVEL SECURITY` but zero p
 #### Rules
 - **Click loading state:** Both GBP connect buttons (dashboard `GBPConnectButton` and onboarding `ConnectGBPButton`) show a spinner + "Redirecting to Google…" text immediately on click, with `pointer-events-none` and reduced opacity. This prevents double-clicks and provides visual feedback during the OAuth redirect.
 - **State management:** Uses `useState(false)` for `isRedirecting`, set to `true` in the `onClick` handler. No cleanup needed — the page navigates away.
+
+### §320 — P0 Auth Security Audit Fixes
+
+#### Rules
+- **Reset password policy (C1):** `app/(auth)/reset-password/page.tsx` MUST enforce the full password policy from `lib/auth/password-policy.ts` — blocklist check (`isCommonPassword`), strength >= 2 (`computePasswordStrength`), and 72-byte bcrypt max (`MAX_PASSWORD_LENGTH`). Never validate only length.
+- **No email enumeration (C3):** Login route MUST return HTTP 401 for both invalid credentials AND unverified email. Never use differentiated status codes (e.g., 403 vs 401) that reveal whether an email is registered. The `email_verification_required` boolean flag may be included in the 401 body for client-side UX but MUST NOT change the status code.
+- **Turnstile fail-open logging (H4):** When `verifyTurnstileToken()` catches a network error and returns fail-open success, it MUST log to `Sentry.captureException()` with tags `{ component: 'turnstile', behavior: 'fail-open' }`. Silent fail-open is a security blind spot.
+- **No tokens in response body (H5):** Login route MUST NOT include `access_token`, `refresh_token`, or `expires_at` in the JSON response body. The Supabase SSR client sets these as httpOnly cookies automatically. Response should only contain `user_id`, `email`, `email_verified`.

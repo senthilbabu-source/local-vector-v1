@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
 import * as Sentry from '@sentry/nextjs';
+import { isCommonPassword, computePasswordStrength, MAX_PASSWORD_LENGTH } from '@/lib/auth/password-policy';
 
 export default function ResetPasswordPage() {
   const router = useRouter();
@@ -19,6 +20,24 @@ export default function ResetPasswordPage() {
 
     if (password.length < 8) {
       setErrorMsg('Password must be at least 8 characters.');
+      setStatus('error');
+      return;
+    }
+
+    if (new TextEncoder().encode(password).length > MAX_PASSWORD_LENGTH) {
+      setErrorMsg('Password must not exceed 72 bytes (bcrypt limit).');
+      setStatus('error');
+      return;
+    }
+
+    if (isCommonPassword(password)) {
+      setErrorMsg('This password is too common. Please choose a stronger password.');
+      setStatus('error');
+      return;
+    }
+
+    if (computePasswordStrength(password) < 2) {
+      setErrorMsg('Password is too weak. Use a mix of uppercase, lowercase, numbers, and symbols.');
       setStatus('error');
       return;
     }

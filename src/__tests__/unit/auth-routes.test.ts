@@ -294,23 +294,24 @@ describe('POST /api/auth/login', () => {
     expect(body.error).toBe('Invalid email or password');
   });
 
-  // §313: Email not confirmed — returns 403 with verification redirect
-  it('returns 403 with email_verification_required when email is not confirmed', async () => {
+  // §P0-C3: Email not confirmed — returns 401 (same as invalid credentials) to prevent enumeration
+  it('returns 401 with email_verification_required when email is not confirmed', async () => {
     mockSignInWithPassword.mockResolvedValue({
       data: { session: null, user: null },
       error: { message: 'Email not confirmed' },
     });
 
     const res = await login(makeRequest({ email: 'a@b.com', password: 'SecureP@ss9' }));
-    expect(res.status).toBe(403);
+    expect(res.status).toBe(401);
     const body = await res.json();
     expect(body.email_verification_required).toBe(true);
-    expect(body.error).toContain('verify');
+    expect(body.error).toBe('Invalid email or password');
   });
 
   // ── Happy path ────────────────────────────────────────────────────────────
 
-  it('returns 200 with session tokens on valid credentials (verified user)', async () => {
+  // §P0-H5: Session tokens are NOT exposed in response body (httpOnly cookies only)
+  it('returns 200 with user info but no session tokens on valid credentials', async () => {
     mockSignInWithPassword.mockResolvedValue({
       data: {
         user: { id: 'user-uuid', email: 'a@b.com', email_confirmed_at: '2026-01-01T00:00:00Z' },
@@ -329,7 +330,10 @@ describe('POST /api/auth/login', () => {
     expect(body.user_id).toBe('user-uuid');
     expect(body.email).toBe('a@b.com');
     expect(body.email_verified).toBe(true);
-    expect(body.session.access_token).toBe('access-tok');
+    // Session tokens must NOT be in the response body
+    expect(body.session).toBeUndefined();
+    expect(body.access_token).toBeUndefined();
+    expect(body.refresh_token).toBeUndefined();
   });
 
   it('returns email_verified=false for unverified user login', async () => {
